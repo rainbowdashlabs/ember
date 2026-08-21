@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.inventory.service.ClusterItemReleaseService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
@@ -53,6 +54,7 @@ public class ClusterService {
     private final ClusterRepository clusterRepository;
     private final StationRepository stationRepository;
     private final ClusterItemReleaseService itemReleaseService;
+    private final FederationService federationService;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -60,10 +62,12 @@ public class ClusterService {
             ClusterRepository clusterRepository,
             StationRepository stationRepository,
             ClusterItemReleaseService itemReleaseService,
+            FederationService federationService,
             DomainEventBus eventBus) {
         this.clusterRepository = clusterRepository;
         this.stationRepository = stationRepository;
         this.itemReleaseService = itemReleaseService;
+        this.federationService = federationService;
         this.eventBus = eventBus;
     }
 
@@ -165,6 +169,11 @@ public class ClusterService {
         }
 
         stationRepository.setCluster(stationId, clusterId);
+        federationService.createClusterFederation(
+                cluster.homeStationId(),
+                stationId,
+                clusterRepository.findStationIds(clusterId),
+                cluster.autoFederate());
         log.info("Station {} joined cluster {}", stationId, clusterId);
         eventBus.publish(new ClusterApplicationResolved(stationId, cluster.name(), true, null));
     }
@@ -188,9 +197,29 @@ public class ClusterService {
         }
 
         itemReleaseService.recallFromStation(clusterId, stationId);
+        federationService.removeClusterFederation(stationId);
         stationRepository.setCluster(stationId, null);
         log.info("Cluster {} released station {}", clusterId, stationId);
         eventBus.publish(new ClusterStationReleased(stationId, cluster.name()));
+    }
+
+    /**
+     * Says whether the cluster wants its stations connected to each other.
+     *
+     * <p>Turning it on fills in the pairs that were never made. Turning it off leaves the ones that exist
+     * alone: the stations have been seeing each other's calendars and lending each other gear, and quietly
+     * cutting all of that because a setting moved would be a bigger act than the setting looks like.
+     *
+     * @param clusterId    the cluster
+     * @param autoFederate whether member stations should be paired with each other
+     */
+    public void setAutoFederate(int clusterId, boolean autoFederate) {
+        requireCluster(clusterId);
+        clusterRepository.setAutoFederate(clusterId, autoFederate);
+        if (autoFederate) {
+            federationService.backfillClusterMesh(clusterRepository.findStationIds(clusterId));
+        }
+        log.info("Cluster {} auto-federation set to {}", clusterId, autoFederate);
     }
 
     /**

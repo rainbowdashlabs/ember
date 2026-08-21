@@ -110,6 +110,20 @@ public class ClusterRepository {
                 .changed();
     }
 
+    /**
+     * Whether the cluster wants its member stations connected to each other.
+     *
+     * @param id           the cluster
+     * @param autoFederate the new setting
+     * @return {@code true} if a row was updated
+     */
+    public boolean setAutoFederate(int id, boolean autoFederate) {
+        return query("UPDATE cluster SET auto_federate = :auto_federate WHERE id = :id;")
+                .single(call().bind("auto_federate", autoFederate).bind("id", id))
+                .update()
+                .changed();
+    }
+
     public boolean delete(int id) {
         return SqlSupport.deleteById("cluster", id);
     }

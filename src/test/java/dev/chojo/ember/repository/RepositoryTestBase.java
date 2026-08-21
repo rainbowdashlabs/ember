@@ -15,6 +15,7 @@ import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
 import dev.chojo.ember.TestContainers;
 import dev.chojo.ember.auth.TokenHasher;
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -25,6 +26,7 @@ import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
 import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterApplicationRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository;
@@ -48,6 +50,7 @@ import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
 import dev.chojo.ember.feature.form.repository.FormRepository;
@@ -146,6 +149,10 @@ public abstract class RepositoryTestBase {
     protected static ClusterRepository clusterRepo;
 
     protected static ClusterApplicationRepository clusterApplicationRepo;
+
+    /** Shared, because its dependency list grows with every step and no test cares about it. */
+    protected static ClusterService clusterService;
+
     protected static ItemCustodyService itemCustodyService;
     protected static MovementFlowRepository movementFlowRepo;
     protected static ItemMovementRepository itemMovementRepo;
@@ -282,6 +289,12 @@ public abstract class RepositoryTestBase {
                 itemMovementRepo, movementFlowService, inventoryRepo, itemCustodyService, new DomainEventBus(Set.of()));
         clusterItemReleaseService =
                 new ClusterItemReleaseService(inventoryRepo, itemCustodyService, itemMovementService);
+        clusterService = new ClusterService(
+                clusterRepo,
+                stationRepo,
+                clusterItemReleaseService,
+                new FederationService(new FederationRepository(), stationRepo, new Api()),
+                new DomainEventBus(Set.of()));
         exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         memberGroupRepo = new MemberGroupRepository();
         profileFieldRepo = new ProfileFieldRepository();

@@ -14,6 +14,7 @@ import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import {useStations} from '@/composables/useStations'
 import {useCluster} from '@/composables/useCluster'
 import MutedText from '@/components/typography/MutedText.vue'
+import ClusterChoiceList from './stationselectview/ClusterChoiceList.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -73,6 +74,8 @@ onMounted(async () => {
           <font-awesome-icon :icon="['fas', 'chevron-right']" class="text-(--text-muted)"/>
         </NeutralContainer>
       </div>
+
+      <ClusterChoiceList v-if="clustersLoaded" :clusters="clusterList" @select="selectCluster"/>
 
       <div v-if="clustersLoaded && clusterList.length > 0" class="space-y-3">
         <MutedText tag="p" size="sm">{{ t('stationSelect.clusterHint') }}</MutedText>

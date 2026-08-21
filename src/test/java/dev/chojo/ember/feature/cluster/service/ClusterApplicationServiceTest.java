@@ -27,13 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ClusterApplicationServiceTest extends RepositoryTestBase {
     private static final AtomicInteger NAMES = new AtomicInteger();
 
-    private static ClusterService clusterService;
     private static ClusterApplicationService service;
 
     @BeforeAll
     static void setup() {
-        clusterService =
-                new ClusterService(clusterRepo, stationRepo, clusterItemReleaseService, new DomainEventBus(Set.of()));
         service = new ClusterApplicationService(
                 clusterApplicationRepo, clusterRepo, stationRepo, clusterService, new DomainEventBus(Set.of()));
     }

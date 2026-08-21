@@ -113,6 +113,10 @@ public class ClusterRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(ClusterRequest.class);
         clusterService.rename(cluster.id(), request.name(), request.description());
+        // Absent means unchanged, so a caller that only wanted to rename does not silently rewire the mesh
+        if (request.autoFederate() != null && request.autoFederate() != cluster.autoFederate()) {
+            clusterService.setAutoFederate(cluster.id(), request.autoFederate());
+        }
         ctx.json(toResponse(clusterService.findById(cluster.id()).orElseThrow(NotFoundResponse::new)));
     }
 
@@ -162,7 +166,11 @@ public class ClusterRoutes implements Routes {
                 cluster.storagePoolBytes());
     }
 
-    public record ClusterRequest(String name, String description) {}
+    /**
+     * @param autoFederate whether member stations should be connected to each other, or {@code null} to
+     *                     leave the setting as it is
+     */
+    public record ClusterRequest(String name, String description, Boolean autoFederate) {}
 
     /**
      * @param homeStationId the shell the cluster owns, on the wire as its station identity

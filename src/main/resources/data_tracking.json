@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:4385fe8f780a49cbc50bf1120332989df68e8dc4f5bc33dd279811fdb044a21a",
-  "generatedAt" : "2026-08-21T00:19:03Z",
+  "schemaHash" : "sha256:1c54223242d2b42a68356722a4aaf4f51c571cf51dd44dc9ba858818e928e71a",
+  "generatedAt" : "2026-08-21T00:56:22Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -6304,7 +6304,7 @@
     "federation_partner" : {
       "feature" : "federation",
       "scope" : "STATION",
-      "tableHash" : "sha256:33cec3da7ff559730a0bdf8045f8d7b021221a41392b19242ab4f703aff21271",
+      "tableHash" : "sha256:badc1086ecc975446d1f258e9f91f9fec14dc22a1adff0a28637f06c789cc3a3",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -6388,6 +6388,18 @@
         "nullable" : true,
         "verified" : true,
         "description" : "Last contract vector the partner presented: core hash plus one hash per feature surface. NULL until the first version exchange; treated as incompatible while unknown."
+      }, {
+        "name" : "cluster_managed",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "TRUE when a cluster made this pair rather than the two stations. Neither side may delete it."
+      }, {
+        "name" : "cluster_home",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "TRUE when this pair runs to or from a cluster home station, which carries the cluster content. It can never be paused."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",

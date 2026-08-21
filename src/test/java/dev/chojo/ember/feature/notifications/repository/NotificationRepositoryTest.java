@@ -6,9 +6,7 @@
 package dev.chojo.ember.feature.notifications.repository;
 
 import dev.chojo.ember.api.auth.ClusterUserType;
-import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
@@ -180,8 +178,6 @@ class NotificationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(22)
     void aClusterMemberHasATotallySeparateFeed() {
-        var clusterService = new ClusterService(
-                clusterRepo, stationRepo, clusterItemReleaseService, new DomainEventBus(java.util.Set.of()));
         var cluster = clusterService.create("Kreisverband Post", null);
         var clusterAccount = accountRepo.create("cluster-notif@test.com", "Clus", "Post");
         var clusterMember = clusterService.addMember(cluster.id(), clusterAccount.id(), ClusterUserType.CLUSTER_ADMIN);

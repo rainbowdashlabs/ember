@@ -67,6 +67,8 @@ export interface Cluster {
 export interface ClusterRequest {
     name: string
     description?: string | null
+    /** Leave undefined to keep the setting as it is. */
+    autoFederate?: boolean
 }
 
 /** The clusters the signed-in account may act for. */

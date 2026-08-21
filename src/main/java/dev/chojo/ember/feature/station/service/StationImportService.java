@@ -165,6 +165,10 @@ public class StationImportService {
             if (station.stationKind() == StationKind.CLUSTER_HOME) {
                 throw new BadRequestResponse("A cluster's home station cannot be imported into");
             }
+            if (station.clusterId() != null) {
+                throw new BadRequestResponse(
+                        "A station that belongs to a cluster cannot be overwritten from an archive.");
+            }
         });
         Map<String, Object> stationData = asMap(bundle.get("station"));
         if (stationData != null) stationImporter.applyFields(targetStationId, stationData);

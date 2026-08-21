@@ -7,12 +7,10 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
-import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterApplicationResolved;
 import dev.chojo.ember.event.events.ClusterApplicationSubmitted;
 import dev.chojo.ember.event.events.ClusterApplicationWithdrawn;
 import dev.chojo.ember.event.events.ClusterStationReleased;
-import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
@@ -21,7 +19,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -42,13 +39,10 @@ class ClusterEventHandlerTest extends RepositoryTestBase {
     private static final AtomicInteger NAMES = new AtomicInteger();
 
     private static NotificationService notificationService;
-    private static ClusterService clusterService;
 
     @BeforeAll
     static void setup() {
         notificationService = mock(NotificationService.class);
-        clusterService =
-                new ClusterService(clusterRepo, stationRepo, clusterItemReleaseService, new DomainEventBus(Set.of()));
     }
 
     private int clusterWithAdmin() {

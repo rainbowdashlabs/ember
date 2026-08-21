@@ -9,6 +9,7 @@
 - **A station decides how gear moves between it and the body above.** Under Inventory → Configuration the chain an exchange, a return or an issue walks is edited step by step: what each one is called, who confirms it, which of the two items it is about and where that item is afterwards. Which chain applies follows the owner of the gear, so one inventory holding both can reach different chains for different rows.
 - **Stations can belong to an association.** An administrator creates one under Admin → Associations, and whoever runs it gets their own area at `/cluster`, with rights counted separately from those held at any station.
 - **A station asks to join an association, and the association answers.** Only a station's owner can apply, under Manage → Association, and the association approves or refuses it with a reason both sides can read. An association can also create stations of its own, which belong to it from the first moment.
+- **Stations in an association are connected without anybody arranging it.** Joining one connects the station to the association and, unless the association turns that off, to every other station under it, with calendars, knowledge, gear and the rest already shared both ways. Those connections are the association's, so neither station can end one, and the one carrying the association's own content cannot be paused either.
 - **A waiting list can work with ages.** A date field set to the type date of birth gives the list an age to go by: it can refuse a registration below a minimum age, and it marks everyone still under the age for joining so they are told apart from those merely waiting their turn. Those entries can be hidden while the list is worked through. An existing date field becomes the date of birth without losing the answers already given.
 
 ### Improvements
@@ -20,6 +21,7 @@
 
 ### Changes
 
+- **A station in an association cannot be moved to another instance.** Transferring it would leave the association holding a station that is no longer there. Leave the association first, and the transfer works as before.
 - **An item says who owns it.** Every piece of gear is recorded as belonging either to the station itself or to the body above it, the municipality or the district association, in place of the internal and external labels it carried before. Members are no longer offered as owners, because gear a member bought was never tracked here.
 - **An item also says who has it.** Alongside its owner, a piece of gear now records where it actually is: in its owner's store, at the station, with a member, lent to a partner or missing. An item's page shows both, and the lists of what a station holds follow what it has rather than what it owns.
 - **An exchange is a chain of steps a station works through.** Gear moving between a station and the body above it walks a named chain instead of five fixed statuses: announced, taken back, posted, replacement received, replacement handed over. Every step is one somebody at the station actually saw, and the chain can be renamed or reshaped under Inventory without losing the wording a finished exchange was walked under.

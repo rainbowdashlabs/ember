@@ -98,6 +98,10 @@ public class StationExportService {
             if (station.stationKind() == StationKind.CLUSTER_HOME) {
                 throw new BadRequestResponse("A cluster's home station cannot be transferred");
             }
+            if (station.clusterId() != null) {
+                throw new BadRequestResponse(
+                        "A station that belongs to a cluster cannot be transferred. Leave the cluster first.");
+            }
         });
     }
 

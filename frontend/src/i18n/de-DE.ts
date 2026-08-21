@@ -5467,6 +5467,10 @@ export default {
         saved: 'Die Einstellungen wurden gespeichert.',
         loadFailed: 'Die Einstellungen konnten nicht geladen werden.',
         saveFailed: 'Die Einstellungen konnten nicht gespeichert werden.',
+        federationTitle: 'Vernetzung der Wachen',
+        autoFederateLabel: 'Wachen untereinander verbinden',
+        autoFederateHint: 'Neue Wachen des Verbands werden automatisch mit allen anderen verbunden, sodass sie Termine, Wissen und Material teilen können.',
+        autoFederateOffHint: 'Beim Ausschalten bleiben bestehende Verbindungen erhalten. Es werden nur keine neuen mehr angelegt.',
     },
     common: {
         loading: 'Laden...',

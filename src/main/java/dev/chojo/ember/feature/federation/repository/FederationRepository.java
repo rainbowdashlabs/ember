@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.federation.entity.FederationMetadataCache;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -38,7 +39,8 @@ import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 public class FederationRepository {
     private static final String FEDERATION_PARTNER_COLUMNS = """
             id, station_id, partner_station_id, invite_code, public_key, partner_public_key, status, \
-            federation_contract, created_at, updated_at, remote_host, partner_station_name""";
+            federation_contract, created_at, updated_at, remote_host, partner_station_name, \
+            cluster_managed, cluster_home""";
     private static final String FEDERATION_CAPABILITY_COLUMNS = "id, partner_id, capability, direction, enabled";
     private static final String FEDERATION_KB_SHARE_COLUMNS = "id, station_id, file_id, folder_id, share_scope";
     private static final String FEDERATION_QUIZ_SHARE_COLUMNS = "id, station_id, catalog_id, share_scope";
@@ -138,6 +140,64 @@ public class FederationRepository {
                         .bind("remote_host", remoteHost),
                 FederationPartner.map(),
                 FEDERATION_PARTNER_COLUMNS);
+    }
+
+    /**
+     * Creates a pair a cluster made, already active and already trusted.
+     *
+     * <p>No invite, no acceptance and no key exchange. Both stations are on this instance and both answer to
+     * the same cluster, so there is nobody to ask: the cluster has already decided, and an invite code that
+     * neither side would ever type would be theatre.
+     *
+     * @param stationId        the station this row belongs to
+     * @param partnerStationId the station on the other end
+     * @param clusterHome      whether this is the pair that carries the cluster's own content
+     * @return the pair, or empty when it was already there
+     */
+    public Optional<FederationPartner> createClusterPartner(int stationId, UUID partnerStationId, boolean clusterHome) {
+        return query("""
+                INSERT INTO federation_partner(station_id, partner_station_id, status, partner_station_name,
+                                               cluster_managed, cluster_home)
+                VALUES (:station_id, :partner_station_id::UUID, 'ACTIVE',
+                        (SELECT name FROM station WHERE uid = :partner_station_id::UUID), TRUE, :cluster_home)
+                ON CONFLICT DO NOTHING
+                RETURNING %s;""", FEDERATION_PARTNER_COLUMNS)
+                .single(call().bind("station_id", stationId)
+                        .bind("partner_station_id", partnerStationId, UUID_STRING)
+                        .bind("cluster_home", clusterHome))
+                .map(FederationPartner.map())
+                .first();
+    }
+
+    /**
+     * The pairs a cluster made that run to or from a given station, in both directions.
+     *
+     * @param stationId the station
+     * @return every cluster-managed row naming it, whichever end it sits on
+     */
+    public List<FederationPartner> findClusterManagedFor(int stationId) {
+        return query("""
+                SELECT %s FROM federation_partner fp
+                WHERE fp.cluster_managed
+                  AND (fp.station_id = :station_id
+                       OR fp.partner_station_id = (SELECT uid FROM station WHERE id = :station_id));""", SqlSupport.alias("fp", FEDERATION_PARTNER_COLUMNS))
+                .single(call().bind("station_id", stationId))
+                .map(FederationPartner.map())
+                .all();
+    }
+
+    /**
+     * Whether these two stations already have a pair in this direction, cluster-made or not.
+     *
+     * @param stationId        the station the row would belong to
+     * @param partnerStationId the station on the other end
+     * @return {@code true} when one is already there
+     */
+    public boolean partnerExists(int stationId, UUID partnerStationId) {
+        return SqlSupport.exists(
+                """
+                SELECT 1 FROM federation_partner
+                WHERE station_id = :station_id AND partner_station_id = :partner_station_id::UUID;""", call().bind("station_id", stationId).bind("partner_station_id", partnerStationId, UUID_STRING));
     }
 
     public boolean updateRemoteHost(int id, String remoteHost) {
