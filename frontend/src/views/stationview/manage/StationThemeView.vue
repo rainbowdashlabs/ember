@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -36,6 +36,11 @@ const stationName = ref('')
 const lockTheme = ref(false)
 const lockFeel = ref(false)
 
+// What the cluster above the station has taken out of its hands, and who to name for it. Separate from
+// lockTheme and lockFeel, which are the station's own decision about its members.
+const clusterName = ref<string | null>(null)
+const clusterLocks = ref({theme: false, colors: false, feel: false, logo: false})
+
 const customEnabled = ref(false)
 const presetKey = ref('')
 
@@ -55,6 +60,9 @@ function defaultColors(): ThemeColors {
 
 const customColors = ref<ThemeColors>(defaultColors())
 
+const anythingLocked = computed(() =>
+    clusterLocks.value.theme || clusterLocks.value.colors || clusterLocks.value.feel || clusterLocks.value.logo)
+
 function loadPreset() {
   const theme = THEMES[presetKey.value]
   if (!theme) return
@@ -64,6 +72,13 @@ function loadPreset() {
 const {loading, error} = useAsyncLoader(async () => {
   const info = await stationManage.getStationInfo()
   stationName.value = info.name ?? ''
+  clusterName.value = info.clusterName ?? null
+  clusterLocks.value = {
+    theme: info.themeLocked ?? false,
+    colors: info.colorsLocked ?? false,
+    feel: info.feelLocked ?? false,
+    logo: info.logoLocked ?? false,
+  }
   lockTheme.value = !(info.allowUserTheme ?? true)
   lockFeel.value = !(info.allowUserFeel ?? true)
   if (info.defaultTheme) themeCtrl.applyTheme(info.defaultTheme)
@@ -112,14 +127,22 @@ function removeCustomColors() {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <ThemeDefaultsPanel v-model:lock-theme="lockTheme" v-model:lock-feel="lockFeel"/>
-        <CustomColorsPanel
-            v-model:enabled="customEnabled"
-            v-model:colors="customColors"
-            v-model:preset-key="presetKey"
-            @load-preset="loadPreset"
-            @remove="removeCustomColors"
-        />
+        <Alert v-if="clusterName && anythingLocked" variant="info">
+          {{ t('stationManage.lookClusterLocked', {cluster: clusterName}) }}
+        </Alert>
+
+        <fieldset :disabled="clusterLocks.theme || clusterLocks.feel" class="contents">
+          <ThemeDefaultsPanel v-model:lock-theme="lockTheme" v-model:lock-feel="lockFeel"/>
+        </fieldset>
+        <fieldset :disabled="clusterLocks.colors" class="contents">
+          <CustomColorsPanel
+              v-model:enabled="customEnabled"
+              v-model:colors="customColors"
+              v-model:preset-key="presetKey"
+              @load-preset="loadPreset"
+              @remove="removeCustomColors"
+          />
+        </fieldset>
         <SaveButton :action="save"/>
       </template>
     </div>

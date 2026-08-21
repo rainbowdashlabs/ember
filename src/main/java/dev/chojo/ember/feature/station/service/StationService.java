@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
@@ -25,6 +26,7 @@ import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.SlugGenerator;
 import io.javalin.http.BadRequestResponse;
+import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -181,9 +183,56 @@ public class StationService {
             String customThemeColors,
             ThemeFeel defaultFeel,
             boolean allowUserFeel) {
+        Station current = stationRepository.findById(id).orElseThrow(NotFoundResponse::new);
+        Locks locks = lookAndFeelLocks(id);
+        // A locked setting keeps whatever the cluster last wrote, whatever the station sent. Refusing the
+        // whole save instead would stop a station changing the parts it may still change, which are on the
+        // same screen and in the same request.
         stationRepository.updateThemeSettings(
-                id, defaultTheme, allowUserTheme, customThemeColors, defaultFeel, allowUserFeel);
+                id,
+                locks.theme() ? current.defaultTheme() : defaultTheme,
+                allowUserTheme,
+                locks.colors() ? current.customThemeColors() : customThemeColors,
+                locks.feel() ? current.defaultFeel() : defaultFeel,
+                allowUserFeel);
     }
+
+    /**
+     * What a station's cluster has taken out of its hands.
+     *
+     * <p>Whether members may pick their own theme is not among them: that is a question about the people at
+     * the station rather than about how the cluster wants to look, and it stays the station's either way.
+     *
+     * @param stationId the station
+     * @return what is locked, all false when the station answers to no cluster
+     */
+    public Locks lookAndFeelLocks(int stationId) {
+        return clusterRepository
+                .findByStation(stationId)
+                .map(cluster -> new Locks(
+                        cluster.themeLocked(), cluster.colorsLocked(), cluster.feelLocked(), cluster.logoLocked()))
+                .orElseGet(() -> new Locks(false, false, false, false));
+    }
+
+    /**
+     * The name of the cluster a station answers to, for a screen that has to say who locked something.
+     *
+     * @param stationId the station
+     * @return the cluster's name, or empty when it answers to nobody
+     */
+    public Optional<String> clusterNameOf(int stationId) {
+        return clusterRepository.findByStation(stationId).map(Cluster::name);
+    }
+
+    /**
+     * The look-and-feel settings a station may not change itself.
+     *
+     * @param theme  the colour theme
+     * @param colors the colour set
+     * @param feel   the interface feel
+     * @param logo   the station's logo
+     */
+    public record Locks(boolean theme, boolean colors, boolean feel, boolean logo) {}
 
     /**
      * Updates a station's name and assigns a manager by email.

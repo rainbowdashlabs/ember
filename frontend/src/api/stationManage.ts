@@ -29,6 +29,12 @@ export interface StationManageInfo {
     publicWaitlistEnabled?: boolean
     publicBlogEnabled?: boolean
     publicSlug?: string | null
+    /** What the cluster above the station has taken out of its hands, and who to name for it. */
+    themeLocked?: boolean
+    colorsLocked?: boolean
+    feelLocked?: boolean
+    logoLocked?: boolean
+    clusterName?: string | null
 }
 
 export interface UpdateStationNameRequest {

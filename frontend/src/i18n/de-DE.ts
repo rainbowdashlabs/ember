@@ -3155,6 +3155,7 @@ export default {
         modulesTitle: 'Module',
         modulesHint: 'Aktiviere oder deaktiviere Module für diese Wache. Deaktivierte Module werden im Menü und auf dem Dashboard ausgeblendet.',
         moduleClusterLocked: 'Vom Verband {cluster} abgeschaltet',
+        lookClusterLocked: 'Der Verband {cluster} gibt Teile des Erscheinungsbilds vor. Was er festgelegt hat, lässt sich hier nicht ändern.',
         moduleInventory: 'Inventar',
         moduleNews: 'Neuigkeiten',
         moduleEvents: 'Termine',

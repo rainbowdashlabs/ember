@@ -227,6 +227,7 @@ public class StationManageRoutes implements Routes {
 
     private StationInfo buildStationInfo(Station station, UserSession session) {
         boolean hasLogo = logoService.exists(station.id());
+        var locks = stationService.lookAndFeelLocks(station.id());
         boolean isOwner = session.member() != null
                 && station.ownerMemberId() != null
                 && station.ownerMemberId() == session.member().id();
@@ -251,7 +252,12 @@ public class StationManageRoutes implements Routes {
                 station.publicPagesEnabled(),
                 station.publicSlug(),
                 station.publicWaitlistEnabled(),
-                station.publicBlogEnabled());
+                station.publicBlogEnabled(),
+                locks.theme(),
+                locks.colors(),
+                locks.feel(),
+                locks.logo(),
+                stationService.clusterNameOf(station.id()).orElse(null));
     }
 
     @OpenApi(
@@ -340,6 +346,9 @@ public class StationManageRoutes implements Routes {
             })
     private void uploadLogo(Context ctx) {
         UserSession session = UserSession.from(ctx);
+        if (stationService.lookAndFeelLocks(session.stationId()).logo()) {
+            throw new BadRequestResponse("The logo is set by the cluster this station belongs to");
+        }
         UploadedFile file = ctx.uploadedFile("logo");
         if (file == null) {
             throw new BadRequestResponse("No file uploaded");
@@ -850,7 +859,12 @@ public class StationManageRoutes implements Routes {
             boolean publicPagesEnabled,
             String publicSlug,
             boolean publicWaitlistEnabled,
-            boolean publicBlogEnabled) {}
+            boolean publicBlogEnabled,
+            boolean themeLocked,
+            boolean colorsLocked,
+            boolean feelLocked,
+            boolean logoLocked,
+            String clusterName) {}
 
     /**
      * Response containing the station's mail configuration and current usage statistics.
