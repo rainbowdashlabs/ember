@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.discovery.service;
 
 import dev.chojo.ember.conf.Conf;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -16,6 +18,7 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -33,11 +36,14 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class DiscoveryStationProjectionService {
 
     private final StationRepository stationRepository;
+    private final ClusterRepository clusterRepository;
     private final Conf conf;
 
     @Inject
-    public DiscoveryStationProjectionService(StationRepository stationRepository, Conf conf) {
+    public DiscoveryStationProjectionService(
+            StationRepository stationRepository, ClusterRepository clusterRepository, Conf conf) {
         this.stationRepository = stationRepository;
+        this.clusterRepository = clusterRepository;
         this.conf = conf;
     }
 
@@ -61,6 +67,9 @@ public class DiscoveryStationProjectionService {
 
     private DiscoveryStationCard toCard(Station station, String baseUrl) {
         int memberCount = countMembers(station.id());
+        // Carried so a reader can group the cards. A station outside any cluster sends nothing, which is
+        // also what a peer too old to know about clusters sends, and the two mean the same thing.
+        Optional<Cluster> cluster = clusterRepository.findByStation(station.id());
         return new DiscoveryStationCard(
                 station.uid().toString(),
                 station.name(),
@@ -75,7 +84,9 @@ public class DiscoveryStationProjectionService {
                 Instant.now(),
                 station.addressLine(),
                 station.latitude(),
-                station.longitude());
+                station.longitude(),
+                cluster.map(c -> c.uid().toString()).orElse(null),
+                cluster.map(Cluster::name).orElse(null));
     }
 
     private int countMembers(int stationId) {

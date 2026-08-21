@@ -6174,6 +6174,7 @@ export default {
         requestError: 'Anfrage konnte nicht gesendet werden.',
         viewStation: 'Öffentliche Seite',
         ownStation: 'Meine Wache',
+        ungrouped: 'Ohne Verband',
         getCode: 'Code anfordern',
         inviteHint: 'Kopiere diesen Einladungscode und gib ihn in den Föderations-Einstellungen deiner Wache ein, um eine Verbindung herzustellen.',
         settings: {

@@ -19,6 +19,9 @@ export interface DiscoveryEntry {
     country: string | null
     latitude: number | null
     longitude: number | null
+    /** The cluster this station answers to, or null when it answers to nobody. */
+    clusterUid?: string | null
+    clusterName?: string | null
 }
 
 export interface PublicStationInfo {
