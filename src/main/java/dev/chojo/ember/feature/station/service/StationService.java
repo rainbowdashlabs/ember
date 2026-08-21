@@ -338,6 +338,23 @@ public class StationService {
         return stationRepository.findDisabledModules(stationId);
     }
 
+    /**
+     * Every module the station does not have, whoever switched it off.
+     *
+     * <p>What the shell has to go by. A module its cluster denied is as gone as one the station switched
+     * off itself: leaving it out of this list left the sidebar offering a page that refuses whoever follows
+     * it. The management screen still asks for the two lists apart, because there it matters who decided.
+     *
+     * @param stationId the station
+     * @return the station's own set and its cluster's, together
+     */
+    public Set<StationModule> findEffectiveDisabledModules(int stationId) {
+        Set<StationModule> disabled = EnumSet.noneOf(StationModule.class);
+        disabled.addAll(stationRepository.findDisabledModules(stationId));
+        disabled.addAll(findClusterDeniedModules(stationId));
+        return disabled;
+    }
+
     // -- Modules --
 
     /**

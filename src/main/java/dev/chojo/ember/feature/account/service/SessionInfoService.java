@@ -115,7 +115,7 @@ public class SessionInfoService {
         var managedInfos = managed.stream().map(this::toManagedMemberInfo).toList();
 
         var disabledModules = session.stationId() != null
-                ? stationService.findDisabledModules(session.stationId())
+                ? stationService.findEffectiveDisabledModules(session.stationId())
                 : Set.<StationModule>of();
 
         Station currentStation = session.stationId() != null

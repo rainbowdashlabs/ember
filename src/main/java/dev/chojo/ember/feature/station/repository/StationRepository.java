@@ -214,11 +214,15 @@ public class StationRepository {
      * The stations somebody can actually join, which is what every user-facing listing wants. {@code findAll}
      * keeps its wider meaning for the storage jobs, whose files are real either way.
      *
+     * <p>Ordered the way {@code findAll} is, because this replaced it in every user-facing caller and the
+     * order was load-bearing: sorting by name instead moved the station the demo is about out of first
+     * place, and everything that says "the first station with somebody who runs it" quietly went elsewhere.
+     *
      * @return every station that is not a cluster's home
      */
     public List<Station> findAllRegular() {
         return query("""
-                SELECT %s FROM station WHERE station_kind = :kind ORDER BY name;""", STATION_COLUMNS)
+                SELECT %s FROM station WHERE station_kind = :kind ORDER BY id;""", STATION_COLUMNS)
                 .single(call().bind("kind", StationKind.REGULAR))
                 .map(Station.map())
                 .all();
