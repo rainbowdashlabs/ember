@@ -66,6 +66,8 @@ export interface Movement {
     reason: string
     createdAt: string
     closedAt?: string | null
+    /** Why it was refused or taken back, which the reason it was started does not say. */
+    closeReason?: string | null
 }
 
 export interface MovementStep {

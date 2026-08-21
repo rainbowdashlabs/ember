@@ -66,29 +66,58 @@ export async function ownCluster(
     if (!appointed.ok()) throw new Error(`Appointing an administrator answered ${appointed.status()}`)
 
     const actingHeaders = {...headers, 'X-Cluster-Id': cluster.uid}
-    const stationName = `Wache ${stamp}`
-    const madeStation = await page.request.post('/api/v1/cluster/stations',
-        {headers: actingHeaders, data: {name: stationName}})
-    if (!madeStation.ok()) throw new Error(`Creating a station answered ${madeStation.status()}`)
-    const station = await madeStation.json()
+    const station = await stationUnder(page, browser, request, actingHeaders, `Wache ${stamp}`)
+
+    return {
+        uid: cluster.uid,
+        name: stamp,
+        headers: actingHeaders,
+        stationUid: station.uid,
+        stationName: station.name,
+        stationPage: station.page,
+    }
+}
+
+/**
+ * A station under a given cluster, set up, with a page signed in as the person who runs it.
+ *
+ * A cluster makes a station and nobody is at it: it has not been through the assistant, it has no manager,
+ * and a story that wants to look at it as a station has to do both. Only an instance administrator can,
+ * which is also what makes it honest: every step is a call somebody makes in the product.
+ *
+ * @param page    an instance administrator's page
+ * @param browser to open the manager's own context with
+ * @param request for the demo login the manager needs
+ * @param headers headers already acting for the cluster the station should belong to
+ * @param name    what to call it
+ */
+export async function stationUnder(
+    page: Page,
+    browser: Browser,
+    request: APIRequestContext,
+    headers: Record<string, string>,
+    name: string,
+): Promise<{uid: string; name: string; page: Page}> {
+    const made = await page.request.post('/api/v1/cluster/stations', {headers, data: {name}})
+    if (!made.ok()) throw new Error(`Creating a station answered ${made.status()}`)
+    const station = await made.json()
 
     // A brand new person rather than a spare seeded one: being made a station's manager rewrites what an
     // account may do, and every seeded account is one some other story is acting as. Naming an address
     // nobody has creates it, which is the same path an invitation takes.
-    const managerEmail = `wache-${stamp.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}@e2e.ember`
+    const managerEmail = `wache-${name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}@e2e.ember`
     const assigned = await page.request.put(`/api/v1/stations/${station.uid}`,
-        {headers, data: {name: stationName, managerEmail}})
+        {headers: await apiHeaders(page), data: {name, managerEmail}})
     if (!assigned.ok()) throw new Error(`Assigning a manager answered ${assigned.status()}`)
 
     // A station the cluster has just made has not been set up, and its manager is sent into the assistant
     // before anything else. The story is not about the assistant, so it is walked the way the assistant
     // walks it: the one required step it has, and then finishing.
-    const managerLogin = await request.post('/api/v1/demo/login', {data: {email: managerEmail}})
-    if (!managerLogin.ok()) throw new Error(`Demo login for ${managerEmail} answered ${managerLogin.status()}`)
-    const asManager = {
-        Authorization: `Bearer ${(await managerLogin.json()).token}`,
-        'X-Station-Id': station.uid,
-    }
+    const login = await request.post('/api/v1/demo/login', {data: {email: managerEmail}})
+    if (!login.ok()) throw new Error(`Demo login for ${managerEmail} answered ${login.status()}`)
+    const token = (await login.json()).token
+    const asManager = {Authorization: `Bearer ${token}`, 'X-Station-Id': station.uid}
+
     const located = await request.put('/api/v1/station/location', {
         headers: asManager,
         data: {
@@ -100,9 +129,6 @@ export async function ownCluster(
     const setupDone = await request.post('/api/v1/station/setup/complete', {headers: asManager})
     if (!setupDone.ok()) throw new Error(`Finishing the setup answered ${setupDone.status()}`)
 
-    const login = await request.post('/api/v1/demo/login', {data: {email: managerEmail}})
-    if (!login.ok()) throw new Error(`Demo login for ${managerEmail} answered ${login.status()}`)
-    const {token} = await login.json()
     const context = await browser.newContext()
     await context.addInitScript(([sessionToken, stationId]) => {
         window.localStorage.setItem('session_token', sessionToken)
@@ -111,12 +137,5 @@ export async function ownCluster(
         window.localStorage.setItem('onboarding_tour_completed', 'true')
     }, [token, station.uid])
 
-    return {
-        uid: cluster.uid,
-        name: stamp,
-        headers: actingHeaders,
-        stationUid: station.uid,
-        stationName,
-        stationPage: await context.newPage(),
-    }
+    return {uid: station.uid, name, page: await context.newPage()}
 }

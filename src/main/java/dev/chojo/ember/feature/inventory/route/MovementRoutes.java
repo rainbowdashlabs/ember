@@ -347,7 +347,8 @@ public class MovementRoutes implements Routes {
                 current.map(s -> s.actor()).orElse(null),
                 movement.reason(),
                 movement.createdAt(),
-                movement.closedAt());
+                movement.closedAt(),
+                movement.closeReason());
     }
 
     /**
@@ -424,7 +425,9 @@ public class MovementRoutes implements Routes {
             StepActor currentStepActor,
             String reason,
             Instant createdAt,
-            Instant closedAt) {}
+            Instant closedAt,
+            /** Why it was refused or taken back, which the reason it was started does not say. */
+            String closeReason) {}
 
     public record MovementStepResponse(
             int id,

@@ -99,6 +99,10 @@ function force(payload: {note: string; pickedItemId: number | null}) {
           <span class="text-(--text-muted)">{{ t('movements.reason') }}</span>
           {{ detail.movement.reason }}
         </div>
+        <div v-if="detail.movement.closeReason">
+          <span class="text-(--text-muted)">{{ t('movements.closeReason') }}</span>
+          {{ detail.movement.closeReason }}
+        </div>
         <div v-if="!open">
           <span class="text-(--text-muted)">{{ t('movements.stateLabel') }}</span>
           {{ t(`movements.state.${detail.movement.state}`) }}

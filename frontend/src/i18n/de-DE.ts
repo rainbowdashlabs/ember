@@ -4988,6 +4988,7 @@ export default {
         member: 'Mitglied: ',
         inventory: 'Inventar: ',
         reason: 'Grund: ',
+        closeReason: 'Abgelehnt bzw. abgebrochen mit: ',
         stateLabel: 'Status: ',
         acknowledge: 'Bestätigen',
         force: 'Schritt erzwingen',
