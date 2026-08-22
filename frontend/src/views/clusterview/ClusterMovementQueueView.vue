@@ -11,22 +11,38 @@ import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import InventoryTabs from './clusterinventoryview/InventoryTabs.vue'
 import {clusterInventory} from '@/api'
 import type {ClusterQueueEntry} from '@/api/clusterInventory'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {formatDate} from '@/util/format'
+import {useRouter} from 'vue-router'
 
 const {t} = useI18n()
+const router = useRouter()
 
 const {config: queue, loading, error} = useConfigPanel<ClusterQueueEntry[]>({
   initial: [],
   fetch: () => clusterInventory.listQueue(),
 })
+
+/**
+ * Opens the movement a step belongs to, which is where it is answered.
+ *
+ * <p>An exchange arriving from a station shows up here like any other step, because from this end it
+ * is one: somebody sent something and is waiting on the association. There is no separate list of
+ * exchanges to work, since the queue already is the work.
+ */
+function open(movementId: number) {
+  void router.push({name: 'cluster-inventory-movement', params: {id: String(movementId)}})
+}
 </script>
 
 <template>
   <ViewContent :subtitle="t('pages.cluster-movements.subtitle')" :title="t('pages.cluster-movements.title')">
     <div class="space-y-4">
+      <InventoryTabs/>
+
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <p class="text-sm text-(--text-muted)">{{ t('clusterMovements.hint') }}</p>
@@ -39,7 +55,8 @@ const {config: queue, loading, error} = useConfigPanel<ClusterQueueEntry[]>({
           <NeutralContainer
               v-for="entry in queue"
               :key="entry.movementId"
-              class="flex flex-wrap items-center justify-between gap-3"
+              class="flex flex-wrap items-center justify-between gap-3 cursor-pointer hover:border-primary transition-colors"
+              @click="open(entry.movementId)"
           >
             <div class="min-w-0">
               <p class="font-medium truncate">{{ entry.stepLabel ?? t('clusterMovements.unnamedStep') }}</p>

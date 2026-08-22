@@ -915,6 +915,10 @@ export default {
             title: 'Bei den Wachen',
             subtitle: 'Material des Verbands, das gerade nicht im eigenen Lager liegt',
         },
+        'cluster-inventory-statistics': {
+            title: 'Zahlen zum Material',
+            subtitle: 'Wie viel der Verband hat und wo es steht',
+        },
         'cluster-inventory-settings': {
             title: 'Materialeinstellungen',
             subtitle: 'Was der Verband über Material entscheidet',
