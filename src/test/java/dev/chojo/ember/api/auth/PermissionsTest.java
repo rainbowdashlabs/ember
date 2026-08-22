@@ -146,7 +146,64 @@ class PermissionsTest {
         assertTrue(granted.contains(StationPermission.KNOWLEDGE_EDIT), "which carries writing in it");
         assertTrue(granted.contains(StationPermission.USER), "and may see the station at all");
         assertFalse(granted.contains(StationPermission.MEMBER_MANAGER), "but not its people");
-        assertFalse(granted.contains(StationPermission.INVENTORY_MANAGER), "and not its gear");
+        assertFalse(
+                granted.contains(StationPermission.INVENTORY_EDIT),
+                "and not its gear, which is a different trust from a different right");
+    }
+
+    /**
+     * The association's gear is kept on the station it owns, so the rights over it have to arrive there.
+     *
+     * <p>Read alone reaches no further than reading. Editing carries creating in it, which is what makes
+     * defining gear from the association's own screens possible at all.
+     */
+    @Test
+    void clusterGearRightsBecomeStationGearRightsAtItsOwnStation() {
+        Set<StationPermission> reader = ClusterPermission.atOwnStation(
+                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_INVENTORY_READ)));
+
+        assertTrue(reader.contains(StationPermission.INVENTORY_READ), "may see the gear");
+        assertFalse(reader.contains(StationPermission.INVENTORY_EDIT), "but not change it");
+
+        Set<StationPermission> editor = ClusterPermission.atOwnStation(
+                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_INVENTORY_EDIT)));
+
+        assertTrue(editor.contains(StationPermission.INVENTORY_EDIT), "may change it");
+        assertTrue(editor.contains(StationPermission.INVENTORY_CREATE), "which carries creating in it");
+    }
+
+    /** Moving gear is one right at the association and two at a station, because a station splits them. */
+    @Test
+    void theRightToMoveGearReachesBothAssigningAndStorage() {
+        Set<StationPermission> granted = ClusterPermission.atOwnStation(
+                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_INVENTORY_TRANSFER)));
+
+        assertTrue(granted.contains(StationPermission.INVENTORY_ASSIGN));
+        assertTrue(granted.contains(StationPermission.INVENTORY_STORAGE));
+        assertFalse(granted.contains(StationPermission.INVENTORY_EDIT), "moving is not describing");
+    }
+
+    /**
+     * Looking after the association's gear reaches everything a station's own gear manager may do, except
+     * lending: an association hands gear to a station rather than lending it to a person.
+     */
+    @Test
+    void aClusterGearManagerGetsEverythingButLending() {
+        Set<StationPermission> granted = ClusterPermission.atOwnStation(
+                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_INVENTORY_MANAGER)));
+
+        assertTrue(granted.contains(StationPermission.INVENTORY_EDIT));
+        assertTrue(granted.contains(StationPermission.INVENTORY_ASSIGN));
+        assertTrue(granted.contains(StationPermission.INVENTORY_CHECK));
+        assertTrue(granted.contains(StationPermission.INVENTORY_EXCHANGE));
+        assertTrue(granted.contains(StationPermission.INVENTORY_PROCUREMENT));
+        assertTrue(granted.contains(StationPermission.INVENTORY_STORAGE));
+
+        assertFalse(granted.contains(StationPermission.INVENTORY_LENDING_MANAGER), "lending is not theirs");
+        assertFalse(granted.contains(StationPermission.INVENTORY_LENDING_REQUEST));
+        assertFalse(
+                granted.contains(StationPermission.INVENTORY_MANAGER),
+                "and not the station's own gear role, which would carry lending with it");
     }
 
     /** Running the whole association still does not mean running a station. */
