@@ -4,14 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ClusterMemberGroupsView from '~/views/clusterview/ClusterMemberGroupsView.vue'
-
+/**
+ * A group gathers the people who run the association, not the members of its stations, so it moved
+ * to sit with them. This keeps the address it used to live at working.
+ */
 definePageMeta({
   layout: 'cluster',
-  name: 'cluster-member-groups',
+  name: 'cluster-member-groups-legacy',
+  redirect: '/cluster/team/groups',
 })
 </script>
 
 <template>
-  <ClusterMemberGroupsView />
+  <div/>
 </template>

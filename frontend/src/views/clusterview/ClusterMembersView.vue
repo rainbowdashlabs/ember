@@ -4,44 +4,45 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FormLabel from '@/components/input/FormLabel.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import ClusterMemberRow from './clustermembersview/ClusterMemberRow.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
+import RosterPanel from './clustermembersview/RosterPanel.vue'
+import AddMemberModal from './clustermembersview/AddMemberModal.vue'
+import MemberEditor from './clustermembersview/MemberEditor.vue'
 import {clusterMembers} from '@/api'
 import type {ClusterMemberSummary} from '@/api/clusterMembers'
-import {ClusterUserType} from '@/api/clusters'
+import {ClusterPermission, ClusterUserType} from '@/api/clusters'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useSession} from '@/composables/useSession'
-import {ClusterPermission} from '@/api/clusters'
 
 const {t} = useI18n()
 const {hasClusterPermission} = useSession()
 
-const newEmail = ref('')
-const newUserType = ref<string>(ClusterUserType.CLUSTER_USER)
+const editable = hasClusterPermission(ClusterPermission.CLUSTER_ADMINISTRATOR)
+
 const busy = ref(false)
-const openMemberId = ref<number | null>(null)
+const showAdd = ref(false)
+const selectedId = ref<number | null>(null)
 
 const {config: members, loading, error, runWith} = useConfigPanel<ClusterMemberSummary[]>({
   initial: [],
   fetch: () => clusterMembers.listMembers(),
 })
 
-async function add() {
-  if (!newEmail.value.trim()) return
+const selected = computed(() => members.value.find(m => m.id === selectedId.value) ?? null)
+
+async function add(email: string, userType: string) {
   await runWith(async () => {
-    await clusterMembers.addMember(newEmail.value.trim(), newUserType.value)
-    newEmail.value = ''
+    await clusterMembers.addMember(email, userType)
+    showAdd.value = false
     return clusterMembers.listMembers()
   }, {busy})
 }
@@ -49,7 +50,7 @@ async function add() {
 async function remove(memberId: number) {
   await runWith(async () => {
     await clusterMembers.removeMember(memberId)
-    if (openMemberId.value === memberId) openMemberId.value = null
+    if (selectedId.value === memberId) selectedId.value = null
     return clusterMembers.listMembers()
   }, {busy})
 }
@@ -70,46 +71,44 @@ async function changeUserType(memberId: number, userType: string) {
   <ViewContent :subtitle="t('pages.cluster-members.subtitle')" :title="t('pages.cluster-members.title')">
     <div class="space-y-6">
       <Alert v-if="error" variant="error">{{ error }}</Alert>
-
-      <NeutralContainer v-if="hasClusterPermission(ClusterPermission.CLUSTER_ADMINISTRATOR)" class="space-y-4">
-        <SectionHeader>{{ t('clusterMembers.addTitle') }}</SectionHeader>
-        <p class="text-sm text-(--text-muted)">{{ t('clusterMembers.addHint') }}</p>
-
-        <div class="space-y-1">
-          <FormLabel>{{ t('clusterMembers.emailLabel') }}</FormLabel>
-          <TextInput v-model="newEmail" :placeholder="t('clusterMembers.emailPlaceholder')"/>
-        </div>
-
-        <div class="space-y-1">
-          <FormLabel>{{ t('clusterMembers.userTypeLabel') }}</FormLabel>
-          <SelectInput v-model="newUserType">
-            <option :value="ClusterUserType.CLUSTER_USER">{{ t('clusterOverview.role.CLUSTER_USER') }}</option>
-            <option :value="ClusterUserType.CLUSTER_ADMIN">{{ t('clusterOverview.role.CLUSTER_ADMIN') }}</option>
-          </SelectInput>
-        </div>
-
-        <PrimaryButton :disabled="busy || !newEmail.trim()" @click="add">{{ t('common.add') }}</PrimaryButton>
-      </NeutralContainer>
-
       <Spinner v-if="loading" size="lg"/>
 
-      <template v-else>
-        <EmptyState v-if="members.length === 0">{{ t('clusterMembers.empty') }}</EmptyState>
-        <div v-else class="space-y-2">
-          <ClusterMemberRow
-              v-for="member in members"
-              :key="member.id"
-              :busy="busy"
-              :editable="hasClusterPermission(ClusterPermission.CLUSTER_ADMINISTRATOR)"
-              :member="member"
-              :open="openMemberId === member.id"
-              @remove="remove"
-              @saved="reload"
-              @toggle="id => openMemberId = openMemberId === id ? null : id"
-              @user-type="changeUserType"
-          />
+      <div v-else class="grid gap-6 lg:grid-cols-2">
+        <RosterPanel
+            :members="members"
+            :selected-id="selectedId"
+            :editable="editable"
+            @add="showAdd = true"
+            @select="member => selectedId = member.id"
+        />
+
+        <NeutralContainer v-if="selected" class="space-y-4">
+          <div class="flex items-center justify-between gap-3">
+            <SectionHeader>{{ selected.name ?? selected.email }}</SectionHeader>
+            <DeleteButton v-if="editable" :disabled="busy" @click="remove(selected.id)"/>
+          </div>
+
+          <div class="space-y-1">
+            <FormLabel>{{ t('clusterMembers.userTypeLabel') }}</FormLabel>
+            <SelectInput
+                :disabled="!editable || busy"
+                :model-value="selected.userType"
+                @update:model-value="v => changeUserType(selected!.id, String(v))"
+            >
+              <option :value="ClusterUserType.CLUSTER_USER">{{ t('clusterOverview.role.CLUSTER_USER') }}</option>
+              <option :value="ClusterUserType.CLUSTER_ADMIN">{{ t('clusterOverview.role.CLUSTER_ADMIN') }}</option>
+            </SelectInput>
+          </div>
+
+          <MemberEditor :member-id="selected.id" :editable="editable" @saved="reload"/>
+        </NeutralContainer>
+
+        <div v-else class="flex items-center justify-center text-(--text-muted) py-12">
+          {{ t('clusterMembers.selectHint') }}
         </div>
-      </template>
+      </div>
+
+      <AddMemberModal v-model="showAdd" :saving="busy" @add="add"/>
     </div>
   </ViewContent>
 </template>

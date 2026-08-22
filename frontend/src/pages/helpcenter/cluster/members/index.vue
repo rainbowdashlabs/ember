@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ClusterMembersHelp from '~/views/helpcenter/clusterview/ClusterMembersHelp.vue'
+import ClusterMemberManagementHelp from '~/views/helpcenter/clusterview/ClusterMemberManagementHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter-cluster',
@@ -13,5 +13,5 @@ definePageMeta({
 </script>
 
 <template>
-  <ClusterMembersHelp />
+  <ClusterMemberManagementHelp />
 </template>

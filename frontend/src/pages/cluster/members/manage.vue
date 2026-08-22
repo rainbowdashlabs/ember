@@ -4,14 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ClusterMemberManagementView from '~/views/clusterview/ClusterMemberManagementView.vue'
-
+/**
+ * The people at the association's stations are what "members" now means, so this list moved up to
+ * that address. This keeps the one it used to live at working.
+ */
 definePageMeta({
   layout: 'cluster',
-  name: 'cluster-member-management',
+  name: 'cluster-member-management-legacy',
+  redirect: '/cluster/members',
 })
 </script>
 
 <template>
-  <ClusterMemberManagementView />
+  <div/>
 </template>

@@ -7,7 +7,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import ListViewBody from './listview/ListViewBody.vue'
+import MemberListPanel from './listview/MemberListPanel.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -31,19 +31,7 @@ const port: MemberListPort = {
   exportFileName: 'mitglieder',
 }
 
-const {
-  members, allGroups, allTags, memberRolesMap, memberGroupsMap, memberTagsMap, memberManagers,
-  loading, error, expandedId, overviewFields, getFieldValue, toggleExpand,
-  activeTab, tabs, filterText, columnMultiFilters, columnEmptyFilters,
-  sortKey, sortDirection, extraColumnIds, hiddenColumnIds,
-  tabOverviewFields, tabNonOverviewFields, visibleColumns, toggleColumn, applyColumnFilter,
-  savedFilters, saveCurrentFilter, applyFilter, deleteFilter, clearFilters,
-  onMemberFilter, sortedMembers, toggleSort,
-  exportMode, selectedIds, showExportModal, selectedColumns, columnOptions,
-  toggleExportMode, toggleRow, toggleAllRows, toggleExportColumn,
-  selectColumns, openExportModal, performExport,
-  canExport, canEdit, navigateToDetail, navigateToEdit,
-} = useMemberListConfig(port)
+const config = useMemberListConfig(port)
 
 const resendTarget = ref<StationMember | null>(null)
 const resendSuccess = ref('')
@@ -77,60 +65,7 @@ function openResendSetup(member: StationMember, event: Event) {
       :title="t('pages.members-list.title')"
       :subtitle="t('pages.members-list.subtitle')"
   >
-    <ListViewBody
-      v-model:active-tab="activeTab"
-      v-model:filter-text="filterText"
-      v-model:show-export-modal="showExportModal"
-      :loading="loading"
-      :error="error"
-      :tabs="tabs"
-      :saved-filters="savedFilters"
-      :tab-overview-fields="tabOverviewFields"
-      :tab-non-overview-fields="tabNonOverviewFields"
-      :export-columns="columnOptions"
-      :selected-export-columns="selectedColumns"
-      :extra-column-ids="extraColumnIds"
-      :hidden-column-ids="hiddenColumnIds"
-      :export-mode="exportMode"
-      :selected-ids="selectedIds"
-      :can-export="canExport"
-      :can-edit="canEdit"
-      :groups="allGroups"
-      :tags="allTags"
-      :members="sortedMembers"
-      :visible-columns="visibleColumns"
-      :expanded-id="expandedId"
-      :sort-key="sortKey"
-      :sort-direction="sortDirection"
-      :column-multi-filters="columnMultiFilters"
-      :column-empty-filters="columnEmptyFilters"
-      :member-groups-map="memberGroupsMap"
-      :member-tags-map="memberTagsMap"
-      :member-roles-map="memberRolesMap"
-      :member-managers="memberManagers"
-      :all-members="members"
-      :overview-fields="overviewFields"
-      :get-field-value="getFieldValue"
-      @clear-filters="clearFilters"
-      @apply-filter="applyFilter"
-      @delete-filter="deleteFilter"
-      @save-filter="saveCurrentFilter"
-      @toggle-column="toggleColumn"
-      @toggle-export="toggleExportMode"
-      @export-continue="openExportModal"
-      @filter="onMemberFilter"
-      @toggle-sort="toggleSort"
-      @apply-column-filter="applyColumnFilter"
-      @toggle-expand="toggleExpand"
-      @navigate-detail="navigateToDetail"
-      @navigate-edit="navigateToEdit"
-      @resend-setup="openResendSetup"
-      @toggle-select="toggleRow"
-      @toggle-select-all="toggleAllRows"
-      @toggle-export-column="toggleExportColumn"
-      @select-export-columns="selectColumns"
-      @export="performExport"
-    />
+    <MemberListPanel :config="config" @resend-setup="openResendSetup"/>
 
     <Modal v-if="resendTarget" model-value @update:model-value="(v) => { if (!v) resendTarget = null }">
       <div class="space-y-4">

@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ClusterMemberManagementView from '~/views/clusterview/ClusterMemberManagementView.vue'
+import ClusterMemberGroupsView from '~/views/clusterview/ClusterMemberGroupsView.vue'
 
 definePageMeta({
   layout: 'cluster',
-  name: 'cluster-members',
+  name: 'cluster-team-groups',
 })
 </script>
 
 <template>
-  <ClusterMemberManagementView />
+  <ClusterMemberGroupsView />
 </template>

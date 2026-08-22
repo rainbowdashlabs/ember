@@ -84,29 +84,36 @@ onMounted(() => {
 
       <SidebarGroup
           v-if="hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_READ)"
-          :icon="['fas', 'users']"
-          :label="t('clusterSidebar.members')"
-          prefix="/cluster/members"
+          :icon="['fas', 'user-group']"
+          :label="t('clusterSidebar.team')"
+          prefix="/cluster/team"
       >
-        <SidebarLink :icon="['fas', 'users']" name="cluster-members" to="/cluster/members" @navigate="close">
-          {{ t('clusterSidebar.memberList') }}
+        <SidebarLink :icon="['fas', 'users']" name="cluster-team" to="/cluster/team" @navigate="close">
+          {{ t('clusterSidebar.teamList') }}
         </SidebarLink>
         <SidebarLink
             :icon="['fas', 'user-group']"
-            name="cluster-member-groups"
-            to="/cluster/members/groups"
+            name="cluster-team-groups"
+            to="/cluster/team/groups"
             @navigate="close"
         >
           {{ t('clusterSidebar.memberGroups') }}
         </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup
+          v-if="hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER)"
+          :icon="['fas', 'users']"
+          :label="t('clusterSidebar.members')"
+          prefix="/cluster/members"
+      >
         <SidebarLink
-            v-if="hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER)"
             :icon="['fas', 'users-gear']"
-            name="cluster-member-management"
-            to="/cluster/members/manage"
+            name="cluster-members"
+            to="/cluster/members"
             @navigate="close"
         >
-          {{ t('clusterSidebar.memberManagement') }}
+          {{ t('clusterSidebar.memberList') }}
         </SidebarLink>
         <SidebarLink
             :icon="['fas', 'id-card']"

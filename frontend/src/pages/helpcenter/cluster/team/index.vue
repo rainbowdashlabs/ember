@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ClusterMemberGroupsHelp from '~/views/helpcenter/clusterview/ClusterMemberGroupsHelp.vue'
+import ClusterMembersHelp from '~/views/helpcenter/clusterview/ClusterMembersHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter-cluster',
-  name: 'help-cluster-member-groups',
+  name: 'help-cluster-team',
 })
 </script>
 
 <template>
-  <ClusterMemberGroupsHelp />
+  <ClusterMembersHelp />
 </template>

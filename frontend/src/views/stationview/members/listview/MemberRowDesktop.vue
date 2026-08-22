@@ -15,6 +15,8 @@ import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
 import MemberTypeBadge from './MemberTypeBadge.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import {useMemberRowExtras} from './memberRowExtras'
 import {formatDate} from '@/util/format'
 import type {ProfileField} from '@/api/profileFields'
 import type {StationMember} from '@/api/types'
@@ -42,6 +44,10 @@ const emit = defineEmits<{
   resendSetup: [event: Event]
 }>()
 
+const extras = useMemberRowExtras()
+const rowNote = computed(() => extras.note(props.member.id))
+const blockedReason = computed(() => extras.blockedReason(props.member.id))
+
 const pendingTitle = computed(() => {
   const base = t('membersList.accountPending')
   if (!props.member.setupMailExpiresAt) return base
@@ -63,14 +69,20 @@ const pendingTitle = computed(() => {
       <CheckboxInput :model-value="selected ?? false" @update:model-value="emit('toggleSelect')"/>
     </td>
     <Td v-if="!exportMode" @click.stop>
-      <IconButton :icon="['fas', 'eye']" :label="t('membersList.detail')"
-                  class="text-primary hover:bg-primary/15"
-                  @click="emit('navigateDetail', $event)"/>
-      <EditButton v-if="canEdit" @click="emit('navigateEdit', $event)"/>
+      <MutedText v-if="blockedReason" size="sm" :title="blockedReason">
+        <font-awesome-icon :icon="['fas', 'lock']" class="h-3 w-3"/>
+      </MutedText>
+      <template v-else>
+        <IconButton :icon="['fas', 'eye']" :label="t('membersList.detail')"
+                    class="text-primary hover:bg-primary/15"
+                    @click="emit('navigateDetail', $event)"/>
+        <EditButton v-if="canEdit" @click="emit('navigateEdit', $event)"/>
+      </template>
     </Td>
     <Td>
       <div class="flex items-center gap-2">
         <MemberName :identity="member.identity" size="sm" class="font-medium"/>
+        <MutedText v-if="rowNote" size="sm">{{ rowNote }}</MutedText>
         <ErrorBadge v-if="member.profileComplete === false" class="ml-1.5 text-[10px]">{{ t('membersList.incomplete') }}</ErrorBadge>
         <IconButton
             v-if="member.accountSetupPending && canEdit"
