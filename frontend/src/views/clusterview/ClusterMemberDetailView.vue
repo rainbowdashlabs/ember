@@ -61,10 +61,27 @@ const originOf = computed(() => new Map((profile.value?.fields ?? []).map(f => [
 
 const storedValues = computed(() => new Map((profile.value?.values ?? []).map(v => [v.fieldId, v.value])))
 
+/**
+ * An answer travels as JSON and is shown as itself.
+ *
+ * <p>A stored answer is JSON text, so a name arrives wrapped in quotation marks. Handing that
+ * straight to the form would put the quotation marks in front of the reader, which is what happened
+ * until a story looked at the screen rather than at the database.
+ */
+function decode(raw: string | undefined): string {
+  if (raw === undefined || raw === '') return ''
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return parsed === null ? '' : String(parsed)
+  } catch {
+    return raw
+  }
+}
+
 function valueOf(field: LaidOutField): string {
   const pending = edited.value.get(field.id)
   if (pending !== undefined) return pending
-  return storedValues.value.get(field.id) ?? ''
+  return decode(storedValues.value.get(field.id))
 }
 
 function onUpdate(field: LaidOutField, value: string) {
@@ -73,9 +90,10 @@ function onUpdate(field: LaidOutField, value: string) {
 }
 
 const {running: saving, error: saveError, run: save} = useAsyncAction(async () => {
+  // Back out the way it came in, as JSON, which is what both tables behind this store.
   const values: ManagedProfileValue[] = [...edited.value.entries()].map(([fieldId, value]) => ({
     fieldId,
-    value,
+    value: JSON.stringify(value),
     origin: originOf.value.get(fieldId) ?? 'STATION',
   }))
   if (values.length === 0) return

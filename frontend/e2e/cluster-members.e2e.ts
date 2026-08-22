@@ -135,8 +135,19 @@ test.describe('Cluster members and fields', () => {
         const read = await page.request.get(`/api/v1/cluster/fields/member/${target.id}`, {headers})
         expect(JSON.stringify(await read.json())).toContain(answer)
 
-        await page.goto('/cluster/members/manage')
+        // Stored is half of it. The other half is that somebody at the cluster can open that person
+        // and read what was answered, which is the screen this story is named after and which for a
+        // long time did not exist at all.
+        await page.goto(`/cluster/members/${target.id}`)
         await expect(page.getByTestId('app-shell')).toBeVisible()
+        // Read off the inputs rather than matched as an attribute: the form sets the value as a
+        // property, so `input[value=...]` would look at what the markup said and not at what is there.
+        await expect.poll(
+            () => page.getByRole('textbox')
+                .evaluateAll((inputs, want) =>
+                    inputs.some(input => (input as HTMLInputElement).value === want), answer),
+            {message: 'the answer is on the person\'s own screen, not merely in the database'},
+        ).toBe(true)
     })
 
     /**

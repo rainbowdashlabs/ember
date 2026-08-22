@@ -58,8 +58,12 @@ test.describe('Cluster inventory', () => {
         expect(items.some((i: {stationName: string}) => !!i.stationName),
             'and each piece says which station it is at').toBeTruthy()
 
-        await page.goto('/cluster/inventory')
+        // Owning it and holding it are two questions, and the screen answers the second one by
+        // station. Reading the list from the API says the data is right; this says somebody can see it.
+        await page.goto('/cluster/inventory/out')
         await expect(page.getByTestId('app-shell')).toBeVisible()
+        await expect(page.getByTestId('out-station-group').first()).toBeVisible({timeout: 15000})
+        await expect(page.getByTestId('out-item').first()).toBeVisible()
         await page.context().close()
     })
 
@@ -354,6 +358,18 @@ test.describe('Cluster inventory', () => {
             {headers: stationHeaders})
         expect(removed.ok(), 'nor delete it').toBeFalsy()
 
+        // The refusals above are the server's. What matters to somebody at the station is that the
+        // screen never offered the edit in the first place: being refused after typing is the same
+        // no, delivered late. This half of the story went unwritten for a long time, and the form
+        // stayed on screen the whole while because nothing ever looked at it.
+        await station.goto(`/station/inventory/item/${at.id}`)
+        await expect(station.getByTestId('app-shell')).toBeVisible()
+        await expect(station.getByTestId('item-edit'),
+            'no pencil, because this is not the station\'s to describe').toHaveCount(0)
+
+        // What is offered instead are the two things a station may do with somebody else's gear.
+        await expect(station.getByTestId('owned-elsewhere')).toBeVisible({timeout: 15000})
+
         await station.context().close()
         await page.context().close()
     })
@@ -383,8 +399,13 @@ test.describe('Cluster inventory', () => {
         expect(mine.assignedTo, 'the station sees who has it').toBeTruthy()
         expect(mine.ownerKind, 'and that the cluster owns it').toBe('CLUSTER')
 
+        // The station's own requirement screen, looked at rather than asked about. What is on it is
+        // what a person at the station has to work from.
         await station.goto('/station/inventory/requirements')
         await expect(station.getByTestId('app-shell')).toBeVisible()
+        await expect(station.getByRole('button', {name: /hinzufügen/i}).first())
+            .toBeVisible({timeout: 15000})
+
         await station.context().close()
         await page.context().close()
     })
