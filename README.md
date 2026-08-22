@@ -7,6 +7,8 @@ Ember is an all-in-one platform for managing youth groups (Jugendfeuerwehren). I
 ### Prerequisites
 
 - Docker and Docker Compose
+- A 64-bit machine: x86-64, or ARM64 such as a Raspberry Pi 4 or newer. A Raspberry Pi has to be
+  running the 64-bit Raspberry Pi OS, not the 32-bit one.
 - A domain with HTTPS (recommended for production)
 
 ### Production Setup

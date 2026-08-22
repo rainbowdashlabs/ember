@@ -30,6 +30,7 @@
 - **The demo instance has an association over it.** The demo station now answers to one, alongside a station the association made itself, and it comes with people holding each of the association's roles, gear resting in every state a piece can be in, two questions in its members' profiles, and news, an article and an appointment of its own. A neighbouring station's request to join is still waiting, so the screen that answers them has something on it.
 - **An exchange opens as the chain it is walking.** The history button now leads to the whole run rather than a list of status changes: every step with the party it belongs to, the ones behind it stamped with who acknowledged them and how, and on the current one either the single button you may press or the sentence naming who is being waited on.
 - **A movement tells whoever's turn it is, not always the station.** When a step is acknowledged, the message goes to the party the next step belongs to and to nobody else, so its arrival is itself the signal that something is waiting. A refused movement tells both ends, with the reason where the member asked.
+- **Ember runs on 64-bit ARM machines.** It is now built for ARM as well as for x86, so a Raspberry Pi 4 or newer serves an instance with nothing extra to set up. The machine has to be running a 64-bit system, which on a Raspberry Pi means the 64-bit Raspberry Pi OS rather than the 32-bit one.
 
 ### Changes
 
@@ -55,6 +56,7 @@
 - **A shared article could be listed twice.** An article reachable both on its own and through a shared folder appeared once for each way in. It is listed once, however many shares reach it.
 - **Gear a partner had borrowed still looked free.** Equipment lent out to a federation partner could be handed to a member or offered in another lending request while it was away, because only the assignment was checked. It is now held back until the partner has given it back.
 - **Exchanged gear the station does not own.** In an inventory holding gear of both owners, completing an exchange put the returned item into the station's free stock even when the station had never owned it. The exchange now follows the owner recorded on the item.
+- **The installer set up an instance the machine could not run.** On a machine Ember is not built for it wrote everything out and started containers that stopped again at once, over and over, with only a format error to go on. It now checks the machine before it writes anything and says plainly what is wrong.
 
 ## v26.12.0
 

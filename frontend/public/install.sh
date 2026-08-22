@@ -149,7 +149,32 @@ command -v docker > /dev/null 2>&1 || die "Docker is not installed. https://docs
 docker compose version > /dev/null 2>&1 || die "The docker compose plugin is missing. https://docs.docker.com/compose/install/"
 docker info > /dev/null 2>&1 || die "Docker is not running, or this user is not allowed to talk to it."
 
-say "Docker $(docker version --format '{{.Server.Version}}' 2>/dev/null || echo '?') is ready."
+# Docker does not refuse a pull onto a machine that cannot run the image: it warns and carries on,
+# and the complaint arrives much later as "exec format error" from every container as it restarts.
+# The daemon is asked rather than the kernel, because it is the daemon that runs the containers and
+# it is not always on this machine.
+SERVER=$(docker version --format '{{.Server.Arch}} {{.Server.Version}}' 2> /dev/null || true)
+HOST_ARCH="${SERVER%% *}"
+DOCKER_VERSION="${SERVER#* }"
+[ -z "$HOST_ARCH" ] && HOST_ARCH=$(uname -m)
+
+# Both spellings of each architecture, because the daemon answers in Go's vocabulary and uname in
+# its own.
+case "$HOST_ARCH" in
+    x86_64 | amd64 | aarch64 | arm64) ;;
+    arm | armv6l | armv7l)
+        die "This is a 32-bit ARM system ($HOST_ARCH), and Ember is built for 64-bit only.
+    The board is very likely 64-bit hardware running a 32-bit system, in which case installing
+    the 64-bit Raspberry Pi OS is all this needs." ;;
+    386 | i386 | i686)
+        die "This is a 32-bit x86 system ($HOST_ARCH), and Ember is built for 64-bit only." ;;
+    *)
+        warn "Unfamiliar architecture '$HOST_ARCH'. Ember is built for 64-bit x86 and 64-bit ARM,
+    and on anything else the containers start and stop again immediately."
+        ask_yes_no "Carry on anyway?" "n" || die "Stopped. Nothing was changed." ;;
+esac
+
+say "Docker ${DOCKER_VERSION:-?} is ready on $HOST_ARCH."
 say "Installing into: ${BOLD}$PWD${OFF}"
 
 COMPOSE_FILE="${EMBER_COMPOSE_FILE:-compose.yaml}"
