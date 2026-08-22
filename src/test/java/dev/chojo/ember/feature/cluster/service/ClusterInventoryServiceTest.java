@@ -83,15 +83,37 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
 
         assertThrows(
                 ForbiddenResponse.class,
-                () -> inventoryService.updateItem(itemId, "HK-neu", "Anderer Helm", null, null));
-        assertThrows(ForbiddenResponse.class, () -> inventoryService.deleteItem(itemId));
+                () -> inventoryService.updateItem(itemId, "HK-neu", "Anderer Helm", null, null, null));
+        assertThrows(ForbiddenResponse.class, () -> inventoryService.deleteItem(itemId, null));
 
         // What it does own it may still change
         var own = inventoryRepo.create(station.id(), "Eigenes", InventoryType.INTERNAL, false);
         var ownItem = inventoryRepo.createItem(own.id(), "EG-1", "Eigener Helm", null, null);
         assertTrue(inventoryService
-                .updateItem(ownItem.id(), "EG-1", "Umbenannt", null, null)
+                .updateItem(ownItem.id(), "EG-1", "Umbenannt", null, null, null)
                 .isPresent());
+
+        clusterService.releaseStation(cluster.id(), station.id());
+        stationRepo.delete(station.id());
+    }
+
+    @Test
+    void aClusterMayRenameAndDeleteItsOwnGear() {
+        var cluster = freshCluster();
+        var station = stationOf(cluster);
+        int itemId = clusterItemAt(cluster, station);
+
+        var renamed = inventoryService.updateItem(itemId, "HK-neu", "Anderer Helm", null, null, cluster.id());
+        assertTrue(renamed.isPresent());
+        assertEquals("Anderer Helm", renamed.get().name());
+
+        // Another association is still a stranger to it
+        var other = freshCluster();
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> inventoryService.updateItem(itemId, "HK-fremd", "Fremder Helm", null, null, other.id()));
+
+        assertTrue(inventoryService.deleteItem(itemId, cluster.id()));
 
         clusterService.releaseStation(cluster.id(), station.id());
         stationRepo.delete(station.id());

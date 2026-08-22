@@ -32,7 +32,7 @@ const {t} = useI18n()
   <div class="grid gap-4 sm:grid-cols-3">
     <div class="space-y-1">
       <FieldLabel>{{ t('itemDetail.name') }}</FieldLabel>
-      <TextInput v-model="name"/>
+      <TextInput v-model="name" data-testid="item-edit-name"/>
     </div>
     <div class="space-y-1">
       <FieldLabel>{{ t('itemDetail.internalId') }}</FieldLabel>

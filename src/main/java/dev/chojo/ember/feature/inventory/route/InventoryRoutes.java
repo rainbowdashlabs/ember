@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.ContainerPath;
@@ -147,6 +148,22 @@ public class InventoryRoutes implements Routes {
     }
 
     // -- Inventories --
+
+    /**
+     * The body this caller answers for when they change how a piece of gear is described.
+     *
+     * <p>An association's own gear sits on the station it owns, and its screens act there, so its requests
+     * arrive as ordinary station requests. What tells them apart from a station holding somebody else's
+     * jacket is the association they name and the right they hold at it.
+     *
+     * @param session who is asking
+     * @return the cluster they act for, or {@code null} when they are acting as the station alone
+     */
+    private Integer describingClusterId(UserSession session) {
+        if (session.clusterId() == null) return null;
+        if (!session.hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_EDIT)) return null;
+        return session.clusterId();
+    }
 
     private void verifyItemOwnership(int itemId, UserSession session) {
         var item = inventoryService.findItemById(itemId).orElseThrow(NotFoundResponse::new);
@@ -581,14 +598,21 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateItem(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        verifyItemOwnership(id, UserSession.from(ctx));
+        verifyItemOwnership(id, session);
         var request = ctx.bodyAsClass(ItemRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
         }
         inventoryService
-                .updateItem(id, request.internalId(), request.name(), request.sizeId(), request.metadata())
+                .updateItem(
+                        id,
+                        request.internalId(),
+                        request.name(),
+                        request.sizeId(),
+                        request.metadata(),
+                        describingClusterId(session))
                 .ifPresentOrElse(ctx::json, () -> {
                     throw new NotFoundResponse();
                 });
@@ -723,9 +747,10 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteItem(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        verifyItemOwnership(id, UserSession.from(ctx));
-        if (inventoryService.deleteItem(id)) {
+        verifyItemOwnership(id, session);
+        if (inventoryService.deleteItem(id, describingClusterId(session))) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();

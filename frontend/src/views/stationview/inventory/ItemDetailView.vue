@@ -20,6 +20,7 @@ import type {InventoryItem, InventoryItemHistory, InventorySize} from '@/api/inv
 import type {ItemCheckHistoryEntry, ItemLocationResponse} from '@/api/inventoryContainers'
 import {StationPermission, type StationMember} from '@/api/types'
 import {useSession} from '@/composables/useSession'
+import {useActsForOwner} from '@/composables/useActsForOwner'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 import ItemMetadataPanel from './itemdetailview/ItemMetadataPanel.vue'
@@ -56,9 +57,16 @@ const isManager = computed(() => hasPermission('INVENTORY_MANAGER') || hasPermis
  *
  * <p>Gear kept for a body that does not use Ember is the exception, and deliberately so: nobody else
  * could ever correct the record, so the station keeps the pen.
+ *
+ * <p>The association reading its own screens is looking at the same page, and for it nothing is owned
+ * elsewhere: it is the owner, so it keeps the pencil and is offered none of what a station is offered
+ * for somebody else's gear.
  */
+const actsForOwner = useActsForOwner()
 const ownedElsewhere = computed(() =>
-    item.value?.ownerKind === ItemOwner.CLUSTER && item.value?.ownerClusterId != null)
+    item.value?.ownerKind === ItemOwner.CLUSTER
+    && item.value?.ownerClusterId != null
+    && !actsForOwner.value)
 const canEditItem = computed(() => (canEdit.value || isManager.value) && !ownedElsewhere.value)
 
 const showAssignModal = ref(false)

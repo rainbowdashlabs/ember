@@ -375,16 +375,22 @@ public class InventoryService {
     /**
      * Updates an inventory item.
      *
-     * @param id         the item ID
-     * @param internalId the new internal identifier
-     * @param name       the new name
-     * @param sizeId     the new size ID, or {@code null}
-     * @param metadata   the new JSON metadata
+     * @param id              the item ID
+     * @param internalId      the new internal identifier
+     * @param name            the new name
+     * @param sizeId          the new size ID, or {@code null}
+     * @param metadata        the new JSON metadata
+     * @param actingClusterId the body the caller answers for, or {@code null} when they act as the station
      * @return the updated item, or empty if not found
      */
     public Optional<InventoryItem> updateItem(
-            int id, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
-        requireOwned(id, "described");
+            int id,
+            String internalId,
+            String name,
+            Integer sizeId,
+            InventoryItemMetadata metadata,
+            Integer actingClusterId) {
+        requireOwned(id, "described", actingClusterId);
         if (inventoryRepository.updateItem(id, internalId, name, sizeId, metadata)) {
             log.info("Updated item {} (name='{}', internalId='{}', sizeId={})", id, name, internalId, sizeId);
             return inventoryRepository.findItemById(id);
@@ -432,11 +438,12 @@ public class InventoryService {
     /**
      * Deletes an inventory item.
      *
-     * @param id the item ID
+     * @param id              the item ID
+     * @param actingClusterId the body the caller answers for, or {@code null} when they act as the station
      * @return {@code true} if deleted
      */
-    public boolean deleteItem(int id) {
-        requireOwned(id, "deleted");
+    public boolean deleteItem(int id, Integer actingClusterId) {
+        requireOwned(id, "deleted", actingClusterId);
         boolean deleted = inventoryRepository.deleteItem(id);
         if (deleted) log.info("Deleted item {}", id);
         else log.warn("Delete skipped: item {} not found", id);
@@ -451,19 +458,24 @@ public class InventoryService {
      * not do is rename it, resize it or delete it, because those are the owner's account of what the thing
      * is, and the same row is what the owner reads.
      *
-     * @param itemId the item somebody wants to change
-     * @param verb   what they wanted to do, for the message
-     * @throws ForbiddenResponse when the item belongs to a cluster that runs on this instance
+     * <p>The owner itself arrives here as a station request, because an association's gear sits on the station
+     * it owns and its screens act there. So the question is not "is this a station" but "is this the body the
+     * gear belongs to", which is what {@code actingClusterId} answers.
+     *
+     * @param itemId          the item somebody wants to change
+     * @param verb            what they wanted to do, for the message
+     * @param actingClusterId the body the caller answers for, or {@code null} when they act as the station
+     * @throws ForbiddenResponse when the item belongs to a cluster that runs on this instance and is not this one
      */
-    private void requireOwned(int itemId, String verb) {
+    private void requireOwned(int itemId, String verb, Integer actingClusterId) {
         inventoryRepository.findItemById(itemId).ifPresent(item -> {
             // Only where the owner is actually here to do it themselves. Gear kept for a body that does not
             // use Ember belongs to nobody who could ever correct a name, so refusing the station would leave
             // the record wrong for good with no way to put it right.
-            if (item.ownerKind() == ItemOwner.CLUSTER && item.ownerClusterId() != null) {
-                throw new ForbiddenResponse(
-                        "This gear belongs to the body above the station and can only be %s by them".formatted(verb));
-            }
+            if (item.ownerKind() != ItemOwner.CLUSTER || item.ownerClusterId() == null) return;
+            if (item.ownerClusterId().equals(actingClusterId)) return;
+            throw new ForbiddenResponse(
+                    "This gear belongs to the body above the station and can only be %s by them".formatted(verb));
         });
     }
 

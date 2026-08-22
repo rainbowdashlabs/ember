@@ -3,7 +3,14 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, clusterAccountWith, clusterPage} from './fixtures/auth'
+import {
+    test,
+    expect,
+    clusterAccountWith,
+    clusterHeaders,
+    clusterPage,
+    theSeededCluster,
+} from './fixtures/auth'
 
 /**
  * The association's gear, looked at rather than asked about.
@@ -156,6 +163,39 @@ test.describe('Cluster inventory screens', () => {
         await page.goto('/cluster/inventory/movements')
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await expect(page.getByTestId('cluster-inventory-tabs')).toBeVisible()
+        await page.context().close()
+    })
+
+    /**
+     * CLS-57 - The association renames a piece of its own gear.
+     *
+     * The one story that would have caught the phase marked done that was not. Gear an association owns
+     * refused every change, its own owner included, and the item screen agreed by hiding the pencil, so
+     * the association could define a thing and never correct it again.
+     */
+    test('the association describes its own gear from its own screen', async ({browser, request}) => {
+        const account = await clusterAccountWith(request, 'CLUSTER_INVENTORY_MANAGER')
+        const page = await clusterPage(browser, request, account)
+        const cluster = await theSeededCluster(page)
+        const headers = await clusterHeaders(page, cluster)
+
+        // Which piece is being looked at is arrangement; that it can be renamed is the story.
+        const lookup = await page.request.get('/api/v1/inventory-items/by-internal-id?internalId=KV-0001', {headers})
+        expect(lookup.ok()).toBeTruthy()
+        const item = await lookup.json()
+
+        await page.goto(`/cluster/inventory/item/${item.id}`)
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+
+        // A station holding somebody else's jacket is told it belongs elsewhere. The owner is not.
+        await expect(page.getByTestId('owned-elsewhere')).toHaveCount(0)
+
+        const renamed = `Einsatzjacke ${Date.now()}`
+        await page.getByTestId('item-edit').click({timeout: 15000})
+        await page.getByTestId('item-edit-name').fill(renamed)
+        await page.getByRole('button', {name: /Speichern/i}).click()
+
+        await expect(page.getByText(renamed)).toBeVisible({timeout: 15000})
         await page.context().close()
     })
 })

@@ -134,7 +134,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(50)
     void deleteItem() {
-        assertTrue(service.deleteItem(itemId));
+        assertTrue(service.deleteItem(itemId, null));
         assertTrue(service.findItemById(itemId).isEmpty());
     }
 
@@ -154,7 +154,8 @@ class InventoryServiceTest extends RepositoryTestBase {
     void updateItem() {
         var inv = service.create(station.id(), "UpdateItem Inv", InventoryType.INTERNAL, false);
         var item = service.createItem(inv.id(), "UI-001", "Original Name", null, null);
-        var updated = service.updateItem(item.id(), "UI-002", "Updated Name", null, InventoryItemMetadata.empty());
+        var updated =
+                service.updateItem(item.id(), "UI-002", "Updated Name", null, InventoryItemMetadata.empty(), null);
         assertTrue(updated.isPresent());
         assertEquals("Updated Name", updated.get().name());
         assertEquals("UI-002", updated.get().internalId());
@@ -164,7 +165,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(57)
     void updateItemNonExistent() {
-        assertTrue(service.updateItem(99999, "XX", "XX", null, null).isEmpty());
+        assertTrue(service.updateItem(99999, "XX", "XX", null, null, null).isEmpty());
     }
 
     @Test
