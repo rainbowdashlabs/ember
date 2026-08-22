@@ -26,7 +26,7 @@ import {useSession} from '@/composables/useSession'
 const {t} = useI18n()
 const {hasClusterPermission} = useSession()
 
-const editable = hasClusterPermission(ClusterPermission.CLUSTER_ADMINISTRATOR)
+const editable = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_ADMINISTRATOR))
 
 const busy = ref(false)
 const showAdd = ref(false)

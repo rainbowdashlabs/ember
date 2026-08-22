@@ -24,7 +24,7 @@ import type {PermissionGrant} from '@/api/types'
 const {t} = useI18n()
 const {hasClusterPermission} = useSession()
 
-const editable = hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER)
+const editable = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER))
 
 /**
  * The association's permissions in the shape the shared picker speaks.

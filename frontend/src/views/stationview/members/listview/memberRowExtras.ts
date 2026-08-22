@@ -21,9 +21,16 @@ export interface MemberRowExtras {
     note(memberId: number): string
     /** Why this row offers no actions, or empty when it offers them normally. */
     blockedReason(memberId: number): string
+    /**
+     * Whether groups and tags are columns at all.
+     *
+     * <p>They are a station's own, so across the stations of an association most rows would have
+     * nothing under either and the two columns would be holes rather than information.
+     */
+    stationLocalColumns: boolean
 }
 
-const NONE: MemberRowExtras = {note: () => '', blockedReason: () => ''}
+const NONE: MemberRowExtras = {note: () => '', blockedReason: () => '', stationLocalColumns: true}
 
 const MEMBER_ROW_EXTRAS: InjectionKey<MemberRowExtras> = Symbol('memberRowExtras')
 

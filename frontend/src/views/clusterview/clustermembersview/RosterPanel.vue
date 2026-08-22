@@ -43,6 +43,7 @@ const {t} = useI18n()
       <button
           v-for="member in props.members"
           :key="member.id"
+          data-testid="roster-row"
           class="w-full rounded-theme border px-3 py-2 text-left transition-colors"
           :class="member.id === props.selectedId
             ? 'border-primary'

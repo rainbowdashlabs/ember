@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -36,8 +36,15 @@ import {useSession} from '@/composables/useSession'
 const {t} = useI18n()
 const {hasClusterPermission} = useSession()
 
-const canSetModule = hasClusterPermission(ClusterPermission.CLUSTER_MODULES)
-const canSetFlows = hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_MANAGER)
+/**
+ * Read as a computed, not as a value taken once.
+ *
+ * <p>What somebody holds at the association arrives with the session, and a screen can be set up
+ * before it has. Taken once, both of these would be false for good and the page would show nothing
+ * at all to somebody who may set both.
+ */
+const canSetModule = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MODULES))
+const canSetFlows = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_MANAGER))
 
 const usesInventory = ref(false)
 const flows = ref<ClusterFlow[]>([])
@@ -45,11 +52,11 @@ const newName = ref('')
 const newPurpose = ref<string>(MovementPurpose.ISSUE)
 
 const {loading, error} = useAsyncLoader(async () => {
-  if (canSetModule) {
+  if (canSetModule.value) {
     const active = await clusters.getActive()
     usesInventory.value = active.usesInventory ?? false
   }
-  if (canSetFlows) flows.value = await clusterInventory.listFlows()
+  if (canSetFlows.value) flows.value = await clusterInventory.listFlows()
 })
 
 const {running: busy, error: writeError, run: toggleUses} = useAsyncAction(async (value: boolean) => {
@@ -75,7 +82,7 @@ const {running: creating, run: addFlow} = useAsyncAction(async () => {
       <Alert v-if="error || writeError" variant="error">{{ error || writeError }}</Alert>
 
       <template v-if="!loading">
-        <NeutralContainer v-if="canSetModule" class="space-y-3">
+        <NeutralContainer v-if="canSetModule" data-testid="inventory-module-setting" class="space-y-3">
           <SectionHeader>{{ t('clusterInventory.usesTitle') }}</SectionHeader>
           <div class="flex items-start justify-between gap-4">
             <p class="text-sm text-(--text-muted)">{{ t('clusterInventory.usesHint') }}</p>
@@ -83,7 +90,7 @@ const {running: creating, run: addFlow} = useAsyncAction(async () => {
           </div>
         </NeutralContainer>
 
-        <NeutralContainer v-if="canSetFlows" class="space-y-4">
+        <NeutralContainer v-if="canSetFlows" data-testid="inventory-flow-setting" class="space-y-4">
           <SectionHeader>{{ t('clusterInventory.flowsTitle') }}</SectionHeader>
           <p class="text-sm text-(--text-muted)">{{ t('clusterInventory.flowsHint') }}</p>
 

@@ -35,7 +35,7 @@ const route = useRoute()
 const {hasClusterPermission} = useSession()
 
 const memberId = computed(() => Number(route.params.id))
-const editable = hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER)
+const editable = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER))
 
 const profile = ref<ManagedMemberProfile | null>(null)
 const edited = ref<Map<number, string>>(new Map())

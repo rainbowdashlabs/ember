@@ -53,7 +53,7 @@ const {running, error, run: start} = useAsyncAction(async () => {
 </script>
 
 <template>
-  <NeutralContainer class="space-y-3">
+  <NeutralContainer data-testid="owned-elsewhere" class="space-y-3">
     <SectionHeader>{{ t('itemDetail.ownedElsewhereTitle') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('itemDetail.ownedElsewhereHint') }}</p>
 

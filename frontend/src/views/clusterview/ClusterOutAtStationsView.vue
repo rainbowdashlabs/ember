@@ -60,14 +60,15 @@ const byStation = computed(() => {
       <template v-if="!loading">
         <EmptyState v-if="away.length === 0">{{ t('clusterInventory.outEmpty') }}</EmptyState>
 
-        <NeutralContainer v-for="[station, stationItems] in byStation" :key="station" class="space-y-3">
+        <NeutralContainer v-for="[station, stationItems] in byStation" :key="station"
+                          data-testid="out-station-group" class="space-y-3">
           <div class="flex items-center justify-between gap-3">
             <SectionHeader>{{ station }}</SectionHeader>
             <SecondaryBadge>{{ t('clusterInventory.itemCount', {count: stationItems.length}) }}</SecondaryBadge>
           </div>
 
           <div class="space-y-1">
-            <div v-for="item in stationItems" :key="item.id"
+            <div v-for="item in stationItems" :key="item.id" data-testid="out-item"
                  class="flex flex-wrap items-center justify-between gap-2 border-b border-(--border) py-1 last:border-0">
               <span class="font-medium">{{ item.name }}</span>
               <div class="flex items-center gap-2">

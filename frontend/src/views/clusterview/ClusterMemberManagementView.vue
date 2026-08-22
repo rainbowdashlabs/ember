@@ -66,7 +66,7 @@ function stationNameOf(memberId: number): string {
   return managed.value.get(memberId)?.stationName ?? ''
 }
 
-provideMemberRowExtras({note: stationNameOf, blockedReason})
+provideMemberRowExtras({note: stationNameOf, blockedReason, stationLocalColumns: false})
 
 const shownMembers = computed(() => {
   if (!stationUid.value) return config.sortedMembers.value

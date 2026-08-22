@@ -64,12 +64,14 @@ function active(tab: {to: string}): boolean {
 </script>
 
 <template>
-  <div class="flex gap-2 border-b border-bg-light-accent dark:border-bg-dark-accent overflow-x-auto">
+  <div data-testid="cluster-inventory-tabs"
+       class="flex gap-2 border-b border-bg-light-accent dark:border-bg-dark-accent overflow-x-auto">
     <router-link
         v-for="tab in tabs"
         :key="tab.name"
         :to="tab.to"
         :class="active(tab) ? 'border-primary text-primary' : 'border-transparent text-(--text-muted) hover:text-(--text)'"
+        :data-testid="`tab-${tab.name}`"
         class="px-4 py-2 text-sm font-medium transition-colors -mb-px border-b-2 whitespace-nowrap no-underline"
     >
       {{ tab.label }}

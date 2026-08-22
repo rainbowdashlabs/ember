@@ -106,10 +106,10 @@ const pendingTitle = computed(() => {
     <Td class="text-(--text-muted) text-xs">
       {{ member.email || '–' }}
     </Td>
-    <Td class="text-(--text-muted) text-xs">
+    <Td v-if="extras.stationLocalColumns" class="text-(--text-muted) text-xs">
       {{ memberGroups.join(', ') || '–' }}
     </Td>
-    <Td class="text-(--text-muted) text-xs">
+    <Td v-if="extras.stationLocalColumns" class="text-(--text-muted) text-xs">
       {{ memberTags.join(', ') || '–' }}
     </Td>
     <Td

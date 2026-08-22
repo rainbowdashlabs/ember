@@ -10,8 +10,11 @@ import Th from '@/components/table/Th.vue'
 import THead from '@/components/table/THead.vue'
 import HeaderFilterCell from '@/components/table/HeaderFilterCell.vue'
 import type {ProfileField} from '@/api/profileFields'
+import {useMemberRowExtras} from './memberRowExtras'
 
 const {t} = useI18n()
+
+const extras = useMemberRowExtras()
 
 type ColumnKey = 'name' | 'groups' | 'tags' | number
 
@@ -50,7 +53,7 @@ const emit = defineEmits<{
       </Th>
       <Th>{{ t('membersList.colRole') }}</Th>
       <Th>{{ t('membersList.colEmail') }}</Th>
-      <Th>
+      <Th v-if="extras.stationLocalColumns">
         <HeaderFilterCell
             :label="t('membersList.colGroups')"
             :has-filter="hasActiveFilter('groups')"
@@ -58,7 +61,7 @@ const emit = defineEmits<{
             @filter="openFilterModal('groups', t('membersList.colGroups'))"
         />
       </Th>
-      <Th>
+      <Th v-if="extras.stationLocalColumns">
         <HeaderFilterCell
             :label="t('membersList.colTags')"
             :has-filter="hasActiveFilter('tags')"
