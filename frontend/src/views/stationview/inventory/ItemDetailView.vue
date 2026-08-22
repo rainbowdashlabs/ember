@@ -15,6 +15,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import {inventory, inventoryContainers, stationMembers} from '@/api'
+import {ItemOwner} from '@/api/inventory'
 import type {InventoryItem, InventoryItemHistory, InventorySize} from '@/api/inventory'
 import type {ItemCheckHistoryEntry, ItemLocationResponse} from '@/api/inventoryContainers'
 import {StationPermission, type StationMember} from '@/api/types'
@@ -23,6 +24,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 import ItemMetadataPanel from './itemdetailview/ItemMetadataPanel.vue'
 import ItemActionsPanel from './itemdetailview/ItemActionsPanel.vue'
+import OwnedElsewherePanel from './itemdetailview/OwnedElsewherePanel.vue'
 import ItemHistoryPanel from './itemdetailview/ItemHistoryPanel.vue'
 import ItemCheckHistoryPanel from './itemdetailview/ItemCheckHistoryPanel.vue'
 import AssignItemModal from './itemdetailview/AssignItemModal.vue'
@@ -43,7 +45,21 @@ const location = ref<ItemLocationResponse | null>(null)
 const {message: success, flash} = useFlashMessage(3000)
 
 const isManager = computed(() => hasPermission('INVENTORY_MANAGER') || hasPermission('STATION_ADMINISTRATOR'))
-const canEditItem = computed(() => canEdit.value || isManager.value)
+
+/**
+ * Whether this station may describe this piece of gear, which is not the same as being allowed to
+ * describe gear.
+ *
+ * <p>Gear belonging to an association that runs on this instance is described by that association,
+ * and the server refuses the station either way. Showing a live form and refusing the save afterwards
+ * is the same refusal delivered late, so the form is simply not offered.
+ *
+ * <p>Gear kept for a body that does not use Ember is the exception, and deliberately so: nobody else
+ * could ever correct the record, so the station keeps the pen.
+ */
+const ownedElsewhere = computed(() =>
+    item.value?.ownerKind === ItemOwner.CLUSTER && item.value?.ownerClusterId != null)
+const canEditItem = computed(() => (canEdit.value || isManager.value) && !ownedElsewhere.value)
 
 const showAssignModal = ref(false)
 
@@ -73,6 +89,16 @@ function onError() {
 function onUpdated(updated: InventoryItem) {
   item.value = updated
   error.value = ''
+}
+
+/** Reads the piece again, for when something started elsewhere has changed where it stands. */
+async function reloadItem() {
+  try {
+    item.value = await inventory.getItem(itemId.value)
+    flash(t('itemDetail.movementStarted'))
+  } catch {
+    onError()
+  }
 }
 
 async function doAssign(memberId: number) {
@@ -148,6 +174,8 @@ async function doMarkFound() {
           @updated="onUpdated"
           @error="onError"
         />
+
+        <OwnedElsewherePanel v-if="ownedElsewhere" :item="item" @started="reloadItem"/>
 
         <ItemActionsPanel
           v-if="canEditItem"

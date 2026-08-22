@@ -5156,6 +5156,13 @@ export default {
         },
     },
     itemDetail: {
+        ownedElsewhereTitle: 'Gehört dem Verband',
+        ownedElsewhereHint: 'Beschreibung und Größe legt der Verband fest. Ihr könnt es zurückgeben oder um ein anderes bitten.',
+        handBack: 'Zurückgeben',
+        askExchange: 'Tausch anfragen',
+        movementReason: 'Grund',
+        movementReasonPlaceholder: 'Was ist der Anlass?',
+        movementStarted: 'Die Bewegung wurde angestoßen.',
         title: 'Gegenstand',
         checkHistory: {
             title: 'Prüfungsverlauf',
@@ -5932,6 +5939,7 @@ export default {
         autoFederateOffHint: 'Beim Ausschalten bleiben bestehende Verbindungen erhalten. Es werden nur keine neuen mehr angelegt.',
     },
     common: {
+        send: 'Abschicken',
         loading: 'Laden...',
         error: 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.',
         empty: 'Leer - zum Bearbeiten klicken',
