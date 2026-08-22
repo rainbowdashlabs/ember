@@ -14,6 +14,7 @@ import FieldTable from './FieldTable.vue'
 import TemplateButtons from './TemplateButtons.vue'
 import type {FieldTemplate} from './fieldTemplates'
 import type {ProfileField} from '@/api/profileFields'
+import type {WritabilityName} from '@/composables/useFieldsConfig'
 
 const props = defineProps<{
   activeTab: string
@@ -27,6 +28,7 @@ const emit = defineEmits<{
   (e: 'reorder', fromIndex: number, toIndex: number): void
   (e: 'toggle-config', field: ProfileField, key: string, value: boolean): void
   (e: 'toggle-keep-on-archive', field: ProfileField, value: boolean): void
+  (e: 'set-writability', field: ProfileField, level: WritabilityName): void
   (e: 'apply-template', tpl: FieldTemplate): void
 }>()
 
@@ -66,6 +68,7 @@ const {t} = useI18n()
         @reorder="(from: number, to: number) => emit('reorder', from, to)"
         @toggle-config="(f: ProfileField, k: string, v: boolean) => emit('toggle-config', f, k, v)"
         @toggle-keep-on-archive="(f: ProfileField, v: boolean) => emit('toggle-keep-on-archive', f, v)"
+        @set-writability="(f: ProfileField, level: WritabilityName) => emit('set-writability', f, level)"
     />
 
     <div v-if="props.fields.length > 0" class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">

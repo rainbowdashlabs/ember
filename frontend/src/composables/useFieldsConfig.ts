@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, ref, type Ref} from 'vue'
+import {computed, inject, provide, ref, type InjectionKey, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
@@ -77,6 +77,31 @@ export function writabilityFlags(level: WritabilityName): {readonly: boolean; st
 }
 
 /**
+ * What the panels below the editor may draw, which follows from who owns the fields.
+ *
+ * <p>Injected rather than handed down through four components that have no use for it themselves. The
+ * same trick the news and events screens use to learn where a click lands.
+ */
+export interface FieldsCapabilities {
+    /** Whether to offer the three way choice of who may change an answer in place of one toggle. */
+    writability: boolean
+    /** The types this owner may choose. A template naming any other does not offer itself. */
+    types: readonly string[]
+}
+
+const FIELDS_CAPABILITIES: InjectionKey<FieldsCapabilities> = Symbol('fieldsCapabilities')
+
+/** What a station may draw, which is the answer for anything mounted outside one of these screens. */
+const STATION_CAPABILITIES: FieldsCapabilities = {
+    writability: false,
+    types: Object.values(FieldTypes),
+}
+
+export function useFieldsCapabilities(): FieldsCapabilities {
+    return inject(FIELDS_CAPABILITIES, STATION_CAPABILITIES)
+}
+
+/**
  * The profile field editor, without its markup.
  *
  * <p>Everything the members configuration screen does that is not drawing: loading, the active scope,
@@ -88,6 +113,8 @@ export function writabilityFlags(level: WritabilityName): {readonly: boolean; st
  */
 export function useFieldsConfig(port: FieldsPort) {
     const {t} = useI18n()
+
+    provide(FIELDS_CAPABILITIES, {writability: port.stationReadonly, types: port.types})
 
     const allFields = ref<ProfileField[]>([])
     const availableGroups = ref<MemberGroup[]>([])

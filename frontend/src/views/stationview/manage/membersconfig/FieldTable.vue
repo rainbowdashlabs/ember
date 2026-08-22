@@ -12,6 +12,7 @@ import {type ProfileField} from '@/api/profileFields'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import {useI18n} from 'vue-i18n'
 import {fieldTypeLabel} from './fieldTypes'
+import {type WritabilityName} from '@/composables/useFieldsConfig'
 
 const {isMobile} = useBreakpoint()
 
@@ -25,6 +26,7 @@ const emit = defineEmits<{
   reorder: [fromIndex: number, toIndex: number]
   toggleConfig: [field: ProfileField, key: string, value: boolean]
   toggleKeepOnArchive: [field: ProfileField, value: boolean]
+  setWritability: [field: ProfileField, level: WritabilityName]
 }>()
 
 const {t} = useI18n()
@@ -44,7 +46,8 @@ function typeLabel(value: string): string {
             @delete="emit('delete', field)"
             @edit="emit('edit', field)"
             @toggle-config="(f, k, v) => emit('toggleConfig', f, k, v)"
-            @toggle-keep-on-archive="(f, v) => emit('toggleKeepOnArchive', f, v)"/>
+            @toggle-keep-on-archive="(f, v) => emit('toggleKeepOnArchive', f, v)"
+            @set-writability="(f, level) => emit('setWritability', f, level)"/>
       </template>
     </DragList>
   </div>
@@ -59,7 +62,8 @@ function typeLabel(value: string): string {
             @delete="emit('delete', field)"
             @edit="emit('edit', field)"
             @toggle-config="(f, k, v) => emit('toggleConfig', f, k, v)"
-            @toggle-keep-on-archive="(f, v) => emit('toggleKeepOnArchive', f, v)"/>
+            @toggle-keep-on-archive="(f, v) => emit('toggleKeepOnArchive', f, v)"
+            @set-writability="(f, level) => emit('setWritability', f, level)"/>
       </template>
     </DragList>
   </div>

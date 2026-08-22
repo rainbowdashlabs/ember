@@ -37,7 +37,7 @@ const port: FieldsPort = {
 const {
   availableGroups, activeTab, selectedGroupId, currentFields, unassignedGroupFields,
   dateFields, birthDateField, showFieldModal, editingField, loading, error,
-  openAddField, openEditField, saveField, toggleFieldConfig, toggleKeepOnArchive,
+  openAddField, openEditField, saveField, toggleFieldConfig, toggleKeepOnArchive, setWritability,
   showDeleteModal, deleteTarget, requestDelete, confirmDelete, onReorder, applyTemplate,
 } = useFieldsConfig(port)
 
@@ -80,6 +80,7 @@ const tabs = computed(() => [
             @reorder="onReorder"
             @toggle-config="toggleFieldConfig"
             @toggle-keep-on-archive="toggleKeepOnArchive"
+            @set-writability="setWritability"
             @apply-template="applyTemplate"
         />
 

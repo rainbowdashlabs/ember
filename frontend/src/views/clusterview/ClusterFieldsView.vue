@@ -3,93 +3,99 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-<script setup lang="ts">
-import {ref} from 'vue'
+<script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import ClusterFieldEditor from './clusterfieldsview/ClusterFieldEditor.vue'
-import ClusterFieldRow from './clusterfieldsview/ClusterFieldRow.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import TabBar from '@/components/navigation/TabBar.vue'
+import ProfileFieldModal from '@/views/stationview/manage/membersconfig/FieldModal.vue'
+import FieldsPanel from '@/views/stationview/manage/membersconfig/FieldsPanel.vue'
+import FieldsPreview from '@/views/stationview/manage/membersconfig/FieldsPreview.vue'
 import {clusterFields} from '@/api'
-import type {ClusterField, ClusterFieldRequest} from '@/api/clusterFields'
-import {useConfigPanel} from '@/composables/useConfigPanel'
-import {useSession} from '@/composables/useSession'
-import {ClusterPermission} from '@/api/clusters'
+import {CLUSTER_FIELD_SCOPES, CLUSTER_FIELD_TYPES} from '@/api/clusterFields'
+import {useFieldsConfig, type FieldsPort} from '@/composables/useFieldsConfig'
 
 const {t} = useI18n()
-const {hasClusterPermission} = useSession()
 
-const busy = ref(false)
-const editing = ref<ClusterField | null>(null)
-const adding = ref(false)
-
-const {config: fields, loading, error, runWith} = useConfigPanel<ClusterField[]>({
-  initial: [],
-  fetch: () => clusterFields.listFields(),
-})
-
-const editable = hasClusterPermission(ClusterPermission.CLUSTER_FIELD_EDIT)
-
-async function save(request: ClusterFieldRequest) {
-  await runWith(async () => {
-    if (editing.value) await clusterFields.updateField(editing.value.id, request)
-    else await clusterFields.createField(request)
-    editing.value = null
-    adding.value = false
-    return clusterFields.listFields()
-  }, {busy})
+/**
+ * An association asks its questions of the members of all its stations, and they are answered on a
+ * station's own profile screen beside that station's own questions.
+ *
+ * <p>Two narrowings and one widening against a station. It declares no group scope, because a group
+ * belongs to one station and an association has no view of those. It may not ask for a date of birth,
+ * because the station declares its own and the two would collide. And it alone can say that the
+ * station may read an answer without writing it, because it alone has somebody below it.
+ */
+const port: FieldsPort = {
+  list: () => clusterFields.listFields(),
+  create: (field) => clusterFields.createField(field),
+  update: (id, field) => clusterFields.updateField(id, field),
+  remove: (id) => clusterFields.deleteField(id),
+  scopes: CLUSTER_FIELD_SCOPES,
+  types: CLUSTER_FIELD_TYPES,
+  stationReadonly: true,
 }
 
-async function remove(fieldId: number) {
-  await runWith(async () => {
-    await clusterFields.deleteField(fieldId)
-    return clusterFields.listFields()
-  }, {busy})
-}
+const {
+  activeTab, currentFields, dateFields, birthDateField, showFieldModal, editingField,
+  loading, error, openAddField, openEditField, saveField, toggleFieldConfig,
+  toggleKeepOnArchive, setWritability, showDeleteModal, deleteTarget, requestDelete,
+  confirmDelete, onReorder, applyTemplate,
+} = useFieldsConfig(port)
+
+const tabs = computed(() => [
+  {key: 'MEMBER', label: t('membersConfig.tabMember')},
+  {key: 'GUARDIAN', label: t('membersConfig.tabGuardian')},
+  {key: 'TEAM', label: t('membersConfig.tabTeam')},
+  {key: 'MANAGER', label: t('membersConfig.tabStationManager')},
+])
 </script>
 
 <template>
   <ViewContent :subtitle="t('pages.cluster-fields.subtitle')" :title="t('pages.cluster-fields.title')">
     <div class="space-y-6">
+      <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <p class="text-sm text-(--text-muted)">{{ t('clusterFields.hint') }}</p>
 
-      <NeutralContainer v-if="editable && (adding || editing)" class="space-y-4">
-        <SectionHeader>{{ editing ? t('clusterFields.editTitle') : t('clusterFields.addTitle') }}</SectionHeader>
-        <ClusterFieldEditor
-            :busy="busy"
-            :field="editing"
-            @cancel="editing = null; adding = false"
-            @save="save"
+      <div v-if="!loading" class="space-y-6">
+        <TabBar v-model="activeTab" :tabs="tabs"/>
+
+        <FieldsPanel
+            :active-tab="activeTab"
+            :fields="currentFields"
+            @add="openAddField"
+            @edit="openEditField"
+            @delete="requestDelete"
+            @reorder="onReorder"
+            @toggle-config="toggleFieldConfig"
+            @toggle-keep-on-archive="toggleKeepOnArchive"
+            @set-writability="setWritability"
+            @apply-template="applyTemplate"
         />
-      </NeutralContainer>
 
-      <PrimaryButton v-else-if="editable" :disabled="busy" @click="adding = true">
-        {{ t('clusterFields.add') }}
-      </PrimaryButton>
+        <FieldsPreview v-if="currentFields.length > 0" :fields="currentFields"/>
+      </div>
 
-      <Spinner v-if="loading" size="lg"/>
+      <ProfileFieldModal
+          v-model="showFieldModal"
+          :birth-date-field="birthDateField"
+          :date-fields="dateFields"
+          :field="editingField"
+          group-id=""
+          :scope="activeTab"
+          @save="saveField"
+      />
 
-      <template v-else>
-        <EmptyState v-if="fields.length === 0">{{ t('clusterFields.empty') }}</EmptyState>
-        <div v-else class="space-y-2">
-          <ClusterFieldRow
-              v-for="field in fields"
-              :key="field.id"
-              :busy="busy"
-              :editable="editable"
-              :field="field"
-              @edit="f => { editing = f; adding = false }"
-              @remove="remove"
-          />
-        </div>
-      </template>
+      <ConfirmDeleteModal
+          v-model="showDeleteModal"
+          :message="t('membersConfig.deleteConfirm', { name: deleteTarget?.name })"
+          @confirm="confirmDelete"
+      />
     </div>
   </ViewContent>
 </template>

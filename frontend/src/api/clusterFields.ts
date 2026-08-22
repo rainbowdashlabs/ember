@@ -4,36 +4,28 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {ProfileField, ProfileFieldRequest} from './profileFields'
 
 /**
- * The settings a field carries, shared with the station's own fields so the two lay out together.
- * Only the parts a cluster screen edits are named here.
+ * A question an association asks, which is a station's question kept in another table.
+ *
+ * <p>The same shape as a station's on purpose. The settings ride in the same {@code config}, so a
+ * width set here lays the field out beside a station's own in the one grid, and anything the station
+ * fields gain is gained here without a second declaration to keep in step.
  */
-export interface ClusterFieldConfig {
-    required?: boolean
-    readonly?: boolean
-    notifyOnChange?: boolean
-    overview?: boolean
-    options?: string[] | null
-    defaultValue?: unknown
-}
+export type ClusterField = ProfileField
 
-export interface ClusterField {
-    id: number
-    name: string
-    fieldType: string
-    config: ClusterFieldConfig
-    position: number
-    scope: string
-    /** Whether the people at the station may read the answer but not write it. */
-    stationReadonly: boolean
-    keepOnArchive: boolean
-}
+export type ClusterFieldRequest = ProfileFieldRequest
 
-export type ClusterFieldRequest = Omit<ClusterField, 'id'>
-
-/** A cluster may not ask for a date of birth: a station declares its own and the two would collide. */
-export const CLUSTER_FIELD_TYPES = ['TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'ENUM', 'AGE'] as const
+/**
+ * What an association may ask for.
+ *
+ * <p>Everything except a date of birth: a station declares its own, and a second one would collide.
+ * A section holds no answer and is allowed, so an association can head its block of questions rather
+ * than having them run into the station's.
+ */
+export const CLUSTER_FIELD_TYPES
+    = ['TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'ENUM', 'AGE', 'SECTION'] as const
 
 /** Group scope is missing on purpose: a group belongs to one station and a cluster cannot see it. */
 export const CLUSTER_FIELD_SCOPES = ['MEMBER', 'GUARDIAN', 'TEAM', 'MANAGER'] as const

@@ -108,6 +108,14 @@ onMounted(() => {
         >
           {{ t('clusterSidebar.memberManagement') }}
         </SidebarLink>
+        <SidebarLink
+            :icon="['fas', 'id-card']"
+            name="cluster-fields"
+            to="/cluster/members/fields"
+            @navigate="close"
+        >
+          {{ t('clusterSidebar.fieldList') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup
@@ -148,17 +156,6 @@ onMounted(() => {
             @navigate="close"
         >
           {{ t('clusterSidebar.movements') }}
-        </SidebarLink>
-      </SidebarGroup>
-
-      <SidebarGroup
-          v-if="hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_READ)"
-          :icon="['fas', 'id-card']"
-          :label="t('clusterSidebar.fields')"
-          prefix="/cluster/fields"
-      >
-        <SidebarLink :icon="['fas', 'id-card']" name="cluster-fields" to="/cluster/fields" @navigate="close">
-          {{ t('clusterSidebar.fieldList') }}
         </SidebarLink>
       </SidebarGroup>
 

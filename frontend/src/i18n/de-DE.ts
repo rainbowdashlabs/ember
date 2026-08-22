@@ -2288,6 +2288,13 @@ export default {
         fieldDefaultDateHint: 'Heutiges Datum als Standardwert verwenden.',
         fieldRequired: 'Pflichtfeld',
         fieldReadonly: 'Nur lesbar',
+        writability: {
+            column: 'Änderbar von',
+            hint: 'Wer die Antwort auf diese Frage ändern darf',
+            EVERYONE: 'Allen',
+            NOT_MEMBER: 'Wache und Verband',
+            OWNER_ONLY: 'Nur Verband',
+        },
         fieldReadonlyHint: 'Nur Nutzer mit Mitgliederverwaltung können dieses Feld bearbeiten.',
         fieldNotifyOnChange: 'Bei Änderung benachrichtigen',
         fieldNotifyOnChangeHint: 'Mitgliederverwalter werden benachrichtigt, wenn dieses Feld geändert wird.',
