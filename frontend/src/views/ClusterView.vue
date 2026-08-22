@@ -11,6 +11,7 @@ import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
 import SmartStationButton from '@/components/layout/SmartStationButton.vue'
+import AdminPanelButton from '@/components/layout/AdminPanelButton.vue'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import ClusterSwitcher from '@/components/navigation/ClusterSwitcher.vue'
 import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
@@ -195,6 +196,7 @@ onMounted(() => {
     <template #header>
       <QuickSearchTrigger scope="cluster" @open="openQuickSearch"/>
       <HelpCenterLink/>
+      <AdminPanelButton/>
       <SmartStationButton/>
       <AccountMenuButton/>
     </template>

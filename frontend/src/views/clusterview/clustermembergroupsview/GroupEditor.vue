@@ -4,16 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FormLabel from '@/components/input/FormLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
+import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import {clusterMembers} from '@/api'
+import {clusterMembers, data} from '@/api'
 import type {ClusterMemberSummary} from '@/api/clusterMembers'
-import {ClusterPermission} from '@/api/clusters'
+import type {PermissionGrant} from '@/api/types'
 
 const props = defineProps<{
   groupId: number
@@ -26,9 +27,6 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-/** Every permission a cluster can hand out, minus the two that everybody has anyway. */
-const GRANTABLE = Object.values(ClusterPermission).filter(p => p !== 'USER' && p !== 'LOGIN')
-
 const loading = ref(true)
 const saving = ref(false)
 const name = ref('')
@@ -36,9 +34,32 @@ const permissions = ref<string[]>([])
 const memberIds = ref<number[]>([])
 const members = ref<ClusterMemberSummary[]>([])
 
+/**
+ * The association's permissions in the shape the shared picker speaks.
+ *
+ * The picker identifies a selection by a numeric grant id, because a station's permissions are rows. An
+ * association's are not: the API speaks their names throughout. Numbering them here is what lets the one
+ * picker draw both, and the numbers never leave this component.
+ */
+const grants = ref<PermissionGrant[]>([])
+const idByName = computed(() => new Map(grants.value.map(g => [g.permission, g.id])))
+const nameById = computed(() => new Map(grants.value.map(g => [g.id, g.permission])))
+
+const selected = computed<Set<number>>({
+  get: () => new Set(permissions.value.map(p => idByName.value.get(p)).filter((id): id is number => !!id)),
+  set: next => {
+    permissions.value = [...next].map(id => nameById.value.get(id)).filter((n): n is string => !!n)
+  },
+})
+
 async function load() {
   loading.value = true
-  const [detail, all] = await Promise.all([clusterMembers.getGroup(props.groupId), clusterMembers.listMembers()])
+  const [detail, all, hierarchy] = await Promise.all([
+    clusterMembers.getGroup(props.groupId),
+    clusterMembers.listMembers(),
+    data.getClusterPermissionHierarchy().catch(() => []),
+  ])
+  grants.value = hierarchy.map((node, index) => ({id: index + 1, permission: node.name}))
   name.value = detail.name
   permissions.value = [...detail.permissions]
   memberIds.value = [...detail.memberIds]
@@ -48,12 +69,6 @@ async function load() {
 
 onMounted(load)
 watch(() => props.groupId, load)
-
-function togglePermission(permission: string, on: boolean) {
-  permissions.value = on
-      ? [...new Set([...permissions.value, permission])]
-      : permissions.value.filter(p => p !== permission)
-}
 
 function toggleMember(memberId: number, on: boolean) {
   memberIds.value = on
@@ -87,16 +102,9 @@ async function save() {
 
     <div class="space-y-1">
       <FormLabel>{{ t('clusterMemberGroups.permissionsLabel') }}</FormLabel>
-      <div class="grid grid-cols-1 gap-1 sm:grid-cols-2">
-        <label v-for="permission in GRANTABLE" :key="permission" class="flex items-center gap-2 text-sm">
-          <CheckboxInput
-              :disabled="!editable"
-              :model-value="permissions.includes(permission)"
-              @update:model-value="v => togglePermission(permission, v)"
-          />
-          <span>{{ permission }}</span>
-        </label>
-      </div>
+      <fieldset :disabled="!editable" class="contents">
+        <PermissionPicker v-model="selected" :all-roles="grants" scope="cluster"/>
+      </fieldset>
     </div>
 
     <div class="space-y-1">

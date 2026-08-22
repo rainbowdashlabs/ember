@@ -131,4 +131,41 @@ class PermissionsTest {
         }
         return collected;
     }
+    /**
+     * What a cluster's rights come to at the station the cluster owns.
+     *
+     * <p>The two jobs are different ones: running an association is not running a station. Only the rights
+     * over what the association writes cross over, and they cross over only at that one station.
+     */
+    @Test
+    void clusterContentRightsBecomeStationContentRightsAtItsOwnStation() {
+        Set<StationPermission> granted = ClusterPermission.atOwnStation(
+                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_KNOWLEDGE_MANAGER)));
+
+        assertTrue(granted.contains(StationPermission.KNOWLEDGE_MANAGER), "may run the knowledge base there");
+        assertTrue(granted.contains(StationPermission.KNOWLEDGE_EDIT), "which carries writing in it");
+        assertTrue(granted.contains(StationPermission.USER), "and may see the station at all");
+        assertFalse(granted.contains(StationPermission.MEMBER_MANAGER), "but not its people");
+        assertFalse(granted.contains(StationPermission.INVENTORY_MANAGER), "and not its gear");
+    }
+
+    /** Running the whole association still does not mean running a station. */
+    @Test
+    void aClusterAdministratorIsNotAStationAdministrator() {
+        Set<StationPermission> granted = ClusterPermission.atOwnStation(
+                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_ADMINISTRATOR)));
+
+        assertFalse(granted.contains(StationPermission.STATION_ADMINISTRATOR));
+        assertFalse(granted.contains(StationPermission.STATION_GENERAL));
+        assertTrue(granted.contains(StationPermission.NEWS_MANAGER), "the content rights do cross over");
+        assertTrue(granted.contains(StationPermission.EVENT_MANAGER));
+        assertTrue(granted.contains(StationPermission.KNOWLEDGE_MANAGER));
+    }
+
+    /** Somebody who holds nothing at the association holds nothing at its station either. */
+    @Test
+    void holdingNothingAtAClusterGrantsNothingAtItsStation() {
+        assertTrue(ClusterPermission.atOwnStation(EnumSet.noneOf(ClusterPermission.class))
+                .isEmpty());
+    }
 }

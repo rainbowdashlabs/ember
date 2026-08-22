@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.board.service.FederatedBoardService;
 import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.checklist.service.ChecklistService;
 import dev.chojo.ember.feature.cluster.service.ClusterApplicationService;
+import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
 import dev.chojo.ember.feature.cluster.service.ClusterContentService;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
@@ -192,7 +193,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 new KbPresentationService(knowledgeBaseRepo, kbFileStorage, kbContentService),
                 new KbLinkMetadataService(),
                 new PresentationCompressor(kbStorageConfig),
-                new PdfCompressor(kbStorageConfig));
+                new PdfCompressor(kbStorageConfig),
+                new ClusterAutoShareService(clusterRepo, new FederationRepository()));
         var kbFederationService = new KnowledgeBaseFederationService(
                 kbService,
                 kbContentService,
@@ -341,7 +343,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 clusterMemberService,
                 clusterInventoryService,
                 clusterProfileFieldService,
-                new ClusterContentService(clusterRepo, stationRepo, stationMemberRepo, kbService, federationRepo),
+                new ClusterContentService(clusterRepo, stationRepo, stationMemberRepo, kbService),
                 new ClusterApplicationService(
                         clusterApplicationRepo, clusterRepo, stationRepo, clusterService, noOpBus),
                 stationRepo,

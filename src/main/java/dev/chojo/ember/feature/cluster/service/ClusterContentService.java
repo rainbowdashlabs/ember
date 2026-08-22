@@ -8,8 +8,6 @@ package dev.chojo.ember.feature.cluster.service;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
-import dev.chojo.ember.feature.federation.entity.ShareScope;
-import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
@@ -46,20 +44,17 @@ public class ClusterContentService {
     private final StationRepository stationRepository;
     private final StationMemberRepository memberRepository;
     private final KnowledgeBaseService knowledgeBaseService;
-    private final FederationRepository federationRepository;
 
     @Inject
     public ClusterContentService(
             ClusterRepository clusterRepository,
             StationRepository stationRepository,
             StationMemberRepository memberRepository,
-            KnowledgeBaseService knowledgeBaseService,
-            FederationRepository federationRepository) {
+            KnowledgeBaseService knowledgeBaseService) {
         this.clusterRepository = clusterRepository;
         this.stationRepository = stationRepository;
         this.memberRepository = memberRepository;
         this.knowledgeBaseService = knowledgeBaseService;
-        this.federationRepository = federationRepository;
     }
 
     /**
@@ -115,12 +110,10 @@ public class ClusterContentService {
     }
 
     /**
-     * Creates a knowledge folder and shares it with the whole cluster in the same breath.
+     * Creates a knowledge folder on the cluster's own station.
      *
-     * <p>Unlike news and events, a knowledge folder does not travel on a capability alone: it needs a share
-     * row saying so. Since the cluster's station partners with its member stations and nothing else, "all
-     * partners" is exactly "all cluster stations", and there is no per-folder choice worth offering. A
-     * cluster's knowledge is the cluster's knowledge.
+     * <p>Sharing it with the cluster's stations happens where every write to that station is shared, so
+     * nothing about it is said here.
      *
      * @param clusterId   the cluster
      * @param parentId    the folder to create it in, or {@code null} for the top
@@ -139,8 +132,7 @@ public class ClusterContentService {
                 name.trim(),
                 description != null ? description : "",
                 authorFor(clusterId, accountId).id());
-        federationRepository.createKbShare(homeStationId, null, folder.id(), ShareScope.ALL_PARTNERS);
-        log.info("Cluster {} added knowledge folder {} and shared it with its stations", clusterId, folder.id());
+        log.info("Cluster {} added knowledge folder {}", clusterId, folder.id());
         return folder;
     }
 
@@ -156,7 +148,7 @@ public class ClusterContentService {
     }
 
     /**
-     * Writes an article in the cluster's knowledge base and shares it with the whole cluster.
+     * Writes an article in the cluster's knowledge base.
      *
      * @param clusterId   the cluster
      * @param folderId    the folder to put it in, or {@code null} for the top
@@ -177,8 +169,7 @@ public class ClusterContentService {
                 description != null ? description : "",
                 content != null ? content : "",
                 authorFor(clusterId, accountId).id());
-        federationRepository.createKbShare(homeStationId, file.id(), null, ShareScope.ALL_PARTNERS);
-        log.info("Cluster {} added knowledge article {} and shared it with its stations", clusterId, file.id());
+        log.info("Cluster {} added knowledge article {}", clusterId, file.id());
         return file;
     }
 

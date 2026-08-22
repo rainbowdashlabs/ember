@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ClusterEventsView from '~/views/clusterview/ClusterEventsView.vue'
+import CategoriesHelp from '~/views/helpcenter/stationview/events/CategoriesHelp.vue'
 
 definePageMeta({
-  layout: 'cluster',
-  name: 'cluster-events',
+  layout: 'helpcenter-cluster',
+  name: 'help-cluster-event-categories',
 })
 </script>
 
 <template>
-  <ClusterEventsView />
+  <CategoriesHelp />
 </template>

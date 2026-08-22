@@ -83,6 +83,40 @@ export function useDemoAccounts() {
   const noStationRoleGroups = computed(() => buildRoleGroups(noStationAccounts.value))
 
   /**
+   * The accounts that act for an association, gathered by the job they do there.
+   *
+   * Across every station rather than under one, because acting for an association has nothing to do with
+   * which station somebody is at, and one of these people is at no station at all. Without this the only
+   * way to sign in as the association's gear manager is to know which station they happen to belong to.
+   */
+  const clusterRoleGroups = computed<RoleGroup[]>(() => {
+    const everybody = [...noStationAccounts.value, ...stationGroups.value.flatMap(g => g.accounts)]
+    const seen = new Set<string>()
+    const acting = everybody.filter(a => {
+      if (!a.email || seen.has(a.email) || !(a.clusterPermissions ?? []).length) return false
+      seen.add(a.email)
+      return true
+    })
+
+    const groups: RoleGroup[] = []
+    const taken = new Set<string>()
+
+    function addGroup(label: string, holds: string) {
+      const matching = acting.filter(a => !taken.has(a.email) && (a.clusterPermissions ?? []).includes(holds))
+      if (!matching.length) return
+      groups.push({label, accounts: matching})
+      matching.forEach(a => taken.add(a.email))
+    }
+
+    addGroup('Verbandsleitung', 'CLUSTER_ADMINISTRATOR')
+    addGroup('Mitgliederverwaltung', 'CLUSTER_MEMBER_MANAGER')
+    addGroup('Materialverwaltung', 'CLUSTER_INVENTORY_MANAGER')
+    const rest = acting.filter(a => !taken.has(a.email))
+    if (rest.length) groups.push({label: 'Verband', accounts: rest})
+    return groups
+  })
+
+  /**
    * Accepts both the grouped payload and the two flat shapes older instances return, so a demo
    * instance one version behind still offers its accounts.
    */
@@ -126,6 +160,7 @@ export function useDemoAccounts() {
     roleGroups,
     noStationAccounts,
     noStationRoleGroups,
+    clusterRoleGroups,
     load,
   }
 }

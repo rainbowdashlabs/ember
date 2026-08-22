@@ -185,6 +185,11 @@ export interface SessionInfo {
     clusterUserType?: string | null
     /** What the caller may do at that cluster, which is a separate set from the station's. */
     clusterPermissions?: string[]
+    /**
+     * What the caller may do at the station their association owns, where its knowledge base, news and
+     * calendar are kept. Those screens are the station's own, so they ask the station's own question.
+     */
+    ownStationPermissions?: string[]
 }
 
 export interface ThemeSessionInfo {

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
+import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
@@ -43,6 +44,7 @@ public class KnowledgeBaseService {
     private final KbLinkMetadataService linkMetadataService;
     private final PresentationCompressor officeCompressor;
     private final PdfCompressor pdfCompressor;
+    private final ClusterAutoShareService autoShareService;
 
     @Inject
     public KnowledgeBaseService(
@@ -53,7 +55,8 @@ public class KnowledgeBaseService {
             KbPresentationService presentationService,
             KbLinkMetadataService linkMetadataService,
             PresentationCompressor officeCompressor,
-            PdfCompressor pdfCompressor) {
+            PdfCompressor pdfCompressor,
+            ClusterAutoShareService autoShareService) {
         this.repository = repository;
         this.fileStorage = fileStorage;
         this.contentService = contentService;
@@ -62,6 +65,7 @@ public class KnowledgeBaseService {
         this.linkMetadataService = linkMetadataService;
         this.officeCompressor = officeCompressor;
         this.pdfCompressor = pdfCompressor;
+        this.autoShareService = autoShareService;
     }
 
     /**
@@ -107,6 +111,7 @@ public class KnowledgeBaseService {
      */
     public KbFolder createFolder(int stationId, Integer parentId, String name, String description, int createdBy) {
         var folder = repository.createFolder(stationId, parentId, name, description, createdBy);
+        autoShareService.shareKbFolder(stationId, folder.id());
         log.info("KB folder {} created in station {} by member {}", folder.id(), stationId, createdBy);
         return folder;
     }
@@ -206,6 +211,7 @@ public class KnowledgeBaseService {
                 null,
                 createdBy);
         contentService.initialiseMarkdown(file.id(), content, createdBy);
+        autoShareService.shareKbFile(stationId, file.id());
         log.info("KB markdown file {} created in station {} by member {}", file.id(), stationId, createdBy);
         return file;
     }
@@ -227,6 +233,7 @@ public class KnowledgeBaseService {
         var file = repository.createFile(
                 stationId, folderId, name, description, KbFileType.YOUTUBE, null, 0, youtubeUrl, createdBy);
         contentService.storeExtractedText(file.id(), linkMetadataService.fetchYoutubeMetadata(youtubeUrl));
+        autoShareService.shareKbFile(stationId, file.id());
         log.info("KB YouTube file {} created in station {} by member {}", file.id(), stationId, createdBy);
         return file;
     }
@@ -273,6 +280,7 @@ public class KnowledgeBaseService {
                 contentService.storeExtractedText(file.id(), null);
             }
         }
+        autoShareService.shareKbFile(stationId, file.id());
         log.info(
                 "KB file {} created in station {} by member {} (type {}, {} bytes)",
                 file.id(),
@@ -309,6 +317,7 @@ public class KnowledgeBaseService {
         var file = repository.createFile(
                 stationId, folderId, name, description, KbFileType.LINK, null, 0, null, linkUrl, createdBy);
         contentService.storeText(file.id(), ((name != null ? name : "") + " " + description + " " + linkUrl).trim());
+        autoShareService.shareKbFile(stationId, file.id());
         log.info("KB link file {} created in station {} by member {}", file.id(), stationId, createdBy);
         return file;
     }

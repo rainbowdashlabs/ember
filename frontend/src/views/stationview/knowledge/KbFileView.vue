@@ -38,6 +38,7 @@ import {
     type MarkdownHtmlResponse,
 } from '@/api/knowledgeBase'
 import {useKbFileMetadata} from '@/views/stationview/knowledge/kbfileview/useKbFileMetadata'
+import {STATION_KB_ROUTES, type KbRoutes} from '@/views/stationview/knowledge/knowledgebaseview/useKbNavigation'
 import {getItem} from '@/api/storage'
 import {downloadAuthed} from '@/util/downloadAuthed'
 import {formatDateTime} from '@/util/format'
@@ -48,7 +49,11 @@ import {useFlashMessage} from '@/composables/useFlashMessage'
 const props = defineProps<{
     fileId: number
     stationUid?: string
+    /** The pages this knowledge base is mounted on, which differ when an association opens its own. */
+    routes?: KbRoutes
 }>()
+
+const routes = computed(() => props.routes ?? STATION_KB_ROUTES)
 
 const {t} = useI18n()
 const router = useRouter()
@@ -132,7 +137,7 @@ async function copyToStation() {
     try {
         const {federation} = await import('@/api')
         await federation.copyKbFile(file.value.id)
-        router.push({name: 'kb-browse'})
+        router.push({name: routes.value.browse})
     } catch {
         error.value = t('common.error')
     }
@@ -291,9 +296,9 @@ async function saveContent() {
 }
 function goBack() {
     if (file.value?.folderId) {
-        router.push({name: 'kb-browse', query: {folderId: file.value.folderId}})
+        router.push({name: routes.value.browse, query: {folderId: file.value.folderId}})
     } else {
-        router.push({name: 'kb-browse'})
+        router.push({name: routes.value.browse})
     }
 }
 const {message: shareCopiedMessage, flash: flashShareCopied} = useFlashMessage(2000)
@@ -342,7 +347,7 @@ watch(() => [props.fileId, props.stationUid], () => {
                 @copy-to-station="copyToStation"
                 @open-edit-metadata="showEditMetadataModal = true"
                 @toggle-edit="toggleEdit"
-                @open-versions="router.push({name: 'kb-versions', params: {id: file.id}})"
+                @open-versions="router.push({name: routes.versions, params: {id: file.id}})"
                 @open-presentation="showPresentation = true"
                 @download-original="downloadOriginal"
                 @download-pdf="downloadPdf"

@@ -58,9 +58,9 @@ class ClusterContentServiceTest extends RepositoryTestBase {
                 new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService),
                 new KbLinkMetadataService(),
                 new PresentationCompressor(storage),
-                new PdfCompressor(storage));
-        service = new ClusterContentService(
-                clusterRepo, stationRepo, stationMemberRepo, kbService, new FederationRepository());
+                new PdfCompressor(storage),
+                new ClusterAutoShareService(clusterRepo, new FederationRepository()));
+        service = new ClusterContentService(clusterRepo, stationRepo, stationMemberRepo, kbService);
     }
 
     @Test

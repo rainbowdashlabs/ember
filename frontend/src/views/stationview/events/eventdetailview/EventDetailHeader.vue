@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
+import {useEventRoutes} from '@/composables/useEventRoutes'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -25,13 +26,14 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 const router = useRouter()
+const eventRoutes = useEventRoutes()
 
 function goBack() {
   router.push({name: props.canManageEvents ? 'events' : 'events-upcoming'})
 }
 
 function goEdit() {
-  router.push({name: 'event-edit', params: {id: props.event.id}})
+  router.push({name: eventRoutes.edit, params: {id: props.event.id}})
 }
 </script>
 

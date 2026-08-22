@@ -5,13 +5,16 @@
  */
 <script setup lang="ts">
 import ClusterKnowledgeView from '~/views/clusterview/ClusterKnowledgeView.vue'
+import {useClusterHomeStation} from '~/composables/useClusterHomeStation'
 
 definePageMeta({
   layout: 'cluster',
   name: 'cluster-knowledge',
 })
+
+const {homeStationId} = useClusterHomeStation()
 </script>
 
 <template>
-  <ClusterKnowledgeView />
+  <ClusterKnowledgeView v-if="homeStationId" />
 </template>

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.account.service;
 
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationUserType;
@@ -149,7 +150,11 @@ public class SessionInfoService {
                 currentStation != null ? currentStation.setupCompletedAt() : null,
                 session.clusterUid() != null ? session.clusterUid().toString() : null,
                 session.clusterUserType(),
-                session.clusterPermissions().stream().map(Enum::name).sorted().toList());
+                session.clusterPermissions().stream().map(Enum::name).sorted().toList(),
+                ClusterPermission.atOwnStation(session.clusterPermissions()).stream()
+                        .map(Enum::name)
+                        .sorted()
+                        .toList());
     }
 
     private ManagedMemberInfo toManagedMemberInfo(StationMember member) {
@@ -224,6 +229,10 @@ public class SessionInfoService {
      * @param setupCompletedAt  timestamp at which the station setup wizard was finished, or
      *                          {@code null} while the wizard still applies. Drives the first-login
      *                          redirect to {@code /station/setup} for administrators
+     * @param ownStationPermissions what the caller may do at the station their association owns, where its
+     *                          knowledge base, news and calendar are kept. Those screens are the station's
+     *                          own, so they ask what the reader may do at a station, and while one of them
+     *                          is open on the association's side this is the answer
      */
     public record SessionInfo(
             AccountInfo account,
@@ -245,7 +254,8 @@ public class SessionInfoService {
             Instant setupCompletedAt,
             String clusterId,
             ClusterUserType clusterUserType,
-            List<String> clusterPermissions) {}
+            List<String> clusterPermissions,
+            List<String> ownStationPermissions) {}
 
     public record ThemeInfo(
             String instanceDefaultTheme,

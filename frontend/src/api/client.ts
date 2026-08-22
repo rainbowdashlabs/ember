@@ -16,6 +16,7 @@ import {showToast} from '@/util/toast'
 import {reportApiError} from '@/util/devErrorReporter'
 import {requestStepUp, type StepUpCategory} from '@/util/stepUp'
 import type {ApiErrorBody} from '@/util/apiError'
+import {getActingStation} from '@/util/actingStationState'
 
 // -- Request history for problem reports --
 export interface RequestHistoryEntry {
@@ -51,7 +52,9 @@ function applyAuthHeaders(config: InternalAxiosRequestConfig) {
     if (token) {
         config.headers.Authorization = `Bearer ${token}`
     }
-    const stationId = getItem('station_id')
+    // A screen that edits an association's own content acts at the station the association owns, whether or
+    // not the reader has a station of their own selected.
+    const stationId = getActingStation() ?? getItem('station_id')
     if (stationId) {
         config.headers['X-Station-Id'] = stationId
     }

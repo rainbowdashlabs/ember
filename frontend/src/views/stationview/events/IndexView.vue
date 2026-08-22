@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
+import {useEventRoutes} from '@/composables/useEventRoutes'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -20,9 +21,16 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useSession} from '@/composables/useSession'
 import {StationPermission} from '@/api/types'
 
+defineProps<{
+  /** The heading, when the station's own wording is not the right one. */
+  title?: string
+  subtitle?: string
+}>()
+
 const {t} = useI18n()
 const {hasPermission} = useSession()
 const router = useRouter()
+const eventRoutes = useEventRoutes()
 const allEvents = ref<StationEvent[]>([])
 const todayEvents = ref<StationEvent[]>([])
 const breaks = ref<EventBreak[]>([])
@@ -110,11 +118,11 @@ const {
 })
 
 function openAddEvent() {
-  router.push({name: 'event-new'})
+  router.push({name: eventRoutes.create})
 }
 
 function openEditEvent(ev: StationEvent) {
-  router.push({name: 'event-edit', params: {id: ev.id}})
+  router.push({name: eventRoutes.edit, params: {id: ev.id}})
 }
 
 function openAddBreak() {
@@ -165,8 +173,8 @@ function goToAttendance(ev: StationEvent) {
 
 <template>
   <ViewContent
-      :title="t('pages.events.title')"
-      :subtitle="t('pages.events.subtitle')"
+      :title="title ?? t('pages.events.title')"
+      :subtitle="subtitle ?? t('pages.events.subtitle')"
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>

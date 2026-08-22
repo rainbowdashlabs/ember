@@ -58,6 +58,7 @@ public class ClusterMemberRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/cluster/members", this::list, ClusterPermission.CLUSTER_MEMBER_READ);
+        routes.get(prefix + "/cluster/administrators", this::listAdministrators, ClusterPermission.USER);
         routes.post(prefix + "/cluster/members", this::add, ClusterPermission.CLUSTER_ADMINISTRATOR);
         routes.get(prefix + "/cluster/members/{memberId}", this::get, ClusterPermission.CLUSTER_MEMBER_READ);
         routes.delete(prefix + "/cluster/members/{memberId}", this::remove, ClusterPermission.CLUSTER_ADMINISTRATOR);
@@ -68,6 +69,10 @@ public class ClusterMemberRoutes implements Routes {
         routes.put(
                 prefix + "/cluster/members/{memberId}/permissions",
                 this::setPermissions,
+                ClusterPermission.CLUSTER_ADMINISTRATOR);
+        routes.put(
+                prefix + "/cluster/members/{memberId}/groups",
+                this::setGroups,
                 ClusterPermission.CLUSTER_ADMINISTRATOR);
 
         routes.get(prefix + "/cluster/member-groups", this::listGroups, ClusterPermission.CLUSTER_MEMBER_READ);
@@ -93,6 +98,22 @@ public class ClusterMemberRoutes implements Routes {
     private void list(Context ctx) {
         Cluster cluster = requireActive(ctx);
         ctx.json(memberService.findMembers(cluster.id()).stream()
+                .map(this::toResponse)
+                .toList());
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/administrators",
+            methods = HttpMethod.GET,
+            summary = "Who runs this cluster",
+            tags = {"Cluster"},
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = ClusterMemberResponse[].class)))
+    private void listAdministrators(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        ctx.json(memberService.findMembers(cluster.id()).stream()
+                .filter(member ->
+                        clusterService.resolvePermissions(member).contains(ClusterPermission.CLUSTER_ADMINISTRATOR))
                 .map(this::toResponse)
                 .toList());
     }
@@ -182,6 +203,21 @@ public class ClusterMemberRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(ClusterPermissionsRequest.class);
         memberService.setPermissions(cluster.id(), pathInt(ctx, "memberId"), parsePermissions(request.permissions()));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/members/{memberId}/groups",
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            methods = HttpMethod.PUT,
+            summary = "Set which groups a cluster member is in",
+            tags = {"Cluster"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ClusterGroupsRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void setGroups(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        var request = ctx.bodyAsClass(ClusterGroupsRequest.class);
+        memberService.setMemberGroups(cluster.id(), pathInt(ctx, "memberId"), Set.copyOf(request.groupIds()));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -313,6 +349,8 @@ public class ClusterMemberRoutes implements Routes {
     public record ClusterUserTypeRequest(String userType) {}
 
     public record ClusterPermissionsRequest(List<String> permissions) {}
+
+    public record ClusterGroupsRequest(List<Integer> groupIds) {}
 
     public record ClusterGroupRequest(String name) {}
 

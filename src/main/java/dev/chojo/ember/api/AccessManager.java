@@ -179,19 +179,62 @@ public class AccessManager {
         Set<ClusterPermission> permissions = memberOpt
                 .map(this::resolveExpandedClusterPermissions)
                 .orElseGet(() -> EnumSet.noneOf(ClusterPermission.class));
+        boolean atOwnStation = session.stationId() != null && session.stationId() == cluster.homeStationId();
         return new UserSession(
                 session.account(),
                 session.sessionId(),
                 session.stationId(),
                 session.stationUid(),
-                session.member(),
-                session.permissions(),
+                atOwnStation && !permissions.isEmpty()
+                        ? byline(cluster, accountId).orElse(session.member())
+                        : session.member(),
+                atOwnStation ? withOwnStationRights(session, permissions) : session.permissions(),
                 session.instancePermissions(),
                 session.twoFactorVerifiedAt(),
                 cluster.id(),
                 cluster.uid(),
                 memberOpt.orElse(null),
                 permissions);
+    }
+
+    /**
+     * The member row that signs what somebody writes for a cluster, made the first time they arrive.
+     *
+     * <p>An article names its author as a station member, and a cluster member is not one. So acting at the
+     * cluster's own station gives them a row on it, once and never again. That is not a membership: the
+     * cluster's station is one nobody joins, it appears in no switcher, and the row carries no permission
+     * anywhere. It is a signature, and it exists so that everything a station writes with can be written with.
+     *
+     * @param cluster   the cluster being acted for
+     * @param accountId the account acting
+     * @return their byline on the cluster's own station
+     */
+    private Optional<StationMember> byline(Cluster cluster, int accountId) {
+        int homeStationId = cluster.homeStationId();
+        Optional<StationMember> existing = stationMemberRepository.findByStationAndAccount(homeStationId, accountId);
+        if (existing.isPresent()) return existing;
+        log.info("Gave account {} a byline on the station of cluster {}", accountId, cluster.id());
+        return Optional.of(stationMemberRepository.create(homeStationId, accountId));
+    }
+
+    /**
+     * What the caller may do at the station, once the station in question is the cluster's own.
+     *
+     * <p>A cluster's knowledge base, news list and calendar are kept on the station it owns, and are edited
+     * through the same screens a station edits its own with. Somebody trusted with the cluster's knowledge
+     * therefore has to arrive at that station able to edit knowledge there, which no membership gives them:
+     * they are not a member of it in any sense that carries rights. Only that station is affected, and only
+     * the content rights are translated.
+     *
+     * @param session     the session with its station context already resolved
+     * @param permissions what the caller holds at that cluster
+     * @return the station permissions the session should carry
+     */
+    private Set<StationPermission> withOwnStationRights(UserSession session, Set<ClusterPermission> permissions) {
+        Set<StationPermission> merged = EnumSet.noneOf(StationPermission.class);
+        merged.addAll(session.permissions());
+        merged.addAll(ClusterPermission.atOwnStation(permissions));
+        return merged;
     }
 
     /**

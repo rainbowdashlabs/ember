@@ -12,6 +12,7 @@ import type {DemoAccount, RoleGroup, StationTab} from '@/composables/useDemoAcco
 const props = defineProps<{
   loading: boolean
   noStationRoleGroups: RoleGroup[]
+  clusterRoleGroups: RoleGroup[]
   roleGroups: RoleGroup[]
   stationTabs: StationTab[]
   showStationTabs: boolean
@@ -33,6 +34,12 @@ const {t} = useI18n()
     <DemoAccountGroups v-if="props.noStationRoleGroups.length > 0"
                        :role-groups="props.noStationRoleGroups" :loading="props.loading"
                        :role-label="props.roleLabel" compact @login="a => emit('login', a)" class="mb-3"/>
+    <div v-if="props.clusterRoleGroups.length > 0" class="mb-3">
+      <p class="text-xs text-(--text-muted) mb-1">{{ t('demo.clusterLoginHint') }}</p>
+      <DemoAccountGroups :role-groups="props.clusterRoleGroups" :loading="props.loading"
+                         :role-label="props.roleLabel" compact @login="a => emit('login', a)"/>
+    </div>
+
     <TabBar v-if="props.showStationTabs" v-model="activeStationTab" :tabs="props.stationTabs" class="mb-3"/>
     <DemoAccountGroups :role-groups="props.roleGroups" :loading="props.loading"
                        :role-label="props.roleLabel" compact @login="a => emit('login', a)"/>

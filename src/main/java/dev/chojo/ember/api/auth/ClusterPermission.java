@@ -173,4 +173,43 @@ public enum ClusterPermission implements RouteRole {
     public boolean includes(ClusterPermission permission) {
         return allChildren().contains(permission);
     }
+
+    /**
+     * What these permissions come to on the cluster's own station.
+     *
+     * <p>The cluster's knowledge base, news list and calendar are a station's, kept on the station the cluster
+     * owns, so the screens that edit them are a station's too. For those screens to work, somebody trusted with
+     * the cluster's knowledge has to arrive at that station holding the right to edit knowledge there. That is
+     * what this translates, and it translates nothing else: the right to run the cluster is not the right to run
+     * a station, so nothing here reaches members, gear or settings. The station in question has no members to
+     * manage and no gear to lose, but the reason to keep the list short is that the two jobs are different ones.
+     *
+     * @param held every cluster permission the member holds, already expanded
+     * @return what they may do at the station the cluster owns
+     */
+    public static Set<StationPermission> atOwnStation(Set<ClusterPermission> held) {
+        Set<StationPermission> granted = EnumSet.noneOf(StationPermission.class);
+        if (held.isEmpty()) return granted;
+
+        granted.add(StationPermission.LOGIN);
+        granted.add(StationPermission.USER);
+
+        if (held.contains(CLUSTER_KNOWLEDGE_MANAGER)) granted.add(StationPermission.KNOWLEDGE_MANAGER);
+        else if (held.contains(CLUSTER_KNOWLEDGE_EDIT)) granted.add(StationPermission.KNOWLEDGE_EDIT);
+
+        if (held.contains(CLUSTER_NEWS_MANAGER)) granted.add(StationPermission.NEWS_MANAGER);
+        else if (held.contains(CLUSTER_NEWS_EDIT)) granted.add(StationPermission.NEWS_EDIT);
+
+        if (held.contains(CLUSTER_EVENT_MANAGER)) granted.add(StationPermission.EVENT_MANAGER);
+        else if (held.contains(CLUSTER_EVENT_EDIT)) granted.add(StationPermission.EVENT_EDIT);
+
+        // Sharing the cluster's content out to its stations is the cluster's federation right, read here.
+        if (held.contains(CLUSTER_FEDERATION)) {
+            granted.add(StationPermission.KNOWLEDGE_FEDERATE);
+            granted.add(StationPermission.NEWS_FEDERATE);
+            granted.add(StationPermission.EVENTS_FEDERATE);
+        }
+
+        return StationPermission.expand(granted);
+    }
 }

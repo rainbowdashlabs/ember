@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
+import {useEventRoutes} from '@/composables/useEventRoutes'
 import {isRecurringEvent, type EventBreak, type EventCategory, type StationEvent} from '@/api/events'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -34,6 +35,7 @@ const props = defineProps<{
 
 const {t} = useI18n()
 const router = useRouter()
+const eventRoutes = useEventRoutes()
 
 const {viewYear, viewMonth, weeks, prevMonth, nextMonth, goToToday} = useEventCalendarGrid(
     computed(() => ({
@@ -83,9 +85,9 @@ function chipStyle(ev: StationEvent): {backgroundColor: string; color: string} |
 
 function openEvent(ev: StationEvent, date: string) {
   if (isRecurringEvent(ev.eventType)) {
-    router.push({name: 'event-detail-date', params: {id: ev.id, date}})
+    router.push({name: eventRoutes.detailOnDate, params: {id: ev.id, date}})
   } else {
-    router.push({name: 'event-detail', params: {id: ev.id}})
+    router.push({name: eventRoutes.detail, params: {id: ev.id}})
   }
 }
 </script>

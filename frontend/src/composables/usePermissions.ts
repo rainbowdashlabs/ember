@@ -5,6 +5,7 @@
  */
 import {StationPermission, type StationPermissionName} from '@/api/types'
 import {sessionInfo} from '@/util/sessionState'
+import {getActingStation} from '@/util/actingStationState'
 
 /**
  * Declarative permission groups behind the named helpers below. A group is granted as soon
@@ -61,8 +62,19 @@ const PERMISSION_GROUPS = {
 
 type PermissionGroup = keyof typeof PERMISSION_GROUPS
 
+/**
+ * Whether the caller may do this at the station the request is for.
+ *
+ * <p>Usually that is the station they belong to. While a screen is open on the association's side, it is the
+ * station the association owns, where its knowledge base, news and calendar are kept: those screens are the
+ * station's own and ask the station's own question, and the answer there comes from what the reader holds at
+ * the association rather than from any membership, which they do not have.
+ */
 function hasPermission(permission: string): boolean {
-    return sessionInfo.value?.permissions?.includes(permission) ?? false
+    const held = getActingStation()
+        ? sessionInfo.value?.ownStationPermissions
+        : sessionInfo.value?.permissions
+    return held?.includes(permission) ?? false
 }
 
 /**

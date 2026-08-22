@@ -7,11 +7,21 @@ import {computed} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import type {KbFile} from '@/api/knowledgeBase'
 
+/** Where the knowledge base is mounted: a station's own screens, or an association's. */
+export type KbRoutes = {browse: string; file: string; versions: string}
+
+export const STATION_KB_ROUTES: KbRoutes = {browse: 'kb-browse', file: 'kb-file', versions: 'kb-versions'}
+
 /**
  * Route-derived browse position of the knowledge base plus the navigation
  * helpers that move between folders, files and the favourites list.
+ *
+ * <p>An association's knowledge base is the same screens over its own station, reached at its own addresses,
+ * so which pages a click lands on is the one thing that differs between the two.
+ *
+ * @param routes the pages this knowledge base is mounted on
  */
-export function useKbNavigation() {
+export function useKbNavigation(routes: KbRoutes = STATION_KB_ROUTES) {
     const router = useRouter()
     const route = useRoute()
 
@@ -27,14 +37,14 @@ export function useKbNavigation() {
 
     function navigateToFolder(folderId: number | null) {
         if (folderId === null) {
-            router.push({name: 'kb-browse'})
+            router.push({name: routes.browse})
         } else {
-            router.push({name: 'kb-browse', query: {folderId}})
+            router.push({name: routes.browse, query: {folderId}})
         }
     }
 
     function navigateToFile(file: KbFile) {
-        router.push({name: 'kb-file', params: {id: file.id}})
+        router.push({name: routes.file, params: {id: file.id}})
     }
 
     /**
@@ -46,7 +56,7 @@ export function useKbNavigation() {
     }
 
     function navigateToFavourites() {
-        router.push({name: 'kb-browse', query: {folderId: 'favourites'}})
+        router.push({name: routes.browse, query: {folderId: 'favourites'}})
     }
 
     return {

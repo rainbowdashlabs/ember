@@ -30,6 +30,7 @@ const {hasClusterPermission} = useSession()
 const newEmail = ref('')
 const newUserType = ref<string>(ClusterUserType.CLUSTER_USER)
 const busy = ref(false)
+const openMemberId = ref<number | null>(null)
 
 const {config: members, loading, error, runWith} = useConfigPanel<ClusterMemberSummary[]>({
   initial: [],
@@ -48,8 +49,13 @@ async function add() {
 async function remove(memberId: number) {
   await runWith(async () => {
     await clusterMembers.removeMember(memberId)
+    if (openMemberId.value === memberId) openMemberId.value = null
     return clusterMembers.listMembers()
   }, {busy})
+}
+
+async function reload() {
+  await runWith(() => clusterMembers.listMembers(), {busy})
 }
 
 async function changeUserType(memberId: number, userType: string) {
@@ -96,7 +102,10 @@ async function changeUserType(memberId: number, userType: string) {
               :busy="busy"
               :editable="hasClusterPermission(ClusterPermission.CLUSTER_ADMINISTRATOR)"
               :member="member"
+              :open="openMemberId === member.id"
               @remove="remove"
+              @saved="reload"
+              @toggle="id => openMemberId = openMemberId === id ? null : id"
               @user-type="changeUserType"
           />
         </div>

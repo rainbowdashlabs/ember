@@ -191,7 +191,8 @@ public class EventRegistrationRoutes implements Routes {
                 r.status(),
                 r.createdAt(),
                 createdByName,
-                fields);
+                fields,
+                crudService.findById(r.eventId()).map(StationEvent::name).orElse(null));
     }
 
     /**
@@ -637,7 +638,14 @@ public class EventRegistrationRoutes implements Routes {
             RegistrationStatus status,
             Instant createdAt,
             String createdByName,
-            List<FieldValueEntry> fields) {}
+            List<FieldValueEntry> fields,
+            /**
+             * What the appointment is called. Carried on the registration because the reader cannot always
+             * look it up: an appointment made by the association above the station lives on the
+             * association's own station, so a station-side list matching the id against its own events
+             * finds nothing and shows somebody a registration for something it cannot name.
+             */
+            String eventName) {}
 
     @OpenApiName("EventRegisterRequest")
     public record RegisterRequest(String eventDate, Integer memberId, List<FieldValueEntry> fields) {}

@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ClusterNewsView from '~/views/clusterview/ClusterNewsView.vue'
+import EventDetailHelp from '~/views/helpcenter/stationview/events/EventDetailHelp.vue'
 
 definePageMeta({
-  layout: 'cluster',
-  name: 'cluster-news',
+  layout: 'helpcenter-cluster',
+  name: 'help-cluster-event-detail',
 })
 </script>
 
 <template>
-  <ClusterNewsView />
+  <EventDetailHelp />
 </template>

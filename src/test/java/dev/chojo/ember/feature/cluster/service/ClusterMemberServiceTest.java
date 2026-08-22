@@ -116,6 +116,53 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
                 .contains(ClusterPermission.CLUSTER_INVENTORY_EDIT));
     }
 
+    /**
+     * The same membership, written from the member's end.
+     *
+     * <p>Somebody looking at one person and somebody looking at one role are asking different questions, and
+     * both screens exist. What they must not be is two different truths, so the one written here is read back
+     * through the group.
+     */
+    @Test
+    void groupsCanBeSetFromTheMemberSideToo() {
+        int clusterId = freshCluster();
+        var member = clusterService.addMember(clusterId, freshAccount().id(), ClusterUserType.CLUSTER_USER);
+        var gear = service.createGroup(clusterId, "Gerät von der Mitgliedsseite");
+        var people = service.createGroup(clusterId, "Mitglieder von der Mitgliedsseite");
+        service.setGroupPermissions(clusterId, gear.id(), Set.of(ClusterPermission.CLUSTER_INVENTORY_EDIT));
+        service.setGroupPermissions(clusterId, people.id(), Set.of(ClusterPermission.CLUSTER_MEMBER_EDIT));
+
+        service.setMemberGroups(clusterId, member.id(), Set.of(gear.id(), people.id()));
+
+        var detail = service.findMemberDetail(clusterId, member.id());
+        assertEquals(2, detail.groups().size(), "both groups, read back from the member");
+        assertTrue(detail.resolved().contains(ClusterPermission.CLUSTER_INVENTORY_EDIT));
+        assertTrue(detail.resolved().contains(ClusterPermission.CLUSTER_MEMBER_EDIT));
+        assertTrue(
+                service.findGroupDetail(clusterId, gear.id()).memberIds().contains(member.id()),
+                "and the group says so as well");
+
+        // Narrowing to one takes the other away, and setting the same set again changes nothing
+        service.setMemberGroups(clusterId, member.id(), Set.of(gear.id()));
+        service.setMemberGroups(clusterId, member.id(), Set.of(gear.id()));
+
+        var narrowed = service.findMemberDetail(clusterId, member.id());
+        assertEquals(1, narrowed.groups().size());
+        assertTrue(narrowed.resolved().contains(ClusterPermission.CLUSTER_INVENTORY_EDIT));
+        assertFalse(narrowed.resolved().contains(ClusterPermission.CLUSTER_MEMBER_EDIT));
+    }
+
+    /** A group of somebody else's cluster is not a group this member can be put in. */
+    @Test
+    void aMemberCannotBePutInAnotherClustersGroup() {
+        int clusterId = freshCluster();
+        var member = clusterService.addMember(clusterId, freshAccount().id(), ClusterUserType.CLUSTER_USER);
+        var elsewhere = service.createGroup(freshCluster(), "Fremde Gruppe");
+
+        assertThrows(
+                NotFoundResponse.class, () -> service.setMemberGroups(clusterId, member.id(), Set.of(elsewhere.id())));
+    }
+
     @Test
     void aGroupCanBeRenamedAndRemoved() {
         int clusterId = freshCluster();

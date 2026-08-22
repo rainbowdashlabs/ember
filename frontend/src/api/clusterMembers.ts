@@ -35,6 +35,17 @@ export interface ClusterGroupDetail {
     memberIds: number[]
 }
 
+/**
+ * Who runs this cluster.
+ *
+ * Readable by anybody who belongs to it, unlike the full member list: somebody who has been given one job
+ * here should be able to see who to ask about the rest without being trusted with the roll.
+ */
+export async function listAdministrators(): Promise<ClusterMemberSummary[]> {
+    const res = await client.get<ClusterMemberSummary[]>('/cluster/administrators')
+    return res.data
+}
+
 export async function listMembers(): Promise<ClusterMemberSummary[]> {
     const res = await client.get<ClusterMemberSummary[]>('/cluster/members')
     return res.data
@@ -60,6 +71,11 @@ export async function setMemberUserType(memberId: number, userType: string): Pro
 
 export async function setMemberPermissions(memberId: number, permissions: string[]): Promise<void> {
     await client.put(`/cluster/members/${memberId}/permissions`, {permissions})
+}
+
+/** The same membership a group's own screen writes, read and written from the member's end. */
+export async function setMemberGroups(memberId: number, groupIds: number[]): Promise<void> {
+    await client.put(`/cluster/members/${memberId}/groups`, {groupIds})
 }
 
 export async function listGroups(): Promise<ClusterGroupSummary[]> {

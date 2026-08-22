@@ -31,6 +31,13 @@ export interface OwnCluster {
     name: string
     /** Headers that act for this cluster, for the calls a story makes rather than clicks. */
     headers: Record<string, string>
+    /**
+     * Headers that write the cluster's own knowledge, news and calendar.
+     *
+     * Those live on the station the cluster owns and are written with the ordinary station screens, so
+     * writing them means naming that station as well as the cluster.
+     */
+    contentHeaders: Record<string, string>
     /** The station under it. */
     stationUid: string
     stationName: string
@@ -72,6 +79,7 @@ export async function ownCluster(
         uid: cluster.uid,
         name: stamp,
         headers: actingHeaders,
+        contentHeaders: {...actingHeaders, 'X-Station-Id': cluster.homeStationId},
         stationUid: station.uid,
         stationName: station.name,
         stationPage: station.page,

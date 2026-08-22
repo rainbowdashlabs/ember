@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, apiHeaders, enterCluster, clusterStationManager, pageAsThrowaway} from './fixtures/auth'
+import {test, expect, apiHeaders, clusterHeaders, enterCluster, clusterStationManager, pageAsThrowaway}
+    from './fixtures/auth'
 import {ownCluster} from './fixtures/cluster'
 
 /**
@@ -23,10 +24,11 @@ test.describe('Cluster content', () => {
      */
     test('a cluster article reaches the member stations', async ({adminPage: page, browser, request}) => {
         const cluster = await enterCluster(page)
-        const headers = {...await apiHeaders(page), 'X-Cluster-Id': cluster.uid}
+        const headers = await clusterHeaders(page, cluster)
         const name = `Dienstanweisung ${test.info().workerIndex}-${Date.now()}`
 
-        const written = await page.request.post('/api/v1/cluster/knowledge/files', {
+        // Written the way the screens write it: the station's own knowledge base, over the cluster's station
+        const written = await page.request.post('/api/v1/kb/files/markdown', {
             headers,
             data: {folderId: null, name, description: 'Vom Verband', content: '# Gilt für alle'},
         })
@@ -54,10 +56,10 @@ test.describe('Cluster content', () => {
      */
     test('cluster news reaches the member stations', async ({adminPage: page, browser, request}) => {
         const cluster = await enterCluster(page)
-        const headers = {...await apiHeaders(page), 'X-Cluster-Id': cluster.uid}
+        const headers = await clusterHeaders(page, cluster)
         const title = `Kreismitteilung ${test.info().workerIndex}-${Date.now()}`
 
-        const written = await page.request.post('/api/v1/cluster/news', {
+        const written = await page.request.post('/api/v1/news', {
             headers,
             data: {title, contentMarkdown: 'Alle Wachen sind gemeint.', contentHtml: '<p>Alle Wachen sind gemeint.</p>'},
         })
@@ -85,14 +87,21 @@ test.describe('Cluster content', () => {
      */
     test('a cluster appointment reaches the member stations', async ({adminPage: page, browser, request}) => {
         const cluster = await enterCluster(page)
-        const headers = {...await apiHeaders(page), 'X-Cluster-Id': cluster.uid}
+        const headers = await clusterHeaders(page, cluster)
         const name = `Kreisübung ${test.info().workerIndex}-${Date.now()}`
         const start = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString()
         const end = new Date(Date.now() + 14 * 24 * 3600 * 1000 + 3600 * 1000).toISOString()
 
-        const made = await page.request.post('/api/v1/cluster/events', {
+        const made = await page.request.post('/api/v1/events', {
             headers,
-            data: {name, description: 'Gemeinsame Übung', startTime: start, endTime: end, requiresRegistration: true},
+            data: {
+                name,
+                description: 'Gemeinsame Übung',
+                eventType: 'ONE_TIME',
+                startTime: start,
+                endTime: end,
+                requiresRegistration: true,
+            },
         })
         expect(made.ok()).toBeTruthy()
 
@@ -117,8 +126,8 @@ test.describe('Cluster content', () => {
         const own = await ownCluster(page, browser, request, 'Inhaltsverband')
         const title = `Rundschreiben ${Date.now()}`
 
-        const written = await page.request.post('/api/v1/cluster/news', {
-            headers: own.headers,
+        const written = await page.request.post('/api/v1/news', {
+            headers: own.contentHeaders,
             data: {title, contentMarkdown: 'Für alle.', contentHtml: '<p>Für alle.</p>'},
         })
         expect(written.ok()).toBeTruthy()

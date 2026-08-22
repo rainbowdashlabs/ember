@@ -241,6 +241,31 @@ class ClusterServiceTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
     }
 
+    /**
+     * Writing for a cluster gives the writer a member row on the cluster's own station, so an article can
+     * name its author. That row is a signature and not a membership: it must not turn up where somebody is
+     * asked which stations are theirs.
+     */
+    @Test
+    void aBylineOnTheClustersOwnStationIsNotAStationSomebodyBelongsTo() {
+        int clusterId = freshCluster();
+        int homeStationId = clusterRepo.findById(clusterId).orElseThrow().homeStationId();
+
+        var account = freshAccount();
+        var byline = stationMemberRepo.create(homeStationId, account.id());
+        assertNotNull(byline);
+
+        assertTrue(
+                newStationMemberService(accountRepo, null)
+                        .findBelongingByAccount(account.id())
+                        .isEmpty(),
+                "the cluster's own station is not one anybody belongs to");
+        assertEquals(
+                1,
+                stationMemberRepo.findByAccount(account.id()).size(),
+                "while the row itself is still there, because an article still has to name its author");
+    }
+
     @Test
     void anAccountBelongsToOneClusterOnlyOnce() {
         int clusterId = freshCluster();

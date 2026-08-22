@@ -91,7 +91,7 @@ public class SessionRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationMembership[].class)))
     private void getStations(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        List<StationMember> memberships = memberService.findByAccount(session.accountId());
+        List<StationMember> memberships = memberService.findBelongingByAccount(session.accountId());
         List<StationMembership> result = memberships.stream()
                 .map(m -> {
                     var station = stationService.findById(m.stationId()).orElse(null);
@@ -105,7 +105,7 @@ public class SessionRoutes implements Routes {
 
     private void getCrossStationDashboard(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        List<StationMember> memberships = memberService.findByAccount(session.accountId());
+        List<StationMember> memberships = memberService.findBelongingByAccount(session.accountId());
 
         var stationSummaries = new ArrayList<CrossStationSummary>();
         var allNotifications = new ArrayList<CrossStationNotification>();

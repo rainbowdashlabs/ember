@@ -9,6 +9,8 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -98,7 +100,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService),
                 new KbLinkMetadataService(),
                 new PresentationCompressor(storageConfig),
-                new PdfCompressor(storageConfig));
+                new PdfCompressor(storageConfig),
+                new ClusterAutoShareService(new ClusterRepository(), new FederationRepository()));
         service = new KnowledgeBaseFederationService(
                 kbService,
                 contentService,

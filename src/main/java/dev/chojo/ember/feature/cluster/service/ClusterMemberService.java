@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The cluster's own members, their groups, and the three ways they come to hold a permission.
@@ -168,6 +169,35 @@ public class ClusterMemberService {
             clusterRepository.addToGroup(groupId, memberId);
             eventBus.publish(new ClusterMemberRoleChanged(memberId, cluster.name()));
         }
+    }
+
+    /**
+     * Replaces which groups one person is in, which is the same membership read from the other end.
+     *
+     * <p>Editing a member is where somebody looks when the question is what one person may do, and editing a
+     * group is where they look when the question is what a whole role may do. Both write the same rows.
+     *
+     * @param clusterId the cluster
+     * @param memberId  the member
+     * @param groupIds  the groups they should be in
+     */
+    public void setMemberGroups(int clusterId, int memberId, Set<Integer> groupIds) {
+        Cluster cluster = requireCluster(clusterId);
+        requireMember(clusterId, memberId);
+        Set<Integer> before = clusterRepository.findGroupsOfMember(memberId).stream()
+                .map(ClusterMemberGroup::id)
+                .collect(Collectors.toSet());
+        if (before.equals(groupIds)) return;
+
+        for (int groupId : before) {
+            if (!groupIds.contains(groupId)) clusterRepository.removeFromGroup(groupId, memberId);
+        }
+        for (int groupId : groupIds) {
+            if (before.contains(groupId)) continue;
+            requireGroup(clusterId, groupId);
+            clusterRepository.addToGroup(groupId, memberId);
+        }
+        eventBus.publish(new ClusterMemberRoleChanged(memberId, cluster.name()));
     }
 
     /**

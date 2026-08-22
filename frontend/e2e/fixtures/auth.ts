@@ -227,11 +227,38 @@ export async function otherStationManager(
  * travels on the header and nothing guesses it. Read rather than hardcoded, for the same reason the
  * demo accounts are: the seeder is free to rename what it builds.
  */
-export async function clustersOf(page: Page): Promise<{uid: string; name: string}[]> {
+export async function clustersOf(page: Page): Promise<Cluster[]> {
     const headers = await apiHeaders(page)
     const response = await page.request.get('/api/v1/clusters', {headers})
     if (!response.ok()) throw new Error(`The cluster list answered ${response.status()}`)
     return response.json()
+}
+
+/**
+ * A cluster as a story needs to know it: what to name, and the station it keeps its own things on.
+ *
+ * A cluster writes its knowledge base, its news and its calendar with the ordinary station screens, over
+ * the station it owns. Writing them in a story therefore means naming that station the same way the
+ * application does, which is why the id is part of what a story is handed.
+ */
+export interface Cluster {
+    uid: string
+    name: string
+    homeStationId: string
+}
+
+/**
+ * The headers that write for a cluster: its identity, and the station its own things live on.
+ *
+ * @param page    a signed-in page
+ * @param cluster the cluster being written for
+ */
+export async function clusterHeaders(page: Page, cluster: Cluster): Promise<Record<string, string>> {
+    return {
+        ...await apiHeaders(page),
+        'X-Cluster-Id': cluster.uid,
+        'X-Station-Id': cluster.homeStationId,
+    }
 }
 
 /**
@@ -240,7 +267,7 @@ export async function clustersOf(page: Page): Promise<{uid: string; name: string
  * The application plants the same key when somebody uses the switcher; a story that is not about
  * the switcher plants it directly rather than clicking through it every time.
  */
-export async function enterCluster(page: Page): Promise<{uid: string; name: string}> {
+export async function enterCluster(page: Page): Promise<Cluster> {
     const cluster = await theSeededCluster(page)
     await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), cluster.uid)
     return cluster
@@ -254,7 +281,7 @@ export async function enterCluster(page: Page): Promise<{uid: string; name: stri
  * run at once. The seeded one is the only one with stations under it, which is also what makes it the one
  * worth telling a story about.
  */
-export async function theSeededCluster(page: Page): Promise<{uid: string; name: string}> {
+export async function theSeededCluster(page: Page): Promise<Cluster> {
     const clusters = await clustersOf(page)
     if (!clusters.length) throw new Error('This account may act for no cluster')
 

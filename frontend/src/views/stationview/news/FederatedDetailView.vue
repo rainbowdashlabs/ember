@@ -24,6 +24,7 @@ import ProseContent from '@/components/display/ProseContent.vue'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const newsRoutes = useNewsRoutes()
 
 const stationUid = ref(route.params.stationUid as string)
 const newsId = ref(Number(route.params.newsId))
@@ -46,7 +47,7 @@ watch(() => [route.params.stationUid, route.params.newsId], () => {
       :subtitle="t('pages.federated-news-detail.subtitle')"
   >
     <div class="space-y-4">
-      <SecondaryButton :icon="['fas', 'arrow-left']" compact @click="router.push({ name: 'news-list' })">
+      <SecondaryButton :icon="['fas', 'arrow-left']" compact @click="router.push({ name: newsRoutes.list })">
         {{ t('common.back') }}
       </SecondaryButton>
 

@@ -24,6 +24,14 @@ import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {KbFile, KbFileVersion} from '@/api/knowledgeBase'
 import {ContentMode} from '@/api/news'
+import {STATION_KB_ROUTES, type KbRoutes} from './knowledgebaseview/useKbNavigation'
+
+const props = defineProps<{
+    /** The pages this knowledge base is mounted on, which differ when an association opens its own. */
+    routes?: KbRoutes
+}>()
+
+const routes = computed(() => props.routes ?? STATION_KB_ROUTES)
 
 const {t} = useI18n()
 const router = useRouter()
@@ -59,7 +67,7 @@ const {
     confirm: handleRevert,
 } = useConfirmAction<KbFileVersion>({
     onConfirm: v => knowledgeBase.revertToVersion(fileId.value, v.version),
-    onSuccess: () => { router.push({name: 'kb-file', params: {id: fileId.value}}) },
+    onSuccess: () => { router.push({name: routes.value.file, params: {id: fileId.value}}) },
     error,
 })
 
@@ -89,7 +97,7 @@ watch(loaded, (isLoaded) => {
 
         <template v-else>
             <div class="flex items-center gap-2 mb-4">
-                <SecondaryButton @click="router.push({name: 'kb-file', params: {id: fileId}})">
+                <SecondaryButton @click="router.push({name: routes.file, params: {id: fileId}})">
                     <font-awesome-icon :icon="['fas', 'chevron-left']"/>
                     {{ t('common.back') }}
                 </SecondaryButton>

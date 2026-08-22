@@ -29,6 +29,7 @@ import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
 const router = useRouter()
+const newsRoutes = useNewsRoutes()
 const route = useRoute()
 const { loaded, hasPermission, sessionInfo } = useSession()
 const canFederateNews = () => hasPermission(StationPermission.NEWS_FEDERATE)
@@ -207,7 +208,7 @@ async function save() {
       }
     }
 
-    await router.push({ name: 'news-list' })
+    await router.push({ name: newsRoutes.list })
   } catch (e) {
     error.value = t('common.error')
     throw e
@@ -226,7 +227,7 @@ watch(loaded, (isLoaded) => {
   >
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'news-list' })">
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: newsRoutes.list })">
           {{ t('common.back') }}
         </SecondaryButton>
       </div>
@@ -266,7 +267,7 @@ watch(loaded, (isLoaded) => {
         />
 
         <div class="flex justify-end gap-3">
-          <SecondaryButton @click="router.push({ name: 'news-list' })">{{ t('common.cancel') }}</SecondaryButton>
+          <SecondaryButton @click="router.push({ name: newsRoutes.list })">{{ t('common.cancel') }}</SecondaryButton>
           <SaveButton :disabled="!canSave" :action="save"/>
         </div>
       </template>

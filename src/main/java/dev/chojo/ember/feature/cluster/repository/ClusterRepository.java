@@ -76,6 +76,22 @@ public class ClusterRepository {
     }
 
     /**
+     * The cluster that owns a station, if the station is one a cluster keeps its own things on.
+     *
+     * <p>Distinct from {@link #findByStation(int)}, which answers for a member station. This one answers for
+     * the station nobody joins: the shell a cluster's knowledge base, news and calendar live on.
+     *
+     * @param stationId the station
+     * @return the cluster whose own station it is
+     */
+    public Optional<Cluster> findByHomeStation(int stationId) {
+        return query("SELECT %s FROM cluster WHERE home_station_id = :station_id;", CLUSTER_COLUMNS)
+                .single(call().bind("station_id", stationId))
+                .map(Cluster.map())
+                .first();
+    }
+
+    /**
      * The public identity of a cluster, which is what leaves the backend on the wire.
      *
      * @param clusterId the internal id

@@ -115,6 +115,29 @@ test.describe('Cluster', () => {
     })
 
     /**
+     * The cluster's own station is not one anybody belongs to.
+     *
+     * Writing for a cluster leaves a byline on that station so an article can name its author. CLS-6 asks
+     * that the shell is invisible in the directory, the sitemap and the picker; this asks the other half,
+     * that it never turns up in the list of stations an account is told are theirs.
+     */
+    test('the home station is in nobody\'s list of their own stations', async ({adminPage: page}) => {
+        const cluster = await theSeededCluster(page)
+        const headers = await apiHeaders(page)
+
+        const mine = await page.request.get('/api/v1/session/stations', {headers}).then(r => r.json())
+        expect(mine.map((s: {stationName: string}) => s.stationName),
+            'the administrator writes for the cluster and still belongs to no station of its')
+            .not.toContain(cluster.name)
+
+        const across = await page.request
+            .get('/api/v1/session/cross-station-dashboard', {headers})
+            .then(r => r.json())
+        expect(JSON.stringify(across), 'nor does it stand on the page that gathers them')
+            .not.toContain(cluster.name)
+    })
+
+    /**
      * CLS-3 - An account in two clusters switches between them.
      *
      * The demo has one cluster, so the story makes the second itself: an administrator creates it and

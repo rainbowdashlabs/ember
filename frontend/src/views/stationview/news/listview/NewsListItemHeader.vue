@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
+import {useNewsRoutes} from '@/composables/useNewsRoutes'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
@@ -38,6 +39,7 @@ const props = defineProps<{
 
 const {t} = useI18n()
 const router = useRouter()
+const newsRoutes = useNewsRoutes()
 
 function viewBadgeRef(el: unknown) {
   props.setViewBadgeRef(el, props.id)
@@ -69,7 +71,7 @@ function viewBadgeRef(el: unknown) {
         :initial-count="localEntry?.viewCount ?? 0"
         :news-title="title"
       />
-      <EditButton @click.stop="router.push({ name: 'news-edit', params: { id: id } })"/>
+      <EditButton @click.stop="router.push({ name: newsRoutes.edit, params: { id: id } })"/>
       <DeleteButton @click.stop="onRequestDelete(localEntry!)"/>
     </div>
   </div>

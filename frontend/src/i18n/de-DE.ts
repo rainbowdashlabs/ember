@@ -2615,6 +2615,110 @@ export default {
             label: 'Stationsadministrator',
             desc: 'Vollzugriff auf alle Funktionen und Einstellungen der Station.',
         },
+        CLUSTER_ADMINISTRATOR: {
+            label: 'Verbandsleitung',
+            desc: 'Vollzugriff auf alles, was der Verband entscheidet, und auf seine Mitglieder.',
+        },
+        CLUSTER_MANAGER: {
+            label: 'Verbandsverwaltung',
+            desc: 'Alles verwalten, was der Verband seinen Wachen vorgibt und für sie bereitstellt.',
+        },
+        CLUSTER_GENERAL: {
+            label: 'Verband bearbeiten',
+            desc: 'Name, Beschreibung und Vernetzung des Verbands ändern.',
+        },
+        CLUSTER_LOOK_AND_FEEL: {
+            label: 'Erscheinungsbild',
+            desc: 'Farben, Thema, Form und Logo für alle Wachen des Verbands vorgeben oder festsetzen.',
+        },
+        CLUSTER_FEDERATION: {
+            label: 'Vernetzung',
+            desc: 'Entscheiden, ob die Wachen des Verbands untereinander verbunden werden.',
+        },
+        CLUSTER_MODULES: {
+            label: 'Module',
+            desc: 'Module für alle Wachen des Verbands sperren.',
+        },
+        CLUSTER_STORAGE: {
+            label: 'Speicherplatz',
+            desc: 'Den Speicher des Verbands auf seine Wachen verteilen.',
+        },
+        CLUSTER_STATIONS: {
+            label: 'Wachen',
+            desc: 'Wachen anlegen, Beitrittsanfragen beantworten und Wachen wieder entlassen.',
+        },
+        CLUSTER_MEMBER_MANAGER: {
+            label: 'Mitgliederverwaltung',
+            desc: 'Die Mitglieder aller Wachen des Verbands suchen und bearbeiten.',
+        },
+        CLUSTER_MEMBER_READ: {
+            label: 'Mitglieder sehen',
+            desc: 'Die Mitglieder der Wachen des Verbands einsehen.',
+        },
+        CLUSTER_MEMBER_EDIT: {
+            label: 'Mitglieder bearbeiten',
+            desc: 'Angaben zu Mitgliedern der Wachen des Verbands ändern.',
+        },
+        CLUSTER_MEMBER_FIELDS: {
+            label: 'Felder der Mitglieder',
+            desc: 'Die Antworten auf die Felder des Verbands bearbeiten.',
+        },
+        CLUSTER_MEMBER_EXPORT: {
+            label: 'Mitglieder exportieren',
+            desc: 'Mitgliederlisten des Verbands herunterladen.',
+        },
+        CLUSTER_INVENTORY_MANAGER: {
+            label: 'Materialverwaltung',
+            desc: 'Das Material des Verbands vollständig verwalten.',
+        },
+        CLUSTER_INVENTORY_READ: {
+            label: 'Material sehen',
+            desc: 'Sehen, was der Verband besitzt und wo es gerade ist.',
+        },
+        CLUSTER_INVENTORY_EDIT: {
+            label: 'Material bearbeiten',
+            desc: 'Material des Verbands anlegen und ändern.',
+        },
+        CLUSTER_INVENTORY_TRANSFER: {
+            label: 'Material ausgeben',
+            desc: 'Material an eine Wache schicken und wieder zurückholen.',
+        },
+        CLUSTER_INVENTORY_EXCHANGE: {
+            label: 'Schritte bestätigen',
+            desc: 'Die Schritte einer Bewegung bestätigen, die nur der Verband bestätigen kann.',
+        },
+        CLUSTER_FIELD_MANAGER: {
+            label: 'Felderverwaltung',
+            desc: 'Die Felder verwalten, die der Verband in jedem Profil abfragt.',
+        },
+        CLUSTER_FIELD_EDIT: {
+            label: 'Felder bearbeiten',
+            desc: 'Felder des Verbands anlegen und ändern.',
+        },
+        CLUSTER_KNOWLEDGE_MANAGER: {
+            label: 'Wikiverwaltung',
+            desc: 'Das Wiki des Verbands vollständig verwalten.',
+        },
+        CLUSTER_KNOWLEDGE_EDIT: {
+            label: 'Wiki bearbeiten',
+            desc: 'Artikel des Verbands schreiben und ändern.',
+        },
+        CLUSTER_NEWS_MANAGER: {
+            label: 'Neuigkeitenverwaltung',
+            desc: 'Die Neuigkeiten des Verbands vollständig verwalten.',
+        },
+        CLUSTER_NEWS_EDIT: {
+            label: 'Neuigkeiten schreiben',
+            desc: 'Neuigkeiten des Verbands schreiben und zurückziehen.',
+        },
+        CLUSTER_EVENT_MANAGER: {
+            label: 'Terminverwaltung',
+            desc: 'Die Termine des Verbands vollständig verwalten.',
+        },
+        CLUSTER_EVENT_EDIT: {
+            label: 'Termine anlegen',
+            desc: 'Termine des Verbands anlegen und absagen.',
+        },
         STATION_MANAGER: {
             label: 'Stationseinstellungen',
             desc: 'Vollzugriff auf alle Stationseinstellungen.',
@@ -5181,6 +5285,7 @@ export default {
         banner: 'Dies ist eine Demo-Instanz. Alle Daten werden regelmäßig zurückgesetzt. Passwort für alle Konten: demo',
         loginHint: 'Wähle ein Konto aus, um dich direkt als Demo-Nutzer anzumelden.',
         devLoginHint: 'Schnellanmeldung mit Testkonten',
+        clusterLoginHint: 'Konten, die für einen Verband handeln',
     },
     inventoryMembers: {
         title: 'Mitglieder & Inventar',
@@ -5581,39 +5686,6 @@ export default {
         news: 'Neuigkeiten',
         events: 'Termine',
     },
-    clusterKnowledge: {
-        hint: 'Ordner und Beiträge des Verbands stehen allen Wachen des Verbands zur Verfügung, sobald ihr sie anlegt.',
-        folderTitle: 'Ordner anlegen',
-        folderPlaceholder: 'z.B. Dienstanweisungen',
-        articleTitle: 'Beitrag schreiben',
-        nameLabel: 'Titel',
-        namePlaceholder: 'Worum geht es?',
-        folderLabel: 'Ordner',
-        noFolder: 'Kein Ordner',
-        bodyLabel: 'Text',
-        publish: 'Veröffentlichen',
-        empty: 'Der Verband hat noch nichts abgelegt.',
-    },
-    clusterNews: {
-        hint: 'Eine Neuigkeit des Verbands erscheint bei allen Wachen des Verbands in deren Neuigkeiten, mit dem Verband als Absender.',
-        writeTitle: 'Neuigkeit schreiben',
-        titleLabel: 'Überschrift',
-        titlePlaceholder: 'Worum geht es?',
-        bodyLabel: 'Text',
-        publish: 'Veröffentlichen',
-        empty: 'Der Verband hat noch nichts geschrieben.',
-    },
-    clusterEvents: {
-        hint: 'Ein Termin des Verbands erscheint im Kalender aller Wachen des Verbands. Mitglieder können sich anmelden, ohne die Wache zu wechseln.',
-        createTitle: 'Termin anlegen',
-        nameLabel: 'Bezeichnung',
-        namePlaceholder: 'z.B. Kreisübung',
-        descriptionLabel: 'Beschreibung',
-        startLabel: 'Beginn',
-        endLabel: 'Ende',
-        registrationLabel: 'Anmeldung erforderlich',
-        empty: 'Der Verband hat noch keine Termine.',
-    },
     clusterInventory: {
         usesTitle: 'Material im Verband führen',
         usesHint: 'Ist das aus, verhalten sich alle Wachen so, als gäbe es keinen Verband über ihnen, wenn es um Material geht: sie tauschen und geben zurück in ihren eigenen Abläufen, ohne Schritte, die auf euch warten.',
@@ -5675,6 +5747,12 @@ export default {
         emailPlaceholder: "person{'@'}beispiel.de",
         userTypeLabel: 'Rolle',
         empty: 'Für diesen Verband handelt noch niemand.',
+        permissionsLabel: 'Eigene Rechte',
+        permissionsHint: 'Rechte, die diese Person persönlich bekommt, zusätzlich zu denen aus ihren Gruppen.',
+        groupsLabel: 'Gruppen',
+        noGroups: 'Es gibt noch keine Gruppen.',
+        effectiveLabel: 'Ergibt zusammen',
+        effectiveNone: 'Diese Person darf im Verband bisher nichts weiter.',
     },
     clusterMemberGroups: {
         createTitle: 'Gruppe anlegen',
@@ -5773,7 +5851,11 @@ export default {
         noDescription: 'Keine Beschreibung hinterlegt.',
         loadFailed: 'Der Verband konnte nicht geladen werden.',
         yourRoleTitle: 'Deine Rolle',
-        permissionCount: 'Rechte in diesem Verband: {count}',
+        permissionsTitle: 'Was du in diesem Verband darfst',
+        permissionsNone: 'Du bist hier aufgenommen, hast aber noch keine Aufgabe zugewiesen bekommen.',
+        administratorsTitle: 'Verbandsleitung',
+        administratorsHint: 'An diese Personen wendest du dich, wenn du hier etwas brauchst.',
+        administratorsNone: 'Für diesen Verband ist noch niemand als Leitung eingetragen.',
         role: {
             CLUSTER_USER: 'Mitglied',
             CLUSTER_ADMIN: 'Verwaltung',
