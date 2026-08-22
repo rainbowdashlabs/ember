@@ -3424,6 +3424,31 @@ volumes:
             releaseText: 'Die Antworten werden gelöscht, der Verlauf bleibt. Wer wann was geändert hat, ist nichts, was der Verband beim Gehen mitnimmt.',
             tip: 'Änderungen durch den Verband landen im selben Änderungsverlauf wie die der Wache, damit ein Profil eine Geschichte erzählt und nicht zwei.',
         },
+        clusterInventoryOut: {
+            title: 'Material bei den Wachen',
+            subtitle: 'Wo das Material des Verbands gerade ist.',
+            whatTitle: 'Was hier steht',
+            whatText: 'Diese Seite zeigt alles, was dem Verband gehört und gerade nicht in seinem eigenen'
+                + ' Lager liegt, nach Wache gruppiert. Trägt jemand an der Wache ein Stück, steht sein Name'
+                + ' daneben.',
+            custodyTitle: 'Unterwegs',
+            custodyText: 'Ein Stück auf dem Weg gilt an beiden Enden als unterwegs, bis die Wache den'
+                + ' Eingang bestätigt. So weiß der Verband, wann er abgeschickt hat, und die Wache, wann'
+                + ' es angekommen ist, und keiner muss für den anderen raten.',
+            tip: 'Was hier fehlt, liegt im Lager. Der Reiter Lager zeigt es.',
+        },
+        clusterInventorySettings: {
+            title: 'Materialeinstellungen des Verbands',
+            subtitle: 'Was der Verband über Material entscheidet.',
+            moduleTitle: 'Material im Verband führen',
+            moduleText: 'Ist das aus, verhalten sich alle Wachen so, als gäbe es keinen Verband über ihnen,'
+                + ' wenn es um Material geht. Diese Einstellung gehört zu den Modulen und ist deshalb an'
+                + ' das entsprechende Recht gebunden.',
+            flowsTitle: 'Abläufe',
+            flowsText: 'Ein Ablauf beschreibt, welche Schritte eine Bewegung geht und wer welchen Schritt'
+                + ' bestätigt. Wer das Material des Verbands führt, legt sie an.',
+            tip: 'Wer nur eines der beiden Rechte hat, sieht auf dieser Seite nur den zugehörigen Teil.',
+        },
         clusterMemberDetail: {
             title: 'Ein Mitglied einer Wache',
             subtitle: 'Was von einer Person erfragt wird und wer es beantworten darf.',

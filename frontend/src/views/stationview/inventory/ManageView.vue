@@ -25,6 +25,12 @@ import MovementFlowPanel from './manageview/MovementFlowPanel.vue'
 
 const routes = useInventoryRoutes()
 
+/** The heading, when the station's own wording is not the right one. */
+const props = defineProps<{
+  title?: string
+  subtitle?: string
+}>()
+
 const {t} = useI18n()
 const router = useRouter()
 
@@ -65,8 +71,8 @@ function onError() {
 
 <template>
   <ViewContent
-      :title="t('pages.inventory-manage.title')"
-      :subtitle="t('pages.inventory-manage.subtitle')"
+      :title="props.title ?? t('pages.inventory-manage.title')"
+      :subtitle="props.subtitle ?? t('pages.inventory-manage.subtitle')"
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
