@@ -33,13 +33,19 @@ export type ProfileFieldConfig = Record<string, unknown>
 
 export interface ProfileField {
     id: number
-    stationId: string
+    /** Absent on a field an association declares, which is kept for no single station. */
+    stationId?: string
     name?: string
     fieldType?: string
     config?: ProfileFieldConfig
     position: number
     scope?: string
     keepOnArchive?: boolean
+    /**
+     * Whether the people at the station may read the answer but not write it. Only ever set on a field
+     * an association declares: a station has nobody above it to lock out.
+     */
+    stationReadonly?: boolean
 }
 
 /** The settings of a field that names none, so a reader never has to check for their absence. */
@@ -54,6 +60,8 @@ export interface ProfileFieldRequest {
     position: number
     scope?: string
     keepOnArchive?: boolean
+    /** Sent only by an association's own screens; a station's endpoint neither expects nor reads it. */
+    stationReadonly?: boolean
 }
 
 export interface ProfileFieldValue {
