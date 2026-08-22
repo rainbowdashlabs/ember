@@ -122,7 +122,7 @@ async function finalizeSession(token: string, expiresAt: string) {
 
 <template>
   <div class="flex min-h-screen items-center justify-center px-4 py-16">
-    <div class="w-full max-w-sm space-y-6">
+    <div class="w-full max-w-xs space-y-6">
       <div class="text-center">
         <PageHeroIcon :icon="['fas', 'shield']"/>
         <PageHeader>{{ t('twoFactor.verify.title') }}</PageHeader>

@@ -35,7 +35,7 @@ const {setActiveCluster, clearActiveCluster} = useCluster()
 const demo = useDemoAccounts()
 const {
   isDemo, isDev, loading: demoLoading, activeStationTab, hasDemoAccounts,
-  stationTabs, showStationTabs, roleGroups, noStationRoleGroups,
+  stationTabs, showStationTabs, roleGroups, noStationRoleGroups, clusterRoleGroups,
 } = demo
 
 const legal = useLoginConsent()
@@ -55,11 +55,13 @@ const trustedDevice = ref(false)
 
 /**
  * A sign-in form wants to be narrow; a consent text wants to be read. The gate carries the whole
- * consent document, which at the width of a password field is a column of three words.
+ * consent document, which at the width of a password field is a column of three words. The demo
+ * account grid needs room of its own, so the column widens for it while the form inside keeps its
+ * own narrow width.
  */
 const containerWidth = computed(() => {
   if (consent.value === null) return 'max-w-5xl'
-  return isDemo.value || isDev.value ? 'max-w-2xl' : 'max-w-sm'
+  return isDemo.value || isDev.value ? 'max-w-2xl' : 'max-w-xs'
 })
 const registrationEnabled = ref(true)
 
@@ -169,6 +171,7 @@ function topRoleLabel(account: DemoAccount): string {
 
       <DemoLogin v-if="isDemo && !demoLoading"
                  :error="error" :loading="loading"
+                 :cluster-role-groups="clusterRoleGroups"
                  :no-station-role-groups="noStationRoleGroups" :role-groups="roleGroups"
                  :station-tabs="stationTabs" :show-station-tabs="showStationTabs"
                  v-model:active-station-tab="activeStationTab"
@@ -191,7 +194,7 @@ function topRoleLabel(account: DemoAccount): string {
         <LegalModal v-model="showTos" :title="t('storageConsent.tosTitle')"
                     :loading="tosLoading" :html="tosHtml"/>
 
-        <LoginForm v-if="consent === 'accepted'"
+        <LoginForm v-if="consent === 'accepted'" class="mx-auto w-full max-w-xs"
                    v-model:email="email" v-model:password="password"
                    v-model:trustedDevice="trustedDevice"
                    :error="error" :loading="loading"
@@ -200,7 +203,8 @@ function topRoleLabel(account: DemoAccount): string {
 
         <DevDemoFooter v-if="isDev && hasDemoAccounts && consent === 'accepted'"
                        :loading="loading"
-                       :no-station-role-groups="noStationRoleGroups" :role-groups="roleGroups"
+                       :cluster-role-groups="clusterRoleGroups"
+                 :no-station-role-groups="noStationRoleGroups" :role-groups="roleGroups"
                        :station-tabs="stationTabs" :show-station-tabs="showStationTabs"
                        v-model:active-station-tab="activeStationTab"
                        :role-label="topRoleLabel" @login="loginAsDemo"/>
