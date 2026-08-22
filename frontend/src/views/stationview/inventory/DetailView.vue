@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -25,6 +26,8 @@ import DetailLoadedContent from './detailview/DetailLoadedContent.vue'
 import DetailViewModals from './detailview/DetailViewModals.vue'
 import { useItemTable } from './itemtable/useItemTable'
 import { memberDisplayName } from '@/views/stationview/members/listview/useMemberData'
+
+const routes = useInventoryRoutes()
 
 const { t } = useI18n()
 const route = useRoute()
@@ -170,7 +173,7 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
   } catch { lentOutItems.value = [] }
 })
 
-function goBack() { router.push({ name: 'inventory-manage' }) }
+function goBack() { router.push({ name: routes.manage }) }
 </script>
 
 <template>

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -18,6 +19,8 @@ import type { ProcurementEntry } from '@/api/procurement'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { inventoryTypeBadge, inventoryTypeLabel as toInventoryTypeLabel } from '@/util/inventoryType'
 import { formatDate } from '@/util/format'
+
+const routes = useInventoryRoutes()
 
 const { t } = useI18n()
 const router = useRouter()
@@ -40,7 +43,7 @@ function inventoryTypeLabel(type?: string | null): string {
       {{ t('inventory.overview.procurement') }} ({{ entries.length }})
     </SubHeader>
     <div v-if="isMobile" class="space-y-2">
-      <NeutralContainer v-for="p in entries" :key="p.id" class="space-y-1 cursor-pointer" @click="router.push({ name: 'inventory-procurement' })">
+      <NeutralContainer v-for="p in entries" :key="p.id" class="space-y-1 cursor-pointer" @click="router.push({ name: routes.procurement })">
         <div class="flex items-center justify-between">
           <span class="text-sm font-medium">{{ p.inventoryName }}</span>
           <SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge>
@@ -63,7 +66,7 @@ function inventoryTypeLabel(type?: string | null): string {
       </template>
       <TRow v-for="p in entries" :key="p.id"
           class="cursor-pointer hover:bg-(--bg-accent)"
-          @click="router.push({ name: 'inventory-procurement' })">
+          @click="router.push({ name: routes.procurement })">
         <Td>
           {{ p.inventoryName }}
           <SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge>

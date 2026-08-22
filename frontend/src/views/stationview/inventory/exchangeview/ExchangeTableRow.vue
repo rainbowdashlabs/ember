@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -16,6 +17,8 @@ import TRow from '@/components/table/TRow.vue'
 import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
 import { inventoryTypeBadge, inventoryTypeLabel as toInventoryTypeLabel } from '@/util/inventoryType'
 import { formatDate } from '@/util/format'
+
+const routes = useInventoryRoutes()
 
 const { t } = useI18n()
 const router = useRouter()
@@ -47,9 +50,9 @@ function inventoryTypeLabel(type?: string | null): string {
     </td>
     <Td v-if="showMemberColumn">
       <SecondaryButton
-        v-if="canManageExchanges"
+        v-if="canManageExchanges && routes.member"
         class="!bg-transparent !p-0 text-primary font-normal hover:underline cursor-pointer"
-        @click="router.push({ name: 'inventory-member', params: { memberId: request.memberId } })"
+        @click="routes.member && router.push({ name: routes.member, params: { memberId: request.memberId } })"
       ><MemberName :identity="request.memberIdentity ?? null"/></SecondaryButton>
       <MemberName v-else :identity="request.memberIdentity ?? null"/>
     </Td>

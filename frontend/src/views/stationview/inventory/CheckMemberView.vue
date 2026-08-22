@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -20,6 +21,8 @@ import { useMemberCheck } from '@/composables/useMemberCheck'
 import CheckMemberBody from './checkmemberview/CheckMemberBody.vue'
 import { apiErrorStatus } from '@/util/apiError'
 import { reportCaughtError } from '@/util/devErrorReporter'
+
+const routes = useInventoryRoutes()
 
 const bodyRef = ref<InstanceType<typeof CheckMemberBody> | null>(null)
 
@@ -103,13 +106,13 @@ const {running: submitting, run: submit} = useAsyncAction(async () => {
 
     const nextId = await inventoryCheck.getNextMember(completedMemberId, teamOnly.value)
     if (!nextId) {
-      await router.push({ name: 'inventory-checks' })
+      await router.push({ name: routes.checks })
       return
     }
     state.value = null
     check.reset()
     await router.replace({
-      name: 'inventory-check-member',
+      name: routes.checkMember,
       params: { memberId: nextId },
       query: { teamOnly: teamOnly.value ? 'true' : 'false' },
     })
@@ -125,7 +128,7 @@ async function cancel() {
   } catch (e) {
     reportCaughtError(e, 'member check cancellation')
   }
-  router.push({ name: 'inventory-checks' })
+  router.push({ name: routes.checks })
 }
 </script>
 

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
@@ -18,6 +19,8 @@ import {inventory} from '@/api'
 import {isAvailable, type Inventory} from '@/api/inventory'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+
+const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const router = useRouter()
@@ -132,11 +135,11 @@ const {running: saving, run: handleCreate} = useAsyncAction(async () => {
       }
     }
   }
-  router.push({name: 'inventory-lending-blocks'})
+  router.push({name: routes.lendingBlocks})
 })
 
 function goBack() {
-  router.push({name: 'inventory-lending-blocks'})
+  router.push({name: routes.lendingBlocks})
 }
 </script>
 

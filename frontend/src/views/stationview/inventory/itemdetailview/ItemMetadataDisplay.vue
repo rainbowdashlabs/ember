@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -16,6 +17,8 @@ import {ItemOwner, type InventoryItem, type InventorySize} from '@/api/inventory
 import type {MemberIdentity} from '@/api/types'
 import type {ItemLocationResponse} from '@/api/inventoryContainers'
 import {formatDate} from '@/util/format'
+
+const routes = useInventoryRoutes()
 
 const props = defineProps<{
   item: InventoryItem
@@ -72,7 +75,7 @@ const ownerLabel = computed(() => {
       <span class="text-sm">
         <template v-for="(seg, i) in props.location.pathSegments" :key="i">
           <router-link
-              :to="{name: 'inventory-container-detail', params: {id: String(props.location.pathIds[i])}}"
+              :to="{name: routes.container, params: {id: String(props.location.pathIds[i])}}"
               class="hover:underline"
           >
             {{ seg }}

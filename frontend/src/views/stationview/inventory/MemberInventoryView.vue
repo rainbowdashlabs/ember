@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
@@ -25,6 +26,8 @@ import MemberInventoryScanPanel from './memberinventoryview/MemberInventoryScanP
 import MemberInventoryGroups from './memberinventoryview/MemberInventoryGroups.vue'
 import RequestExchangeModal from './memberinventoryview/RequestExchangeModal.vue'
 import {apiErrorMessage} from '@/util/apiError'
+
+const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const route = useRoute()
@@ -133,7 +136,7 @@ function itemExchange(itemId: number): ExchangeRequestEntry | undefined {
 }
 
 function goBack() {
-  router.push({name: 'inventory-exchanges'})
+  router.push({name: routes.exchanges})
 }
 
 const showExchangeModal = ref(false)

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {nextTick, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
@@ -15,6 +16,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {inventory} from '@/api'
+
+const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const router = useRouter()
@@ -34,7 +37,7 @@ async function onScanSubmit() {
   const item = await inventory.findByInternalId(query)
   if (item) {
     scanInput.value = ''
-    router.push({name: 'inventory-item-detail', params: {id: item.id}})
+    router.push({name: routes.item, params: {id: item.id}})
   } else {
     scanError.value = t('inventory.manage.scanNotFound')
   }

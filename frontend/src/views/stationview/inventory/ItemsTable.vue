@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -21,6 +22,8 @@ import ItemsTableDesktop from './itemstable/ItemsTableDesktop.vue'
 import type { InventoryItemActionEmits } from './itemEmits'
 import type { ItemTableApi } from './itemtable/useItemTable'
 import { formatDate } from '@/util/format'
+
+const routes = useInventoryRoutes()
 
 const { isMobile } = useBreakpoint()
 
@@ -81,7 +84,7 @@ function getMemberIdentity(memberId: number | null | undefined) {
     <NeutralContainer v-for="item in displayItems" :key="item.id" :class="item.lostAt ? 'opacity-60' : ''" class="space-y-2">
       <div class="flex items-center justify-between">
         <div>
-          <router-link :to="{ name: 'inventory-item-detail', params: { id: item.id } }" class="font-medium hover:text-primary hover:underline">{{ item.name }}</router-link>
+          <router-link :to="{ name: routes.item, params: { id: item.id } }" class="font-medium hover:text-primary hover:underline">{{ item.name }}</router-link>
           <span v-if="item.lostAt" class="ml-2 text-xs text-error">{{ t('inventory.edit.lost') }} ({{ formatDate(item.lostAt) }})</span>
           <div v-if="isLentOut(item.id)" class="mt-0.5">
             <InfoBadge>
@@ -102,9 +105,10 @@ function getMemberIdentity(memberId: number | null | undefined) {
         </div>
         <div v-if="item.assignedTo">
           <span class="text-(--text-muted)">{{ t('inventory.edit.colAssigned') }}:</span>
-          <router-link :to="{ name: 'inventory-member', params: { memberId: item.assignedTo } }" class="inline-block ml-1 font-medium hover:text-primary hover:underline" @click.stop>
+          <router-link v-if="routes.member" :to="{ name: routes.member, params: { memberId: item.assignedTo } }" class="inline-block ml-1 font-medium hover:text-primary hover:underline" @click.stop>
             <MemberName :identity="getMemberIdentity(item.assignedTo)"/>
           </router-link>
+          <MemberName v-else :identity="getMemberIdentity(item.assignedTo)" class="inline-block ml-1 font-medium"/>
         </div>
         <div v-else-if="locationLabel(item.containerId)" class="text-(--text-muted) flex items-center gap-1">
           <font-awesome-icon :icon="['fas', 'box']" class="h-3 w-3"/>

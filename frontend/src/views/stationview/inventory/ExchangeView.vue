@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -26,6 +27,8 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useExport } from '@/composables/useExport'
 import { saveBlob } from '@/util/downloadAuthed'
+
+const routes = useInventoryRoutes()
 
 const { t } = useI18n()
 const router = useRouter()
@@ -148,7 +151,7 @@ async function deleteRequest(id: number) {
  * exchange is one purpose a movement can have.
  */
 function openLog(id: number) {
-  void router.push({name: 'inventory-movement-detail', params: {id}})
+  void router.push({name: routes.movement, params: {id}})
 }
 
 async function enterExportMode() {

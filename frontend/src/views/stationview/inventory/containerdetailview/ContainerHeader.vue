@@ -4,12 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {useI18n} from 'vue-i18n'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import type {ContainerDetail, InventoryContainerKind} from '@/api/inventoryContainers'
+
+const routes = useInventoryRoutes()
 
 const props = defineProps<{
   detail: ContainerDetail
@@ -28,14 +31,14 @@ const {t} = useI18n()
 <template>
   <div>
     <div class="flex items-center flex-wrap gap-2 mb-3 text-sm text-(--text-muted)">
-      <router-link :to="{name: 'inventory-storage'}" class="hover:underline">
+      <router-link :to="{name: routes.storage}" class="hover:underline">
         {{ t('inventory.storage.title') }}
       </router-link>
       <template v-for="(seg, i) in props.detail.pathSegments" :key="i">
         <span>/</span>
         <router-link
             v-if="i < props.detail.pathSegments.length - 1"
-            :to="{name: 'inventory-container-detail', params: {id: String(props.detail.pathIds[i])}}"
+            :to="{name: routes.container, params: {id: String(props.detail.pathIds[i])}}"
             class="hover:underline"
         >
           {{ seg }}

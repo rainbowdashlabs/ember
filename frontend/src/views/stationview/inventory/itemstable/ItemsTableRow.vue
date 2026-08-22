@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import { useI18n } from 'vue-i18n'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
@@ -16,6 +17,8 @@ import {ItemOwner, type InventoryItem} from '@/api/inventory'
 import type { MemberIdentity } from '@/api/types'
 import type { InventoryItemActionEmits } from '../itemEmits'
 import ItemActions from './ItemActions.vue'
+
+const routes = useInventoryRoutes()
 
 withDefaults(defineProps<{
   item: InventoryItem
@@ -44,7 +47,7 @@ const { t } = useI18n()
 <template>
   <TRow :class="item.lostAt ? 'opacity-60' : ''">
     <Td class="font-medium">
-      <router-link :to="{ name: 'inventory-item-detail', params: { id: item.id } }" class="hover:text-primary hover:underline">{{ item.name }}</router-link>
+      <router-link :to="{ name: routes.item, params: { id: item.id } }" class="hover:text-primary hover:underline">{{ item.name }}</router-link>
       <span v-if="item.lostAt" class="ml-2 text-xs text-error font-normal">
         {{ t('inventory.edit.lost') }} ({{ formattedLostAt }})
       </span>
@@ -65,7 +68,8 @@ const { t } = useI18n()
       <span v-else class="text-(--text-muted)">–</span>
     </Td>
     <Td v-if="showAssigned">
-      <router-link v-if="item.assignedTo" :to="{ name: 'inventory-member', params: { memberId: item.assignedTo } }" class="inline-block font-medium hover:text-primary hover:underline" @click.stop><MemberName :identity="memberIdentity"/></router-link>
+      <router-link v-if="item.assignedTo && routes.member" :to="{ name: routes.member, params: { memberId: item.assignedTo } }" class="inline-block font-medium hover:text-primary hover:underline" @click.stop><MemberName :identity="memberIdentity"/></router-link>
+      <MemberName v-else-if="item.assignedTo" :identity="memberIdentity" class="inline-block font-medium"/>
       <span v-else-if="locationLabel" class="inline-flex items-center gap-1 text-(--text-muted)">
         <font-awesome-icon :icon="['fas', 'box']" class="h-3 w-3"/>
         {{ locationLabel }}

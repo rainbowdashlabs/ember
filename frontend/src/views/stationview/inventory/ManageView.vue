@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
@@ -21,6 +22,8 @@ import ScannerPanel from './manageview/ScannerPanel.vue'
 import InventorySummaryCard from './manageview/InventorySummaryCard.vue'
 import CreateInventoryModal from './manageview/CreateInventoryModal.vue'
 import MovementFlowPanel from './manageview/MovementFlowPanel.vue'
+
+const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const router = useRouter()
@@ -44,11 +47,11 @@ const {
 })
 
 function viewDetail(inv: InventorySummary) {
-  router.push({name: 'inventory-detail', params: {id: inv.id}})
+  router.push({name: routes.detail, params: {id: inv.id}})
 }
 
 function editInventory(inv: InventorySummary) {
-  router.push({name: 'inventory-edit', params: {id: inv.id}})
+  router.push({name: routes.edit, params: {id: inv.id}})
 }
 
 function onCreated() {
