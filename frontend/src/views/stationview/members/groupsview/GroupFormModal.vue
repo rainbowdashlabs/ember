@@ -14,6 +14,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {useModelProxy} from '@/composables/useModelProxy'
+import {useGroupsCapabilities} from '@/composables/useGroupsConfig'
 
 const {t} = useI18n()
 
@@ -35,6 +36,9 @@ const emit = defineEmits<{
 const open = useModelProxy(() => props.modelValue, emit, 'modelValue')
 const nameModel = useModelProxy(() => props.name, emit, 'name')
 const colorModel = useModelProxy(() => props.color, emit, 'color')
+
+/** An association's group carries no colour, so it is not offered one to set. */
+const capabilities = useGroupsCapabilities()
 </script>
 
 <template>
@@ -45,7 +49,7 @@ const colorModel = useModelProxy(() => props.color, emit, 'color')
         <FieldLabel>{{ t('memberGroups.name') }}</FieldLabel>
         <TextInput v-model="nameModel" :placeholder="t('memberGroups.namePlaceholder')"/>
       </div>
-      <div class="space-y-1">
+      <div v-if="capabilities.hasColour" class="space-y-1">
         <FieldLabel>{{ t('memberGroups.color') }}</FieldLabel>
         <div class="flex items-center gap-2">
           <ColorInput v-model="colorModel"/>

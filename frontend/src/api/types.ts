@@ -258,7 +258,8 @@ export interface PermissionGrant {
 
 export interface MemberGroup {
     id: number
-    stationId: string
+    /** Absent on a group an association keeps, which gathers people at no single station. */
+    stationId?: string
     name?: string
     color?: string | null
     position?: number

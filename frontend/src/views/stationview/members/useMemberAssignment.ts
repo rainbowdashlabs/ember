@@ -5,7 +5,7 @@
  */
 import { computed, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { StationMember } from '@/api/types'
+import type { AssignableMember } from '@/composables/useGroupsConfig'
 import { memberDisplayName } from './listview/useMemberData'
 
 /**
@@ -21,9 +21,9 @@ import { memberDisplayName } from './listview/useMemberData'
  * @param error      the view's error channel
  */
 export function useMemberAssignment(
-  allMembers: Ref<StationMember[]>,
-  members: Ref<StationMember[]>,
-  setMembers: (memberIds: number[]) => Promise<StationMember[]>,
+  allMembers: Ref<AssignableMember[]>,
+  members: Ref<AssignableMember[]>,
+  setMembers: (memberIds: number[]) => Promise<AssignableMember[]>,
   error: Ref<string>,
 ) {
   const { t } = useI18n()
@@ -43,11 +43,11 @@ export function useMemberAssignment(
     }
   }
 
-  async function addMember(member: StationMember) {
+  async function addMember(member: AssignableMember) {
     await apply([...members.value.map(m => m.id), member.id])
   }
 
-  async function removeMember(member: StationMember) {
+  async function removeMember(member: AssignableMember) {
     await apply(members.value.filter(m => m.id !== member.id).map(m => m.id))
   }
 

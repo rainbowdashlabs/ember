@@ -9,18 +9,18 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {StationMember} from '@/api/types'
+import type {AssignableMember} from '@/composables/useGroupsConfig'
 
 const {t} = useI18n()
 
 defineProps<{
-  sortedGroupMembers: StationMember[]
-  availableMembers: StationMember[]
+  sortedGroupMembers: AssignableMember[]
+  availableMembers: AssignableMember[]
 }>()
 
 const emit = defineEmits<{
-  (e: 'add', member: StationMember): void
-  (e: 'remove', member: StationMember): void
+  (e: 'add', member: AssignableMember): void
+  (e: 'remove', member: AssignableMember): void
 }>()
 </script>
 

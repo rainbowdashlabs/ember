@@ -12,7 +12,8 @@ import MutedText from '@/components/typography/MutedText.vue'
 import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import GroupMembersTab from './GroupMembersTab.vue'
-import type {MemberGroup, PermissionGrant, StationMember} from '@/api/types'
+import type {MemberGroup, PermissionGrant} from '@/api/types'
+import type {AssignableMember} from '@/composables/useGroupsConfig'
 import {useModelProxy} from '@/composables/useModelProxy'
 
 const {t} = useI18n()
@@ -20,8 +21,8 @@ const {t} = useI18n()
 const props = defineProps<{
   selectedGroup: MemberGroup
   groupLoading: boolean
-  sortedGroupMembers: StationMember[]
-  availableMembers: StationMember[]
+  sortedGroupMembers: AssignableMember[]
+  availableMembers: AssignableMember[]
   groupRoles: PermissionGrant[]
   allRoles: PermissionGrant[]
   groupRoleIds: Set<number>
@@ -29,8 +30,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'add-member', member: StationMember): void
-  (e: 'remove-member', member: StationMember): void
+  (e: 'add-member', member: AssignableMember): void
+  (e: 'remove-member', member: AssignableMember): void
   (e: 'update:groupRoleIds', ids: Set<number>): void
 }>()
 
