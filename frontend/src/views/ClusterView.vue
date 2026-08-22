@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted} from 'vue'
+import {computed, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
@@ -23,13 +23,21 @@ import {usePageHeader} from '@/composables/usePageHeader'
 import {ClusterPermission} from '@/api/clusters'
 
 const {t} = useI18n()
-const {loaded, load, hasClusterPermission} = useSession()
-const {load: loadClusters, activeCluster} = useCluster()
+const {loaded, sessionClusterId, load, hasClusterPermission} = useSession()
+const {load: loadClusters, activeCluster, currentClusterId} = useCluster()
 const {title: pageTitle, subtitle: pageSubtitle} = usePageHeader()
 const {open: openQuickSearch} = useQuickSearchShortcut('cluster')
 
+/**
+ * Whether the session we hold was answered for the cluster this shell is open on. Reaching the panel from
+ * elsewhere in the app is an ordinary navigation, and the session loaded before it carries no cluster role
+ * and no cluster permissions: without this the panel would show somebody as having no part in the cluster
+ * they just opened, until the page was loaded again from scratch.
+ */
+const sessionCurrent = computed(() => loaded.value && sessionClusterId.value === currentClusterId.value)
+
 onMounted(() => {
-  if (!loaded.value) {
+  if (!sessionCurrent.value) {
     load()
   }
   void loadClusters()

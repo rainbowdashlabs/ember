@@ -3444,6 +3444,7 @@ export default {
         allStations: 'Alle Wachen',
     },
     crossStation: {
+        administration: 'Verwaltung',
         clusters: 'Verbände',
         title: 'Übersicht',
         subtitle: 'Alle Wachen auf einen Blick',

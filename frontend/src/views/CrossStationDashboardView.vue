@@ -10,6 +10,7 @@ import {useRoute} from 'vue-router'
 import {getCrossStationDashboard, type CrossStationDashboard, type CrossStationNotification} from '@/api/session'
 import {useStations} from '@/composables/useStations'
 import {useCluster} from '@/composables/useCluster'
+import {useSession} from '@/composables/useSession'
 import {formatRelative} from '@/util/format'
 import {usableRedirect} from '@/util/redirect'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -26,11 +27,13 @@ const {t} = useI18n()
 const route = useRoute()
 const {setActiveStation, load: loadStations, getStationLogoUrl} = useStations()
 const {clusterList, load: loadClusters, setActiveCluster} = useCluster()
+const {isAdmin, loaded: sessionLoaded, load: loadSession} = useSession()
 
 const dashboard = ref<CrossStationDashboard | null>(null)
 const loading = ref(true)
 
 onMounted(async () => {
+  if (!sessionLoaded.value) void loadSession()
   await Promise.all([loadStations(), loadClusters()])
   try {
     dashboard.value = await getCrossStationDashboard()
@@ -49,6 +52,14 @@ function resolveRedirect(): string | null {
     if (usableRedirect(fromUrl)) return fromUrl
   }
   return null
+}
+
+/**
+ * The administration area is the third place this page can send somebody, and the only one that is
+ * neither a station nor an association, so it carries no context to hand over on the way.
+ */
+function openAdministration() {
+  window.location.href = '/admin/dashboard/overview'
 }
 
 function selectCluster(clusterUid: string) {
@@ -116,6 +127,19 @@ function selectStation(stationId: string) {
           >
             <font-awesome-icon :icon="['fas', 'sitemap']" class="h-6 w-6 text-(--text-muted)"/>
             <span class="font-semibold text-lg">{{ cluster.name }}</span>
+          </NeutralContainer>
+        </div>
+      </div>
+
+      <div v-if="isAdmin()" class="space-y-3">
+        <SectionHeader>{{ t('crossStation.administration') }}</SectionHeader>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <NeutralContainer
+              class="cursor-pointer hover:border-primary transition-colors flex items-center gap-3"
+              @click="openAdministration"
+          >
+            <font-awesome-icon :icon="['fas', 'shield']" class="h-6 w-6 text-(--text-muted)"/>
+            <span class="font-semibold text-lg">{{ t('header.adminPanel') }}</span>
           </NeutralContainer>
         </div>
       </div>

@@ -7,7 +7,13 @@ import {readonly} from 'vue'
 import {session} from '@/api'
 import {getItem} from '@/api/storage'
 import {usePermissions} from '@/composables/usePermissions'
-import {sessionInfo, sessionLoadFailed, sessionLoaded, sessionStationId} from '@/util/sessionState'
+import {
+    sessionClusterId,
+    sessionInfo,
+    sessionLoadFailed,
+    sessionLoaded,
+    sessionStationId,
+} from '@/util/sessionState'
 
 let loadSeq = 0
 
@@ -25,6 +31,7 @@ export function useSession() {
     async function load() {
         const seq = ++loadSeq
         const requestedStation = getItem('station_id')
+        const requestedCluster = getItem('cluster_id')
         for (let attempt = 1; ; attempt++) {
             try {
                 const info = await session.getSessionInfo()
@@ -43,6 +50,7 @@ export function useSession() {
             }
         }
         sessionStationId.value = requestedStation
+        sessionClusterId.value = requestedCluster
         sessionLoaded.value = true
     }
 
@@ -52,6 +60,7 @@ export function useSession() {
         sessionLoaded.value = false
         sessionLoadFailed.value = false
         sessionStationId.value = null
+        sessionClusterId.value = null
     }
 
     function fullName(): string {
@@ -69,6 +78,7 @@ export function useSession() {
         loaded: readonly(sessionLoaded),
         loadFailed: readonly(sessionLoadFailed),
         sessionStationId: readonly(sessionStationId),
+        sessionClusterId: readonly(sessionClusterId),
         load,
         clear,
         fullName,
