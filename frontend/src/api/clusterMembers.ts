@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {ProfileFieldConfig} from './profileFields'
 
 // -- The cluster's own people --
 
@@ -163,4 +164,47 @@ export async function setManagedPermissions(memberId: number, permissions: strin
 
 export async function archiveManagedMember(memberId: number): Promise<void> {
     await client.delete(`/cluster/members/manage/${memberId}`)
+}
+
+/**
+ * A question asked of somebody at one of the association's stations.
+ *
+ * <p>Carries which of the two tables it lives in, because the station's own questions and the
+ * association's are shown together and an answer has to go back where its question came from.
+ */
+export interface ManagedProfileField {
+    id: number
+    name: string
+    fieldType: string
+    config: ProfileFieldConfig
+    position: number
+    scope: string
+    origin: string
+    /** Whether the people at the station may read the answer but not write it. */
+    readonlyAtStation: boolean
+}
+
+export interface ManagedProfileValue {
+    fieldId: number
+    value: string
+    origin: string
+}
+
+export interface ManagedMemberProfile {
+    memberId: number
+    name: string
+    fields: ManagedProfileField[]
+    values: ManagedProfileValue[]
+}
+
+export async function getManagedMemberProfile(memberId: number): Promise<ManagedMemberProfile> {
+    const res = await client.get<ManagedMemberProfile>(`/cluster/members/manage/${memberId}/profile`)
+    return res.data
+}
+
+export async function setManagedMemberProfile(
+    memberId: number,
+    values: ManagedProfileValue[],
+): Promise<void> {
+    await client.put(`/cluster/members/manage/${memberId}/profile`, {values})
 }

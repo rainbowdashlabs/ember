@@ -14,6 +14,9 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberManagementService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
+import dev.chojo.ember.feature.members.entity.FieldValueEntry;
+import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import io.javalin.http.BadRequestResponse;
@@ -31,6 +34,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -72,8 +76,88 @@ public class ClusterMemberManagementRoutes implements Routes {
                 prefix + "/cluster/members/manage/{memberId}/permissions",
                 this::setPermissions,
                 ClusterPermission.CLUSTER_MEMBER_MANAGER);
+        routes.get(
+                prefix + "/cluster/members/manage/{memberId}/profile",
+                this::getProfile,
+                ClusterPermission.CLUSTER_MEMBER_MANAGER);
+        routes.put(
+                prefix + "/cluster/members/manage/{memberId}/profile",
+                this::updateProfile,
+                ClusterPermission.CLUSTER_MEMBER_MANAGER);
         routes.delete(
                 prefix + "/cluster/members/manage/{memberId}", this::archive, ClusterPermission.CLUSTER_MEMBER_MANAGER);
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/members/manage/{memberId}/profile",
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            methods = HttpMethod.GET,
+            summary = "What is asked of one person, and what they have answered",
+            description = "The station's own questions and the cluster's, merged, each naming which it is.",
+            tags = {"Cluster"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberProfileResponse.class)))
+    private void getProfile(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        var profile = managementService.getMemberProfile(cluster.id(), pathInt(ctx, "memberId"));
+        ctx.json(new MemberProfileResponse(
+                profile.member().id(),
+                profile.member().displayName(),
+                profile.fields().stream()
+                        .map(field -> new MemberProfileFieldResponse(
+                                field.id(),
+                                field.name(),
+                                field.fieldType().name(),
+                                field.config(),
+                                field.position(),
+                                field.scope().name(),
+                                field.origin().name(),
+                                field.readonlyAtStation()))
+                        .toList(),
+                profile.values().stream()
+                        .map(value -> new MemberProfileValueResponse(
+                                value.fieldId(), value.value(), value.origin().name()))
+                        .toList()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/members/manage/{memberId}/profile",
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            methods = HttpMethod.PUT,
+            summary = "Answer what is asked of one person",
+            tags = {"Cluster"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MemberProfileRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void updateProfile(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        UserSession session = UserSession.from(ctx);
+        var request = ctx.bodyAsClass(MemberProfileRequest.class);
+
+        List<FieldValueEntry> entries = new ArrayList<>();
+        for (var value : request.values() != null ? request.values() : List.<MemberProfileValueRequest>of()) {
+            entries.add(new FieldValueEntry(value.fieldId(), value.value(), parseOrigin(value.origin())));
+        }
+
+        // The change is signed by the cluster member's own row on the cluster's station, which is the only
+        // member row a person acting for a cluster has.
+        managementService.updateMemberProfile(
+                cluster.id(),
+                pathInt(ctx, "memberId"),
+                entries,
+                session.accountId(),
+                session.member() != null ? session.member().id() : 0);
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    private static FieldOrigin parseOrigin(String raw) {
+        if (raw == null || raw.isBlank()) return FieldOrigin.STATION;
+        try {
+            return FieldOrigin.valueOf(raw);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse("No such field origin: " + raw);
+        }
     }
 
     @OpenApi(
@@ -267,4 +351,31 @@ public class ClusterMemberManagementRoutes implements Routes {
      * @param total how many the search found altogether, not how many are on this page
      */
     public record MemberPageResponse(List<ManagedMemberResponse> members, int total, int page, int size) {}
+
+    /**
+     * @param origin           which table the question lives in, so the answer goes back to the right one
+     * @param readonlyAtStation whether the station may read the answer without writing it, which only a
+     *                          cluster's own question can be
+     */
+    public record MemberProfileFieldResponse(
+            int id,
+            String name,
+            String fieldType,
+            ProfileFieldConfig config,
+            int position,
+            String scope,
+            String origin,
+            boolean readonlyAtStation) {}
+
+    public record MemberProfileValueResponse(int fieldId, String value, String origin) {}
+
+    public record MemberProfileResponse(
+            int memberId,
+            String name,
+            List<MemberProfileFieldResponse> fields,
+            List<MemberProfileValueResponse> values) {}
+
+    public record MemberProfileValueRequest(int fieldId, String value, String origin) {}
+
+    public record MemberProfileRequest(List<MemberProfileValueRequest> values) {}
 }

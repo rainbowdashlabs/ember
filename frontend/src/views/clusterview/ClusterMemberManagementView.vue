@@ -36,9 +36,9 @@ const {source, managed, overflowed} = useClusterMemberSource(() => includeFormer
  */
 const port: MemberListPort = {
   source,
-  // No screen to open somebody on yet: reading and writing a managed member's profile needs endpoints
-  // that were specified and never built, so no row offers a way in rather than offering a dead one.
-  routes: {},
+  // One screen, not two: the association's copy shows what is asked of somebody and lets it be
+  // answered on the same page, so there is nothing a separate edit screen would add.
+  routes: {detail: 'cluster-member-detail'},
   canExport: computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_EXPORT)),
   canEdit: computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER)),
   exportFileName: 'verbandsmitglieder',

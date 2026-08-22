@@ -3424,6 +3424,24 @@ volumes:
             releaseText: 'Die Antworten werden gelöscht, der Verlauf bleibt. Wer wann was geändert hat, ist nichts, was der Verband beim Gehen mitnimmt.',
             tip: 'Änderungen durch den Verband landen im selben Änderungsverlauf wie die der Wache, damit ein Profil eine Geschichte erzählt und nicht zwei.',
         },
+        clusterMemberDetail: {
+            title: 'Ein Mitglied einer Wache',
+            subtitle: 'Was von einer Person erfragt wird und wer es beantworten darf.',
+            whatTitle: 'Was hier steht',
+            whatText: 'Diese Seite zeigt alle Angaben zu einer Person an einer Wache des Verbands.'
+                + ' Fragen der Wache und Fragen des Verbands stehen zusammen in einem Formular,'
+                + ' damit du nicht zwischen zwei Ansichten wechseln musst.',
+            originTitle: 'Wessen Frage ist das?',
+            originText: 'Jede Antwort wird dorthin zurückgeschrieben, wo ihre Frage gestellt wurde.'
+                + ' Eine Frage der Wache bleibt bei der Wache, eine Frage des Verbands beim Verband.'
+                + ' Für die Person ändert sich dadurch nichts, sie sieht weiterhin ein Formular.',
+            limitsTitle: 'Was nicht geht',
+            limitsText: 'Die eigene Mitgliedschaft und die Wachleitung lassen sich vom Verband aus nicht'
+                + ' bearbeiten. In der Liste tragen diese Zeilen deshalb keine Schaltfläche, sondern'
+                + ' den Grund.',
+            tip: 'Eine Frage des Verbands, die für die Wache gesperrt ist, kannst du hier trotzdem'
+                + ' beantworten: die Sperre gilt der Wache, nicht dem Verband.',
+        },
         clusterMembers: {
             title: 'Mitglieder des Verbands',
             subtitle: 'Wer für den Verband handelt.',

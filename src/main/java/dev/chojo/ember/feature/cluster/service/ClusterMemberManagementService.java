@@ -7,8 +7,10 @@ package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.ForbiddenResponse;
@@ -46,13 +48,66 @@ public class ClusterMemberManagementService {
 
     private final StationMemberRepository memberRepository;
     private final StationRepository stationRepository;
+    private final ProfileFieldService profileFieldService;
 
     @Inject
     public ClusterMemberManagementService(
-            StationMemberRepository memberRepository, StationRepository stationRepository) {
+            StationMemberRepository memberRepository,
+            StationRepository stationRepository,
+            ProfileFieldService profileFieldService) {
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
+        this.profileFieldService = profileFieldService;
     }
+
+    /**
+     * Everything asked of one person, and what they have answered.
+     *
+     * <p>The questions are the ones their station asks merged with the ones the cluster asks, each saying
+     * which of the two it came from, so the screen can lay them out together and still know whose they are.
+     *
+     * @param clusterId the cluster acting
+     * @param memberId  the member
+     * @return the member, the questions and the answers
+     */
+    public MemberProfile getMemberProfile(int clusterId, int memberId) {
+        StationMember member = requireMemberOfCluster(clusterId, memberId);
+        return new MemberProfile(
+                member, profileFieldService.findApplicableFields(memberId), profileFieldService.findValues(memberId));
+    }
+
+    /**
+     * Records what a cluster manager answered for somebody.
+     *
+     * <p>The same two guardrails as every other write here, and one more that is not this class's doing: a
+     * cluster field marked readable but not writable at the station is refused further down, whoever sends it.
+     * A cluster manager is not the station, so that refusal does not apply to them and their answer stands.
+     *
+     * @param clusterId      the cluster acting
+     * @param memberId       the member
+     * @param entries        the answers, each naming which table its question lives in
+     * @param actorAccountId the account behind the cluster manager, for the self-check
+     * @param changedBy      the member row to record as the author of the change
+     */
+    public void updateMemberProfile(
+            int clusterId, int memberId, List<FieldValueEntry> entries, int actorAccountId, int changedBy) {
+        StationMember member = requireMemberOfCluster(clusterId, memberId);
+        requireNotSelf(member, actorAccountId);
+        requireNotStationOwner(member);
+
+        profileFieldService.setValues(memberId, entries, changedBy, true);
+        log.info("Cluster {} answered {} questions for member {}", clusterId, entries.size(), memberId);
+    }
+
+    /**
+     * @param member the person
+     * @param fields what is asked of them, from their station and from the cluster together
+     * @param values what they have answered
+     */
+    public record MemberProfile(
+            StationMember member,
+            List<ProfileFieldService.MergedField> fields,
+            List<ProfileFieldService.MergedValue> values) {}
 
     /**
      * Searches the people at every station of the cluster.

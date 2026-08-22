@@ -899,6 +899,10 @@ export default {
             title: 'Mitglieder der Wachen',
             subtitle: 'Die Leute an allen Wachen des Verbands',
         },
+        'cluster-member-detail': {
+            title: 'Mitglied',
+            subtitle: 'Was von dieser Person erfragt wird',
+        },
         'cluster-fields': {
             title: 'Profilfelder',
             subtitle: 'Was der Verband über die Mitglieder seiner Wachen wissen möchte',
@@ -5775,6 +5779,12 @@ export default {
         permissionsLabel: 'Rechte der Gruppe',
         membersLabel: 'Mitglieder der Gruppe',
         empty: 'Es gibt noch keine Gruppen.',
+    },
+    clusterMemberDetail: {
+        fieldsTitle: 'Angaben',
+        fieldCount: '{count} Felder',
+        hint: 'Fragen der Wache und des Verbands stehen hier zusammen. Der Verband darf auch die beantworten, die für die Wache gesperrt sind.',
+        saved: 'Gespeichert.',
     },
     clusterMemberManagement: {
         blockedOwner: 'Wachleitung, kann vom Verband nicht bearbeitet werden',

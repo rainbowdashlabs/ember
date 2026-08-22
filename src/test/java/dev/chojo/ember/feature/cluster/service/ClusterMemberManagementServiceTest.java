@@ -8,6 +8,11 @@ package dev.chojo.ember.feature.cluster.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
+import dev.chojo.ember.feature.members.entity.FieldValueEntry;
+import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
+import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -16,6 +21,7 @@ import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -36,7 +42,7 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new ClusterMemberManagementService(stationMemberRepo, stationRepo);
+        service = new ClusterMemberManagementService(stationMemberRepo, stationRepo, profileFieldService);
     }
 
     private int freshCluster() {
@@ -198,6 +204,97 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 NotFoundResponse.class,
                 () -> service.setUserType(
                         clusterId, elsewhere.member().id(), StationUserType.MANAGER, strangerAccountId));
+    }
+
+    @Test
+    void aProfileCarriesTheStationsQuestionsAndTheClustersTogether() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+
+        profileFieldService.create(
+                peopled.station().id(),
+                "Spindnummer",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.empty(),
+                0,
+                ProfileFieldScope.MEMBER);
+        clusterProfileFieldService.create(
+                clusterId,
+                "Mitgliedsnummer",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.empty(),
+                0,
+                ProfileFieldScope.MEMBER,
+                true,
+                false);
+
+        var profile = service.getMemberProfile(clusterId, peopled.member().id());
+
+        assertEquals(peopled.member().id(), profile.member().id());
+        assertTrue(
+                profile.fields().stream()
+                        .anyMatch(f -> "Spindnummer".equals(f.name()) && f.origin() == FieldOrigin.STATION),
+                "the station's own question is there and says so");
+        assertTrue(
+                profile.fields().stream()
+                        .anyMatch(f -> "Mitgliedsnummer".equals(f.name()) && f.origin() == FieldOrigin.CLUSTER),
+                "the cluster's question is there and says so");
+    }
+
+    @Test
+    void aClusterAnswersItsOwnQuestionEvenWhenTheStationMayNot() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+        int strangerAccountId = freshAccount().id();
+
+        var field = clusterProfileFieldService.create(
+                clusterId,
+                "Mitgliedsnummer",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.empty(),
+                0,
+                ProfileFieldScope.MEMBER,
+                true,
+                false);
+
+        service.updateMemberProfile(
+                clusterId,
+                peopled.member().id(),
+                List.of(new FieldValueEntry(field.id(), "\"4711\"", FieldOrigin.CLUSTER)),
+                strangerAccountId,
+                peopled.member().id());
+
+        var profile = service.getMemberProfile(clusterId, peopled.member().id());
+        assertTrue(
+                profile.values().stream().anyMatch(v -> v.fieldId() == field.id() && v.origin() == FieldOrigin.CLUSTER),
+                "the answer is recorded against the cluster's own question");
+    }
+
+    @Test
+    void theTwoRefusalsHoldForAnsweringToo() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+        int ownAccountId = peopled.account().id();
+
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.updateMemberProfile(
+                        clusterId,
+                        peopled.member().id(),
+                        List.of(),
+                        ownAccountId,
+                        peopled.member().id()));
+
+        stationRepo.setOwner(peopled.station().id(), peopled.member().id());
+        int strangerAccountId = freshAccount().id();
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.updateMemberProfile(
+                        clusterId,
+                        peopled.member().id(),
+                        List.of(),
+                        strangerAccountId,
+                        peopled.member().id()));
     }
 
     @Test

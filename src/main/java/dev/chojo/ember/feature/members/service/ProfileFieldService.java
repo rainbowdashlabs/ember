@@ -294,6 +294,23 @@ public class ProfileFieldService {
     public record MergedValue(int fieldId, String value, FieldOrigin origin) {}
 
     public List<MergedValue> setValues(int memberId, List<FieldValueEntry> entries, int changedBy) {
+        return setValues(memberId, entries, changedBy, false);
+    }
+
+    /**
+     * Saves answers, saying whether the party writing them is the cluster that asked.
+     *
+     * <p>A cluster question marked readable but not writable at the station is locked against the station,
+     * not against the cluster. The station's own screens call the short form above and are refused it; the
+     * cluster's own screens say so here and are not, because the lock is theirs to begin with.
+     *
+     * @param memberId  whose answers these are
+     * @param entries   the answers, each naming which table its question lives in
+     * @param changedBy the member row recorded as the author
+     * @param asOwner   whether the caller is the cluster that asked, rather than the station that holds them
+     * @return every answer this member now has
+     */
+    public List<MergedValue> setValues(int memberId, List<FieldValueEntry> entries, int changedBy, boolean asOwner) {
         Map<Integer, String> oldStation = profileFieldRepository.findValues(memberId).stream()
                 .collect(Collectors.toMap(ProfileFieldValue::fieldId, v -> v.value() != null ? v.value() : "null"));
         Map<Integer, String> oldCluster = clusterFieldRepository.findValues(memberId).stream()
@@ -304,7 +321,7 @@ public class ProfileFieldService {
         for (var entry : entries) {
             String newValue = entry.value() != null ? entry.value() : "null";
             if (entry.origin() == FieldOrigin.CLUSTER) {
-                writeClusterAnswer(memberId, entry, oldCluster, newValue, changedBy, changedFieldNames);
+                writeClusterAnswer(memberId, entry, oldCluster, newValue, changedBy, changedFieldNames, asOwner);
                 continue;
             }
 
@@ -330,11 +347,12 @@ public class ProfileFieldService {
     }
 
     /**
-     * Saves one answer to a question the cluster asked, when the cluster leaves it to the station.
+     * Saves one answer to a question the cluster asked.
      *
-     * <p>A field the cluster keeps to itself is simply not written: the station's screen shows it without a
-     * control, so an entry naming one is a stale form rather than somebody trying something, and refusing
-     * the whole save would lose the answers beside it.
+     * <p>A field the cluster keeps to itself is not written when the station is the one writing: the
+     * station's screen shows it without a control, so an entry naming one is a stale form rather than
+     * somebody trying something, and refusing the whole save would lose the answers beside it. The cluster
+     * writing its own is a different matter, and {@code asOwner} says which of the two this is.
      *
      * <p>The change is recorded like any other, which is what puts it in front of the people at the station
      * who acknowledge changes. What is not raised is the cluster's own notification: that one says the
@@ -346,10 +364,11 @@ public class ProfileFieldService {
             Map<Integer, String> oldValues,
             String newValue,
             int changedBy,
-            List<String> changedFieldNames) {
+            List<String> changedFieldNames,
+            boolean asOwner) {
         var field = clusterFieldRepository
                 .findById(entry.fieldId())
-                .filter(candidate -> !candidate.stationReadonly())
+                .filter(candidate -> asOwner || !candidate.stationReadonly())
                 .orElse(null);
         if (field == null) return;
 
