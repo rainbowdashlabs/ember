@@ -9,7 +9,7 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import StockActions from './manageview/StockActions.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
@@ -80,11 +80,7 @@ function onError() {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <div class="flex items-center justify-end">
-          <PrimaryButton :icon="['fas', 'plus']" @click="showCreateModal = true">
-            {{ t('inventory.manage.create') }}
-          </PrimaryButton>
-        </div>
+        <StockActions @create="showCreateModal = true"/>
 
         <ScannerPanel />
 

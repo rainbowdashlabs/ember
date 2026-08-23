@@ -11,9 +11,11 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
+import dev.chojo.ember.feature.cluster.service.ClusterDispatchService;
 import dev.chojo.ember.feature.cluster.service.ClusterInventoryService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
+import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -28,6 +30,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -42,11 +45,16 @@ import java.util.UUID;
 public class ClusterInventoryRoutes implements Routes {
     private final ClusterService clusterService;
     private final ClusterInventoryService inventoryService;
+    private final ClusterDispatchService dispatchService;
 
     @Inject
-    public ClusterInventoryRoutes(ClusterService clusterService, ClusterInventoryService inventoryService) {
+    public ClusterInventoryRoutes(
+            ClusterService clusterService,
+            ClusterInventoryService inventoryService,
+            ClusterDispatchService dispatchService) {
         this.clusterService = clusterService;
         this.inventoryService = inventoryService;
+        this.dispatchService = dispatchService;
     }
 
     @Override
@@ -56,6 +64,12 @@ public class ClusterInventoryRoutes implements Routes {
         routes.get(prefix + "/cluster/inventory/flows", this::listFlows, ClusterPermission.CLUSTER_INVENTORY_READ);
         routes.post(prefix + "/cluster/inventory/flows", this::createFlow, ClusterPermission.CLUSTER_INVENTORY_MANAGER);
         routes.put(prefix + "/cluster/inventory/settings", this::setUsesInventory, ClusterPermission.CLUSTER_MODULES);
+        routes.get(
+                prefix + "/cluster/inventory/dispatch",
+                this::listSendable,
+                ClusterPermission.CLUSTER_INVENTORY_TRANSFER);
+        routes.post(
+                prefix + "/cluster/inventory/dispatch", this::dispatch, ClusterPermission.CLUSTER_INVENTORY_TRANSFER);
         routes.get(
                 prefix + "/cluster/inventory/loss-report",
                 this::getLossReportSettings,
@@ -155,6 +169,52 @@ public class ClusterInventoryRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/cluster/inventory/dispatch",
+            methods = HttpMethod.GET,
+            summary = "The gear resting in this cluster's store, which is what there is to send",
+            tags = {"Cluster"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SendableItem[].class)))
+    private void listSendable(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        ctx.json(dispatchService.sendable(cluster.id()).stream()
+                .map(item -> new SendableItem(
+                        item.id(),
+                        item.internalId(),
+                        item.name(),
+                        item.inventoryId(),
+                        dispatchService.inventoryName(item.inventoryId())))
+                .toList());
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/inventory/dispatch",
+            methods = HttpMethod.POST,
+            summary = "Send a batch of this cluster's gear to one of its stations",
+            tags = {"Cluster"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DispatchRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void dispatch(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        Cluster cluster = requireActive(ctx);
+        var request = ctx.bodyAsClass(DispatchRequest.class);
+        if (request.stationUid() == null) throw new BadRequestResponse("stationUid is required");
+
+        // Acting for the owner: this is the cluster's own store the gear is leaving
+        var actor = new ItemMovementService.Actor(
+                session.member() != null ? session.member().id() : 0, false, true);
+        var movement = dispatchService.dispatch(
+                cluster.id(),
+                request.stationUid(),
+                request.itemIds() != null ? request.itemIds() : List.of(),
+                request.reason(),
+                actor);
+        ctx.status(HttpStatus.CREATED).json(movement);
+    }
+
+    @OpenApi(
             path = "/api/v1/cluster/inventory/loss-report",
             methods = HttpMethod.GET,
             summary = "What this cluster asks for with a loss report",
@@ -202,6 +262,14 @@ public class ClusterInventoryRoutes implements Routes {
 
     /** What the cluster wants to read before it considers replacing something that was lost. */
     public record LossReportSettings(LossReportRequirement requires) {}
+
+    /** One piece resting in the cluster's store, offered on the dispatch screen. */
+    public record SendableItem(int id, String internalId, String name, Integer inventoryId, String inventoryName) {}
+
+    /**
+     * A consignment: one station, the pieces going to it, and what the cluster wrote about it.
+     */
+    public record DispatchRequest(UUID stationUid, List<Integer> itemIds, String reason) {}
 
     /**
      * @param stationUid the station holding it, or {@code null} when it rests in the cluster's own store

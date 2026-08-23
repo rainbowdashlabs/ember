@@ -945,3 +945,24 @@ ALTER TABLE ember_schema.item_movement
 
 COMMENT ON COLUMN ember_schema.item_movement.lost_report
     IS 'TRUE when the movement was raised to report gear missing, which is what makes it skip the return leg.';
+
+-- The pieces a movement carries beyond the one it names.
+--
+-- An association sends a station twenty jackets at once and the station confirms one arrival, not twenty,
+-- so the movement has to be able to hold a set. The named outgoing and incoming items stay what a movement
+-- points at, and everything already reading one is untouched.
+CREATE TABLE IF NOT EXISTS ember_schema.item_movement_item
+(
+    movement_id INTEGER NOT NULL REFERENCES ember_schema.item_movement (id) ON DELETE CASCADE,
+    item_id     INTEGER NOT NULL REFERENCES ember_schema.inventory_item (id) ON DELETE CASCADE,
+    subject     TEXT    NOT NULL,
+    PRIMARY KEY (movement_id, item_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_item_movement_item_item
+    ON ember_schema.item_movement_item (item_id);
+
+COMMENT ON TABLE ember_schema.item_movement_item
+    IS 'The pieces one movement carries, for a dispatch that sends many at once.';
+COMMENT ON COLUMN ember_schema.item_movement_item.subject
+    IS 'Which leg the piece is on: OUTGOING or INCOMING, the same distinction a step draws.';

@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:b3c0ef38c9ed680f2879b366b529d62df703624cfd88786cd2a394b275e98877",
-  "generatedAt" : "2026-08-23T00:31:29Z",
+  "schemaHash" : "sha256:31839a4f3cd376d1b3483477fbf02b3679f6d05edf5d8322ec767c090b7a3dbd",
+  "generatedAt" : "2026-08-23T02:13:52Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -8742,6 +8742,51 @@
         } ]
       },
       "description" : "A file attached to one movement as evidence, read by opening that movement."
+    },
+    "item_movement_item" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:70541dcdd216ccc1d1008a1e4927705122b05c2d5a7ce00459f3dbccca8d44fc",
+      "columns" : [ {
+        "name" : "movement_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "item_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "subject",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which leg the piece is on: OUTGOING or INCOMING, the same distinction a step draws."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "item_id",
+        "refTable" : "inventory_item",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "movement_id",
+        "refTable" : "item_movement",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names gear and a movement, never a person"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names gear and a movement, never a person; cascades from movement deletion"
+      },
+      "description" : "The pieces one movement carries, for a dispatch that sends many at once."
     },
     "item_movement_log" : {
       "feature" : "inventory",

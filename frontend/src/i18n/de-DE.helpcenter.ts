@@ -3528,6 +3528,25 @@ volumes:
             twoTitle: 'Was hier nicht steht',
             twoText: 'Auswertungen über den ganzen Verband hinweg sind eine eigene Sache und gehören nicht hierher. Diese Seite sagt wie viel, nicht wie gut.',
         },
+        clusterInventoryDispatch: {
+            title: 'Material ausgeben',
+            subtitle: 'Aus dem Lager des Verbands an eine seiner Wachen.',
+            whatTitle: 'Was hier passiert',
+            whatText: 'Ihr gebt Material aus dem Lager des Verbands an eine Wache. Alles, was ihr'
+                + ' auswählt, geht in einer Sendung: die Wache bestätigt einmal den Eingang, nicht jedes'
+                + ' Teil einzeln, und ihr verfolgt einen Vorgang statt zwanzig.',
+            pickTitle: 'Wache und Teile wählen',
+            pickText: 'Erst die Wache, dann die Teile. Über „Alle" nehmt ihr ein ganzes Inventar auf'
+                + ' einmal, was der übliche Fall ist, wenn eine Gruppe ausgestattet wird.',
+            storeText: 'Angeboten wird nur, was gerade im Lager liegt. Was schon bei einer Wache ist,'
+                + ' unterwegs oder vermisst, steht gar nicht erst auf der Liste.',
+            chainTitle: 'Der Ablauf dahinter',
+            chainText: 'Ausgeben beginnt bei euch: ihr schickt, die Wache bestätigt. Dafür braucht der'
+                + ' Verband einen eigenen Ablauf für Ausgaben. Fehlt er, sagt euch die Seite das, und ihr'
+                + ' legt ihn in den Materialeinstellungen an.',
+            tip: 'Bis die Wache bestätigt, gilt die Sendung an beiden Enden als unterwegs. Ihr seht sie'
+                + ' unter „Offene Schritte" der Wache und in eurer eigenen Liste wieder.',
+        },
         clusterInventoryOut: {
             title: 'Material bei den Wachen',
             subtitle: 'Wo das Material des Verbands gerade ist.',

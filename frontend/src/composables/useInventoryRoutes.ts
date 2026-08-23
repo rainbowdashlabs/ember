@@ -35,6 +35,8 @@ export interface InventoryRoutes {
     checkResult?: string
     /** Absent at an association: it dispatches gear to a station, not to a person. */
     member?: string
+    /** Absent at a station: sending gear out of the store is the owner's act, not the holder's. */
+    dispatch?: string
     exchanges?: string
     /** Absent at an association: it issues gear rather than lending it. */
     lending?: string

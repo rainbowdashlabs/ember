@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.inventory.entity.MovementState;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.repository.ItemMovementItemRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
@@ -55,6 +56,7 @@ public class ItemMovementService {
     private final InventoryRepository inventoryRepository;
     private final ItemCustodyService custodyService;
     private final ClusterRepository clusterRepository;
+    private final ItemMovementItemRepository carriedRepository;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -64,13 +66,40 @@ public class ItemMovementService {
             InventoryRepository inventoryRepository,
             ItemCustodyService custodyService,
             ClusterRepository clusterRepository,
+            ItemMovementItemRepository carriedRepository,
             DomainEventBus eventBus) {
         this.movementRepository = movementRepository;
         this.flowService = flowService;
         this.inventoryRepository = inventoryRepository;
         this.custodyService = custodyService;
         this.clusterRepository = clusterRepository;
+        this.carriedRepository = carriedRepository;
         this.eventBus = eventBus;
+    }
+
+    /**
+     * Records the further pieces a movement carries on one of its legs.
+     *
+     * <p>A dispatch sends a station twenty jackets and the station confirms one arrival. The movement names
+     * one of them, the rest are recorded here, and every step that moves the named one moves these with it.
+     *
+     * @param movementId the movement
+     * @param subject    which leg they are on
+     * @param itemIds    the pieces beyond the one the movement names
+     */
+    public void carry(int movementId, StepSubject subject, List<Integer> itemIds) {
+        carriedRepository.add(movementId, subject, itemIds);
+    }
+
+    /**
+     * The further pieces a movement carries on one leg, the one it names excluded.
+     *
+     * @param movementId the movement
+     * @param subject    which leg to read
+     * @return the item ids
+     */
+    public List<Integer> carried(int movementId, StepSubject subject) {
+        return carriedRepository.findItems(movementId, subject);
     }
 
     /**
@@ -175,6 +204,46 @@ public class ItemMovementService {
             Actor actor,
             Integer pickedItemId,
             boolean lostReport) {
+        return create(
+                stationId,
+                purpose,
+                memberId,
+                memberName,
+                outgoingItemId,
+                inventoryId,
+                oldSizeId,
+                newSizeId,
+                reason,
+                actor,
+                pickedItemId,
+                lostReport,
+                List.of());
+    }
+
+    /**
+     * Starts a movement carrying more than the one piece it names.
+     *
+     * <p>The rest of the load is recorded before the first step is walked, because that step moves the whole
+     * consignment: recorded afterwards, the pieces would still be sitting in the store while the movement
+     * said it had sent them.
+     *
+     * @param carriedIncoming the further arriving pieces this movement carries
+     * @see #create(int, MovementPurpose, Integer, String, Integer, Integer, Integer, Integer, String, Actor, Integer)
+     */
+    public ItemMovement create(
+            int stationId,
+            MovementPurpose purpose,
+            Integer memberId,
+            String memberName,
+            Integer outgoingItemId,
+            Integer inventoryId,
+            Integer oldSizeId,
+            Integer newSizeId,
+            String reason,
+            Actor actor,
+            Integer pickedItemId,
+            boolean lostReport,
+            List<Integer> carriedIncoming) {
         ItemOwner ownerKind = resolveOwner(outgoingItemId, inventoryId);
         Integer ownerClusterId = resolveOwnerId(outgoingItemId, stationId);
         int flowId = flowService.resolveFlow(stationId, inventoryId, ownerKind, ownerClusterId, purpose);
@@ -193,8 +262,12 @@ public class ItemMovementService {
                 oldSizeId,
                 newSizeId,
                 reason,
-                actor.memberId(),
+                // Somebody acting for a body above the station belongs to no station, so there is no member
+                // to name. The record still says what was started and when; what it cannot say is which of
+                // the station's people did it, because none of them did.
+                actor.memberIdOrNull(),
                 lostReport);
+        carry(movement.id(), StepSubject.INCOMING, carriedIncoming);
         log.info(
                 "Started {} movement {} on flow {} for {} gear (station={}, member={}, item={})",
                 purpose,
@@ -340,6 +413,12 @@ public class ItemMovementService {
         if (subjectItemId != null) {
             custodyService.applyStepCustody(
                     subjectItemId, step.custodyAfter(), movement.memberId(), movementId, movement.stationId());
+            // Everything else the movement carries on this leg goes where the named piece goes. A batch
+            // arrives once or not at all, so a step that moved one of twenty jackets moved all twenty.
+            for (int carriedId : carried(movementId, step.subject())) {
+                custodyService.applyStepCustody(
+                        carriedId, step.custodyAfter(), movement.memberId(), movementId, movement.stationId());
+            }
         }
 
         movementRepository.createLog(movementId, step.id(), step.label(), ackKind, actor.memberIdOrNull(), note);

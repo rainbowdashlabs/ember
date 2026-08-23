@@ -923,6 +923,10 @@ export default {
             title: 'Materialeinstellungen',
             subtitle: 'Was der Verband über Material entscheidet',
         },
+        'cluster-inventory-dispatch': {
+            title: 'Material ausgeben',
+            subtitle: 'Aus dem Lager des Verbands an eine seiner Wachen',
+        },
         'cluster-movements': {
             title: 'Offene Schritte',
             subtitle: 'Vorgänge, die auf eine Antwort des Verbands warten',
@@ -3170,6 +3174,7 @@ export default {
             lentOutCount: '{count} verliehen',
             procurementCount: '{count} in Beschaffung',
             deleteConfirm: 'Inventar "{name}" wirklich löschen? Alle Gegenstände werden ebenfalls gelöscht.',
+            dispatch: 'An eine Wache geben',
         },
         lossSettings: {
             title: 'Vermisstes Material',
@@ -5761,6 +5766,18 @@ export default {
         flowNameLabel: 'Name',
         flowNamePlaceholder: 'z. B. Ausgabe an die Wache',
         flowPurposeLabel: 'Zweck',
+        dispatch: {
+            empty: 'Im Lager des Verbands liegt gerade nichts, was ihr weggeben könntet.',
+            stationTitle: 'Wohin',
+            stationHint: 'Alles, was ihr auswählt, geht in einer Sendung an diese Wache. Sie bestätigt einmal den Eingang, nicht jedes Teil einzeln.',
+            stationLabel: 'Wache',
+            stationPlaceholder: 'Wache auswählen',
+            itemsTitle: 'Was',
+            takeAll: 'Alle',
+            reasonLabel: 'Notiz an die Wache',
+            reasonPlaceholder: 'z. B. Ausstattung für die neue Gruppe',
+            send: 'Sendung auf den Weg bringen ({count})',
+        },
         lossReportTitle: 'Verlustmeldungen',
         lossReportHint: 'Was eine Wache mitschicken muss, wenn sie euch ein verlorenes Teil meldet und Ersatz anfragt. Über den Verlust selbst entscheidet ihr nicht, nur über den Ersatz.',
         lossReportRequires: {

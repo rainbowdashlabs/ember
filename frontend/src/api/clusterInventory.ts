@@ -64,6 +64,33 @@ export async function setUsesInventory(usesInventory: boolean): Promise<void> {
     await client.put('/cluster/inventory/settings', {usesInventory})
 }
 
+/** One piece resting in the cluster's store, offered on the dispatch screen. */
+export interface SendableItem {
+    id: number
+    internalId?: string | null
+    name?: string | null
+    inventoryId: number
+    inventoryName: string
+}
+
+/**
+ * The gear resting in the cluster's own store, which is what there is to send. Anything already out at a
+ * station, on its way somewhere or missing is not in the store, however much the cluster owns it.
+ */
+export async function listSendable(): Promise<SendableItem[]> {
+    const res = await client.get<SendableItem[]>('/cluster/inventory/dispatch')
+    return res.data
+}
+
+/**
+ * Sends a batch of the cluster's gear to one of its stations.
+ *
+ * <p>One movement carries the lot, so the station confirms one arrival rather than twenty.
+ */
+export async function dispatch(stationUid: string, itemIds: number[], reason: string): Promise<void> {
+    await client.post('/cluster/inventory/dispatch', {stationUid, itemIds, reason})
+}
+
 /** What the cluster wants to read before it considers replacing something that was lost. */
 export interface LossReportSettings {
     requires: LossReportRequirementName

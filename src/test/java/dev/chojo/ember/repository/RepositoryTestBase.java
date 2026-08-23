@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterApplicationRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.cluster.service.ClusterDispatchService;
 import dev.chojo.ember.feature.cluster.service.ClusterGovernanceService;
 import dev.chojo.ember.feature.cluster.service.ClusterInventoryService;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
@@ -67,6 +68,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryContainerRepository
 import dev.chojo.ember.feature.inventory.repository.InventoryFieldDefinitionRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementDocumentRepository;
+import dev.chojo.ember.feature.inventory.repository.ItemMovementItemRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
 import dev.chojo.ember.feature.inventory.repository.MovementFlowRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
@@ -172,6 +174,7 @@ public abstract class RepositoryTestBase {
     protected static ClusterProfileFieldService clusterProfileFieldService;
 
     protected static ClusterInventoryService clusterInventoryService;
+    protected static ClusterDispatchService clusterDispatchService;
 
     protected static InventoryService inventoryService;
 
@@ -191,6 +194,7 @@ public abstract class RepositoryTestBase {
     protected static ItemMovementService itemMovementService;
 
     protected static ItemMovementDocumentRepository itemMovementDocumentRepo;
+    protected static ItemMovementItemRepository itemMovementItemRepo;
     protected static LossReportService lossReportService;
 
     protected static ClusterItemHandoverService clusterItemHandoverService;
@@ -324,16 +328,18 @@ public abstract class RepositoryTestBase {
         movementFlowRepo = new MovementFlowRepository();
         itemMovementRepo = new ItemMovementRepository();
         movementFlowService = new MovementFlowService(movementFlowRepo, itemMovementRepo, clusterRepo);
+        itemMovementDocumentRepo = new ItemMovementDocumentRepository();
+        itemMovementItemRepo = new ItemMovementItemRepository();
         itemMovementService = new ItemMovementService(
                 itemMovementRepo,
                 movementFlowService,
                 inventoryRepo,
                 itemCustodyService,
                 clusterRepo,
+                itemMovementItemRepo,
                 new DomainEventBus(Set.of()));
         clusterItemHandoverService =
                 new ClusterItemHandoverService(inventoryRepo, itemCustodyService, itemMovementService);
-        itemMovementDocumentRepo = new ItemMovementDocumentRepository();
         var movementBackend = new LocalStorageBackend();
         lossReportService = new LossReportService(
                 inventoryRepo,
@@ -454,6 +460,8 @@ public abstract class RepositoryTestBase {
                 stationRepo,
                 stationMemberRepo,
                 memberNameResolver);
+        clusterDispatchService = new ClusterDispatchService(
+                clusterRepo, stationRepo, inventoryRepo, itemMovementService, movementFlowService);
     }
 
     /**

@@ -360,6 +360,14 @@ public class DemoClusterSeeder implements DemoSeeder {
                 StepSubject.OUTGOING,
                 ItemCustody.WITH_OWNER,
                 false);
+
+        // Sending gear out starts on the cluster's own step, which is what puts a consignment in the post
+        // rather than having it arrive the moment it was sent.
+        var sending = clusterInventoryService.createFlow(cluster.id(), "Ausgabe an eine Wache", MovementPurpose.ISSUE);
+        flowService.addStep(
+                sending.id(), "Verband schickt", StepActor.OWNER, StepSubject.INCOMING, ItemCustody.IN_TRANSIT, true);
+        flowService.addStep(
+                sending.id(), "Wache nimmt an", StepActor.STATION, StepSubject.INCOMING, ItemCustody.AT_STATION, false);
     }
 
     /**
