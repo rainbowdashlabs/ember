@@ -406,6 +406,16 @@ test.describe('Cluster inventory', () => {
         await expect(station.getByRole('button', {name: /hinzufügen/i}).first())
             .toBeVisible({timeout: 15000})
 
+        // The cluster's requirement stands among the station's own, named rather than anonymous
+        const fromCluster = station.getByTestId('cluster-requirement').first()
+        await expect(fromCluster).toBeVisible({timeout: 15000})
+        await expect(fromCluster.getByTestId('cluster-requirement-badge')).toHaveText(cluster.name)
+        await expect(fromCluster.getByTestId('cluster-requirement-quantity')).toHaveText(/\d+/)
+
+        // And there is nothing on it to press: one definition, read here, changed where it was written
+        await expect(fromCluster.getByRole('button')).toHaveCount(0)
+        await expect(fromCluster.getByRole('spinbutton')).toHaveCount(0)
+
         await station.context().close()
         await page.context().close()
     })

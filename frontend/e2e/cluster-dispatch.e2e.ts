@@ -16,7 +16,7 @@ test.describe('Dispatching the association gear', () => {
     test.describe.configure({mode: 'serial', timeout: 120_000})
 
     /**
-     * CLS-58 - The association sends several pieces in one consignment.
+     * CLS-72 - The association sends several pieces in one consignment.
      *
      * Its own screen rather than an action on each piece, because the everyday case is kitting a group out.
      * One movement carries the lot, so the station confirms one arrival rather than twenty.
@@ -60,7 +60,7 @@ test.describe('Dispatching the association gear', () => {
     })
 
     /**
-     * CLS-59 - A station is never offered a way to send gear out of a store it does not have.
+     * CLS-73 - A station is never offered a way to send gear out of a store it does not have.
      *
      * R4 applied to the one control that leads to the dispatch: the association's stock screen names it,
      * the station's own screen is the same screen and does not.

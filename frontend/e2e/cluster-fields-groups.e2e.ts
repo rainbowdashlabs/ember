@@ -111,4 +111,36 @@ test.describe('Cluster fields and groups', () => {
 
         await page.context().close()
     })
+
+    /**
+     * CLS-74 - The association heads its block of questions, and is not offered a date of birth.
+     *
+     * A heading was written down as something an association may declare and never looked at. The dialog
+     * meanwhile offered every type a station has, the date of birth included, which the server refuses:
+     * the station declares its own and two would collide. What the owner may choose now decides what the
+     * dialog offers, so the refusal is never reached.
+     */
+    test('the association heads its questions and is offered no birth date', async ({browser, request}) => {
+        const account = await clusterAccountWith(request, 'CLUSTER_FIELD_MANAGER')
+        const page = await clusterPage(browser, request, account)
+
+        await page.goto('/cluster/members/fields')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+
+        await page.getByTestId('field-add').first().click({timeout: 15000})
+        const types = page.getByTestId('field-type').locator('option')
+        const offered = await types.allTextContents()
+        expect(offered.join(' '), 'a heading is on offer').toContain('Überschrift')
+        expect(offered.join(' '), 'a date of birth is not').not.toContain('Geburtsdatum')
+
+        const heading = `Verbandsangaben ${Date.now()}`
+        await page.getByTestId('field-name').fill(heading)
+        await page.getByTestId('field-type').selectOption('SECTION')
+        await page.getByTestId('field-save').click()
+
+        // It comes back as a heading in the preview, which is where a section either lays out or does not
+        await expect(page.getByRole('heading', {name: heading})).toBeVisible({timeout: 15000})
+
+        await page.context().close()
+    })
 })

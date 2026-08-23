@@ -922,11 +922,24 @@ public class InventoryRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "List all inventory requirements for the current station",
             tags = {"Inventory"},
+            description = "The station's own and those of the cluster above it, the latter named and read-only.",
             responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryRequirement[].class)))
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = RequirementResponse[].class)))
     private void listAllRequirements(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(inventoryService.findAllRequirementsByStation(session.stationId()));
+        String clusterName =
+                inventoryService.requirementSourceAbove(session.stationId()).orElse(null);
+        ctx.json(inventoryService.findRequirementsVisibleAt(session.stationId()).stream()
+                .map(visible -> new RequirementResponse(
+                        visible.requirement().id(),
+                        visible.requirement().inventoryId(),
+                        visible.inventoryName(),
+                        visible.requirement().userType(),
+                        visible.requirement().groupId(),
+                        visible.requirement().quantity(),
+                        visible.requirement().position(),
+                        visible.fromCluster() ? clusterName : null))
+                .toList());
     }
 
     // -- Requirements --
@@ -1130,6 +1143,23 @@ public class InventoryRoutes implements Routes {
 
     public record ItemLocationResponse(
             int itemId, Integer containerId, List<String> pathSegments, List<Integer> pathIds, String pathDisplay) {}
+
+    /**
+     * A requirement as a station reads it.
+     *
+     * @param clusterName the cluster that wrote it, or {@code null} for one the station wrote itself. A
+     *                    station may read what the cluster asks of its people and change none of it, so the
+     *                    name is both the badge and the reason the controls are gone.
+     */
+    public record RequirementResponse(
+            int id,
+            int inventoryId,
+            String inventoryName,
+            StationUserType userType,
+            int groupId,
+            int quantity,
+            int position,
+            String clusterName) {}
 
     public record RequirementRequest(int inventoryId, StationUserType userType, Integer groupId, int quantity) {}
 

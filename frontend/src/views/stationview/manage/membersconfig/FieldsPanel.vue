@@ -39,7 +39,7 @@ const {t} = useI18n()
   <NeutralContainer class="space-y-4">
     <div class="flex items-center justify-between">
       <SectionHeader>{{ t('membersConfig.fields') }}</SectionHeader>
-      <PrimaryButton :icon="['fas', 'plus']" @click="emit('add')">
+      <PrimaryButton data-testid="field-add" :icon="['fas', 'plus']" @click="emit('add')">
         {{ t('membersConfig.addField') }}
       </PrimaryButton>
     </div>

@@ -4,7 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -24,11 +26,20 @@ defineProps<{
 }>()
 
 const { t } = useI18n()
+
+/**
+ * Whether a requirement can be keyed to a group at all.
+ *
+ * <p>Groups stay with the station, so an association has none to key one to and is asked for a role
+ * instead of being offered a choice with one empty half.
+ */
+const routes = useInventoryRoutes()
+const byGroup = computed(() => !!routes.memberGroups)
 </script>
 
 <template>
   <div class="space-y-4">
-    <div class="space-y-1">
+    <div v-if="byGroup" class="space-y-1">
       <FieldLabel>{{ t('inventory.requirements.targetType') }}</FieldLabel>
       <SelectInput v-model="targetType">
         <option value="userType">{{ t('inventory.requirements.byUserType') }}</option>
@@ -44,7 +55,7 @@ const { t } = useI18n()
       </SelectInput>
     </div>
 
-    <div v-if="targetType === 'group'" class="space-y-1">
+    <div v-if="byGroup && targetType === 'group'" class="space-y-1">
       <FieldLabel>{{ t('inventory.requirements.group') }}</FieldLabel>
       <SelectInput v-model="groupId">
         <option value="" disabled>{{ t('inventory.requirements.selectGroup') }}</option>

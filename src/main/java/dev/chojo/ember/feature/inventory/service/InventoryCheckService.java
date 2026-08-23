@@ -346,7 +346,8 @@ public class InventoryCheckService {
         var member = stationMemberRepository.findById(memberId).orElse(null);
         StationUserType memberUserType = member != null ? member.userType() : null;
         List<MemberGroup> memberGroups = memberGroupRepository.findGroupsForMember(memberId);
-        List<InventoryRequirement> allRequirements = inventoryRepository.findAllRequirementsByStation(stationId);
+        // The cluster's requirements count here too: one definition, read at the station, never copied
+        List<InventoryRequirement> allRequirements = inventoryRepository.findRequirementsCountingAt(stationId);
 
         var memberGroupIds = memberGroups.stream().map(MemberGroup::id).toList();
 

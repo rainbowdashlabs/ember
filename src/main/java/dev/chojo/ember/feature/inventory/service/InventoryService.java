@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -503,6 +504,30 @@ public class InventoryService {
      */
     public List<InventoryRequirement> findAllRequirementsByStation(int stationId) {
         return inventoryRepository.findAllRequirementsByStation(stationId);
+    }
+
+    /**
+     * What a station has to show for its people: its own requirements and the cluster's, each saying which
+     * it is and what it asks for.
+     *
+     * @param stationId the station reading them
+     * @return its own and the cluster's, ordered by position
+     */
+    public List<InventoryRepository.VisibleRequirement> findRequirementsVisibleAt(int stationId) {
+        return inventoryRepository.findRequirementsVisibleAt(stationId);
+    }
+
+    /**
+     * The name to put on a requirement the station did not write, when there is one to put.
+     *
+     * @param stationId the station reading it
+     * @return the cluster above the station, if it keeps its gear here
+     */
+    public Optional<String> requirementSourceAbove(int stationId) {
+        return clusterRepository
+                .findByStation(stationId)
+                .filter(Cluster::usesInventory)
+                .map(Cluster::name);
     }
 
     /**

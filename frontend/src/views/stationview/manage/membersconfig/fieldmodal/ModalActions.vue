@@ -24,7 +24,7 @@ const {t} = useI18n()
 <template>
   <div class="flex justify-end gap-3">
     <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
-    <PrimaryButton :disabled="saving || disabled" @click="emit('submit')">
+    <PrimaryButton data-testid="field-save" :disabled="saving || disabled" @click="emit('submit')">
       {{ saving ? t('common.loading') : t('common.save') }}
     </PrimaryButton>
   </div>

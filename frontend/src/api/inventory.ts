@@ -143,6 +143,17 @@ export interface InventoryRequirement {
     groupId: number
     quantity: number
     position: number
+    /**
+     * What the requirement points at, sent along because an association's inventory is not among the
+     * station's own and the screen would have nothing to look the name up in.
+     */
+    inventoryName?: string
+    /**
+     * The association that wrote it, absent on one the station wrote itself. A station reads what the
+     * association asks of its people and changes none of it, so the name is both the badge and the reason
+     * the controls are gone.
+     */
+    clusterName?: string | null
 }
 
 export interface RequirementRequest {

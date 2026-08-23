@@ -16,11 +16,13 @@ import type { MemberGroup } from '@/api/types'
 import { inventory, memberGroups } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
 import RequirementGroupCard from './requirementsview/RequirementGroupCard.vue'
 import RequirementAddModal from './requirementsview/RequirementAddModal.vue'
 import { userTypeFriendlyNames, type RequirementGroup } from './requirementsview/types'
 
 const { t } = useI18n()
+const routes = useInventoryRoutes()
 
 const inventories = ref<Inventory[]>([])
 const requirements = ref<InventoryRequirement[]>([])
@@ -74,10 +76,11 @@ const grouped = computed((): RequirementGroup[] => {
 })
 
 const {loading, error} = useAsyncLoader(async () => {
+  // Groups are the station's own, so an association has none and asking is refused rather than empty
   const [invs, reqs, groups] = await Promise.all([
     inventory.listInventories(),
     inventory.listAllRequirements(),
-    memberGroups.listGroups(),
+    routes.memberGroups ? memberGroups.listGroups() : Promise.resolve([]),
   ])
   inventories.value = invs
   requirements.value = reqs

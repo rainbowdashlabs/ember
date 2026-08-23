@@ -10,6 +10,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {FieldTypes} from '@/api/profileFields'
+import {useFieldsCapabilities} from '@/composables/useFieldsConfig'
 import {FIELD_TYPE_ORDER, fieldTypeLabel} from '../fieldTypes'
 
 const props = defineProps<{
@@ -23,7 +24,14 @@ const fieldType = defineModel<string>('fieldType', {required: true})
 
 const {t} = useI18n()
 
+/**
+ * What the owner of these fields may choose at all. A station may choose everything; an association
+ * may not declare a date of birth, because the station declares its own and the two would collide.
+ */
+const capabilities = useFieldsCapabilities()
+
 const availableOptions = computed(() => FIELD_TYPE_ORDER
+    .filter(type => capabilities.types.includes(type))
     .filter((type) => {
       if (type === FieldTypes.AGE) return props.scope === 'MEMBER'
       if (type === FieldTypes.BIRTH_DATE) return props.birthDateAvailable
@@ -36,11 +44,11 @@ const availableOptions = computed(() => FIELD_TYPE_ORDER
   <div class="space-y-4">
     <div class="space-y-1">
       <FieldLabel>{{ t('membersConfig.fieldName') }}</FieldLabel>
-      <TextInput v-model="name" :placeholder="t('membersConfig.fieldNamePlaceholder')"/>
+      <TextInput v-model="name" data-testid="field-name" :placeholder="t('membersConfig.fieldNamePlaceholder')"/>
     </div>
     <div class="space-y-1">
       <FieldLabel>{{ t('membersConfig.fieldType') }}</FieldLabel>
-      <SelectInput v-model="fieldType">
+      <SelectInput v-model="fieldType" data-testid="field-type">
         <option v-for="ft in availableOptions" :key="ft.value" :value="ft.value">{{ ft.label }}</option>
       </SelectInput>
     </div>

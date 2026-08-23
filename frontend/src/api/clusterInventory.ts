@@ -17,6 +17,9 @@ export interface ClusterItem {
     stationName?: string | null
     /** The member wearing it, or null. */
     holderName?: string | null
+    /** The size it is cut to, absent where the inventory it belongs to keeps no sizes. */
+    sizeId?: number | null
+    sizeLabel?: string | null
 }
 
 /** A movement that has stopped on a step only the cluster can answer. */

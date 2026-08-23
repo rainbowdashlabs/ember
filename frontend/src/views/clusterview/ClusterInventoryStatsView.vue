@@ -42,6 +42,36 @@ const counts = computed(() => {
   }
   return {total: items.value.length, free, away, lost}
 })
+
+/**
+ * The same counts once more, cut by size.
+ *
+ * <p>An association buying two hundred jackets has to know how many of each size are still in its own
+ * store, which the four totals cannot say. Gear from an inventory that keeps no sizes is left out
+ * rather than gathered under a nameless row: it has no size, it is not of an unknown one.
+ */
+const sizeStats = computed(() => {
+  const bySize = new Map<number, {label: string; total: number; assigned: number; free: number; lost: number}>()
+  for (const item of items.value) {
+    if (item.sizeId == null) continue
+    const stat = bySize.get(item.sizeId)
+        ?? {label: item.sizeLabel ?? `#${item.sizeId}`, total: 0, assigned: 0, free: 0, lost: 0}
+    stat.total++
+    if (item.custody === 'WITH_OWNER') stat.free++
+    else if (item.custody === 'LOST') stat.lost++
+    else stat.assigned++
+    bySize.set(item.sizeId, stat)
+  }
+  return [...bySize.entries()]
+      .map(([id, stat]) => ({
+        size: {id, inventoryId: 0, label: stat.label, position: 0, note: ''},
+        total: stat.total,
+        assigned: stat.assigned,
+        free: stat.free,
+        lost: stat.lost,
+      }))
+      .sort((a, b) => a.size.label.localeCompare(b.size.label))
+})
 </script>
 
 <template>
@@ -62,8 +92,8 @@ const counts = computed(() => {
             :assigned-count="counts.away"
             :lost-count="counts.lost"
             :lent-out-count="0"
-            :has-sizes="false"
-            :size-stats="[]"
+            :has-sizes="sizeStats.length > 0"
+            :size-stats="sizeStats"
         />
       </template>
     </div>

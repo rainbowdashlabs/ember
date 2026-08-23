@@ -96,7 +96,9 @@ public class ClusterInventoryRoutes implements Routes {
                         row.custody().name(),
                         row.stationUid(),
                         row.stationName(),
-                        row.holderName()))
+                        row.holderName(),
+                        row.sizeId(),
+                        row.sizeLabel()))
                 .toList());
     }
 
@@ -274,6 +276,7 @@ public class ClusterInventoryRoutes implements Routes {
     /**
      * @param stationUid the station holding it, or {@code null} when it rests in the cluster's own store
      * @param holderName the member wearing it, or {@code null}
+     * @param sizeLabel  the size it is cut to, or {@code null} where the inventory keeps no sizes
      */
     public record ClusterItemResponse(
             int id,
@@ -282,7 +285,9 @@ public class ClusterInventoryRoutes implements Routes {
             String custody,
             UUID stationUid,
             String stationName,
-            String holderName) {}
+            String holderName,
+            Integer sizeId,
+            String sizeLabel) {}
 
     /**
      * @param stepLabel what the cluster is being asked to confirm

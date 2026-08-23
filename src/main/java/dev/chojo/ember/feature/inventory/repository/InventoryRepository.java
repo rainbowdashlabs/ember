@@ -736,6 +736,70 @@ public class InventoryRepository {
     }
 
     /**
+     * The requirements that count for somebody at a station: the station's own, and those the cluster above
+     * it has declared.
+     *
+     * <p>A cluster's requirement is an ordinary row on the cluster's own inventory, so there is nothing to
+     * merge here and no name matching to do: the station reads one definition rather than reconciling two. A
+     * cluster that does not keep its gear in Ember contributes none, which is what lets a station under such
+     * a cluster carry on exactly as it did before.
+     *
+     * @param stationId the station reading them
+     * @return its own and the cluster's, ordered by position
+     */
+    public List<InventoryRequirement> findRequirementsCountingAt(int stationId) {
+        return query("""
+                SELECT %s FROM inventory_requirement r
+                JOIN inventory i ON r.inventory_id = i.id
+                WHERE i.station_id = :station_id
+                   OR i.station_id IN (SELECT c.home_station_id FROM cluster c
+                                       JOIN station s ON s.cluster_id = c.id
+                                       WHERE s.id = :station_id AND c.uses_inventory)
+                ORDER BY r.position, r.id;""", SqlSupport.alias("r", INVENTORY_REQUIREMENT_COLUMNS))
+                .single(call().bind("station_id", stationId))
+                .map(InventoryRequirement.map())
+                .all();
+    }
+
+    /**
+     * The same list, each row carrying the name of the inventory it points at and whether it came from the
+     * cluster.
+     *
+     * <p>The name travels with the row because a cluster's inventory is not among the station's own, so the
+     * screen has nothing to look it up in.
+     *
+     * @param stationId the station reading them
+     * @return its own and the cluster's, ordered by position
+     */
+    public List<VisibleRequirement> findRequirementsVisibleAt(int stationId) {
+        return query("""
+                SELECT %s, i.name AS inventory_name, i.station_id <> :station_id AS from_cluster
+                FROM inventory_requirement r
+                JOIN inventory i ON r.inventory_id = i.id
+                WHERE i.station_id = :station_id
+                   OR i.station_id IN (SELECT c.home_station_id FROM cluster c
+                                       JOIN station s ON s.cluster_id = c.id
+                                       WHERE s.id = :station_id AND c.uses_inventory)
+                ORDER BY r.position, r.id;""", SqlSupport.alias("r", INVENTORY_REQUIREMENT_COLUMNS))
+                .single(call().bind("station_id", stationId))
+                .map(row -> new VisibleRequirement(
+                        InventoryRequirement.map().map(row),
+                        row.getString("inventory_name"),
+                        row.getBoolean("from_cluster")))
+                .all();
+    }
+
+    /**
+     * One requirement as a station reads it, with the name of what it asks for and where it was written.
+     *
+     * @param requirement   the row itself
+     * @param inventoryName what the requirement points at
+     * @param fromCluster   whether the cluster above the station wrote it, in which case the station may
+     *                      read it and nothing more
+     */
+    public record VisibleRequirement(InventoryRequirement requirement, String inventoryName, boolean fromCluster) {}
+
+    /**
      * Creates a new inventory requirement for a role or group.
      *
      * @param inventoryId the inventory ID

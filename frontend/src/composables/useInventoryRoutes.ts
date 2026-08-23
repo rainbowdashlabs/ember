@@ -37,6 +37,11 @@ export interface InventoryRoutes {
     member?: string
     /** Absent at a station: sending gear out of the store is the owner's act, not the holder's. */
     dispatch?: string
+    /**
+     * Where member groups are defined. Absent at an association: groups stay station-local, so an
+     * association keys a requirement to a role and to nothing else.
+     */
+    memberGroups?: string
     exchanges?: string
     /** Absent at an association: it issues gear rather than lending it. */
     lending?: string
@@ -62,6 +67,7 @@ export const STATION_INVENTORY_ROUTES: InventoryRoutes = {
     checkMember: 'inventory-check-member',
     checkResult: 'inventory-check-result',
     member: 'inventory-member',
+    memberGroups: 'members-groups',
     exchanges: 'inventory-exchanges',
     lending: 'inventory-lending',
     lendingBlocks: 'inventory-lending-blocks',

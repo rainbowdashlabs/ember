@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.MovementFlow;
@@ -26,7 +27,9 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * The cluster's own view of its gear.
@@ -76,6 +79,14 @@ public class ClusterInventoryService {
      * @return its items, each saying where it is
      */
     public List<ClusterItem> findItems(int clusterId) {
+        // Every size the cluster's own inventories know, fetched once rather than per row
+        Map<Integer, String> sizeLabels = clusterRepository
+                .findById(clusterId)
+                .map(cluster -> inventoryRepository.findSizesByStation(cluster.homeStationId()))
+                .orElse(List.of())
+                .stream()
+                .collect(Collectors.toMap(InventorySize::id, InventorySize::label, (first, second) -> first));
+
         List<ClusterItem> items = new ArrayList<>();
         for (var item : inventoryRepository.findItemsOwnedByCluster(clusterId)) {
             UUID stationUid = null;
@@ -92,7 +103,9 @@ public class ClusterInventoryService {
                     item.custody(),
                     stationUid,
                     stationName,
-                    holderName(item.assignedTo())));
+                    holderName(item.assignedTo()),
+                    item.sizeId(),
+                    item.sizeId() == null ? null : sizeLabels.get(item.sizeId())));
         }
         return items;
     }
@@ -213,7 +226,9 @@ public class ClusterInventoryService {
             ItemCustody custody,
             UUID stationUid,
             String stationName,
-            String holderName) {}
+            String holderName,
+            Integer sizeId,
+            String sizeLabel) {}
 
     /**
      * @param stepLabel what the cluster is being asked to confirm

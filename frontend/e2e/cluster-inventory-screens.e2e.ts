@@ -139,7 +139,11 @@ test.describe('Cluster inventory screens', () => {
     })
 
     /**
-     * CLS-55 - Statistics counts what the association owns.
+     * CLS-55 - Statistics counts what the association owns, size by size.
+     *
+     * The four totals say how much gear there is; they cannot say how many of size 48 are still in the
+     * store, which is the question somebody ordering two hundred jackets actually has. The breakdown was
+     * specified and then handed an empty list, so the table never appeared at all.
      */
     test('the figures tab counts the association gear', async ({browser, request}) => {
         const account = await clusterAccountWith(request, 'CLUSTER_INVENTORY_MANAGER')
@@ -148,6 +152,12 @@ test.describe('Cluster inventory screens', () => {
         await page.goto('/cluster/inventory/statistics')
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await expect(page.getByTestId('cluster-inventory-tabs')).toBeVisible()
+
+        // The totals, then the same gear cut by the size it was ordered in
+        const rows = page.getByTestId('stats-size-row')
+        await expect(rows.first()).toBeVisible({timeout: 15000})
+        await expect(rows.first().locator('td').first()).not.toBeEmpty()
+
         await page.context().close()
     })
 
