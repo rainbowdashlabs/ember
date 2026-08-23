@@ -16,6 +16,7 @@ import de.chojo.sadu.updater.SqlUpdater;
 import dev.chojo.ember.TestContainers;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -33,6 +34,7 @@ import dev.chojo.ember.feature.cluster.service.ClusterInventoryService;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
 import dev.chojo.ember.feature.cluster.service.ClusterProfileFieldService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.cluster.service.ClusterStorageQuotaService;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
 import dev.chojo.ember.feature.content.repository.ContentContainerRepository;
@@ -121,6 +123,7 @@ import dev.chojo.ember.feature.storage.repository.ClusterStorageQuotaRepository;
 import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
 import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
+import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
@@ -187,6 +190,7 @@ public abstract class RepositoryTestBase {
     protected static ClusterGovernanceService clusterGovernanceService;
 
     protected static ClusterMemberService clusterMemberService;
+    protected static ClusterStorageQuotaService clusterStorageQuotaService;
 
     protected static ItemCustodyService itemCustodyService;
     protected static MovementFlowRepository movementFlowRepo;
@@ -393,7 +397,6 @@ public abstract class RepositoryTestBase {
                 clusterRepo,
                 stationRepo,
                 new ClusterStorageConfigRepository(),
-                clusterStorageQuotaRepo,
                 new StorageBackendResolver(new LocalStorageBackend()),
                 new DomainEventBus(Set.of()));
         clusterService = new ClusterService(
@@ -439,6 +442,14 @@ public abstract class RepositoryTestBase {
         storageUsageRepo = new StorageUsageRepository();
         storagePresetRepo = new StorageQuotaPresetRepository();
         storageBackendAuditRepo = new StorageBackendAuditRepository();
+        // After the usage repository, because it reads what every station is keeping
+        clusterStorageQuotaService = new ClusterStorageQuotaService(
+                clusterRepo,
+                stationRepo,
+                clusterStorageQuotaRepo,
+                new StorageQuotaService(storageUsageRepo, new Storage(), new DomainEventBus(Set.of())),
+                storageUsageRepo,
+                new DomainEventBus(Set.of()));
         discoveryPeerRepo = new DiscoveryPeerRepository();
         discoveryPingRepo = new DiscoveryPingRepository();
         discoveryStationCacheRepo = new DiscoveryStationCacheRepository();

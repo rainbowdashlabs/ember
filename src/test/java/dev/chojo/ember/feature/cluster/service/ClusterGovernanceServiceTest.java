@@ -11,7 +11,6 @@ import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.Test;
 
@@ -22,12 +21,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * What a cluster decides for its stations, and what it may not decide.
+ *
+ * <p>Room is decided elsewhere: {@link ClusterStorageQuotaService} hands out portions of a pool, which is
+ * arithmetic rather than a rule, and {@code ClusterStorageQuotaServiceTest} walks it.
  */
 class ClusterGovernanceServiceTest extends RepositoryTestBase {
     private static final AtomicInteger NAMES = new AtomicInteger();
@@ -127,116 +128,6 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void aClusterCannotHandOutMoreRoomThanItHas() {
-        int clusterId = freshCluster();
-        clusterGovernanceService.setStoragePool(clusterId, 1_000L);
-        var first = clusterService.createStation(clusterId, "Wache Voll A " + NAMES.incrementAndGet());
-        var second = clusterService.createStation(clusterId, "Wache Voll B " + NAMES.incrementAndGet());
-
-        clusterGovernanceService.setStationQuota(clusterId, first.id(), 800L);
-        var refused = assertThrows(
-                BadRequestResponse.class, () -> clusterGovernanceService.setStationQuota(clusterId, second.id(), 300L));
-        assertTrue(refused.getMessage().contains("more than the cluster has left"));
-
-        // What fits is allowed
-        clusterGovernanceService.setStationQuota(clusterId, second.id(), 200L);
-        var usage = clusterGovernanceService.findPoolUsage(clusterId);
-        assertEquals(1_000L, usage.poolBytes());
-        assertEquals(1_000L, usage.handedOut());
-
-        clusterService.releaseStation(clusterId, first.id());
-        clusterService.releaseStation(clusterId, second.id());
-        stationRepo.delete(first.id());
-        stationRepo.delete(second.id());
-    }
-
-    @Test
-    void aClusterWithNoPoolHasNothingToRunOutOf() {
-        int clusterId = freshCluster();
-        var station = clusterService.createStation(clusterId, "Wache Unbegrenzt " + NAMES.incrementAndGet());
-
-        clusterGovernanceService.setStationQuota(clusterId, station.id(), 999_999_999L);
-
-        assertNull(clusterGovernanceService.findPoolUsage(clusterId).poolBytes());
-
-        clusterService.releaseStation(clusterId, station.id());
-        stationRepo.delete(station.id());
-    }
-
-    @Test
-    void aClusterCannotHandRoomToAStationThatIsNotItsOwn() {
-        int clusterId = freshCluster();
-        int otherClusterId = freshCluster();
-        var station = clusterService.createStation(otherClusterId, "Wache Fremd " + NAMES.incrementAndGet());
-
-        assertThrows(
-                BadRequestResponse.class, () -> clusterGovernanceService.setStationQuota(clusterId, station.id(), 10L));
-
-        clusterService.releaseStation(otherClusterId, station.id());
-        stationRepo.delete(station.id());
-    }
-
-    @Test
-    void handingAQuotaBackToTheInstanceIsAlwaysAllowed() {
-        int clusterId = freshCluster();
-        clusterGovernanceService.setStoragePool(clusterId, 100L);
-        var station = clusterService.createStation(clusterId, "Wache Zurueckgabe " + NAMES.incrementAndGet());
-
-        clusterGovernanceService.setStationQuota(clusterId, station.id(), 100L);
-        clusterGovernanceService.setStationQuota(clusterId, station.id(), null);
-
-        assertEquals(0L, clusterGovernanceService.findPoolUsage(clusterId).handedOut());
-
-        clusterService.releaseStation(clusterId, station.id());
-        stationRepo.delete(station.id());
-    }
-
-    @Test
-    void theClustersOwnStoreIsPromisedOutOfTheSamePool() {
-        int clusterId = freshCluster();
-        var cluster = clusterRepo.findById(clusterId).orElseThrow();
-        clusterGovernanceService.setStoragePool(clusterId, 1_000L);
-        var station = clusterService.createStation(clusterId, "Wache Neben Verband " + NAMES.incrementAndGet());
-
-        clusterGovernanceService.setStationQuota(clusterId, cluster.homeStationId(), 600L);
-        var refused = assertThrows(
-                BadRequestResponse.class,
-                () -> clusterGovernanceService.setStationQuota(clusterId, station.id(), 500L));
-        assertTrue(refused.getMessage().contains("more than the cluster has left"));
-
-        clusterGovernanceService.setStationQuota(clusterId, station.id(), 400L);
-        var usage = clusterGovernanceService.findPoolUsage(clusterId);
-        assertEquals(1_000L, usage.handedOut(), "what the cluster keeps for itself is part of what it handed out");
-        assertEquals(2, usage.stations().size(), "its own store is one of the stations on the list");
-
-        clusterService.releaseStation(clusterId, station.id());
-        stationRepo.delete(station.id());
-    }
-
-    @Test
-    void aGrantIsTheClustersOwnAndGoesWithTheMembership() {
-        int clusterId = freshCluster();
-        var station = clusterService.createStation(clusterId, "Wache Unberuehrt " + NAMES.incrementAndGet());
-
-        clusterGovernanceService.setStationQuota(clusterId, station.id(), 700L);
-
-        assertEquals(
-                700L,
-                clusterStorageQuotaRepo.findGrant(station.id()).orElseThrow().quotaBytes(),
-                "the cluster writes its own numbers rather than the instance's");
-
-        clusterService.releaseStation(clusterId, station.id());
-        assertTrue(
-                clusterStorageQuotaRepo.findGrant(station.id()).isEmpty(),
-                "a station that has been let go was promised nothing");
-        assertEquals(
-                0L,
-                clusterGovernanceService.findPoolUsage(clusterId).handedOut(),
-                "and the room comes back when the station goes");
-        stationRepo.delete(station.id());
-    }
-
-    @Test
     void aClusterCanPointItsStationsAtABackendOfItsOwn() {
         int clusterId = freshCluster();
         var cipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));
@@ -267,16 +158,9 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
 
     @Test
     void aClusterThatIsNotThereGovernsNothing() {
-        assertThrows(NotFoundResponse.class, () -> clusterGovernanceService.setStoragePool(999_999, 1L));
         assertThrows(
                 NotFoundResponse.class,
                 () -> clusterGovernanceService.setDeniedModules(999_999, Set.of(StationModule.QUIZ)));
-    }
-
-    @Test
-    void roomCannotBeHandedToAStationThatDoesNotExist() {
-        int clusterId = freshCluster();
-
-        assertThrows(NotFoundResponse.class, () -> clusterGovernanceService.setStationQuota(clusterId, 999_999, 1L));
+        assertThrows(NotFoundResponse.class, () -> clusterGovernanceService.setStorageBackend(999_999, null));
     }
 }

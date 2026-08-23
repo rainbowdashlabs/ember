@@ -159,7 +159,7 @@ test.describe('Cluster governance', () => {
         expect(pooled.ok()).toBeTruthy()
 
         const refused = await page.request.put(`/api/v1/cluster/storage/stations/${own.stationUid}`,
-            {headers: own.headers, data: {quotaBytes: 50 * 1024 * 1024}})
+            {headers: own.headers, data: {totalBytes: 50 * 1024 * 1024}})
         expect(refused.ok()).toBeFalsy()
         expect((await refused.text()).toLowerCase()).toContain('pool')
     })

@@ -124,7 +124,7 @@ class StorageQuotaServiceTest extends RepositoryTestBase {
                 onDefaults.kb().origin(),
                 "a dimension the cluster left alone falls through to the instance");
 
-        clusterGovernanceService.setStationQuota(clusterId, station.id(), 5 * GIB);
+        clusterStorageQuotaService.setTotal(clusterId, station.id(), 5 * GIB);
 
         var granted = service.resolveQuotas(station.id());
         assertEquals(5 * GIB, granted.total().bytes());
@@ -139,7 +139,7 @@ class StorageQuotaServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
         var station = clusterService.createStation(clusterId, "Wache Entlassen " + NAMES.incrementAndGet());
         quotaRepository.setDefaults(new ClusterQuotaDefaults(clusterId, 3 * GIB, null, null, null, null, null, null));
-        clusterGovernanceService.setStationQuota(clusterId, station.id(), 5 * GIB);
+        clusterStorageQuotaService.setTotal(clusterId, station.id(), 5 * GIB);
 
         clusterService.releaseStation(clusterId, station.id());
 

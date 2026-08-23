@@ -57,7 +57,7 @@ export async function getStoragePool(): Promise<ClusterStoragePool> {
 }
 
 export async function setStationQuota(stationUid: string, quotaBytes: number | null): Promise<void> {
-    await client.put(`/cluster/storage/stations/${stationUid}`, {quotaBytes})
+    await client.put(`/cluster/storage/stations/${stationUid}`, {totalBytes: quotaBytes})
 }
 
 /** Only an instance administrator can grant the pool itself. */
