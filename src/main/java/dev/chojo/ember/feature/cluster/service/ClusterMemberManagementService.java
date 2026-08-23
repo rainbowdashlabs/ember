@@ -8,8 +8,11 @@ package dev.chojo.ember.feature.cluster.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
+import dev.chojo.ember.feature.members.entity.MemberDocument;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.MemberDocumentRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberDocumentService;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -56,17 +59,23 @@ public class ClusterMemberManagementService {
     private final StationRepository stationRepository;
     private final ProfileFieldService profileFieldService;
     private final StationMemberInviteService inviteService;
+    private final MemberDocumentRepository documentRepository;
+    private final MemberDocumentService documentService;
 
     @Inject
     public ClusterMemberManagementService(
             StationMemberRepository memberRepository,
             StationRepository stationRepository,
             ProfileFieldService profileFieldService,
-            StationMemberInviteService inviteService) {
+            StationMemberInviteService inviteService,
+            MemberDocumentRepository documentRepository,
+            MemberDocumentService documentService) {
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
         this.profileFieldService = profileFieldService;
         this.inviteService = inviteService;
+        this.documentRepository = documentRepository;
+        this.documentService = documentService;
     }
 
     /**
@@ -104,6 +113,87 @@ public class ClusterMemberManagementService {
                 inviteService.provision(station.id(), address, firstName.trim(), lastName.trim(), userType, null);
         log.info("Cluster {} took on member {} at station {}", clusterId, provisioned.memberId(), station.id());
         return provisioned;
+    }
+
+    /**
+     * The documents kept about one of the cluster's people.
+     *
+     * <p>Everything about them, hidden ones included: somebody trusted with the people at every station is
+     * trusted with what is filed about them, which is the same test the station applies to its own managers.
+     *
+     * @param clusterId the cluster acting
+     * @param memberId  the member
+     * @return what is filed about them
+     */
+    public List<MemberDocument> documentsOf(int clusterId, int memberId) {
+        requireMemberOfCluster(clusterId, memberId);
+        return documentRepository.findByMember(memberId, true);
+    }
+
+    /**
+     * Files a document about one of the cluster's people.
+     *
+     * <p>It belongs to the station that holds them rather than to the cluster, because that is where the
+     * person is and where it has to stay when the station leaves. Nothing about it says it came from here.
+     *
+     * @param clusterId  the cluster acting
+     * @param memberId   the member it is about
+     * @param title      what it is called
+     * @param fileName   the name it was uploaded under
+     * @param mimeType   what it is
+     * @param data       its bytes
+     * @param uploadedBy the cluster member filing it, or {@code null}
+     * @return the document as filed
+     */
+    public MemberDocument fileDocument(
+            int clusterId,
+            int memberId,
+            String title,
+            String fileName,
+            String mimeType,
+            byte[] data,
+            Integer uploadedBy) {
+        StationMember member = requireMemberOfCluster(clusterId, memberId);
+        return documentService.store(
+                member.stationId(),
+                List.of(memberId),
+                title,
+                fileName,
+                mimeType,
+                data,
+                false,
+                false,
+                uploadedBy,
+                List.of());
+    }
+
+    /**
+     * One document, checked to be about somebody at a station of this cluster.
+     *
+     * @param clusterId  the cluster acting
+     * @param documentId the document
+     * @return it, when the cluster has any business with it
+     */
+    public MemberDocument requireDocumentOfCluster(int clusterId, int documentId) {
+        MemberDocument document =
+                documentRepository.findById(documentId).orElseThrow(() -> new NotFoundResponse("No such document"));
+        boolean reachable = documentRepository.membersOf(documentId).stream().anyMatch(memberId -> {
+            try {
+                requireMemberOfCluster(clusterId, memberId);
+                return true;
+            } catch (NotFoundResponse e) {
+                return false;
+            }
+        });
+        if (!reachable) throw new NotFoundResponse("No such document");
+        return document;
+    }
+
+    /**
+     * The bytes of a document the cluster may read.
+     */
+    public byte[] readDocument(MemberDocument document) {
+        return documentService.read(document).orElseThrow(() -> new NotFoundResponse("No such document"));
     }
 
     /** A name as it can stand in an address: letters and digits, and a dash for everything else. */

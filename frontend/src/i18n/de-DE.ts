@@ -5869,6 +5869,16 @@ export default {
         fieldCount: '{count} Felder',
         hint: 'Fragen der Wache und des Verbands stehen hier zusammen. Der Verband darf auch die beantworten, die für die Wache gesperrt sind.',
         saved: 'Gespeichert.',
+        documents: {
+            title: 'Dokumente',
+            hint: 'Der Verband sieht die Dokumente der Person und legt neue ab. Ordnen, verschlagworten und entfernen bleibt bei der Wache, denn das Dokument gehört der Wache, an der die Person ist.',
+            none: 'Zu dieser Person ist nichts abgelegt.',
+            upload: 'Dokument ablegen',
+            uploadTitle: 'Dokument ablegen',
+            uploadHint: 'Das Dokument gehört der Wache, an der die Person ist, und bleibt dort, wenn die Wache den Verband verlässt.',
+            file: 'Datei',
+            name: 'Bezeichnung',
+        },
     },
     clusterMemberManagement: {
         create: {

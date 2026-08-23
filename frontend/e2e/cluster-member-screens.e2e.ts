@@ -188,4 +188,47 @@ test.describe('Cluster member screens', () => {
         expect(file.suggestedFilename()).toBe('verbandsmitglieder.csv')
         await page.context().close()
     })
+
+    /**
+     * CLS-71 - The association reads and adds to what is filed about one person.
+     *
+     * The member screen showed the questions and nothing else, so a document filed at the station was
+     * invisible from the association. Reading and adding is the whole of it: the document belongs to
+     * the station that holds the person, so labelling and removing stay there.
+     */
+    test('the association files a document about somebody at one of its stations', async ({browser, request}) => {
+        const account = await clusterAccountWith(request, 'CLUSTER_MEMBER_MANAGER')
+        const page = await clusterPage(browser, request, account)
+
+        await page.goto('/cluster/members')
+        const row = page.getByTestId('member-row').first()
+        await expect(row).toBeVisible({timeout: 15000})
+        await row.getByRole('button').first().click()
+        await expect(page).toHaveURL(/\/cluster\/members\/\d+$/)
+
+        const panel = page.getByTestId('cluster-member-documents')
+        await expect(panel).toBeVisible({timeout: 15000})
+
+        await page.getByTestId('cluster-member-document-upload').click()
+        await page.getByTestId('cluster-member-document-file').locator('input[type=file]').setInputFiles({
+            name: 'nachweis.txt',
+            mimeType: 'text/plain',
+            buffer: Buffer.from('Ein Nachweis, vom Verband abgelegt.'),
+        })
+
+        const title = `Nachweis ${Date.now()}`
+        await page.getByTestId('cluster-member-document-name').fill(title)
+        await page.getByTestId('cluster-member-document-save').click()
+
+        // It comes back from the server on the next read, not from what the form still holds
+        const filed = panel.getByTestId('cluster-member-document').filter({hasText: title})
+        await expect(filed).toBeVisible({timeout: 15000})
+
+        // And the bytes come back too, which is the half of it the list cannot show
+        const download = page.waitForEvent('download')
+        await filed.getByTestId('cluster-member-document-download').click()
+        expect((await download).suggestedFilename()).toBe('nachweis.txt')
+
+        await page.context().close()
+    })
 })

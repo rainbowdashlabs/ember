@@ -23,6 +23,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.clusterMemberDetail.originText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.clusterMemberDetail.documentsTitle')">
+      <p>{{ t('helpCenter.clusterMemberDetail.documentsText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.clusterMemberDetail.limitsTitle')">
       <p>{{ t('helpCenter.clusterMemberDetail.limitsText') }}</p>
     </HelpSection>

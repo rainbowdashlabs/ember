@@ -6,6 +6,8 @@
 import client from './client'
 import type {ProfileFieldConfig} from './profileFields'
 import type {StationUserTypeName} from './types'
+import {uploadFile} from './upload'
+import {downloadAuthed} from '@/util/downloadAuthed'
 
 // -- The cluster's own people --
 
@@ -238,4 +240,42 @@ export async function createManagedMember(
     const res = await client.post<NewManagedMemberResponse>(
         `/cluster/members/manage/stations/${stationUid}/members`, member)
     return res.data
+}
+
+/** One document filed about somebody at a station of the association. */
+export interface ManagedMemberDocument {
+    id: number
+    title: string
+    fileName: string
+    mimeType: string
+    sizeBytes: number
+    createdAt: string
+}
+
+export async function listManagedMemberDocuments(memberId: number): Promise<ManagedMemberDocument[]> {
+    const res = await client.get<ManagedMemberDocument[]>(`/cluster/members/manage/${memberId}/documents`)
+    return res.data
+}
+
+/**
+ * Files a document about somebody at a station of the association.
+ *
+ * <p>It belongs to the station that holds them, which is where the person is and where it stays when
+ * the station leaves.
+ */
+export async function uploadManagedMemberDocument(
+    memberId: number,
+    file: File,
+    title: string,
+): Promise<ManagedMemberDocument> {
+    return uploadFile<ManagedMemberDocument>(
+        `/cluster/members/manage/${memberId}/documents`, {file, title})
+}
+
+/** Fetches the bytes of one with the session and hands them to the reader under their own name. */
+export async function downloadManagedMemberDocument(
+    documentId: number,
+    fileName: string,
+): Promise<void> {
+    await downloadAuthed(`/cluster/members/manage/documents/${documentId}/content`, fileName)
 }

@@ -9,14 +9,19 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.MemberDocumentService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
@@ -50,7 +55,16 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 stationRepo,
                 profileFieldService,
                 new StationMemberInviteService(
-                        stationMemberRepo, memberGroupRepo, accountRepo, mock(AuthService.class)));
+                        stationMemberRepo, memberGroupRepo, accountRepo, mock(AuthService.class)),
+                memberDocumentRepo,
+                documentService());
+    }
+
+    /** A document store backed by a local folder, which is all these stories need of one. */
+    private static MemberDocumentService documentService() {
+        var backend = new LocalStorageBackend();
+        var storage = new StorageService(new StorageBackendResolver(backend), backend);
+        return new MemberDocumentService(memberDocumentRepo, storage, new ImageVariantService(storage), stationRepo);
     }
 
     private int freshCluster() {
@@ -350,6 +364,46 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         assertEquals(
                 station.id(),
                 stationMemberRepo.findById(made.memberId()).orElseThrow().stationId());
+    }
+
+    @Test
+    void aDocumentFiledFromTheAssociationBelongsToTheStationHoldingThePerson() {
+        int clusterId = freshCluster();
+        var peopled = stationWithMember(clusterId);
+
+        var filed = service.fileDocument(
+                clusterId,
+                peopled.member().id(),
+                "Einverständnis",
+                "einverstaendnis.txt",
+                "text/plain",
+                "Unterschrieben".getBytes(),
+                null);
+
+        assertEquals(
+                peopled.station().id(), filed.stationId(), "it stays with the station, which is where the person is");
+        assertEquals("Unterschrieben", new String(service.readDocument(filed)), "and it can be read back from here");
+        assertTrue(service.documentsOf(clusterId, peopled.member().id()).stream()
+                .anyMatch(document -> document.id() == filed.id()));
+    }
+
+    @Test
+    void anAssociationReadsNothingFiledAtSomebodyElsesStation() {
+        int clusterId = freshCluster();
+        int otherClusterId = freshCluster();
+        var theirs = stationWithMember(otherClusterId);
+
+        var filed = service.fileDocument(
+                otherClusterId, theirs.member().id(), "Fremd", "fremd.txt", "text/plain", "Geheim".getBytes(), null);
+
+        assertThrows(
+                NotFoundResponse.class,
+                () -> service.documentsOf(clusterId, theirs.member().id()),
+                "somebody at another association's station is nobody here");
+        assertThrows(
+                NotFoundResponse.class,
+                () -> service.requireDocumentOfCluster(clusterId, filed.id()),
+                "and neither is what is filed about them");
     }
 
     @Test

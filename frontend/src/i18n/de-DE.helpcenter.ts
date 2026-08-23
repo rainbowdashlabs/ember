@@ -3590,6 +3590,11 @@ volumes:
             originText: 'Jede Antwort wird dorthin zurückgeschrieben, wo ihre Frage gestellt wurde.'
                 + ' Eine Frage der Wache bleibt bei der Wache, eine Frage des Verbands beim Verband.'
                 + ' Für die Person ändert sich dadurch nichts, sie sieht weiterhin ein Formular.',
+            documentsTitle: 'Dokumente',
+            documentsText: 'Unter den Angaben steht, was zu der Person abgelegt ist. Der Verband liest'
+                + ' diese Dokumente und legt neue dazu; ein abgelegtes Dokument gehört der Wache, an der'
+                + ' die Person ist, und bleibt dort, wenn die Wache den Verband verlässt. Verschlagworten,'
+                + ' auf weitere Personen legen und entfernen bleibt deshalb Sache der Wache.',
             limitsTitle: 'Was nicht geht',
             limitsText: 'Die eigene Mitgliedschaft und die Wachleitung lassen sich vom Verband aus nicht'
                 + ' bearbeiten. In der Liste tragen diese Zeilen deshalb keine Schaltfläche, sondern'

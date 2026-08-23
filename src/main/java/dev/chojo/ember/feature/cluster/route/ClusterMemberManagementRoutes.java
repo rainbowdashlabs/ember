@@ -20,6 +20,8 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.util.SafeContentDisposition;
+import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
@@ -35,6 +37,8 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -53,6 +57,8 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  */
 @Singleton
 public class ClusterMemberManagementRoutes implements Routes {
+    private static final long MAX_UPLOAD_SIZE = 50L * 1024 * 1024;
+
     private final ClusterService clusterService;
     private final ClusterMemberManagementService managementService;
 
@@ -91,8 +97,105 @@ public class ClusterMemberManagementRoutes implements Routes {
                 prefix + "/cluster/members/manage/{memberId}/profile",
                 this::updateProfile,
                 ClusterPermission.CLUSTER_MEMBER_MANAGER);
+        routes.get(
+                prefix + "/cluster/members/manage/{memberId}/documents",
+                this::listDocuments,
+                ClusterPermission.CLUSTER_MEMBER_MANAGER);
+        routes.post(
+                prefix + "/cluster/members/manage/{memberId}/documents",
+                this::uploadDocument,
+                ClusterPermission.CLUSTER_MEMBER_MANAGER);
+        routes.get(
+                prefix + "/cluster/members/manage/documents/{documentId}/content",
+                this::documentContent,
+                ClusterPermission.CLUSTER_MEMBER_MANAGER);
         routes.delete(
                 prefix + "/cluster/members/manage/{memberId}", this::archive, ClusterPermission.CLUSTER_MEMBER_MANAGER);
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/members/manage/{memberId}/documents",
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            methods = HttpMethod.GET,
+            summary = "What is filed about one of the cluster's people",
+            tags = {"Cluster"},
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberDocumentSummary[].class)))
+    private void listDocuments(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        ctx.json(managementService.documentsOf(cluster.id(), pathInt(ctx, "memberId")).stream()
+                .map(document -> new MemberDocumentSummary(
+                        document.id(),
+                        document.title(),
+                        document.fileName(),
+                        document.mimeType(),
+                        document.sizeBytes(),
+                        document.createdAt()))
+                .toList());
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/members/manage/{memberId}/documents",
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            methods = HttpMethod.POST,
+            summary = "File a document about one of the cluster's people",
+            tags = {"Cluster"},
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberDocumentSummary.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void uploadDocument(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        UserSession session = UserSession.from(ctx);
+        var file = ctx.uploadedFile("file");
+        if (file == null) throw new BadRequestResponse("file is required");
+        if (file.size() > MAX_UPLOAD_SIZE) throw new BadRequestResponse("File too large (max 50MB)");
+
+        String title = ctx.formParam("title");
+        if (isBlank(title)) title = file.filename();
+
+        byte[] data;
+        try (var in = file.content()) {
+            data = in.readAllBytes();
+        } catch (IOException e) {
+            throw new BadRequestResponse("That file could not be read");
+        }
+        var filed = managementService.fileDocument(
+                cluster.id(),
+                pathInt(ctx, "memberId"),
+                title.strip(),
+                file.filename(),
+                file.contentType(),
+                data,
+                // The cluster member's own row on the cluster's station, which is the only one they have
+                session.member() != null ? session.member().id() : null);
+        ctx.status(HttpStatus.CREATED)
+                .json(new MemberDocumentSummary(
+                        filed.id(),
+                        filed.title(),
+                        filed.fileName(),
+                        filed.mimeType(),
+                        filed.sizeBytes(),
+                        filed.createdAt()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/members/manage/documents/{documentId}/content",
+            pathParams = @OpenApiParam(name = "documentId", type = Integer.class, required = true),
+            methods = HttpMethod.GET,
+            summary = "The bytes of a document filed about one of the cluster's people",
+            tags = {"Cluster"},
+            responses = @OpenApiResponse(status = "200"))
+    private void documentContent(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        var document = managementService.requireDocumentOfCluster(cluster.id(), pathInt(ctx, "documentId"));
+        byte[] data = managementService.readDocument(document);
+        var disposition = SafeInlineMime.isInlineSafe(document.mimeType())
+                ? SafeContentDisposition.Disposition.INLINE
+                : SafeContentDisposition.Disposition.ATTACHMENT;
+        ctx.contentType(SafeInlineMime.safeContentType(document.mimeType()));
+        ctx.header("Content-Disposition", SafeContentDisposition.build(disposition, document.fileName()));
+        ctx.result(data);
     }
 
     @OpenApi(
@@ -436,4 +539,8 @@ public class ClusterMemberManagementRoutes implements Routes {
     public record NewMemberRequest(String firstName, String lastName, String email, StationUserType userType) {}
 
     public record NewMemberResponse(int memberId, int accountId, String email) {}
+
+    /** One document filed about somebody, as the association's screen lists it. */
+    public record MemberDocumentSummary(
+            int id, String title, String fileName, String mimeType, long sizeBytes, Instant createdAt) {}
 }

@@ -15,6 +15,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
+import MemberDocumentsPanel from './clustermemberdetailview/MemberDocumentsPanel.vue'
 import {clusterMembers} from '@/api'
 import type {ManagedMemberProfile, ManagedProfileValue} from '@/api/clusterMembers'
 import {ClusterPermission} from '@/api/clusters'
@@ -126,6 +127,8 @@ const {running: saving, error: saveError, run: save} = useAsyncAction(async () =
           {{ saving ? t('common.loading') : t('common.save') }}
         </PrimaryButton>
       </NeutralContainer>
+
+      <MemberDocumentsPanel v-if="!loading && profile" :can-upload="editable" :member-id="memberId"/>
     </div>
   </ViewContent>
 </template>
