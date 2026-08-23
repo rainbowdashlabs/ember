@@ -17,7 +17,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param id          the unique procurement identifier
  * @param stationId   the station this procurement belongs to
  * @param inventoryId the inventory the procurement is for
- * @param memberId    the member the equipment is being procured for
+ * @param memberId    the member the equipment is being procured for, or {@code null} for an order a
+ *                    cluster places for its own store
  * @param sizeId      the requested size, or {@code null} if not applicable
  * @param notes       additional notes for the procurement
  * @param requestedAt when the procurement was requested
@@ -27,7 +28,7 @@ public record Procurement(
         int id,
         int stationId,
         int inventoryId,
-        int memberId,
+        Integer memberId,
         Integer sizeId,
         String notes,
         Instant requestedAt,
@@ -40,7 +41,7 @@ public record Procurement(
                 row.getInt("id"),
                 row.getInt("station_id"),
                 row.getInt("inventory_id"),
-                row.getInt("member_id"),
+                row.getObject("member_id", Integer.class),
                 row.getObject("size_id", Integer.class),
                 row.getString("notes"),
                 row.get("requested_at", INSTANT_TIMESTAMP),

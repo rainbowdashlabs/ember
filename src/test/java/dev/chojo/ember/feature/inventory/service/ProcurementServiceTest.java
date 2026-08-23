@@ -35,7 +35,9 @@ class ProcurementServiceTest extends RepositoryTestBase {
     static void setup() {
         var inventoryService = new InventoryService(inventoryRepo, itemCustodyService, clusterRepo);
         service =
-                new ProcurementService(procurementRepo, inventoryService, inventoryRepo, new DomainEventBus(Set.of()));
+                new ProcurementService(
+                procurementRepo, inventoryService, inventoryRepo, clusterRepo, itemCustodyService,
+                new DomainEventBus(Set.of()));
         station = stationRepo.create("ProcStation");
         account = accountRepo.create("proc-svc@test.com", "Proc", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());

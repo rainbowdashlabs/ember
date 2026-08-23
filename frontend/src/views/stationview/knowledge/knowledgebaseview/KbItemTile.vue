@@ -17,6 +17,7 @@ defineProps<{
 
 <template>
     <NeutralContainer
+        data-testid="kb-item"
         class="hover:border-[var(--primary)] transition-colors relative group"
         :class="item.open ? 'cursor-pointer' : ''"
         @click="item.open?.()"

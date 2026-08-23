@@ -11,15 +11,24 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import ProcurementFields from './ProcurementFields.vue'
 import type { Inventory, InventorySize } from '@/api/inventory'
 import type { StationMember } from '@/api/types'
 import { inventory, procurement } from '@/api'
 import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
 
 const { t } = useI18n()
+
+/**
+ * Whether an order is placed for somebody.
+ *
+ * <p>A station orders for the person who will wear it. An association orders for its own store and hands
+ * it out afterwards, so it is never asked who, and what arrives rests in its store rather than on a
+ * person who does not exist there.
+ */
+const routes = useInventoryRoutes()
+const forSomebody = computed(() => !!routes.member)
 
 const modelValue = defineModel<boolean>({required: true})
 
@@ -40,12 +49,7 @@ const createNotes = ref('')
 const createSuccess = ref(false)
 const availableSizes = ref<InventorySize[]>([])
 
-const canCreate = computed(() => !!createInventoryId.value && !!createMemberId.value)
-
-function memberDisplayName(member: StationMember): string {
-  if (member.name && member.name.trim()) return member.name
-  return member.email ?? `#${member.id}`
-}
+const canCreate = computed(() => !!createInventoryId.value && (!forSomebody.value || !!createMemberId.value))
 
 function close() {
   modelValue.value = false
@@ -75,7 +79,7 @@ async function onInventorySelected() {
 const {running: createSaving, run: runCreate} = useAsyncAction(async () => {
   await procurement.createProcurement({
     inventoryId: Number(createInventoryId.value),
-    memberId: Number(createMemberId.value),
+    memberId: createMemberId.value ? Number(createMemberId.value) : undefined,
     sizeId: createSizeId.value ? Number(createSizeId.value) : undefined,
     notes: createNotes.value || undefined,
   })
@@ -105,42 +109,29 @@ watch(
       <template v-if="createSuccess">
         <Alert variant="success">{{ t('inventory.check.procurementCreated') }}</Alert>
         <div class="flex justify-end">
-          <SecondaryButton @click="close">{{ t('common.close') }}</SecondaryButton>
+          <SecondaryButton data-testid="procurement-close" @click="close">{{ t('common.close') }}</SecondaryButton>
         </div>
       </template>
       <template v-else>
-        <div class="space-y-1">
-          <FieldLabel>{{ t('procurement.member') }}</FieldLabel>
-          <SelectInput v-model="createMemberId">
-            <option value="" disabled>{{ t('procurement.selectMember') }}</option>
-            <option v-for="m in members" :key="m.id" :value="String(m.id)">{{ memberDisplayName(m) }}</option>
-          </SelectInput>
-        </div>
-
-        <div class="space-y-1">
-          <FieldLabel>{{ t('procurement.inventory') }}</FieldLabel>
-          <SelectInput v-model="createInventoryId" @change="onInventorySelected">
-            <option value="" disabled>{{ t('procurement.selectInventory') }}</option>
-            <option v-for="inv in inventories" :key="inv.id" :value="String(inv.id)">{{ inv.name }}</option>
-          </SelectInput>
-        </div>
-
-        <div v-if="availableSizes.length > 0" class="space-y-1">
-          <FieldLabel>{{ t('procurement.size') }}</FieldLabel>
-          <SelectInput v-model="createSizeId">
-            <option value="">{{ t('procurement.noSize') }}</option>
-            <option v-for="size in availableSizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
-          </SelectInput>
-        </div>
-
-        <div class="space-y-1">
-          <FieldLabel>{{ t('procurement.notes') }}</FieldLabel>
-          <TextAreaInput v-model="createNotes" :placeholder="t('procurement.notesPlaceholder')" />
-        </div>
+        <ProcurementFields
+            v-model:member-id="createMemberId"
+            v-model:inventory-id="createInventoryId"
+            v-model:size-id="createSizeId"
+            v-model:notes="createNotes"
+            :available-sizes="availableSizes"
+            :for-somebody="forSomebody"
+            :inventories="inventories"
+            :members="members"
+            @inventory-selected="onInventorySelected"
+        />
 
         <div class="flex justify-end gap-3">
           <SecondaryButton @click="close">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :disabled="createSaving || !canCreate" @click="submitCreate">
+          <PrimaryButton
+              :disabled="createSaving || !canCreate"
+              data-testid="procurement-submit"
+              @click="submitCreate"
+          >
             {{ createSaving ? t('common.loading') : t('procurement.submit') }}
           </PrimaryButton>
         </div>

@@ -160,7 +160,10 @@ public class ProcurementRoutes implements Routes {
     }
 
     private ProcurementResponse toResponse(Procurement procurement) {
-        var member = stationMemberRepository.findById(procurement.memberId()).orElse(null);
+        // An order a cluster places for its own store is for nobody, so there is nobody to name
+        var member = procurement.memberId() == null
+                ? null
+                : stationMemberRepository.findById(procurement.memberId()).orElse(null);
         String memberName = member != null
                 ? accountRepository
                         .findById(member.accountId())
@@ -194,11 +197,14 @@ public class ProcurementRoutes implements Routes {
                 procurement.fulfilledAt());
     }
 
+    /**
+     * @param memberId who it is for, or {@code null} for an order a cluster places for its own store
+     */
     public record ProcurementResponse(
             int id,
             int inventoryId,
             String inventoryName,
-            int memberId,
+            Integer memberId,
             String memberName,
             MemberIdentity memberIdentity,
             Integer sizeId,
@@ -207,5 +213,8 @@ public class ProcurementRoutes implements Routes {
             Instant requestedAt,
             Instant fulfilledAt) {}
 
-    public record CreateProcurementRequest(int inventoryId, int memberId, Integer sizeId, String notes) {}
+    /**
+     * @param memberId who it is for, left out for an order a cluster places for its own store
+     */
+    public record CreateProcurementRequest(int inventoryId, Integer memberId, Integer sizeId, String notes) {}
 }

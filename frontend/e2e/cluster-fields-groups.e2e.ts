@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, clusterAccountWith, clusterPage} from './fixtures/auth'
+import {test, expect, clusterAccountWith, clusterHeaders, clusterPage, theSeededCluster} from './fixtures/auth'
 
 /**
  * The association's questions and its groups, on the screens a station already had.
@@ -140,6 +140,14 @@ test.describe('Cluster fields and groups', () => {
 
         // It comes back as a heading in the preview, which is where a section either lays out or does not
         await expect(page.getByRole('heading', {name: heading})).toBeVisible({timeout: 15000})
+
+        // Taken away again: an association's question reaches every station under it, and leaving one
+        // behind puts it on the profile every other story is reading at that moment
+        const headers = await clusterHeaders(page, await theSeededCluster(page))
+        const fields = await page.request.get('/api/v1/cluster/fields', {headers}).then(r => r.json())
+        const mine = fields.find((field: {name: string}) => field.name === heading)
+        expect(mine, 'the heading was written down').toBeTruthy()
+        await page.request.delete(`/api/v1/cluster/fields/${mine.id}`, {headers})
 
         await page.context().close()
     })

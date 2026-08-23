@@ -966,3 +966,10 @@ COMMENT ON TABLE ember_schema.item_movement_item
     IS 'The pieces one movement carries, for a dispatch that sends many at once.';
 COMMENT ON COLUMN ember_schema.item_movement_item.subject
     IS 'Which leg the piece is on: OUTGOING or INCOMING, the same distinction a step draws.';
+
+-- An order need not be for anybody.
+--
+-- An association buys for its own store and hands out later, so the person is a station's detail rather
+-- than something every order has. Existing rows all name one and keep it.
+ALTER TABLE ember_schema.equipment_procurement
+    ALTER COLUMN member_id DROP NOT NULL;

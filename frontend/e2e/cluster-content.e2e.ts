@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, apiHeaders, clusterHeaders, enterCluster, clusterStationManager, pageAsThrowaway}
+import {test, expect, clusterHeaders, enterCluster, clusterStationManager, pageAsThrowaway}
     from './fixtures/auth'
 import {ownCluster} from './fixtures/cluster'
 
@@ -35,17 +35,17 @@ test.describe('Cluster content', () => {
         expect(written.ok()).toBeTruthy()
 
         const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
-        const stationHeaders = await apiHeaders(station)
-        const shared = await station.request.get('/api/v1/federated/kb', {headers: stationHeaders})
-        expect(shared.ok()).toBeTruthy()
-        const articles: {title: string; stationName: string}[] = await shared.json()
 
-        const mine = articles.filter(article => article.title === name)
-        expect(mine.length, 'the article arrives once, however many shares reach it').toBe(1)
-        expect(mine[0].stationName, 'and says the cluster wrote it').toBe(cluster.name)
-
+        // Read on the station's own wiki, which is where somebody at the station would look for it.
+        // Shared articles are shown by default, so nothing has to be switched on first.
         await station.goto('/station/knowledge')
         await expect(station.getByTestId('app-shell')).toBeVisible()
+
+        // Once, however many shares reach it, and badged with the association rather than a station
+        const entry = station.getByTestId('kb-item').filter({hasText: name})
+        await expect(entry).toHaveCount(1, {timeout: 15000})
+        await expect(entry).toContainText(cluster.name)
+
         await station.context().close()
     })
 
@@ -66,16 +66,13 @@ test.describe('Cluster content', () => {
         expect(written.ok()).toBeTruthy()
 
         const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
-        const stationHeaders = await apiHeaders(station)
-        const shared = await station.request.get('/api/v1/federated/news', {headers: stationHeaders})
-        expect(shared.ok()).toBeTruthy()
 
-        const entries = JSON.stringify(await shared.json())
-        expect(entries).toContain(title)
-        expect(entries).toContain(cluster.name)
-
+        // In the station's own news list, among what the station wrote itself, and sent by the association
         await station.goto('/station/news')
         await expect(station.getByTestId('app-shell')).toBeVisible()
+        await expect(station.getByText(title).first()).toBeVisible({timeout: 15000})
+        await expect(station.getByText(cluster.name).first()).toBeVisible()
+
         await station.context().close()
     })
 
@@ -106,13 +103,19 @@ test.describe('Cluster content', () => {
         expect(made.ok()).toBeTruthy()
 
         const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
-        const stationHeaders = await apiHeaders(station)
-        const shared = await station.request.get('/api/v1/federated/events', {headers: stationHeaders})
-        expect(shared.ok()).toBeTruthy()
-        expect(JSON.stringify(await shared.json())).toContain(name)
 
-        await station.goto('/station/events')
+        // The member's own list of what is coming up, which is where a registration is actually made
+        await station.goto('/station/events/upcoming')
         await expect(station.getByTestId('app-shell')).toBeVisible()
+
+        const tile = station.getByTestId('federated-event').filter({hasText: name})
+        await expect(tile).toBeVisible({timeout: 15000})
+        await expect(tile.getByText(cluster.name)).toBeVisible()
+
+        // Registering is the member's act and the appointment is the association's: one row, both ends
+        await tile.getByTestId('federated-event-register').click()
+        await expect(tile.getByTestId('federated-event-registration')).toBeVisible({timeout: 15000})
+
         await station.context().close()
     })
 
@@ -132,19 +135,18 @@ test.describe('Cluster content', () => {
         })
         expect(written.ok()).toBeTruthy()
 
-        const stationHeaders = await apiHeaders(own.stationPage)
-        const before = await own.stationPage.request.get('/api/v1/federated/news', {headers: stationHeaders})
-        expect(JSON.stringify(await before.json())).toContain(title)
+        // On the station's own news list while it still answers to the cluster
+        await own.stationPage.goto('/station/news')
+        await expect(own.stationPage.getByTestId('app-shell')).toBeVisible()
+        await expect(own.stationPage.getByText(title).first()).toBeVisible({timeout: 15000})
 
         const released = await page.request.delete(`/api/v1/cluster/stations/${own.stationUid}`,
             {headers: own.headers})
         expect(released.ok()).toBeTruthy()
 
-        const after = await own.stationPage.request.get('/api/v1/federated/news', {headers: stationHeaders})
-        expect(JSON.stringify(await after.json())).not.toContain(title)
-
-        // Its own pages still work; what went is the cluster's half
-        await own.stationPage.goto('/station/news')
+        // And gone from it afterwards. The page still works; what went is the cluster's half of it.
+        await own.stationPage.reload()
         await expect(own.stationPage.getByTestId('app-shell')).toBeVisible()
+        await expect(own.stationPage.getByText(title)).toHaveCount(0, {timeout: 15000})
     })
 })

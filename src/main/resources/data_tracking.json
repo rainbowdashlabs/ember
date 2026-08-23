@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:31839a4f3cd376d1b3483477fbf02b3679f6d05edf5d8322ec767c090b7a3dbd",
-  "generatedAt" : "2026-08-23T02:13:52Z",
+  "schemaHash" : "sha256:ce42a84bad668a53dda318754478a255c010ceee1a42fc66b70a089525c8a500",
+  "generatedAt" : "2026-08-23T13:12:24Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -4187,7 +4187,7 @@
     "equipment_procurement" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:a5b8671ac108ac4d7e83514c6b4aaac8e8473052f9d75e5bfafbe1d04841f955",
+      "tableHash" : "sha256:eafb6a337cbb61deffa6e47510c2231ecacbd69c30dba6a5a51ee8bbba0d1c07",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -4209,9 +4209,9 @@
       }, {
         "name" : "member_id",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
-        "description" : "Member the procurement is for."
+        "description" : "Member the procurement is for, or null for an order a cluster places for its own store."
       }, {
         "name" : "size_id",
         "type" : "int4",

@@ -18,6 +18,7 @@ defineProps<{
 
 <template>
     <div
+        data-testid="kb-item"
         class="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--bg-accent)] transition-colors group"
         :class="item.open ? 'cursor-pointer' : ''"
         @click="item.open?.()"

@@ -119,32 +119,34 @@ test.describe('Cluster governance', () => {
      * CLS-20 - Quota is handed out of the cluster pool.
      *
      * What a station gets comes out of the whole the instance granted, so the two figures move together.
+     * Handed out on the screen rather than through the endpoint behind it: the screen is where somebody
+     * running an association does this, and it types gibibytes where the endpoint takes bytes.
      */
     test('quota is handed out of the cluster pool', async ({adminPage: page, browser, request}) => {
         const own = await ownCluster(page, browser, request, 'Speicherverband')
         const headers = await apiHeaders(page)
 
+        // What the instance grants the association is the instance's act, and arrangement here
         const pooled = await page.request.put(`/api/v1/clusters/${own.uid}/storage-pool`,
-            {headers, data: {quotaBytes: 100 * 1024 * 1024}})
+            {headers, data: {quotaBytes: 8 * 1024 * 1024 * 1024}})
         expect(pooled.ok()).toBeTruthy()
-
-        const before = await page.request.get('/api/v1/cluster/storage', {headers: own.headers}).then(r => r.json())
-        expect(before.poolBytes).toBe(100 * 1024 * 1024)
-
-        const given = await page.request.put(`/api/v1/cluster/storage/stations/${own.stationUid}`,
-            {headers: own.headers, data: {quotaBytes: 30 * 1024 * 1024}})
-        expect(given.ok()).toBeTruthy()
-
-        const after = await page.request.get('/api/v1/cluster/storage', {headers: own.headers}).then(r => r.json())
-        expect(after.handedOut).toBe(before.handedOut + 30 * 1024 * 1024)
-        expect(after.stations.find((s: {stationUid: string}) => s.stationUid === own.stationUid).quotaBytes)
-            .toBe(30 * 1024 * 1024)
 
         await page.goto('/cluster/storage')
         await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
         await page.goto('/cluster/storage')
         await expect(page.getByTestId('app-shell')).toBeVisible()
-        await expect(page.getByText(own.stationName)).toBeVisible()
+
+        // Nothing handed out yet, out of the eight the instance granted
+        await expect(page.getByTestId('cluster-pool-usage')).toContainText('8.0 GiB', {timeout: 15000})
+
+        const row = page.getByTestId('station-quota').filter({hasText: own.stationName})
+        await expect(row).toBeVisible()
+        await row.getByTestId('station-quota-input').fill('2')
+        await row.getByTestId('station-quota-save').click()
+
+        // The pool figure moves with it, because what a station gets comes out of the whole
+        await expect(page.getByTestId('cluster-pool-usage')).toContainText('2.0 GiB', {timeout: 15000})
+        await expect(row.getByTestId('station-quota-input')).toHaveValue('2')
     })
 
     /** CLS-21 - Quota beyond the pool is refused, and says the pool is the limit. */

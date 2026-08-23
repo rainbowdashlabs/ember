@@ -60,7 +60,7 @@ function handleRegister() {
 </script>
 
 <template>
-  <NeutralContainer class="space-y-2">
+  <NeutralContainer class="space-y-2" data-testid="federated-event">
     <div class="cursor-pointer" @click="openDetail">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <div>

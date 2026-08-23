@@ -162,6 +162,94 @@ test.describe('Cluster inventory screens', () => {
     })
 
     /**
+     * CLS-75 - Procurement brings gear into the association's own store.
+     *
+     * The tab existed and could not be used. Its create form asked which member the order was for, of a
+     * station that has none, and marking one arrived put the item on that member, so an association could
+     * record nothing and receive nothing. An association orders for its own store and hands out later.
+     */
+    test('an order recorded at the association arrives in its own store', async ({browser, request}) => {
+        const account = await clusterAccountWith(request, 'CLUSTER_INVENTORY_MANAGER')
+        const page = await clusterPage(browser, request, account)
+        const cluster = await theSeededCluster(page)
+        const headers = await clusterHeaders(page, cluster)
+
+        const before = await page.request
+            .get('/api/v1/cluster/inventory/items', {headers})
+            .then(r => r.json())
+
+        await page.goto('/cluster/inventory/procurement')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+
+        // The screen loads at all, which it did not while it insisted on asking who there is
+        await page.getByTestId('procurement-create').click({timeout: 15000})
+
+        // No member is asked for, because there is nobody at an association's own station to order for
+        await expect(page.getByTestId('procurement-inventory')).toBeVisible()
+        const inventoryId = await page.getByTestId('procurement-inventory').locator('option').nth(1)
+            .getAttribute('value')
+        expect(inventoryId, 'the association keeps a kind of gear').toBeTruthy()
+        await page.getByTestId('procurement-inventory').selectOption(inventoryId!)
+
+        const note = `Nachbestellung ${Date.now()}`
+        await page.getByTestId('procurement-notes').fill(note)
+        await page.getByTestId('procurement-submit').click()
+        await page.getByTestId('procurement-close').click({timeout: 15000})
+
+        const entry = page.getByTestId('procurement-entry').filter({hasText: note})
+        await expect(entry).toBeVisible({timeout: 15000})
+
+        await entry.getByTestId('procurement-fulfill').click()
+
+        // What arrived belongs to the association and rests in its store, ready to be sent somewhere
+        await expect.poll(async () => {
+            const items = await page.request
+                .get('/api/v1/cluster/inventory/items', {headers})
+                .then(r => r.json())
+            return items.filter((row: {custody: string}) => row.custody === 'WITH_OWNER').length
+        }, {timeout: 15000}).toBeGreaterThan(
+            before.filter((row: {custody: string}) => row.custody === 'WITH_OWNER').length)
+
+        await page.context().close()
+    })
+
+    /**
+     * CLS-76 - A container at the association goes from empty to filled.
+     *
+     * An association holds its gear in containers rather than on people, so a container that cannot be
+     * filled is the whole storage half of its screens doing nothing. Walked end to end because opening
+     * the page proves only that it opens.
+     */
+    test('the association fills a container of its own', async ({browser, request}) => {
+        const account = await clusterAccountWith(request, 'CLUSTER_INVENTORY_MANAGER')
+        const page = await clusterPage(browser, request, account)
+
+        await page.goto('/cluster/inventory/storage')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+
+        const name = `Verbandskiste ${Date.now()}`
+        await page.getByRole('button', {name: 'Neuer Behälter'}).click({timeout: 15000})
+        await page.getByLabel('Name').fill(name)
+        await page.getByRole('button', {name: 'Erstellen'}).click()
+
+        // Opened from the list rather than by an address the story worked out for itself
+        await page.getByText(name).first().click()
+        await expect(page).toHaveURL(/\/cluster\/inventory\/storage\/\d+$/, {timeout: 15000})
+        await expect(page.getByTestId('container-item')).toHaveCount(0)
+
+        await page.getByTestId('container-add-items').click()
+        const candidate = page.getByTestId('container-add-item').first()
+        await expect(candidate).toBeVisible({timeout: 15000})
+        await candidate.click()
+        await page.getByTestId('container-add-submit').click()
+
+        // And it is in there afterwards, which is the half a page that merely opens cannot show
+        await expect(page.getByTestId('container-item').first()).toBeVisible({timeout: 15000})
+
+        await page.context().close()
+    })
+
+    /**
      * CLS-56 - A waiting step opens the movement it belongs to.
      *
      * The queue is where the work is, and a row that cannot be opened is a list rather than a queue.

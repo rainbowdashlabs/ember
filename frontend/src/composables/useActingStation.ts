@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {onUnmounted, watch, type Ref} from 'vue'
-import {getActingStation, setActingStation} from '@/util/actingStationState'
+import {claimActingStation, releaseActingStation} from '@/util/actingStationState'
 
 /**
  * Answers every request from this screen for one particular station, for as long as it is open.
@@ -20,9 +20,9 @@ import {getActingStation, setActingStation} from '@/util/actingStationState'
  * @param uid the station to act for, or {@code null} while it is not known yet
  */
 export function useActingStation(uid: Ref<string | null | undefined>) {
-    const previous = getActingStation()
+    const token = Symbol('actingStation')
 
-    watch(uid, next => setActingStation(next ?? null), {immediate: true})
+    watch(uid, next => claimActingStation(token, next ?? null), {immediate: true})
 
-    onUnmounted(() => setActingStation(previous))
+    onUnmounted(() => releaseActingStation(token))
 }

@@ -11,7 +11,8 @@ export interface ProcurementEntry {
     id: number
     inventoryId: number
     inventoryName: string
-    memberId: number
+    /** Who it is for, absent on an order an association places for its own store. */
+    memberId?: number | null
     memberName: string
     sizeId?: number | null
     sizeLabel: string
@@ -23,7 +24,8 @@ export interface ProcurementEntry {
 
 export interface CreateProcurementRequest {
     inventoryId: number
-    memberId: number
+    /** Leave it out for an order an association places for its own store. */
+    memberId?: number
     sizeId?: number | null
     notes?: string
 }

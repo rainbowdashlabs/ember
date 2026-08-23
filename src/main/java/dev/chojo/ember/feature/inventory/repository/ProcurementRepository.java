@@ -30,12 +30,13 @@ public class ProcurementRepository {
      *
      * @param stationId   the station ID
      * @param inventoryId the inventory the equipment is from
-     * @param memberId    the member the equipment is being procured for
+     * @param memberId    the member the equipment is being procured for, or {@code null} for an order
+     *                    a cluster places for its own store
      * @param sizeId      the requested size, or {@code null} if not applicable
      * @param notes       additional notes
      * @return the created procurement
      */
-    public Procurement create(int stationId, int inventoryId, int memberId, Integer sizeId, String notes) {
+    public Procurement create(int stationId, int inventoryId, Integer memberId, Integer sizeId, String notes) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO equipment_procurement(station_id, inventory_id, member_id, size_id, notes)

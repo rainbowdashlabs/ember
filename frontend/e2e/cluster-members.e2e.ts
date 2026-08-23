@@ -242,20 +242,28 @@ test.describe('Cluster members and fields', () => {
         expect(field.ok()).toBeTruthy()
         const fieldId = (await field.json()).id
 
+        // Answered for somebody at the station that will read the history. A station's history is its
+        // own people, so answering for whoever came first across all the stations reads back as nothing
+        // the moment another story takes somebody on somewhere else.
+        const manager = await clusterStationManager(request)
         const {members} = await page.request
             .get('/api/v1/cluster/members/manage/search?size=50', {headers})
             .then(r => r.json())
-        const target = members.find((m: {stationOwner: boolean}) => !m.stationOwner)
+        const target = members.find((m: {stationOwner: boolean; stationUid: string}) =>
+            !m.stationOwner && m.stationUid === manager.stationId)
+        expect(target, 'the reading station has somebody to answer for').toBeTruthy()
 
         const answer = `G26.3 ${stamp}`
         const saved = await page.request.put(`/api/v1/cluster/fields/member/${target.id}`,
             {headers, data: {values: {[fieldId]: JSON.stringify(answer)}}})
         expect(saved.ok()).toBeTruthy()
 
-        const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
+        const station = await pageAsThrowaway(browser, request, [], manager)
         const stationHeaders = await apiHeaders(station)
+        // Asked for more than one page: several stories write answers at once, and the newest twenty
+        // is not a promise that the one just written is among them
         const changes = await station.request
-            .get('/api/v1/profile-changes/all', {headers: stationHeaders})
+            .get('/api/v1/profile-changes/all?limit=200', {headers: stationHeaders})
             .then(r => r.json())
         expect(JSON.stringify(changes)).toContain(`Atemschutz ${stamp}`)
         await station.context().close()

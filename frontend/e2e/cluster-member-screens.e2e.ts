@@ -106,7 +106,7 @@ test.describe('Cluster member screens', () => {
         await row.getByRole('button').first().click()
 
         await expect(page).toHaveURL(/\/cluster\/members\/\d+$/)
-        await expect(page.getByText(/Angaben/i)).toBeVisible({timeout: 15000})
+        await expect(page.getByRole('heading', {name: 'Angaben', exact: true})).toBeVisible({timeout: 15000})
         await page.context().close()
     })
 

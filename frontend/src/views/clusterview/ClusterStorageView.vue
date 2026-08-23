@@ -53,7 +53,7 @@ async function saveQuota(stationUid: string, quotaBytes: number | null) {
         <NeutralContainer class="space-y-3">
           <SectionHeader>{{ t('clusterStorage.poolTitle') }}</SectionHeader>
           <template v-if="pool.poolBytes">
-            <p>{{ t('clusterStorage.poolUsage', {used: formatBytes(pool.handedOut), total: formatBytes(pool.poolBytes)}) }}</p>
+            <p data-testid="cluster-pool-usage">{{ t('clusterStorage.poolUsage', {used: formatBytes(pool.handedOut), total: formatBytes(pool.poolBytes)}) }}</p>
             <ProgressBar :value="usedPercent"/>
           </template>
           <p v-else class="text-(--text-muted)">{{ t('clusterStorage.noPool') }}</p>

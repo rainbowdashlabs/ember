@@ -41,12 +41,13 @@ function save() {
 </script>
 
 <template>
-  <NeutralContainer class="flex flex-wrap items-center justify-between gap-3">
+  <NeutralContainer class="flex flex-wrap items-center justify-between gap-3" data-testid="station-quota">
     <span class="font-medium">{{ station.stationName }}</span>
     <div class="flex items-center gap-2">
-      <NumberInput v-model="gibibytes" :placeholder="t('clusterStorage.instanceDefault')" class="w-32"/>
+      <NumberInput v-model="gibibytes" data-testid="station-quota-input"
+                   :placeholder="t('clusterStorage.instanceDefault')" class="w-32"/>
       <span class="text-sm text-(--text-muted)">GiB</span>
-      <SecondaryButton :disabled="busy" @click="save">{{ t('common.save') }}</SecondaryButton>
+      <SecondaryButton :disabled="busy" data-testid="station-quota-save" @click="save">{{ t('common.save') }}</SecondaryButton>
     </div>
   </NeutralContainer>
 </template>
