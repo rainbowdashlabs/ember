@@ -749,6 +749,129 @@ class AuthServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(84)
+    void refreshSessionKeepsTwoFactorVerification() {
+        var fixture = createLoginCapableAccount("refresh-stepup");
+        var device = trustedDeviceService.issue(fixture.accountId(), 7, "agent");
+        var verifiedAt = Instant.now().minus(30, ChronoUnit.SECONDS);
+        String token = "refresh-keeps-stepup-" + UUID.randomUUID();
+        // Seeded well short of the configured session length, so the refreshed expiry is visibly later.
+        accountRepo.createSession(
+                fixture.accountId(),
+                token,
+                Instant.now().plus(5, ChronoUnit.MINUTES),
+                "agent",
+                "DE",
+                verifiedAt,
+                device.device().id(),
+                true);
+        var before = accountRepo.findSession(token).orElseThrow();
+
+        var result = service.refreshSession(token, "agent", "DE");
+        assertTrue(result.success(), result.message());
+
+        var after = accountRepo.findSession(result.token()).orElseThrow();
+        assertEquals(before.id(), after.id(), "a refresh continues the same session rather than starting a new one");
+        assertEquals(
+                before.twoFactorVerifiedAt(),
+                after.twoFactorVerifiedAt(),
+                "the step-up window has to survive a token refresh");
+        assertTrue(after.trustedDevice(), "the trusted-device flag has to survive a token refresh");
+        assertTrue(after.expiresAt().isAfter(before.expiresAt()), "a refresh pushes the expiry back");
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    @Test
+    @Order(85)
+    void refreshSessionRetiresTheOldToken() {
+        var fixture = createLoginCapableAccount("refresh-rotate");
+        String token = "refresh-rotates-" + UUID.randomUUID();
+        accountRepo.createSession(
+                fixture.accountId(), token, Instant.now().plus(60, ChronoUnit.MINUTES), "agent", "DE");
+
+        var result = service.refreshSession(token, "agent", "DE");
+        assertTrue(result.success(), result.message());
+        assertNotEquals(token, result.token(), "the refreshed session must be handed a new token");
+        assertTrue(accountRepo.findSession(token).isEmpty(), "the old token must stop working");
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /**
+     * The same service on an instance that is in demo mode.
+     *
+     * <p>A second service rather than a flag, because whether this is a demo instance is configuration and
+     * is read where it was injected. Quick login is the only thing that behaves differently for it here.
+     */
+    private AuthService demoModeService() {
+        var demo = mock(Demo.class);
+        when(demo.enabled()).thenReturn(true);
+        var hibpClient = mock(HibpClient.class);
+        when(hibpClient.isPwned(anyString())).thenReturn(false);
+        return new AuthService(
+                accountRepo,
+                new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
+                registrationCodeRepo,
+                stationMemberRepo,
+                memberGroupRepo,
+                new PasswordHasher(),
+                mock(EmailService.class),
+                new Auth(),
+                demo,
+                hibpClient,
+                mock(BreachCheckWorker.class),
+                twoFactorRepoLocal,
+                trustedDeviceService);
+    }
+
+    /**
+     * Quick login signs somebody in by address alone, and an ordinary instance refuses it.
+     *
+     * <p>The route is only registered on a dev or demo instance, so this is the second of two gates. It is
+     * the one that would still hold if a change ever exposed the path somewhere else, which is what makes it
+     * worth a test rather than a comment.
+     */
+    @Test
+    @Order(86)
+    void quickLoginIsRefusedOffADemoInstance() {
+        var fixture = createLoginCapableAccount("quick-refused");
+
+        var result = service.loginAsDemo(fixture.email(), "agent", "DE");
+        assertFalse(result.success(), "quick login must sign nobody in on an ordinary instance");
+        assertNull(result.token());
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /**
+     * On a demo instance it signs the account in without a password, and an address nobody holds is refused
+     * the way a wrong password is rather than by saying the address is unknown.
+     */
+    @Test
+    @Order(87)
+    void quickLoginSignsInByAddressOnADemoInstance() {
+        var fixture = createLoginCapableAccount("quick-login");
+        var demoService = demoModeService();
+
+        var result = demoService.loginAsDemo(fixture.email(), "agent", "DE");
+        assertTrue(result.success(), result.message());
+        // The address is the session token in demo mode, so a restart does not sign everybody out again
+        assertEquals(fixture.email(), result.token());
+        assertTrue(accountRepo.findSession(fixture.email()).isPresent(), "the session has to be there to use");
+
+        var unknown = demoService.loginAsDemo("nobody-" + UUID.randomUUID() + "@test.com", "agent", "DE");
+        assertFalse(unknown.success());
+        assertNull(unknown.token());
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    @Test
     @Order(99)
     void cleanup() {
         accountRepo.delete(accountId);
