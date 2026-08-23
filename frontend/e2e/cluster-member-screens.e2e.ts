@@ -125,4 +125,32 @@ test.describe('Cluster member screens', () => {
 
         await page.context().close()
     })
+
+    /**
+     * CLS-69 - The association exports the people across its stations.
+     *
+     * The station's own column picker and export modal, mounted whole and guarded by the association's
+     * export right. It was written down as decided and never walked, which left an open question about
+     * whether the button did anything: it hands over a file built from the rows on screen, so there is
+     * no endpoint behind it to be missing.
+     */
+    test('the association exports the members it can see', async ({browser, request}) => {
+        const account = await clusterAccountWith(request, 'CLUSTER_MEMBER_EXPORT')
+        const page = await clusterPage(browser, request, account)
+
+        await page.goto('/cluster/members')
+        await expect(page.getByTestId('member-row').first()).toBeVisible({timeout: 15000})
+
+        await page.getByTestId('members-export').click()
+        // Every row on screen, which is what an association exports rather than one station's worth
+        await page.getByTestId('member-select-all').click()
+        await page.getByTestId('members-export-continue').click()
+
+        const download = page.waitForEvent('download')
+        await page.getByTestId('members-export-download').click()
+        const file = await download
+
+        expect(file.suggestedFilename()).toBe('verbandsmitglieder.csv')
+        await page.context().close()
+    })
 })

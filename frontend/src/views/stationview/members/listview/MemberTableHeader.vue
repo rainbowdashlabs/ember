@@ -37,7 +37,8 @@ const emit = defineEmits<{
   <thead>
     <THead>
       <th v-if="exportMode" class="px-2 py-2 w-10">
-        <CheckboxInput :model-value="allSelected" @update:model-value="emit('toggleSelectAll')"/>
+        <CheckboxInput data-testid="member-select-all" :model-value="allSelected"
+                       @update:model-value="emit('toggleSelectAll')"/>
       </th>
       <th v-if="!exportMode" class="px-3 py-2 w-20"></th>
       <Th>

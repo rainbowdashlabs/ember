@@ -75,7 +75,8 @@ watch(canExportValues, (can) => {
 
       <div class="flex justify-end gap-3">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :icon="['fas', 'download']" :disabled="selectedColumns.size === 0" @click="emit('export', format)">
+        <PrimaryButton :icon="['fas', 'download']" :disabled="selectedColumns.size === 0"
+                       data-testid="members-export-download" @click="emit('export', format)">
           {{ t('membersList.export.submit') }}
         </PrimaryButton>
       </div>

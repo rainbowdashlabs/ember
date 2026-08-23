@@ -123,12 +123,14 @@ function submitSaveFilter() {
       <SecondaryButton :icon="['fas', 'star']" :full-width="isMobile" @click="showSaveFilter = !showSaveFilter">
         {{ t('membersList.saveFilter') }}
       </SecondaryButton>
-      <SecondaryButton v-if="canExport" :icon="['fas', 'file-export']" :full-width="isMobile" @click="emit('toggleExport')">
+      <SecondaryButton v-if="canExport" :icon="['fas', 'file-export']" :full-width="isMobile"
+                       data-testid="members-export" @click="emit('toggleExport')">
         {{ exportMode ? t('membersList.export.cancel') : t('membersList.export.button') }}
       </SecondaryButton>
       <template v-if="exportMode">
         <span class="col-span-2 sm:col-span-1 text-xs text-(--text-muted)">{{ t('membersList.export.selected', { count: selectedCount }) }}</span>
-        <PrimaryButton :full-width="isMobile" class="col-span-2 sm:col-span-1" :disabled="selectedCount === 0" @click="emit('exportContinue')">
+        <PrimaryButton :full-width="isMobile" class="col-span-2 sm:col-span-1" :disabled="selectedCount === 0"
+                       data-testid="members-export-continue" @click="emit('exportContinue')">
           {{ t('membersList.export.continue') }}
         </PrimaryButton>
       </template>
