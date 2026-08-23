@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:ce42a84bad668a53dda318754478a255c010ceee1a42fc66b70a089525c8a500",
-  "generatedAt" : "2026-08-23T13:12:24Z",
+  "schemaHash" : "sha256:69f13cb7c317f6c88753b16ee1ac4c1b387566b6eca2d6ae58891b6121e5c6d6",
+  "generatedAt" : "2026-08-23T14:35:16Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -2882,7 +2882,7 @@
     "cluster" : {
       "feature" : "cluster",
       "scope" : "CLUSTER",
-      "tableHash" : "sha256:e3c778b03b2539052494b187748c5d3183540067323bd944bf331e7fb10f10b8",
+      "tableHash" : "sha256:cc5d98ec62caac358c4b0e33022a4aae48d40064c1199a9bca55ab6f9cceb630",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -2973,6 +2973,48 @@
         "nullable" : true,
         "verified" : true,
         "description" : "The interface feel the cluster hands its stations, or null when it does not care."
+      }, {
+        "name" : "default_quota_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "How much a station of this cluster may use in total when the cluster granted it nothing of its own, or null to leave it to the instance."
+      }, {
+        "name" : "default_quota_kb_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The same, for knowledge base files and the documents filed beside them."
+      }, {
+        "name" : "default_quota_board_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The same, for board attachments."
+      }, {
+        "name" : "default_quota_images_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The same, for images."
+      }, {
+        "name" : "default_quota_pages_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The same, for page media."
+      }, {
+        "name" : "default_per_file_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The same, for the largest single file."
+      }, {
+        "name" : "default_per_image_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The same, for the largest single image."
       }, {
         "name" : "uses_inventory",
         "type" : "bool",
@@ -3541,6 +3583,101 @@
       },
       "description" : "What one member answered to one cluster question. Keyed on the station member, because that is who was asked."
     },
+    "cluster_station_quota" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:123b64b28152da3ea73209f6704c55c407e29fd518a053f8aec4855b7335d296",
+      "columns" : [ {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station being granted room."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster granting it, carried here so the pool arithmetic is one read."
+      }, {
+        "name" : "quota_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Total room in bytes, or null to fall back to the cluster's default."
+      }, {
+        "name" : "quota_kb_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Room for knowledge base files in bytes, or null to fall back."
+      }, {
+        "name" : "quota_board_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Room for board attachments in bytes, or null to fall back."
+      }, {
+        "name" : "quota_images_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Room for images in bytes, or null to fall back."
+      }, {
+        "name" : "quota_pages_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Room for page media in bytes, or null to fall back."
+      }, {
+        "name" : "per_file_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Largest single file in bytes, or null to fall back."
+      }, {
+        "name" : "per_image_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Largest single image in bytes, or null to fall back."
+      }, {
+        "name" : "preset_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The cluster tier the station was put on, kept so the screen can name it. Editing a tier does not move the stations already on it."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "preset_id",
+        "refTable" : "cluster_storage_quota_preset",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: room the cluster granted a station"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "What one cluster granted one of its stations. A station without a row here has been granted nothing and falls back to the cluster's defaults."
+    },
     "cluster_storage_config" : {
       "feature" : "cluster",
       "scope" : "CLUSTER",
@@ -3595,6 +3732,91 @@
         "reason" : "Names no person, so an account leaving has nothing to remove here"
       },
       "description" : "A cluster's own storage backend, used by its stations unless a station has an override of its own."
+    },
+    "cluster_storage_quota_preset" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:cfc88ce9318b820de5825c7fa1596148796a87013d91eca89a2e4162697364a1",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster the preset belongs to."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the tier is called, unique within its cluster."
+      }, {
+        "name" : "total",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Total room in bytes."
+      }, {
+        "name" : "kb",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Room for knowledge base files in bytes."
+      }, {
+        "name" : "board",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Room for board attachments in bytes."
+      }, {
+        "name" : "images",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Room for images in bytes."
+      }, {
+        "name" : "pages",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Room for page media in bytes."
+      }, {
+        "name" : "per_file",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Largest single file in bytes."
+      }, {
+        "name" : "per_image",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Largest single image in bytes."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: a set of numbers the cluster keeps"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "A reusable set of quotas a cluster hands to its stations, the same shape as the instance's own presets."
     },
     "cluster_user_type_permission" : {
       "feature" : "cluster",
@@ -4211,7 +4433,7 @@
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
-        "description" : "Member the procurement is for, or null for an order a cluster places for its own store."
+        "description" : "Member the procurement is for."
       }, {
         "name" : "size_id",
         "type" : "int4",

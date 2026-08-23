@@ -781,6 +781,92 @@ COMMENT ON COLUMN ember_schema.cluster_storage_config.config
 COMMENT ON COLUMN ember_schema.cluster_storage_config.created_at IS 'When the override was first set.';
 COMMENT ON COLUMN ember_schema.cluster_storage_config.updated_at IS 'When it was last changed.';
 
+-- The room a cluster hands out, in the same seven dimensions the instance uses.
+--
+-- The instance keeps its numbers on the station row and the cluster keeps its own here, because two parties
+-- writing one column means neither can tell what the other did and the pool ends up counting a number nobody
+-- handed out. What a station may use is resolved from the cluster's grant, then the cluster's defaults, then
+-- what the instance says, so a station under a cluster is governed by the cluster and the instance's lever on
+-- it is the pool.
+
+ALTER TABLE ember_schema.cluster
+    ADD COLUMN IF NOT EXISTS default_quota_bytes        BIGINT,
+    ADD COLUMN IF NOT EXISTS default_quota_kb_bytes     BIGINT,
+    ADD COLUMN IF NOT EXISTS default_quota_board_bytes  BIGINT,
+    ADD COLUMN IF NOT EXISTS default_quota_images_bytes BIGINT,
+    ADD COLUMN IF NOT EXISTS default_quota_pages_bytes  BIGINT,
+    ADD COLUMN IF NOT EXISTS default_per_file_bytes     BIGINT,
+    ADD COLUMN IF NOT EXISTS default_per_image_bytes    BIGINT;
+
+COMMENT ON COLUMN ember_schema.cluster.default_quota_bytes
+    IS 'How much a station of this cluster may use in total when the cluster granted it nothing of its own, or null to leave it to the instance.';
+COMMENT ON COLUMN ember_schema.cluster.default_quota_kb_bytes
+    IS 'The same, for knowledge base files and the documents filed beside them.';
+COMMENT ON COLUMN ember_schema.cluster.default_quota_board_bytes IS 'The same, for board attachments.';
+COMMENT ON COLUMN ember_schema.cluster.default_quota_images_bytes IS 'The same, for images.';
+COMMENT ON COLUMN ember_schema.cluster.default_quota_pages_bytes IS 'The same, for page media.';
+COMMENT ON COLUMN ember_schema.cluster.default_per_file_bytes IS 'The same, for the largest single file.';
+COMMENT ON COLUMN ember_schema.cluster.default_per_image_bytes IS 'The same, for the largest single image.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.cluster_storage_quota_preset
+(
+    id         SERIAL PRIMARY KEY,
+    cluster_id INTEGER NOT NULL REFERENCES ember_schema.cluster (id) ON DELETE CASCADE,
+    name       TEXT    NOT NULL,
+    total      BIGINT  NOT NULL,
+    kb         BIGINT  NOT NULL,
+    board      BIGINT  NOT NULL,
+    images     BIGINT  NOT NULL,
+    pages      BIGINT  NOT NULL,
+    per_file   BIGINT  NOT NULL,
+    per_image  BIGINT  NOT NULL,
+    UNIQUE (cluster_id, name)
+);
+
+COMMENT ON TABLE ember_schema.cluster_storage_quota_preset
+    IS 'A reusable set of quotas a cluster hands to its stations, the same shape as the instance''s own presets.';
+COMMENT ON COLUMN ember_schema.cluster_storage_quota_preset.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.cluster_storage_quota_preset.cluster_id IS 'The cluster the preset belongs to.';
+COMMENT ON COLUMN ember_schema.cluster_storage_quota_preset.name IS 'What the tier is called, unique within its cluster.';
+COMMENT ON COLUMN ember_schema.cluster_storage_quota_preset.total IS 'Total room in bytes.';
+COMMENT ON COLUMN ember_schema.cluster_storage_quota_preset.kb IS 'Room for knowledge base files in bytes.';
+COMMENT ON COLUMN ember_schema.cluster_storage_quota_preset.board IS 'Room for board attachments in bytes.';
+COMMENT ON COLUMN ember_schema.cluster_storage_quota_preset.images IS 'Room for images in bytes.';
+COMMENT ON COLUMN ember_schema.cluster_storage_quota_preset.pages IS 'Room for page media in bytes.';
+COMMENT ON COLUMN ember_schema.cluster_storage_quota_preset.per_file IS 'Largest single file in bytes.';
+COMMENT ON COLUMN ember_schema.cluster_storage_quota_preset.per_image IS 'Largest single image in bytes.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.cluster_station_quota
+(
+    station_id         INTEGER PRIMARY KEY REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    cluster_id         INTEGER NOT NULL REFERENCES ember_schema.cluster (id) ON DELETE CASCADE,
+    quota_bytes        BIGINT,
+    quota_kb_bytes     BIGINT,
+    quota_board_bytes  BIGINT,
+    quota_images_bytes BIGINT,
+    quota_pages_bytes  BIGINT,
+    per_file_bytes     BIGINT,
+    per_image_bytes    BIGINT,
+    preset_id          INTEGER REFERENCES ember_schema.cluster_storage_quota_preset (id) ON DELETE SET NULL
+);
+
+COMMENT ON TABLE ember_schema.cluster_station_quota
+    IS 'What one cluster granted one of its stations. A station without a row here has been granted nothing and falls back to the cluster''s defaults.';
+COMMENT ON COLUMN ember_schema.cluster_station_quota.station_id IS 'The station being granted room.';
+COMMENT ON COLUMN ember_schema.cluster_station_quota.cluster_id IS 'The cluster granting it, carried here so the pool arithmetic is one read.';
+COMMENT ON COLUMN ember_schema.cluster_station_quota.quota_bytes IS 'Total room in bytes, or null to fall back to the cluster''s default.';
+COMMENT ON COLUMN ember_schema.cluster_station_quota.quota_kb_bytes IS 'Room for knowledge base files in bytes, or null to fall back.';
+COMMENT ON COLUMN ember_schema.cluster_station_quota.quota_board_bytes IS 'Room for board attachments in bytes, or null to fall back.';
+COMMENT ON COLUMN ember_schema.cluster_station_quota.quota_images_bytes IS 'Room for images in bytes, or null to fall back.';
+COMMENT ON COLUMN ember_schema.cluster_station_quota.quota_pages_bytes IS 'Room for page media in bytes, or null to fall back.';
+COMMENT ON COLUMN ember_schema.cluster_station_quota.per_file_bytes IS 'Largest single file in bytes, or null to fall back.';
+COMMENT ON COLUMN ember_schema.cluster_station_quota.per_image_bytes IS 'Largest single image in bytes, or null to fall back.';
+COMMENT ON COLUMN ember_schema.cluster_station_quota.preset_id
+    IS 'The cluster tier the station was put on, kept so the screen can name it. Editing a tier does not move the stations already on it.';
+
+CREATE INDEX IF NOT EXISTS idx_cluster_station_quota_cluster
+    ON ember_schema.cluster_station_quota (cluster_id);
+
 
 -- ============================================================
 
