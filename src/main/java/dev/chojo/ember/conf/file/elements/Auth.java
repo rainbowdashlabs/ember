@@ -31,8 +31,16 @@ public class Auth {
     @Overwrite(env = @Env)
     private int resetTokenHours = 1;
 
+    /**
+     * How long a session lasts on a device the person signing in vouched for.
+     *
+     * <p>This is the long duration, the one somebody asks for by ticking the box on their own
+     * machine, and thirty days is what that box is generally taken to mean. It has to be at least
+     * {@link #untrustedSessionMinutes}: a machine nobody vouched for keeping its session longer
+     * than one somebody did turns the box into a penalty, which is what the default used to do.
+     */
     @Overwrite(env = @Env)
-    private int sessionMinutes = 30;
+    private int sessionMinutes = 43200;
 
     /**
      * How long a session lasts on a device the person signing in did not vouch for.
@@ -80,11 +88,17 @@ public class Auth {
     }
 
     public int sessionMinutes() {
-        return sessionMinutes;
+        return Math.max(5, sessionMinutes);
     }
 
+    /**
+     * How long a session lasts on a machine nobody vouched for, never longer than one somebody did.
+     *
+     * <p>The settings screen refuses to save the two the wrong way round, but a config file written
+     * by hand can still say it, and the ordering has to hold whichever way the value arrived.
+     */
     public int untrustedSessionMinutes() {
-        return Math.max(5, untrustedSessionMinutes);
+        return Math.min(Math.max(5, untrustedSessionMinutes), sessionMinutes());
     }
 
     /**
@@ -93,7 +107,7 @@ public class Auth {
      * @param trustedDevice whether the person signing in vouched for the machine
      */
     public int sessionMinutes(boolean trustedDevice) {
-        return trustedDevice ? sessionMinutes : untrustedSessionMinutes();
+        return trustedDevice ? sessionMinutes() : untrustedSessionMinutes();
     }
 
     /**

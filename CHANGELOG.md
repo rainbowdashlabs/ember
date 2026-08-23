@@ -66,6 +66,9 @@
 - **Gear a partner had borrowed still looked free.** Equipment lent out to a federation partner could be handed to a member or offered in another lending request while it was away, because only the assignment was checked. It is now held back until the partner has given it back.
 - **Exchanged gear the station does not own.** In an inventory holding gear of both owners, completing an exchange put the returned item into the station's free stock even when the station had never owned it. The exchange now follows the owner recorded on the item.
 - **The installer set up an instance the machine could not run.** On a machine Ember is not built for it wrote everything out and started containers that stopped again at once, over and over, with only a format error to go on. It now checks the machine before it writes anything and says plainly what is wrong.
+- **A second-factor confirmation could stop counting shortly after it was given.** A session renews itself in the background while you work, and the renewal used to forget both the confirmation just made and any device you had asked it to remember; it now carries them over.
+- **A refused security confirmation left the action with nothing to answer.** Where the confirmation was accepted but the action turned down again, no new prompt appeared and only a general error showed; it is now offered once more, and a message says plainly when the instance keeps refusing.
+- **Staying signed in made the session shorter, not longer.** Ticking the box on your own machine gave half an hour where leaving it unticked gave a full hour; a device you vouch for now keeps its session for thirty days, and an instance that set `auth.sessionMinutes` itself keeps the value it chose.
 
 ## v26.12.0
 

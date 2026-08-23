@@ -49,6 +49,14 @@ public class AuthService {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private static final SecureRandom RANDOM = new SecureRandom();
 
+    /**
+     * How long the token handed out in place of a session lasts when a login has to change its
+     * password first. It sets a password without knowing the old one, so it is a short-lived
+     * credential and deliberately does not follow the session length: how long somebody stays
+     * signed in on their own machine has nothing to say about how long that may lie around.
+     */
+    private static final int FORCE_PASSWORD_CHANGE_MINUTES = 30;
+
     private final AccountRepository accountRepository;
     private final MailLocaleService mailLocaleService;
     private final RegistrationCodeRepository registrationCodeRepository;
@@ -480,13 +488,9 @@ public class AuthService {
                     email);
             String token = generateToken();
             accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.FORCE_PASSWORD_CHANGE);
-            accountRepository.createToken(
-                    account.id(),
-                    token,
-                    TokenType.FORCE_PASSWORD_CHANGE,
-                    Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES));
-            return LoginResult.passwordChangeRequired(
-                    token, Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES));
+            Instant expiresAt = Instant.now().plus(FORCE_PASSWORD_CHANGE_MINUTES, ChronoUnit.MINUTES);
+            accountRepository.createToken(account.id(), token, TokenType.FORCE_PASSWORD_CHANGE, expiresAt);
+            return LoginResult.passwordChangeRequired(token, expiresAt);
         }
 
         // Two-factor authentication - issue a pre-auth token if enrolled
@@ -524,7 +528,13 @@ public class AuthService {
     }
 
     /**
-     * Refreshes a session by invalidating the old token and creating a new session.
+     * Refreshes a session by handing it a new token and pushing back its expiry.
+     *
+     * <p>The session row is rotated rather than replaced. A refresh is the same sign-in continuing, so
+     * everything the row remembers about it has to outlive the token swap: when the second factor was
+     * last verified, which trusted device vouched for it, and when it began. Deleting the row and
+     * writing a new one lost all three, which ended the step-up window and forgot the trusted device
+     * every half hour, in the middle of whatever the person was doing.
      *
      * @param token     the current session token
      * @param userAgent the client's user agent string
@@ -545,9 +555,21 @@ public class AuthService {
             return LoginResult.failure("Session expired");
         }
 
-        accountRepository.deleteSession(token);
+        // In dev/demo mode the token is derived from the account so sessions survive a restart. Keeping
+        // it is what makes that work, and rotating the row onto the same token still moves the expiry.
+        boolean stableToken = demo.dev() || demo.enabled();
+        String newToken = stableToken ? token : generateToken();
+        Instant expiresAt = stableToken
+                ? Instant.now().plus(365, ChronoUnit.DAYS)
+                : Instant.now().plus(authConfig.sessionMinutes(session.trustedDevice()), ChronoUnit.MINUTES);
+
+        if (!accountRepository.rotateSessionToken(token, newToken, expiresAt)) {
+            log.debug("Session refresh failed: session vanished mid-refresh");
+            return LoginResult.failure("Invalid session");
+        }
+        accountRepository.touchSession(newToken, userAgent, location);
         log.debug("Session refreshed for account {}", session.accountId());
-        return createSession(session.accountId(), userAgent, location, session.trustedDevice());
+        return LoginResult.success(newToken, expiresAt);
     }
 
     /**

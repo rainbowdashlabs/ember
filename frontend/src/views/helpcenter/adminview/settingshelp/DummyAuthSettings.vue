@@ -18,7 +18,7 @@ const fields = [
   {label: 'tokenBytes', hint: 'tokenBytesHint', value: 32},
   {label: 'verifyTokenHours', hint: 'verifyTokenHoursHint', value: 24},
   {label: 'passwordTokenHours', hint: 'passwordTokenHoursHint', value: 72},
-  {label: 'sessionMinutes', hint: 'sessionMinutesHint', value: 30},
+  {label: 'sessionMinutes', hint: 'sessionMinutesHint', value: 43200},
 ]
 </script>
 

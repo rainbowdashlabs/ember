@@ -3569,6 +3569,8 @@ export default {
             submit: 'Bestätigen',
             cancel: 'Abbrechen',
             invalidCode: 'Ungültiger Code. Bitte versuche es erneut.',
+            stillRequired: 'Die Bestätigung wurde angenommen, die Aktion aber trotzdem abgelehnt. '
+                + 'Melde dich bitte neu an und versuche es noch einmal.',
         },
         admin: {
             policiesTitle: 'Pflicht je Benutzertyp',
