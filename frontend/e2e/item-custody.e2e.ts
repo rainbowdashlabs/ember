@@ -14,17 +14,28 @@ import {test, expect, apiHeaders} from './fixtures/auth'
  * and the places each one shows.
  */
 
-/** A piece of the station's own gear, made for one story so no other story loses theirs. */
+/**
+ * A piece of the station's own gear, in a store of its own, made for one story so no other story loses
+ * theirs.
+ *
+ * The store is the story's as well as the piece, because what these stories ask afterwards is what the
+ * station's lists say. Asked of the shared store, the answer carries whatever the rest of the suite
+ * happens to be doing in it at that moment.
+ */
 async function ownGear(page: Page, headers: Record<string, string>, label: string) {
-    const inventories = await page.request.get('/api/v1/inventories', {headers}).then(r => r.json())
-    const mixed = inventories.find((i: {inventoryType: string}) => i.inventoryType === 'MIXED')
-    const made = await page.request.post(`/api/v1/inventories/${mixed.id}/items`, {
+    const name = `${label}-${Date.now()}`
+    const inventory = await page.request.post('/api/v1/inventories',
+        {headers, data: {name: `Prüfbestand ${name}`, inventoryType: 'MIXED', hasSizes: false}})
+    expect(inventory.ok(), 'the station keeps a store for this story alone').toBeTruthy()
+    const inventoryId = (await inventory.json()).id
+
+    const made = await page.request.post(`/api/v1/inventories/${inventoryId}/items`, {
         headers,
-        data: {internalId: `${label}-${Date.now()}`, name: 'Prüfstück', sizeId: null, metadata: null,
+        data: {internalId: name, name: 'Prüfstück', sizeId: null, metadata: null,
             ownerKind: 'STATION', ownerClusterId: null},
     })
     expect(made.ok(), 'the station records a piece of its own').toBeTruthy()
-    return {inventoryId: mixed.id, item: await made.json()}
+    return {inventoryId, item: await made.json()}
 }
 
 /** An ordinary member of the station, to hand things to. */
@@ -72,11 +83,8 @@ test.describe('Item custody', () => {
      */
     test('handing gear over and back opens no request', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
-        const {item: made} = await ownGear(page, headers, 'HAND')
+        const {inventoryId, item: made} = await ownGear(page, headers, 'HAND')
         const member = await someMember(page, headers)
-
-        const before = await page.request.get('/api/v1/movements', {headers}).then(r => r.json())
-        const count = (Array.isArray(before) ? before : before.movements ?? []).length
 
         await page.request.put(`/api/v1/inventory-items/${made.id}/assign`,
             {headers, data: {memberId: member.id, memberName: null}})
@@ -86,9 +94,12 @@ test.describe('Item custody', () => {
             {headers, data: {memberId: null, memberName: null}})
         expect((await item(page, headers, made.id)).custody).toBe('WITH_OWNER')
 
+        // Only the movements about this story's own store: the station's whole list is being written to
+        // by every other story at the same time, and counting it counts them
         const after = await page.request.get('/api/v1/movements', {headers}).then(r => r.json())
-        expect((Array.isArray(after) ? after : after.movements ?? []).length,
-            'and nothing was asked of anybody').toBe(count)
+        const asked = (Array.isArray(after) ? after : after.movements ?? [])
+            .filter((movement: {inventoryId: number | null}) => movement.inventoryId === inventoryId)
+        expect(asked, 'and nothing was asked of anybody').toEqual([])
     })
 
     /**

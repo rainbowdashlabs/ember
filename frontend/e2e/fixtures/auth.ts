@@ -490,6 +490,8 @@ interface Fixtures {
     clusterStationManagerPage: Page
     /** An ordinary member of that same station, for the stories that need both. */
     clusterStationMemberPage: Page
+    /** A manager of the full station that answers to nobody, which is the other half of the demo. */
+    standaloneStationManagerPage: Page
 }
 
 export const test = base.extend<Fixtures>({
@@ -527,6 +529,12 @@ export const test = base.extend<Fixtures>({
 
     clusterStationMemberPage: async ({browser, request}, use) => {
         const page = await pageAsThrowaway(browser, request, [], await clusterStationMember(request))
+        await use(page)
+        await page.context().close()
+    },
+
+    standaloneStationManagerPage: async ({browser, request}, use) => {
+        const page = await pageAsThrowaway(browser, request, [], await standaloneStationManager(request))
         await use(page)
         await page.context().close()
     },

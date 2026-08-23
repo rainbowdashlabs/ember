@@ -59,6 +59,13 @@ async function managedMemberToActOn(page: Page, request: APIRequestContext): Pro
     return spare
 }
 
+/**
+ * Serial, because the stories share the one member the seeded guardian looks after and may be written
+ * to. Two of them give that member an address, and run at once they read each other's: the address one
+ * of them saves is the address the other is looking at.
+ */
+test.describe.configure({mode: 'serial'})
+
 test.describe('Guardian', () => {
     /**
      * The panel is where a parent does this, so the story goes through it rather than through the
