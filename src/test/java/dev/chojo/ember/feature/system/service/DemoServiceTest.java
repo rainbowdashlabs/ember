@@ -346,6 +346,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 new ClusterContentService(clusterRepo, stationRepo, stationMemberRepo, kbService),
                 new ClusterApplicationService(
                         clusterApplicationRepo, clusterRepo, stationRepo, clusterService, noOpBus),
+                clusterStorageQuotaService,
                 stationRepo,
                 inventoryRepo,
                 fieldDefSvc,
@@ -546,6 +547,20 @@ class DemoServiceTest extends RepositoryTestBase {
                 2,
                 clusterProfileFieldRepo.findByCluster(cluster.id()).size(),
                 "The cluster should ask two questions of its members");
+
+        // The room the cluster hands out, in all four places a station can get its numbers from: the pool,
+        // the defaults, the two tiers, and the grants. A storage screen with none of them shows nothing.
+        var room = clusterStorageQuotaService.findOverview(cluster.id());
+        assertEquals(100L * 1024 * 1024 * 1024, room.poolBytes(), "The instance should have granted a pool");
+        assertNotNull(room.defaults().quotaBytes(), "The cluster should say what a station it granted nothing gets");
+        assertEquals(2, room.presets().size(), "The cluster should keep two tiers");
+        assertEquals(
+                41L * 1024 * 1024 * 1024,
+                room.handedOut(),
+                "Its own store and two of its stations should have been granted room");
+        assertTrue(
+                room.stations().stream().anyMatch(s -> s.ownStore() && s.granted().totalBytes() != null),
+                "The cluster's own store should be granted room like any other station");
 
         var gear = inventoryRepo.findItemsOwnedByCluster(cluster.id());
         for (String code : List.of("KV-0001", "KV-0002", "KV-0003", "KV-0004", "KV-0005", "KV-0006")) {

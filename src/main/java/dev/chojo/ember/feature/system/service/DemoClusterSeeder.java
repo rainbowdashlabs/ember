@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.cluster.service.ClusterInventoryService;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
 import dev.chojo.ember.feature.cluster.service.ClusterProfileFieldService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.cluster.service.ClusterStorageQuotaService;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
@@ -44,6 +45,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.entity.ClusterQuotaDefaults;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -78,6 +80,11 @@ import java.util.stream.Stream;
 public class DemoClusterSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoClusterSeeder.class);
 
+    /** Room is written in the units the screens show it in, so the seeded figures read as round numbers. */
+    private static final long MIB = 1024L * 1024L;
+
+    private static final long GIB = 1024L * MIB;
+
     private final AccountRepository accountRepository;
     private final PasswordHasher passwordHasher;
     private final ClusterService clusterService;
@@ -86,6 +93,7 @@ public class DemoClusterSeeder implements DemoSeeder {
     private final ClusterProfileFieldService fieldService;
     private final ClusterContentService contentService;
     private final ClusterApplicationService applicationService;
+    private final ClusterStorageQuotaService quotaService;
     private final StationRepository stationRepository;
     private final InventoryRepository inventoryRepository;
     private final InventoryFieldDefinitionService fieldDefinitionService;
@@ -107,6 +115,7 @@ public class DemoClusterSeeder implements DemoSeeder {
             ClusterProfileFieldService fieldService,
             ClusterContentService contentService,
             ClusterApplicationService applicationService,
+            ClusterStorageQuotaService quotaService,
             StationRepository stationRepository,
             InventoryRepository inventoryRepository,
             InventoryFieldDefinitionService fieldDefinitionService,
@@ -125,6 +134,7 @@ public class DemoClusterSeeder implements DemoSeeder {
         this.fieldService = fieldService;
         this.contentService = contentService;
         this.applicationService = applicationService;
+        this.quotaService = quotaService;
         this.stationRepository = stationRepository;
         this.inventoryRepository = inventoryRepository;
         this.fieldDefinitionService = fieldDefinitionService;
@@ -171,6 +181,7 @@ public class DemoClusterSeeder implements DemoSeeder {
         clusterInventoryService.setUsesInventory(cluster.id(), true);
 
         ClusterMember admin = seedPeople(cluster, context);
+        seedRoom(cluster, context);
         seedFlows(cluster);
         seedGear(cluster, context);
         seedFields(cluster, context);
@@ -290,6 +301,49 @@ public class DemoClusterSeeder implements DemoSeeder {
                 .filter(member -> member.accountId() != null && member.accountId() != adminAccount)
                 .filter(member -> seen.add(member.accountId()))
                 .toList();
+    }
+
+    /**
+     * The room the cluster hands out, in every place a station can get its numbers from.
+     *
+     * <p>The instance grants a pool, the cluster says what a station it has decided nothing about may keep,
+     * and it keeps two tiers to hand out. The four stations then sit in four different places on that
+     * screen on purpose: its own store on numbers set by hand, the demo station on the larger tier, the
+     * neighbour on the smaller one, and the station it made itself on nothing at all, which is the row that
+     * reads as inherited.
+     *
+     * <p>Every number here is at or above what the instance configuration gives a station on its own, so
+     * joining this cluster never costs a demo station room it had.
+     */
+    private void seedRoom(Cluster cluster, DemoSeederContext context) {
+        quotaService.setStoragePool(cluster.id(), 100 * GIB);
+        quotaService.setDefaults(new ClusterQuotaDefaults(
+                cluster.id(), 8 * GIB, 6 * GIB, 3 * GIB, 2 * GIB, 1 * GIB, 100 * MIB, 8 * MIB));
+
+        var small = quotaService.createPreset(
+                cluster.id(), "Kleine Wache", 6 * GIB, 4 * GIB, 2 * GIB, 1 * GIB, 1 * GIB, 50 * MIB, 5 * MIB);
+        var large = quotaService.createPreset(
+                cluster.id(), "Große Wache", 25 * GIB, 15 * GIB, 6 * GIB, 3 * GIB, 2 * GIB, 200 * MIB, 20 * MIB);
+
+        // The cluster's own files live on the station it owns, and they are no freer than anybody else's:
+        // its store is granted a total like every other station and counts against the same pool
+        stationRepository
+                .findById(cluster.homeStationId())
+                .ifPresent(home -> quotaService.setGrant(
+                        cluster.id(),
+                        home.uid(),
+                        new ClusterStorageQuotaService.Dimensions(10 * GIB, null, null, null, null, null, null)));
+
+        quotaService.applyPreset(
+                cluster.id(), large.id(), List.of(context.station().uid()));
+
+        var federation = context.federation();
+        if (federation != null) {
+            stationRepository
+                    .findById(federation.thirdStationId())
+                    .ifPresent(
+                            neighbour -> quotaService.applyPreset(cluster.id(), small.id(), List.of(neighbour.uid())));
+        }
     }
 
     /**
