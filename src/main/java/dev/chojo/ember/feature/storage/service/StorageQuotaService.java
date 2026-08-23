@@ -231,7 +231,7 @@ public class StorageQuotaService {
                 quota.quotaImagesBytes() != null ? quota.quotaImagesBytes() : storageConfig.defaultImagesBytes();
             case MEDIA_FILES, MEDIA_IMAGES ->
                 quota.quotaPagesBytes() != null ? quota.quotaPagesBytes() : storageConfig.defaultPagesBytes();
-            case MEMBER_DOCUMENTS ->
+            case MEMBER_DOCUMENTS, MOVEMENT_DOCUMENTS ->
                 quota.quotaKbBytes() != null ? quota.quotaKbBytes() : storageConfig.defaultKbBytes();
             // A quota limits what one station may keep. What the instance holds is not any
             // station's to be charged for, so nothing here has a limit to look up.

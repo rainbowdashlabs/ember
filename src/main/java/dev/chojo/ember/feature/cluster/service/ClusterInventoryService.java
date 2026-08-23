@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
@@ -161,6 +162,21 @@ public class ClusterInventoryService {
         requireCluster(clusterId);
         clusterRepository.setUsesInventory(clusterId, usesInventory);
         log.info("Cluster {} keeps its gear here: {}", clusterId, usesInventory);
+    }
+
+    /**
+     * Sets what a station has to bring when it reports a piece of this cluster's gear missing.
+     *
+     * <p>The loss is not the cluster's to accept or refuse, so nothing here is about that. It is about what
+     * the cluster wants to read before it decides whether to send another one.
+     *
+     * @param clusterId the cluster
+     * @param requires  nothing, a note, or a document as well
+     */
+    public void setLossReportRequires(int clusterId, LossReportRequirement requires) {
+        requireCluster(clusterId);
+        clusterRepository.setLossReportRequires(clusterId, requires);
+        log.info("Cluster {} asks for {} with a loss report", clusterId, requires);
     }
 
     /**

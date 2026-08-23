@@ -26,6 +26,7 @@ import {useFlashMessage} from '@/composables/useFlashMessage'
 import ItemMetadataPanel from './itemdetailview/ItemMetadataPanel.vue'
 import ItemActionsPanel from './itemdetailview/ItemActionsPanel.vue'
 import OwnedElsewherePanel from './itemdetailview/OwnedElsewherePanel.vue'
+import ReportLossPanel from './itemdetailview/ReportLossPanel.vue'
 import ItemHistoryPanel from './itemdetailview/ItemHistoryPanel.vue'
 import ItemCheckHistoryPanel from './itemdetailview/ItemCheckHistoryPanel.vue'
 import AssignItemModal from './itemdetailview/AssignItemModal.vue'
@@ -184,6 +185,8 @@ async function doMarkFound() {
         />
 
         <OwnedElsewherePanel v-if="ownedElsewhere" :item="item" @started="reloadItem"/>
+
+        <ReportLossPanel v-if="ownedElsewhere && isManager && item.lostAt" :item="item" @reported="reloadItem"/>
 
         <ItemActionsPanel
           v-if="canEditItem"

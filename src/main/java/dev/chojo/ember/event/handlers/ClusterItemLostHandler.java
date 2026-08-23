@@ -20,7 +20,10 @@ import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 
 /**
- * Tells the cluster that a station cannot find a piece of its gear.
+ * Tells the cluster that a station has reported a piece of its gear missing.
+ *
+ * <p>Not when the station marks it lost, which is the station's own business: when the station raises a
+ * report and asks for a replacement. That is the point at which there is something for the cluster to do.
  *
  * <p>The station is named, because a cluster's gear is spread over all of them and "a helmet is
  * missing" is not something anybody can act on.

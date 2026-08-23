@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
+import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
@@ -63,6 +64,7 @@ public class MovementRoutes implements Routes {
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final LossReportService lossReportService;
 
     @Inject
     public MovementRoutes(
@@ -70,12 +72,14 @@ public class MovementRoutes implements Routes {
             InventoryRepository inventoryRepository,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            LossReportService lossReportService) {
         this.movementService = movementService;
         this.inventoryRepository = inventoryRepository;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.lossReportService = lossReportService;
     }
 
     @Override
@@ -90,6 +94,11 @@ public class MovementRoutes implements Routes {
         routes.post(
                 prefix + "/movements/{id}/acknowledge",
                 this::acknowledge,
+                StationPermission.USER,
+                ClusterPermission.CLUSTER_INVENTORY_EXCHANGE);
+        routes.get(
+                prefix + "/movements/{id}/document",
+                this::document,
                 StationPermission.USER,
                 ClusterPermission.CLUSTER_INVENTORY_EXCHANGE);
         routes.post(prefix + "/movements/{id}/force", this::force, StationPermission.INVENTORY_MANAGER);
@@ -192,6 +201,24 @@ public class MovementRoutes implements Routes {
         var updated = movementService.acknowledge(
                 movement.id(), request.stepId(), actorOf(session, movement), request.note(), request.pickedItemId());
         ctx.json(toDetail(updated, session));
+    }
+
+    @OpenApi(
+            path = "/api/v1/movements/{id}/document",
+            methods = HttpMethod.GET,
+            summary = "Download the file attached to a movement",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200"))
+    private void document(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ItemMovement movement = requireVisible(pathInt(ctx, "id"), session);
+        var document = lossReportService.documentOf(movement.id()).orElseThrow(NotFoundResponse::new);
+        // Kept by the station that raised the report, wherever the reader is answering from
+        byte[] data = lossReportService.read(movement.stationId(), document).orElseThrow(NotFoundResponse::new);
+        ctx.contentType(document.mimeType());
+        ctx.header("Content-Disposition", "attachment; filename=\"" + document.fileName() + "\"");
+        ctx.result(data);
     }
 
     @OpenApi(
@@ -388,7 +415,30 @@ public class MovementRoutes implements Routes {
                             isCurrent && movementService.mayAct(movement, step, actor));
                 })
                 .toList();
-        return new MovementDetail(toResponse(movement), steps);
+        return new MovementDetail(toResponse(movement), steps, lossReportOf(movement));
+    }
+
+    /**
+     * The loss this movement reports, when it reports one.
+     *
+     * <p>The member's note is read off the item rather than copied onto the movement, because it is a note
+     * about the loss and not about the request: the item is still missing, and what was said about it is
+     * still the last thing anybody knows.
+     */
+    private LossReport lossReportOf(ItemMovement movement) {
+        if (!movement.lostReport()) return null;
+        InventoryItem item = movement.outgoingItemId() == null
+                ? null
+                : inventoryRepository.findItemById(movement.outgoingItemId()).orElse(null);
+        var document = lossReportService.documentOf(movement.id()).orElse(null);
+        return new LossReport(
+                movement.reason(),
+                item != null ? item.lostNote() : null,
+                item != null && item.lostNoteBy() != null
+                        ? memberIdentityFactory.fromMemberId(item.lostNoteBy())
+                        : null,
+                document != null ? document.fileName() : null,
+                document != null ? document.mimeType() : null);
     }
 
     private String memberName(Integer memberId) {
@@ -452,5 +502,25 @@ public class MovementRoutes implements Routes {
             String note,
             boolean actionable) {}
 
-    public record MovementDetail(MovementResponse movement, List<MovementStepResponse> steps) {}
+    public record MovementDetail(MovementResponse movement, List<MovementStepResponse> steps, LossReport lossReport) {}
+
+    /**
+     * What a report that a piece of gear is gone carries, read at both ends.
+     *
+     * <p>Two notes with two authors, neither standing in for the other: the member said what happened to
+     * them, and the manager said what the station is asking the owner for. The document is evidence for this
+     * request and hangs off the movement beside them.
+     *
+     * @param managerNote     what the reporting manager wrote, which is the reason the movement carries
+     * @param memberNote      what the person holding it wrote when they reported it missing, or {@code null}
+     * @param memberNoteBy    who wrote that, which is the guardian when one wrote it for somebody
+     * @param documentName    the file attached to the report, or {@code null} when none was
+     * @param documentType    what that file is
+     */
+    public record LossReport(
+            String managerNote,
+            String memberNote,
+            MemberIdentity memberNoteBy,
+            String documentName,
+            String documentType) {}
 }

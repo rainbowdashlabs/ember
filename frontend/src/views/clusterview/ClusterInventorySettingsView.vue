@@ -9,19 +9,14 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import FormLabel from '@/components/input/FormLabel.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import InventoryTabs from './clusterinventoryview/InventoryTabs.vue'
+import FlowSettingsPanel from './clusterinventoryview/FlowSettingsPanel.vue'
+import LossReportSettingPanel from './clusterinventoryview/LossReportSettingPanel.vue'
 import {clusterInventory, clusters} from '@/api'
-import type {ClusterFlow} from '@/api/clusterInventory'
 import {ClusterPermission} from '@/api/clusters'
-import {MovementPurpose} from '@/api/movements'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useSession} from '@/composables/useSession'
@@ -29,9 +24,9 @@ import {useSession} from '@/composables/useSession'
 /**
  * What the association decides about gear, rather than what it owns.
  *
- * <p>Two settings guarded by two different rights, so the page shows whichever of them the reader
- * holds. Whether the association keeps gear at all is a module question and belongs to whoever
- * decides modules; the shapes a movement walks belong to whoever looks after the gear.
+ * <p>Settings guarded by two different rights, so the page shows whichever of them the reader holds.
+ * Whether the association keeps gear at all is a module question and belongs to whoever decides modules;
+ * the shapes a movement walks and what a loss report has to carry belong to whoever looks after the gear.
  */
 const {t} = useI18n()
 const {hasClusterPermission} = useSession()
@@ -47,28 +42,16 @@ const canSetModule = computed(() => hasClusterPermission(ClusterPermission.CLUST
 const canSetFlows = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_MANAGER))
 
 const usesInventory = ref(false)
-const flows = ref<ClusterFlow[]>([])
-const newName = ref('')
-const newPurpose = ref<string>(MovementPurpose.ISSUE)
 
 const {loading, error} = useAsyncLoader(async () => {
-  if (canSetModule.value) {
-    const active = await clusters.getActive()
-    usesInventory.value = active.usesInventory ?? false
-  }
-  if (canSetFlows.value) flows.value = await clusterInventory.listFlows()
+  if (!canSetModule.value) return
+  const active = await clusters.getActive()
+  usesInventory.value = active.usesInventory ?? false
 })
 
 const {running: busy, error: writeError, run: toggleUses} = useAsyncAction(async (value: boolean) => {
   await clusterInventory.setUsesInventory(value)
   usesInventory.value = value
-})
-
-const {running: creating, run: addFlow} = useAsyncAction(async () => {
-  if (!newName.value.trim()) return
-  await clusterInventory.createFlow(newName.value.trim(), newPurpose.value)
-  newName.value = ''
-  flows.value = await clusterInventory.listFlows()
 })
 </script>
 
@@ -90,38 +73,9 @@ const {running: creating, run: addFlow} = useAsyncAction(async () => {
           </div>
         </NeutralContainer>
 
-        <NeutralContainer v-if="canSetFlows" data-testid="inventory-flow-setting" class="space-y-4">
-          <SectionHeader>{{ t('clusterInventory.flowsTitle') }}</SectionHeader>
-          <p class="text-sm text-(--text-muted)">{{ t('clusterInventory.flowsHint') }}</p>
+        <FlowSettingsPanel v-if="canSetFlows"/>
 
-          <EmptyState v-if="flows.length === 0" compact>{{ t('clusterInventory.flowsEmpty') }}</EmptyState>
-          <div v-else class="space-y-1">
-            <div v-for="flow in flows" :key="flow.id"
-                 class="flex items-center justify-between border-b border-(--border) py-1 last:border-0">
-              <span class="font-medium">{{ flow.name }}</span>
-              <span class="text-sm text-(--text-muted)">{{ t(`movements.purpose.${flow.purpose}`) }}</span>
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-end gap-2">
-            <div class="space-y-1">
-              <FormLabel>{{ t('clusterInventory.flowNameLabel') }}</FormLabel>
-              <TextInput v-model="newName" :placeholder="t('clusterInventory.flowNamePlaceholder')"/>
-            </div>
-            <div class="space-y-1">
-              <FormLabel>{{ t('clusterInventory.flowPurposeLabel') }}</FormLabel>
-              <SelectInput v-model="newPurpose" class="w-48">
-                <option v-for="purpose in [MovementPurpose.ISSUE, MovementPurpose.RETURN, MovementPurpose.EXCHANGE]"
-                        :key="purpose" :value="purpose">
-                  {{ t(`movements.purpose.${purpose}`) }}
-                </option>
-              </SelectInput>
-            </div>
-            <PrimaryButton :disabled="creating || !newName.trim()" @click="addFlow">
-              {{ t('common.create') }}
-            </PrimaryButton>
-          </div>
-        </NeutralContainer>
+        <LossReportSettingPanel v-if="canSetFlows"/>
       </template>
     </div>
   </ViewContent>

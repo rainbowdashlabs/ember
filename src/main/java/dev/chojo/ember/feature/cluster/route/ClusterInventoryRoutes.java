@@ -10,6 +10,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.cluster.service.ClusterInventoryService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
@@ -55,6 +56,14 @@ public class ClusterInventoryRoutes implements Routes {
         routes.get(prefix + "/cluster/inventory/flows", this::listFlows, ClusterPermission.CLUSTER_INVENTORY_READ);
         routes.post(prefix + "/cluster/inventory/flows", this::createFlow, ClusterPermission.CLUSTER_INVENTORY_MANAGER);
         routes.put(prefix + "/cluster/inventory/settings", this::setUsesInventory, ClusterPermission.CLUSTER_MODULES);
+        routes.get(
+                prefix + "/cluster/inventory/loss-report",
+                this::getLossReportSettings,
+                ClusterPermission.CLUSTER_INVENTORY_READ);
+        routes.put(
+                prefix + "/cluster/inventory/loss-report",
+                this::setLossReportSettings,
+                ClusterPermission.CLUSTER_INVENTORY_MANAGER);
     }
 
     @OpenApi(
@@ -145,6 +154,32 @@ public class ClusterInventoryRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    @OpenApi(
+            path = "/api/v1/cluster/inventory/loss-report",
+            methods = HttpMethod.GET,
+            summary = "What this cluster asks for with a loss report",
+            tags = {"Cluster"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LossReportSettings.class)))
+    private void getLossReportSettings(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        ctx.json(new LossReportSettings(cluster.lossReportRequires()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/inventory/loss-report",
+            methods = HttpMethod.PUT,
+            summary = "Set what this cluster asks for with a loss report",
+            tags = {"Cluster"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LossReportSettings.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void setLossReportSettings(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        var request = ctx.bodyAsClass(LossReportSettings.class);
+        if (request.requires() == null) throw new BadRequestResponse("requires is required");
+        inventoryService.setLossReportRequires(cluster.id(), request.requires());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
     private Cluster requireActive(Context ctx) {
         UserSession session = UserSession.from(ctx);
         Integer clusterId = session.clusterId();
@@ -164,6 +199,9 @@ public class ClusterInventoryRoutes implements Routes {
     public record NewClusterFlowRequest(String name, String purpose) {}
 
     public record InventorySettingsRequest(boolean usesInventory) {}
+
+    /** What the cluster wants to read before it considers replacing something that was lost. */
+    public record LossReportSettings(LossReportRequirement requires) {}
 
     /**
      * @param stationUid the station holding it, or {@code null} when it rests in the cluster's own store

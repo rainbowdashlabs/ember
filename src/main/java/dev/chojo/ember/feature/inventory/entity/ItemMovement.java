@@ -30,6 +30,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param createdAt      when it was started
  * @param closedAt       when it reached its end, however it ended
  * @param closeReason    why it was declined or cancelled
+ * @param lostReport     whether it was raised to report gear missing, which is what makes it skip the return leg
  */
 public record ItemMovement(
         int id,
@@ -48,7 +49,8 @@ public record ItemMovement(
         Integer createdBy,
         Instant createdAt,
         Instant closedAt,
-        String closeReason) {
+        String closeReason,
+        boolean lostReport) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -70,7 +72,8 @@ public record ItemMovement(
                 row.getObject("created_by", Integer.class),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("closed_at", INSTANT_TIMESTAMP),
-                row.getString("close_reason"));
+                row.getString("close_reason"),
+                row.getBoolean("lost_report"));
     }
 
     /**

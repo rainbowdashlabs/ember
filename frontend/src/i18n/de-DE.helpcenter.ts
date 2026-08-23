@@ -3440,6 +3440,11 @@ volumes:
             stepsTitle: 'Wer bestätigt was',
             stepsText: 'Jede Seite bestätigt nur ihre eigenen Schritte. Ein Schritt, der auf die Wache'
                 + ' wartet, wird hier angezeigt, aber nicht angeboten, und umgekehrt.',
+            lossTitle: 'Verlustmeldungen',
+            lossText: 'Meldet eine Wache ein verlorenes Stück, steht oben, was die Wache und was das Mitglied'
+                + ' dazu geschrieben haben, jeweils mit dem Namen dahinter, und der Beleg, falls ihr einen'
+                + ' verlangt. Über den Verlust selbst entscheidet ihr nicht, nur über den Ersatz: Ihr schickt'
+                + ' einen oder lehnt mit Begründung ab, und vermisst bleibt das Stück so oder so.',
             tip: 'Ein Tausch, der von einer Wache kommt, steht in derselben Liste wie alles andere: von'
                 + ' hier aus ist er ein Schritt, der auf euch wartet.',
         },
@@ -3546,6 +3551,13 @@ volumes:
             flowsTitle: 'Abläufe',
             flowsText: 'Ein Ablauf beschreibt, welche Schritte eine Bewegung geht und wer welchen Schritt'
                 + ' bestätigt. Wer das Material des Verbands führt, legt sie an.',
+            lossTitle: 'Verlustmeldungen',
+            lossText: 'Meldet eine Wache euch ein verlorenes Teil, fragt sie damit Ersatz an. Hier legt ihr fest,'
+                + ' was so eine Meldung mitbringen muss: nichts weiter, eine Notiz der Wache oder zusätzlich'
+                + ' einen Beleg. Fehlt etwas davon, kommt die Meldung gar nicht erst bei euch an.',
+            lossDecideText: 'Über den Verlust selbst entscheidet ihr nicht, der ist bereits passiert und'
+                + ' festgehalten. Ihr entscheidet über den Ersatz: Ihr schickt einen oder lehnt mit Begründung'
+                + ' ab. Vermisst bleibt das Teil so oder so.',
             tip: 'Wer nur eines der beiden Rechte hat, sieht auf dieser Seite nur den zugehörigen Teil.',
         },
         clusterMemberDetail: {
@@ -4007,6 +4019,9 @@ volumes:
             acksText: 'Bestätigt heißt: die Partei, der der Schritt gehört, hat selbst bestätigt. Von der Wache vermerkt heißt: die Wache hat für einen Träger eingetragen, der Ember nicht nutzt und deshalb nicht antworten kann. Erzwungen heißt: jemand hat einen Schritt über eine Partei hinweg eingetragen, die hätte antworten können. Das steht dauerhaft im Verlauf.',
             endings: 'Ablehnen und Abbrechen',
             endingsText: 'Wer an der Reihe ist, kann mit einer Begründung ablehnen. Die Bewegung endet dann, und das abgehende Teil geht dorthin zurück, wo es vorher war. Abbrechen geht, solange die Bewegung noch auf der eigenen Seite steht.',
+            lossReport: 'Verlustmeldungen',
+            lossReportText: 'Meldet eine Wache ein verlorenes Teil, steht oben, was beide Seiten dazu geschrieben haben: die Notiz der Wache und die des Mitglieds vom Melden, jeweils mit dem Namen dahinter. Ein Beleg, den der Verband verlangt hat, hängt daneben und wird von hier heruntergeladen.',
+            lossReportEndingsText: 'Ein Verlust hat keinen Rückweg: Es läuft nur die Hälfte mit dem Ersatz. Lehnt der Verband ab, bleibt das Teil vermisst, und die Begründung steht bei der Bewegung.',
             tip: 'Die Bezeichnungen der Schritte kommen aus dem Ablauf, den deine Wache unter Inventar eingerichtet hat. Eine abgeschlossene Bewegung behält die Worte, unter denen sie gelaufen ist, auch wenn der Ablauf später umbenannt wird.',
         },
         itemDetail: {
@@ -4029,6 +4044,12 @@ volumes:
             historyText: 'Hier siehst du, wem der Gegenstand wann zugewiesen wurde.',
             notesTitle: 'Notizen',
             notesText: 'Als Verwalter kannst du Notizen zum Gegenstand hinterlassen.',
+            lossReportTitle: 'Verlust an den Verband melden',
+            lossReportText: 'Gehört ein vermisster Gegenstand dem Verband, kannst du den Verlust melden und Ersatz'
+                + ' anfragen. Erst damit erfährt der Verband davon; das Markieren als vermisst bleibt bei euch.',
+            lossReportNoteText: 'Du schreibst dazu eine eigene Notiz. Was das Mitglied beim Melden geschrieben hat,'
+                + ' geht als Hinweis mit und ersetzt deine nicht. Manche Verbände verlangen zusätzlich einen Beleg;'
+                + ' dann fragt das Formular danach.',
             tip: 'Über den Zuweisungsverlauf kannst du nachvollziehen, wer den Gegenstand wann hatte.',
         },
         exampleFields: {

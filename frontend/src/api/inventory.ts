@@ -336,6 +336,39 @@ export async function markFound(id: number): Promise<InventoryItem> {
     return res.data
 }
 
+/** What the body that owns a piece of gear asks for before it will consider replacing it. */
+export interface LossReportTerms {
+    /** Whether there is an owner here to report to at all. */
+    reportable: boolean
+    requires?: LossReportRequirementName | null
+}
+
+export const LossReportRequirement = {
+    NOTHING: 'NOTHING',
+    NOTE: 'NOTE',
+    DOCUMENT: 'DOCUMENT',
+} as const
+
+export type LossReportRequirementName = (typeof LossReportRequirement)[keyof typeof LossReportRequirement]
+
+export async function lossReportTerms(itemId: number): Promise<LossReportTerms> {
+    const res = await client.get<LossReportTerms>(`/inventory-items/${itemId}/loss-report`)
+    return res.data
+}
+
+/**
+ * Reports a missing item to the body that owns it, asking for a replacement.
+ *
+ * <p>Multipart because the owner may demand a document: a report short of what it asks for is refused
+ * outright, and writing it first and attaching afterwards would leave half a request standing.
+ */
+export async function reportLoss(itemId: number, note: string, document?: File | null): Promise<void> {
+    const form = new FormData()
+    form.append('note', note)
+    if (document) form.append('document', document)
+    await client.post(`/inventory-items/${itemId}/loss-report`, form)
+}
+
 export async function getSettings(): Promise<InventorySettings> {
     const res = await client.get<InventorySettings>('/inventory-settings')
     return res.data

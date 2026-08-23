@@ -13,6 +13,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.inventory.entity.ContainerPath;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -27,6 +28,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -46,6 +48,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 
@@ -64,6 +67,7 @@ public class InventoryRoutes implements Routes {
     private final MemberIdentityFactory memberIdentityFactory;
     private final StationRepository stationRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final LossReportService lossReportService;
 
     @Inject
     public InventoryRoutes(
@@ -73,7 +77,8 @@ public class InventoryRoutes implements Routes {
             InventoryContainerService containerService,
             MemberIdentityFactory memberIdentityFactory,
             StationRepository stationRepository,
-            StationMemberRepository stationMemberRepository) {
+            StationMemberRepository stationMemberRepository,
+            LossReportService lossReportService) {
         this.inventoryService = inventoryService;
         this.checkService = checkService;
         this.inventoryExportService = inventoryExportService;
@@ -81,6 +86,7 @@ public class InventoryRoutes implements Routes {
         this.memberIdentityFactory = memberIdentityFactory;
         this.stationRepository = stationRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.lossReportService = lossReportService;
     }
 
     private static boolean isBlank(String s) {
@@ -141,6 +147,14 @@ public class InventoryRoutes implements Routes {
         // Marking gear lost is self-service: whoever holds it may say so, and INVENTORY_EDIT reaches any of it
         routes.put(prefix + "/inventory-items/{id}/lost", this::markLost, StationPermission.USER);
         routes.delete(prefix + "/inventory-items/{id}/lost", this::markFound, StationPermission.INVENTORY_EDIT);
+        // Declaring somebody else's gear gone is heavier than asking for a different size, so it is not
+        // the exchange right that reaches it
+        routes.get(
+                prefix + "/inventory-items/{id}/loss-report",
+                this::lossReportTerms,
+                StationPermission.INVENTORY_MANAGER);
+        routes.post(
+                prefix + "/inventory-items/{id}/loss-report", this::reportLoss, StationPermission.INVENTORY_MANAGER);
         routes.delete(prefix + "/inventory-items/{id}", this::deleteItem, StationPermission.INVENTORY_EDIT);
 
         routes.get(prefix + "/inventory-requirements", this::listAllRequirements, StationPermission.INVENTORY_READ);
@@ -790,6 +804,56 @@ public class InventoryRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/inventory-items/{id}/loss-report",
+            methods = HttpMethod.GET,
+            summary = "What the body that owns this gear asks for with a loss report",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LossReportTerms.class)))
+    private void lossReportTerms(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        verifyItemOwnership(id, session);
+        var requires = lossReportService.requirementFor(id);
+        ctx.json(new LossReportTerms(requires.isPresent(), requires.orElse(null)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-items/{id}/loss-report",
+            methods = HttpMethod.POST,
+            summary = "Report a missing item to the body that owns it",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "201"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void reportLoss(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        verifyItemOwnership(id, session);
+
+        // Multipart, because the owner may demand a document and a report short of one is refused outright.
+        // Writing the report first and attaching afterwards would leave half a request standing.
+        String note = ctx.formParam("note");
+        var file = ctx.uploadedFile("document");
+        LossReportService.Attachment attachment = null;
+        if (file != null) {
+            try (var content = file.content()) {
+                attachment = new LossReportService.Attachment(
+                        file.filename(),
+                        file.contentType() != null ? file.contentType() : "application/octet-stream",
+                        content.readAllBytes());
+            } catch (IOException e) {
+                throw new BadRequestResponse("That file could not be read");
+            }
+        }
+        var movement = lossReportService.report(
+                session.stationId(), id, note, attachment, session.member().id());
+        ctx.status(HttpStatus.CREATED).json(movement);
+    }
+
+    @OpenApi(
             path = "/api/v1/inventory-settings",
             methods = HttpMethod.GET,
             summary = "The station's inventory settings",
@@ -1053,6 +1117,14 @@ public class InventoryRoutes implements Routes {
 
     /** What a station has decided about its gear beyond any one inventory. */
     public record InventorySettings(boolean lossNoteRequired) {}
+
+    /**
+     * What the body that owns a piece of gear asks for before it will consider replacing it.
+     *
+     * @param reportable whether there is an owner here to report to at all
+     * @param requires   nothing, a note, or a document as well
+     */
+    public record LossReportTerms(boolean reportable, LossReportRequirement requires) {}
 
     public record ContainerAssignRequest(Integer containerId) {}
 

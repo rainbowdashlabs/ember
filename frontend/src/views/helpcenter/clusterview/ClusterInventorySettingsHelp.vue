@@ -23,6 +23,11 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.clusterInventorySettings.flowsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.clusterInventorySettings.lossTitle')">
+      <p>{{ t('helpCenter.clusterInventorySettings.lossText') }}</p>
+      <p>{{ t('helpCenter.clusterInventorySettings.lossDecideText') }}</p>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.clusterInventorySettings.tip') }}</HelpTip>
   </HelpArticle>
 </template>

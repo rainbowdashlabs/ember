@@ -66,6 +66,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryContainerKindReposi
 import dev.chojo.ember.feature.inventory.repository.InventoryContainerRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryFieldDefinitionRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.repository.ItemMovementDocumentRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
 import dev.chojo.ember.feature.inventory.repository.MovementFlowRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
@@ -74,6 +75,7 @@ import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
+import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
@@ -116,6 +118,7 @@ import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository
 import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
 import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
@@ -186,6 +189,9 @@ public abstract class RepositoryTestBase {
     protected static ItemMovementRepository itemMovementRepo;
     protected static MovementFlowService movementFlowService;
     protected static ItemMovementService itemMovementService;
+
+    protected static ItemMovementDocumentRepository itemMovementDocumentRepo;
+    protected static LossReportService lossReportService;
 
     protected static ClusterItemHandoverService clusterItemHandoverService;
     protected static ExchangeService exchangeService;
@@ -327,6 +333,16 @@ public abstract class RepositoryTestBase {
                 new DomainEventBus(Set.of()));
         clusterItemHandoverService =
                 new ClusterItemHandoverService(inventoryRepo, itemCustodyService, itemMovementService);
+        itemMovementDocumentRepo = new ItemMovementDocumentRepository();
+        var movementBackend = new LocalStorageBackend();
+        lossReportService = new LossReportService(
+                inventoryRepo,
+                itemMovementService,
+                itemMovementDocumentRepo,
+                clusterRepo,
+                stationRepo,
+                new StorageService(new StorageBackendResolver(movementBackend), movementBackend),
+                new DomainEventBus(Set.of()));
         exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         memberGroupRepo = new MemberGroupRepository();
         profileFieldRepo = new ProfileFieldRepository();

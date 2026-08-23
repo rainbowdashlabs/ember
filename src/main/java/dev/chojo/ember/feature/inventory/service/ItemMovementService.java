@@ -141,10 +141,44 @@ public class ItemMovementService {
             String reason,
             Actor actor,
             Integer pickedItemId) {
+        return create(
+                stationId,
+                purpose,
+                memberId,
+                memberName,
+                outgoingItemId,
+                inventoryId,
+                oldSizeId,
+                newSizeId,
+                reason,
+                actor,
+                pickedItemId,
+                false);
+    }
+
+    /**
+     * Starts a movement, saying whether it is a report that the outgoing item is gone.
+     *
+     * @param lostReport whether the item being replaced is missing rather than coming back
+     * @see #create(int, MovementPurpose, Integer, String, Integer, Integer, Integer, Integer, String, Actor, Integer)
+     */
+    public ItemMovement create(
+            int stationId,
+            MovementPurpose purpose,
+            Integer memberId,
+            String memberName,
+            Integer outgoingItemId,
+            Integer inventoryId,
+            Integer oldSizeId,
+            Integer newSizeId,
+            String reason,
+            Actor actor,
+            Integer pickedItemId,
+            boolean lostReport) {
         ItemOwner ownerKind = resolveOwner(outgoingItemId, inventoryId);
         Integer ownerClusterId = resolveOwnerId(outgoingItemId, stationId);
         int flowId = flowService.resolveFlow(stationId, inventoryId, ownerKind, ownerClusterId, purpose);
-        List<MovementFlowStep> steps = flowService.findActiveSteps(flowId);
+        List<MovementFlowStep> steps = walkable(flowService.findActiveSteps(flowId), lostReport);
         if (steps.isEmpty()) throw new BadRequestResponse("That flow has no steps to walk");
 
         MovementFlowStep first = steps.getFirst();
@@ -159,7 +193,8 @@ public class ItemMovementService {
                 oldSizeId,
                 newSizeId,
                 reason,
-                actor.memberId());
+                actor.memberId(),
+                lostReport);
         log.info(
                 "Started {} movement {} on flow {} for {} gear (station={}, member={}, item={})",
                 purpose,
@@ -243,7 +278,8 @@ public class ItemMovementService {
      * @return its steps in order, or an empty list when its flow is gone
      */
     public List<MovementFlowStep> stepsOf(ItemMovement movement) {
-        return movement.flowId() == null ? List.of() : flowService.findAllSteps(movement.flowId());
+        if (movement.flowId() == null) return List.of();
+        return walkable(flowService.findAllSteps(movement.flowId()), movement.lostReport());
     }
 
     /**
@@ -292,6 +328,9 @@ public class ItemMovementService {
         }
 
         Integer subjectItemId = movement.itemFor(step.subject());
+        // A missing item is not somewhere else because a step was walked. It is missing, and the step that
+        // reports it says so about the request rather than about where the thing is.
+        if (movement.lostReport() && step.subject() == StepSubject.OUTGOING) subjectItemId = null;
         if (step.picksItem()) {
             if (pickedItemId == null) throw new BadRequestResponse("This step names the arriving item, so name it");
             movementRepository.setIncomingItem(movementId, pickedItemId);
@@ -305,7 +344,7 @@ public class ItemMovementService {
 
         movementRepository.createLog(movementId, step.id(), step.label(), ackKind, actor.memberIdOrNull(), note);
 
-        MovementFlowStep next = nextStepAfter(movement.flowId(), step.position());
+        MovementFlowStep next = nextStepAfter(movement, step.position());
         if (next == null) {
             settleInTransit(movementRepository.findById(movementId).orElseThrow());
             movementRepository.close(movementId, MovementState.DONE, null);
@@ -401,9 +440,12 @@ public class ItemMovementService {
      * <p>That place follows from the purpose rather than needing to be remembered: a movement with a
      * member is one the member's own gear set out on, so it goes back to them, and one without a
      * member set out from a store, so it goes back to the store it rests in.
+     *
+     * <p>A report that the item is gone has nowhere to put it back: it was missing before the report and it
+     * is missing after, whether the owner sent a replacement or refused one. The loss is recorded either way.
      */
     private void restoreOutgoingItem(ItemMovement movement) {
-        if (movement.outgoingItemId() == null) return;
+        if (movement.outgoingItemId() == null || movement.lostReport()) return;
         if (movement.memberId() != null) {
             custodyService.applyStepCustody(
                     movement.outgoingItemId(), ItemCustody.WITH_MEMBER, movement.memberId(), null);
@@ -467,11 +509,34 @@ public class ItemMovementService {
                 .orElse(null);
     }
 
-    private MovementFlowStep nextStepAfter(int flowId, int position) {
-        return flowService.findActiveSteps(flowId).stream()
+    private MovementFlowStep nextStepAfter(ItemMovement movement, int position) {
+        return walkable(flowService.findActiveSteps(movement.flowId()), movement.lostReport()).stream()
                 .filter(s -> s.position() > position)
                 .findFirst()
                 .orElse(null);
+    }
+
+    /**
+     * The steps this movement actually walks.
+     *
+     * <p>An exchange normally walks two legs: the old item back to the owner, the new one out. A report that
+     * the old item is gone has nothing to walk back, so the steps about the outgoing item are not steps
+     * somebody skipped, they are steps that could never happen. They are left out of the chain entirely
+     * rather than waiting for an acknowledgement nobody can honestly give.
+     *
+     * <p>The first step is the exception, because it is the announcement rather than part of either leg: it
+     * is the act of raising the movement, and raising it is exactly what the station has just done.
+     *
+     * @param steps      the flow's active steps in order
+     * @param lostReport whether the outgoing item is missing rather than coming back
+     * @return the steps to walk, in order
+     */
+    private List<MovementFlowStep> walkable(List<MovementFlowStep> steps, boolean lostReport) {
+        if (!lostReport || steps.isEmpty()) return steps;
+        MovementFlowStep announcement = steps.getFirst();
+        return steps.stream()
+                .filter(s -> s.id() == announcement.id() || s.subject() != StepSubject.OUTGOING)
+                .toList();
     }
 
     /**

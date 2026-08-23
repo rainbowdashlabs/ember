@@ -29,7 +29,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class ItemMovementRepository {
     private static final String MOVEMENT_COLUMNS = """
             id, station_id, purpose, flow_id, current_step_id, member_id, outgoing_item_id, incoming_item_id, \
-            inventory_id, old_size_id, new_size_id, state, reason, created_by, created_at, closed_at, close_reason""";
+            inventory_id, old_size_id, new_size_id, state, reason, created_by, created_at, closed_at, close_reason, \
+            lost_report""";
     private static final String LOG_COLUMNS =
             "id, movement_id, step_id, step_label, ack_kind, changed_by, changed_at, note";
 
@@ -105,15 +106,17 @@ public class ItemMovementRepository {
             Integer oldSizeId,
             Integer newSizeId,
             String reason,
-            Integer createdBy) {
+            Integer createdBy,
+            boolean lostReport) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO item_movement(station_id, purpose, flow_id, current_step_id, member_id, outgoing_item_id,
-                                          inventory_id, old_size_id, new_size_id, reason, created_by)
+                                          inventory_id, old_size_id, new_size_id, reason, created_by, lost_report)
                 VALUES (:station_id, :purpose, :flow_id, :current_step_id, :member_id, :outgoing_item_id,
-                        :inventory_id, :old_size_id, :new_size_id, :reason, :created_by)
+                        :inventory_id, :old_size_id, :new_size_id, :reason, :created_by, :lost_report)
                 RETURNING %s;""",
-                call().bind("station_id", stationId)
+                call().bind("lost_report", lostReport)
+                        .bind("station_id", stationId)
                         .bind("purpose", purpose)
                         .bind("flow_id", flowId)
                         .bind("current_step_id", currentStepId)

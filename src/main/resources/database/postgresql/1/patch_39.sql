@@ -937,3 +937,11 @@ CREATE INDEX IF NOT EXISTS idx_item_movement_document_movement
 
 COMMENT ON TABLE ember_schema.item_movement_document
     IS 'A file attached to one movement as evidence, read by opening that movement.';
+
+-- A report that a piece of gear is gone, raised as an exchange because that is what it is: the owner is
+-- being asked for a replacement. What it lacks is the return leg, since there is nothing to walk back.
+ALTER TABLE ember_schema.item_movement
+    ADD COLUMN IF NOT EXISTS lost_report BOOLEAN NOT NULL DEFAULT FALSE;
+
+COMMENT ON COLUMN ember_schema.item_movement.lost_report
+    IS 'TRUE when the movement was raised to report gear missing, which is what makes it skip the return leg.';

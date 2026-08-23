@@ -110,6 +110,11 @@ const {t} = useI18n()
       </NeutralContainer>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.itemDetail.lossReportTitle')">
+      <p>{{ t('helpCenter.itemDetail.lossReportText') }}</p>
+      <p>{{ t('helpCenter.itemDetail.lossReportNoteText') }}</p>
+    </HelpSection>
+
     <!-- Notes -->
     <HelpSection :title="t('helpCenter.itemDetail.notesTitle')">
       <p>{{ t('helpCenter.itemDetail.notesText') }}</p>

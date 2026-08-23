@@ -93,6 +93,28 @@ export interface MovementStep {
 export interface MovementDetail {
     movement: Movement
     steps: MovementStep[]
+    /** Present when this movement was raised to report gear missing. */
+    lossReport?: LossReport | null
+}
+
+/**
+ * What a report that a piece of gear is gone carries.
+ *
+ * <p>Two notes with two authors, neither standing in for the other: the member said what happened to them,
+ * and the manager said what the station is asking the owner for.
+ */
+export interface LossReport {
+    managerNote?: string | null
+    memberNote?: string | null
+    memberNoteBy?: MemberIdentity | null
+    documentName?: string | null
+    documentType?: string | null
+}
+
+/** The file attached to a report, fetched with the session so it can be handed to the reader. */
+export async function downloadDocument(movementId: number): Promise<Blob> {
+    const res = await client.get(`/movements/${movementId}/document`, {responseType: 'blob'})
+    return res.data as Blob
 }
 
 export interface CreateMovementRequest {

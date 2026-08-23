@@ -23,6 +23,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.clusterMovementDetail.stepsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.clusterMovementDetail.lossTitle')">
+      <p>{{ t('helpCenter.clusterMovementDetail.lossText') }}</p>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.clusterMovementDetail.tip') }}</HelpTip>
   </HelpArticle>
 </template>

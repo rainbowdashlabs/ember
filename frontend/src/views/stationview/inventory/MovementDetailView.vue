@@ -22,6 +22,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {apiErrorMessage} from '@/util/apiError'
 import MovementStep from './movementview/MovementStep.vue'
 import MovementActionPanel from './movementview/MovementActionPanel.vue'
+import LossReportPanel from './movementview/LossReportPanel.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -108,6 +109,8 @@ function force(payload: {note: string; pickedItemId: number | null}) {
           {{ t(`movements.state.${detail.movement.state}`) }}
         </div>
       </NeutralContainer>
+
+      <LossReportPanel v-if="detail.lossReport" :movement-id="movementId" :report="detail.lossReport"/>
 
       <div>
         <SubHeader class="mb-2">{{ t('movements.chain') }}</SubHeader>

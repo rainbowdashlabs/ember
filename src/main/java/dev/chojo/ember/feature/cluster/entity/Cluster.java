@@ -32,6 +32,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param feelLocked       whether member stations may change the rest of their look and feel
  * @param logoLocked       whether member stations may change their logo
  * @param storagePoolBytes how much storage it has to hand out, or {@code null} for no pool of its own
+ * @param lossReportRequires what a station has to bring when it reports a piece of this body's gear missing
  * @param createdAt        when it was created
  */
 public record Cluster(
@@ -50,6 +51,7 @@ public record Cluster(
         String customThemeColors,
         ThemeFeel defaultFeel,
         boolean usesInventory,
+        LossReportRequirement lossReportRequires,
         Instant createdAt) {
     /**
      * Creates a row mapping for database result set conversion.
@@ -71,6 +73,7 @@ public record Cluster(
                 row.getString("custom_theme_colors"),
                 row.getEnum("default_feel", ThemeFeel.class),
                 row.getBoolean("uses_inventory"),
+                row.getEnum("loss_report_requires", LossReportRequirement.class),
                 row.get("created_at", INSTANT_TIMESTAMP));
     }
 }

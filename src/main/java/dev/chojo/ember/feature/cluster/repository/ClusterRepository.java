@@ -13,6 +13,7 @@ import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.entity.ClusterMemberGroup;
+import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.util.sql.SqlSupport;
@@ -37,7 +38,7 @@ public class ClusterRepository {
     private static final String CLUSTER_COLUMNS = """
             id, uid, name, description, home_station_id, auto_federate, theme_locked, colors_locked, \
             feel_locked, logo_locked, storage_pool_bytes, default_theme, custom_theme_colors, default_feel, \
-            uses_inventory, created_at""";
+            uses_inventory, loss_report_requires, created_at""";
     private static final String MEMBER_COLUMNS = "id, cluster_id, account_id, user_type";
 
     /**
@@ -413,6 +414,20 @@ public class ClusterRepository {
     public boolean setUsesInventory(int id, boolean usesInventory) {
         return query("UPDATE cluster SET uses_inventory = :uses_inventory WHERE id = :id;")
                 .single(call().bind("uses_inventory", usesInventory).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Sets what a station has to bring when it reports a piece of the cluster's gear missing.
+     *
+     * @param id       the cluster
+     * @param requires nothing, a note, or a document as well
+     * @return {@code true} if a row was updated
+     */
+    public boolean setLossReportRequires(int id, LossReportRequirement requires) {
+        return query("UPDATE cluster SET loss_report_requires = :requires WHERE id = :id;")
+                .single(call().bind("requires", requires).bind("id", id))
                 .update()
                 .changed();
     }

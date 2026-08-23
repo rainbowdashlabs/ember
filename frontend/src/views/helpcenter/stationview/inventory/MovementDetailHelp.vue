@@ -30,6 +30,11 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.movementDetail.endingsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.movementDetail.lossReport')">
+      <p>{{ t('helpCenter.movementDetail.lossReportText') }}</p>
+      <p>{{ t('helpCenter.movementDetail.lossReportEndingsText') }}</p>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.movementDetail.tip') }}</HelpTip>
   </HelpArticle>
 </template>

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {LossReportRequirementName} from './inventory'
 
 /** Where a piece of the cluster's gear currently is. */
 export interface ClusterItem {
@@ -61,4 +62,18 @@ export async function createFlow(name: string, purpose: string): Promise<Cluster
  */
 export async function setUsesInventory(usesInventory: boolean): Promise<void> {
     await client.put('/cluster/inventory/settings', {usesInventory})
+}
+
+/** What the cluster wants to read before it considers replacing something that was lost. */
+export interface LossReportSettings {
+    requires: LossReportRequirementName
+}
+
+export async function getLossReportSettings(): Promise<LossReportSettings> {
+    const res = await client.get<LossReportSettings>('/cluster/inventory/loss-report')
+    return res.data
+}
+
+export async function setLossReportSettings(requires: LossReportRequirementName): Promise<void> {
+    await client.put('/cluster/inventory/loss-report', {requires})
 }
