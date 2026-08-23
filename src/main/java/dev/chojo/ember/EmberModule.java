@@ -214,6 +214,7 @@ import dev.chojo.ember.feature.system.service.DemoClusterSeeder;
 import dev.chojo.ember.feature.system.service.DemoEventSeeder;
 import dev.chojo.ember.feature.system.service.DemoFederationSeeder;
 import dev.chojo.ember.feature.system.service.DemoFormSeeder;
+import dev.chojo.ember.feature.system.service.DemoFreshStationSeeder;
 import dev.chojo.ember.feature.system.service.DemoInventorySeeder;
 import dev.chojo.ember.feature.system.service.DemoKnowledgeBaseSeeder;
 import dev.chojo.ember.feature.system.service.DemoLendingSeeder;
@@ -428,6 +429,7 @@ public class EmberModule extends AbstractModule {
         demoSeederBinder.addBinding().to(DemoLendingSeeder.class);
         demoSeederBinder.addBinding().to(DemoNotificationSeeder.class);
         demoSeederBinder.addBinding().to(DemoSetupSeeder.class);
+        demoSeederBinder.addBinding().to(DemoFreshStationSeeder.class);
         demoSeederBinder.addBinding().to(DemoTwoFactorSeeder.class);
 
         // Domain event handlers

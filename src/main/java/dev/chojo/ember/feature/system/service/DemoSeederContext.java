@@ -6,20 +6,19 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 
 /**
- * Carries the entities produced during a demo seed run from one {@link DemoSeeder} band to the next.
+ * What is left of the run context for the seeders that still take the whole run.
  *
- * <p>Holds nothing itself any more. What belongs to the instance lives on {@link DemoRunContext} and what
- * belongs to one station on {@link DemoStationContext}, and this reads both through the accessors the
- * seeders already use, so the split costs no seeder a line until it is moved across deliberately.
+ * <p>Holds nothing itself. What belongs to the instance lives on {@link DemoRunContext} and what belongs to
+ * one station on {@link DemoStationContext}; everything hung on a station has moved to
+ * {@link DemoPerStationSeeder} already, and what is left here is what the six instance-wide seeders read.
  *
- * <p>Every method here that names a station means the first one. That is the whole of what a second
- * station would break, and it is why the two contexts behind it exist: a seeder moved onto them says which
- * station it means, and this one cannot.
+ * <p>Every method that names a station means the first one, which is right for those six and wrong for
+ * anything else. That is why it shrinks with each seeder that moves across, and why it goes when the last
+ * of them does.
  */
 public class DemoSeederContext {
     private final DemoRunContext run;
@@ -82,40 +81,8 @@ public class DemoSeederContext {
         return primary().adminMember();
     }
 
-    public void adminMember(StationMember adminMember) {
-        primary().adminMember(adminMember);
-    }
-
     public DemoMemberSeeder.SeedResult members() {
         return primary().members();
-    }
-
-    public void members(DemoMemberSeeder.SeedResult members) {
-        primary().members(members);
-    }
-
-    public DemoEventSeeder.SeedResult events() {
-        return primary().events();
-    }
-
-    public void events(DemoEventSeeder.SeedResult events) {
-        primary().events(events);
-    }
-
-    public DemoNewsSeeder.SeedResult news() {
-        return primary().news();
-    }
-
-    public void news(DemoNewsSeeder.SeedResult news) {
-        primary().news(news);
-    }
-
-    public LostAndFoundItem lostAndFoundItem() {
-        return primary().lostAndFoundItem();
-    }
-
-    public void lostAndFoundItem(LostAndFoundItem lostAndFoundItem) {
-        primary().lostAndFoundItem(lostAndFoundItem);
     }
 
     public DemoFederationSeeder.SeedResult federation() {

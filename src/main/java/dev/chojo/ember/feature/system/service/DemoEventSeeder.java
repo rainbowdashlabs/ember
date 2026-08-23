@@ -46,7 +46,7 @@ import java.util.Map;
  * event fields, attendance templates, and event templates.
  */
 @Singleton
-public class DemoEventSeeder implements DemoSeeder {
+public class DemoEventSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoEventSeeder.class);
 
     private final EventCategoryRepository categoryRepository;
@@ -84,15 +84,15 @@ public class DemoEventSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        var members = context.members();
-        context.events(seed(
-                context.stationId(),
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        var members = station.members();
+        station.events(seed(
+                station.stationId(),
                 members.groupAnfaenger().id(),
                 members.groupFortgeschritten().id(),
                 members.anfaenger(),
                 members.fortgeschritten()));
-        seedTemplates(context.stationId());
+        seedTemplates(station.stationId());
     }
 
     public SeedResult seed(

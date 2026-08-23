@@ -33,7 +33,7 @@ import java.nio.file.Path;
  * disk.
  */
 @Singleton
-public class DemoMediaSeeder implements DemoSeeder {
+public class DemoMediaSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoMediaSeeder.class);
     private static final Path AVATAR_CACHE_DIR = Path.of("data", "demo-avatars");
 
@@ -64,8 +64,8 @@ public class DemoMediaSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        seedProfilePictures(context.stationId());
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        seedProfilePictures(station.stationId());
         log.info("Demo: Created profile pictures");
     }
 

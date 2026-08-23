@@ -43,7 +43,7 @@ import java.util.Map;
  * ids are taken from real seeded records so deep links resolve.
  */
 @Singleton
-public class DemoNotificationSeeder implements DemoSeeder {
+public class DemoNotificationSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoNotificationSeeder.class);
 
     private final NotificationRepository notificationRepository;
@@ -80,8 +80,8 @@ public class DemoNotificationSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        int stationId = context.stationId();
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        int stationId = station.stationId();
         var nextMonday = LocalDate.now()
                 .with(DayOfWeek.MONDAY)
                 .plusWeeks(LocalDate.now().getDayOfWeek().getValue() > 1 ? 1 : 0);
@@ -124,14 +124,14 @@ public class DemoNotificationSeeder implements DemoSeeder {
                         .orElse(null));
 
         var showcase = new ShowcaseContext(
-                context.news().firstNewsId(),
-                context.events().stadtfestId(),
-                context.events().evUebung().id(),
+                station.news().firstNewsId(),
+                station.events().stadtfestId(),
+                station.events().evUebung().id(),
                 nextMonday.toString(),
                 null,
-                context.lostAndFoundItem() == null
+                station.lostAndFoundItem() == null
                         ? null
-                        : context.lostAndFoundItem().id(),
+                        : station.lostAndFoundItem().id(),
                 lendingRequestId,
                 boardId,
                 boardKey,
@@ -141,7 +141,7 @@ public class DemoNotificationSeeder implements DemoSeeder {
                 inventoryId,
                 null,
                 stationId);
-        seedShowcase(context.adminMember(), context.members().anfaenger(), showcase);
+        seedShowcase(station.adminMember(), station.members().anfaenger(), showcase);
         log.info("Demo: Created showcase notification for every NotificationType");
     }
 

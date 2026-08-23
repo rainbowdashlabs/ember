@@ -31,7 +31,7 @@ import java.util.UUID;
  * Seeder for demo waiting list data with sample entries and invite codes.
  */
 @Singleton
-public class DemoWaitingListSeeder implements DemoSeeder {
+public class DemoWaitingListSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoWaitingListSeeder.class);
     private final WaitingListRepository waitingListRepository;
     private final MemberGroupRepository memberGroupRepository;
@@ -59,8 +59,8 @@ public class DemoWaitingListSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        seedWaitingList(context.stationId(), context.members().groupAnfaenger().id());
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        seedWaitingList(station.stationId(), station.members().groupAnfaenger().id());
         log.info("Demo: Created Waiting list");
     }
 

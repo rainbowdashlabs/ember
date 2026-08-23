@@ -36,7 +36,7 @@ import java.util.Random;
  * manager assignments, and user tags.
  */
 @Singleton
-public class DemoMemberSeeder implements DemoSeeder {
+public class DemoMemberSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoMemberSeeder.class);
 
     private final AccountRepository accountRepository;
@@ -74,11 +74,11 @@ public class DemoMemberSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        var members = seed(context.stationId(), context.passwordHash(), new Random(42));
-        context.members(members);
-        context.adminMember(members.head());
-        stationRepository.setOwner(context.stationId(), members.head().id());
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        var members = seed(station.stationId(), run.passwordHash(), new Random(42));
+        station.members(members);
+        station.adminMember(members.head());
+        stationRepository.setOwner(station.stationId(), members.head().id());
     }
 
     public SeedResult seed(int stationId, String passwordHash, Random rng) {

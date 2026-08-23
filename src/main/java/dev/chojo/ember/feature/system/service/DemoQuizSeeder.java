@@ -30,7 +30,7 @@ import java.util.Map;
  * Seeder for demo quiz catalogs, questions, and tests.
  */
 @Singleton
-public class DemoQuizSeeder implements DemoSeeder {
+public class DemoQuizSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoQuizSeeder.class);
     private final QuizCatalogRepository quizCatalogRepository;
     private final QuizTestRepository quizTestRepository;
@@ -55,12 +55,12 @@ public class DemoQuizSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        var members = context.members();
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        var members = station.members();
         var testTakers = new ArrayList<Integer>();
         for (var m : members.anfaenger()) testTakers.add(m.id());
         for (var m : members.fortgeschritten()) testTakers.add(m.id());
-        seedQuiz(context.stationId(), context.adminMember().id(), testTakers);
+        seedQuiz(station.stationId(), station.adminMember().id(), testTakers);
         log.info("Demo: Created Quiz entries");
     }
 

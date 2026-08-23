@@ -434,7 +434,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 apiConfig);
         var sessionSeeder = new DemoSessionSeeder(accountRepo);
         var settingsSeeder = new DemoSettingsSeeder(feedTokenService, stationRepo, applicationSettingRepo);
-        var setupSeeder = new DemoSetupSeeder(stationRepo, accountRepo, stationMemberRepo);
+        var setupSeeder = new DemoSetupSeeder(stationRepo);
+        var freshStationSeeder = new DemoFreshStationSeeder(stationRepo, accountRepo, stationMemberRepo);
         // A demo instance is what lets the TOTP service run without a configured encryption key,
         // which is the same reason the seeder only ever runs on one.
         var demoInstance = mock(Demo.class);
@@ -474,6 +475,7 @@ class DemoServiceTest extends RepositoryTestBase {
                         lendingSeeder,
                         notificationSeeder,
                         setupSeeder,
+                        freshStationSeeder,
                         twoFactorSeeder),
                 stationRepo,
                 clusterRepo);

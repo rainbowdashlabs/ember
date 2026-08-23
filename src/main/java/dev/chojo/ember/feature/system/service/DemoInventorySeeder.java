@@ -49,7 +49,7 @@ import java.util.function.Function;
  * one assigned.
  */
 @Singleton
-public class DemoInventorySeeder implements DemoSeeder {
+public class DemoInventorySeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoInventorySeeder.class);
     private static final List<String> EXCHANGE_REASONS = List.of(
             "Zu klein geworden",
@@ -101,20 +101,20 @@ public class DemoInventorySeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        var members = context.members();
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        var members = station.members();
         var rng = new Random(42_002);
         seedInventory(
-                context.stationId(),
+                station.stationId(),
                 rng,
                 members.anfaenger(),
                 members.fortgeschritten(),
                 members.groupAnfaenger().id(),
                 members.groupFortgeschritten().id());
         seedInventoryChecks(
-                context.stationId(), rng, members.betreuer(), members.anfaenger(), members.fortgeschritten());
-        seedExchanges(context.stationId(), rng, members.anfaenger(), members.fortgeschritten(), members.betreuer());
-        seedProcurements(context.stationId(), members.anfaenger(), members.fortgeschritten());
+                station.stationId(), rng, members.betreuer(), members.anfaenger(), members.fortgeschritten());
+        seedExchanges(station.stationId(), rng, members.anfaenger(), members.fortgeschritten(), members.betreuer());
+        seedProcurements(station.stationId(), members.anfaenger(), members.fortgeschritten());
     }
 
     /**

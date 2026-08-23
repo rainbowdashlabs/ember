@@ -23,7 +23,7 @@ import java.util.List;
  * notifications for the members configured as recipients.
  */
 @Singleton
-public class DemoLostAndFoundSeeder implements DemoSeeder {
+public class DemoLostAndFoundSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoLostAndFoundSeeder.class);
 
     private final LostAndFoundService service;
@@ -39,9 +39,9 @@ public class DemoLostAndFoundSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        var members = context.members();
-        context.lostAndFoundItem(seed(context.stationId(), members.betreuer(), members.anfaenger(), members.eltern()));
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        var members = station.members();
+        station.lostAndFoundItem(seed(station.stationId(), members.betreuer(), members.anfaenger(), members.eltern()));
     }
 
     /**
