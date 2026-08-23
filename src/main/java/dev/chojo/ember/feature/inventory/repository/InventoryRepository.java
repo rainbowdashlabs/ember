@@ -37,7 +37,7 @@ public class InventoryRepository {
     private static final String INVENTORY_COLUMNS = "id, station_id, name, inventory_type, has_sizes";
     private static final String INVENTORY_SIZE_COLUMNS = "id, inventory_id, label, position, note";
     private static final String INVENTORY_ITEM_COLUMNS =
-            "id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, owner_kind, owner_cluster_id, custody, custody_station_id, custody_movement_id, container_id";
+            "id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, lost_note, lost_note_by, owner_kind, owner_cluster_id, custody, custody_station_id, custody_movement_id, container_id";
     private static final String INVENTORY_ITEM_HISTORY_COLUMNS =
             "id, item_id, member_id, member_name, given_out, returned";
     private static final String INVENTORY_REQUIREMENT_COLUMNS =
@@ -585,6 +585,22 @@ public class InventoryRepository {
                         .bind("assigned_to", assignedTo)
                         .bind("mark_lost", custody == ItemCustody.LOST)
                         .bind("id", itemId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Writes or clears what was said when the item was reported missing.
+     *
+     * @param itemId the item ID
+     * @param note   what was written, or {@code null} to clear it
+     * @param noteBy who wrote it, or {@code null}
+     * @return {@code true} if the item row was updated
+     */
+    public boolean setLostNote(int itemId, String note, Integer noteBy) {
+        return query("""
+                UPDATE inventory_item SET lost_note = :note, lost_note_by = :note_by WHERE id = :id;""")
+                .single(call().bind("note", note).bind("note_by", noteBy).bind("id", itemId))
                 .update()
                 .changed();
     }

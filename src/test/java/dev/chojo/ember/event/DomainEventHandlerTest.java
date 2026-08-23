@@ -934,7 +934,8 @@ class DomainEventHandlerTest {
                 null,
                 null,
                 StationKind.REGULAR,
-                null);
+                null,
+                false);
     }
 
     // -- ClusterItemIssuedHandler --

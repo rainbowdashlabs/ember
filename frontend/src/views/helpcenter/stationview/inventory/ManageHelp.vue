@@ -71,6 +71,11 @@ const {t} = useI18n()
       <HelpSection :title="t('helpCenter.inventoryManage.assignTitle')">
         <p>{{ t('helpCenter.inventoryManage.assignText') }}</p>
       </HelpSection>
+
+      <HelpSection :title="t('helpCenter.inventoryManage.lossTitle')">
+        <p>{{ t('helpCenter.inventoryManage.lossText') }}</p>
+        <p>{{ t('helpCenter.inventoryManage.lossNoteText') }}</p>
+      </HelpSection>
     </HelpPermissionGuard>
 
     <HelpTip>{{ t('helpCenter.inventoryManage.tip') }}</HelpTip>

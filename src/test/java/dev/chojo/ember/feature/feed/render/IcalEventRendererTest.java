@@ -97,7 +97,8 @@ class IcalEventRendererTest {
                 null,
                 null,
                 StationKind.REGULAR,
-                null);
+                null,
+                false);
     }
 
     // -- visibility --

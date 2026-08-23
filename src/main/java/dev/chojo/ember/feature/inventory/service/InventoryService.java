@@ -418,11 +418,13 @@ public class InventoryService {
     /**
      * Marks an item as lost.
      *
-     * @param id the item ID
+     * @param id     the item ID
+     * @param note   what whoever reported it wrote, or {@code null}
+     * @param noteBy who wrote that note, or {@code null}
      * @return the updated item, or empty if not found
      */
-    public Optional<InventoryItem> markLost(int id) {
-        return custodyService.markLost(id);
+    public Optional<InventoryItem> markLost(int id, String note, Integer noteBy) {
+        return custodyService.markLost(id, note, noteBy);
     }
 
     /**

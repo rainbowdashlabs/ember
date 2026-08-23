@@ -22,6 +22,7 @@ import ScannerPanel from './manageview/ScannerPanel.vue'
 import InventorySummaryCard from './manageview/InventorySummaryCard.vue'
 import CreateInventoryModal from './manageview/CreateInventoryModal.vue'
 import MovementFlowPanel from './manageview/MovementFlowPanel.vue'
+import LossSettingsPanel from './manageview/LossSettingsPanel.vue'
 
 const routes = useInventoryRoutes()
 
@@ -99,6 +100,8 @@ function onError() {
             @remove="requestDelete"
           />
         </div>
+
+        <LossSettingsPanel />
 
         <MovementFlowPanel />
       </template>

@@ -306,7 +306,7 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Order(48)
     void markLostAndFound() {
         InventoryItem item = inventoryRepo.createItem(inventoryId, "LOST-001", "Lost Item", null, null);
-        assertTrue(itemCustodyService.markLost(item.id()).isPresent());
+        assertTrue(itemCustodyService.markLost(item.id(), null, null).isPresent());
         assertNotNull(inventoryRepo.findItemById(item.id()).orElseThrow().lostAt());
 
         assertTrue(itemCustodyService.markFound(item.id()).isPresent());

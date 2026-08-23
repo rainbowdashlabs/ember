@@ -881,3 +881,59 @@ ALTER TABLE ember_schema.cluster
 
 COMMENT ON COLUMN ember_schema.cluster.uses_inventory
     IS 'TRUE when the cluster keeps its gear here, which is what lets its own steps appear in a movement.';
+
+
+-- ============================================================
+
+-- Losing a piece of gear, and asking the body above the station to replace it.
+--
+-- Marking something lost and reporting the loss are two acts rather than one. A station losing track of
+-- a jacket is its own business until it wants a new one, so the marking travels nowhere; the report is
+-- an ordinary exchange raised afterwards, and what it has to carry is the owner's to demand.
+
+ALTER TABLE ember_schema.inventory_item
+    ADD COLUMN IF NOT EXISTS lost_note    TEXT,
+    ADD COLUMN IF NOT EXISTS lost_note_by INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
+
+COMMENT ON COLUMN ember_schema.inventory_item.lost_note
+    IS 'What was written when the item was marked lost, cleared when it is found again.';
+COMMENT ON COLUMN ember_schema.inventory_item.lost_note_by
+    IS 'Who wrote that note, which is the guardian rather than the member when one acted for the other.';
+
+ALTER TABLE ember_schema.station
+    ADD COLUMN IF NOT EXISTS loss_note_required BOOLEAN NOT NULL DEFAULT FALSE;
+
+COMMENT ON COLUMN ember_schema.station.loss_note_required
+    IS 'Whether a member marking their own gear lost must write a note about it.';
+
+ALTER TABLE ember_schema.cluster
+    ADD COLUMN IF NOT EXISTS loss_report_requires TEXT NOT NULL DEFAULT 'NOTHING';
+
+ALTER TABLE ember_schema.cluster
+    DROP CONSTRAINT IF EXISTS chk_cluster_loss_report_requires;
+
+ALTER TABLE ember_schema.cluster
+    ADD CONSTRAINT chk_cluster_loss_report_requires
+        CHECK (loss_report_requires IN ('NOTHING', 'NOTE', 'DOCUMENT'));
+
+COMMENT ON COLUMN ember_schema.cluster.loss_report_requires
+    IS 'What a loss report must carry before the association will look at it: NOTHING, NOTE or DOCUMENT.';
+
+-- Evidence hangs off the movement rather than off the item or the member: it is evidence for this one
+-- request, so opening the movement shows the report, both notes and the attachment in one place.
+CREATE TABLE IF NOT EXISTS ember_schema.item_movement_document
+(
+    id          SERIAL PRIMARY KEY,
+    movement_id INTEGER   NOT NULL REFERENCES ember_schema.item_movement (id) ON DELETE CASCADE,
+    file_name   TEXT      NOT NULL,
+    mime_type   TEXT      NOT NULL,
+    size_bytes  BIGINT    NOT NULL,
+    uploaded_by INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_item_movement_document_movement
+    ON ember_schema.item_movement_document (movement_id);
+
+COMMENT ON TABLE ember_schema.item_movement_document
+    IS 'A file attached to one movement as evidence, read by opening that movement.';

@@ -36,7 +36,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class StationRepository {
 
     private static final String STATION_COLUMNS =
-            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, default_feel, allow_user_feel, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled, landing_page_id, public_pages_enabled, public_slug, public_waitlist_enabled, public_blog_enabled, address_line, postal_code, city, country, latitude, longitude, setup_completed_at, station_kind, cluster_id";
+            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, default_feel, allow_user_feel, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled, landing_page_id, public_pages_enabled, public_slug, public_waitlist_enabled, public_blog_enabled, address_line, postal_code, city, country, latitude, longitude, setup_completed_at, station_kind, cluster_id, loss_note_required";
 
     private final Cache<Integer, UUID> uidCache = Caffeine.newBuilder()
             .expireAfterAccess(5, TimeUnit.MINUTES)
@@ -286,6 +286,13 @@ public class StationRepository {
     public boolean updatePublicKbMode(int id, PublicKbMode mode) {
         return query("UPDATE station SET public_kb_mode = :mode WHERE id = :id;")
                 .single(call().bind("mode", mode).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    public boolean updateLossNoteRequired(int id, boolean required) {
+        return query("UPDATE station SET loss_note_required = :required WHERE id = :id;")
+                .single(call().bind("required", required).bind("id", id))
                 .update()
                 .changed();
     }

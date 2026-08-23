@@ -686,7 +686,7 @@ public class DemoInventorySeeder implements DemoSeeder {
                 String note = result == CheckResult.LOST ? "Seit letzter Übung vermisst" : "";
                 inventoryCheckRepository.createCheckItem(check.id(), item.id(), item.inventoryId(), result, note);
                 if (result == CheckResult.LOST) {
-                    custodyService.markLost(item.id());
+                    custodyService.markLost(item.id(), note, null);
                 }
             }
             checkedCount++;

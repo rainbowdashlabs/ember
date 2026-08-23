@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:43a263a7eb0fa005a85f6d95fd6f2c0fc499ae24e7a969661bb0ee2c81ebf4bd",
-  "generatedAt" : "2026-08-21T11:45:24Z",
+  "schemaHash" : "sha256:c96e7231f7fec5d4601648dd85e8f243a77862e50579166ad056eb7c0b61a2e6",
+  "generatedAt" : "2026-08-22T23:50:37Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -2882,7 +2882,7 @@
     "cluster" : {
       "feature" : "cluster",
       "scope" : "CLUSTER",
-      "tableHash" : "sha256:01b629ff0dade3a0bcafed6cd71509607326045f473e4d1a62d2f56ecb536471",
+      "tableHash" : "sha256:e3c778b03b2539052494b187748c5d3183540067323bd944bf331e7fb10f10b8",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -2979,6 +2979,12 @@
         "nullable" : false,
         "verified" : true,
         "description" : "TRUE when the cluster keeps its gear here, which is what lets its own steps appear in a movement."
+      }, {
+        "name" : "loss_report_requires",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What a loss report must carry before the association will look at it: NOTHING, NOTE or DOCUMENT."
       } ],
       "foreignKeys" : [ {
         "column" : "home_station_id",
@@ -8128,7 +8134,7 @@
     "inventory_item" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:a279076422c6ad9e2d32fb68bc2cc7473c86c3364921bc511e007a0a320d2c5f",
+      "tableHash" : "sha256:89b9e124685f207ad8912a50df5e8a696e3d7239d7e0f65ae8a157d5fa2c1f2d",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -8213,6 +8219,18 @@
         "nullable" : true,
         "verified" : true,
         "description" : "The movement holding the item while it is IN_TRANSIT. Null for every other custody."
+      }, {
+        "name" : "lost_note",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "What was written when the item was marked lost, cleared when it is found again."
+      }, {
+        "name" : "lost_note_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who wrote that note, which is the guardian rather than the member when one acted for the other."
       } ],
       "foreignKeys" : [ {
         "column" : "assigned_to",
@@ -8239,6 +8257,11 @@
         "refTable" : "inventory",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
+      }, {
+        "column" : "lost_note_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
       }, {
         "column" : "owner_cluster_id",
         "refTable" : "cluster",
@@ -8642,6 +8665,84 @@
         } ]
       },
       "description" : "One movement of gear between two parties, walking the flow pinned on it. Replaces the equipment exchange request, which could only ever be an exchange."
+    },
+    "item_movement_document" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:6cc51acdd53bf860f23a013ed33aef6c3c3cb7265f8b3fb9738b6a25085cff73",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "movement_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The movement this file is evidence for. It goes when the movement goes."
+      }, {
+        "name" : "file_name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The name the file was uploaded under, used when it is downloaded again."
+      }, {
+        "name" : "mime_type",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The media type it was uploaded as, used when it is served back."
+      }, {
+        "name" : "size_bytes",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "How large the file is, counted against the station's storage."
+      }, {
+        "name" : "uploaded_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The member who attached it, or null once that membership is gone."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamp",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When it was attached."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "movement_id",
+        "refTable" : "item_movement",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "uploaded_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "uploaded_by"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "uploaded_by",
+          "strategy" : "NULL",
+          "reason" : "Evidence kept with the movement it belongs to, uploader unlinked"
+        } ]
+      },
+      "description" : "A file attached to one movement as evidence, read by opening that movement."
     },
     "item_movement_log" : {
       "feature" : "inventory",
@@ -13180,7 +13281,7 @@
     "station" : {
       "feature" : "station",
       "scope" : "STATION",
-      "tableHash" : "sha256:4186aa68d1e3eb8d1e6e42a5326df3379a064a302997d46ba116acdd09c47065",
+      "tableHash" : "sha256:3a044e9b88c8958068e334f415031cea131f69cfc2254ef799b090a3d81ea6b6",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -13437,6 +13538,12 @@
         "nullable" : true,
         "verified" : true,
         "description" : "The cluster this station belongs to, or null when it answers to nobody."
+      }, {
+        "name" : "loss_note_required",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether a member marking their own gear lost must write a note about it."
       } ],
       "foreignKeys" : [ {
         "column" : "cluster_id",

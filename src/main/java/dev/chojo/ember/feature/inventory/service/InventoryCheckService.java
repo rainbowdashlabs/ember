@@ -163,7 +163,7 @@ public class InventoryCheckService {
                     check.id(), result.itemId(), result.inventoryId(), result.result(), result.note());
 
             if (result.result() == CheckResult.LOST && result.itemId() != null) {
-                custodyService.markLost(result.itemId());
+                custodyService.markLost(result.itemId(), result.note(), checkedBy);
             }
         }
 
@@ -236,7 +236,7 @@ public class InventoryCheckService {
             checkRepository.createCheckItem(
                     check.id(), result.itemId(), result.inventoryId(), result.result(), result.note());
             if (result.result() == CheckResult.LOST && result.itemId() != null) {
-                custodyService.markLost(result.itemId());
+                custodyService.markLost(result.itemId(), result.note(), checkedBy);
             }
         }
         log.info(

@@ -27,7 +27,10 @@ import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -59,6 +62,8 @@ public class InventoryRoutes implements Routes {
     private final InventoryExportService inventoryExportService;
     private final InventoryContainerService containerService;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final StationRepository stationRepository;
+    private final StationMemberRepository stationMemberRepository;
 
     @Inject
     public InventoryRoutes(
@@ -66,12 +71,16 @@ public class InventoryRoutes implements Routes {
             InventoryCheckService checkService,
             InventoryExportService inventoryExportService,
             InventoryContainerService containerService,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            StationRepository stationRepository,
+            StationMemberRepository stationMemberRepository) {
         this.inventoryService = inventoryService;
         this.checkService = checkService;
         this.inventoryExportService = inventoryExportService;
         this.containerService = containerService;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.stationRepository = stationRepository;
+        this.stationMemberRepository = stationMemberRepository;
     }
 
     private static boolean isBlank(String s) {
@@ -129,7 +138,8 @@ public class InventoryRoutes implements Routes {
                 this::setItemContainer,
                 StationPermission.INVENTORY_STORAGE);
         routes.get(prefix + "/inventory-items/{id}/history", this::getHistory, StationPermission.INVENTORY_READ);
-        routes.put(prefix + "/inventory-items/{id}/lost", this::markLost, StationPermission.INVENTORY_EDIT);
+        // Marking gear lost is self-service: whoever holds it may say so, and INVENTORY_EDIT reaches any of it
+        routes.put(prefix + "/inventory-items/{id}/lost", this::markLost, StationPermission.USER);
         routes.delete(prefix + "/inventory-items/{id}/lost", this::markFound, StationPermission.INVENTORY_EDIT);
         routes.delete(prefix + "/inventory-items/{id}", this::deleteItem, StationPermission.INVENTORY_EDIT);
 
@@ -145,6 +155,10 @@ public class InventoryRoutes implements Routes {
                 prefix + "/inventory-requirements/{id}", this::deleteRequirement, StationPermission.INVENTORY_MANAGER);
 
         routes.post(prefix + "/inventories/members/export", this::exportMembers, StationPermission.INVENTORY_READ);
+
+        // A member has to know whether a note is expected before they are refused for leaving it out
+        routes.get(prefix + "/inventory-settings", this::getInventorySettings, StationPermission.USER);
+        routes.put(prefix + "/inventory-settings", this::updateInventorySettings, StationPermission.INVENTORY_MANAGER);
     }
 
     // -- Inventories --
@@ -271,7 +285,19 @@ public class InventoryRoutes implements Routes {
                 entry.movementStep(),
                 entry.movementIncoming(),
                 item.ownerKind(),
-                item.ownerClusterId());
+                item.ownerClusterId(),
+                item.lostNote(),
+                noteAuthor(item.lostNoteBy()));
+    }
+
+    /**
+     * Who wrote the note about a loss, as an identity rather than a name.
+     *
+     * <p>It matters who it was: a guardian may report a loss for the person they act for, and the note then
+     * says so rather than reading as if the member wrote it themselves.
+     */
+    private MemberIdentity noteAuthor(Integer memberId) {
+        return memberId == null ? null : memberIdentityFactory.fromMemberId(memberId);
     }
 
     @OpenApi(
@@ -706,16 +732,86 @@ public class InventoryRoutes implements Routes {
             summary = "Mark an inventory item as lost",
             tags = {"Inventory"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LostRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryItem.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void markLost(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        verifyItemOwnership(id, UserSession.from(ctx));
-        inventoryService.markLost(id).ifPresentOrElse(ctx::json, () -> {
+        verifyItemOwnership(id, session);
+        var item = inventoryService.findItemById(id).orElseThrow(NotFoundResponse::new);
+        String note =
+                ctx.body().isBlank() ? null : ctx.bodyAsClass(LostRequest.class).note();
+        note = isBlank(note) ? null : note.trim();
+
+        // Whoever looks after the station's gear reaches all of it. Everybody else reaches what they hold.
+        if (!session.hasPermission(StationPermission.INVENTORY_EDIT)) {
+            requireHolds(session, item);
+            if (note == null && lossNoteRequired(session.stationId())) {
+                throw new BadRequestResponse("This station asks for a note when gear goes missing");
+            }
+        }
+        Integer noteBy = note == null || session.member() == null
+                ? null
+                : session.member().id();
+        inventoryService.markLost(id, note, noteBy).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
+    }
+
+    /**
+     * Refuses somebody reporting a loss of gear that is not theirs to report.
+     *
+     * <p>Nothing is granted here and nothing is configured: an item assigned to you is yours to say you
+     * cannot find, and a guardian says it for the person they act for, the way they do everything else in
+     * that person's profile. Anything wider needs {@code INVENTORY_EDIT}, which is checked before this.
+     */
+    private void requireHolds(UserSession session, InventoryItem item) {
+        if (item.assignedTo() == null || session.member() == null) {
+            throw new ForbiddenResponse("Only somebody holding this gear can report it missing");
+        }
+        int holder = item.assignedTo();
+        if (holder == session.member().id()) return;
+        boolean actsForThem = session.hasPermission(StationPermission.MEMBER_GUARDIAN)
+                && stationMemberRepository.findManagers(holder).stream()
+                        .anyMatch(m -> m.id() == session.member().id());
+        if (!actsForThem) {
+            throw new ForbiddenResponse("Only somebody holding this gear can report it missing");
+        }
+    }
+
+    private boolean lossNoteRequired(int stationId) {
+        return stationRepository
+                .findById(stationId)
+                .map(Station::lossNoteRequired)
+                .orElse(false);
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-settings",
+            methods = HttpMethod.GET,
+            summary = "The station's inventory settings",
+            tags = {"Inventory"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventorySettings.class)))
+    private void getInventorySettings(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(new InventorySettings(lossNoteRequired(session.stationId())));
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-settings",
+            methods = HttpMethod.PUT,
+            summary = "Change the station's inventory settings",
+            tags = {"Inventory"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InventorySettings.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventorySettings.class)))
+    private void updateInventorySettings(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var request = ctx.bodyAsClass(InventorySettings.class);
+        stationRepository.updateLossNoteRequired(session.stationId(), request.lossNoteRequired());
+        ctx.json(new InventorySettings(lossNoteRequired(session.stationId())));
     }
 
     @OpenApi(
@@ -923,7 +1019,10 @@ public class InventoryRoutes implements Routes {
             boolean movementIncoming,
             /** Who owns it, which a member is entitled to know about what they are looking after. */
             ItemOwner ownerKind,
-            Integer ownerClusterId) {}
+            Integer ownerClusterId,
+            /** What was written when it was reported missing, which the member wrote or had written for them. */
+            String lostNote,
+            MemberIdentity lostNoteBy) {}
 
     public record MyRequirement(int inventoryId, String inventoryName, int requiredQuantity) {}
 
@@ -948,6 +1047,12 @@ public class InventoryRoutes implements Routes {
             Integer ownerClusterId) {}
 
     public record AssignRequest(Integer memberId, String memberName) {}
+
+    /** What was written when gear was reported missing. */
+    public record LostRequest(String note) {}
+
+    /** What a station has decided about its gear beyond any one inventory. */
+    public record InventorySettings(boolean lossNoteRequired) {}
 
     public record ContainerAssignRequest(Integer containerId) {}
 

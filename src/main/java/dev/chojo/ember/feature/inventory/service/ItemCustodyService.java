@@ -5,11 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.events.ClusterItemLost;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
-import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
@@ -32,12 +29,10 @@ import java.util.Optional;
 public class ItemCustodyService {
     private static final Logger log = LoggerFactory.getLogger(ItemCustodyService.class);
     private final InventoryRepository inventoryRepository;
-    private final DomainEventBus eventBus;
 
     @Inject
-    public ItemCustodyService(InventoryRepository inventoryRepository, DomainEventBus eventBus) {
+    public ItemCustodyService(InventoryRepository inventoryRepository) {
         this.inventoryRepository = inventoryRepository;
-        this.eventBus = eventBus;
     }
 
     /**
@@ -129,10 +124,16 @@ public class ItemCustodyService {
      * moment it is reported would hide exactly the fact worth seeing. It does leave the free stock,
      * because nobody can hand out what nobody can find.
      *
+     * <p>Nobody above the station is told. Losing track of a jacket is the station's own business
+     * until it wants something done about it, and wanting something done is a separate act: the
+     * station raises a report, and that is what reaches the owner.
+     *
      * @param itemId the item ID
+     * @param note   what whoever reported it wrote, or {@code null} when they wrote nothing
+     * @param noteBy who wrote that note, which is the guardian when one acted for a member
      * @return the updated item, or empty if the item was not found
      */
-    public Optional<InventoryItem> markLost(int itemId) {
+    public Optional<InventoryItem> markLost(int itemId, String note, Integer noteBy) {
         var found = inventoryRepository.findItemById(itemId);
         if (found.isEmpty()) {
             log.warn("Mark-lost skipped: item {} not found", itemId);
@@ -141,11 +142,8 @@ public class ItemCustodyService {
         var item = found.get();
         Integer holder = item.custodyStationId() != null ? item.custodyStationId() : stationOf(item);
         inventoryRepository.updateCustody(itemId, ItemCustody.LOST, holder, item.assignedTo(), null);
+        inventoryRepository.setLostNote(itemId, note, noteBy);
         log.info("Item {} marked lost (was {})", itemId, item.custody());
-        // Gear whose owner does not run here has nobody to tell, and gear the station owns is its own affair
-        if (item.ownerKind() == ItemOwner.CLUSTER && item.ownerClusterId() != null && holder != null) {
-            eventBus.publish(new ClusterItemLost(item.ownerClusterId(), item.name(), holder));
-        }
         return inventoryRepository.findItemById(itemId);
     }
 
@@ -169,6 +167,8 @@ public class ItemCustodyService {
         } else {
             writeResting(item);
         }
+        // A note about a loss that did not last is a note about nothing
+        inventoryRepository.setLostNote(itemId, null, null);
         log.info("Item {} marked found", itemId);
         return inventoryRepository.findItemById(itemId);
     }

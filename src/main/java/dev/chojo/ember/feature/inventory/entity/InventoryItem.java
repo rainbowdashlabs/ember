@@ -22,6 +22,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param metadata       JSON metadata associated with the item
  * @param assignedTo     the member this item is assigned to, or {@code null} if unassigned
  * @param lostAt         when the item was marked as lost, or {@code null} if not lost
+ * @param lostNote       what was written when it was marked lost, or {@code null} if nothing was
+ * @param lostNoteBy     who wrote that note, which is the guardian when one acted for a member
  * @param ownerKind      who owns the item: the station, or the one body above it
  * @param ownerClusterId the owning body when it runs on this instance, or {@code null} when it does not
  * @param custody        who has the item right now
@@ -38,6 +40,8 @@ public record InventoryItem(
         InventoryItemMetadata metadata,
         Integer assignedTo,
         Instant lostAt,
+        String lostNote,
+        Integer lostNoteBy,
         ItemOwner ownerKind,
         Integer ownerClusterId,
         ItemCustody custody,
@@ -57,6 +61,8 @@ public record InventoryItem(
                 InventoryItemMetadata.parse(row.getString("metadata")),
                 row.getObject("assigned_to", Integer.class),
                 row.get("lost_at", INSTANT_TIMESTAMP),
+                row.getString("lost_note"),
+                row.getObject("lost_note_by", Integer.class),
                 row.getEnum("owner_kind", ItemOwner.class),
                 row.getObject("owner_cluster_id", Integer.class),
                 row.getEnum("custody", ItemCustody.class),

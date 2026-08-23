@@ -92,6 +92,10 @@ export interface InventoryItem {
     metadata?: string | ItemMetadata | null
     assignedTo?: number | null
     lostAt?: string | null
+    /** What was written when it was reported missing, cleared when it turns up again. */
+    lostNote?: string | null
+    /** The member who wrote that note, which is the guardian when one wrote it for somebody. */
+    lostNoteBy?: number | null
     ownerKind?: ItemOwnerName | null
     ownerClusterId?: number | null
     custody?: ItemCustodyName | null
@@ -116,6 +120,17 @@ export interface ItemRequest {
 export interface AssignRequest {
     memberId?: number | null
     memberName?: string
+}
+
+/** What was written when gear was reported missing. */
+export interface LostRequest {
+    note?: string
+}
+
+/** What the station has decided about its gear beyond any one inventory. */
+export interface InventorySettings {
+    /** Whether a member reporting their own gear missing has to write a note about it. */
+    lossNoteRequired: boolean
 }
 
 export interface InventoryRequirement {
@@ -162,7 +177,11 @@ export interface MyInventoryItem {
     movementIncoming?: boolean
     /** Who owns it, which a member is entitled to know about what they are looking after. */
     ownerKind?: ItemOwnerName | null
-    ownerClusterId?: string | null
+    ownerClusterId?: number | null
+    /** What was written when it was reported missing. */
+    lostNote?: string | null
+    /** Who wrote that note, which is the guardian when one reported it for the member. */
+    lostNoteBy?: MemberIdentity | null
 }
 
 export interface MyRequirement {
@@ -301,13 +320,29 @@ export async function getItemHistory(id: number): Promise<InventoryItemHistory[]
     return res.data
 }
 
-export async function markLost(id: number): Promise<InventoryItem> {
-    const res = await client.put<InventoryItem>(`/inventory-items/${id}/lost`)
+/**
+ * Reports a piece of gear missing.
+ *
+ * <p>Whoever looks after the station's gear may report any of it. Everybody else may report what is
+ * assigned to them, and a guardian may report it for the person they act for.
+ */
+export async function markLost(id: number, request: LostRequest = {}): Promise<InventoryItem> {
+    const res = await client.put<InventoryItem>(`/inventory-items/${id}/lost`, request)
     return res.data
 }
 
 export async function markFound(id: number): Promise<InventoryItem> {
     const res = await client.delete<InventoryItem>(`/inventory-items/${id}/lost`)
+    return res.data
+}
+
+export async function getSettings(): Promise<InventorySettings> {
+    const res = await client.get<InventorySettings>('/inventory-settings')
+    return res.data
+}
+
+export async function updateSettings(settings: InventorySettings): Promise<InventorySettings> {
+    const res = await client.put<InventorySettings>('/inventory-settings', settings)
     return res.data
 }
 

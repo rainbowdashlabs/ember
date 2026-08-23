@@ -1685,6 +1685,12 @@ export default {
         exchangeReasonPlaceholder: 'Grund für den Tausch...',
         submitExchange: 'Tausch anfragen',
         exchangeCreated: 'Tausch-Anfrage erstellt.',
+        reportLost: 'Als vermisst melden',
+        reportLostHint: 'Das Teil gilt ab sofort als vermisst. Taucht es wieder auf, kann die Wache das zurücknehmen.',
+        lostNotePlaceholder: 'Was ist passiert? (optional)',
+        lostNoteRequired: 'Was ist passiert?',
+        submitLost: 'Als vermisst melden',
+        lostReported: 'Als vermisst gemeldet.',
     },
     profileManaged: {
         title: 'Verwaltete Profile',
@@ -3164,6 +3170,13 @@ export default {
             lentOutCount: '{count} verliehen',
             procurementCount: '{count} in Beschaffung',
             deleteConfirm: 'Inventar "{name}" wirklich löschen? Alle Gegenstände werden ebenfalls gelöscht.',
+        },
+        lossSettings: {
+            title: 'Vermisstes Material',
+            description:
+                'Mitglieder können Material, das ihnen zugewiesen ist, selbst als vermisst melden. '
+                + 'Eine Betreuung kann das für die Person übernehmen, die sie betreut.',
+            noteRequired: 'Notiz beim Melden verlangen',
         },
         detail: {
             total: 'Gesamt',

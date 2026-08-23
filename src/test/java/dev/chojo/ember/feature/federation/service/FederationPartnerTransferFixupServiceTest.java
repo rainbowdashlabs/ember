@@ -122,7 +122,8 @@ class FederationPartnerTransferFixupServiceTest {
                 null,
                 null,
                 StationKind.REGULAR,
-                null);
+                null,
+                false);
     }
 
     private FederationPartnerTransferFixupService newService(

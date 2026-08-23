@@ -5,9 +5,6 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.DomainEventHandler;
-import dev.chojo.ember.event.events.ClusterItemLost;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
@@ -19,9 +16,6 @@ import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import java.util.ArrayList;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -102,7 +96,7 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
         int itemId = stationOwned("C-5");
         itemCustodyService.assignToMember(itemId, member.id(), "Cus Tody");
 
-        itemCustodyService.markLost(itemId);
+        itemCustodyService.markLost(itemId, null, null);
 
         var lost = inventoryRepo.findItemById(itemId).orElseThrow();
         assertEquals(ItemCustody.LOST, lost.custody());
@@ -121,49 +115,35 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Gear the station does not own going missing is somebody else's news, so the owner is told. Gear whose
-     * owner does not run here has nobody to tell, and saying nothing is the right answer rather than a gap.
+     * Losing track of something is the station's own business. Nothing reaches the association until the
+     * station wants something done about it, which is a separate act with its own note and its own record.
      */
     @Test
-    void losingClusterGearTellsTheClusterAndLosingTheStationsOwnTellsNobody() {
-        var heard = new ArrayList<ClusterItemLost>();
-        var listener = new DomainEventHandler<ClusterItemLost>() {
-            @Override
-            public Class<ClusterItemLost> eventType() {
-                return ClusterItemLost.class;
-            }
-
-            @Override
-            public void handle(ClusterItemLost event) {
-                heard.add(event);
-            }
-        };
-        var custody = new ItemCustodyService(inventoryRepo, new DomainEventBus(Set.of(listener)));
-
+    void markingClusterGearLostTellsTheClusterNothingAndKeepsWhatWasWritten() {
         var home = stationRepo.create("Träger Verlust");
         int clusterId = clusterRepo.create("Kreisverband", null, home.id()).id();
         int clusterGear = inventoryRepo
                 .createItem(mixedInventoryId, "C-LOST-1", "Jacke", null, null, ItemOwner.CLUSTER, clusterId)
                 .id();
 
-        custody.markLost(clusterGear);
+        itemCustodyService.markLost(clusterGear, "Auf dem Rückweg verloren", member.id());
 
-        assertEquals(1, heard.size(), "the owner hears that its gear is missing");
-        assertEquals(clusterId, heard.getFirst().clusterId());
-        assertEquals("Jacke", heard.getFirst().itemName());
-        assertEquals(station.id(), heard.getFirst().stationId());
+        var lost = inventoryRepo.findItemById(clusterGear).orElseThrow();
+        assertEquals(ItemCustody.LOST, lost.custody());
+        assertEquals("Auf dem Rückweg verloren", lost.lostNote());
+        assertEquals(member.id(), lost.lostNoteBy());
 
-        custody.markLost(stationOwned("C-LOST-2"));
-        custody.markLost(ownerOwned("C-LOST-3"));
-
-        assertEquals(1, heard.size(), "the station's own gear and gear from off the instance tell nobody");
+        itemCustodyService.markFound(clusterGear);
+        var back = inventoryRepo.findItemById(clusterGear).orElseThrow();
+        assertNull(back.lostNote(), "a note about a loss that did not last is a note about nothing");
+        assertNull(back.lostNoteBy());
     }
 
     @Test
     void aFoundItemGoesBackToWhoeverItWasStillOnTheRecordOf() {
         int itemId = ownerOwned("C-6");
         itemCustodyService.assignToMember(itemId, member.id(), "Cus Tody");
-        itemCustodyService.markLost(itemId);
+        itemCustodyService.markLost(itemId, null, null);
 
         itemCustodyService.markFound(itemId);
 
@@ -176,7 +156,7 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
     @Test
     void aFoundItemNobodyHadComesBackToItsStore() {
         int itemId = ownerOwned("C-15");
-        itemCustodyService.markLost(itemId);
+        itemCustodyService.markLost(itemId, null, null);
 
         itemCustodyService.markFound(itemId);
 
@@ -189,7 +169,7 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
     @Test
     void gearNobodyCanFindCannotBeHandedOut() {
         int itemId = stationOwned("C-7");
-        itemCustodyService.markLost(itemId);
+        itemCustodyService.markLost(itemId, null, null);
 
         var thrown = assertThrows(
                 BadRequestResponse.class, () -> itemCustodyService.assignToMember(itemId, member.id(), "Cus Tody"));
@@ -253,7 +233,7 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
                 itemCustodyService.assignToMember(gone, member.id(), "Cus Tody").isEmpty());
         assertTrue(itemCustodyService.takeBack(gone).isEmpty());
         assertTrue(itemCustodyService.placeInContainer(gone, null).isEmpty());
-        assertTrue(itemCustodyService.markLost(gone).isEmpty());
+        assertTrue(itemCustodyService.markLost(gone, null, null).isEmpty());
         assertTrue(itemCustodyService.markFound(gone).isEmpty());
         assertTrue(itemCustodyService.lendToPartner(gone).isEmpty());
         assertTrue(itemCustodyService.returnFromPartner(gone).isEmpty());

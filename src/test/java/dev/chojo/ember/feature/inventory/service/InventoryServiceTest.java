@@ -122,7 +122,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void markLostAndFound() {
-        var lostResult = service.markLost(itemId);
+        var lostResult = service.markLost(itemId, null, null);
         assertTrue(lostResult.isPresent());
         assertNotNull(lostResult.get().lostAt());
 
@@ -258,7 +258,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(67)
     void markLostNonExistent() {
-        assertTrue(service.markLost(99999).isEmpty());
+        assertTrue(service.markLost(99999, null, null).isEmpty());
     }
 
     @Test

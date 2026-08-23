@@ -19,6 +19,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import MemberTabSelector from './inventoryview/MemberTabSelector.vue'
 import InventoryGroupList from './inventoryview/InventoryGroupList.vue'
 import ExchangeModal from './inventoryview/ExchangeModal.vue'
+import ReportLostModal from './inventoryview/ReportLostModal.vue'
 
 const {t} = useI18n()
 const {isGuardian, sessionInfo, loaded} = useSession()
@@ -205,6 +206,50 @@ function closeExchange() {
   exchangeItem.value = null
 }
 
+const showLostModal = ref(false)
+const lostItem = ref<MyInventoryItem | null>(null)
+const lostNote = ref('')
+const lostNoteRequired = ref(false)
+const lostSuccess = ref('')
+
+/**
+ * Reporting a piece of gear missing, for the reader themselves or for somebody they act for.
+ *
+ * <p>The station decides whether a note is expected. Asking it before the form opens is what lets the
+ * modal say so, rather than accepting the report and then refusing it.
+ */
+async function openLost(item: MyInventoryItem) {
+  lostItem.value = item
+  lostNote.value = ''
+  lostSuccess.value = ''
+  clearLostError()
+  try {
+    lostNoteRequired.value = (await inventory.getSettings()).lossNoteRequired
+  } catch {
+    lostNoteRequired.value = false
+  }
+  showLostModal.value = true
+}
+
+function closeLost() {
+  showLostModal.value = false
+  lostItem.value = null
+}
+
+const {
+  running: submittingLost,
+  error: lostError,
+  run: submitLost,
+  clearError: clearLostError,
+} = useAsyncAction(async () => {
+  if (!lostItem.value) return
+  await inventory.markLost(lostItem.value.id, {note: lostNote.value.trim() || undefined})
+  closeLost()
+  ownLoaded.value = false
+  await reload()
+  lostSuccess.value = t('profile.lostReported')
+})
+
 const {
   running: submittingExchange,
   error: exchangeError,
@@ -243,9 +288,22 @@ const {
           :items="items"
           :active-exchanges="activeExchanges"
           @request-exchange="openExchange"
+          @report-lost="openLost"
       />
 
       <Alert v-if="exchangeSuccess" variant="success" class="mt-4">{{ exchangeSuccess }}</Alert>
+      <Alert v-if="lostSuccess" variant="success" class="mt-4">{{ lostSuccess }}</Alert>
+
+      <ReportLostModal
+          v-model="showLostModal"
+          v-model:note="lostNote"
+          :item="lostItem"
+          :note-required="lostNoteRequired"
+          :submitting="submittingLost"
+          :error="lostError"
+          @cancel="closeLost"
+          @submit="submitLost"
+      />
 
       <ExchangeModal
           v-model="showExchangeModal"

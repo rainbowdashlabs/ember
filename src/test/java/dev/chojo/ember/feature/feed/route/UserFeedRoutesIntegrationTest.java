@@ -147,7 +147,8 @@ class UserFeedRoutesIntegrationTest {
                 null,
                 null,
                 StationKind.REGULAR,
-                null);
+                null,
+                false);
 
         when(tokenService.findByToken(TOKEN_VALUE)).thenReturn(Optional.of(token));
         when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member));
