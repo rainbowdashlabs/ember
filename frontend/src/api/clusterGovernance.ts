@@ -19,20 +19,6 @@ export interface ClusterLookAndFeel {
     logoLocked: boolean
 }
 
-export interface ClusterStationQuota {
-    stationUid: string
-    stationName: string
-    /** What the station may use, or null when it falls back to the instance default. */
-    quotaBytes?: number | null
-}
-
-export interface ClusterStoragePool {
-    /** The whole the cluster may hand out, or null when the instance set no cap. */
-    poolBytes?: number | null
-    handedOut: number
-    stations: ClusterStationQuota[]
-}
-
 export async function getDeniedModules(): Promise<ClusterDeniedModules> {
     const res = await client.get<ClusterDeniedModules>('/cluster/modules')
     return res.data
@@ -49,15 +35,6 @@ export async function getLookAndFeel(): Promise<ClusterLookAndFeel> {
 
 export async function setLookAndFeel(data: ClusterLookAndFeel): Promise<void> {
     await client.put('/cluster/look-and-feel', data)
-}
-
-export async function getStoragePool(): Promise<ClusterStoragePool> {
-    const res = await client.get<ClusterStoragePool>('/cluster/storage')
-    return res.data
-}
-
-export async function setStationQuota(stationUid: string, quotaBytes: number | null): Promise<void> {
-    await client.put(`/cluster/storage/stations/${stationUid}`, {totalBytes: quotaBytes})
 }
 
 /** Only an instance administrator can grant the pool itself. */

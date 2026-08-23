@@ -245,7 +245,8 @@ public class StorageRoutes implements Routes {
                                     .toList(),
                             assignment != null ? assignment.presetId() : null,
                             assignment != null ? assignment.presetName() : null,
-                            usesOwnBackend);
+                            usesOwnBackend,
+                            quotas.total().origin());
                 })
                 .toList();
 
@@ -752,6 +753,10 @@ public class StorageRoutes implements Routes {
 
     record CategoryUsage(String category, long totalBytes, int fileCount) {}
 
+    /**
+     * @param origin whose word the quota is on, so a station governed by a cluster reads as one rather than as
+     *               a station whose override an administrator can usefully change
+     */
     record AdminStationUsage(
             String stationId,
             String stationName,
@@ -761,7 +766,8 @@ public class StorageRoutes implements Routes {
             List<CategoryUsage> categories,
             Integer presetId,
             String presetName,
-            boolean usesOwnBackend) {}
+            boolean usesOwnBackend,
+            QuotaOrigin origin) {}
 
     record PresetRequest(
             String name, long total, long kb, long board, long images, long pages, long perFile, long perImage) {}

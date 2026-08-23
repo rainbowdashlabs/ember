@@ -4,11 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {type AdminStationUsage} from '@/api/storageMonitoring'
+import type {StorageRoomRow} from '@/composables/useStorageQuotas'
 import {formatBytes} from '@/util/storage'
 
 defineProps<{
-  station: AdminStationUsage
+  station: StorageRoomRow
   categoryColorMap: Record<string, string>
   categoryLabel: (cat: string) => string
 }>()

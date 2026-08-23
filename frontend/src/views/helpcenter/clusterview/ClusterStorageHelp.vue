@@ -22,6 +22,14 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.clusterStorage.handOutText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.clusterStorage.defaultsTitle')">
+      <p>{{ t('helpCenter.clusterStorage.defaultsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.clusterStorage.tiersTitle')">
+      <p>{{ t('helpCenter.clusterStorage.tiersText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.clusterStorage.backendTitle')">
       <p>{{ t('helpCenter.clusterStorage.backendText') }}</p>
     </HelpSection>

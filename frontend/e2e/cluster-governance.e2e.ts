@@ -139,14 +139,17 @@ test.describe('Cluster governance', () => {
         // Nothing handed out yet, out of the eight the instance granted
         await expect(page.getByTestId('cluster-pool-usage')).toContainText('8.0 GiB', {timeout: 15000})
 
-        const row = page.getByTestId('station-quota').filter({hasText: own.stationName})
+        const row = page.getByTestId('storage-station-row').filter({hasText: own.stationName})
         await expect(row).toBeVisible()
-        await row.getByTestId('station-quota-input').fill('2')
-        await row.getByTestId('station-quota-save').click()
+        await row.getByTestId('station-room-edit').click()
+
+        // The total is one of the seven dimensions the association can name for that station
+        await page.getByTestId('quota-field-total').fill('2')
+        await page.getByTestId('station-room-save').click()
 
         // The pool figure moves with it, because what a station gets comes out of the whole
         await expect(page.getByTestId('cluster-pool-usage')).toContainText('2.0 GiB', {timeout: 15000})
-        await expect(row.getByTestId('station-quota-input')).toHaveValue('2')
+        await expect(row).toContainText('2.0 GiB')
     })
 
     /** CLS-21 - Quota beyond the pool is refused, and says the pool is the limit. */

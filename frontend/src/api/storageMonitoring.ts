@@ -21,6 +21,28 @@ export interface StationUsageResponse {
     usesOwnBackend: boolean
 }
 
+/**
+ * Whose word a resolved quota is on.
+ *
+ * <p>Consulted in this order: what an association granted the station, what it gives its stations by
+ * default, what an instance administrator set for it, and last the instance configuration. A station under
+ * an association never reaches the third rung, because the instance's lever there is the pool it granted.
+ */
+export const QuotaOrigin = {
+    CLUSTER_GRANT: 'CLUSTER_GRANT',
+    CLUSTER_DEFAULT: 'CLUSTER_DEFAULT',
+    INSTANCE_OVERRIDE: 'INSTANCE_OVERRIDE',
+    INSTANCE_DEFAULT: 'INSTANCE_DEFAULT',
+    UNLIMITED: 'UNLIMITED',
+} as const
+
+export type QuotaOriginName = (typeof QuotaOrigin)[keyof typeof QuotaOrigin]
+
+/** Whether the number on a row was decided by an association rather than by the instance. */
+export function isClusterOrigin(origin?: QuotaOriginName | null): boolean {
+    return origin === QuotaOrigin.CLUSTER_GRANT || origin === QuotaOrigin.CLUSTER_DEFAULT
+}
+
 export interface AdminStationUsage {
     stationId: string
     stationName: string
@@ -31,6 +53,8 @@ export interface AdminStationUsage {
     presetId: number | null
     presetName: string | null
     usesOwnBackend: boolean
+    /** Whose word the quota is on, which says whether an override set here would change anything. */
+    origin: QuotaOriginName
 }
 
 export interface StorageQuotaPreset {
