@@ -559,7 +559,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 room.handedOut(),
                 "Its own store and two of its stations should have been granted room");
         assertTrue(
-                room.stations().stream().anyMatch(s -> s.ownStore() && s.granted().totalBytes() != null),
+                room.stations().stream()
+                        .anyMatch(s -> s.ownStore() && s.granted().totalBytes() != null),
                 "The cluster's own store should be granted room like any other station");
 
         var gear = inventoryRepo.findItemsOwnedByCluster(cluster.id());

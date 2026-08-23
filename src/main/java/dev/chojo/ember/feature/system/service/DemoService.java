@@ -212,7 +212,8 @@ public class DemoService {
      * iteration order of the injected set.
      */
     private void seedData() {
-        var context = new DemoSeederContext(passwordHasher.hash(DemoSeeder.PASSWORD));
+        var run = new DemoRunContext(passwordHasher.hash(DemoSeeder.PASSWORD));
+        var context = new DemoSeederContext(run);
         var bands = new TreeMap<>(seeders.stream().collect(Collectors.groupingBy(DemoSeeder::order)));
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             for (var band : bands.entrySet()) {
