@@ -5,6 +5,7 @@
  */
 import client from './client'
 import type {ProfileFieldConfig} from './profileFields'
+import type {StationUserTypeName} from './types'
 
 // -- The cluster's own people --
 
@@ -207,4 +208,34 @@ export async function setManagedMemberProfile(
     values: ManagedProfileValue[],
 ): Promise<void> {
     await client.put(`/cluster/members/manage/${memberId}/profile`, {values})
+}
+
+/** Somebody being taken on at a station of the association. */
+export interface NewManagedMember {
+    firstName: string
+    lastName: string
+    /** Leave it out for somebody who is not meant to sign in. */
+    email?: string
+    userType?: StationUserTypeName
+}
+
+export interface NewManagedMemberResponse {
+    memberId: number
+    accountId: number
+    email: string
+}
+
+/**
+ * Takes somebody on at one of the association's stations.
+ *
+ * <p>The station is named first because a member belongs to a station and the association is standing in
+ * for one. Its identity is in the path for that reason rather than travelling in the session.
+ */
+export async function createManagedMember(
+    stationUid: string,
+    member: NewManagedMember,
+): Promise<NewManagedMemberResponse> {
+    const res = await client.post<NewManagedMemberResponse>(
+        `/cluster/members/manage/stations/${stationUid}/members`, member)
+    return res.data
 }

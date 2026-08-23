@@ -8,12 +8,14 @@ package dev.chojo.ember.feature.cluster.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.ForbiddenResponse;
@@ -29,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 /**
  * What somebody looking after every station of a cluster may and may not do.
@@ -42,7 +45,12 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new ClusterMemberManagementService(stationMemberRepo, stationRepo, profileFieldService);
+        service = new ClusterMemberManagementService(
+                stationMemberRepo,
+                stationRepo,
+                profileFieldService,
+                new StationMemberInviteService(
+                        stationMemberRepo, memberGroupRepo, accountRepo, mock(AuthService.class)));
     }
 
     private int freshCluster() {
@@ -309,5 +317,51 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
         assertFalse(
                 stations.stream().anyMatch(station -> station.id() == cluster.homeStationId()),
                 "the cluster's own shell is not one of them");
+    }
+
+    @Test
+    void somebodyIsTakenOnAtTheStationTheyWereNamedFor() {
+        int clusterId = freshCluster();
+        var station = clusterService.createStation(clusterId, "Wache Zugang " + NAMES.incrementAndGet());
+        int n = NAMES.incrementAndGet();
+
+        var made = service.createMember(
+                clusterId, station.uid(), "Neu", "Zugang" + n, "zugang" + n + "@test.com", StationUserType.TEAM);
+
+        var member = stationMemberRepo.findById(made.memberId()).orElseThrow();
+        assertEquals(station.id(), member.stationId(), "they belong to the station they were named for");
+        assertEquals(StationUserType.TEAM, member.userType());
+        assertTrue(
+                service.search(clusterId, "Zugang" + n, null, null, false, 0, 50)
+                                .total()
+                        > 0,
+                "and the association's list finds them");
+    }
+
+    @Test
+    void somebodyWithNoAddressIsStillTakenOn() {
+        int clusterId = freshCluster();
+        var station = clusterService.createStation(clusterId, "Wache Ohne " + NAMES.incrementAndGet());
+        int n = NAMES.incrementAndGet();
+
+        var made = service.createMember(clusterId, station.uid(), "Ohne", "Adresse" + n, null, StationUserType.MEMBER);
+
+        assertTrue(made.email().endsWith(".local"), "an address nobody can receive mail at stands in for one");
+        assertEquals(
+                station.id(),
+                stationMemberRepo.findById(made.memberId()).orElseThrow().stationId());
+    }
+
+    @Test
+    void anAssociationTakesNobodyOnAtSomebodyElsesStation() {
+        int clusterId = freshCluster();
+        int otherClusterId = freshCluster();
+        var theirs = clusterService.createStation(otherClusterId, "Wache Fremd " + NAMES.incrementAndGet());
+
+        assertThrows(
+                NotFoundResponse.class,
+                () -> service.createMember(
+                        clusterId, theirs.uid(), "Neu", "Fremd", "fremd@test.com", StationUserType.MEMBER),
+                "a station answering to somebody else is not one of this association's");
     }
 }

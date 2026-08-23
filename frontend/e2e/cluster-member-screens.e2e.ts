@@ -127,6 +127,41 @@ test.describe('Cluster member screens', () => {
     })
 
     /**
+     * CLS-70 - The association takes somebody on, naming the station first.
+     *
+     * A member belongs to a station and the association is standing in for one, so the station is the
+     * first thing asked rather than something inferred. The association's rights do not become station
+     * rights anywhere but its own station, which is why this goes through the association's own route
+     * rather than mounting the station's create screen.
+     */
+    test('the association takes somebody on at one of its stations', async ({browser, request}) => {
+        const account = await clusterAccountWith(request, 'CLUSTER_MEMBER_MANAGER')
+        const page = await clusterPage(browser, request, account)
+
+        await page.goto('/cluster/members')
+        await expect(page.getByTestId('member-row').first()).toBeVisible({timeout: 15000})
+
+        await page.getByTestId('cluster-member-create').click()
+        await expect(page.getByTestId('cluster-member-create-modal')).toBeVisible()
+
+        // The station first, because that is the question the association cannot answer for somebody
+        const options = page.getByTestId('cluster-member-create-station').locator('option')
+        const stationUid = await options.nth(1).getAttribute('value')
+        expect(stationUid, 'the association has a station to take somebody on at').toBeTruthy()
+        await page.getByTestId('cluster-member-create-station').selectOption(stationUid!)
+
+        const surname = `Neuzugang${Date.now()}`
+        await page.getByTestId('cluster-member-create-first').fill('Erika')
+        await page.getByTestId('cluster-member-create-last').fill(surname)
+        await page.getByTestId('cluster-member-create-email').fill(`${surname.toLowerCase()}@example.test`)
+        await page.getByTestId('cluster-member-create-save').click()
+
+        await expect(page.getByTestId('cluster-member-create-modal')).toHaveCount(0, {timeout: 15000})
+        await expect(page.getByText(surname)).toBeVisible({timeout: 15000})
+        await page.context().close()
+    })
+
+    /**
      * CLS-69 - The association exports the people across its stations.
      *
      * The station's own column picker and export modal, mounted whole and guarded by the association's

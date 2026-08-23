@@ -22,6 +22,11 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.clusterMemberManagement.guardrailText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.clusterMemberManagement.createTitle')">
+      <p>{{ t('helpCenter.clusterMemberManagement.createText') }}</p>
+      <p>{{ t('helpCenter.clusterMemberManagement.createNoLoginText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.clusterMemberManagement.ceilingTitle')">
       <p>{{ t('helpCenter.clusterMemberManagement.ceilingText') }}</p>
     </HelpSection>

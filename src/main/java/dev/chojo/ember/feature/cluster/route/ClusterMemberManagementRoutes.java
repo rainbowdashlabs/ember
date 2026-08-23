@@ -18,8 +18,10 @@ import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
 import io.javalin.http.BadRequestResponse;
+import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
@@ -67,6 +69,11 @@ public class ClusterMemberManagementRoutes implements Routes {
         routes.get(
                 prefix + "/cluster/members/manage/stations",
                 this::listStations,
+                ClusterPermission.CLUSTER_MEMBER_MANAGER);
+        // The station is in the path because a member belongs to one and the cluster is standing in for it
+        routes.post(
+                prefix + "/cluster/members/manage/stations/{stationUid}/members",
+                this::createMember,
                 ClusterPermission.CLUSTER_MEMBER_MANAGER);
         routes.put(
                 prefix + "/cluster/members/manage/{memberId}/user-type",
@@ -199,6 +206,48 @@ public class ClusterMemberManagementRoutes implements Routes {
         ctx.json(managementService.reachableStations(cluster.id()).stream()
                 .map(station -> new ManagedStationResponse(station.uid(), station.name()))
                 .toList());
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/members/manage/stations/{stationUid}/members",
+            pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
+            methods = HttpMethod.POST,
+            summary = "Take somebody on at one of the cluster's stations",
+            tags = {"Cluster"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = NewMemberRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = NewMemberResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void createMember(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        var request = ctx.bodyAsClass(NewMemberRequest.class);
+        if (isBlank(request.firstName()) || isBlank(request.lastName())) {
+            throw new BadRequestResponse("firstName and lastName are required");
+        }
+        UUID stationUid = parseUid(ctx.pathParam("stationUid"));
+        StationUserType userType = request.userType() != null ? request.userType() : StationUserType.MEMBER;
+
+        try {
+            var made = managementService.createMember(
+                    cluster.id(), stationUid, request.firstName(), request.lastName(), request.email(), userType);
+            ctx.status(HttpStatus.CREATED).json(new NewMemberResponse(made.memberId(), made.accountId(), made.email()));
+        } catch (StationMemberInviteService.ProvisionException e) {
+            throw new ConflictResponse(e.getMessage());
+        }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private static UUID parseUid(String raw) {
+        try {
+            return UUID.fromString(raw);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse("That is not a station identity");
+        }
     }
 
     @OpenApi(
@@ -378,4 +427,13 @@ public class ClusterMemberManagementRoutes implements Routes {
     public record MemberProfileValueRequest(int fieldId, String value, String origin) {}
 
     public record MemberProfileRequest(List<MemberProfileValueRequest> values) {}
+
+    /**
+     * Somebody being taken on at a station of the cluster.
+     *
+     * @param email leave it out for somebody who is not meant to sign in
+     */
+    public record NewMemberRequest(String firstName, String lastName, String email, StationUserType userType) {}
+
+    public record NewMemberResponse(int memberId, int accountId, String email) {}
 }

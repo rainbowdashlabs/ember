@@ -11,9 +11,11 @@ import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import MemberListPanel from '@/views/stationview/members/listview/MemberListPanel.vue'
 import {useMemberListConfig, type MemberListPort} from '@/views/stationview/members/listview/useMemberListConfig'
 import {provideMemberRowExtras} from '@/views/stationview/members/listview/memberRowExtras'
+import CreateMemberModal from './clustermembermanagementview/CreateMemberModal.vue'
 import {useClusterMemberSource, MANAGED_MEMBER_CAP} from './clustermembersview/clusterMemberSource'
 import {clusterMembers} from '@/api'
 import type {ManagedStation} from '@/api/clusterMembers'
@@ -73,6 +75,14 @@ const shownMembers = computed(() => {
   return config.sortedMembers.value.filter(m => managed.value.get(m.id)?.stationUid === stationUid.value)
 })
 
+const showCreate = ref(false)
+const canEdit = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER))
+
+/** Somebody new belongs on the list the moment they exist, so the list is read again. */
+async function onCreated() {
+  await config.reload()
+}
+
 onMounted(async () => {
   stations.value = await clusterMembers.listManagedStations().catch(() => [])
 })
@@ -97,9 +107,15 @@ watch(includeFormer, () => { void config.reload() })
           <CheckboxInput v-model="includeFormer"/>
           <span>{{ t('clusterMemberManagement.includeFormer') }}</span>
         </label>
+        <PrimaryButton v-if="canEdit" :icon="['fas', 'user-plus']" class="ml-auto"
+                       data-testid="cluster-member-create" @click="showCreate = true">
+          {{ t('clusterMemberManagement.create.button') }}
+        </PrimaryButton>
       </NeutralContainer>
 
       <MemberListPanel :config="config" :members="shownMembers"/>
+
+      <CreateMemberModal v-model="showCreate" :stations="stations" @created="onCreated"/>
     </div>
   </ViewContent>
 </template>
