@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.federation.service.LendingService;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
@@ -14,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Seeds demo lending requests, chat messages, and inventory blocks between stations.
@@ -58,23 +60,28 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
      * @param createdBy        the member ID who creates the requests
      */
     public void seed(int stationId, int partnerStationId, int createdBy, int partnerMemberId) {
-        // Create inventory on the partner station for lending purposes
-        var partnerFeuerloescher =
-                inventoryRepository.create(partnerStationId, "Feuerlöscher", InventoryType.INTERNAL, false);
-        inventoryRepository.createItem(partnerFeuerloescher.id(), "FL-001", "Feuerlöscher ABC 6kg", null, null);
-        inventoryRepository.createItem(partnerFeuerloescher.id(), "FL-002", "Feuerlöscher ABC 6kg", null, null);
-        inventoryRepository.createItem(partnerFeuerloescher.id(), "FL-003", "Feuerlöscher CO2 5kg", null, null);
+        // The partner's shelf, stocked once however many stations borrow from it
+        var partnerFeuerloescher = partnerStock(
+                partnerStationId,
+                "Feuerlöscher",
+                List.of(
+                        new Stock("FL-001", "Feuerlöscher ABC 6kg"),
+                        new Stock("FL-002", "Feuerlöscher ABC 6kg"),
+                        new Stock("FL-003", "Feuerlöscher CO2 5kg")));
 
-        var partnerSchlaeuche =
-                inventoryRepository.create(partnerStationId, "Schläuche", InventoryType.INTERNAL, false);
-        inventoryRepository.createItem(partnerSchlaeuche.id(), "S-001", "B-Schlauch 20m", null, null);
-        inventoryRepository.createItem(partnerSchlaeuche.id(), "S-002", "B-Schlauch 20m", null, null);
-        inventoryRepository.createItem(partnerSchlaeuche.id(), "S-003", "C-Schlauch 15m", null, null);
-        inventoryRepository.createItem(partnerSchlaeuche.id(), "S-004", "C-Schlauch 15m", null, null);
+        var partnerSchlaeuche = partnerStock(
+                partnerStationId,
+                "Schläuche",
+                List.of(
+                        new Stock("S-001", "B-Schlauch 20m"),
+                        new Stock("S-002", "B-Schlauch 20m"),
+                        new Stock("S-003", "C-Schlauch 15m"),
+                        new Stock("S-004", "C-Schlauch 15m")));
 
-        var partnerZelte = inventoryRepository.create(partnerStationId, "Zelte", InventoryType.INTERNAL, false);
-        inventoryRepository.createItem(partnerZelte.id(), "Z-001", "Mannschaftszelt 6x4m", null, null);
-        inventoryRepository.createItem(partnerZelte.id(), "Z-002", "Faltzelt 3x3m", null, null);
+        var partnerZelte = partnerStock(
+                partnerStationId,
+                "Zelte",
+                List.of(new Stock("Z-001", "Mannschaftszelt 6x4m"), new Stock("Z-002", "Faltzelt 3x3m")));
 
         // -- Request 1: APPROVED - partner lends Feuerlöscher to main station --
         var approvedRequest = lendingService.createRequest(
@@ -232,5 +239,28 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 "Kreisfeuerwehrtag");
 
         log.info("Demo: Created lending requests, messages, and blocks");
+    }
+
+    /** One piece on the partner's shelf: what it is called on the label, and what it is. */
+    private record Stock(String internalId, String description) {}
+
+    /**
+     * An inventory at the partner station, made once.
+     *
+     * <p>Every full station borrows from the same partner, and what the partner keeps is the partner's: made
+     * again for the second station it would be a second shelf with the same name, which the database refuses
+     * and nobody meant.
+     */
+    private Inventory partnerStock(int partnerStationId, String name, List<Stock> items) {
+        var existing = inventoryRepository.findByStation(partnerStationId).stream()
+                .filter(inventory -> name.equals(inventory.name()))
+                .findFirst();
+        if (existing.isPresent()) return existing.get();
+
+        var inventory = inventoryRepository.create(partnerStationId, name, InventoryType.INTERNAL, false);
+        for (Stock item : items) {
+            inventoryRepository.createItem(inventory.id(), item.internalId(), item.description(), null, null);
+        }
+        return inventory;
     }
 }

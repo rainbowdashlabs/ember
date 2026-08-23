@@ -166,12 +166,12 @@ test.describe('Cluster', () => {
         await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), second.uid)
         await page.goto('/cluster/stations')
         await expect(page.getByTestId('app-shell')).toBeVisible()
-        await expect(page.getByText('Jugendfeuerwehr Musterstadt')).toHaveCount(0)
+        await expect(page.getByText('Jugendfeuerwehr Nordstadt')).toHaveCount(0)
 
         const first = await theSeededCluster(page)
         await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), first.uid)
         await page.goto('/cluster/stations')
-        await expect(page.getByText('Jugendfeuerwehr Musterstadt')).toBeVisible()
+        await expect(page.getByText('Jugendfeuerwehr Nordstadt')).toBeVisible()
     })
 
     /**

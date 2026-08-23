@@ -366,6 +366,52 @@ export async function clusterStations(page: Page): Promise<{uid: string; name: s
     return response.json()
 }
 
+/** A station the instance offers demo logins for, with everybody at it. */
+export interface DemoStationGroup {
+    stationId?: string
+    stationName?: string
+    accounts?: DemoAccount[]
+}
+
+/**
+ * The demo's stations, each with the accounts at it, in the order the instance lists them.
+ *
+ * Grouped rather than flattened, because a story looking for a station of a certain kind needs the
+ * station and not just the people: which station is which is the seeder's business, and every fixture
+ * below finds one by asking rather than by name.
+ */
+export async function demoStationGroups(request: APIRequestContext): Promise<DemoStationGroup[]> {
+    const response = await request.get('/api/v1/demo/accounts')
+    if (!response.ok()) throw new Error(`The demo accounts endpoint answered ${response.status()}`)
+    return (await response.json()).stationGroups ?? []
+}
+
+/** Whoever at this station may act for it. */
+function managersOf(group: DemoStationGroup): DemoAccount[] {
+    return (group.accounts ?? []).filter(account => !!account.email
+        && (account.permissions.includes('STATION_ADMINISTRATOR')
+            || account.permissions.includes('STATION_MANAGER')))
+}
+
+/**
+ * The cluster a station answers to, asked as one of its managers.
+ *
+ * @returns what the station says about its cluster, or null when this manager cannot ask
+ */
+async function clusterOf(
+    request: APIRequestContext,
+    group: DemoStationGroup,
+    account: DemoAccount,
+): Promise<{clusterUid?: string; clusterName?: string} | null> {
+    const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
+    if (!login.ok()) return null
+    const {token} = await login.json()
+    const cluster = await request.get('/api/v1/station/cluster', {
+        headers: {Authorization: `Bearer ${token}`, 'X-Station-Id': group.stationId ?? ''},
+    })
+    return cluster.ok() ? cluster.json() : null
+}
+
 /**
  * A manager of a station that answers to a cluster.
  *
@@ -374,32 +420,53 @@ export async function clusterStations(page: Page): Promise<{uid: string; name: s
  * cluster does to a station has to be at one of the stations it actually governs.
  */
 export async function clusterStationManager(request: APIRequestContext): Promise<DemoAccount> {
-    const response = await request.get('/api/v1/demo/accounts')
-    if (!response.ok()) throw new Error(`The demo accounts endpoint answered ${response.status()}`)
-    const payload = await response.json()
-    const groups: {stationId?: string; stationName?: string; accounts?: DemoAccount[]}[] = payload.stationGroups ?? []
-
-    for (const group of groups) {
-        for (const account of group.accounts ?? []) {
-            if (!account.email) continue
-            if (!account.permissions.includes('STATION_ADMINISTRATOR')
-                && !account.permissions.includes('STATION_MANAGER')) continue
-
-            const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
-            if (!login.ok()) continue
-            const {token} = await login.json()
-            const cluster = await request.get('/api/v1/station/cluster', {
-                headers: {Authorization: `Bearer ${token}`, 'X-Station-Id': group.stationId ?? ''},
-            })
-            if (!cluster.ok()) continue
-            const body = await cluster.json()
+    for (const group of await demoStationGroups(request)) {
+        for (const account of managersOf(group)) {
+            const cluster = await clusterOf(request, group, account)
             // Not a station some other story built for itself: those come and go while this one reads
-            if (body.clusterUid && !String(body.clusterName ?? '').startsWith(MADE_BY_A_STORY)) {
+            if (cluster?.clusterUid && !String(cluster.clusterName ?? '').startsWith(MADE_BY_A_STORY)) {
                 return {...account, stationId: group.stationId}
             }
         }
     }
     throw new Error('No station inside a cluster has a manager of its own to act as')
+}
+
+/**
+ * An ordinary member of the station that answers to a cluster.
+ *
+ * The counterpart of {@link clusterStationManager}: a story where somebody has a piece of the cluster's
+ * gear in their hands needs the two of them at the same station, and the shared member fixture is at the
+ * station standing outside every cluster.
+ */
+export async function clusterStationMember(request: APIRequestContext): Promise<DemoAccount> {
+    const manager = await clusterStationManager(request)
+    const accounts = await demoAccounts(request)
+    const member = accounts.find(account => !!account.email
+        && account.stationId === manager.stationId
+        && account.userType === 'MEMBER')
+    if (!member) throw new Error('The station inside a cluster has no ordinary member to act as')
+    return member
+}
+
+/**
+ * A manager of the full demo station that answers to nobody.
+ *
+ * The demo builds the same station twice, one inside an association and one outside it, so that every
+ * feature can be looked at both ways. This is the outside half, and it is the one the stories about
+ * standing alone act on. Of the stations in no cluster it is the one carrying the demo's whole cast,
+ * which the spare stations beside it come nowhere near.
+ */
+export async function standaloneStationManager(request: APIRequestContext): Promise<DemoAccount> {
+    const groups = [...await demoStationGroups(request)]
+        .sort((first, second) => (second.accounts?.length ?? 0) - (first.accounts?.length ?? 0))
+    for (const group of groups) {
+        for (const account of managersOf(group)) {
+            const cluster = await clusterOf(request, group, account)
+            if (cluster && !cluster.clusterUid) return {...account, stationId: group.stationId}
+        }
+    }
+    throw new Error('No full station stands outside every cluster')
 }
 
 /**
@@ -421,6 +488,8 @@ interface Fixtures {
     partnerManagerPage: Page
     /** A manager of a station that answers to a cluster, which the shared manager is not. */
     clusterStationManagerPage: Page
+    /** An ordinary member of that same station, for the stories that need both. */
+    clusterStationMemberPage: Page
 }
 
 export const test = base.extend<Fixtures>({
@@ -452,6 +521,12 @@ export const test = base.extend<Fixtures>({
 
     clusterStationManagerPage: async ({browser, request}, use) => {
         const page = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
+        await use(page)
+        await page.context().close()
+    },
+
+    clusterStationMemberPage: async ({browser, request}, use) => {
+        const page = await pageAsThrowaway(browser, request, [], await clusterStationMember(request))
         await use(page)
         await page.context().close()
     },

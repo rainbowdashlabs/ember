@@ -75,13 +75,13 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
 
     @Override
     public void seedStation(DemoRunContext run, DemoStationContext station) {
-        var members = seed(station.stationId(), run.passwordHash(), new Random(42));
+        var members = seed(station.stationId(), run.passwordHash(), station.profile(), new Random(42));
         station.members(members);
         station.adminMember(members.head());
         stationRepository.setOwner(station.stationId(), members.head().id());
     }
 
-    public SeedResult seed(int stationId, String passwordHash, Random rng) {
+    public SeedResult seed(int stationId, String passwordHash, DemoStationProfile profile, Random rng) {
         var loginRole = stationMemberRepository
                 .findPermissionByName(StationPermission.LOGIN)
                 .orElseThrow();
@@ -316,7 +316,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         // (replaces the former instance-admin-as-station-member setup), every other Betreuer
         // keeps the attendance / event / member management bundle.
         for (var u : betreuerData) {
-            var m = createTeamMember(u.firstName(), u.lastName(), passwordHash, stationId, loginRole.id());
+            var m = createTeamMember(u.firstName(), u.lastName(), passwordHash, stationId, profile, loginRole.id());
             if (u.lastName().equals("Mustermann")) {
                 stationMemberRepository.setUserType(m.id(), StationUserType.MANAGER);
                 stationMemberRepository.grantPermission(m.id(), stationAdminRole.id());
@@ -355,7 +355,13 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         boolean firstEltern = true;
         for (var u : elternData) {
             var m = createGuardian(
-                    u.firstName(), u.lastName(), passwordHash, stationId, loginRole.id(), memberManagerRole.id());
+                    u.firstName(),
+                    u.lastName(),
+                    passwordHash,
+                    stationId,
+                    profile,
+                    loginRole.id(),
+                    memberManagerRole.id());
             memberGroupRepository.addMember(groupEltern.id(), m.id());
             elternMembers.add(m);
 
@@ -374,7 +380,8 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         int personalNr = 100000 + rng.nextInt(900000);
         boolean firstAnfaenger = true;
         for (var u : anfaengerData) {
-            var m = createUser(u.firstName(), u.lastName(), passwordHash, stationId, loginRole.id(), memberRole.id());
+            var m = createUser(
+                    u.firstName(), u.lastName(), passwordHash, stationId, profile, loginRole.id(), memberRole.id());
             memberGroupRepository.addMember(groupAnfaenger.id(), m.id());
             anfaengerMembers.add(m);
 
@@ -412,7 +419,8 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
 
         // Create Fortgeschritten
         for (var u : fortgeschrittenData) {
-            var m = createUser(u.firstName(), u.lastName(), passwordHash, stationId, loginRole.id(), memberRole.id());
+            var m = createUser(
+                    u.firstName(), u.lastName(), passwordHash, stationId, profile, loginRole.id(), memberRole.id());
             memberGroupRepository.addMember(groupFortgeschritten.id(), m.id());
             fortgeschrittenMembers.add(m);
 
@@ -463,15 +471,17 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         }
 
         // -- Former members --
-        var formerMember1 = createUser("Max", "Altmann", passwordHash, stationId, loginRole.id(), memberRole.id());
+        var formerMember1 =
+                createUser("Max", "Altmann", passwordHash, stationId, profile, loginRole.id(), memberRole.id());
         memberGroupRepository.addMember(groupAnfaenger.id(), formerMember1.id());
         stationMemberRepository.setFormer(formerMember1.id(), true);
 
-        var formerMember2 = createUser("Lisa", "Wegner", passwordHash, stationId, loginRole.id(), memberRole.id());
+        var formerMember2 =
+                createUser("Lisa", "Wegner", passwordHash, stationId, profile, loginRole.id(), memberRole.id());
         memberGroupRepository.addMember(groupFortgeschritten.id(), formerMember2.id());
         stationMemberRepository.setFormer(formerMember2.id(), true);
 
-        var formerMember3 = createTeamMember("Tom", "Richter", passwordHash, stationId, loginRole.id());
+        var formerMember3 = createTeamMember("Tom", "Richter", passwordHash, stationId, profile, loginRole.id());
         stationMemberRepository.setFormer(formerMember3.id(), true);
 
         // -- Profile field changes (unacknowledged) --
@@ -615,8 +625,14 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
     }
 
     private StationMember createUser(
-            String firstName, String lastName, String hash, int stationId, int loginRoleId, int memberRoleId) {
-        String email = firstName.toLowerCase() + "@" + lastName.toLowerCase() + ".local";
+            String firstName,
+            String lastName,
+            String hash,
+            int stationId,
+            DemoStationProfile profile,
+            int loginRoleId,
+            int memberRoleId) {
+        String email = profile.address(firstName, lastName);
         var account = accountRepository.create(email, firstName, lastName, true);
         accountRepository.setUid(account.id(), DemoUids.account(email));
         accountRepository.createCredential(account.id(), hash);
@@ -629,8 +645,13 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
     }
 
     private StationMember createTeamMember(
-            String firstName, String lastName, String hash, int stationId, int loginRoleId) {
-        String email = firstName.toLowerCase() + "@" + lastName.toLowerCase() + ".local";
+            String firstName,
+            String lastName,
+            String hash,
+            int stationId,
+            DemoStationProfile profile,
+            int loginRoleId) {
+        String email = profile.address(firstName, lastName);
         var account = accountRepository.create(email, firstName, lastName, true);
         accountRepository.setUid(account.id(), DemoUids.account(email));
         accountRepository.createCredential(account.id(), hash);
@@ -642,8 +663,14 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
     }
 
     private StationMember createGuardian(
-            String firstName, String lastName, String hash, int stationId, int loginRoleId, int guardianRoleId) {
-        String email = firstName.toLowerCase() + "@" + lastName.toLowerCase() + ".local";
+            String firstName,
+            String lastName,
+            String hash,
+            int stationId,
+            DemoStationProfile profile,
+            int loginRoleId,
+            int guardianRoleId) {
+        String email = profile.address(firstName, lastName);
         var account = accountRepository.create(email, firstName, lastName, true);
         accountRepository.setUid(account.id(), DemoUids.account(email));
         accountRepository.createCredential(account.id(), hash);

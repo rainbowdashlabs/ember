@@ -79,7 +79,10 @@ public interface DemoSeeder {
     /**
      * Seeds this step's data.
      *
-     * @param context the shared run context carrying the results of earlier bands
+     * <p>Once per run, however many stations the run carries. Anything that hangs on a station is a
+     * {@link DemoPerStationSeeder} instead and is handed the station to work on.
+     *
+     * @param run the shared run context carrying the results of earlier bands
      */
-    void seed(DemoSeederContext context);
+    void seed(DemoRunContext run);
 }

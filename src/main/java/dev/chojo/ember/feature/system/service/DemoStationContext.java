@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.station.entity.Station;
  * are: seeders inside a band run in parallel, and the join between bands publishes what they wrote.
  */
 public class DemoStationContext {
+    private final DemoStationProfile profile;
     private final Station station;
     private volatile StationMember adminMember;
     private volatile DemoMemberSeeder.SeedResult members;
@@ -28,8 +29,16 @@ public class DemoStationContext {
     private volatile DemoNewsSeeder.SeedResult news;
     private volatile LostAndFoundItem lostAndFoundItem;
 
-    public DemoStationContext(Station station) {
+    public DemoStationContext(DemoStationProfile profile, Station station) {
+        this.profile = profile;
         this.station = station;
+    }
+
+    /**
+     * @return what this station is called, where it answers, and whose addresses its people hold
+     */
+    public DemoStationProfile profile() {
+        return profile;
     }
 
     public Station station() {

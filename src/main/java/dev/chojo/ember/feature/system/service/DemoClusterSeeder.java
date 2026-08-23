@@ -158,41 +158,43 @@ public class DemoClusterSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
+    public void seed(DemoRunContext run) {
         Cluster cluster = clusterService.create(
                 "Kreisverband Musterstadt", "Der Träger, dem die Wache und ihre Nachbarn angehören");
         seedLogo(cluster);
 
-        // The station the rest of the demo is about now answers to somebody
-        clusterService.joinStation(cluster.id(), context.station().id());
+        // One of the two full stations answers to the association and the other answers to nobody, which is
+        // what lets the same feature be looked at both ways. Which one is the profile's to say
+        DemoStationContext member = run.clusterStation();
+        clusterService.joinStation(cluster.id(), member.stationId());
 
         // And so does the neighbouring one, so that the screens which reach across a cluster have two
         // stations to reach across rather than one
-        joinNeighbour(cluster, context);
+        joinNeighbour(cluster, run);
 
         // A station the cluster made itself, which belonged to it from its first moment
         clusterService.createStation(cluster.id(), "Löschzug Nord");
 
         // The federation partner stays outside and has asked to come in, so the applications screen has
         // something to decide and the standalone case keeps a subject
-        seedApplication(cluster, context);
+        seedApplication(cluster, run);
 
         // The cluster keeps its gear here, which is what lets its own steps appear in a movement
         clusterInventoryService.setUsesInventory(cluster.id(), true);
 
-        ClusterMember admin = seedPeople(cluster, context);
-        seedRoom(cluster, context);
+        ClusterMember admin = seedPeople(cluster, run, member);
+        seedRoom(cluster, run, member);
         seedFlows(cluster);
-        seedGear(cluster, context);
-        seedFields(cluster, context);
-        seedContent(cluster, context);
-        seedNotifications(cluster, context, admin);
+        seedGear(cluster, member);
+        seedFields(cluster, member);
+        seedContent(cluster, run, member);
+        seedNotifications(cluster, member, admin);
 
         log.info(
                 "Demo: Created cluster {} with home station {} over station {}",
                 cluster.id(),
                 cluster.homeStationId(),
-                context.station().id());
+                member.stationId());
     }
 
     /**
@@ -214,8 +216,8 @@ public class DemoClusterSeeder implements DemoSeeder {
      * owner may ask, and the cluster is told that somebody has. A row put in behind that would leave the
      * demo with a request nobody could take back.
      */
-    private void seedApplication(Cluster cluster, DemoSeederContext context) {
-        var federation = context.federation();
+    private void seedApplication(Cluster cluster, DemoRunContext run) {
+        var federation = run.federation();
         if (federation == null) {
             log.warn("Demo: No partner station left to ask the cluster for a place");
             return;
@@ -232,8 +234,8 @@ public class DemoClusterSeeder implements DemoSeeder {
      * screen has something waiting and the second because a mirror is a copy of a station that lives
      * somewhere else.
      */
-    private void joinNeighbour(Cluster cluster, DemoSeederContext context) {
-        var federation = context.federation();
+    private void joinNeighbour(Cluster cluster, DemoRunContext run) {
+        var federation = run.federation();
         if (federation == null) {
             log.warn("Demo: No neighbouring station to move into the cluster");
             return;
@@ -248,9 +250,9 @@ public class DemoClusterSeeder implements DemoSeeder {
      *
      * @return the administrator's cluster membership
      */
-    private ClusterMember seedPeople(Cluster cluster, DemoSeederContext context) {
+    private ClusterMember seedPeople(Cluster cluster, DemoRunContext run, DemoStationContext member) {
         ClusterMember admin =
-                clusterService.addMember(cluster.id(), context.adminAccount().id(), ClusterUserType.CLUSTER_ADMIN);
+                clusterService.addMember(cluster.id(), run.adminAccount().id(), ClusterUserType.CLUSTER_ADMIN);
 
         var group = memberService.createGroup(cluster.id(), "Gerätewarte");
         // The whole of looking after gear, not a corner of it: somebody who may correct a size but not
@@ -260,7 +262,7 @@ public class DemoClusterSeeder implements DemoSeeder {
 
         seedClusterOnlyPerson(cluster);
 
-        List<StationMember> others = otherPeople(context);
+        List<StationMember> others = otherPeople(member);
         if (!others.isEmpty()) {
             var memberManager =
                     clusterService.addMember(cluster.id(), others.getFirst().accountId(), ClusterUserType.CLUSTER_USER);
@@ -294,11 +296,11 @@ public class DemoClusterSeeder implements DemoSeeder {
      * and not the administrator, who already has one. The station's head member is its administrator, so
      * taking people off the front of a list without this would hand all three roles to one person.
      */
-    private static List<StationMember> otherPeople(DemoSeederContext context) {
-        int adminAccount = context.adminAccount().id();
+    private static List<StationMember> otherPeople(DemoStationContext station) {
+        int owner = station.adminMember().accountId();
         Set<Integer> seen = new HashSet<>();
-        return Stream.concat(context.members().betreuer().stream(), context.members().fortgeschritten().stream())
-                .filter(member -> member.accountId() != null && member.accountId() != adminAccount)
+        return Stream.concat(station.members().betreuer().stream(), station.members().fortgeschritten().stream())
+                .filter(member -> member.accountId() != null && member.accountId() != owner)
                 .filter(member -> seen.add(member.accountId()))
                 .toList();
     }
@@ -315,7 +317,7 @@ public class DemoClusterSeeder implements DemoSeeder {
      * <p>Every number here is at or above what the instance configuration gives a station on its own, so
      * joining this cluster never costs a demo station room it had.
      */
-    private void seedRoom(Cluster cluster, DemoSeederContext context) {
+    private void seedRoom(Cluster cluster, DemoRunContext run, DemoStationContext member) {
         quotaService.setStoragePool(cluster.id(), 100 * GIB);
         quotaService.setDefaults(new ClusterQuotaDefaults(
                 cluster.id(), 8 * GIB, 6 * GIB, 3 * GIB, 2 * GIB, 1 * GIB, 100 * MIB, 8 * MIB));
@@ -335,9 +337,9 @@ public class DemoClusterSeeder implements DemoSeeder {
                         new ClusterStorageQuotaService.Dimensions(10 * GIB, null, null, null, null, null, null)));
 
         quotaService.applyPreset(
-                cluster.id(), large.id(), List.of(context.station().uid()));
+                cluster.id(), large.id(), List.of(member.station().uid()));
 
-        var federation = context.federation();
+        var federation = run.federation();
         if (federation != null) {
             stationRepository
                     .findById(federation.thirdStationId())
@@ -428,7 +430,7 @@ public class DemoClusterSeeder implements DemoSeeder {
      * A pool of the cluster's own gear spread across the custody states, so each of them is visible rather
      * than described, plus one piece whose owner is not on this instance at all.
      */
-    private void seedGear(Cluster cluster, DemoSeederContext context) {
+    private void seedGear(Cluster cluster, DemoStationContext member) {
         var pool = inventoryRepository.create(cluster.homeStationId(), "Einsatzkleidung", InventoryType.EXTERNAL, true);
         inventoryRepository.createSize(pool.id(), "48", 0, null);
         inventoryRepository.createSize(pool.id(), "50", 1, null);
@@ -465,20 +467,22 @@ public class DemoClusterSeeder implements DemoSeeder {
         // Out at the demo station, on a shelf
         var atStation = inventoryRepository.createItem(
                 pool.id(), "KV-0003", "Einsatzjacke", smallId, null, ItemOwner.CLUSTER, cluster.id());
-        custodyService.applyStepCustody(atStation.id(), ItemCustody.AT_STATION, null, null, context.stationId());
+        custodyService.applyStepCustody(atStation.id(), ItemCustody.AT_STATION, null, null, member.stationId());
 
         // The requirement hangs off the cluster's own inventory, so there is one definition rather than one
         // per station that would have to be kept matching by hand
         inventoryRepository.createRequirement(pool.id(), StationUserType.MEMBER, 0, 1);
 
-        seedMovements(cluster, context, pool.id(), smallId, largeId);
+        seedMovements(cluster, member, pool.id(), smallId, largeId);
 
-        // A piece whose owner is not on this instance: the same ownership with nobody behind it, which is
-        // what makes the asserted half of the model visible in the demo too
-        var municipal =
-                inventoryRepository.create(context.stationId(), "Gemeindematerial", InventoryType.EXTERNAL, false);
-        inventoryRepository.createItem(
-                municipal.id(), "GM-0001", "Funkgerät der Gemeinde", null, null, ItemOwner.CLUSTER, null);
+        // A piece whose owner is not on this instance, written down after the station joined. What the
+        // association owns was adopted on the way in and this was not, which is the difference the record
+        // exists to keep: the station stands in for an owner that cannot answer for itself
+        inventoryRepository.findByStation(member.stationId()).stream()
+                .filter(inventory -> "Gemeindematerial".equals(inventory.name()))
+                .findFirst()
+                .ifPresent(municipal -> inventoryRepository.createItem(
+                        municipal.id(), "GM-0002", "Anhänger der Gemeinde", null, null, ItemOwner.CLUSTER, null));
     }
 
     /**
@@ -486,15 +490,15 @@ public class DemoClusterSeeder implements DemoSeeder {
      * the step the cluster owns. That is the state the whole model exists for: the station has done its part
      * and cannot do the next one, the gear is in the post, and the cluster is the one being waited on.
      */
-    private void seedMovements(Cluster cluster, DemoSeederContext context, int poolId, Integer small, Integer large) {
-        var head = context.members().head();
+    private void seedMovements(Cluster cluster, DemoStationContext member, int poolId, Integer small, Integer large) {
+        var head = member.members().head();
         if (head == null) return;
 
         var goingBack = inventoryRepository.createItem(
                 poolId, "KV-0005", "Einsatzhose", small, null, ItemOwner.CLUSTER, cluster.id());
-        custodyService.applyStepCustody(goingBack.id(), ItemCustody.AT_STATION, null, null, context.stationId());
+        custodyService.applyStepCustody(goingBack.id(), ItemCustody.AT_STATION, null, null, member.stationId());
         movementService.create(
-                context.stationId(),
+                member.stationId(),
                 MovementPurpose.RETURN,
                 head.id(),
                 nameOf(head),
@@ -509,21 +513,21 @@ public class DemoClusterSeeder implements DemoSeeder {
         // One piece that simply stays with the person, so the ordinary case is on screen too
         var worn = inventoryRepository.createItem(
                 poolId, "KV-0004", "Einsatzjacke", large, null, ItemOwner.CLUSTER, cluster.id());
-        custodyService.applyStepCustody(worn.id(), ItemCustody.AT_STATION, null, null, context.stationId());
+        custodyService.applyStepCustody(worn.id(), ItemCustody.AT_STATION, null, null, member.stationId());
         custodyService.assignToMember(worn.id(), head.id(), nameOf(head));
 
-        List<StationMember> others = otherPeople(context);
+        List<StationMember> others = otherPeople(member);
         if (others.isEmpty()) return;
         StationMember wearer = others.getFirst();
 
         var tooSmall = inventoryRepository.createItem(
                 poolId, "KV-0006", "Einsatzjacke", small, null, ItemOwner.CLUSTER, cluster.id());
-        custodyService.applyStepCustody(tooSmall.id(), ItemCustody.AT_STATION, null, null, context.stationId());
+        custodyService.applyStepCustody(tooSmall.id(), ItemCustody.AT_STATION, null, null, member.stationId());
         custodyService.assignToMember(tooSmall.id(), wearer.id(), nameOf(wearer));
 
         var actor = new ItemMovementService.Actor(wearer.id(), true, false);
         var exchange = movementService.create(
-                context.stationId(),
+                member.stationId(),
                 MovementPurpose.EXCHANGE,
                 wearer.id(),
                 nameOf(wearer),
@@ -542,7 +546,7 @@ public class DemoClusterSeeder implements DemoSeeder {
     /**
      * Two questions the cluster asks of the people at its stations, one of them answered.
      */
-    private void seedFields(Cluster cluster, DemoSeederContext context) {
+    private void seedFields(Cluster cluster, DemoStationContext member) {
         var licence = fieldService.create(
                 cluster.id(),
                 "Führerscheinklasse",
@@ -562,7 +566,7 @@ public class DemoClusterSeeder implements DemoSeeder {
                 false,
                 true);
 
-        var head = context.members().head();
+        var head = member.members().head();
         if (head != null) {
             fieldService.setValues(cluster.id(), head.id(), Map.of(licence.id(), "\"C1\""), head.id());
         }
@@ -574,8 +578,8 @@ public class DemoClusterSeeder implements DemoSeeder {
      * member station has signed up for the appointment, which is the point of an event held above the
      * stations rather than at one of them.
      */
-    private void seedContent(Cluster cluster, DemoSeederContext context) {
-        int accountId = context.adminAccount().id();
+    private void seedContent(Cluster cluster, DemoRunContext run, DemoStationContext member) {
+        int accountId = run.adminAccount().id();
 
         var folder = contentService.createFolder(
                 cluster.id(), null, "Dienstanweisungen", "Gilt für alle Wachen des Kreisverbands", accountId);
@@ -617,7 +621,7 @@ public class DemoClusterSeeder implements DemoSeeder {
                 null,
                 null);
 
-        var head = context.members().head();
+        var head = member.members().head();
         if (head != null) {
             registrationRepository.create(
                     drill.id(),
@@ -634,7 +638,7 @@ public class DemoClusterSeeder implements DemoSeeder {
      * administrator's cluster membership, the ones about being in one to their membership at the station,
      * because those are two different inboxes belonging to the same person.
      */
-    private void seedNotifications(Cluster cluster, DemoSeederContext context, ClusterMember admin) {
+    private void seedNotifications(Cluster cluster, DemoStationContext member, ClusterMember admin) {
         String name = cluster.name();
 
         notificationRepository.createForClusterMember(
@@ -650,7 +654,7 @@ public class DemoClusterSeeder implements DemoSeeder {
                 NotificationType.CLUSTER_MEMBER_ROLE_CHANGED,
                 NotificationData.of(new NotificationParams.ClusterMemberRoleChanged(name)));
 
-        StationMember adminMember = context.adminMember();
+        StationMember adminMember = member.adminMember();
         if (adminMember == null) return;
         int memberId = adminMember.id();
 

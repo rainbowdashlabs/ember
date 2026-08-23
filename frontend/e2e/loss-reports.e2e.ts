@@ -11,9 +11,9 @@ import {
     clusterAccountWith,
     clusterHeaders,
     clusterPage,
+    clusterStationManager,
     demoAccounts,
     pageAsThrowaway,
-    stationPeers,
     theSeededCluster,
 } from './fixtures/auth'
 
@@ -107,7 +107,7 @@ test.describe('Losing a piece of the association gear', () => {
      * mentioned lost at all. Both halves of that are what this walks.
      */
     test('a member reports their own gear missing and the association is not told', async ({
-        managerPage, memberPage, browser, request,
+        clusterStationManagerPage: managerPage, clusterStationMemberPage: memberPage, browser, request,
     }) => {
         const managerHeaders = await apiHeaders(managerPage)
         const memberHeaders = await apiHeaders(memberPage)
@@ -143,7 +143,7 @@ test.describe('Losing a piece of the association gear', () => {
      * is asking for; the member's is what happened to them.
      */
     test('the station reports the loss and the association reads both notes', async ({
-        managerPage, memberPage, browser, request,
+        clusterStationManagerPage: managerPage, clusterStationMemberPage: memberPage, browser, request,
     }) => {
         const managerHeaders = await apiHeaders(managerPage)
         const memberHeaders = await apiHeaders(memberPage)
@@ -191,7 +191,9 @@ test.describe('Losing a piece of the association gear', () => {
      * The loss is not the association's to accept or refuse. What it answers is the replacement, and a
      * refusal does not find the jacket.
      */
-    test('a refused replacement leaves the item missing', async ({managerPage, memberPage, browser, request}) => {
+    test('a refused replacement leaves the item missing', async ({
+        clusterStationManagerPage: managerPage, clusterStationMemberPage: memberPage, browser, request,
+    }) => {
         const managerHeaders = await apiHeaders(managerPage)
         const memberHeaders = await apiHeaders(memberPage)
         const gear = await clusterGearFor(
@@ -236,7 +238,7 @@ test.describe('Losing a piece of the association gear', () => {
      * not look at should never become a movement it has to close.
      */
     test('a report without the document the association demands is refused', async ({
-        managerPage, memberPage, browser, request,
+        clusterStationManagerPage: managerPage, clusterStationMemberPage: memberPage, browser, request,
     }) => {
         const managerHeaders = await apiHeaders(managerPage)
         const memberHeaders = await apiHeaders(memberPage)
@@ -286,11 +288,13 @@ test.describe('Losing a piece of the association gear', () => {
      * The same screen, the other tab. The note records the guardian as its author acting for the member,
      * so the trail says who actually wrote it.
      */
-    test('a guardian reports a loss for the person they act for', async ({managerPage, browser, request}) => {
+    test('a guardian reports a loss for the person they act for', async ({
+        clusterStationManagerPage: managerPage, browser, request,
+    }) => {
         const managerHeaders = await apiHeaders(managerPage)
         // At the manager's own station: the gear this story makes lives there, and gear at another
         // station is not the guardian's to report however much they act for its holder
-        const {manager} = await stationPeers(request)
+        const manager = await clusterStationManager(request)
         const accounts = await demoAccounts(request)
         const guardian = accounts.find(account => !!account.email
             && account.stationId === manager.stationId

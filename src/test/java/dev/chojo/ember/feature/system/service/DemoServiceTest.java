@@ -90,6 +90,7 @@ import dev.chojo.ember.feature.quiz.service.QuizQuestionSelector;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.quiz.service.QuizTestService;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -113,6 +114,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -524,6 +526,51 @@ class DemoServiceTest extends RepositoryTestBase {
         assertTrue(
                 stations.stream().anyMatch(s -> "JF Partnerwache".equals(s.name())),
                 "Partner station 'JF Partnerwache' should exist");
+    }
+
+    /**
+     * The two full stations, which is what lets a feature be looked at inside an association and outside it.
+     *
+     * <p>They are seeded by the same seeders from the same data, so what is asserted is that the second one
+     * really was built rather than half built, that it is the one inside the association, and that the same
+     * person exists at both without the two colliding.
+     */
+    @Test
+    @Order(6)
+    void verifyBothFullStationsSeeded() {
+        var musterstadt = stationByName("Jugendfeuerwehr Musterstadt");
+        var nordstadt = stationByName("Jugendfeuerwehr Nordstadt");
+
+        assertNull(musterstadt.clusterId(), "Musterstadt answers to nobody");
+        assertNotNull(nordstadt.clusterId(), "Nordstadt answers to the association");
+
+        // The same people at both, at addresses of their own
+        assertTrue(accountRepo.findByEmail("max@mustermann.local").isPresent(), "Max at the first station");
+        assertTrue(accountRepo.findByEmail("max@mustermann.nord.local").isPresent(), "Max at the second");
+
+        // And the same amount of everything, because the second one is the first one again
+        assertEquals(
+                stationMemberRepo.findByStation(musterstadt.id()).size(),
+                stationMemberRepo.findByStation(nordstadt.id()).size(),
+                "Both stations should carry the same members");
+        // Not equal here, and deliberately: the association keeps a store of its own at the station it
+        // governs, which is the association's doing rather than a difference in how the two were built
+        assertTrue(
+                inventoryRepo.findByStation(nordstadt.id()).size()
+                        >= inventoryRepo.findByStation(musterstadt.id()).size(),
+                "The twin should carry what the first carries, and the association's store on top");
+
+        // Both borrow from the same partner, so what federation does can be seen at either
+        var federations = new FederationRepository();
+        assertFalse(federations.findPartners(musterstadt.id()).isEmpty(), "Musterstadt has its partner");
+        assertFalse(federations.findPartners(nordstadt.id()).isEmpty(), "Nordstadt has the same partner");
+    }
+
+    private static Station stationByName(String name) {
+        return stationRepo.findAll().stream()
+                .filter(station -> name.equals(station.name()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The station '" + name + "' should exist"));
     }
 
     /**

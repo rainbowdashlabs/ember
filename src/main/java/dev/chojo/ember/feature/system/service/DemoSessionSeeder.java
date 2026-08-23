@@ -43,11 +43,11 @@ public class DemoSessionSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
+    public void seed(DemoRunContext run) {
         var sessionExpiry = Instant.now().plus(Duration.ofHours(24));
         for (String userAgent : USER_AGENTS) {
             var token = UUID.randomUUID().toString();
-            accountRepository.createSession(context.adminAccount().id(), token, sessionExpiry, userAgent, null);
+            accountRepository.createSession(run.adminAccount().id(), token, sessionExpiry, userAgent, null);
         }
         log.info("Demo: Created previous sessions");
     }

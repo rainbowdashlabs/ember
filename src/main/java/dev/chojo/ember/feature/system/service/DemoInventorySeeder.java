@@ -277,6 +277,12 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         for (int i = 0; i < tshirtSizes.size(); i++)
             inventoryRepository.createSize(tshirt.id(), tshirtSizes.get(i), i, "");
 
+        // Gear whose owner is not on this instance: the same ownership with nobody behind it, which is what
+        // makes the asserted half of the model visible. Every station keeps some, association or not
+        var gemeindematerial = inventoryRepository.create(stationId, "Gemeindematerial", InventoryType.EXTERNAL, false);
+        inventoryRepository.createItem(
+                gemeindematerial.id(), "GM-0001", "Funkgerät der Gemeinde", null, null, ItemOwner.CLUSTER, null);
+
         // Requirements: Anfänger and Fortgeschritten members each need 1 of each (2 T-shirts)
         for (int groupId : List.of(anfaengerGroupId, fortgeschrittenGroupId)) {
             inventoryRepository.createRequirement(helm.id(), null, groupId, 1);

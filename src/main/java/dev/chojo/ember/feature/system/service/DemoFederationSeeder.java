@@ -150,8 +150,16 @@ public class DemoFederationSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        context.federation(seed(context.stationId(), context.adminMember().id()));
+    public void seed(DemoRunContext run) {
+        var primary = run.primaryStation();
+        // Every full station gets the partner, so what federation does can be seen at a station inside an
+        // association as well as at one outside it. The content the partner shares is seeded once, with the
+        // first station, because it is the partner's content and not a station's
+        List<Integer> alsoFederated = run.stations().stream()
+                .filter(station -> station != primary)
+                .map(DemoStationContext::stationId)
+                .toList();
+        run.federation(seed(primary.stationId(), primary.adminMember().id(), alsoFederated));
         log.info("Demo: Created federation data");
     }
 
@@ -160,9 +168,11 @@ public class DemoFederationSeeder implements DemoSeeder {
      *
      * @param primaryStationId the primary station ID
      * @param createdBy        the member ID creating the data
+     * @param alsoFederated    further stations to federate with the same partner, sharing no content of
+     *                         their own
      * @return the seed result with partner station and member IDs
      */
-    public SeedResult seed(int primaryStationId, int createdBy) {
+    public SeedResult seed(int primaryStationId, int createdBy, List<Integer> alsoFederated) {
         // Opt primary station into discovery
         stationRepository.updateDiscoverySettings(
                 primaryStationId,
@@ -390,14 +400,19 @@ public class DemoFederationSeeder implements DemoSeeder {
         federationService.createProtocolShare(partnerStation.id(), partnerProtocol.id(), ShareScope.ALL_PARTNERS);
 
         // Enable federation capabilities
-        for (var cap : List.of(
-                CapabilityType.EVENT_SHARE,
-                CapabilityType.BOARD_SHARE,
-                CapabilityType.KB_SHARE,
-                CapabilityType.NEWS_SHARE,
-                CapabilityType.INVENTORY_LEND)) {
-            federationService.setCapability(partner.id(), cap, Direction.IMPORT, true);
-            federationService.setCapability(partner.id(), cap, Direction.EXPORT, true);
+        enableCapabilities(partner.id());
+
+        // The other full stations get the same partner, with the key it is already federated under: a
+        // second key pair here would replace the first station's and break the pairing it already has
+        for (int stationId : alsoFederated) {
+            var alsoPartner = federationService.acceptInvite(
+                    stationId,
+                    partnerStation.id(),
+                    federationService.encodePublicKey(initiatingKeyPair),
+                    remoteHost,
+                    remoteHost);
+            enableCapabilities(alsoPartner.id());
+            log.info("Demo: Federated station {} with the partner station as well", stationId);
         }
 
         // Create a public event on the partner station (visible via federation)
@@ -696,4 +711,17 @@ public class DemoFederationSeeder implements DemoSeeder {
      * @param thirdMemberId    its member, who also owns it
      */
     public record SeedResult(int partnerStationId, int partnerMemberId, int thirdStationId, int thirdMemberId) {}
+
+    /** Everything the demo's federations may do, in both directions, because a demo showing less shows less. */
+    private void enableCapabilities(int partnerId) {
+        for (var cap : List.of(
+                CapabilityType.EVENT_SHARE,
+                CapabilityType.BOARD_SHARE,
+                CapabilityType.KB_SHARE,
+                CapabilityType.NEWS_SHARE,
+                CapabilityType.INVENTORY_LEND)) {
+            federationService.setCapability(partnerId, cap, Direction.IMPORT, true);
+            federationService.setCapability(partnerId, cap, Direction.EXPORT, true);
+        }
+    }
 }

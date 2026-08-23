@@ -64,8 +64,10 @@ public class DemoMirrorStationSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        int jfStationId = context.stationId();
+    public void seed(DemoRunContext run) {
+        // The mirror is the first station's mirror: a second one would be a second copy of a station that
+        // already has one, which teaches nothing the first does not
+        int jfStationId = run.primaryStation().stationId();
         var ffStation = stationRepository.create("FF Musterstadt", DemoUids.station("ff-musterstadt"));
         stationRepository.updatePublicSlug(ffStation.id(), "ff-musterstadt");
 

@@ -213,12 +213,11 @@ public class DemoService {
      */
     private void seedData() {
         var run = new DemoRunContext(passwordHasher.hash(DemoSeeder.PASSWORD));
-        var context = new DemoSeederContext(run);
         var bands = new TreeMap<>(seeders.stream().collect(Collectors.groupingBy(DemoSeeder::order)));
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             for (var band : bands.entrySet()) {
                 List<CompletableFuture<Void>> tasks = band.getValue().stream()
-                        .map(seeder -> CompletableFuture.runAsync(() -> seeder.seed(context), executor))
+                        .map(seeder -> CompletableFuture.runAsync(() -> seeder.seed(run), executor))
                         .toList();
                 CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new)).join();
             }

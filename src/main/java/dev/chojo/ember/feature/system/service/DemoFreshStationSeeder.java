@@ -47,7 +47,7 @@ public class DemoFreshStationSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
+    public void seed(DemoRunContext run) {
         var freshStation = stationRepository.create(
                 "Wache Neuhausen (Einrichtung)", UUID.fromString("00000000-0000-4000-a000-000000000002"));
         stationRepository.updateTimezone(freshStation.id(), "Europe/Berlin");
@@ -55,7 +55,7 @@ public class DemoFreshStationSeeder implements DemoSeeder {
 
         var freshAdminAccount = accountRepository.create("setup-admin@ember.local", "Setup", "Admin", true);
         accountRepository.setUid(freshAdminAccount.id(), DemoUids.account("setup-admin@ember.local"));
-        accountRepository.createCredential(freshAdminAccount.id(), context.passwordHash());
+        accountRepository.createCredential(freshAdminAccount.id(), run.passwordHash());
 
         var freshAdminMember = stationMemberRepository.create(freshStation.id(), freshAdminAccount.id());
         stationMemberRepository.setUserType(freshAdminMember.id(), StationUserType.MANAGER);

@@ -4,7 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {MADE_BY_A_STORY} from './fixtures/cluster'
-import {test, expect, enterCluster, theSeededCluster, apiHeaders} from './fixtures/auth'
+import {
+    test,
+    expect,
+    enterCluster,
+    theSeededCluster,
+    apiHeaders,
+    demoStationGroups,
+    standaloneStationManager,
+} from './fixtures/auth'
 
 /**
  * How stations come into a cluster and how they leave it again.
@@ -212,17 +220,20 @@ test.describe('Cluster stations', () => {
  * ask. Rather than guess which seeded account owns what, this finds a station standing outside every
  * cluster whose owner can sign in, and asks as them.
  *
+ * Never the full station the demo keeps outside every cluster, though: taking that one in is permanent
+ * and would leave the suite with no standalone station to look at, which is half of what the demo is
+ * for. What is left to ask with are the spare stations beside it.
+ *
  * @returns the name of the station that asked
  */
 async function applyAsSomeStandaloneOwner(
     request: import('@playwright/test').APIRequestContext,
     clusterUid: string,
 ): Promise<string> {
-    const accounts = await request.get('/api/v1/demo/accounts').then(r => r.json())
-    const groups: {stationId?: string; stationName?: string; accounts?: {email?: string; permissions: string[]}[]}[] =
-        accounts.stationGroups ?? []
+    const spared = (await standaloneStationManager(request)).stationId
 
-    for (const group of groups) {
+    for (const group of await demoStationGroups(request)) {
+        if (group.stationId === spared) continue
         for (const account of group.accounts ?? []) {
             if (!account.email) continue
             if (!account.permissions.includes('STATION_ADMINISTRATOR')
@@ -254,11 +265,7 @@ async function withdrawAsTheWaitingOwner(
     request: import('@playwright/test').APIRequestContext,
     clusterUid: string,
 ): Promise<() => Promise<void>> {
-    const accounts = await request.get('/api/v1/demo/accounts').then(r => r.json())
-    const groups: {stationId?: string; accounts?: {email?: string; permissions: string[]}[]}[] =
-        accounts.stationGroups ?? []
-
-    for (const group of groups) {
+    for (const group of await demoStationGroups(request)) {
         for (const account of group.accounts ?? []) {
             if (!account.email) continue
             if (!account.permissions.includes('STATION_ADMINISTRATOR')

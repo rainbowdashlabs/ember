@@ -57,13 +57,30 @@ public class DemoRunContext {
     /**
      * Adds a station the run is seeding, and hands back the context everything about it goes on.
      *
+     * @param profile what this station is called, where it answers, and whose addresses its people hold
      * @param station the station that was just created
      * @return its own context
      */
-    public DemoStationContext addStation(Station station) {
-        var context = new DemoStationContext(station);
+    public DemoStationContext addStation(DemoStationProfile profile, Station station) {
+        var context = new DemoStationContext(profile, station);
         stations.add(context);
         return context;
+    }
+
+    /**
+     * The station the demo association takes as its member station.
+     *
+     * <p>Exactly one profile joins one, and the association is nothing to look at without it, so a run
+     * where none does is a mistake in {@link DemoStations} rather than a case to seed around.
+     *
+     * @return its context
+     * @throws IllegalStateException when no station this run built is meant to join an association
+     */
+    public DemoStationContext clusterStation() {
+        return stations.stream()
+                .filter(station -> station.profile().joinsCluster())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No demo station joins the association"));
     }
 
     /**

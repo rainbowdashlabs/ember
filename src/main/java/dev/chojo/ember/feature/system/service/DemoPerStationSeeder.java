@@ -21,9 +21,9 @@ public interface DemoPerStationSeeder extends DemoSeeder {
      * beside it, and a seeder writing two stations at once would have to be written for that.
      */
     @Override
-    default void seed(DemoSeederContext context) {
-        for (DemoStationContext station : context.run().stations()) {
-            seedStation(context.run(), station);
+    default void seed(DemoRunContext run) {
+        for (DemoStationContext station : run.stations()) {
+            seedStation(run, station);
         }
     }
 
