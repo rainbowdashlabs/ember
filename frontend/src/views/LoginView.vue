@@ -19,7 +19,6 @@ import {useCluster} from '@/composables/useCluster'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useDemoAccounts, type DemoAccount} from '@/composables/useDemoAccounts'
 import {useLoginConsent} from '@/composables/useLoginConsent'
-import {StationUserTypeLabels} from '@/api/types'
 import DemoLogin from '@/views/loginview/DemoLogin.vue'
 import ConsentGate from '@/views/loginview/ConsentGate.vue'
 import LegalModal from '@/views/loginview/LegalModal.vue'
@@ -34,8 +33,7 @@ const {setActiveCluster, clearActiveCluster} = useCluster()
 
 const demo = useDemoAccounts()
 const {
-  isDemo, isDev, loading: demoLoading, activeStationTab, hasDemoAccounts,
-  stationTabs, showStationTabs, roleGroups, noStationRoleGroups, clusterRoleGroups,
+  isDemo, isDev, loading: demoLoading, activeStation, search, hasDemoAccounts, view: demoView,
 } = demo
 
 const legal = useLoginConsent()
@@ -153,10 +151,6 @@ const {running: demoLoggingIn, error: demoError, run: loginAsDemo} = useAsyncAct
 
 const loading = computed(() => loggingIn.value || demoLoggingIn.value)
 const error = computed(() => loginError.value || demoError.value)
-
-function topRoleLabel(account: DemoAccount): string {
-  return StationUserTypeLabels[account.userType as keyof typeof StationUserTypeLabels] ?? account.userType ?? 'Login'
-}
 </script>
 
 <template>
@@ -170,12 +164,8 @@ function topRoleLabel(account: DemoAccount): string {
       <Spinner v-if="demoLoading" size="lg"/>
 
       <DemoLogin v-if="isDemo && !demoLoading"
-                 :error="error" :loading="loading"
-                 :cluster-role-groups="clusterRoleGroups"
-                 :no-station-role-groups="noStationRoleGroups" :role-groups="roleGroups"
-                 :station-tabs="stationTabs" :show-station-tabs="showStationTabs"
-                 v-model:active-station-tab="activeStationTab"
-                 :role-label="topRoleLabel" @login="loginAsDemo"/>
+                 v-model:active-station="activeStation" v-model:search="search"
+                 :view="demoView" :error="error" :loading="loading" @login="loginAsDemo"/>
 
       <template v-if="!isDemo && !demoLoading">
         <ConsentGate v-if="consent === null"
@@ -202,12 +192,8 @@ function topRoleLabel(account: DemoAccount): string {
                    @submit="handleLogin"/>
 
         <DevDemoFooter v-if="isDev && hasDemoAccounts && consent === 'accepted'"
-                       :loading="loading"
-                       :cluster-role-groups="clusterRoleGroups"
-                 :no-station-role-groups="noStationRoleGroups" :role-groups="roleGroups"
-                       :station-tabs="stationTabs" :show-station-tabs="showStationTabs"
-                       v-model:active-station-tab="activeStationTab"
-                       :role-label="topRoleLabel" @login="loginAsDemo"/>
+                       v-model:active-station="activeStation" v-model:search="search"
+                       :view="demoView" :loading="loading" @login="loginAsDemo"/>
       </template>
     </div>
   </div>

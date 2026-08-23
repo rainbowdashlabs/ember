@@ -5360,6 +5360,8 @@ export default {
         loginHint: 'Wähle ein Konto aus, um dich direkt als Demo-Nutzer anzumelden.',
         devLoginHint: 'Schnellanmeldung mit Testkonten',
         clusterLoginHint: 'Konten, die für einen Verband handeln',
+        searchPlaceholder: 'Name, Adresse, Rolle, Gruppe oder Merkmal suchen…',
+        searchEmpty: 'Keine Konten gefunden.',
     },
     inventoryMembers: {
         title: 'Mitglieder & Inventar',
