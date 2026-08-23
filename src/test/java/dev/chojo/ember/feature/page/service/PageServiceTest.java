@@ -21,7 +21,6 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
-import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -65,11 +64,7 @@ class PageServiceTest extends RepositoryTestBase {
                 storage,
                 new MediaVariantService(storage, storageConfig),
                 new MediaReferenceRegistry(contentContainerRepo),
-                new StorageQuotaService(
-                        storageUsageRepo,
-                        new StationStorageConfigRepository(),
-                        storageConfig,
-                        new DomainEventBus(Set.of())));
+                new StorageQuotaService(storageUsageRepo, storageConfig, new DomainEventBus(Set.of())));
         blocks = new ContentBlockService(contentContainerRepo);
         service = new PageService(
                 pageRepo, blocks, media, stationMemberRepo, new AvatarService(new ImageVariantService(storageService)));

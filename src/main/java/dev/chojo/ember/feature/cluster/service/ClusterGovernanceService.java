@@ -15,8 +15,10 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.entity.ClusterStationQuota;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
+import dev.chojo.ember.feature.storage.repository.ClusterStorageQuotaRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
@@ -51,6 +53,7 @@ public class ClusterGovernanceService {
     private final ClusterRepository clusterRepository;
     private final StationRepository stationRepository;
     private final ClusterStorageConfigRepository storageConfigRepository;
+    private final ClusterStorageQuotaRepository quotaRepository;
     private final StorageBackendResolver backendResolver;
     private final DomainEventBus eventBus;
 
@@ -59,11 +62,13 @@ public class ClusterGovernanceService {
             ClusterRepository clusterRepository,
             StationRepository stationRepository,
             ClusterStorageConfigRepository storageConfigRepository,
+            ClusterStorageQuotaRepository quotaRepository,
             StorageBackendResolver backendResolver,
             DomainEventBus eventBus) {
         this.clusterRepository = clusterRepository;
         this.stationRepository = stationRepository;
         this.storageConfigRepository = storageConfigRepository;
+        this.quotaRepository = quotaRepository;
         this.backendResolver = backendResolver;
         this.eventBus = eventBus;
     }
@@ -172,30 +177,31 @@ public class ClusterGovernanceService {
     /**
      * Hands a station a share of the cluster's pool.
      *
-     * <p>The pool is the whole of it: the sum of what every member station has been given, plus what the
-     * cluster's own station is already using, may not go past it. A cluster without a pool is one the
-     * instance put no cap on, and then there is nothing to check.
+     * <p>The pool is the whole of it: the sum of what every station has been promised may not go past it. The
+     * cluster's own store is one of those stations, because the files a cluster keeps are kept there and are
+     * no more free than anybody else's. A cluster without a pool is one the instance put no cap on, and then
+     * there is nothing to check.
+     *
+     * <p>The number is written where the cluster's own numbers live rather than into the station's, so an
+     * instance administrator setting something for a station cannot silently replace what the cluster
+     * promised, and the pool adds up what was actually promised.
      *
      * @param clusterId the cluster
      * @param stationId the station receiving the quota
-     * @param quotaBytes how much it may use, or {@code null} to hand it back to the instance default
+     * @param quotaBytes how much it may use, or {@code null} to hand it back to the cluster's own defaults
      * @throws BadRequestResponse when the cluster would be handing out more than it has
      */
     public void setStationQuota(int clusterId, int stationId, Long quotaBytes) {
         Cluster cluster = requireCluster(clusterId);
         Station station =
                 stationRepository.findById(stationId).orElseThrow(() -> new NotFoundResponse("No such station"));
-        if (station.clusterId() == null || station.clusterId() != clusterId) {
+        boolean ownStore = station.id() == cluster.homeStationId();
+        if (!ownStore && (station.clusterId() == null || station.clusterId() != clusterId)) {
             throw new BadRequestResponse("That station does not belong to this cluster");
         }
 
         if (cluster.storagePoolBytes() != null && quotaBytes != null) {
-            long othersTotal = stationRepository.findClusterStationQuotas(clusterId).stream()
-                    .filter(other -> other.id() != stationId)
-                    .map(StationRepository.StationQuotaRow::quotaBytes)
-                    .filter(Objects::nonNull)
-                    .mapToLong(Long::longValue)
-                    .sum();
+            long othersTotal = quotaRepository.sumGrantedTotals(clusterId, stationId);
             if (othersTotal + quotaBytes > cluster.storagePoolBytes()) {
                 throw new BadRequestResponse(
                         "That is more than the cluster has left. Its pool is %d bytes and %d are already handed out."
@@ -203,7 +209,24 @@ public class ClusterGovernanceService {
             }
         }
 
-        stationRepository.updateStorageQuota(stationId, quotaBytes);
+        if (quotaBytes == null) {
+            quotaRepository.deleteGrant(stationId);
+        } else {
+            var existing = quotaRepository.findGrant(stationId);
+            quotaRepository.setGrant(new ClusterStationQuota(
+                    stationId,
+                    clusterId,
+                    quotaBytes,
+                    existing.map(ClusterStationQuota::quotaKbBytes).orElse(null),
+                    existing.map(ClusterStationQuota::quotaBoardBytes).orElse(null),
+                    existing.map(ClusterStationQuota::quotaImagesBytes).orElse(null),
+                    existing.map(ClusterStationQuota::quotaPagesBytes).orElse(null),
+                    existing.map(ClusterStationQuota::perFileBytes).orElse(null),
+                    existing.map(ClusterStationQuota::perImageBytes).orElse(null),
+                    // Setting a total by hand takes the station off whatever tier it was on, because the
+                    // numbers no longer come from there
+                    null));
+        }
         eventBus.publish(new ClusterQuotaChanged(stationId, cluster.name(), quotaBytes));
         log.info("Cluster {} gave station {} a quota of {}", clusterId, stationId, quotaBytes);
     }
@@ -251,7 +274,7 @@ public class ClusterGovernanceService {
      */
     public PoolUsage findPoolUsage(int clusterId) {
         Cluster cluster = requireCluster(clusterId);
-        List<StationQuota> stations = stationRepository.findClusterStationQuotas(clusterId).stream()
+        List<StationQuota> stations = quotaRepository.findStationsWithGrants(clusterId).stream()
                 .map(row -> new StationQuota(row.uid(), row.name(), row.quotaBytes()))
                 .toList();
         long handedOut = stations.stream()

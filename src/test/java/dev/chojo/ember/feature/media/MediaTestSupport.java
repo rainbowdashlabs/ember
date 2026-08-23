@@ -17,7 +17,6 @@ import dev.chojo.ember.feature.media.service.MediaVariantService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
-import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
@@ -48,10 +47,6 @@ public final class MediaTestSupport {
                 storage,
                 new MediaVariantService(storage, storageConfig),
                 new MediaReferenceRegistry(containers),
-                new StorageQuotaService(
-                        usageRepository,
-                        new StationStorageConfigRepository(),
-                        storageConfig,
-                        new DomainEventBus(Set.of())));
+                new StorageQuotaService(usageRepository, storageConfig, new DomainEventBus(Set.of())));
     }
 }

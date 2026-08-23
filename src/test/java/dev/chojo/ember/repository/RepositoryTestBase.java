@@ -117,6 +117,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
+import dev.chojo.ember.feature.storage.repository.ClusterStorageQuotaRepository;
 import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
 import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
@@ -252,6 +253,7 @@ public abstract class RepositoryTestBase {
     protected static MediaMetaRepository mediaMetaRepo;
     protected static StorageUsageRepository storageUsageRepo;
     protected static StorageQuotaPresetRepository storagePresetRepo;
+    protected static ClusterStorageQuotaRepository clusterStorageQuotaRepo;
     protected static StorageBackendAuditRepository storageBackendAuditRepo;
     protected static DiscoveryPeerRepository discoveryPeerRepo;
     protected static DiscoveryPingRepository discoveryPingRepo;
@@ -386,10 +388,12 @@ public abstract class RepositoryTestBase {
                 stationMemberRepo,
                 profileFieldChangeRepo,
                 new DomainEventBus(Set.of()));
+        clusterStorageQuotaRepo = new ClusterStorageQuotaRepository();
         clusterGovernanceService = new ClusterGovernanceService(
                 clusterRepo,
                 stationRepo,
                 new ClusterStorageConfigRepository(),
+                clusterStorageQuotaRepo,
                 new StorageBackendResolver(new LocalStorageBackend()),
                 new DomainEventBus(Set.of()));
         clusterService = new ClusterService(
@@ -399,6 +403,7 @@ public abstract class RepositoryTestBase {
                 new FederationService(new FederationRepository(), stationRepo, new Api()),
                 clusterGovernanceService,
                 clusterProfileFieldService,
+                clusterStorageQuotaRepo,
                 new DomainEventBus(Set.of()));
         clusterMemberService = new ClusterMemberService(clusterRepo, clusterService, new DomainEventBus(Set.of()));
         userSettingsRepo = new UserSettingsRepository();

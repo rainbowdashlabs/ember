@@ -396,49 +396,6 @@ public class StationRepository {
                 .all();
     }
 
-    /**
-     * What each station of a cluster has been given, for the cluster's own arithmetic.
-     *
-     * <p>Its own query rather than a field on {@code Station}: the storage columns are the storage feature's
-     * business and putting seven of them on the station record would make every listing carry numbers almost
-     * nobody reads.
-     *
-     * @param clusterId the cluster
-     * @return one row per member station
-     */
-    public List<StationQuotaRow> findClusterStationQuotas(int clusterId) {
-        return query("""
-                SELECT id, uid, name, storage_quota_bytes FROM station
-                WHERE cluster_id = :cluster_id AND station_kind = :kind
-                ORDER BY name;""")
-                .single(call().bind("cluster_id", clusterId).bind("kind", StationKind.REGULAR))
-                .map(row -> new StationQuotaRow(
-                        row.getInt("id"),
-                        row.get("uid", StandardValueConverter.UUID_STRING),
-                        row.getString("name"),
-                        row.getObject("storage_quota_bytes", Long.class)))
-                .all();
-    }
-
-    /**
-     * @param quotaBytes what the station may use, or {@code null} when it falls back to the instance default
-     */
-    public record StationQuotaRow(int id, UUID uid, String name, Long quotaBytes) {}
-
-    /**
-     * Sets how much room a station has in total, or hands it back to the instance default.
-     *
-     * @param id         the station
-     * @param quotaBytes the quota, or {@code null} for the instance default
-     * @return {@code true} if a row was updated
-     */
-    public boolean updateStorageQuota(int id, Long quotaBytes) {
-        return query("UPDATE station SET storage_quota_bytes = :quota WHERE id = :id;")
-                .single(call().bind("quota", quotaBytes).bind("id", id))
-                .update()
-                .changed();
-    }
-
     public void updateThemeSettings(
             int id,
             String defaultTheme,

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.repository;
 
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.storage.entity.ClusterQuotaDefaults;
 import dev.chojo.ember.feature.storage.entity.ClusterStationQuota;
 import dev.chojo.ember.feature.storage.entity.ClusterStorageQuotaPreset;
@@ -14,6 +15,7 @@ import jakarta.inject.Singleton;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -64,7 +66,7 @@ public class ClusterStorageQuotaRepository {
     public Optional<ClusterQuotaDefaults> findDefaultsForStation(int stationId) {
         return query("""
                         SELECT %s FROM cluster c
-                        JOIN station s ON s.cluster_id = c.id
+                        JOIN station s ON s.cluster_id = c.id OR c.home_station_id = s.id
                         WHERE s.id = :station_id;""", SqlSupport.alias("c", DEFAULT_COLUMNS))
                 .single(call().bind("station_id", stationId))
                 .map(ClusterQuotaDefaults.map())
@@ -210,6 +212,34 @@ public class ClusterStorageQuotaRepository {
     }
 
     /**
+     * Every station a cluster has, with what it was granted.
+     *
+     * <p>The home station is in the list, because a cluster's own files are kept there and room for them is
+     * promised out of the same pool as everybody else's. A station that has been granted nothing is still
+     * listed, with nothing against its name.
+     *
+     * @param clusterId the cluster
+     * @return one row per station, in name order
+     */
+    public List<GrantedStation> findStationsWithGrants(int clusterId) {
+        return query("""
+                SELECT s.id, s.uid, s.name, q.quota_bytes, q.preset_id
+                FROM station s
+                    LEFT JOIN cluster_station_quota q ON q.station_id = s.id
+                WHERE s.cluster_id = :cluster_id
+                   OR s.id = (SELECT home_station_id FROM cluster WHERE id = :cluster_id)
+                ORDER BY s.name;""")
+                .single(call().bind("cluster_id", clusterId))
+                .map(row -> new GrantedStation(
+                        row.getInt("id"),
+                        row.get("uid", StandardValueConverter.UUID_STRING),
+                        row.getString("name"),
+                        row.getObject("quota_bytes", Long.class),
+                        row.getObject("preset_id", Integer.class)))
+                .all();
+    }
+
+    /**
      * Writes what a station was granted, replacing whatever it held before.
      *
      * @param grant the whole of the grant, nulls included, because a dimension left out is a dimension handed
@@ -321,4 +351,12 @@ public class ClusterStorageQuotaRepository {
                 .first()
                 .orElse(0L);
     }
+
+    /**
+     * One of a cluster's stations and what it was promised.
+     *
+     * @param quotaBytes the total granted, or {@code null} when the cluster granted this station nothing
+     * @param presetId   the tier it was put on, or {@code null} when its numbers were set by hand
+     */
+    public record GrantedStation(int stationId, UUID uid, String name, Long quotaBytes, Integer presetId) {}
 }

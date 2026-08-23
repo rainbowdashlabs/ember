@@ -93,7 +93,6 @@ import dev.chojo.ember.feature.quiz.service.QuizTestService;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
-import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
@@ -407,8 +406,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 demoStorage,
                 new MediaVariantService(demoStorage, demoStorageConfig),
                 new MediaReferenceRegistry(contentContainerRepo),
-                new StorageQuotaService(
-                        storageUsageRepo, new StationStorageConfigRepository(), demoStorageConfig, noOpBus));
+                new StorageQuotaService(storageUsageRepo, demoStorageConfig, noOpBus));
         var pageSeeder = new DemoPageSeeder(
                 new PageService(
                         pageRepo,

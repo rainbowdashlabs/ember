@@ -192,6 +192,51 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void theClustersOwnStoreIsPromisedOutOfTheSamePool() {
+        int clusterId = freshCluster();
+        var cluster = clusterRepo.findById(clusterId).orElseThrow();
+        clusterGovernanceService.setStoragePool(clusterId, 1_000L);
+        var station = clusterService.createStation(clusterId, "Wache Neben Verband " + NAMES.incrementAndGet());
+
+        clusterGovernanceService.setStationQuota(clusterId, cluster.homeStationId(), 600L);
+        var refused = assertThrows(
+                BadRequestResponse.class,
+                () -> clusterGovernanceService.setStationQuota(clusterId, station.id(), 500L));
+        assertTrue(refused.getMessage().contains("more than the cluster has left"));
+
+        clusterGovernanceService.setStationQuota(clusterId, station.id(), 400L);
+        var usage = clusterGovernanceService.findPoolUsage(clusterId);
+        assertEquals(1_000L, usage.handedOut(), "what the cluster keeps for itself is part of what it handed out");
+        assertEquals(2, usage.stations().size(), "its own store is one of the stations on the list");
+
+        clusterService.releaseStation(clusterId, station.id());
+        stationRepo.delete(station.id());
+    }
+
+    @Test
+    void aGrantIsTheClustersOwnAndGoesWithTheMembership() {
+        int clusterId = freshCluster();
+        var station = clusterService.createStation(clusterId, "Wache Unberuehrt " + NAMES.incrementAndGet());
+
+        clusterGovernanceService.setStationQuota(clusterId, station.id(), 700L);
+
+        assertEquals(
+                700L,
+                clusterStorageQuotaRepo.findGrant(station.id()).orElseThrow().quotaBytes(),
+                "the cluster writes its own numbers rather than the instance's");
+
+        clusterService.releaseStation(clusterId, station.id());
+        assertTrue(
+                clusterStorageQuotaRepo.findGrant(station.id()).isEmpty(),
+                "a station that has been let go was promised nothing");
+        assertEquals(
+                0L,
+                clusterGovernanceService.findPoolUsage(clusterId).handedOut(),
+                "and the room comes back when the station goes");
+        stationRepo.delete(station.id());
+    }
+
+    @Test
     void aClusterCanPointItsStationsAtABackendOfItsOwn() {
         int clusterId = freshCluster();
         var cipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));

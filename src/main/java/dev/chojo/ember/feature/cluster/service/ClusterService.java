@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.inventory.service.ClusterItemHandoverService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.repository.ClusterStorageQuotaRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -57,6 +58,7 @@ public class ClusterService {
     private final FederationService federationService;
     private final ClusterGovernanceService governanceService;
     private final ClusterProfileFieldService fieldService;
+    private final ClusterStorageQuotaRepository quotaRepository;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -67,6 +69,7 @@ public class ClusterService {
             FederationService federationService,
             ClusterGovernanceService governanceService,
             ClusterProfileFieldService fieldService,
+            ClusterStorageQuotaRepository quotaRepository,
             DomainEventBus eventBus) {
         this.clusterRepository = clusterRepository;
         this.stationRepository = stationRepository;
@@ -74,6 +77,7 @@ public class ClusterService {
         this.federationService = federationService;
         this.governanceService = governanceService;
         this.fieldService = fieldService;
+        this.quotaRepository = quotaRepository;
         this.eventBus = eventBus;
     }
 
@@ -209,6 +213,9 @@ public class ClusterService {
         // The answers go, the history of who changed what stays: an audit trail is not the cluster's to
         // take away when it lets a station go
         fieldService.clearValuesOfStation(stationId);
+        // The room went with the membership. What the instance says about the station stands again, untouched
+        // all along
+        quotaRepository.deleteGrant(stationId);
         stationRepository.setCluster(stationId, null);
         log.info("Cluster {} released station {}", clusterId, stationId);
         eventBus.publish(new ClusterStationReleased(stationId, cluster.name()));
