@@ -18,7 +18,6 @@ import dev.chojo.ember.feature.inventory.entity.ContainerPath;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
-import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
@@ -923,8 +922,7 @@ public class InventoryRoutes implements Routes {
             summary = "List all inventory requirements for the current station",
             tags = {"Inventory"},
             description = "The station's own and those of the cluster above it, the latter named and read-only.",
-            responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = RequirementResponse[].class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RequirementResponse[].class)))
     private void listAllRequirements(Context ctx) {
         UserSession session = UserSession.from(ctx);
         String clusterName =

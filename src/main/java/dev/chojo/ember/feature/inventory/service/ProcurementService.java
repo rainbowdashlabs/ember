@@ -105,7 +105,8 @@ public class ProcurementService {
                             null,
                             ItemOwner.CLUSTER,
                             owner.get().id())
-                    : inventoryService.createItem(proc.inventoryId(), "", inv.get().name(), proc.sizeId(), null);
+                    : inventoryService.createItem(
+                            proc.inventoryId(), "", inv.get().name(), proc.sizeId(), null);
             if (proc.memberId() != null) {
                 inventoryService.assignItem(item.id(), proc.memberId(), "");
             } else {

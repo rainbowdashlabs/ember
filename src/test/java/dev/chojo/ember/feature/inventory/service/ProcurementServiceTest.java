@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -34,9 +35,12 @@ class ProcurementServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var inventoryService = new InventoryService(inventoryRepo, itemCustodyService, clusterRepo);
-        service =
-                new ProcurementService(
-                procurementRepo, inventoryService, inventoryRepo, clusterRepo, itemCustodyService,
+        service = new ProcurementService(
+                procurementRepo,
+                inventoryService,
+                inventoryRepo,
+                clusterRepo,
+                itemCustodyService,
                 new DomainEventBus(Set.of()));
         station = stationRepo.create("ProcStation");
         account = accountRepo.create("proc-svc@test.com", "Proc", "Tester");
@@ -114,5 +118,32 @@ class ProcurementServiceTest extends RepositoryTestBase {
     @Order(32)
     void deleteMissing() {
         assertFalse(service.delete(999999));
+    }
+
+    /**
+     * A cluster orders for its own store, so the order names nobody and what arrives belongs to the
+     * cluster and rests there, rather than landing on a person its station does not have.
+     */
+    @Test
+    @Order(40)
+    void anOrderForNobodyArrivesInTheClustersOwnStore() {
+        var home = stationRepo.create("Träger Beschaffung");
+        var cluster = clusterRepo.create("Kreisverband Beschaffung", null, home.id());
+        var pool = inventoryRepo.create(home.id(), "Einsatzkleidung", InventoryType.EXTERNAL, false);
+
+        var ordered = service.create(home.id(), pool.id(), null, null, "Nachbestellung");
+        assertNull(ordered.memberId(), "an order need not be for anybody");
+
+        assertTrue(service.fulfill(ordered.id()));
+
+        var arrived = inventoryRepo.findItemsOwnedByCluster(cluster.id());
+        assertEquals(1, arrived.size(), "one piece, belonging to the cluster that ordered it");
+        assertEquals(ItemCustody.WITH_OWNER, arrived.getFirst().custody(), "resting in its own store");
+        assertNull(arrived.getFirst().assignedTo(), "and on nobody");
+
+        inventoryRepo.deleteItem(arrived.getFirst().id());
+        inventoryRepo.delete(pool.id());
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(home.id());
     }
 }

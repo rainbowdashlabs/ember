@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -301,6 +302,65 @@ class InventoryServiceTest extends RepositoryTestBase {
 
         var reqs = service.findAllRequirementsByStation(station.id());
         assertNotNull(reqs);
+        service.delete(inv.id());
+    }
+
+    /**
+     * A station under a cluster reads what the cluster asks of its people beside what it asks itself, and
+     * the cluster's rows say whose they are so the screen can badge them and take the controls away.
+     */
+    @Test
+    @Order(72)
+    void requirementsVisibleAtAStationCarryTheClustersOwn() {
+        var home = stationRepo.create("Träger Vorgaben");
+        var cluster = clusterRepo.create("Kreisverband Vorgaben", null, home.id());
+        // A cluster keeps no gear here until it says so, and one that keeps none asks nothing either
+        clusterRepo.setUsesInventory(cluster.id(), true);
+        stationRepo.setCluster(station.id(), cluster.id());
+
+        var mine = service.create(station.id(), "Eigene Vorgabe", InventoryType.INTERNAL, false);
+        var theirs = service.create(home.id(), "Verbandsvorgabe", InventoryType.INTERNAL, false);
+        service.createRequirement(mine.id(), StationUserType.MEMBER, 0, 1);
+        service.createRequirement(theirs.id(), StationUserType.MEMBER, 0, 2);
+
+        var visible = service.findRequirementsVisibleAt(station.id());
+        var fromCluster = visible.stream()
+                .filter(InventoryRepository.VisibleRequirement::fromCluster)
+                .toList();
+        assertEquals(1, fromCluster.size(), "the cluster's one requirement, named as the cluster's");
+        assertEquals("Verbandsvorgabe", fromCluster.getFirst().inventoryName());
+        assertEquals(2, fromCluster.getFirst().requirement().quantity());
+
+        assertTrue(
+                visible.stream().anyMatch(row -> !row.fromCluster() && "Eigene Vorgabe".equals(row.inventoryName())),
+                "and the station's own beside it");
+
+        assertEquals(
+                "Kreisverband Vorgaben",
+                service.requirementSourceAbove(station.id()).orElse(null));
+
+        // A cluster that does not keep its gear here asks nothing of anybody
+        clusterRepo.setUsesInventory(cluster.id(), false);
+        assertTrue(service.findRequirementsVisibleAt(station.id()).stream().noneMatch(row -> row.fromCluster()));
+        assertTrue(service.requirementSourceAbove(station.id()).isEmpty());
+
+        stationRepo.setCluster(station.id(), null);
+        service.delete(mine.id());
+        service.delete(theirs.id());
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(home.id());
+    }
+
+    /** A station under nobody reads only its own, and there is no name to put on them. */
+    @Test
+    @Order(73)
+    void requirementsVisibleAtAStationUnderNobodyAreItsOwn() {
+        var inv = service.create(station.id(), "Allein", InventoryType.INTERNAL, false);
+        service.createRequirement(inv.id(), StationUserType.MEMBER, 0, 1);
+
+        assertTrue(service.findRequirementsVisibleAt(station.id()).stream().noneMatch(row -> row.fromCluster()));
+        assertTrue(service.requirementSourceAbove(station.id()).isEmpty());
+
         service.delete(inv.id());
     }
 }
