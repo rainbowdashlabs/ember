@@ -18,6 +18,7 @@ import {isAvailable, type InventoryItem} from '@/api/inventory'
 import {MovementState, type MovementDetail} from '@/api/movements'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
+import {useActsForOwner} from '@/composables/useActsForOwner'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {apiErrorMessage} from '@/util/apiError'
 import MovementStep from './movementview/MovementStep.vue'
@@ -27,6 +28,7 @@ import LossReportPanel from './movementview/LossReportPanel.vue'
 const {t} = useI18n()
 const route = useRoute()
 const {hasPermission} = useSession()
+const actsForOwner = useActsForOwner()
 
 const movementId = computed(() => Number(route.params.id))
 const detail = ref<MovementDetail | null>(null)
@@ -44,13 +46,29 @@ const visibleSteps = computed(() =>
 
 const {loading, error, reload} = useAsyncLoader(async () => {
   detail.value = await movements.getMovement(movementId.value)
-  const inventoryId = detail.value.movement.inventoryId
-  // Only the step that names the arriving item needs something to choose from, and only gear the
-  // station is actually holding can be handed over
-  candidates.value = inventoryId && detail.value.steps.some(s => s.current && s.picksItem)
-      ? (await inventory.listItems(inventoryId)).filter(item => isAvailable(item.custody))
-      : []
+  candidates.value = detail.value.steps.some(s => s.current && s.picksItem) ? await pickable() : []
 })
+
+/**
+ * What the current step can name, which depends on whose step it is.
+ *
+ * <p>A station hands over something it is holding, so it picks out of the inventory the movement is about.
+ * An association sending a replacement sends one out of its own store, which is a different station's
+ * inventory entirely: asking for the movement's one would be asking for somebody else's, and the server is
+ * right to refuse. Either way a list that cannot be fetched leaves the chain readable rather than blanking
+ * the page, because reading what happened never depended on it.
+ */
+async function pickable(): Promise<InventoryItem[]> {
+  const inventoryId = detail.value?.movement.inventoryId
+  try {
+    const items = actsForOwner.value
+        ? await inventory.listAllItems()
+        : inventoryId ? await inventory.listItems(inventoryId) : []
+    return items.filter(item => isAvailable(item.custody))
+  } catch {
+    return []
+  }
+}
 
 async function run(action: () => Promise<MovementDetail>) {
   busy.value = true

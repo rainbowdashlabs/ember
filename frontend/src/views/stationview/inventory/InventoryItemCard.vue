@@ -49,7 +49,9 @@ const awayFromMember = computed(() =>
 </script>
 
 <template>
-  <NeutralContainer :class="[props.item.lostAt ? 'opacity-60 border-error' : '', awayFromMember ? 'opacity-70' : '']">
+  <NeutralContainer
+      data-testid="inventory-item-card"
+      :class="[props.item.lostAt ? 'opacity-60 border-error' : '', awayFromMember ? 'opacity-70' : '']">
     <div class="flex items-start justify-between gap-2">
       <ItemCardSummary
           :item="props.item"

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.AccessManager;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -25,6 +26,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.ManagedAccessService;
 import dev.chojo.ember.feature.members.service.ManagedAccessService.ManagedAccess;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.Context;
@@ -71,6 +73,7 @@ public class ManagedMemberRoutes implements Routes {
     private final GdprExportService gdprExportService;
     private final AccessManager accessManager;
     private final ManagedAccessService accessService;
+    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public ManagedMemberRoutes(
@@ -82,7 +85,9 @@ public class ManagedMemberRoutes implements Routes {
             InventoryCheckService checkService,
             GdprExportService gdprExportService,
             AccessManager accessManager,
-            ManagedAccessService accessService) {
+            ManagedAccessService accessService,
+            MemberIdentityFactory memberIdentityFactory) {
+        this.memberIdentityFactory = memberIdentityFactory;
         this.accessService = accessService;
         this.memberService = memberService;
         this.stationMemberRepository = stationMemberRepository;
@@ -304,7 +309,9 @@ public class ManagedMemberRoutes implements Routes {
                             inventoryName,
                             item.sizeId(),
                             sizeName,
-                            item.lostAt());
+                            item.lostAt(),
+                            item.lostNote(),
+                            item.lostNoteBy() == null ? null : memberIdentityFactory.fromMemberId(item.lostNoteBy()));
                 })
                 .toList());
     }
@@ -352,7 +359,10 @@ public class ManagedMemberRoutes implements Routes {
             String inventoryName,
             Integer sizeId,
             String sizeName,
-            Instant lostAt) {}
+            Instant lostAt,
+            /** What was written when it was reported missing, which a guardian may have written themselves. */
+            String lostNote,
+            MemberIdentity lostNoteBy) {}
 
     public record MemberRequirement(int inventoryId, String inventoryName, int requiredQuantity) {}
 

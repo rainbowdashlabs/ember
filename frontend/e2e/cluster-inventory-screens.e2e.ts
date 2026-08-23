@@ -179,10 +179,16 @@ test.describe('Cluster inventory screens', () => {
         const cluster = await theSeededCluster(page)
         const headers = await clusterHeaders(page, cluster)
 
-        // Which piece is being looked at is arrangement; that it can be renamed is the story.
-        const lookup = await page.request.get('/api/v1/inventory-items/by-internal-id?internalId=KV-0001', {headers})
-        expect(lookup.ok()).toBeTruthy()
-        const item = await lookup.json()
+        // Which piece is being looked at is arrangement; that it can be renamed is the story. Asked of the
+        // association's own list rather than the barcode lookup, which finds what a station is holding and
+        // so never finds a spare resting in its owner's store.
+        const owned = await page.request
+            .get('/api/v1/cluster/inventory/items', {headers})
+            .then(r => r.json())
+        // One resting in its own store: the association's screens act at its own station, and a piece out
+        // at a member station is opened there rather than here
+        const item = owned.find((row: {stationUid: string | null}) => row.stationUid === null)
+        expect(item, 'the association keeps gear in its own store').toBeTruthy()
 
         await page.goto(`/cluster/inventory/item/${item.id}`)
         await expect(page.getByTestId('app-shell')).toBeVisible()

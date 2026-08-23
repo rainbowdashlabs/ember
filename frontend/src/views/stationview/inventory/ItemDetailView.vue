@@ -8,12 +8,10 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import NoteEditor from '@/components/comment/NoteEditor.vue'
 import {inventory, inventoryContainers, stationMembers} from '@/api'
 import {ItemOwner} from '@/api/inventory'
 import type {InventoryItem, InventoryItemHistory, InventorySize} from '@/api/inventory'
@@ -21,20 +19,17 @@ import type {ItemCheckHistoryEntry, ItemLocationResponse} from '@/api/inventoryC
 import {StationPermission, type StationMember} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useActsForOwner} from '@/composables/useActsForOwner'
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
-import ItemMetadataPanel from './itemdetailview/ItemMetadataPanel.vue'
-import ItemActionsPanel from './itemdetailview/ItemActionsPanel.vue'
-import OwnedElsewherePanel from './itemdetailview/OwnedElsewherePanel.vue'
-import ReportLossPanel from './itemdetailview/ReportLossPanel.vue'
-import ItemHistoryPanel from './itemdetailview/ItemHistoryPanel.vue'
-import ItemCheckHistoryPanel from './itemdetailview/ItemCheckHistoryPanel.vue'
+import ItemPanels from './itemdetailview/ItemPanels.vue'
 import AssignItemModal from './itemdetailview/AssignItemModal.vue'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {hasPermission} = useSession()
+const routes = useInventoryRoutes()
 const canEdit = computed(() => hasPermission(StationPermission.INVENTORY_EDIT))
 
 const itemId = computed(() => Number(route.params.id))
@@ -70,6 +65,15 @@ const ownedElsewhere = computed(() =>
     && !actsForOwner.value)
 const canEditItem = computed(() => (canEdit.value || isManager.value) && !ownedElsewhere.value)
 
+/**
+ * Handing it out, shelving it, reporting it missing and finding it again.
+ *
+ * <p>Ownership has nothing to say about these, because they are facts about where the thing is rather than
+ * the owner's account of what it is. A station holding an association's jacket hands it to a member and
+ * reports it missing exactly as it does with its own, and the server allows all of it.
+ */
+const canActOnItem = computed(() => canEdit.value || isManager.value)
+
 const showAssignModal = ref(false)
 
 const {loading, error} = useAsyncLoader(async () => {
@@ -81,9 +85,12 @@ const {loading, error} = useAsyncLoader(async () => {
   item.value = i
   historyEntries.value = h
   checkHistory.value = ch
+  // The member list fills the assign modal, and an association has neither: its own station has nobody
+  // to hand gear to and it may not read anybody else's roster. Asking and being refused is fine; letting
+  // the refusal blank a page that is mostly about the piece itself is not.
   const [s, m, loc] = await Promise.all([
     inventory.listSizes(i.inventoryId),
-    stationMembers.listMembers(),
+    stationMembers.listMembers().catch(() => []),
     inventoryContainers.getItemLocation(itemId.value).catch(() => null),
   ])
   sizes.value = s
@@ -173,38 +180,28 @@ async function doMarkFound() {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
-      <template v-if="!loading && item">
-        <ItemMetadataPanel
-          :item="item"
-          :sizes="sizes"
-          :members="members"
-          :location="location"
-          :can-edit-item="canEditItem"
-          @updated="onUpdated"
-          @error="onError"
-        />
-
-        <OwnedElsewherePanel v-if="ownedElsewhere" :item="item" @started="reloadItem"/>
-
-        <ReportLossPanel v-if="ownedElsewhere && isManager && item.lostAt" :item="item" @reported="reloadItem"/>
-
-        <ItemActionsPanel
-          v-if="canEditItem"
-          :item="item"
-          @assign="showAssignModal = true"
-          @unassign="doUnassign"
-          @mark-lost="doMarkLost"
-          @mark-found="doMarkFound"
-        />
-
-        <ItemHistoryPanel :entries="historyEntries"/>
-
-        <ItemCheckHistoryPanel :entries="checkHistory"/>
-
-        <NeutralContainer v-if="isManager">
-          <NoteEditor :entity-type="'ITEM'" :entity-id="itemId"/>
-        </NeutralContainer>
-      </template>
+      <ItemPanels
+        v-if="!loading && item"
+        :item="item"
+        :item-id="itemId"
+        :sizes="sizes"
+        :members="members"
+        :location="location"
+        :history-entries="historyEntries"
+        :check-history="checkHistory"
+        :can-edit-item="canEditItem"
+        :can-act-on-item="canActOnItem"
+        :can-assign="!!routes.member"
+        :owned-elsewhere="ownedElsewhere"
+        :is-manager="isManager"
+        @updated="onUpdated"
+        @error="onError"
+        @reload="reloadItem"
+        @assign="showAssignModal = true"
+        @unassign="doUnassign"
+        @mark-lost="doMarkLost"
+        @mark-found="doMarkFound"
+      />
 
       <AssignItemModal
         v-model="showAssignModal"

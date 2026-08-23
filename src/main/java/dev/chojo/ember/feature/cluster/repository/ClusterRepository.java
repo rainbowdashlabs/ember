@@ -106,6 +106,18 @@ public class ClusterRepository {
                 .orElse(null));
     }
 
+    /**
+     * Forgets every identity held in memory.
+     *
+     * <p>Only one thing takes clusters away without deleting them one at a time, and that is the demo being
+     * wiped. Afterwards the same internal id belongs to a different cluster with a different identity, and a
+     * cached one is an identity nothing can be found by: it is written out on every item the cluster owns
+     * and refused the moment anybody sends it back.
+     */
+    public void invalidateIdentityCache() {
+        uidCache.invalidateAll();
+    }
+
     public List<Cluster> findAll() {
         return query("""
                 SELECT %s FROM cluster ORDER BY name;""", CLUSTER_COLUMNS).single(call()).map(Cluster.map()).all();

@@ -40,13 +40,13 @@ const {t} = useI18n()
 const terms = ref<LossReportTerms | null>(null)
 const asking = ref(false)
 const note = ref('')
-const document = ref<File | null>(null)
+const attachment = ref<File | null>(null)
 
 const noteRequired = computed(() => terms.value?.requires !== LossReportRequirement.NOTHING)
 const documentRequired = computed(() => terms.value?.requires === LossReportRequirement.DOCUMENT)
 const canSend = computed(() =>
     (!noteRequired.value || note.value.trim().length > 0)
-    && (!documentRequired.value || document.value != null))
+    && (!documentRequired.value || attachment.value != null))
 
 onMounted(async () => {
   try {
@@ -58,14 +58,14 @@ onMounted(async () => {
 
 function pick(event: Event) {
   const input = event.target as HTMLInputElement
-  document.value = input.files?.[0] ?? null
+  attachment.value = input.files?.[0] ?? null
 }
 
 const {running, error, run: send} = useAsyncAction(async () => {
-  await inventory.reportLoss(props.item.id, note.value.trim(), document.value)
+  await inventory.reportLoss(props.item.id, note.value.trim(), attachment.value)
   asking.value = false
   note.value = ''
-  document.value = null
+  attachment.value = null
   emit('reported')
 })
 </script>

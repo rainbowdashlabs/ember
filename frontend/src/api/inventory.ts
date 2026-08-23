@@ -6,6 +6,7 @@
 import client from './client'
 import {createCrudResource} from './crud'
 import type {MemberIdentity} from './types'
+import {uploadFile} from './upload'
 
 export const InventoryTypes = {
     INTERNAL: 'INTERNAL',
@@ -97,7 +98,8 @@ export interface InventoryItem {
     /** The member who wrote that note, which is the guardian when one wrote it for somebody. */
     lostNoteBy?: number | null
     ownerKind?: ItemOwnerName | null
-    ownerClusterId?: number | null
+    /** The owning association's stable identity. An internal id never leaves the backend. */
+    ownerClusterId?: string | null
     custody?: ItemCustodyName | null
     custodyStationId?: number | null
     custodyMovementId?: number | null
@@ -114,7 +116,8 @@ export interface ItemRequest {
     sizeId?: number
     metadata?: ItemMetadata
     ownerKind?: ItemOwnerName
-    ownerClusterId?: number | null
+    /** The owning association's stable identity, which is what the backend takes back. */
+    ownerClusterId?: string | null
 }
 
 export interface AssignRequest {
@@ -177,7 +180,7 @@ export interface MyInventoryItem {
     movementIncoming?: boolean
     /** Who owns it, which a member is entitled to know about what they are looking after. */
     ownerKind?: ItemOwnerName | null
-    ownerClusterId?: number | null
+    ownerClusterId?: string | null
     /** What was written when it was reported missing. */
     lostNote?: string | null
     /** Who wrote that note, which is the guardian when one reported it for the member. */
@@ -363,10 +366,7 @@ export async function lossReportTerms(itemId: number): Promise<LossReportTerms> 
  * outright, and writing it first and attaching afterwards would leave half a request standing.
  */
 export async function reportLoss(itemId: number, note: string, document?: File | null): Promise<void> {
-    const form = new FormData()
-    form.append('note', note)
-    if (document) form.append('document', document)
-    await client.post(`/inventory-items/${itemId}/loss-report`, form)
+    await uploadFile(`/inventory-items/${itemId}/loss-report`, {note, document})
 }
 
 export async function getSettings(): Promise<InventorySettings> {
