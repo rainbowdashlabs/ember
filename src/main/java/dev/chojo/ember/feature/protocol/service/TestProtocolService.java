@@ -110,6 +110,20 @@ public class TestProtocolService {
         return repository.findSections(protocolId);
     }
 
+    /**
+     * The station owning the protocol a section belongs to, empty when there is no such section.
+     */
+    public Optional<Integer> findSectionStation(int sectionId) {
+        return repository.findSectionStation(sectionId);
+    }
+
+    /**
+     * The station owning the protocol an item belongs to, empty when there is no such item.
+     */
+    public Optional<Integer> findItemStation(int itemId) {
+        return repository.findItemStation(itemId);
+    }
+
     public TestProtocolSection createSection(
             int protocolId,
             Integer parentId,

@@ -281,6 +281,25 @@ class TestProtocolRepositoryTest extends RepositoryTestBase {
         assertFalse(completed.isEmpty());
     }
 
+    /**
+     * Sections and items carry no station of their own, so the ownership check on their endpoints
+     * reaches the station through the protocol they hang under.
+     */
+    @Test
+    @Order(50)
+    void aSectionAndItemReportTheProtocolStation() {
+        assertEquals(
+                station.id(), testProtocolRepo.findSectionStation(sectionId).orElseThrow());
+        assertEquals(station.id(), testProtocolRepo.findItemStation(itemId).orElseThrow());
+    }
+
+    @Test
+    @Order(51)
+    void anUnknownSectionOrItemReportsNoStation() {
+        assertTrue(testProtocolRepo.findSectionStation(-1).isEmpty());
+        assertTrue(testProtocolRepo.findItemStation(-1).isEmpty());
+    }
+
     // -- Cleanup --
 
     @Test

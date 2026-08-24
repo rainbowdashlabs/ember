@@ -163,6 +163,22 @@ public class TestProtocolRepository {
         return deleteById("test_protocol_section", id);
     }
 
+    /**
+     * The station owning the protocol a section belongs to. Sections carry no station of their own,
+     * so this is what an ownership check on a section endpoint compares against.
+     */
+    public Optional<Integer> findSectionStation(int sectionId) {
+        return query("""
+                SELECT p.station_id
+                FROM
+                    test_protocol_section s
+                    JOIN test_protocol p ON p.id = s.protocol_id
+                WHERE s.id = :id;""")
+                .single(call().bind("id", sectionId))
+                .map(row -> row.getInt("station_id"))
+                .first();
+    }
+
     // -- Items --
 
     public List<TestProtocolItem> findItems(int sectionId) {
@@ -218,6 +234,22 @@ public class TestProtocolRepository {
 
     public boolean deleteItem(int id) {
         return deleteById("test_protocol_item", id);
+    }
+
+    /**
+     * The station owning the protocol an item belongs to, reached through its section.
+     */
+    public Optional<Integer> findItemStation(int itemId) {
+        return query("""
+                SELECT p.station_id
+                FROM
+                    test_protocol_item i
+                    JOIN test_protocol_section s ON s.id = i.section_id
+                    JOIN test_protocol p ON p.id = s.protocol_id
+                WHERE i.id = :id;""")
+                .single(call().bind("id", itemId))
+                .map(row -> row.getInt("station_id"))
+                .first();
     }
 
     // -- Runs --

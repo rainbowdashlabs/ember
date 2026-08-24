@@ -10,6 +10,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
@@ -40,6 +41,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -54,6 +56,7 @@ public class TestProtocolRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(TestProtocolRoutes.class);
 
     private final TestProtocolService service;
+    private final TestProtocolGuards guards;
     private final TestProtocolPdfService pdfService;
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
@@ -63,12 +66,14 @@ public class TestProtocolRoutes implements Routes {
     @Inject
     public TestProtocolRoutes(
             TestProtocolService service,
+            TestProtocolGuards guards,
             TestProtocolPdfService pdfService,
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
             AccountRepository accountRepository) {
         this.service = service;
+        this.guards = guards;
         this.pdfService = pdfService;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
@@ -161,7 +166,7 @@ public class TestProtocolRoutes implements Routes {
 
     private void getProtocol(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var protocol = service.findProtocol(id).orElseThrow(NotFoundResponse::new);
+        var protocol = guards.requireProtocol(ctx, id);
         var sections = service.findSections(id);
         var allItems = service.findAllItemsByProtocol(id);
         ctx.json(new ProtocolDetailResponse(protocol, sections, allItems));
@@ -169,6 +174,7 @@ public class TestProtocolRoutes implements Routes {
 
     private void updateProtocol(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireProtocol(ctx, id);
         var req = ctx.bodyAsClass(ProtocolRequest.class);
         if (!service.updateProtocol(
                 id, req.name(), req.description() != null ? req.description() : "", req.passThreshold())) {
@@ -179,12 +185,14 @@ public class TestProtocolRoutes implements Routes {
 
     private void deleteProtocol(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireProtocol(ctx, id);
         service.deleteProtocol(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private void createSection(Context ctx) {
         int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireProtocol(ctx, protocolId);
         var req = ctx.bodyAsClass(SectionRequest.class);
         ctx.status(HttpStatus.CREATED)
                 .json(service.createSection(
@@ -199,6 +207,7 @@ public class TestProtocolRoutes implements Routes {
 
     private void updateSection(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireSection(ctx, id);
         var req = ctx.bodyAsClass(SectionRequest.class);
         service.updateSection(
                 id,
@@ -212,12 +221,14 @@ public class TestProtocolRoutes implements Routes {
 
     private void deleteSection(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireSection(ctx, id);
         service.deleteSection(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private void createItem(Context ctx) {
         int sectionId = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireSection(ctx, sectionId);
         var req = ctx.bodyAsClass(ItemRequest.class);
         ctx.status(HttpStatus.CREATED)
                 .json(service.createItem(
@@ -230,6 +241,7 @@ public class TestProtocolRoutes implements Routes {
 
     private void updateItem(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireItem(ctx, id);
         var req = ctx.bodyAsClass(ItemRequest.class);
         service.updateItem(
                 id,
@@ -242,6 +254,7 @@ public class TestProtocolRoutes implements Routes {
 
     private void deleteItem(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireItem(ctx, id);
         service.deleteItem(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -255,6 +268,7 @@ public class TestProtocolRoutes implements Routes {
     private void createRun(Context ctx) {
         var session = UserSession.from(ctx);
         int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireProtocol(ctx, protocolId);
         var req = ctx.bodyAsClass(RunRequest.class);
         var run = service.createRun(
                 protocolId,
@@ -283,15 +297,27 @@ public class TestProtocolRoutes implements Routes {
                 userTagRepository.findMembers(tagId).forEach(m -> resolvedIds.add(m.id()));
             }
         }
+        resolvedIds.retainAll(stationMemberIds(session.stationId()));
         if (!resolvedIds.isEmpty()) {
             service.addRunMembers(run.id(), new ArrayList<>(resolvedIds));
         }
         ctx.status(HttpStatus.CREATED).json(run);
     }
 
+    /**
+     * The members of the station, as the set a run may be filled from. The ids in the request name
+     * members, groups and tags directly, and a group or tag of another station resolves to members
+     * of that station, so the run is filled from this set rather than from what was asked for.
+     */
+    private Set<Integer> stationMemberIds(int stationId) {
+        return stationMemberRepository.findByStation(stationId).stream()
+                .map(StationMember::id)
+                .collect(Collectors.toSet());
+    }
+
     private void getRun(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var run = service.findRun(id).orElseThrow(NotFoundResponse::new);
+        var run = guards.requireRun(ctx, id);
         var members = service.findRunMembers(id);
         var topSections = service.findSections(run.protocolId()).stream()
                 .filter(s -> s.parentId() == null)
@@ -304,6 +330,7 @@ public class TestProtocolRoutes implements Routes {
 
     private void updateRun(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireRun(ctx, id);
         var req = ctx.bodyAsClass(RunRequest.class);
         service.updateRun(id, req.name(), req.testDate() != null ? req.testDate() : LocalDate.now());
         ctx.json(service.findRun(id).orElseThrow());
@@ -311,12 +338,14 @@ public class TestProtocolRoutes implements Routes {
 
     private void closeRun(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireRun(ctx, id);
         service.closeRun(id);
         ctx.json(service.findRun(id).orElseThrow());
     }
 
     private void deleteRun(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireRun(ctx, id);
         service.deleteRun(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -325,6 +354,7 @@ public class TestProtocolRoutes implements Routes {
         var session = UserSession.from(ctx);
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        guards.requireRun(ctx, runId);
         if (!service.lockMember(runId, memberId, session.member().id())) {
             throw new BadRequestResponse("Member is already locked by another tester");
         }
@@ -334,6 +364,7 @@ public class TestProtocolRoutes implements Routes {
     private void unlockMember(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        guards.requireRun(ctx, runId);
         service.unlockMember(runId, memberId);
         ctx.json(service.findRunMember(runId, memberId).orElseThrow());
     }
@@ -341,6 +372,7 @@ public class TestProtocolRoutes implements Routes {
     private void getChecks(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        guards.requireRun(ctx, runId);
         ctx.json(service.findChecks(runId, memberId));
     }
 
@@ -349,7 +381,7 @@ public class TestProtocolRoutes implements Routes {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         var req = ctx.bodyAsClass(ChecksRequest.class);
-        var run = service.findRun(runId).orElseThrow(NotFoundResponse::new);
+        var run = guards.requireRun(ctx, runId);
         service.saveChecks(runId, memberId, req.checks(), session.member().id(), run.protocolId());
         ctx.json(service.findChecks(runId, memberId));
     }
@@ -357,7 +389,7 @@ public class TestProtocolRoutes implements Routes {
     private void completeMember(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
-        var run = service.findRun(runId).orElseThrow(NotFoundResponse::new);
+        var run = guards.requireRun(ctx, runId);
         service.completeMember(runId, memberId, run.protocolId());
         ctx.json(service.findRunMember(runId, memberId).orElseThrow());
     }
@@ -365,6 +397,7 @@ public class TestProtocolRoutes implements Routes {
     private void getSectionsDone(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        guards.requireRun(ctx, runId);
         ctx.json(service.findDoneSections(runId, memberId));
     }
 
@@ -373,13 +406,15 @@ public class TestProtocolRoutes implements Routes {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         int sectionId = ctx.pathParamAsClass("sectionId", Integer.class).get();
+        guards.requireRun(ctx, runId);
+        guards.requireSection(ctx, sectionId);
         service.toggleSectionDone(runId, memberId, sectionId, session.member().id());
         ctx.json(service.findDoneSections(runId, memberId));
     }
 
     private void getEvaluation(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var run = service.findRun(id).orElseThrow(NotFoundResponse::new);
+        var run = guards.requireRun(ctx, id);
         var proto = service.findProtocol(run.protocolId()).orElseThrow(NotFoundResponse::new);
         var sections = service.findSections(run.protocolId());
         var allItems = service.findAllItemsByProtocol(run.protocolId());
@@ -420,7 +455,7 @@ public class TestProtocolRoutes implements Routes {
 
     private void exportAllZip(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var run = service.findRun(id).orElseThrow(NotFoundResponse::new);
+        var run = guards.requireRun(ctx, id);
         var proto = service.findProtocol(run.protocolId()).orElseThrow(NotFoundResponse::new);
         var members = service.findRunMembers(id);
 
@@ -477,7 +512,7 @@ public class TestProtocolRoutes implements Routes {
 
     private void exportEvaluationPdf(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var run = service.findRun(id).orElseThrow(NotFoundResponse::new);
+        var run = guards.requireRun(ctx, id);
         var proto = service.findProtocol(run.protocolId()).orElseThrow(NotFoundResponse::new);
         byte[] pdf = pdfService.exportEvaluationTable(id, proto.name(), run.testDate());
         ctx.contentType("application/pdf");
@@ -488,7 +523,7 @@ public class TestProtocolRoutes implements Routes {
     private void exportMemberPdf(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
-        var run = service.findRun(runId).orElseThrow(NotFoundResponse::new);
+        var run = guards.requireRun(ctx, runId);
         var proto = service.findProtocol(run.protocolId()).orElseThrow(NotFoundResponse::new);
         byte[] pdf = pdfService.exportRunMember(runId, memberId, proto.name(), run.testDate());
         ctx.contentType("application/pdf");
