@@ -75,6 +75,37 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
     }
 
+    /**
+     * A size belongs to the inventory that recorded it, and what an association owns mostly sits in an
+     * inventory at one of its stations. Looking the sizes up on the association's own station therefore
+     * found none of them and every row was named after a raw id.
+     */
+    @Test
+    void gearAtAMemberStationIsNamedWithTheSizeThatStationRecorded() {
+        var cluster = freshCluster();
+        var station = stationOf(cluster);
+        var inventory = inventoryRepo.create(
+                station.id(), "Einsatzkleidung " + NAMES.incrementAndGet(), InventoryType.EXTERNAL, true);
+        inventoryRepo.createSize(inventory.id(), "XXL", 0, null);
+        int sizeId = inventoryRepo.findSizes(inventory.id()).getFirst().id();
+        inventoryRepo.createItem(
+                inventory.id(),
+                "HK-" + NAMES.incrementAndGet(),
+                "Jacke",
+                sizeId,
+                null,
+                ItemOwner.CLUSTER,
+                cluster.id());
+
+        var items = clusterInventoryService.findItems(cluster.id());
+
+        assertEquals(1, items.size());
+        assertEquals("XXL", items.getFirst().sizeLabel());
+
+        clusterService.releaseStation(cluster.id(), station.id());
+        stationRepo.delete(station.id());
+    }
+
     @Test
     void aStationCannotRenameOrDeleteGearItDoesNotOwn() {
         var cluster = freshCluster();

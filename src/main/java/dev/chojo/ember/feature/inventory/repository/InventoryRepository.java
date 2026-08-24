@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -22,6 +23,7 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -393,6 +395,26 @@ public class InventoryRepository {
                 JOIN inventory i ON i.id = s.inventory_id
                 WHERE i.station_id = :station_id ORDER BY s.position;""", SqlSupport.alias("s", INVENTORY_SIZE_COLUMNS))
                 .single(call().bind("station_id", stationId))
+                .map(InventorySize.map())
+                .all();
+    }
+
+    /**
+     * The sizes behind a set of ids, whichever inventory at whichever station declared them.
+     *
+     * <p>What a cluster owns sits wherever it was handed to, and a size belongs to the inventory that
+     * recorded it. Looking sizes up by the station the owner happens to live on therefore finds none of
+     * the sizes on gear that is out, which is most of it.
+     *
+     * @param sizeIds the sizes the items in hand carry
+     * @return them, empty when nothing was asked for
+     */
+    public List<InventorySize> findSizesByIds(Collection<Integer> sizeIds) {
+        if (sizeIds == null || sizeIds.isEmpty()) return List.of();
+        return query(
+                        "SELECT %s FROM inventory_size WHERE id = ANY(:size_ids) ORDER BY position;",
+                        INVENTORY_SIZE_COLUMNS)
+                .single(call().bind("size_ids", List.copyOf(sizeIds), PostgreSqlTypes.INTEGER))
                 .map(InventorySize.map())
                 .all();
     }

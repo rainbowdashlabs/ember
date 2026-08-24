@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
@@ -28,6 +29,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -79,16 +81,17 @@ public class ClusterInventoryService {
      * @return its items, each saying where it is
      */
     public List<ClusterItem> findItems(int clusterId) {
-        // Every size the cluster's own inventories know, fetched once rather than per row
-        Map<Integer, String> sizeLabels = clusterRepository
-                .findById(clusterId)
-                .map(cluster -> inventoryRepository.findSizesByStation(cluster.homeStationId()))
-                .orElse(List.of())
+        var owned = inventoryRepository.findItemsOwnedByCluster(clusterId);
+        Map<Integer, String> sizeLabels = inventoryRepository
+                .findSizesByIds(owned.stream()
+                        .map(InventoryItem::sizeId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet()))
                 .stream()
                 .collect(Collectors.toMap(InventorySize::id, InventorySize::label, (first, second) -> first));
 
         List<ClusterItem> items = new ArrayList<>();
-        for (var item : inventoryRepository.findItemsOwnedByCluster(clusterId)) {
+        for (var item : owned) {
             UUID stationUid = null;
             String stationName = null;
             if (item.custodyStationId() != null) {
