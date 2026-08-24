@@ -12,13 +12,17 @@ import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.MovementFlow;
+import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
+import dev.chojo.ember.feature.inventory.entity.StepActor;
+import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -151,8 +155,18 @@ public class ClusterInventoryService {
         return flowService.findClusterFlows(clusterId);
     }
 
+    public List<MovementFlowStep> findSteps(int clusterId, int flowId) {
+        requireOwnFlow(clusterId, flowId);
+        return flowService.findAllSteps(flowId);
+    }
+
     /**
      * Adds a chain the cluster's gear walks.
+     *
+     * <p>One chain per purpose, refused rather than accepted and ignored. When gear moves, the oldest
+     * unarchived chain for that purpose wins and the rest are never reached, so an association that made
+     * a second one because the first was wrong would have kept walking the first forever without
+     * anything saying so. Archive the one in the way, then make the new one.
      *
      * @param clusterId the cluster
      * @param name      what it is called
@@ -161,7 +175,98 @@ public class ClusterInventoryService {
      */
     public MovementFlow createFlow(int clusterId, String name, MovementPurpose purpose) {
         requireCluster(clusterId);
+        flowService.findClusterFlows(clusterId).stream()
+                .filter(flow -> flow.purpose() == purpose)
+                .findFirst()
+                .ifPresent(flow -> {
+                    throw new BadRequestResponse("'%s' already walks every %s. Archive it before adding another."
+                            .formatted(flow.name(), purpose.name()));
+                });
         return flowService.createClusterFlow(clusterId, name, purpose);
+    }
+
+    /**
+     * @param clusterId the cluster
+     * @param flowId    the chain
+     * @param name      what it is called now
+     */
+    public void renameFlow(int clusterId, int flowId, String name) {
+        requireOwnFlow(clusterId, flowId);
+        flowService.renameFlow(flowId, name);
+    }
+
+    /**
+     * Retires a chain, which is the only way out of one that turned out wrong.
+     *
+     * @param clusterId the cluster
+     * @param flowId    the chain
+     */
+    public void archiveFlow(int clusterId, int flowId) {
+        requireOwnFlow(clusterId, flowId);
+        flowService.archiveFlow(flowId);
+        log.info("Cluster {} retired movement flow {}", clusterId, flowId);
+    }
+
+    /**
+     * Adds a step at the end of one of the cluster's chains.
+     *
+     * @param clusterId    the cluster
+     * @param flowId       the chain
+     * @param label        what the button says
+     * @param actor        who presses it
+     * @param subject      what it is about
+     * @param custodyAfter where the gear is once it is pressed
+     * @param picksItem    whether this is the step that names the piece
+     * @return the step
+     */
+    public MovementFlowStep addStep(
+            int clusterId,
+            int flowId,
+            String label,
+            StepActor actor,
+            StepSubject subject,
+            ItemCustody custodyAfter,
+            boolean picksItem) {
+        requireOwnFlow(clusterId, flowId);
+        return flowService.addStep(flowId, label, actor, subject, custodyAfter, picksItem);
+    }
+
+    /**
+     * @param clusterId the cluster
+     * @param stepId    the step
+     */
+    public void updateStep(
+            int clusterId,
+            int stepId,
+            String label,
+            StepActor actor,
+            StepSubject subject,
+            ItemCustody custodyAfter,
+            boolean picksItem) {
+        requireOwnStep(clusterId, stepId);
+        flowService.updateStep(stepId, label, actor, subject, custodyAfter, picksItem);
+    }
+
+    /**
+     * @param clusterId the cluster
+     * @param stepId    the step
+     */
+    public void archiveStep(int clusterId, int stepId) {
+        requireOwnStep(clusterId, stepId);
+        flowService.archiveStep(stepId);
+    }
+
+    /** A chain of another association, or of a station, is not this one's to change. */
+    private void requireOwnFlow(int clusterId, int flowId) {
+        MovementFlow flow = flowService.findFlow(flowId).orElseThrow(() -> new NotFoundResponse("No such flow"));
+        if (flow.clusterId() == null || flow.clusterId() != clusterId) {
+            throw new NotFoundResponse("No such flow");
+        }
+    }
+
+    private void requireOwnStep(int clusterId, int stepId) {
+        MovementFlowStep step = flowService.findStep(stepId).orElseThrow(() -> new NotFoundResponse("No such step"));
+        requireOwnFlow(clusterId, step.flowId());
     }
 
     /**

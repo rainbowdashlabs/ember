@@ -131,10 +131,12 @@ public class ClusterMemberRoutes implements Routes {
     private void add(Context ctx) {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(NewClusterMemberRequest.class);
-        var account = accountRepository
-                .findByEmail(request.email())
-                .orElseThrow(() -> new BadRequestResponse("No account with that email address"));
-        ClusterMember member = clusterService.addMember(cluster.id(), account.id(), parseUserType(request.userType()));
+        ClusterMember member = memberService.addByEmail(
+                cluster.id(),
+                request.email(),
+                parseUserType(request.userType()),
+                request.firstName(),
+                request.lastName());
         ctx.status(HttpStatus.CREATED).json(toResponse(member));
     }
 
@@ -344,7 +346,11 @@ public class ClusterMemberRoutes implements Routes {
         return permissions;
     }
 
-    public record NewClusterMemberRequest(String email, String userType) {}
+    /**
+     * @param firstName read only when no account has that address yet
+     * @param lastName  read only when no account has that address yet
+     */
+    public record NewClusterMemberRequest(String email, String userType, String firstName, String lastName) {}
 
     public record ClusterUserTypeRequest(String userType) {}
 

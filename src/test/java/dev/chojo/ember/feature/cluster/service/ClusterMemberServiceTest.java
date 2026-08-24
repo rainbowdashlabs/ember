@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
-import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.service.AccountNameRequiredException;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
@@ -36,7 +36,7 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new ClusterMemberService(clusterRepo, clusterService, new DomainEventBus(Set.of()));
+        service = clusterMemberService;
     }
 
     private int freshCluster() {
@@ -48,6 +48,41 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
     private Account freshAccount() {
         int n = NAMES.incrementAndGet();
         return accountRepo.create("clustermember" + n + "@test.com", "Mit", "Glied" + n);
+    }
+
+    /**
+     * The association is the one body that could not take on somebody Ember had never seen, on the
+     * reasoning that a cluster member is an account and not a station member. That was true of the
+     * membership and never a reason to refuse the account. An address that is already an account behaves
+     * as it always did, with no name asked for.
+     */
+    @Test
+    void anAddressNobodyHasYetIsRefusedUntilANameComesWithIt() {
+        int clusterId = freshCluster();
+        int n = NAMES.incrementAndGet();
+        String address = "neuimverband" + n + "@test.com";
+
+        var refused = assertThrows(
+                AccountNameRequiredException.class,
+                () -> service.addByEmail(clusterId, address, ClusterUserType.CLUSTER_USER, null, null));
+        assertTrue(refused.getMessage().contains("first and last name"));
+        assertTrue(accountRepo.findByEmail(address).isEmpty(), "and nothing was made in the meantime");
+
+        var member = service.addByEmail(clusterId, address, ClusterUserType.CLUSTER_USER, "Erika", "Neu" + n);
+        assertTrue(accountRepo.findByEmail(address).isPresent(), "the account exists afterwards");
+        assertEquals(ClusterUserType.CLUSTER_USER, member.userType());
+
+        var known = freshAccount();
+        var second = service.addByEmail(clusterId, known.email(), ClusterUserType.CLUSTER_ADMIN, null, null);
+        assertEquals(known.id(), second.accountId());
+    }
+
+    @Test
+    void anEmptyAddressIsNotAnInvitation() {
+        int clusterId = freshCluster();
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.addByEmail(clusterId, "  ", ClusterUserType.CLUSTER_USER, "Erika", "Leer"));
     }
 
     @Test

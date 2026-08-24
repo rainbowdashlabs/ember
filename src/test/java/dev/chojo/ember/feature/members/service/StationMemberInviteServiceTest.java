@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.GuardianRequest;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.InviteRequest;
@@ -39,7 +40,8 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
     @BeforeEach
     void freshFixture() {
         authService = mock(AuthService.class);
-        service = new StationMemberInviteService(stationMemberRepo, memberGroupRepo, accountRepo, authService);
+        service = new StationMemberInviteService(
+                stationMemberRepo, memberGroupRepo, new AccountInviteService(accountRepo, authService));
         station = stationRepo.create("Invite Station " + System.nanoTime());
     }
 

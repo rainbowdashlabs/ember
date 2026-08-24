@@ -55,10 +55,23 @@ export async function listMembers(): Promise<ClusterMemberSummary[]> {
     return res.data
 }
 
-export async function addMember(email: string, userType: string): Promise<ClusterMemberSummary> {
-    const res = await client.post<ClusterMemberSummary>('/cluster/members', {email, userType})
+/**
+ * Gives somebody a job at the association, which is what makes them a member of it.
+ *
+ * <p>A first and last name are needed only for an address Ember has never seen; the server refuses
+ * with {@link ACCOUNT_NAME_REQUIRED} until it has them, and the dialog asks then rather than up front.
+ */
+export async function addMember(
+    email: string,
+    userType: string,
+    name?: {firstName: string; lastName: string},
+): Promise<ClusterMemberSummary> {
+    const res = await client.post<ClusterMemberSummary>('/cluster/members', {email, userType, ...name})
     return res.data
 }
+
+/** The refusal that means "no account yet, send a name and I will make one". */
+export const ACCOUNT_NAME_REQUIRED = 'AccountNameRequiredException'
 
 export async function getMember(memberId: number): Promise<ClusterMemberDetail> {
     const res = await client.get<ClusterMemberDetail>(`/cluster/members/${memberId}`)

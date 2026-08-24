@@ -14,7 +14,12 @@ import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.cluster.service.ClusterDispatchService;
 import dev.chojo.ember.feature.cluster.service.ClusterInventoryService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
+import dev.chojo.ember.feature.inventory.entity.MovementFlow;
+import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
+import dev.chojo.ember.feature.inventory.entity.StepActor;
+import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -23,6 +28,7 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -32,6 +38,8 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+
+import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 /**
  * The cluster's gear: what it owns, where each piece is, and what is waiting for an answer from it.
@@ -63,6 +71,26 @@ public class ClusterInventoryRoutes implements Routes {
         routes.get(prefix + "/cluster/inventory/queue", this::listQueue, ClusterPermission.CLUSTER_INVENTORY_READ);
         routes.get(prefix + "/cluster/inventory/flows", this::listFlows, ClusterPermission.CLUSTER_INVENTORY_READ);
         routes.post(prefix + "/cluster/inventory/flows", this::createFlow, ClusterPermission.CLUSTER_INVENTORY_MANAGER);
+        routes.put(
+                prefix + "/cluster/inventory/flows/{flowId}",
+                this::renameFlow,
+                ClusterPermission.CLUSTER_INVENTORY_MANAGER);
+        routes.delete(
+                prefix + "/cluster/inventory/flows/{flowId}",
+                this::archiveFlow,
+                ClusterPermission.CLUSTER_INVENTORY_MANAGER);
+        routes.post(
+                prefix + "/cluster/inventory/flows/{flowId}/steps",
+                this::addStep,
+                ClusterPermission.CLUSTER_INVENTORY_MANAGER);
+        routes.put(
+                prefix + "/cluster/inventory/flow-steps/{stepId}",
+                this::updateStep,
+                ClusterPermission.CLUSTER_INVENTORY_MANAGER);
+        routes.delete(
+                prefix + "/cluster/inventory/flow-steps/{stepId}",
+                this::archiveStep,
+                ClusterPermission.CLUSTER_INVENTORY_MANAGER);
         routes.put(prefix + "/cluster/inventory/settings", this::setUsesInventory, ClusterPermission.CLUSTER_MODULES);
         routes.get(
                 prefix + "/cluster/inventory/dispatch",
@@ -132,8 +160,7 @@ public class ClusterInventoryRoutes implements Routes {
     private void listFlows(Context ctx) {
         Cluster cluster = requireActive(ctx);
         ctx.json(inventoryService.findFlows(cluster.id()).stream()
-                .map(flow -> new ClusterFlowResponse(
-                        flow.id(), flow.name(), flow.purpose().name()))
+                .map(flow -> toFlow(cluster.id(), flow))
                 .toList());
     }
 
@@ -151,9 +178,123 @@ public class ClusterInventoryRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(NewClusterFlowRequest.class);
         var flow = inventoryService.createFlow(cluster.id(), request.name(), parsePurpose(request.purpose()));
-        ctx.status(HttpStatus.CREATED)
-                .json(new ClusterFlowResponse(
-                        flow.id(), flow.name(), flow.purpose().name()));
+        ctx.status(HttpStatus.CREATED).json(toFlow(cluster.id(), flow));
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/inventory/flows/{flowId}",
+            pathParams = @OpenApiParam(name = "flowId", type = Integer.class, required = true),
+            methods = HttpMethod.PUT,
+            summary = "Rename one of this cluster's chains",
+            tags = {"Cluster"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = NewClusterFlowRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void renameFlow(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        var request = ctx.bodyAsClass(NewClusterFlowRequest.class);
+        inventoryService.renameFlow(cluster.id(), pathInt(ctx, "flowId"), request.name());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/inventory/flows/{flowId}",
+            pathParams = @OpenApiParam(name = "flowId", type = Integer.class, required = true),
+            methods = HttpMethod.DELETE,
+            summary = "Retire a chain, which keeps it readable for the movements that walked it",
+            tags = {"Cluster"},
+            responses = @OpenApiResponse(status = "204"))
+    private void archiveFlow(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        inventoryService.archiveFlow(cluster.id(), pathInt(ctx, "flowId"));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/inventory/flows/{flowId}/steps",
+            pathParams = @OpenApiParam(name = "flowId", type = Integer.class, required = true),
+            methods = HttpMethod.POST,
+            summary = "Add a step to the end of a chain",
+            tags = {"Cluster"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ClusterStepRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = ClusterStepResponse.class)))
+    private void addStep(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        var request = ctx.bodyAsClass(ClusterStepRequest.class);
+        requireStepFields(request);
+        var step = inventoryService.addStep(
+                cluster.id(),
+                pathInt(ctx, "flowId"),
+                request.label(),
+                request.actor(),
+                request.subject(),
+                request.custodyAfter(),
+                request.picksItem());
+        ctx.status(HttpStatus.CREATED).json(toStep(step));
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/inventory/flow-steps/{stepId}",
+            pathParams = @OpenApiParam(name = "stepId", type = Integer.class, required = true),
+            methods = HttpMethod.PUT,
+            summary = "Change what a step says",
+            tags = {"Cluster"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ClusterStepRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void updateStep(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        var request = ctx.bodyAsClass(ClusterStepRequest.class);
+        requireStepFields(request);
+        inventoryService.updateStep(
+                cluster.id(),
+                pathInt(ctx, "stepId"),
+                request.label(),
+                request.actor(),
+                request.subject(),
+                request.custodyAfter(),
+                request.picksItem());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/inventory/flow-steps/{stepId}",
+            pathParams = @OpenApiParam(name = "stepId", type = Integer.class, required = true),
+            methods = HttpMethod.DELETE,
+            summary = "Retire a step, which keeps the movements that passed it readable",
+            tags = {"Cluster"},
+            responses = @OpenApiResponse(status = "204"))
+    private void archiveStep(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        inventoryService.archiveStep(cluster.id(), pathInt(ctx, "stepId"));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    private static void requireStepFields(ClusterStepRequest request) {
+        if (request.actor() == null || request.subject() == null || request.custodyAfter() == null) {
+            throw new BadRequestResponse("actor, subject and custodyAfter are required");
+        }
+    }
+
+    private ClusterFlowResponse toFlow(int clusterId, MovementFlow flow) {
+        return new ClusterFlowResponse(
+                flow.id(),
+                flow.name(),
+                flow.purpose().name(),
+                flow.archived(),
+                inventoryService.findSteps(clusterId, flow.id()).stream()
+                        .map(ClusterInventoryRoutes::toStep)
+                        .toList());
+    }
+
+    private static ClusterStepResponse toStep(MovementFlowStep step) {
+        return new ClusterStepResponse(
+                step.id(),
+                step.position(),
+                step.label(),
+                step.actor(),
+                step.subject(),
+                step.custodyAfter(),
+                step.picksItem(),
+                step.archived());
     }
 
     @OpenApi(
@@ -301,5 +442,26 @@ public class ClusterInventoryRoutes implements Routes {
             String itemName,
             Instant createdAt) {}
 
-    public record ClusterFlowResponse(int id, String name, String purpose) {}
+    /**
+     * A chain and what it is made of.
+     *
+     * <p>The steps travel with it because a chain <em>is</em> its steps: who confirms what, in which
+     * order, and where the gear is afterwards. A screen showing only the name showed a label for
+     * something whose content it never displayed, and a chain with no steps does nothing at all.
+     */
+    public record ClusterFlowResponse(
+            int id, String name, String purpose, boolean archived, List<ClusterStepResponse> steps) {}
+
+    public record ClusterStepRequest(
+            String label, StepActor actor, StepSubject subject, ItemCustody custodyAfter, boolean picksItem) {}
+
+    public record ClusterStepResponse(
+            int id,
+            int position,
+            String label,
+            StepActor actor,
+            StepSubject subject,
+            ItemCustody custodyAfter,
+            boolean picksItem,
+            boolean archived) {}
 }

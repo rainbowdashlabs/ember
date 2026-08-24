@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
+import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -148,6 +149,81 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
 
         clusterService.releaseStation(cluster.id(), station.id());
         stationRepo.delete(station.id());
+    }
+
+    /**
+     * A chain that turned out wrong used to be permanent: the oldest unarchived one for a purpose wins
+     * silently, creating was the only act available, and it was the one act that could not help.
+     */
+    @Test
+    void aChainCanBeReadCorrectedAndRetired() {
+        var cluster = freshCluster();
+        var flow = clusterInventoryService.createFlow(cluster.id(), "Ausgabe", MovementPurpose.ISSUE);
+
+        var refused = assertThrows(
+                BadRequestResponse.class,
+                () -> clusterInventoryService.createFlow(cluster.id(), "Ausgabe neu", MovementPurpose.ISSUE));
+        assertTrue(refused.getMessage().contains("Ausgabe"), "and it says which one is in the way");
+
+        var step = clusterInventoryService.addStep(
+                cluster.id(),
+                flow.id(),
+                "Verband gibt aus",
+                StepActor.OWNER,
+                StepSubject.OUTGOING,
+                ItemCustody.IN_TRANSIT,
+                false);
+        assertEquals(
+                1, clusterInventoryService.findSteps(cluster.id(), flow.id()).size());
+
+        clusterInventoryService.updateStep(
+                cluster.id(),
+                step.id(),
+                "Verband schickt los",
+                StepActor.OWNER,
+                StepSubject.OUTGOING,
+                ItemCustody.IN_TRANSIT,
+                false);
+        assertEquals(
+                "Verband schickt los",
+                clusterInventoryService
+                        .findSteps(cluster.id(), flow.id())
+                        .getFirst()
+                        .label());
+
+        clusterInventoryService.renameFlow(cluster.id(), flow.id(), "Ausgabe an die Wachen");
+        clusterInventoryService.archiveStep(cluster.id(), step.id());
+        clusterInventoryService.archiveFlow(cluster.id(), flow.id());
+
+        assertTrue(clusterInventoryService.findFlows(cluster.id()).isEmpty(), "a retired chain leaves the list");
+        clusterInventoryService.createFlow(cluster.id(), "Ausgabe neu", MovementPurpose.ISSUE);
+
+        clusterService.delete(cluster.id());
+    }
+
+    /** Another association's chain is not this one's to rename, retire or add a step to. */
+    @Test
+    void oneAssociationCannotChangeAnothersChain() {
+        var cluster = freshCluster();
+        var other = freshCluster();
+        var flow = clusterInventoryService.createFlow(cluster.id(), "Ausgabe", MovementPurpose.ISSUE);
+
+        assertThrows(NotFoundResponse.class, () -> clusterInventoryService.renameFlow(other.id(), flow.id(), "Fremd"));
+        assertThrows(NotFoundResponse.class, () -> clusterInventoryService.archiveFlow(other.id(), flow.id()));
+        assertThrows(
+                NotFoundResponse.class,
+                () -> clusterInventoryService.addStep(
+                        other.id(),
+                        flow.id(),
+                        "Fremd",
+                        StepActor.OWNER,
+                        StepSubject.OUTGOING,
+                        ItemCustody.IN_TRANSIT,
+                        false));
+        assertThrows(NotFoundResponse.class, () -> clusterInventoryService.findSteps(other.id(), flow.id()));
+
+        clusterService.delete(other.id());
+        clusterService.delete(cluster.id());
     }
 
     @Test

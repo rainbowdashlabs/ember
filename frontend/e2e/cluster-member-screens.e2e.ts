@@ -107,7 +107,7 @@ test.describe('Cluster member screens', () => {
             await expect(rows, 'one station in view leaves one of the two memberships')
                 .toHaveCount(1, {timeout: 15000})
             await expect(rows.first(), 'and stops naming a station once there is only one')
-                .not.toContainText(own.stationName)
+                .not.toContainText(own.stationName, {timeout: 15000})
 
             await own.stationPage.context().close()
         })
@@ -148,6 +148,37 @@ test.describe('Cluster member screens', () => {
 
         // Adding is behind a button, so no email box is sitting on the page.
         await expect(page.getByPlaceholder(/@/)).toHaveCount(0)
+        await page.context().close()
+    })
+
+    /**
+     * CLS-98 - The association takes on somebody Ember has never seen.
+     *
+     * The roster refused every address without an account behind it, so the one body that cannot walk
+     * up to a person and hand them a login was the association. It asks the address first, as it always
+     * did, and nothing beyond it until the server has said nobody has that address.
+     */
+    test('the association takes on somebody with no account yet', async ({browser, request}) => {
+        const account = await clusterAccountWith(request, 'CLUSTER_ADMINISTRATOR')
+        const page = await clusterPage(browser, request, account)
+
+        await page.goto('/cluster/team')
+        await expect(page.getByTestId('roster-row').first()).toBeVisible({timeout: 15000})
+
+        const surname = `Unbekannt${Date.now()}`
+        await page.getByRole('button', {name: /Aufnehmen/i}).first().click()
+        await page.getByTestId('cluster-roster-email').fill(`${surname.toLowerCase()}@e2e.ember`)
+
+        await expect(page.getByTestId('cluster-roster-first')).toHaveCount(0)
+        await page.getByTestId('cluster-roster-add').click()
+
+        await expect(page.getByTestId('cluster-roster-first')).toBeVisible({timeout: 15000})
+        await page.getByTestId('cluster-roster-first').fill('Erika')
+        await page.getByTestId('cluster-roster-last').fill(surname)
+        await page.getByTestId('cluster-roster-add').click()
+
+        await expect(page.getByTestId('roster-row').filter({hasText: surname}).first())
+            .toBeVisible({timeout: 15000})
         await page.context().close()
     })
 

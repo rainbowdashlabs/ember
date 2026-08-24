@@ -9,6 +9,9 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterMemberRoleChanged;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AccountInviteService;
+import dev.chojo.ember.feature.account.service.AccountNameRequiredException;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.entity.ClusterMemberGroup;
@@ -38,17 +41,67 @@ public class ClusterMemberService {
 
     private final ClusterRepository clusterRepository;
     private final ClusterService clusterService;
+    private final AccountRepository accountRepository;
+    private final AccountInviteService accountInviteService;
     private final DomainEventBus eventBus;
 
     @Inject
     public ClusterMemberService(
-            ClusterRepository clusterRepository, ClusterService clusterService, DomainEventBus eventBus) {
+            ClusterRepository clusterRepository,
+            ClusterService clusterService,
+            AccountRepository accountRepository,
+            AccountInviteService accountInviteService,
+            DomainEventBus eventBus) {
         this.clusterRepository = clusterRepository;
         this.clusterService = clusterService;
+        this.accountRepository = accountRepository;
+        this.accountInviteService = accountInviteService;
         this.eventBus = eventBus;
     }
 
     // -- Members --
+
+    /**
+     * Takes somebody on as a member of the association, making the account when Ember has never seen the
+     * address.
+     *
+     * <p>An address already known behaves exactly as it did before this existed, so adding a colleague who
+     * is already here is unchanged. An unknown one is refused until a name comes with it, and the refusal
+     * is its own kind so the screen can ask for one rather than only reporting a failure. A cluster member
+     * is an account and not a station member, which was true of the membership and never a reason to
+     * refuse the account: a station takes on somebody who has never heard of Ember every day.
+     *
+     * @param clusterId the association
+     * @param email     the address
+     * @param userType  what they are at the association
+     * @param firstName their first name, read only when the address has no account
+     * @param lastName  their last name, read only when the address has no account
+     * @return the membership
+     */
+    public ClusterMember addByEmail(
+            int clusterId, String email, ClusterUserType userType, String firstName, String lastName) {
+        Cluster cluster =
+                clusterRepository.findById(clusterId).orElseThrow(() -> new NotFoundResponse("No such cluster"));
+        if (email == null || email.isBlank()) throw new BadRequestResponse("An email address is needed");
+        String address = email.trim();
+
+        var existing = accountRepository.findByEmail(address);
+        if (existing.isPresent())
+            return clusterService.addMember(clusterId, existing.get().id(), userType);
+
+        if (isBlank(firstName) || isBlank(lastName)) {
+            throw new AccountNameRequiredException(
+                    "No account has that address yet, so a first and last name are needed");
+        }
+        var invited = accountInviteService.resolveOrCreate(
+                cluster.homeStationId(), address, firstName.trim(), lastName.trim());
+        log.info("Cluster {} made an account for {}", clusterId, address);
+        return clusterService.addMember(clusterId, invited.account().id(), userType);
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
 
     public List<ClusterMember> findMembers(int clusterId) {
         return clusterRepository.findMembers(clusterId);

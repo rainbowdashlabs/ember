@@ -19,6 +19,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
@@ -434,7 +435,12 @@ public abstract class RepositoryTestBase {
                 clusterStorageBackendService,
                 clusterStationGroupService,
                 new DomainEventBus(Set.of()));
-        clusterMemberService = new ClusterMemberService(clusterRepo, clusterService, new DomainEventBus(Set.of()));
+        clusterMemberService = new ClusterMemberService(
+                clusterRepo,
+                clusterService,
+                accountRepo,
+                new AccountInviteService(accountRepo, org.mockito.Mockito.mock(AuthService.class)),
+                new DomainEventBus(Set.of()));
         userSettingsRepo = new UserSettingsRepository();
         userTagRepo = new UserTagRepository();
         newsRepo = new NewsRepository();

@@ -3611,7 +3611,7 @@ volumes:
             typesText: 'Ein Mitglied darf sehen, was ihm freigegeben wurde. Eine Verwaltung darf alles im Verband, auch weitere Mitglieder aufnehmen und Rechte vergeben.',
             separateTitle: 'Getrennt von der Wache',
             separateText: 'Wer den Verband verwaltet, ist deswegen in keiner Wache angemeldet, und wer eine Wache leitet, hat deswegen keine Rechte im Verband. Beides muss getrennt vergeben werden.',
-            tip: 'Das Konto muss bereits existieren; ein Verband legt keine Konten an.',
+            tip: 'Gibt es zu der Adresse noch kein Konto, fragt der Dialog nach Vor- und Nachnamen, legt eines an und verschickt eine Einladung zum Passwort setzen.',
         },
         clusterMemberGroups: {
             title: 'Gruppen',
@@ -3666,7 +3666,7 @@ volumes:
             whatTitle: 'Vorgabe oder Sperre',
             whatText: 'Was ihr setzt, wird bei allen Wachen des Verbands übernommen. Ohne Sperre ist es nur der Ausgangspunkt: die Wache darf es danach ändern. Mit Sperre bleibt die Einstellung in der Wache sichtbar, aber nicht änderbar.',
             locksTitle: 'Vier getrennte Sperren',
-            locksText: 'Farbschema, eigene Farben, Formensprache und Logo werden einzeln gesperrt. So könnt ihr zum Beispiel das Logo festlegen und die Farben freilassen.',
+            locksText: 'Farbschema, eigene Farben, Stil und Logo werden einzeln gesperrt. So könnt ihr zum Beispiel das Logo festlegen und die Farben freilassen.',
             membersTitle: 'Was bei der Wache bleibt',
             membersText: 'Ob einzelne Mitglieder sich ein eigenes Farbschema wählen dürfen, entscheidet weiterhin die Wache. Das ist eine Frage über die Leute dort, nicht darüber, wie der Verband aussehen möchte.',
             tip: 'Beim Verlassen des Verbands behält die Wache das zuletzt gesetzte Aussehen und darf es wieder ändern.',

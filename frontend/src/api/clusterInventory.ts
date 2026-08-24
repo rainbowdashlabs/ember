@@ -5,6 +5,7 @@
  */
 import client from './client'
 import type {LossReportRequirementName} from './inventory'
+import type {MovementFlowStep, MovementPurposeName, StepRequest} from './movements'
 
 /** Where a piece of the cluster's gear currently is. */
 export interface ClusterItem {
@@ -33,10 +34,19 @@ export interface ClusterQueueEntry {
     createdAt: string
 }
 
+/**
+ * A chain the association's gear walks, with the steps it is made of.
+ *
+ * <p>The steps travel with it because a chain is its steps. The same shape the station's screens speak,
+ * so the station's flow card draws it: {@code ownedByCluster} means "somebody above me owns this", and
+ * at the association nobody is.
+ */
 export interface ClusterFlow {
     id: number
     name: string
-    purpose: string
+    purpose: MovementPurposeName
+    archived: boolean
+    steps: MovementFlowStep[]
 }
 
 export async function listItems(): Promise<ClusterItem[]> {
@@ -57,6 +67,28 @@ export async function listFlows(): Promise<ClusterFlow[]> {
 export async function createFlow(name: string, purpose: string): Promise<ClusterFlow> {
     const res = await client.post<ClusterFlow>('/cluster/inventory/flows', {name, purpose})
     return res.data
+}
+
+export async function renameFlow(flowId: number, name: string): Promise<void> {
+    await client.put(`/cluster/inventory/flows/${flowId}`, {name})
+}
+
+/** Retires a chain, which keeps it readable for the movements that walked it. */
+export async function archiveFlow(flowId: number): Promise<void> {
+    await client.delete(`/cluster/inventory/flows/${flowId}`)
+}
+
+export async function addStep(flowId: number, step: StepRequest): Promise<MovementFlowStep> {
+    const res = await client.post<MovementFlowStep>(`/cluster/inventory/flows/${flowId}/steps`, step)
+    return res.data
+}
+
+export async function updateStep(stepId: number, step: StepRequest): Promise<void> {
+    await client.put(`/cluster/inventory/flow-steps/${stepId}`, step)
+}
+
+export async function archiveStep(stepId: number): Promise<void> {
+    await client.delete(`/cluster/inventory/flow-steps/${stepId}`)
 }
 
 /**

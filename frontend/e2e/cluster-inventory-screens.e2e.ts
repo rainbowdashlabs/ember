@@ -11,6 +11,7 @@ import {
     clusterPage,
     theSeededCluster,
 } from './fixtures/auth'
+import {ownCluster} from './fixtures/cluster'
 
 /**
  * The association's gear, looked at rather than asked about.
@@ -24,7 +25,8 @@ test.describe('Cluster inventory screens', () => {
      * CLS-48 - The association defines its gear.
      *
      * The old screen had no create path at all. Stock is the station's own gear screen shown at the
-     * association's station, so the way in exists because that screen has always had one.
+     * association's station, so the way in exists because that screen has always had one, and its
+     * presence here is the whole point of mounting it.
      */
     test('the association can define gear from its own store', async ({browser, request}) => {
         const account = await clusterAccountWith(request, 'CLUSTER_INVENTORY_MANAGER')
@@ -34,8 +36,6 @@ test.describe('Cluster inventory screens', () => {
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
         await expect(page.getByTestId('cluster-inventory-tabs')).toBeVisible()
-        // The station's gear screen offers a way to define a kind of gear. Its presence here is the
-        // whole point of mounting it.
         await expect(page.getByRole('button', {name: /Inventar erstellen/i}))
             .toBeVisible({timeout: 15000})
         await page.context().close()
@@ -130,6 +130,65 @@ test.describe('Cluster inventory screens', () => {
 
         await page.context().close()
         await gearPage.context().close()
+    })
+
+    /**
+     * CLS-99 - A movement chain can be read, corrected and thrown away.
+     *
+     * The screen listed a name and a purpose and nothing else, which is a label for something whose
+     * content it never showed. There was no rename, no archive and no way to add a step, and since the
+     * oldest unarchived chain for a purpose wins silently, a wrong one was permanent: creating was the
+     * only act available and it was the one act that could not help. A second chain for a purpose
+     * already covered is now refused, naming the one in the way.
+     */
+    test('a movement chain is read, corrected and retired', async ({adminPage: page, browser, request}) => {
+        const own = await ownCluster(page, browser, request, 'Ablauf')
+
+        await page.goto('/cluster/inventory/settings')
+        await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+        await page.goto('/cluster/inventory/settings')
+        await expect(page.getByTestId('inventory-flow-setting')).toBeVisible({timeout: 15000})
+
+        const name = `Ausgabe ${Date.now()}`
+        await page.getByTestId('cluster-flow-name').fill(name)
+        await page.getByTestId('cluster-flow-create').click()
+        await expect(page.getByText(name)).toBeVisible({timeout: 15000})
+
+        await page.getByTestId('cluster-flow-name').fill(`${name} zwei`)
+        await page.getByTestId('cluster-flow-create').click()
+        await expect(page.getByText(/already walks every/i)).toBeVisible({timeout: 15000})
+
+        const created = await page.request
+            .get('/api/v1/cluster/inventory/flows', {headers: own.headers})
+            .then(r => r.json())
+        expect(created, 'the second was refused rather than accepted and ignored').toHaveLength(1)
+        expect(created[0].steps, 'a fresh chain has no steps and the screen can say so').toEqual([])
+
+        const added = await page.request.post(
+            `/api/v1/cluster/inventory/flows/${created[0].id}/steps`,
+            {
+                headers: own.headers,
+                data: {
+                    label: 'Verband gibt aus', actor: 'OWNER', subject: 'OUTGOING',
+                    custodyAfter: 'IN_TRANSIT', picksItem: false,
+                },
+            })
+        expect(added.ok(), `a step was added (${await added.text()})`).toBeTruthy()
+
+        await page.reload()
+        await expect(page.getByTestId('inventory-flow-setting')).toBeVisible({timeout: 15000})
+        await expect(page.getByText('1 Schritte')).toBeVisible({timeout: 15000})
+        await page.getByRole('button', {name: 'Schritte anzeigen'}).first().click()
+        await expect(page.getByText('Verband gibt aus')).toBeVisible({timeout: 15000})
+
+        const retired = await page.request.delete(`/api/v1/cluster/inventory/flows/${created[0].id}`,
+            {headers: own.headers})
+        expect(retired.ok(), `and the chain was retired (${await retired.text()})`).toBeTruthy()
+
+        await page.reload()
+        await expect(page.getByText(name)).toHaveCount(0, {timeout: 15000})
+
+        await own.stationPage.context().close()
     })
 
     /**

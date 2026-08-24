@@ -14,6 +14,7 @@ import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.board.service.BoardAttachmentService;
@@ -235,7 +236,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 accountRepo,
                 federationService,
-                new StationMemberInviteService(stationMemberRepo, memberGroupRepo, accountRepo, authService),
+                new StationMemberInviteService(
+                        stationMemberRepo, memberGroupRepo, new AccountInviteService(accountRepo, authService)),
                 clusterRepo);
 
         var groupService =

@@ -22,6 +22,7 @@ import type {ClusterMemberSummary} from '@/api/clusterMembers'
 import {ClusterPermission, ClusterUserType} from '@/api/clusters'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useSession} from '@/composables/useSession'
+import {apiErrorBody} from '@/util/apiError'
 
 const {t} = useI18n()
 const {hasClusterPermission} = useSession()
@@ -30,6 +31,8 @@ const editable = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_A
 
 const busy = ref(false)
 const showAdd = ref(false)
+/** True once the server has said the address in the dialog has no account behind it. */
+const needsName = ref(false)
 const selectedId = ref<number | null>(null)
 
 const {config: members, loading, error, runWith} = useConfigPanel<ClusterMemberSummary[]>({
@@ -39,9 +42,25 @@ const {config: members, loading, error, runWith} = useConfigPanel<ClusterMemberS
 
 const selected = computed(() => members.value.find(m => m.id === selectedId.value) ?? null)
 
-async function add(email: string, userType: string) {
+/**
+ * Takes somebody on, asking for a name only when the server says the address has no account.
+ *
+ * <p>Two attempts rather than a lookup first: the association learns that nobody has that address by
+ * trying to add them, which is what it was doing anyway, and no endpoint exists that would answer the
+ * question for an address they never meant to use.
+ */
+async function add(email: string, userType: string, firstName: string, lastName: string) {
   await runWith(async () => {
-    await clusterMembers.addMember(email, userType)
+    try {
+      await clusterMembers.addMember(email, userType, firstName && lastName ? {firstName, lastName} : undefined)
+    } catch (e: unknown) {
+      if (apiErrorBody(e)?.error === clusterMembers.ACCOUNT_NAME_REQUIRED) {
+        needsName.value = true
+        return members.value
+      }
+      throw e
+    }
+    needsName.value = false
     showAdd.value = false
     return clusterMembers.listMembers()
   }, {busy})
@@ -108,7 +127,7 @@ async function changeUserType(memberId: number, userType: string) {
         </div>
       </div>
 
-      <AddMemberModal v-model="showAdd" :saving="busy" @add="add"/>
+      <AddMemberModal v-model="showAdd" :saving="busy" :needs-name="needsName" @add="add"/>
     </div>
   </ViewContent>
 </template>

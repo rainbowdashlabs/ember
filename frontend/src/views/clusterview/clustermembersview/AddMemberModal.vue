@@ -15,15 +15,24 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {ClusterUserType} from '@/api/clusters'
 
-/** Giving somebody a job at the association, which is what makes them a member of it. */
+/**
+ * Giving somebody a job at the association, which is what makes them a member of it.
+ *
+ * <p>The address is asked first and the two name fields appear only once the server has said no account
+ * has it, so adding a colleague who is already here is one field and a button as it always was. Asking
+ * the server rather than looking the address up first is deliberate: it tells nobody who exists until
+ * they have deliberately tried to take that person on.
+ */
 const props = defineProps<{
   modelValue: boolean
   saving: boolean
+  /** Set once the server has said this address has no account behind it. */
+  needsName: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', v: boolean): void
-  (e: 'add', email: string, userType: string): void
+  (e: 'add', email: string, userType: string, firstName: string, lastName: string): void
 }>()
 
 const {t} = useI18n()
@@ -36,11 +45,15 @@ const open = computed({
 })
 const email = ref('')
 const userType = ref<string>(ClusterUserType.CLUSTER_USER)
+const firstName = ref('')
+const lastName = ref('')
+
+const complete = computed(() => !!email.value.trim()
+    && (!props.needsName || (!!firstName.value.trim() && !!lastName.value.trim())))
 
 function submit() {
-  if (!email.value.trim()) return
-  emit('add', email.value.trim(), userType.value)
-  email.value = ''
+  if (!complete.value) return
+  emit('add', email.value.trim(), userType.value, firstName.value.trim(), lastName.value.trim())
 }
 </script>
 
@@ -52,8 +65,21 @@ function submit() {
 
       <div class="space-y-1">
         <FormLabel>{{ t('clusterMembers.emailLabel') }}</FormLabel>
-        <TextInput v-model="email" :placeholder="t('clusterMembers.emailPlaceholder')"/>
+        <TextInput v-model="email" :placeholder="t('clusterMembers.emailPlaceholder')"
+                   data-testid="cluster-roster-email"/>
       </div>
+
+      <template v-if="props.needsName">
+        <p class="text-sm text-(--text-muted)">{{ t('clusterMembers.newAccountHint') }}</p>
+        <div class="space-y-1">
+          <FormLabel>{{ t('clusterMembers.firstNameLabel') }}</FormLabel>
+          <TextInput v-model="firstName" data-testid="cluster-roster-first"/>
+        </div>
+        <div class="space-y-1">
+          <FormLabel>{{ t('clusterMembers.lastNameLabel') }}</FormLabel>
+          <TextInput v-model="lastName" data-testid="cluster-roster-last"/>
+        </div>
+      </template>
 
       <div class="space-y-1">
         <FormLabel>{{ t('clusterMembers.userTypeLabel') }}</FormLabel>
@@ -65,7 +91,7 @@ function submit() {
 
       <div class="flex justify-end gap-3">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="props.saving || !email.trim()" @click="submit">
+        <PrimaryButton :disabled="props.saving || !complete" data-testid="cluster-roster-add" @click="submit">
           {{ t('common.add') }}
         </PrimaryButton>
       </div>

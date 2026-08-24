@@ -7,8 +7,7 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
@@ -37,23 +36,18 @@ import java.util.List;
 public class StationMemberInviteService {
 
     private static final Logger log = LoggerFactory.getLogger(StationMemberInviteService.class);
-    private static final String SYNTHETIC_EMAIL_SUFFIX = ".local";
-
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
-    private final AccountRepository accountRepository;
-    private final AuthService authService;
+    private final AccountInviteService accountInviteService;
 
     @Inject
     public StationMemberInviteService(
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
-            AccountRepository accountRepository,
-            AuthService authService) {
+            AccountInviteService accountInviteService) {
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
-        this.accountRepository = accountRepository;
-        this.authService = authService;
+        this.accountInviteService = accountInviteService;
     }
 
     /**
@@ -67,16 +61,14 @@ public class StationMemberInviteService {
      */
     public ProvisionedMember provision(
             int stationId, String email, String firstName, String lastName, StationUserType userType, Integer groupId) {
-        String normalizedEmail = email.trim();
-        boolean synthetic = normalizedEmail.endsWith(SYNTHETIC_EMAIL_SUFFIX);
-
-        Account account = accountRepository.findByEmail(normalizedEmail).orElse(null);
-        boolean accountCreated = account == null;
-        if (account == null) {
-            account = accountRepository.create(normalizedEmail, firstName, lastName, true, stationId);
-        } else if (synthetic) {
-            throw ProvisionException.emailInUse(normalizedEmail);
+        AccountInviteService.Invited invited;
+        try {
+            invited = accountInviteService.resolveOrCreate(stationId, email, firstName, lastName);
+        } catch (AccountInviteService.EmailInUseException e) {
+            throw ProvisionException.emailInUse(email.trim());
         }
+        Account account = invited.account();
+        boolean accountCreated = invited.created();
 
         var member = stationMemberRepository
                 .findByStationAndAccount(stationId, account.id())
@@ -88,10 +80,6 @@ public class StationMemberInviteService {
             if (groupId != null) {
                 memberGroupRepository.addMember(groupId, member.id());
             }
-        }
-
-        if (!synthetic && needsSetup(account)) {
-            authService.sendPasswordSetup(account.id(), account.email(), account.firstName());
         }
 
         log.info(
@@ -149,11 +137,6 @@ public class StationMemberInviteService {
             }
         }
         return new BatchResult(provisioned, failed);
-    }
-
-    private boolean needsSetup(Account account) {
-        return account.setupCompletedAt() == null
-                && accountRepository.findCredential(account.id()).isEmpty();
     }
 
     /**

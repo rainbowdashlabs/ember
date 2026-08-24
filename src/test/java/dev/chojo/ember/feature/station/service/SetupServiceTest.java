@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.station.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
@@ -54,7 +55,9 @@ class SetupServiceTest extends RepositoryTestBase {
                 accountRepo,
                 mock(FederationService.class),
                 new StationMemberInviteService(
-                        stationMemberRepo, memberGroupRepo, accountRepo, mock(AuthService.class)),
+                        stationMemberRepo,
+                        memberGroupRepo,
+                        new AccountInviteService(accountRepo, mock(AuthService.class))),
                 clusterRepo);
         setupService = new SetupService(
                 stationRepo,
