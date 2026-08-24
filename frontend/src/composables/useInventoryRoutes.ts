@@ -38,6 +38,14 @@ export interface InventoryRoutes {
     /** Absent at a station: sending gear out of the store is the owner's act, not the holder's. */
     dispatch?: string
     /**
+     * Where what the store decides is set: the movement chains it walks and what a loss report must
+     * carry. Absent at a station, where both sit on the stock screen itself, so the two panels render
+     * there and nowhere else. An association has a Settings tab of its own and reaches both through
+     * its own routes; the station's panels there asked for a right the association can never hold and
+     * showed a refusal in place of a screen.
+     */
+    settings?: string
+    /**
      * Where member groups are defined. Absent at an association: groups stay station-local, so an
      * association keys a requirement to a role and to nothing else.
      */

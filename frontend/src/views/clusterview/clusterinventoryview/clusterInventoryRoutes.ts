@@ -27,4 +27,5 @@ export const CLUSTER_INVENTORY_ROUTES: InventoryRoutes = {
     checkContainerOverview: 'cluster-inventory-check-container-overview',
     checkContainerWalk: 'cluster-inventory-check-container-walk',
     dispatch: 'cluster-inventory-dispatch',
+    settings: 'cluster-inventory-settings',
 }

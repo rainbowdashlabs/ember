@@ -186,9 +186,11 @@ public enum ClusterPermission implements RouteRole {
      * nothing here reaches members or settings. The station in question has no members to manage, but the
      * reason to keep the list short is that the two jobs are different ones.
      *
-     * <p>Lending is the one gear right deliberately left out, which is why the manager row is written out
-     * rather than mapped to {@code INVENTORY_MANAGER}: that one carries lending, and a cluster hands gear to a
-     * station rather than lending it to a person.
+     * <p>The gear manager gets the full station right over this store, {@code INVENTORY_CREATE} and
+     * {@code INVENTORY_MANAGER} included. Withholding those two was an oversight rather than a safety
+     * property: the association could not define a kind of gear at all, and the screen that says it does
+     * opened with a refusal. Nobody else is on this station, so there is nothing here to protect from its
+     * owner. Lending comes along with the manager right and is harmless for the same reason.
      *
      * @param held every cluster permission the member holds, already expanded
      * @return what they may do at the station the cluster owns
@@ -213,8 +215,10 @@ public enum ClusterPermission implements RouteRole {
         if (held.contains(CLUSTER_INVENTORY_MANAGER)) {
             granted.add(StationPermission.INVENTORY_ASSIGN);
             granted.add(StationPermission.INVENTORY_CHECK);
+            granted.add(StationPermission.INVENTORY_CREATE);
             granted.add(StationPermission.INVENTORY_EDIT);
             granted.add(StationPermission.INVENTORY_EXCHANGE);
+            granted.add(StationPermission.INVENTORY_MANAGER);
             granted.add(StationPermission.INVENTORY_PROCUREMENT);
             granted.add(StationPermission.INVENTORY_STORAGE);
         } else {

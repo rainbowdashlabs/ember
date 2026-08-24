@@ -184,11 +184,15 @@ class PermissionsTest {
     }
 
     /**
-     * Looking after the association's gear reaches everything a station's own gear manager may do, except
-     * lending: an association hands gear to a station rather than lending it to a person.
+     * Looking after the association's gear reaches everything a station's own gear manager may do.
+     *
+     * <p>Creating and the manager role itself were withheld once, on the reasoning that the manager role
+     * carries lending. It also carries defining a kind of gear and throwing one away, so the association
+     * could do neither and the screen that says it defines its gear opened with a refusal. Nobody else
+     * stands on this station, so there is nothing here to keep from its owner.
      */
     @Test
-    void aClusterGearManagerGetsEverythingButLending() {
+    void aClusterGearManagerGetsTheWholeStationRightOverItsOwnStore() {
         Set<StationPermission> granted = ClusterPermission.atOwnStation(
                 ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_INVENTORY_MANAGER)));
 
@@ -199,11 +203,8 @@ class PermissionsTest {
         assertTrue(granted.contains(StationPermission.INVENTORY_PROCUREMENT));
         assertTrue(granted.contains(StationPermission.INVENTORY_STORAGE));
 
-        assertFalse(granted.contains(StationPermission.INVENTORY_LENDING_MANAGER), "lending is not theirs");
-        assertFalse(granted.contains(StationPermission.INVENTORY_LENDING_REQUEST));
-        assertFalse(
-                granted.contains(StationPermission.INVENTORY_MANAGER),
-                "and not the station's own gear role, which would carry lending with it");
+        assertTrue(granted.contains(StationPermission.INVENTORY_CREATE), "may define a kind of gear");
+        assertTrue(granted.contains(StationPermission.INVENTORY_MANAGER), "and throw one away again");
     }
 
     /** Running the whole association still does not mean running a station. */

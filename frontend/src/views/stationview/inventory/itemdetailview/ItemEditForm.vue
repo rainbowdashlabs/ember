@@ -47,7 +47,7 @@ const {t} = useI18n()
     </div>
   </div>
   <div class="flex gap-2">
-    <SaveButton :action="props.save"/>
+    <SaveButton :action="props.save" data-testid="item-edit-save"/>
     <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
   </div>
 </template>

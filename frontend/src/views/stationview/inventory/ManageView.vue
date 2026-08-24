@@ -97,9 +97,11 @@ function onError() {
           />
         </div>
 
-        <LossSettingsPanel />
+        <template v-if="!routes.settings">
+          <LossSettingsPanel />
 
-        <MovementFlowPanel />
+          <MovementFlowPanel />
+        </template>
       </template>
 
       <CreateInventoryModal

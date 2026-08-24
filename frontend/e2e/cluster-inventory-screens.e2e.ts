@@ -42,6 +42,38 @@ test.describe('Cluster inventory screens', () => {
     })
 
     /**
+     * CLS-95 - The association defines a kind of gear and meets no refusal doing it.
+     *
+     * CLS-48 asserted the button was there. It was, and pressing it failed: the rights an association
+     * holds at its own station carried neither creating an inventory nor the manager role that deletes
+     * one, and the stock screen additionally mounted two station panels asking for a right the
+     * association can never hold, so it opened with a refusal in place of them. The chains and the loss
+     * settings live on the association's own Settings tab, so those two panels are not here at all.
+     */
+    test('the association defines a kind of gear and sees no refusal', async ({browser, request}) => {
+        const account = await clusterAccountWith(request, 'CLUSTER_INVENTORY_MANAGER')
+        const page = await clusterPage(browser, request, account)
+
+        await page.goto('/cluster/inventory')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+        await expect(page.getByTestId('cluster-inventory-tabs')).toBeVisible()
+
+        await expect(page.getByText(/keine Berechtigung|nicht berechtigt/i)).toHaveCount(0)
+
+        const name = `Verbandsinventar ${Date.now()}`
+        await page.getByRole('button', {name: /Inventar erstellen/i}).click()
+        const modal = page.getByTestId('modal')
+        await expect(modal).toBeVisible()
+        await modal.getByRole('textbox').first().fill(name)
+        await modal.getByRole('button', {name: 'Speichern', exact: true}).click()
+
+        await expect(modal).toHaveCount(0, {timeout: 15000})
+        await expect(page.getByText(name)).toBeVisible({timeout: 15000})
+
+        await page.context().close()
+    })
+
+    /**
      * CLS-49 - The association sees where its gear is.
      *
      * Grouped by the station holding it, naming whoever is wearing it there.
@@ -144,6 +176,10 @@ test.describe('Cluster inventory screens', () => {
      * The four totals say how much gear there is; they cannot say how many of size 48 are still in the
      * store, which is the question somebody ordering two hundred jackets actually has. The breakdown was
      * specified and then handed an empty list, so the table never appeared at all.
+     *
+     * And every row has to be named the way the gear was recorded. Most of what an association owns sits
+     * at a member station, and a size looked up on the association's own station resolves to none of
+     * those, so every row fell back to its raw id. A row called #17 is not empty and is not a size either.
      */
     test('the figures tab counts the association gear', async ({browser, request}) => {
         const account = await clusterAccountWith(request, 'CLUSTER_INVENTORY_MANAGER')
@@ -157,6 +193,11 @@ test.describe('Cluster inventory screens', () => {
         const rows = page.getByTestId('stats-size-row')
         await expect(rows.first()).toBeVisible({timeout: 15000})
         await expect(rows.first().locator('td').first()).not.toBeEmpty()
+
+        const labels = await rows.locator('td').first().allInnerTexts()
+        expect(labels.length, 'the breakdown has rows to name').toBeGreaterThan(0)
+        expect(labels.filter(label => /^#\d+$/.test(label.trim())),
+            'no row is named after a number').toEqual([])
 
         await page.context().close()
     })
@@ -297,7 +338,7 @@ test.describe('Cluster inventory screens', () => {
         const renamed = `Einsatzjacke ${Date.now()}`
         await page.getByTestId('item-edit').click({timeout: 15000})
         await page.getByTestId('item-edit-name').fill(renamed)
-        await page.getByRole('button', {name: /Speichern/i}).click()
+        await page.getByTestId('item-edit-save').click()
 
         await expect(page.getByText(renamed)).toBeVisible({timeout: 15000})
         await page.context().close()
