@@ -26,6 +26,7 @@
 ### Security
 
 - **A news entry could be read from another station.** The lists never offered it, but asking for an entry by its address answered in full, to anyone logged in anywhere, and the comments under it with it. An entry is now readable only by the station it belongs to, and only by the people it is addressed to.
+- **Formatted text could carry a script.** Text written with formatting, such as an event or ticket description, a knowledge-base article, a page block or a profile field, was shown to readers exactly as it was written, so instructions hidden inside it ran in the browser of everyone who opened the page, visitors to a station's public site included. Formatted text is now cleaned before it is shown and keeps nothing but its formatting.
 
 ### Fixes
 

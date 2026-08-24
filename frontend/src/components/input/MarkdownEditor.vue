@@ -18,7 +18,7 @@ import { Highlight } from '@tiptap/extension-highlight'
 import { Youtube } from '@tiptap/extension-youtube'
 import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
-import { marked } from 'marked'
+import { renderMarkdown } from '@/util/markdown'
 import { useSession } from '@/composables/useSession'
 import MediaBrowseModal from '@/components/media/MediaBrowseModal.vue'
 import { createMarkdownTurndown } from './markdowneditor/markdownTurndown'
@@ -120,7 +120,7 @@ function updateState(ed: { isActive: (n: string, a?: Record<string, unknown>) =>
 async function setEditorContent(md: string) {
   if (!editor.value) return
   isUpdatingFromProp.value = true
-  let html = await marked.parse(md || '')
+  let html = renderMarkdown(md)
   html = html.replace(/<p>(<img [^>]*>)<\/p>/g, '$1')
   editor.value.commands.setContent(html, { emitUpdate: false })
   await nextTick()

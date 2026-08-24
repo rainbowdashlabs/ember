@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {PublicEvent} from '@/api/publicEvents'
-import {marked} from 'marked'
+import {renderMarkdown} from '@/util/markdown'
 import {formatTime} from '@/util/format'
 import ProseContent from '@/components/display/ProseContent.vue'
 
@@ -30,10 +30,6 @@ function isRecurring(eventType?: string): boolean {
   return eventType != null && eventType !== 'ONE_TIME'
 }
 
-function renderMd(md?: string): string {
-  if (!md) return ''
-  try { return marked.parse(md) as string } catch { return md }
-}
 </script>
 
 <template>
@@ -61,7 +57,7 @@ function renderMd(md?: string): string {
           </template>
         </span>
       </div>
-      <ProseContent v-if="ev.description" v-html="renderMd(ev.description)"/>
+      <ProseContent v-if="ev.description" v-html="renderMarkdown(ev.description)"/>
       <div v-if="ev.publicFields?.length" class="flex flex-wrap gap-3 text-xs text-(--text-muted)">
         <span v-for="f in ev.publicFields" :key="f.name">
           <span class="font-medium">{{ f.name }}:</span> {{ f.value }}

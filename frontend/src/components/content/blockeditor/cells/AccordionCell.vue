@@ -5,9 +5,8 @@
  */
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
-import {marked} from 'marked'
 import type {AccordionConfig} from '@/api/pageManage'
-import {enhancePageMarkdownImages} from '@/util/pageMarkdownImages'
+import {renderPageMarkdown} from '@/util/markdown'
 
 const props = defineProps<{
     config: AccordionConfig
@@ -16,14 +15,7 @@ const props = defineProps<{
 
 const open = ref<boolean>(!!props.config.openByDefault)
 
-const renderedContent = computed(() => {
-    if (!props.content) return ''
-    try {
-        return enhancePageMarkdownImages(marked.parse(props.content) as string)
-    } catch {
-        return props.content
-    }
-})
+const renderedContent = computed(() => renderPageMarkdown(props.content))
 </script>
 
 <template>
