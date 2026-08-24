@@ -77,7 +77,7 @@ test.describe('Cluster station groups', () => {
     }
 
     /**
-     * CLS-77 - The association files its stations.
+     * CLS-90 - The association files its stations.
      *
      * A group is made on the screen, two of the three stations go into it, and the third stays on offer
      * rather than being listed as one of its own. Filing is a choice about some stations, and a screen
@@ -115,7 +115,7 @@ test.describe('Cluster station groups', () => {
     })
 
     /**
-     * CLS-78 - A question asked of one group reaches only that group.
+     * CLS-91 - A question asked of one group reaches only that group.
      *
      * The whole point of the filing. Somebody at a station inside the group is asked; somebody at a
      * station outside it is not, and their profile is the same profile drawn by the same screen.
@@ -151,7 +151,7 @@ test.describe('Cluster station groups', () => {
     })
 
     /**
-     * CLS-79 - The same question is never asked twice of one station.
+     * CLS-92 - The same question is never asked twice of one station.
      *
      * A question asked of everybody already reaches the stations in every group, so one of the same name
      * pointed at a group would put two boxes of one name on one profile. The refusal is the interesting
@@ -179,7 +179,7 @@ test.describe('Cluster station groups', () => {
     })
 
     /**
-     * CLS-80 - A group with questions keyed to it cannot be deleted.
+     * CLS-93 - A group with questions keyed to it cannot be deleted.
      *
      * Cascading would delete the questions and every answer to them without saying so. The refusal names
      * how many are in the way, and pointing them somewhere else lets the delete through.
@@ -212,7 +212,7 @@ test.describe('Cluster station groups', () => {
     })
 
     /**
-     * CLS-81 - Leaving a group hides the question and keeps the answer.
+     * CLS-94 - Leaving a group hides the question and keeps the answer.
      *
      * A station taken out of a group stops being asked, and what somebody already answered is not thrown
      * away for it: put the station back and the answer is where it was. Anything else would make
