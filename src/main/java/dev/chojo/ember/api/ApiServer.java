@@ -31,6 +31,7 @@ import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyForTransferException;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
 import dev.chojo.ember.feature.system.service.DemoService;
@@ -125,6 +126,9 @@ public class ApiServer {
             "/api/v1/station/storage/backend/probe",
             "/api/v1/station/storage/backend/probe-config",
             "/api/v1/station/storage/backend/apply",
+            "/api/v1/cluster/storage/backend/probe",
+            "/api/v1/cluster/storage/backend/probe-config",
+            "/api/v1/cluster/storage/backend/apply",
             "/api/v1/admin/storage/backend/probe",
             "/api/v1/admin/storage/backend/probe-config",
             "/api/v1/admin/storage/backend/apply",
@@ -945,6 +949,15 @@ public class ApiServer {
         routes.exception(IllegalArgumentException.class, (err, ctx) -> {
             log.warn("Invalid input on {} {}: {}", ctx.method(), ctx.path(), err.getMessage(), err);
             ctx.json(new ErrorResponseWrapper("Invalid Input", "Invalid input")).status(HttpStatus.BAD_REQUEST);
+        });
+
+        // A copy that cannot be made is a refusal with a reason, not a fault. It reaches here from the acts
+        // that move files as a side effect of something else - a station joining a cluster or being let go -
+        // where the caller has to be told that nothing happened and why.
+        routes.exception(MigrationException.class, (err, ctx) -> {
+            log.warn("Storage move refused on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+            ctx.json(new ErrorResponseWrapper("Storage Unavailable", err.getMessage()))
+                    .status(HttpStatus.BAD_REQUEST);
         });
 
         routes.exception(StreamReadException.class, (err, ctx) -> {

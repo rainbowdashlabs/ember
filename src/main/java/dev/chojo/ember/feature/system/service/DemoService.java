@@ -13,6 +13,7 @@ import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -67,6 +68,7 @@ public class DemoService {
     private final Set<DemoSeeder> seeders;
     private final StationRepository stationRepository;
     private final ClusterRepository clusterRepository;
+    private final StorageBackendResolver backendResolver;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private volatile Instant lastActivity = Instant.now();
     private volatile boolean needsReset = false;
@@ -79,7 +81,8 @@ public class DemoService {
             PasswordHasher passwordHasher,
             Set<DemoSeeder> seeders,
             StationRepository stationRepository,
-            ClusterRepository clusterRepository) {
+            ClusterRepository clusterRepository,
+            StorageBackendResolver backendResolver) {
         this.demoConfig = demoConfig;
         this.databaseConfig = databaseConfig;
         this.dataSource = dataSource;
@@ -87,6 +90,7 @@ public class DemoService {
         this.seeders = seeders;
         this.stationRepository = stationRepository;
         this.clusterRepository = clusterRepository;
+        this.backendResolver = backendResolver;
     }
 
     private static Path resolveSchemaHashFile() {
@@ -138,6 +142,11 @@ public class DemoService {
             // The identities cached in memory belong to the stations and associations just thrown away
             stationRepository.invalidateIdentityCaches();
             clusterRepository.invalidateIdentityCache();
+            // And so does every cached answer to "where does this station keep its files". Station
+            // identifiers start again from the same numbers after a wipe, so a stale entry hands the next
+            // station to hold that number the storage of the one that held it before, which reads as a file
+            // vanishing on the first move somebody makes
+            backendResolver.invalidateAll();
             seedData();
             log.info("Demo: Database seeded successfully");
         } catch (Exception e) {

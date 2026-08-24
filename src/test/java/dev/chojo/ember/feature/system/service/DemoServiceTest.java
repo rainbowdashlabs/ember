@@ -480,7 +480,8 @@ class DemoServiceTest extends RepositoryTestBase {
                         freshStationSeeder,
                         twoFactorSeeder),
                 stationRepo,
-                clusterRepo);
+                clusterRepo,
+                new StorageBackendResolver(new LocalStorageBackend()));
     }
 
     @Test
