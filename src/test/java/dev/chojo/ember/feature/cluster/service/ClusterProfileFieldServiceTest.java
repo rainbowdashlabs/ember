@@ -140,6 +140,16 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         .isEmpty(),
                 "a station outside the filing is never asked");
 
+        assertTrue(
+                profileFieldService.findMergedFields(inside.id(), ProfileFieldScope.MEMBER).stream()
+                        .anyMatch(f ->
+                                f.origin() == FieldOrigin.CLUSTER && f.name().equals("Atemschutztauglich")),
+                "and the union everybody reads carries it too");
+        assertTrue(
+                profileFieldService.findMergedFields(outside.id(), ProfileFieldScope.MEMBER).stream()
+                        .noneMatch(f -> f.origin() == FieldOrigin.CLUSTER),
+                "while the station outside sees nothing of it");
+
         clusterStationGroupService.setStations(clusterId, group.id(), List.of());
         assertTrue(clusterProfileFieldService
                 .findForStation(inside.id(), ProfileFieldScope.MEMBER)
@@ -265,6 +275,51 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
 
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
+    }
+
+    /**
+     * An answer to a question the station has stopped being asked is shown nowhere and cannot be written,
+     * but it is not thrown away: putting the station back into the group brings it back.
+     */
+    @Test
+    void anAnswerWaitsOutTheTimeItsQuestionDoesNotReachTheStation() {
+        int clusterId = freshCluster();
+        var station = clusterService.createStation(clusterId, "Wache Wartet " + NAMES.incrementAndGet());
+        int memberId = memberAt(station);
+        var group = clusterStationGroupService.create(clusterId, "Atemschutz " + NAMES.incrementAndGet());
+        clusterStationGroupService.setStations(clusterId, group.id(), List.of(station.uid()));
+        var field = clusterProfileFieldService.create(
+                clusterId,
+                "Atemschutztauglich",
+                ProfileFieldType.BOOLEAN,
+                ProfileFieldConfig.empty(),
+                0,
+                ProfileFieldScope.MEMBER,
+                true,
+                false,
+                group.id());
+        clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "true"), memberId);
+
+        clusterStationGroupService.setStations(clusterId, group.id(), List.of());
+
+        assertTrue(
+                clusterProfileFieldService.findValues(clusterId, memberId).isEmpty(),
+                "an answer nobody is asked for any more is shown nowhere");
+        assertThrows(
+                BadRequestResponse.class,
+                () -> clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "false"), memberId),
+                "and nobody may write one either");
+
+        clusterStationGroupService.setStations(clusterId, group.id(), List.of(station.uid()));
+        assertEquals(
+                "true",
+                clusterProfileFieldService.findValues(clusterId, memberId).get(field.id()),
+                "and it is there again when the station is");
+
+        clusterProfileFieldService.delete(clusterId, field.id());
+        clusterService.releaseStation(clusterId, station.id());
+        stationRepo.delete(station.id());
+        clusterService.delete(clusterId);
     }
 
     @Test

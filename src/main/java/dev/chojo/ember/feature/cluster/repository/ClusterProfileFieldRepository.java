@@ -146,15 +146,27 @@ public class ClusterProfileFieldRepository {
     // -- Values --
 
     /**
-     * What one member answered to the cluster's questions.
+     * What one member answered to the questions their station is actually asked.
+     *
+     * <p>An answer to a question that no longer reaches the station stays in the table and is shown
+     * nowhere, so putting the station back into the group brings the answer back with it.
      *
      * @param memberId the station member
-     * @return one entry per answered field
+     * @return one entry per answered field that reaches the member's station
      */
     public List<Value> findValues(int memberId) {
         return query("""
-                SELECT field_id, value FROM cluster_profile_field_value
-                WHERE member_id = :member_id;""")
+                SELECT cpfv.field_id, cpfv.value
+                FROM cluster_profile_field_value cpfv
+                JOIN cluster_profile_field cpf ON cpf.id = cpfv.field_id
+                JOIN station_member sm ON sm.id = cpfv.member_id
+                JOIN station s ON s.id = sm.station_id AND s.cluster_id = cpf.cluster_id
+                WHERE cpfv.member_id = :member_id
+                  AND (cpf.station_group_id IS NULL
+                       OR EXISTS (SELECT 1
+                                  FROM cluster_station_group_membership m
+                                  WHERE m.group_id = cpf.station_group_id
+                                    AND m.station_id = s.id));""")
                 .single(call().bind("member_id", memberId))
                 .map(row -> new Value(row.getInt("field_id"), row.getString("value")))
                 .all();
