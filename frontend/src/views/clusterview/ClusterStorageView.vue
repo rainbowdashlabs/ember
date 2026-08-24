@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {RouterLink} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -111,6 +112,12 @@ function saveDefaults(next: QuotaDimensions) {
 <template>
   <ViewContent :subtitle="t('pages.cluster-storage.subtitle')" :title="t('pages.cluster-storage.title')">
     <div class="space-y-4">
+      <div class="flex justify-end">
+        <RouterLink :to="{name: 'cluster-storage-backend'}" class="text-sm underline">
+          {{ t('clusterStorageBackend.linkFromRoom') }}
+        </RouterLink>
+      </div>
+
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <Spinner v-if="loading" size="lg"/>

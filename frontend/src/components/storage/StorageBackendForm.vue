@@ -19,7 +19,7 @@ import SmbBackendForm from '@/components/storage/SmbBackendForm.vue'
 import SftpBackendForm from '@/components/storage/SftpBackendForm.vue'
 import type {ProbeResult, S3Request, SftpRequest, SmbRequest} from '@/api/storageBackend'
 
-type BackendType = 'LOCAL' | 'S3' | 'SMB' | 'SFTP'
+type BackendType = 'LOCAL' | 'CLUSTER' | 'S3' | 'SMB' | 'SFTP'
 
 /**
  * Editor for a storage backend selection, shared by the instance and the station view.
@@ -27,6 +27,10 @@ type BackendType = 'LOCAL' | 'S3' | 'SMB' | 'SFTP'
  * All labels are read from `i18nPrefix`, so each caller keeps its own wording. Bind
  * `localRoot` when LOCAL means a writable directory - it then renders the root path
  * field, otherwise LOCAL only shows the caller's `form.localHint` text.
+ *
+ * `types` says which destinations this caller offers. An association has no instance default to fall back
+ * to and no association above it, and a station only sees the association's storage when there is one, so
+ * the list is the caller's rather than a constant.
  */
 const selectedType = defineModel<BackendType>('selectedType', {required: true})
 const s3 = defineModel<S3Request>('s3', {required: true})
@@ -38,10 +42,12 @@ const props = withDefaults(defineProps<{
     i18nPrefix: string
     probing: boolean
     saving: boolean
+    types?: BackendType[]
     showLiveProbe?: boolean
     canProbeLive?: boolean
     probeOutcome?: ProbeResult | null
 }>(), {
+    types: () => ['LOCAL', 'S3', 'SMB', 'SFTP'],
     showLiveProbe: false,
     canProbeLive: false,
     probeOutcome: null,
@@ -63,11 +69,10 @@ const {t} = useI18n()
 
         <div class="space-y-1">
             <FieldLabel>{{ t(`${props.i18nPrefix}.form.type`) }}</FieldLabel>
-            <SelectInput v-model="selectedType">
-                <option value="LOCAL">{{ t(`${props.i18nPrefix}.form.types.local`) }}</option>
-                <option value="S3">{{ t(`${props.i18nPrefix}.form.types.s3`) }}</option>
-                <option value="SMB">{{ t(`${props.i18nPrefix}.form.types.smb`) }}</option>
-                <option value="SFTP">{{ t(`${props.i18nPrefix}.form.types.sftp`) }}</option>
+            <SelectInput v-model="selectedType" data-testid="storage-backend-type">
+                <option v-for="type in props.types" :key="type" :value="type">
+                    {{ t(`${props.i18nPrefix}.form.types.${type.toLowerCase()}`) }}
+                </option>
             </SelectInput>
         </div>
 
@@ -78,6 +83,9 @@ const {t} = useI18n()
         </div>
         <MutedText v-else-if="selectedType === 'LOCAL'" tag="p" size="sm">
             {{ t(`${props.i18nPrefix}.form.localHint`) }}
+        </MutedText>
+        <MutedText v-else-if="selectedType === 'CLUSTER'" tag="p" size="sm">
+            {{ t(`${props.i18nPrefix}.form.clusterHint`) }}
         </MutedText>
         <S3BackendForm v-else-if="selectedType === 'S3'" v-model="s3"/>
         <SmbBackendForm v-else-if="selectedType === 'SMB'" v-model="smb"/>
@@ -93,7 +101,8 @@ const {t} = useI18n()
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-            <SecondaryButton :disabled="props.probing || selectedType === 'LOCAL'" @click="emit('probe-config')">
+            <SecondaryButton :disabled="props.probing || selectedType === 'LOCAL' || selectedType === 'CLUSTER'"
+                             @click="emit('probe-config')">
                 {{
                     props.probing
                         ? t(`${props.i18nPrefix}.actions.probing`)
