@@ -5,96 +5,151 @@
  */
 package dev.chojo.ember.feature.storage.repository;
 
+import dev.chojo.ember.feature.storage.entity.ClusterStorageConfig;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
+import java.util.List;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
- * The backend a cluster keeps for its stations, which sits between a station's own override and the instance
- * default.
+ * The versions of the storage a cluster keeps, one row each.
  *
- * <p>The same shape as the station's, and deliberately the same config type: what a cluster points its
- * stations at is the same kind of thing a station points itself at, and a second variant of the type would
- * only mean the same credentials parsed two ways.
+ * <p>The same config type as a station's own, deliberately: what a cluster points its stations at is the
+ * same kind of thing a station points itself at, and a second variant of the type would only mean the same
+ * credentials parsed two ways.
+ *
+ * <p>What is <em>not</em> here is where any station's bytes are. That is
+ * {@link ClusterStationStorageRepository}, and the two are apart because a decision is written in a request
+ * and a copy is not.
  */
 @Singleton
 public class ClusterStorageConfigRepository {
+    private static final String COLUMNS = "id, cluster_id, backend_type, config, is_current, created_at, updated_at";
 
     /**
-     * The cluster's override, when it has one.
+     * The version the cluster points new placements at.
      *
      * @param clusterId the cluster
-     * @return the row, or empty when the cluster uses whatever the instance provides
+     * @return it, or empty when the cluster keeps no storage of its own
      */
-    public Optional<Row> findOne(int clusterId) {
-        return query("""
-                SELECT cluster_id, backend_type, config
-                FROM cluster_storage_config
-                WHERE cluster_id = :cluster_id;
-                """)
+    public Optional<ClusterStorageConfig> findCurrent(int clusterId) {
+        return query("SELECT %s FROM cluster_storage_config WHERE cluster_id = :cluster_id AND is_current;", COLUMNS)
                 .single(call().bind("cluster_id", clusterId))
-                .map(row ->
-                        new Row(row.getInt("cluster_id"), StationStorageBackendConfig.parse(row.getString("config"))))
+                .map(ClusterStorageConfig.map())
                 .first();
     }
 
     /**
-     * The cluster's override, found from one of its stations.
+     * One version by its identifier, which is what a placement carries.
+     *
+     * @param id the version
+     * @return it, or empty when it has been deleted
+     */
+    public Optional<ClusterStorageConfig> findById(int id) {
+        return query("SELECT %s FROM cluster_storage_config WHERE id = :id;", COLUMNS)
+                .single(call().bind("id", id))
+                .map(ClusterStorageConfig.map())
+                .first();
+    }
+
+    /**
+     * The current version of the storage kept by the cluster one station answers to.
+     *
+     * <p>Read through the membership rather than through a placement, which is what the resolver did before
+     * placements existed and what it stops doing the moment they do.
      *
      * @param stationId a station of the cluster
-     * @return the row, or empty when the station answers to no cluster or the cluster has no override
+     * @return the version, or empty when the station answers to no cluster or the cluster keeps no storage
      */
-    public Optional<Row> findForStation(int stationId) {
+    public Optional<ClusterStorageConfig> findCurrentForStation(int stationId) {
         return query("""
-                SELECT csc.cluster_id, csc.backend_type, csc.config
-                FROM cluster_storage_config csc
+                SELECT %s FROM cluster_storage_config csc
                 JOIN station s ON s.cluster_id = csc.cluster_id
-                WHERE s.id = :station_id;
-                """)
+                WHERE s.id = :station_id AND csc.is_current;""", SqlSupport.alias("csc", COLUMNS))
                 .single(call().bind("station_id", stationId))
-                .map(row ->
-                        new Row(row.getInt("cluster_id"), StationStorageBackendConfig.parse(row.getString("config"))))
+                .map(ClusterStorageConfig.map())
                 .first();
     }
 
     /**
-     * Insert-or-update the cluster's override.
+     * Every version a cluster has ever had that has not been deleted, newest first.
+     *
+     * @param clusterId the cluster
+     * @return its versions
+     */
+    public List<ClusterStorageConfig> findByCluster(int clusterId) {
+        return query("SELECT %s FROM cluster_storage_config WHERE cluster_id = :cluster_id ORDER BY id DESC;", COLUMNS)
+                .single(call().bind("cluster_id", clusterId))
+                .map(ClusterStorageConfig.map())
+                .all();
+    }
+
+    /**
+     * Takes the current version out of use without deleting it, so whoever stands on it keeps reaching their
+     * bytes.
+     *
+     * @param clusterId the cluster
+     */
+    public void retireCurrent(int clusterId) {
+        query("UPDATE cluster_storage_config SET is_current = FALSE WHERE cluster_id = :cluster_id AND is_current;")
+                .single(call().bind("cluster_id", clusterId))
+                .update();
+    }
+
+    /**
+     * Records a new current version, retiring whichever one was current before it.
      *
      * @param clusterId the cluster
      * @param config    the backend, with its credentials already encrypted by the caller
+     * @return the version, which is what a placement will point at
      */
-    public void upsert(int clusterId, StationStorageBackendConfig config) {
-        query("""
-                INSERT INTO cluster_storage_config (cluster_id, backend_type, config, updated_at)
-                VALUES (:cluster_id, :backend_type, :config::JSONB, now())
-                ON CONFLICT (cluster_id)
-                DO UPDATE SET backend_type = excluded.backend_type,
-                              config = excluded.config,
-                              updated_at = now();
-                """)
+    public ClusterStorageConfig insertCurrent(int clusterId, StationStorageBackendConfig config) {
+        retireCurrent(clusterId);
+        return query("""
+                INSERT INTO cluster_storage_config (cluster_id, backend_type, config, is_current)
+                VALUES (:cluster_id, :backend_type, :config::JSONB, TRUE)
+                RETURNING %s;""", COLUMNS)
                 .single(call().bind("cluster_id", clusterId)
+                        .bind("backend_type", config.type().name())
+                        .bind("config", config.toJson()))
+                .map(ClusterStorageConfig.map())
+                .first()
+                .orElseThrow();
+    }
+
+    /**
+     * Writes new credentials onto a version that names the same destination, which moves nobody.
+     *
+     * @param id     the version
+     * @param config the backend, with its credentials already encrypted by the caller
+     */
+    public void updateInPlace(int id, StationStorageBackendConfig config) {
+        query("""
+                UPDATE cluster_storage_config
+                SET backend_type = :backend_type, config = :config::JSONB, updated_at = now()
+                WHERE id = :id;""")
+                .single(call().bind("id", id)
                         .bind("backend_type", config.type().name())
                         .bind("config", config.toJson()))
                 .update();
     }
 
     /**
-     * Removes the cluster's override; no-op when none exists.
+     * Deletes a version nobody stands on any more.
      *
-     * @param clusterId the cluster
+     * <p>The foreign key from the placement table refuses the day this is called on one somebody is still
+     * standing on, which is the point of it carrying no {@code ON DELETE} clause.
+     *
+     * @param id the version
      */
-    public void delete(int clusterId) {
-        query("DELETE FROM cluster_storage_config WHERE cluster_id = :cluster_id;")
-                .single(call().bind("cluster_id", clusterId))
+    public void delete(int id) {
+        query("DELETE FROM cluster_storage_config WHERE id = :id;")
+                .single(call().bind("id", id))
                 .delete();
     }
-
-    /**
-     * Read-side projection of one row.
-     */
-    public record Row(int clusterId, StationStorageBackendConfig config) {}
 }

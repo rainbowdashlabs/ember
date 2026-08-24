@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.entity.ClusterStorageConfig;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
 import io.javalin.http.NotFoundResponse;
@@ -168,7 +169,7 @@ public class ClusterGovernanceService {
     // -- Storage --
 
     public Optional<StationStorageBackendConfig> findStorageBackend(int clusterId) {
-        return storageConfigRepository.findOne(clusterId).map(ClusterStorageConfigRepository.Row::config);
+        return storageConfigRepository.findCurrent(clusterId).map(ClusterStorageConfig::config);
     }
 
     /**
@@ -183,9 +184,9 @@ public class ClusterGovernanceService {
     public void setStorageBackend(int clusterId, StationStorageBackendConfig config) {
         requireCluster(clusterId);
         if (config == null) {
-            storageConfigRepository.delete(clusterId);
+            storageConfigRepository.retireCurrent(clusterId);
         } else {
-            storageConfigRepository.upsert(clusterId, config);
+            storageConfigRepository.insertCurrent(clusterId, config);
         }
         backendResolver.invalidateStations(clusterRepository.findStationIds(clusterId));
         log.info("Cluster {} storage backend set to {}", clusterId, config != null ? config.type() : "the default");

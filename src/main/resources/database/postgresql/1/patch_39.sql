@@ -760,26 +760,80 @@ COMMENT ON COLUMN ember_schema.cluster.custom_theme_colors
 COMMENT ON COLUMN ember_schema.cluster.default_feel
     IS 'The interface feel the cluster hands its stations, or null when it does not care.';
 
--- A storage backend of the cluster's own, sitting between the station's override and the instance default.
+-- What a cluster decided about storage, which is a different fact from where any one station's bytes are.
+--
+-- Policy lives here and placement lives in cluster_station_storage, because a decision takes effect the
+-- moment it is written and a copy of a terabyte does not. Read as one thing they come apart on the day of
+-- the switch and stay apart for every station never moved.
+
+ALTER TABLE ember_schema.cluster
+    ADD COLUMN IF NOT EXISTS storage_backend_reach  TEXT    NOT NULL DEFAULT 'NONE',
+    ADD COLUMN IF NOT EXISTS storage_backend_locked BOOLEAN NOT NULL DEFAULT FALSE;
+
+COMMENT ON COLUMN ember_schema.cluster.storage_backend_reach
+    IS 'How far the cluster''s own storage reaches: NONE, OWN_FILES for its own store alone, or EVERY_STATION.';
+COMMENT ON COLUMN ember_schema.cluster.storage_backend_locked
+    IS 'Whether a station may point itself anywhere; locked, only the cluster moves a station.';
+
+-- A storage backend of the cluster's own, one row per version of it.
+--
+-- Versioned rather than singular because a station standing on the old destination would otherwise be
+-- handed credentials for somewhere its bytes are not. A new destination is a new current version and
+-- everybody on the old one is out of place; the old one stays readable until the last of them has left.
 
 CREATE TABLE IF NOT EXISTS ember_schema.cluster_storage_config
 (
-    cluster_id   INTEGER     NOT NULL PRIMARY KEY REFERENCES ember_schema.cluster (id) ON DELETE CASCADE,
+    id           SERIAL PRIMARY KEY,
+    cluster_id   INTEGER     NOT NULL REFERENCES ember_schema.cluster (id) ON DELETE CASCADE,
     backend_type TEXT        NOT NULL,
     config       JSONB       NOT NULL DEFAULT '{}',
+    is_current   BOOLEAN     NOT NULL DEFAULT TRUE,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS cluster_storage_config_current
+    ON ember_schema.cluster_storage_config (cluster_id) WHERE is_current;
+
 COMMENT ON TABLE ember_schema.cluster_storage_config
-    IS 'A cluster''s own storage backend, used by its stations unless a station has an override of its own.';
+    IS 'One version of a cluster''s own storage backend; at most one of them is current per cluster.';
+COMMENT ON COLUMN ember_schema.cluster_storage_config.id IS 'The version a placement points at.';
 COMMENT ON COLUMN ember_schema.cluster_storage_config.cluster_id IS 'The cluster this backend belongs to.';
 COMMENT ON COLUMN ember_schema.cluster_storage_config.backend_type
     IS 'Discriminator for the typed backend configuration carried in config.';
 COMMENT ON COLUMN ember_schema.cluster_storage_config.config
     IS 'The typed backend configuration, encrypted where it carries credentials.';
-COMMENT ON COLUMN ember_schema.cluster_storage_config.created_at IS 'When the override was first set.';
-COMMENT ON COLUMN ember_schema.cluster_storage_config.updated_at IS 'When it was last changed.';
+COMMENT ON COLUMN ember_schema.cluster_storage_config.is_current
+    IS 'Whether this is the version the cluster points new placements at; kept false for the ones people still stand on.';
+COMMENT ON COLUMN ember_schema.cluster_storage_config.created_at IS 'When this version was first set.';
+COMMENT ON COLUMN ember_schema.cluster_storage_config.updated_at
+    IS 'When its credentials were last edited, which is a change that moves nobody.';
+
+-- Where one station's bytes actually are, when they are on a cluster's storage.
+--
+-- Absent for a station on its own backend or on the instance default, which is what the resolver reads and
+-- what says who pays. config_id carries no ON DELETE clause on purpose: a version somebody is standing on
+-- cannot be deleted, and the database is what says so rather than a comment.
+
+CREATE TABLE IF NOT EXISTS ember_schema.cluster_station_storage
+(
+    station_id INTEGER     NOT NULL PRIMARY KEY REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    cluster_id INTEGER     NOT NULL REFERENCES ember_schema.cluster (id) ON DELETE CASCADE,
+    config_id  INTEGER     NOT NULL REFERENCES ember_schema.cluster_storage_config (id),
+    moved_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS cluster_station_storage_cluster ON ember_schema.cluster_station_storage (cluster_id);
+CREATE INDEX IF NOT EXISTS cluster_station_storage_config ON ember_schema.cluster_station_storage (config_id);
+
+COMMENT ON TABLE ember_schema.cluster_station_storage
+    IS 'The stations whose bytes sit on a cluster''s storage, and which version of it they were carried to.';
+COMMENT ON COLUMN ember_schema.cluster_station_storage.station_id IS 'The station whose bytes were moved.';
+COMMENT ON COLUMN ember_schema.cluster_station_storage.cluster_id
+    IS 'The cluster whose storage they are on, beside the version so the pool arithmetic is one indexed read.';
+COMMENT ON COLUMN ember_schema.cluster_station_storage.config_id
+    IS 'The version of that storage the bytes were carried to, which is what the resolver builds.';
+COMMENT ON COLUMN ember_schema.cluster_station_storage.moved_at IS 'When the copy finished.';
 
 -- The room a cluster hands out, in the same seven dimensions the instance uses.
 --

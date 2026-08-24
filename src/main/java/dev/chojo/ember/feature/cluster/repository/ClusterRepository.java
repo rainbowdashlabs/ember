@@ -38,7 +38,7 @@ public class ClusterRepository {
     private static final String CLUSTER_COLUMNS = """
             id, uid, name, description, home_station_id, auto_federate, theme_locked, colors_locked, \
             feel_locked, logo_locked, storage_pool_bytes, default_theme, custom_theme_colors, default_feel, \
-            uses_inventory, loss_report_requires, created_at""";
+            uses_inventory, loss_report_requires, storage_backend_reach, storage_backend_locked, created_at""";
     private static final String MEMBER_COLUMNS = "id, cluster_id, account_id, user_type";
 
     /**

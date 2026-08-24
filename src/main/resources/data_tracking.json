@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:69f13cb7c317f6c88753b16ee1ac4c1b387566b6eca2d6ae58891b6121e5c6d6",
-  "generatedAt" : "2026-08-23T14:35:16Z",
+  "schemaHash" : "sha256:7cf3da6c883b1eedcc3211523de5d87cbc4a12c4551a6eb67f40109b0ef94fa4",
+  "generatedAt" : "2026-08-23T23:48:21Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -2882,7 +2882,7 @@
     "cluster" : {
       "feature" : "cluster",
       "scope" : "CLUSTER",
-      "tableHash" : "sha256:cc5d98ec62caac358c4b0e33022a4aae48d40064c1199a9bca55ab6f9cceb630",
+      "tableHash" : "sha256:50a551c5fe27e597054bf11329b32c186a860a58c87d93d0c4ed0275032731ec",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -2973,6 +2973,18 @@
         "nullable" : true,
         "verified" : true,
         "description" : "The interface feel the cluster hands its stations, or null when it does not care."
+      }, {
+        "name" : "storage_backend_reach",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "How far the cluster's own storage reaches: NONE, OWN_FILES for its own store alone, or EVERY_STATION."
+      }, {
+        "name" : "storage_backend_locked",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether a station may point itself anywhere; locked, only the cluster moves a station."
       }, {
         "name" : "default_quota_bytes",
         "type" : "int8",
@@ -3678,11 +3690,76 @@
       },
       "description" : "What one cluster granted one of its stations. A station without a row here has been granted nothing and falls back to the cluster's defaults."
     },
+    "cluster_station_storage" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:7bfedee391eb7caeae8f9db758d700aa2d8aca0e2bb5d33a3ee01883c72f58bc",
+      "columns" : [ {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station whose bytes were moved."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster whose storage they are on, beside the version so the pool arithmetic is one indexed read."
+      }, {
+        "name" : "config_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The version of that storage the bytes were carried to, which is what the resolver builds."
+      }, {
+        "name" : "moved_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the copy finished."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "config_id",
+        "refTable" : "cluster_storage_config",
+        "refColumn" : "id",
+        "onDelete" : "NO ACTION"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: where a station's bytes were carried"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "The stations whose bytes sit on a cluster's storage, and which version of it they were carried to."
+    },
     "cluster_storage_config" : {
       "feature" : "cluster",
       "scope" : "CLUSTER",
-      "tableHash" : "sha256:ca91826428e87a1181a9a65049913c2c54d573b5d0fff6a53a940277a6be4329",
+      "tableHash" : "sha256:45609c8b3ef1700106657a42745f66a0f60a797d23a635320b7f6227f1d42c83",
       "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The version a placement points at."
+      }, {
         "name" : "cluster_id",
         "type" : "int4",
         "nullable" : false,
@@ -3701,17 +3778,23 @@
         "verified" : true,
         "description" : "The typed backend configuration, encrypted where it carries credentials."
       }, {
+        "name" : "is_current",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether this is the version the cluster points new placements at; kept false for the ones people still stand on."
+      }, {
         "name" : "created_at",
         "type" : "timestamptz",
         "nullable" : false,
         "verified" : true,
-        "description" : "When the override was first set."
+        "description" : "When this version was first set."
       }, {
         "name" : "updated_at",
         "type" : "timestamptz",
         "nullable" : false,
         "verified" : true,
-        "description" : "When it was last changed."
+        "description" : "When its credentials were last edited, which is a change that moves nobody."
       } ],
       "foreignKeys" : [ {
         "column" : "cluster_id",
@@ -3731,7 +3814,7 @@
         "status" : "IGNORED",
         "reason" : "Names no person, so an account leaving has nothing to remove here"
       },
-      "description" : "A cluster's own storage backend, used by its stations unless a station has an override of its own."
+      "description" : "One version of a cluster's own storage backend; at most one of them is current per cluster."
     },
     "cluster_storage_quota_preset" : {
       "feature" : "cluster",

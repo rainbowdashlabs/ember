@@ -135,7 +135,9 @@ public class StorageBackendResolver {
                     overrideRepository.findOne(id).map(row -> factory.buildForStation(row.config()));
             if (own.isPresent()) return own;
             if (clusterOverrideRepository == null) return Optional.empty();
-            return clusterOverrideRepository.findForStation(id).map(row -> factory.buildForStation(row.config()));
+            return clusterOverrideRepository
+                    .findCurrentForStation(id)
+                    .map(version -> factory.buildForStation(version.config()));
         });
     }
 }

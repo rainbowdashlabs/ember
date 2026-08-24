@@ -33,6 +33,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param logoLocked       whether member stations may change their logo
  * @param storagePoolBytes how much storage it has to hand out, or {@code null} for no pool of its own
  * @param lossReportRequires what a station has to bring when it reports a piece of this body's gear missing
+ * @param storageBackendReach  how far its own storage reaches, which is what it decided rather than where
+ *                             anybody's bytes are
+ * @param storageBackendLocked whether a station may point itself anywhere
  * @param createdAt        when it was created
  */
 public record Cluster(
@@ -52,6 +55,8 @@ public record Cluster(
         ThemeFeel defaultFeel,
         boolean usesInventory,
         LossReportRequirement lossReportRequires,
+        ClusterBackendReach storageBackendReach,
+        boolean storageBackendLocked,
         Instant createdAt) {
     /**
      * Creates a row mapping for database result set conversion.
@@ -74,6 +79,8 @@ public record Cluster(
                 row.getEnum("default_feel", ThemeFeel.class),
                 row.getBoolean("uses_inventory"),
                 row.getEnum("loss_report_requires", LossReportRequirement.class),
+                row.getEnum("storage_backend_reach", ClusterBackendReach.class),
+                row.getBoolean("storage_backend_locked"),
                 row.get("created_at", INSTANT_TIMESTAMP));
     }
 }
