@@ -73,6 +73,15 @@ onMounted(() => {
         </SidebarLink>
         <SidebarLink
             v-if="hasClusterPermission(ClusterPermission.CLUSTER_STATIONS)"
+            :icon="['fas', 'layer-group']"
+            name="cluster-station-groups"
+            to="/cluster/stations/groups"
+            @navigate="close"
+        >
+          {{ t('clusterSidebar.stationGroups') }}
+        </SidebarLink>
+        <SidebarLink
+            v-if="hasClusterPermission(ClusterPermission.CLUSTER_STATIONS)"
             :icon="['fas', 'clipboard-list']"
             name="cluster-applications"
             to="/cluster/applications"

@@ -3624,6 +3624,17 @@ volumes:
             threeWaysText: 'Ein Mitglied hält ein Recht, weil seine Rolle es mitbringt, weil es ihm einzeln gegeben wurde, oder weil eine seiner Gruppen es trägt. Auf der Mitgliedsseite steht, was woher kommt.',
             tip: 'Was eine Rolle mitbringt, lässt sich beim einzelnen Mitglied nicht wegnehmen. Dafür ändert man die Rolle.',
         },
+        clusterStationGroups: {
+            title: 'Wachgruppen',
+            subtitle: 'Wachen zusammenfassen, die dieselbe Arbeit machen.',
+            whatTitle: 'Wofür eine Wachgruppe?',
+            whatText: 'Nicht jede Wache des Verbands macht dieselbe Arbeit. Eine Wachgruppe fasst die zusammen, die es tun, damit der Verband etwas nur von ihnen wissen will statt von allen.',
+            howToTitle: 'Anlegen und füllen',
+            howToText: 'Name vergeben, speichern, dann rechts die Wachen anklicken, die hineingehören. Eine Wache, die den Verband verlässt, fällt aus allen Gruppen heraus.',
+            overlapTitle: 'Eine Wache in mehreren Gruppen',
+            overlapText: 'Nach Region und nach Ausstattung sind zwei verschiedene Fragen an dieselbe Wache, also darf sie in beiden Gruppen stehen. Eine Wachgruppe verteilt keine Rechte, sie sagt nur, wen etwas betrifft.',
+            tip: 'Eine Gruppe, an der Profilfelder hängen, lässt sich nicht löschen. Erst die Felder umhängen, dann die Gruppe.',
+        },
         clusterMemberManagement: {
             title: 'Mitglieder der Wachen',
             subtitle: 'Die Leute an allen Wachen des Verbands.',

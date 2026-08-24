@@ -36,8 +36,8 @@ export interface AssignableMember {
  */
 export interface GroupDetailShape {
     members: AssignableMember[]
-    /** The grants this group holds, in the numbered form the shared picker speaks. */
-    roles: PermissionGrant[]
+    /** The grants this group holds, in the numbered form the shared picker speaks. Absent where a group grants nothing. */
+    roles?: PermissionGrant[]
 }
 
 /**
@@ -45,18 +45,22 @@ export interface GroupDetailShape {
  *
  * <p>A station groups the people who belong to it, gives a group a colour and an order, and can turn
  * one into a tag. An association groups the handful of people who run it and does none of those
- * things. The panels are the same panels; the difference sits here.
+ * things, and files its stations into groups that grant nothing at all. The panels are the same
+ * panels; the difference sits here.
+ *
+ * <p>The three permission methods are optional, because a port whose groups grant nothing has
+ * nothing to answer with.
  */
 export interface GroupsPort {
     listGroups(): Promise<MemberGroup[]>
     listCandidates(): Promise<AssignableMember[]>
-    listAllRoles(): Promise<PermissionGrant[]>
+    listAllRoles?: () => Promise<PermissionGrant[]>
     getDetail(groupId: number): Promise<GroupDetailShape>
     createGroup(patch: {name: string; color: string | null; position: number}): Promise<unknown>
     updateGroup(groupId: number, patch: {name: string; color: string | null; position: number}): Promise<unknown>
     deleteGroup(groupId: number): Promise<unknown>
     setMembers(groupId: number, memberIds: number[]): Promise<unknown>
-    setRoles(groupId: number, roleIds: number[]): Promise<PermissionGrant[]>
+    setRoles?: (groupId: number, roleIds: number[]) => Promise<PermissionGrant[]>
     convertToTag?: (groupId: number) => Promise<unknown>
 }
 
@@ -69,11 +73,20 @@ export interface GroupsCapabilities {
     hasColour: boolean
     /** Only a station can turn a group into a tag, because only a station has tags. */
     canConvertToTag: boolean
+    /** A group of people grants permissions. A group of stations grants nothing. */
+    hasPermissions: boolean
+    /** What the group holds, which is what the assignment panel calls the things it lists. */
+    holds: 'members' | 'stations'
 }
 
 const GROUPS_CAPABILITIES: InjectionKey<GroupsCapabilities> = Symbol('groupsCapabilities')
 
-const STATION_CAPABILITIES: GroupsCapabilities = {hasColour: true, canConvertToTag: true}
+const STATION_CAPABILITIES: GroupsCapabilities = {
+    hasColour: true,
+    canConvertToTag: true,
+    hasPermissions: true,
+    holds: 'members',
+}
 
 export function useGroupsCapabilities(): GroupsCapabilities {
     return inject(GROUPS_CAPABILITIES, STATION_CAPABILITIES)
@@ -110,7 +123,7 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
         const [g, m, r] = await Promise.all([
             port.listGroups(),
             port.listCandidates(),
-            port.listAllRoles(),
+            capabilities.hasPermissions && port.listAllRoles ? port.listAllRoles() : Promise.resolve([]),
         ])
         groups.value = g
         allMembers.value = m
@@ -128,7 +141,7 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
         try {
             const detail = await port.getDetail(group.id)
             groupMembers.value = detail.members
-            groupRoles.value = detail.roles
+            groupRoles.value = detail.roles ?? []
         } catch {
             error.value = t('common.error')
             groupMembers.value = []
@@ -193,7 +206,7 @@ export function useGroupsConfig(port: GroupsPort, capabilities: GroupsCapabiliti
 
     async function syncGroupRoles(newIds: Set<number>) {
         const open = selectedGroup.value
-        if (!open) return
+        if (!open || !port.setRoles) return
         try {
             groupRoles.value = await port.setRoles(open.id, [...newIds])
         } catch (e: unknown) {

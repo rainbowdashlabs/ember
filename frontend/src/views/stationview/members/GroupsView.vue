@@ -55,6 +55,8 @@ const {
 } = useGroupsConfig(port, {
   hasColour: true,
   canConvertToTag: hasPermission(StationPermission.MEMBER_MANAGE_TAGS),
+  hasPermissions: true,
+  holds: 'members',
 })
 
 const canConvertToTag = computed(() => hasPermission(StationPermission.MEMBER_MANAGE_TAGS))

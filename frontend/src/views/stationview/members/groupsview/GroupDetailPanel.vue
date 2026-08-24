@@ -14,6 +14,7 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import GroupMembersTab from './GroupMembersTab.vue'
 import type {MemberGroup, PermissionGrant} from '@/api/types'
 import type {AssignableMember} from '@/composables/useGroupsConfig'
+import {useGroupsCapabilities} from '@/composables/useGroupsConfig'
 import {useModelProxy} from '@/composables/useModelProxy'
 
 const {t} = useI18n()
@@ -35,10 +36,13 @@ const emit = defineEmits<{
   (e: 'update:groupRoleIds', ids: Set<number>): void
 }>()
 
+/** A group that grants nothing has one tab, and one tab is no tab bar at all. */
+const capabilities = useGroupsCapabilities()
+
 const detailTab = ref('members')
 const detailTabs = computed(() => [
   {key: 'members', label: t('memberGroups.tabMembers')},
-  {key: 'permissions', label: t('memberGroups.tabPermissions')},
+  ...(capabilities.hasPermissions ? [{key: 'permissions', label: t('memberGroups.tabPermissions')}] : []),
 ])
 
 const roleIdsModel = useModelProxy(() => props.groupRoleIds, emit, 'groupRoleIds')
@@ -51,7 +55,7 @@ const roleIdsModel = useModelProxy(() => props.groupRoleIds, emit, 'groupRoleIds
     <Spinner v-if="groupLoading" size="md"/>
 
     <template v-if="!groupLoading">
-      <TabBar v-model="detailTab" :tabs="detailTabs"/>
+      <TabBar v-if="detailTabs.length > 1" v-model="detailTab" :tabs="detailTabs"/>
 
       <template v-if="detailTab === 'members'">
         <GroupMembersTab

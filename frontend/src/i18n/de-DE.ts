@@ -899,6 +899,10 @@ export default {
             title: 'Gruppen',
             subtitle: 'Rechte an mehrere Mitglieder auf einmal geben',
         },
+        'cluster-station-groups': {
+            title: 'Wachgruppen',
+            subtitle: 'Wachen zusammenfassen, die dieselbe Arbeit machen',
+        },
         'cluster-member-management': {
             title: 'Mitglieder der Wachen',
             subtitle: 'Die Leute an allen Wachen des Verbands',
@@ -2360,6 +2364,14 @@ export default {
         convertToTagConfirm: 'Gruppe "{name}" in einen Tag umwandeln? Die Mitglieder bleiben erhalten, aber Rollen und Berechtigungen der Gruppe gehen verloren.',
         color: 'Farbe',
         colorHint: 'Optionale Farbe für Mitgliedernamen',
+    },
+    clusterStationGroups: {
+        selectHint: 'Wähle eine Wachgruppe aus, um ihre Wachen zu verwalten.',
+        currentStations: 'Wachen',
+        noStations: 'Keine Wachen in dieser Gruppe.',
+        addStations: 'Wache hinzufügen',
+        removeStation: 'Wache entfernen',
+        allAdded: 'Alle Wachen sind bereits in dieser Gruppe.',
     },
     permissions: {
         partial: 'teilweise',
@@ -5751,6 +5763,7 @@ export default {
         settings: 'Einstellungen',
         stations: 'Wachen',
         stationList: 'Wachen',
+        stationGroups: 'Wachgruppen',
         applications: 'Beitrittsanfragen',
         governance: 'Vorgaben',
         modules: 'Module',

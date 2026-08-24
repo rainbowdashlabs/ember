@@ -76,7 +76,7 @@ const {
   groupLoading, loading, error, showGroupModal, editingGroup, groupName, groupColor,
   groupSaving, groupSaveError, selectGroup, openCreateGroup, openEditGroup, saveGroup,
   showDeleteModal, deleteTarget, requestDelete, confirmDelete,
-} = useGroupsConfig(port, {hasColour: false, canConvertToTag: false})
+} = useGroupsConfig(port, {hasColour: false, canConvertToTag: false, hasPermissions: true, holds: 'members'})
 
 const sortedGroupMembers = computed(() =>
     [...groupMembers.value].sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
