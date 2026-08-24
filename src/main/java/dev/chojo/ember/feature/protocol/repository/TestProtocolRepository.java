@@ -105,8 +105,8 @@ public class TestProtocolRepository {
 
     /**
      * Deletes a protocol of the given station, cascading to its sections, items and runs. The
-     * station is part of the statement: this is the delete the audit found ungated, and a caller
-     * that forgets to check whose protocol it is now removes nothing.
+     * station is part of the statement, so a caller that forgets to check whose protocol it is
+     * removes nothing rather than another station's work.
      */
     public boolean deleteProtocol(int id, int stationId) {
         return deleteByIdInStation("test_protocol", id, stationId);

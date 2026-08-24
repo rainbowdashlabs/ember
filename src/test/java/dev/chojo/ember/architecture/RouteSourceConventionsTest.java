@@ -209,10 +209,10 @@ class RouteSourceConventionsTest {
      * A table that carries a station is deleted from with the station in the statement.
      *
      * <p>{@code deleteById} takes a table and an id and asks nothing else, which makes the unscoped
-     * delete the path of least resistance for a table that has a station to be scoped by. Every
-     * cross-station delete the audit found had that shape. {@code deleteByIdInStation} beside it
-     * says the station, and a delete that names the wrong station removes nothing rather than
-     * somebody else's row.
+     * delete the path of least resistance for a table that has a station to be scoped by, and that
+     * has been the shape of every cross-station delete found here. {@code deleteByIdInStation}
+     * beside it says the station, and a delete that names the wrong station removes nothing rather
+     * than somebody else's row.
      *
      * <p>The list below is the state of the codebase when the rule was written, not a set of
      * blessed exceptions: each of those deletes is reached today through a handler the rule above
@@ -479,7 +479,7 @@ class RouteSourceConventionsTest {
         Matcher local = HANDLER_REGISTRATION.matcher(source);
         while (local.find()) {
             // An instance-admin route answers for the instance rather than for a station, which is
-            // the whole of its scope: the audit reviewed those 134 endpoints separately.
+            // the whole of its scope.
             if (local.group(4).contains("InstancePermission")) continue;
             if (local.group(2).contains("{")) {
                 handlers.add(new IdHandler(local.group(1), local.group(2), local.group(3)));
