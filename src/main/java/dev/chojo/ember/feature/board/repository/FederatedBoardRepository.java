@@ -182,8 +182,15 @@ public class FederatedBoardRepository {
                 BOOKMARK_COLUMNS);
     }
 
-    public void deleteBookmark(int bookmarkId) {
-        SqlSupport.deleteById("federation_board_bookmark", bookmarkId);
+    /**
+     * Deletes a bookmark of the given member. A bookmark belongs to whoever made it, and naming
+     * the member in the statement is what keeps one member from deleting another's, in this
+     * station or any other.
+     */
+    public void deleteBookmark(int bookmarkId, int memberId) {
+        query("DELETE FROM federation_board_bookmark WHERE id = :id AND member_id = :member_id;")
+                .single(call().bind("id", bookmarkId).bind("member_id", memberId))
+                .delete();
     }
 
     public void deleteBookmarkByBoard(int memberId, int partnerId, UUID remoteBoardUid) {

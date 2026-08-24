@@ -249,8 +249,8 @@ public class LendingService {
 
     // -- Messages --
 
-    public boolean deleteBlock(int blockId) {
-        boolean deleted = repository.deleteBlock(blockId);
+    public boolean deleteBlock(int blockId, int stationId) {
+        boolean deleted = repository.deleteBlock(blockId, stationId);
         if (deleted) {
             log.info("Deleted inventory block {}", blockId);
         } else {

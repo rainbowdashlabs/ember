@@ -313,7 +313,7 @@ class LendingServiceTest extends RepositoryTestBase {
         var blocks = service.findBlocks(stationA.id());
         assertFalse(blocks.isEmpty());
         for (var block : blocks) {
-            assertTrue(service.deleteBlock(block.id()));
+            assertTrue(service.deleteBlock(block.id(), stationA.id()));
         }
         assertFalse(service.isBlocked(
                 stationA.id(),
@@ -627,7 +627,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 stationB.id(), null, LocalDate.now(), LocalDate.now().plusDays(7));
         // stationA should be blocked entirely - its inventory should not appear
         assertTrue(results.stream().noneMatch(e -> e.stationId() == stationA.id()));
-        service.deleteBlock(block.id());
+        service.deleteBlock(block.id(), stationA.id());
     }
 
     @Test
@@ -644,7 +644,7 @@ class LendingServiceTest extends RepositoryTestBase {
         var results = service.findAvailableInventory(
                 stationB.id(), null, LocalDate.now(), LocalDate.now().plusDays(7));
         assertTrue(results.stream().noneMatch(e -> e.inventoryId() == inventoryIdA));
-        service.deleteBlock(block.id());
+        service.deleteBlock(block.id(), stationA.id());
     }
 
     @Test

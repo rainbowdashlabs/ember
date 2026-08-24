@@ -128,9 +128,9 @@ public class FederatedBoardService {
 
     // -- Bookmarks --
 
-    public void deleteBookmark(int bookmarkId) {
-        repository.deleteBookmark(bookmarkId);
-        log.info("Deleted board bookmark {}", bookmarkId);
+    public void deleteBookmark(int bookmarkId, int memberId) {
+        repository.deleteBookmark(bookmarkId, memberId);
+        log.info("Deleted board bookmark {} of member {}", bookmarkId, memberId);
     }
 
     public void deleteBookmarkByBoard(int memberId, int partnerId, UUID remoteBoardUid) {
