@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.storage.transfer;
 
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -240,6 +241,7 @@ public class StationTransferAssetRoutes implements Routes {
                 @OpenApiResponse(status = "403"),
                 @OpenApiResponse(status = "404")
             })
+    @StationFree("the transfer token is the authorisation, and an account's avatar belongs to the account")
     private void streamAvatar(Context ctx) {
         String token = ctx.pathParam("token");
         exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));

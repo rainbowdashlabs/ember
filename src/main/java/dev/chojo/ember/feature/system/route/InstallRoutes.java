@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.system.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.system.service.InstallPresetService;
 import dev.chojo.ember.util.ClientIp;
@@ -75,6 +76,7 @@ public class InstallRoutes implements Routes {
             summary = "The installer answers behind a code, as shell assignments",
             tags = {"Install"},
             responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "404")})
+    @StationFree("the installer runs before any station exists; the code is the whole of the authorisation")
     private void readPreset(Context ctx) {
         var retryAfter = presets.tryLookup(ClientIp.resolve(ctx, network).getHostAddress());
         if (retryAfter.isPresent()) {

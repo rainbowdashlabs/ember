@@ -318,14 +318,17 @@ class TestProtocolRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(92)
     void deleteRun() {
-        assertTrue(testProtocolRepo.deleteRun(runId));
+        assertFalse(testProtocolRepo.deleteRun(runId, station.id() + 1000), "another station deletes nothing");
+        assertTrue(testProtocolRepo.deleteRun(runId, station.id()));
         assertTrue(testProtocolRepo.findRunById(runId).isEmpty());
     }
 
     @Test
     @Order(99)
     void deleteProtocol() {
-        assertTrue(testProtocolRepo.deleteProtocol(protocolId));
+        assertFalse(
+                testProtocolRepo.deleteProtocol(protocolId, station.id() + 1000), "another station deletes nothing");
+        assertTrue(testProtocolRepo.deleteProtocol(protocolId, station.id()));
         assertTrue(testProtocolRepo.findProtocolById(protocolId).isEmpty());
     }
 }

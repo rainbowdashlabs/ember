@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.waitinglist.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.legal.service.ConsentService;
@@ -227,6 +228,7 @@ public class WaitingListRoutes implements Routes {
             summary = "Get invite info and fields for registration",
             tags = {"Waiting List"},
             pathParams = @OpenApiParam(name = "code", required = true))
+    @StationFree("an invite code names the list it belongs to; whoever holds it is meant to see that form")
     private void getInviteInfo(Context ctx) {
         String code = ctx.pathParam("code");
         var invite = service.findInviteByCode(code).orElseThrow(NotFoundResponse::new);
@@ -285,6 +287,7 @@ public class WaitingListRoutes implements Routes {
             summary = "View waiting list entry by access token",
             tags = {"Waiting List"},
             pathParams = @OpenApiParam(name = "token", required = true))
+    @StationFree("the entry token is what a family holds instead of a login, and it names one entry")
     private void getEntryByToken(Context ctx) {
         String token = ctx.pathParam("token");
         var entry = service.findEntryByToken(token).orElseThrow(NotFoundResponse::new);
@@ -317,6 +320,7 @@ public class WaitingListRoutes implements Routes {
             summary = "Remove self from waiting list",
             tags = {"Waiting List"},
             pathParams = @OpenApiParam(name = "token", required = true))
+    @StationFree("the same token, used to withdraw the entry it names")
     private void removeByToken(Context ctx) {
         String token = ctx.pathParam("token");
         service.removeByToken(token);
@@ -329,6 +333,7 @@ public class WaitingListRoutes implements Routes {
             summary = "Re-confirm interest on waiting list",
             tags = {"Waiting List"},
             pathParams = @OpenApiParam(name = "token", required = true))
+    @StationFree("the same token, used to confirm the entry it names is still wanted")
     private void confirmInterest(Context ctx) {
         String token = ctx.pathParam("token");
         service.confirmInterest(token);
@@ -762,6 +767,7 @@ public class WaitingListRoutes implements Routes {
         ctx.status(HttpStatus.ACCEPTED).json(new StatusResponse("verification_email_sent"));
     }
 
+    @StationFree("the verification token is mailed to the address it confirms and names one registration")
     private void verifyPublicEmail(Context ctx) {
         String token = ctx.pathParam("token");
         boolean success = service.verifyPublicRegistration(token);

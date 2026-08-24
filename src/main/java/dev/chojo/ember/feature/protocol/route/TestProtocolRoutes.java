@@ -186,7 +186,7 @@ public class TestProtocolRoutes implements Routes {
     private void deleteProtocol(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireProtocol(ctx, id);
-        service.deleteProtocol(id);
+        service.deleteProtocol(id, UserSession.from(ctx).stationId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -346,7 +346,7 @@ public class TestProtocolRoutes implements Routes {
     private void deleteRun(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireRun(ctx, id);
-        service.deleteRun(id);
+        service.deleteRun(id, UserSession.from(ctx).stationId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

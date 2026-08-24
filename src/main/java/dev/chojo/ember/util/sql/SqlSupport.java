@@ -52,10 +52,30 @@ public final class SqlSupport {
 
     /**
      * Deletes a single row by primary key, reporting whether a row was removed.
+     *
+     * <p>For a table that carries a {@code station_id}, prefer {@link #deleteByIdInStation}: a
+     * handler can forget to check whose row it is, and a statement that names the station cannot.
      */
     public static boolean deleteById(String table, int id) {
         return query("DELETE FROM %s WHERE id = :id;", table)
                 .single(call().bind("id", id))
+                .delete()
+                .changed();
+    }
+
+    /**
+     * Deletes a single row by primary key, but only within the given station, reporting whether a
+     * row was removed.
+     *
+     * <p>This exists because the unscoped delete beside it is the path of least resistance, and
+     * every station-gating finding of the audit had the same shape: a handler that named a row by
+     * id and never asked whose it was. Putting the station in the statement moves the check to
+     * where it cannot be skipped by a caller who forgets, and turns a cross-station delete into a
+     * delete that removes nothing.
+     */
+    public static boolean deleteByIdInStation(String table, int id, int stationId) {
+        return query("DELETE FROM %s WHERE id = :id AND station_id = :station_id;", table)
+                .single(call().bind("id", id).bind("station_id", stationId))
                 .delete()
                 .changed();
     }

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.maps.route;
 
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService;
 import dev.chojo.ember.feature.maps.service.MapsConfigService;
@@ -70,6 +71,7 @@ public class PublicMapsRoutes implements Routes {
                 tiles.provider(), urlTemplate, tiles.resolvedAttribution(), tiles.minZoom(), tiles.maxZoom()));
     }
 
+    @StationFree("the parameters are map coordinates, not a row; the tile is the same for everyone")
     private void getTile(Context ctx) {
         int z = parseInt(ctx.pathParam("z"), "z");
         int x = parseInt(ctx.pathParam("x"), "x");

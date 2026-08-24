@@ -25,6 +25,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 import static dev.chojo.ember.util.sql.SqlSupport.alias;
 import static dev.chojo.ember.util.sql.SqlSupport.count;
 import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
+import static dev.chojo.ember.util.sql.SqlSupport.deleteByIdInStation;
 import static dev.chojo.ember.util.sql.SqlSupport.findById;
 import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
@@ -102,8 +103,13 @@ public class TestProtocolRepository {
                 .changed();
     }
 
-    public boolean deleteProtocol(int id) {
-        return deleteById("test_protocol", id);
+    /**
+     * Deletes a protocol of the given station, cascading to its sections, items and runs. The
+     * station is part of the statement: this is the delete the audit found ungated, and a caller
+     * that forgets to check whose protocol it is now removes nothing.
+     */
+    public boolean deleteProtocol(int id, int stationId) {
+        return deleteByIdInStation("test_protocol", id, stationId);
     }
 
     // -- Sections --
@@ -295,8 +301,8 @@ public class TestProtocolRepository {
                 .changed();
     }
 
-    public boolean deleteRun(int id) {
-        return deleteById("test_protocol_run", id);
+    public boolean deleteRun(int id, int stationId) {
+        return deleteByIdInStation("test_protocol_run", id, stationId);
     }
 
     // -- Run Members --

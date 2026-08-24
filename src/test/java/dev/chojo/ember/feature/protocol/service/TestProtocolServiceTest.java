@@ -361,13 +361,13 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     @Test
     @Order(92)
     void deleteRun() {
-        assertTrue(service.deleteRun(runId));
+        assertTrue(service.deleteRun(runId, station.id()));
     }
 
     @Test
     @Order(99)
     void deleteProtocol() {
-        assertTrue(service.deleteProtocol(protocolId));
+        assertTrue(service.deleteProtocol(protocolId, station.id()));
     }
 
     // -- Federation: browseSharedProtocols --
@@ -379,7 +379,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         federationRepo.createProtocolShare(stationB.id(), fedProto.id(), ShareScope.ALL_PARTNERS);
         var shared = service.browseSharedProtocols(station.id());
         assertTrue(shared.stream().anyMatch(s -> s.name().equals("FedProtocol")));
-        testProtocolRepo.deleteProtocol(fedProto.id());
+        testProtocolRepo.deleteProtocol(fedProto.id(), stationB.id());
     }
 
     @Test
@@ -402,7 +402,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         assertEquals("view desc", view.description());
         assertNotNull(view.stationName());
         assertFalse(view.stationName().isBlank());
-        testProtocolRepo.deleteProtocol(fedProto.id());
+        testProtocolRepo.deleteProtocol(fedProto.id(), stationB.id());
     }
 
     @Test
@@ -416,7 +416,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         assertNotNull(result.protocol());
         assertNotNull(result.sections());
         assertNotNull(result.items());
-        testProtocolRepo.deleteProtocol(fedProto.id());
+        testProtocolRepo.deleteProtocol(fedProto.id(), stationB.id());
     }
 
     // -- Federation: getFederatedProtocol --
@@ -433,7 +433,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
                 Exception.class, () -> service.getFederatedProtocol(station.id(), stationB.uid(), localProto.id()));
 
         // Cleanup
-        testProtocolRepo.deleteProtocol(localProto.id());
+        testProtocolRepo.deleteProtocol(localProto.id(), station.id());
     }
 
     // -- Federation: copyProtocol --
@@ -462,8 +462,8 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         assertEquals(2, copiedItems.size());
 
         // Cleanup
-        testProtocolRepo.deleteProtocol(srcProto.id());
-        testProtocolRepo.deleteProtocol(copied.id());
+        testProtocolRepo.deleteProtocol(srcProto.id(), stationB.id());
+        testProtocolRepo.deleteProtocol(copied.id(), station.id());
     }
 
     // -- Federation: SharedProtocolItem record --
