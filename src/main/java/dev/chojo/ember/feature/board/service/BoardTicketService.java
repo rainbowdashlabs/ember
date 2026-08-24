@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
+import dev.chojo.ember.feature.comment.service.MentionLimits;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -604,7 +605,7 @@ public class BoardTicketService {
     private List<Integer> parseMentions(int stationId, String content) {
         var mentions = new ArrayList<Integer>();
         var matcher = MENTION_PATTERN.matcher(content);
-        while (matcher.find()) {
+        while (matcher.find() && mentions.size() < MentionLimits.MAX_MEMBER_MENTIONS) {
             try {
                 var memberUid = UUID.fromString(matcher.group(2));
                 stationMemberService.resolveId(stationId, memberUid).ifPresent(mentions::add);

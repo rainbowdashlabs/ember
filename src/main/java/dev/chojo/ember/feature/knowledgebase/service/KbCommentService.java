@@ -12,6 +12,7 @@ import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
+import dev.chojo.ember.feature.comment.service.MentionLimits;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
@@ -142,7 +143,8 @@ public class KbCommentService {
             String content,
             String preview) {
         var matcher = MENTION_PATTERN.matcher(content);
-        while (matcher.find()) {
+        int mentioned = 0;
+        while (matcher.find() && mentioned++ < MentionLimits.MAX_MEMBER_MENTIONS) {
             UUID memberUid;
             try {
                 memberUid = UUID.fromString(matcher.group(2));
@@ -156,7 +158,8 @@ public class KbCommentService {
         }
 
         var bulkMatcher = BULK_MENTION_PATTERN.matcher(content);
-        while (bulkMatcher.find()) {
+        int addressed = 0;
+        while (bulkMatcher.find() && addressed++ < MentionLimits.MAX_BULK_MENTIONS) {
             var type = MentionType.valueOf(bulkMatcher.group(1));
             int targetId = Integer.parseInt(bulkMatcher.group(3));
             eventBus.publish(new BulkMentionedInComment(

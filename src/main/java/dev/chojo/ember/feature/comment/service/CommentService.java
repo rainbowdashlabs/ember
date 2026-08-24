@@ -235,7 +235,8 @@ public class CommentService {
             String content,
             String preview) {
         var matcher = BULK_MENTION_PATTERN.matcher(content);
-        while (matcher.find()) {
+        int addressed = 0;
+        while (matcher.find() && addressed++ < MentionLimits.MAX_BULK_MENTIONS) {
             var type = MentionType.valueOf(matcher.group(1));
             int targetId = Integer.parseInt(matcher.group(3));
             eventBus.publish(new BulkMentionedInComment(
@@ -254,7 +255,7 @@ public class CommentService {
     private List<Integer> parseMentions(int stationId, String content) {
         var mentions = new ArrayList<Integer>();
         var matcher = MENTION_PATTERN.matcher(content);
-        while (matcher.find()) {
+        while (matcher.find() && mentions.size() < MentionLimits.MAX_MEMBER_MENTIONS) {
             try {
                 var memberUid = UUID.fromString(matcher.group(2));
                 stationMemberService.resolveId(stationId, memberUid).ifPresent(mentions::add);
