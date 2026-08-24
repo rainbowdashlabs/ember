@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.feature.storage.migration.MigrationLockRegistry;
+import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -51,6 +52,7 @@ public class StorageMigrationService {
 
     private final StationRepository stationRepository;
     private final StationStorageConfigRepository configRepository;
+    private final ClusterStationStorageRepository placementRepository;
     private final StorageBackendFactory factory;
     private final StorageBackendResolver resolver;
     private final MigrationLockRegistry locks;
@@ -59,11 +61,13 @@ public class StorageMigrationService {
     public StorageMigrationService(
             StationRepository stationRepository,
             StationStorageConfigRepository configRepository,
+            ClusterStationStorageRepository placementRepository,
             StorageBackendFactory factory,
             StorageBackendResolver resolver,
             MigrationLockRegistry locks) {
         this.stationRepository = stationRepository;
         this.configRepository = configRepository;
+        this.placementRepository = placementRepository;
         this.factory = factory;
         this.resolver = resolver;
         this.locks = locks;
@@ -92,31 +96,7 @@ public class StorageMigrationService {
      *                            propagates so the caller may safely retry.
      */
     public MigrationResult migrate(int stationId, StationStorageBackendConfig targetConfig) {
-        if (!locks.tryAcquire(stationId)) {
-            throw new MigrationException("A migration is already in flight for station " + stationId);
-        }
-
-        UUID stationUid = stationRepository.resolveUid(stationId);
-        if (stationUid == null) {
-            locks.release(stationId);
-            throw new MigrationException("Cannot resolve station UUID for " + stationId);
-        }
-        StorageScope.Station scope = new StorageScope.Station(stationId, stationUid);
-
-        try (StorageBackend target = factory.buildForStation(targetConfig)) {
-            HealthStatus probe = target.probe();
-            if (!probe.healthy()) {
-                throw new MigrationException(
-                        "Target probe failed: " + probe.error().orElse("unknown error"));
-            }
-            return run(scope, target, targetConfig);
-        } catch (MigrationException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new MigrationException("Migration failed: " + e.getMessage(), e);
-        } finally {
-            locks.release(stationId);
-        }
+        return moveStation(stationId, new Destination.Own(targetConfig));
     }
 
     /**
@@ -126,6 +106,24 @@ public class StorageMigrationService {
      * override.
      */
     public MigrationResult migrateToInstanceDefault(int stationId) {
+        return moveStation(stationId, new Destination.InstanceDefault());
+    }
+
+    /**
+     * Carries every movable station-scoped key to where the station is going, and records that it got there.
+     *
+     * <p>One method for all three destinations, because the order of the steps is the safe one and there is
+     * no reason for three copies of it: acquire the per-station lock, probe the target, copy and verify every
+     * key, record the new placement, sample-verify, delete the source, release. What differs between the
+     * three is the destination's own backend and the single write that says where the station now stands.
+     *
+     * @param stationId   the station being moved
+     * @param destination where its bytes are going
+     * @return what was carried
+     * @throws MigrationException on any failure; the lock is released before it propagates, so the caller may
+     *                            retry, and nothing has half happened
+     */
+    public MigrationResult moveStation(int stationId, Destination destination) {
         if (!locks.tryAcquire(stationId)) {
             throw new MigrationException("A migration is already in flight for station " + stationId);
         }
@@ -138,16 +136,17 @@ public class StorageMigrationService {
         StorageScope.Station scope = new StorageScope.Station(stationId, stationUid);
 
         try {
-            if (configRepository.findOne(stationId).isEmpty()) {
+            if (destination instanceof Destination.InstanceDefault && standsOnNothing(stationId)) {
                 return new MigrationResult(0, 0, 0, 0, 0L);
             }
-            StorageBackend target = factory.instanceDefault();
-            HealthStatus probe = target.probe();
-            if (!probe.healthy()) {
-                throw new MigrationException(
-                        "Instance-default probe failed: " + probe.error().orElse("unknown error"));
+            try (StorageBackend target = buildTarget(destination)) {
+                HealthStatus probe = target.probe();
+                if (!probe.healthy()) {
+                    throw new MigrationException(
+                            "Target probe failed: " + probe.error().orElse("unknown error"));
+                }
+                return run(scope, target, destination);
             }
-            return runToInstanceDefault(scope, target);
         } catch (MigrationException e) {
             throw e;
         } catch (Exception e) {
@@ -157,68 +156,41 @@ public class StorageMigrationService {
         }
     }
 
-    private MigrationResult runToInstanceDefault(StorageScope.Station scope, StorageBackend target) {
-        int totalKeys = 0;
-        int copiedCount = 0;
-        int skippedCount = 0;
-        long copiedBytes = 0;
-        var allCopiedKeys = new ArrayList<KeyOnBackend>();
-        var perCategoryKeys = new ArrayList<CategoryKeys>();
-
-        for (StorageCategory category : StorageCategory.values()) {
-            if (category.isLocalPinned()) continue;
-            if (category.scopeKind() != StorageScope.Kind.STATION) continue;
-
-            StorageBackend source = resolver.forScope(scope, category);
-            if (source == target) continue;
-
-            String prefix = scope.prefix() + "/" + category.prefix();
-            List<String> keys = source.listByPrefix(prefix);
-            if (keys.isEmpty()) continue;
-            log.info(
-                    "Migrating {} keys under {} back to instance default (station {}, category {})",
-                    keys.size(),
-                    prefix,
-                    scope.stationId(),
-                    category);
-
-            for (String key : keys) {
-                totalKeys++;
-                if (target.exists(key) && hashesMatch(target, source, key)) {
-                    skippedCount++;
-                    allCopiedKeys.add(new KeyOnBackend(source, key));
-                    continue;
-                }
-                copiedBytes += copyOne(source, target, key);
-                copiedCount++;
-                allCopiedKeys.add(new KeyOnBackend(source, key));
-            }
-            perCategoryKeys.add(new CategoryKeys(source, keys));
-        }
-
-        configRepository.delete(scope.stationId());
-        resolver.invalidateStation(scope.stationId());
-
-        int sampleSize = Math.max(1, allCopiedKeys.size() / SAMPLE_DENOMINATOR);
-        sampleVerify(target, allCopiedKeys, sampleSize);
-
-        int deletedCount = 0;
-        for (CategoryKeys cat : perCategoryKeys) {
-            for (String key : cat.keys()) {
-                try {
-                    cat.source().delete(key);
-                    deletedCount++;
-                } catch (Exception e) {
-                    log.warn("Failed to delete migrated source key {}", key, e);
-                }
-            }
-        }
-
-        return new MigrationResult(totalKeys, copiedCount, skippedCount, deletedCount, copiedBytes);
+    /** Whether a station already resolves to the instance default, which makes a move there nothing to do. */
+    private boolean standsOnNothing(int stationId) {
+        return configRepository.findOne(stationId).isEmpty()
+                && placementRepository.findByStation(stationId).isEmpty();
     }
 
-    private MigrationResult run(
-            StorageScope.Station scope, StorageBackend target, StationStorageBackendConfig targetConfig) {
+    private StorageBackend buildTarget(Destination destination) {
+        return switch (destination) {
+            case Destination.Own own -> factory.buildForStation(own.config());
+            case Destination.Cluster cluster -> factory.buildForStation(cluster.config());
+            case Destination.InstanceDefault ignored -> factory.instanceDefault();
+        };
+    }
+
+    /**
+     * Writes where the station stands now, which is the only step the three destinations do differently.
+     */
+    private void record(int stationId, Destination destination) {
+        switch (destination) {
+            case Destination.Own own -> {
+                placementRepository.remove(stationId);
+                configRepository.upsert(stationId, own.config());
+            }
+            case Destination.Cluster cluster -> {
+                configRepository.delete(stationId);
+                placementRepository.place(stationId, cluster.clusterId(), cluster.configId());
+            }
+            case Destination.InstanceDefault ignored -> {
+                configRepository.delete(stationId);
+                placementRepository.remove(stationId);
+            }
+        }
+    }
+
+    private MigrationResult run(StorageScope.Station scope, StorageBackend target, Destination destination) {
         int totalKeys = 0;
         int copiedCount = 0;
         int skippedCount = 0;
@@ -257,7 +229,7 @@ public class StorageMigrationService {
             perCategoryKeys.add(new CategoryKeys(source, keys));
         }
 
-        configRepository.upsert(scope.stationId(), targetConfig);
+        record(scope.stationId(), destination);
         resolver.invalidateStation(scope.stationId());
 
         int sampleSize = Math.max(1, allCopiedKeys.size() / SAMPLE_DENOMINATOR);
@@ -320,6 +292,32 @@ public class StorageMigrationService {
      * present on the target with a matching SHA-256 (idempotent re-run).
      */
     public record MigrationResult(int totalKeys, int copied, int skipped, int deleted, long copiedBytes) {}
+
+    /**
+     * Where a station's bytes are going, which is the one thing that differs between the three moves.
+     */
+    public sealed interface Destination {
+        /**
+         * A backend the station brings itself, which is what makes it bounded by nobody.
+         *
+         * @param config the backend, with its credentials already encrypted
+         */
+        record Own(StationStorageBackendConfig config) implements Destination {}
+
+        /**
+         * A version of its cluster's storage.
+         *
+         * @param clusterId the cluster whose storage it is
+         * @param configId  the version, so the placement records what was actually carried to
+         * @param config    that version's backend, with its credentials already encrypted
+         */
+        record Cluster(int clusterId, int configId, StationStorageBackendConfig config) implements Destination {}
+
+        /**
+         * Back to whatever the instance provides, which is the absence of both other rows.
+         */
+        record InstanceDefault() implements Destination {}
+    }
 
     private record KeyOnBackend(StorageBackend source, String key) {}
 

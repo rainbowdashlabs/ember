@@ -9,8 +9,10 @@ import dev.chojo.ember.feature.storage.entity.ClusterStationStorage;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import jakarta.inject.Singleton;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -66,6 +68,20 @@ public class ClusterStationStorageRepository {
                 .single(call().bind("cluster_id", clusterId))
                 .map(ClusterStationStorage.map())
                 .all();
+    }
+
+    /**
+     * Every station standing on some cluster's storage, whichever cluster it is.
+     *
+     * <p>What the instance-wide swap has to leave alone: those bytes are not on the disk it is swapping.
+     *
+     * @return their identifiers
+     */
+    public Set<Integer> findAllStationIds() {
+        return new HashSet<>(query("SELECT station_id FROM cluster_station_storage;")
+                .single()
+                .map(row -> row.getInt("station_id"))
+                .all());
     }
 
     /**

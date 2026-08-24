@@ -66,10 +66,6 @@ class ClusterStorageConfigRepositoryTest extends RepositoryTestBase {
         var first = repository.insertCurrent(cluster.id(), config("erste"));
         assertEquals(
                 first.id(), repository.findCurrent(cluster.id()).orElseThrow().id());
-        assertEquals(
-                cluster.id(),
-                repository.findCurrentForStation(station.id()).orElseThrow().clusterId(),
-                "a station finds its cluster's storage without knowing the cluster");
 
         var second = repository.insertCurrent(cluster.id(), config("zweite"));
         assertEquals(
@@ -140,7 +136,6 @@ class ClusterStorageConfigRepositoryTest extends RepositoryTestBase {
     void aStationOutsideAnyClusterStandsOnNothing() {
         var station = stationRepo.create("Wache Ohne Verband " + NAMES.incrementAndGet());
 
-        assertTrue(repository.findCurrentForStation(station.id()).isEmpty());
         assertTrue(placements.findByStation(station.id()).isEmpty());
 
         stationRepo.delete(station.id());

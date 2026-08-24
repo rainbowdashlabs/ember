@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.storage.repository;
 
 import dev.chojo.ember.feature.storage.entity.ClusterStorageConfig;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
-import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -53,25 +52,6 @@ public class ClusterStorageConfigRepository {
     public Optional<ClusterStorageConfig> findById(int id) {
         return query("SELECT %s FROM cluster_storage_config WHERE id = :id;", COLUMNS)
                 .single(call().bind("id", id))
-                .map(ClusterStorageConfig.map())
-                .first();
-    }
-
-    /**
-     * The current version of the storage kept by the cluster one station answers to.
-     *
-     * <p>Read through the membership rather than through a placement, which is what the resolver did before
-     * placements existed and what it stops doing the moment they do.
-     *
-     * @param stationId a station of the cluster
-     * @return the version, or empty when the station answers to no cluster or the cluster keeps no storage
-     */
-    public Optional<ClusterStorageConfig> findCurrentForStation(int stationId) {
-        return query("""
-                SELECT %s FROM cluster_storage_config csc
-                JOIN station s ON s.cluster_id = csc.cluster_id
-                WHERE s.id = :station_id AND csc.is_current;""", SqlSupport.alias("csc", COLUMNS))
-                .single(call().bind("station_id", stationId))
                 .map(ClusterStorageConfig.map())
                 .first();
     }

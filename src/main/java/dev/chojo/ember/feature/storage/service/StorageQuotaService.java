@@ -237,14 +237,16 @@ public class StorageQuotaService {
                        c.default_per_file_bytes,
                        c.default_per_image_bytes,
                        ssc.station_id IS NOT NULL AS station_backend,
-                       csc.cluster_id IS NOT NULL AS cluster_backend
+                       css.station_id IS NOT NULL AS cluster_backend
                 FROM station s
                     -- A cluster's own store is the home station it owns, which carries no membership row of
                     -- its own, so it is found the other way round
                     LEFT JOIN cluster c ON c.id = s.cluster_id OR c.home_station_id = s.id
                     LEFT JOIN cluster_station_quota q ON q.station_id = s.id
                     LEFT JOIN station_storage_config ssc ON ssc.station_id = s.id
-                    LEFT JOIN cluster_storage_config csc ON csc.cluster_id = c.id
+                    -- Who pays follows where the bytes are and not what anybody decided: a station its
+                    -- cluster has configured a backend for but never moved is still on the instance's disk
+                    LEFT JOIN cluster_station_storage css ON css.station_id = s.id
                 WHERE s.id = :id;
                 """)
                 .single(call().bind("id", stationId))

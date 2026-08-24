@@ -13,6 +13,8 @@ import dev.chojo.ember.feature.storage.entity.ClusterStationQuota;
 import dev.chojo.ember.feature.storage.entity.QuotaAuthority;
 import dev.chojo.ember.feature.storage.entity.QuotaOrigin;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
+import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
+import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.ClusterStorageQuotaRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -40,6 +42,8 @@ class StorageQuotaServiceTest extends RepositoryTestBase {
     private static Storage config;
     private static ClusterStorageQuotaRepository quotaRepository;
     private static StationStorageConfigRepository backendRepository;
+    private static ClusterStorageConfigRepository clusterBackendRepository;
+    private static ClusterStationStorageRepository placements;
 
     @BeforeAll
     static void setup() {
@@ -47,6 +51,8 @@ class StorageQuotaServiceTest extends RepositoryTestBase {
         service = new StorageQuotaService(storageUsageRepo, config, new DomainEventBus(Set.of()));
         quotaRepository = new ClusterStorageQuotaRepository();
         backendRepository = new StationStorageConfigRepository();
+        clusterBackendRepository = new ClusterStorageConfigRepository();
+        placements = new ClusterStationStorageRepository();
     }
 
     private static int freshCluster() {
@@ -181,11 +187,34 @@ class StorageQuotaServiceTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
     }
 
+    /**
+     * Who pays follows the bytes and not the decision.
+     *
+     * <p>A cluster that has configured storage and not yet carried this station onto it has paid for nothing:
+     * the station's files are still on the instance's disk, and reading the intent instead was wrong on the
+     * day of the switch and stayed wrong for every station never moved.
+     */
+    @Test
+    void aClusterThatConfiguredStorageWithoutMovingTheStationPaysForNothing() {
+        int clusterId = freshCluster();
+        var station = clusterService.createStation(clusterId, "Wache Unbewegt " + NAMES.incrementAndGet());
+        clusterGovernanceService.setStorageBackend(clusterId, backend("beschlossen"));
+
+        assertEquals(
+                QuotaAuthority.INSTANCE, service.resolveQuotas(station.id()).authority());
+
+        clusterGovernanceService.setStorageBackend(clusterId, null);
+        clusterService.releaseStation(clusterId, station.id());
+        stationRepo.delete(station.id());
+    }
+
     @Test
     void aClusterPayingForItsStationsBindsThemAndTheInstanceNoLongerDoes() {
         int clusterId = freshCluster();
         var station = clusterService.createStation(clusterId, "Wache Verbandsspeicher " + NAMES.incrementAndGet());
         clusterGovernanceService.setStorageBackend(clusterId, backend("verband"));
+        var version = clusterBackendRepository.findCurrent(clusterId).orElseThrow();
+        placements.place(station.id(), clusterId, version.id());
         quotaRepository.setGrant(
                 new ClusterStationQuota(station.id(), clusterId, 6 * GIB, null, null, null, null, null, null, null));
 
@@ -199,6 +228,7 @@ class StorageQuotaServiceTest extends RepositoryTestBase {
                 quotas.kb().origin(),
                 "whoever pays sets the limit, and the cluster set none here");
 
+        placements.remove(station.id());
         clusterGovernanceService.setStorageBackend(clusterId, null);
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
