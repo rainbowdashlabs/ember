@@ -11,6 +11,7 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.entity.ClusterBackendReach;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.entity.ClusterMemberGroup;
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
@@ -440,6 +441,23 @@ public class ClusterRepository {
     public boolean setLossReportRequires(int id, LossReportRequirement requires) {
         return query("UPDATE cluster SET loss_report_requires = :requires WHERE id = :id;")
                 .single(call().bind("requires", requires).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * What the cluster decided about storage of its own, which is not where anybody's bytes are.
+     *
+     * @param id     the cluster
+     * @param reach  how far its storage reaches
+     * @param locked whether only the cluster may move one of its stations
+     * @return {@code true} if a row was updated
+     */
+    public boolean setStorageBackendPolicy(int id, ClusterBackendReach reach, boolean locked) {
+        return query("""
+                UPDATE cluster SET storage_backend_reach = :reach, storage_backend_locked = :locked
+                WHERE id = :id;""")
+                .single(call().bind("reach", reach).bind("locked", locked).bind("id", id))
                 .update()
                 .changed();
     }

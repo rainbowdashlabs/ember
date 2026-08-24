@@ -198,12 +198,12 @@ class StorageQuotaServiceTest extends RepositoryTestBase {
     void aClusterThatConfiguredStorageWithoutMovingTheStationPaysForNothing() {
         int clusterId = freshCluster();
         var station = clusterService.createStation(clusterId, "Wache Unbewegt " + NAMES.incrementAndGet());
-        clusterGovernanceService.setStorageBackend(clusterId, backend("beschlossen"));
+        clusterStorageBackendService.setBackend(clusterId, backend("beschlossen"));
 
         assertEquals(
                 QuotaAuthority.INSTANCE, service.resolveQuotas(station.id()).authority());
 
-        clusterGovernanceService.setStorageBackend(clusterId, null);
+        clusterStorageBackendService.dropBackend(clusterId);
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
     }
@@ -212,7 +212,7 @@ class StorageQuotaServiceTest extends RepositoryTestBase {
     void aClusterPayingForItsStationsBindsThemAndTheInstanceNoLongerDoes() {
         int clusterId = freshCluster();
         var station = clusterService.createStation(clusterId, "Wache Verbandsspeicher " + NAMES.incrementAndGet());
-        clusterGovernanceService.setStorageBackend(clusterId, backend("verband"));
+        clusterStorageBackendService.setBackend(clusterId, backend("verband"));
         var version = clusterBackendRepository.findCurrent(clusterId).orElseThrow();
         placements.place(station.id(), clusterId, version.id());
         quotaRepository.setGrant(
@@ -229,7 +229,7 @@ class StorageQuotaServiceTest extends RepositoryTestBase {
                 "whoever pays sets the limit, and the cluster set none here");
 
         placements.remove(station.id());
-        clusterGovernanceService.setStorageBackend(clusterId, null);
+        clusterStorageBackendService.dropBackend(clusterId);
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
     }

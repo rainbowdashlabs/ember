@@ -34,6 +34,7 @@ import dev.chojo.ember.feature.cluster.service.ClusterInventoryService;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
 import dev.chojo.ember.feature.cluster.service.ClusterProfileFieldService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.cluster.service.ClusterStorageBackendService;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageQuotaService;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
@@ -116,13 +117,18 @@ import dev.chojo.ember.feature.restriction.repository.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.migration.MigrationLockRegistry;
+import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
 import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.ClusterStorageQuotaRepository;
+import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
 import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
+import dev.chojo.ember.feature.storage.service.StorageMigrationService;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
@@ -188,6 +194,7 @@ public abstract class RepositoryTestBase {
     protected static ClusterService clusterService;
 
     protected static ClusterGovernanceService clusterGovernanceService;
+    protected static ClusterStorageBackendService clusterStorageBackendService;
 
     protected static ClusterMemberService clusterMemberService;
     protected static ClusterStorageQuotaService clusterStorageQuotaService;
@@ -393,12 +400,22 @@ public abstract class RepositoryTestBase {
                 profileFieldChangeRepo,
                 new DomainEventBus(Set.of()));
         clusterStorageQuotaRepo = new ClusterStorageQuotaRepository();
-        clusterGovernanceService = new ClusterGovernanceService(
+        clusterGovernanceService = new ClusterGovernanceService(clusterRepo, stationRepo, new DomainEventBus(Set.of()));
+        var storageMigrationService = new StorageMigrationService(
+                stationRepo,
+                new StationStorageConfigRepository(),
+                new ClusterStationStorageRepository(),
+                new StorageBackendFactory(new Storage(), new LocalStorageBackend(), null),
+                new StorageBackendResolver(new LocalStorageBackend()),
+                new MigrationLockRegistry());
+        clusterStorageBackendService = new ClusterStorageBackendService(
                 clusterRepo,
                 stationRepo,
                 new ClusterStorageConfigRepository(),
-                new StorageBackendResolver(new LocalStorageBackend()),
-                new DomainEventBus(Set.of()));
+                new ClusterStationStorageRepository(),
+                new StationStorageConfigRepository(),
+                storageMigrationService,
+                new StorageBackendResolver(new LocalStorageBackend()));
         clusterService = new ClusterService(
                 clusterRepo,
                 stationRepo,
@@ -407,6 +424,7 @@ public abstract class RepositoryTestBase {
                 clusterGovernanceService,
                 clusterProfileFieldService,
                 clusterStorageQuotaRepo,
+                clusterStorageBackendService,
                 new DomainEventBus(Set.of()));
         clusterMemberService = new ClusterMemberService(clusterRepo, clusterService, new DomainEventBus(Set.of()));
         userSettingsRepo = new UserSettingsRepository();

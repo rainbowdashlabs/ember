@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.cluster.route.ClusterMemberRoutes;
 import dev.chojo.ember.feature.cluster.route.ClusterNotificationRoutes;
 import dev.chojo.ember.feature.cluster.route.ClusterRoutes;
 import dev.chojo.ember.feature.cluster.route.ClusterStationRoutes;
+import dev.chojo.ember.feature.cluster.route.ClusterStorageBackendRoutes;
 import dev.chojo.ember.feature.cluster.route.ClusterStorageRoutes;
 import dev.chojo.ember.feature.cluster.route.StationClusterRoutes;
 
@@ -34,6 +35,7 @@ public class ClusterModule extends AbstractModule {
         routesBinder.addBinding().to(ClusterRoutes.class);
         routesBinder.addBinding().to(ClusterStationRoutes.class);
         routesBinder.addBinding().to(ClusterGovernanceRoutes.class);
+        routesBinder.addBinding().to(ClusterStorageBackendRoutes.class);
         routesBinder.addBinding().to(ClusterStorageRoutes.class);
         routesBinder.addBinding().to(ClusterMemberRoutes.class);
         routesBinder.addBinding().to(ClusterMemberManagementRoutes.class);

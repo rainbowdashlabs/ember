@@ -7,14 +7,10 @@ package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
-import dev.chojo.ember.feature.storage.backend.StorageBackendType;
-import dev.chojo.ember.feature.storage.credential.CredentialCipher;
-import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.Test;
 
-import java.util.Base64;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -128,39 +124,9 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void aClusterCanPointItsStationsAtABackendOfItsOwn() {
-        int clusterId = freshCluster();
-        var cipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));
-        var backend = new StationStorageBackendConfig.SmbVariant(
-                "smb.example.invalid",
-                445,
-                "verband",
-                "WORKGROUP",
-                "/base",
-                true,
-                false,
-                cipher.encrypt("{\"username\":\"u\",\"password\":\"p\"}"));
-
-        assertTrue(clusterGovernanceService.findStorageBackend(clusterId).isEmpty());
-
-        clusterGovernanceService.setStorageBackend(clusterId, backend);
-        assertEquals(
-                StorageBackendType.SMB,
-                clusterGovernanceService
-                        .findStorageBackend(clusterId)
-                        .orElseThrow()
-                        .type());
-
-        // Passing nothing clears it again, which puts the stations back on the instance default
-        clusterGovernanceService.setStorageBackend(clusterId, null);
-        assertTrue(clusterGovernanceService.findStorageBackend(clusterId).isEmpty());
-    }
-
-    @Test
     void aClusterThatIsNotThereGovernsNothing() {
         assertThrows(
                 NotFoundResponse.class,
                 () -> clusterGovernanceService.setDeniedModules(999_999, Set.of(StationModule.QUIZ)));
-        assertThrows(NotFoundResponse.class, () -> clusterGovernanceService.setStorageBackend(999_999, null));
     }
 }

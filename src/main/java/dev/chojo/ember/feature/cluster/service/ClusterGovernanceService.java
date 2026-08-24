@@ -13,10 +13,6 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
-import dev.chojo.ember.feature.storage.entity.ClusterStorageConfig;
-import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
-import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -24,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.EnumSet;
-import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -36,12 +31,13 @@ import java.util.Set;
  *
  * <ul>
  *   <li>a denied module is a hard no, which a station cannot argue with,
- *   <li>a look-and-feel setting is a starting point unless the cluster marks it locked,
- *   <li>a storage backend is where its stations' files are kept, which is the cluster's to choose.
+ *   <li>a look-and-feel setting is a starting point unless the cluster marks it locked.
  * </ul>
  *
- * <p>Room is the fourth and lives in {@link ClusterStorageQuotaService}, because handing out portions of a
- * pool is arithmetic with a table of its own rather than a rule written into a station row.
+ * <p>Room lives in {@link ClusterStorageQuotaService}, because handing out portions of a pool is arithmetic
+ * with a table of its own rather than a rule written into a station row, and where the files are kept lives
+ * in {@link ClusterStorageBackendService}, because a decision about that is not the same fact as where the
+ * bytes actually are.
  */
 @Singleton
 public class ClusterGovernanceService {
@@ -49,21 +45,13 @@ public class ClusterGovernanceService {
 
     private final ClusterRepository clusterRepository;
     private final StationRepository stationRepository;
-    private final ClusterStorageConfigRepository storageConfigRepository;
-    private final StorageBackendResolver backendResolver;
     private final DomainEventBus eventBus;
 
     @Inject
     public ClusterGovernanceService(
-            ClusterRepository clusterRepository,
-            StationRepository stationRepository,
-            ClusterStorageConfigRepository storageConfigRepository,
-            StorageBackendResolver backendResolver,
-            DomainEventBus eventBus) {
+            ClusterRepository clusterRepository, StationRepository stationRepository, DomainEventBus eventBus) {
         this.clusterRepository = clusterRepository;
         this.stationRepository = stationRepository;
-        this.storageConfigRepository = storageConfigRepository;
-        this.backendResolver = backendResolver;
         this.eventBus = eventBus;
     }
 
@@ -164,32 +152,6 @@ public class ClusterGovernanceService {
                 cluster.customThemeColors() != null ? cluster.customThemeColors() : station.customThemeColors(),
                 cluster.defaultFeel() != null ? cluster.defaultFeel() : station.defaultFeel(),
                 station.allowUserFeel());
-    }
-
-    // -- Storage --
-
-    public Optional<StationStorageBackendConfig> findStorageBackend(int clusterId) {
-        return storageConfigRepository.findCurrent(clusterId).map(ClusterStorageConfig::config);
-    }
-
-    /**
-     * Points the cluster's stations at a backend of the cluster's own.
-     *
-     * <p>Every member station's resolved backend may have just moved, and the resolver caches that per
-     * station, so all of them are dropped from the cache rather than waiting for it to expire on its own.
-     *
-     * @param clusterId the cluster
-     * @param config    the backend, with its credentials already encrypted, or {@code null} to clear it
-     */
-    public void setStorageBackend(int clusterId, StationStorageBackendConfig config) {
-        requireCluster(clusterId);
-        if (config == null) {
-            storageConfigRepository.retireCurrent(clusterId);
-        } else {
-            storageConfigRepository.insertCurrent(clusterId, config);
-        }
-        backendResolver.invalidateStations(clusterRepository.findStationIds(clusterId));
-        log.info("Cluster {} storage backend set to {}", clusterId, config != null ? config.type() : "the default");
     }
 
     private Cluster requireCluster(int clusterId) {

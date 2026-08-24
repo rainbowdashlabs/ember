@@ -59,6 +59,7 @@ public class ClusterService {
     private final ClusterGovernanceService governanceService;
     private final ClusterProfileFieldService fieldService;
     private final ClusterStorageQuotaRepository quotaRepository;
+    private final ClusterStorageBackendService storageBackendService;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -70,6 +71,7 @@ public class ClusterService {
             ClusterGovernanceService governanceService,
             ClusterProfileFieldService fieldService,
             ClusterStorageQuotaRepository quotaRepository,
+            ClusterStorageBackendService storageBackendService,
             DomainEventBus eventBus) {
         this.clusterRepository = clusterRepository;
         this.stationRepository = stationRepository;
@@ -78,6 +80,7 @@ public class ClusterService {
         this.governanceService = governanceService;
         this.fieldService = fieldService;
         this.quotaRepository = quotaRepository;
+        this.storageBackendService = storageBackendService;
         this.eventBus = eventBus;
     }
 
@@ -178,6 +181,10 @@ public class ClusterService {
             throw new BadRequestResponse("This station already belongs to another cluster");
         }
 
+        // The files first, and the membership after them: a station taken in whose bytes stayed behind
+        // resolves to storage they are not on, and a copy that cannot run leaves it unjoined instead
+        storageBackendService.takeOverOnJoin(clusterId, stationId);
+
         stationRepository.setCluster(stationId, clusterId);
         itemHandoverService.adoptAtStation(clusterId, stationId);
         governanceService.applyLookTo(cluster, station);
@@ -207,6 +214,9 @@ public class ClusterService {
         if (station.clusterId() == null || station.clusterId() != clusterId) {
             throw new BadRequestResponse("That station does not belong to this cluster");
         }
+
+        // And on the way out the files come first as well, for the same reason in the other direction
+        storageBackendService.handBackOnRelease(clusterId, stationId);
 
         itemHandoverService.recallFromStation(clusterId, stationId);
         federationService.removeClusterFederation(stationId);
