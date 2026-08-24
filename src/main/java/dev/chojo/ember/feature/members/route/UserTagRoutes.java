@@ -34,7 +34,6 @@ import jakarta.inject.Singleton;
 import java.util.List;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.api.RouteSupport.requireOwned;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 /**
@@ -141,7 +140,7 @@ public class UserTagRoutes implements Routes {
             })
     private void update(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, tagService::findById, UserTag::stationId);
+        requireOwnedOrNotFound(ctx, id, tagService::findById, UserTag::stationId);
         var request = ctx.bodyAsClass(TagRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -165,7 +164,7 @@ public class UserTagRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, tagService::findById, UserTag::stationId);
+        requireOwnedOrNotFound(ctx, id, tagService::findById, UserTag::stationId);
         if (tagService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -182,7 +181,7 @@ public class UserTagRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void getMembers(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, tagService::findById, UserTag::stationId);
+        requireOwnedOrNotFound(ctx, id, tagService::findById, UserTag::stationId);
         ctx.json(tagService.findMembers(id).stream().map(this::toMemberWithName).toList());
     }
 
@@ -198,7 +197,7 @@ public class UserTagRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void setMembers(Context ctx) {
         int tagId = pathInt(ctx, "id");
-        requireOwned(ctx, tagId, tagService::findById, UserTag::stationId);
+        requireOwnedOrNotFound(ctx, tagId, tagService::findById, UserTag::stationId);
         var request = ctx.bodyAsClass(SetMembersRequest.class);
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
         tagService.setMembers(tagId, memberIds);
@@ -235,7 +234,7 @@ public class UserTagRoutes implements Routes {
             })
     private void convertToGroup(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, tagService::findById, UserTag::stationId);
+        requireOwnedOrNotFound(ctx, id, tagService::findById, UserTag::stationId);
         tagService.convertToGroup(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }

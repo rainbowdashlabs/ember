@@ -35,7 +35,6 @@ import jakarta.inject.Singleton;
 import java.util.List;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.api.RouteSupport.requireOwned;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 /**
@@ -151,7 +150,7 @@ public class MemberGroupRoutes implements Routes {
             })
     private void get(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, groupService::findById, MemberGroup::stationId);
+        requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
         groupService
                 .findById(id)
                 .ifPresentOrElse(
@@ -177,7 +176,7 @@ public class MemberGroupRoutes implements Routes {
             })
     private void update(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, groupService::findById, MemberGroup::stationId);
+        requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
         var request = ctx.bodyAsClass(GroupRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -201,7 +200,7 @@ public class MemberGroupRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, groupService::findById, MemberGroup::stationId);
+        requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
         if (groupService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -220,7 +219,7 @@ public class MemberGroupRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationMember[].class)))
     private void getMembers(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, groupService::findById, MemberGroup::stationId);
+        requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
         ctx.json(groupService.findMembers(id).stream()
                 .map(this::toMemberWithName)
                 .toList());
@@ -239,7 +238,7 @@ public class MemberGroupRoutes implements Routes {
     private void setMembers(Context ctx) {
         int groupId = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        requireOwned(ctx, groupId, groupService::findById, MemberGroup::stationId);
+        requireOwnedOrNotFound(ctx, groupId, groupService::findById, MemberGroup::stationId);
         var request = ctx.bodyAsClass(SetMembersRequest.class);
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
 
@@ -272,7 +271,7 @@ public class MemberGroupRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Permission[].class)))
     private void getGroupPermissions(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, groupService::findById, MemberGroup::stationId);
+        requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
         ctx.json(groupService.findGroupPermissions(id));
     }
 
@@ -293,7 +292,7 @@ public class MemberGroupRoutes implements Routes {
     private void setGroupPermissions(Context ctx) {
         int groupId = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        requireOwned(ctx, groupId, groupService::findById, MemberGroup::stationId);
+        requireOwnedOrNotFound(ctx, groupId, groupService::findById, MemberGroup::stationId);
         var request = ctx.bodyAsClass(SetGroupPermissionsRequest.class);
         List<Integer> permissionIds = request.permissionIds() != null ? request.permissionIds() : List.of();
         ctx.json(groupService.setGroupPermissions(groupId, permissionIds, session.permissions()));
@@ -311,7 +310,7 @@ public class MemberGroupRoutes implements Routes {
             })
     private void convertToTag(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, groupService::findById, MemberGroup::stationId);
+        requireOwnedOrNotFound(ctx, id, groupService::findById, MemberGroup::stationId);
         groupService.convertToTag(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
