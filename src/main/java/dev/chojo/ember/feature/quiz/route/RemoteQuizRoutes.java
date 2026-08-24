@@ -10,6 +10,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
@@ -17,7 +18,6 @@ import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.service.QuizCatalogService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -78,12 +78,22 @@ public class RemoteQuizRoutes implements Routes {
         ctx.json(result);
     }
 
+    /**
+     * Whether the station shares the catalog with the requesting partner. Being paired with the
+     * station that owns a catalog says nothing about being allowed to read it, and catalog ids are
+     * sequential, so a partner could otherwise count its way through the whole question bank.
+     */
+    private boolean isShared(FederationPartner partner, int catalogId) {
+        return federationRepository.findQuizShares(partner.stationId()).stream()
+                .anyMatch(share -> share.catalogId() != null && share.catalogId() == catalogId);
+    }
+
     private void getCatalog(Context ctx) {
         var partner = FederationSession.requirePartner(ctx);
         int catalogId = pathInt(ctx, "id");
         var catalog = catalogService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
-        if (catalog.stationId() != partner.stationId()) {
-            throw new ForbiddenResponse("Catalog not shared with this partner");
+        if (catalog.stationId() != partner.stationId() || !isShared(partner, catalogId)) {
+            throw new NotFoundResponse();
         }
         var categories = catalogService.findCategories(catalog.stationId());
         var questions = questionService.findQuestions(catalog.id());

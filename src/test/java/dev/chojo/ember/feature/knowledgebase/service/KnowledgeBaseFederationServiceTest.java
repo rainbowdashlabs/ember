@@ -473,8 +473,58 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Order(43)
     void fileForPartnerRejectsForeignStation() {
         var file = createFile(stationB.id(), "ForeignFile");
-        assertThrows(ForbiddenResponse.class, () -> service.fileForPartner(requestingPartner, file.id()));
+        assertThrows(NotFoundResponse.class, () -> service.fileForPartner(requestingPartner, file.id()));
         knowledgeBaseRepo.deleteFile(file.id());
+    }
+
+    /**
+     * Belonging to the station a partner is paired with is not the same as being shared with it.
+     * File ids run in sequence, so without this a partner reads the whole knowledge base by
+     * counting, whatever the station chose to share.
+     */
+    @Test
+    @Order(43)
+    void fileForPartnerRefusesAFileThatIsNotShared() {
+        var file = createFile(station.id(), "UnsharedFile");
+
+        assertThrows(NotFoundResponse.class, () -> service.fileForPartner(requestingPartner, file.id()));
+
+        var share = federationRepo.createKbShare(station.id(), file.id(), null, ShareScope.ALL_PARTNERS);
+        assertEquals(
+                "UnsharedFile",
+                service.fileForPartner(requestingPartner, file.id()).name());
+
+        federationRepo.deleteKbShare(share.id(), station.id());
+        knowledgeBaseRepo.deleteFile(file.id());
+    }
+
+    /**
+     * A folder share carries the files in it, which is what the same-instance browse treats as
+     * shared too.
+     */
+    @Test
+    @Order(43)
+    void fileForPartnerAcceptsAFileInASharedFolder() {
+        var folder = knowledgeBaseRepo.createFolder(station.id(), null, "SharedFolder", "", member.id());
+        var file = knowledgeBaseRepo.createFile(
+                station.id(),
+                folder.id(),
+                "FolderFile",
+                "desc",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                0,
+                null,
+                member.id());
+        var share = federationRepo.createKbShare(station.id(), null, folder.id(), ShareScope.ALL_PARTNERS);
+
+        assertEquals(
+                "FolderFile",
+                service.fileForPartner(requestingPartner, file.id()).name());
+
+        federationRepo.deleteKbShare(share.id(), station.id());
+        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.deleteFolder(folder.id());
     }
 
     @Test
@@ -487,8 +537,10 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Order(45)
     void fileContentForPartner() {
         var file = createFile(station.id(), "ServedContent");
+        var share = federationRepo.createKbShare(station.id(), file.id(), null, ShareScope.ALL_PARTNERS);
         knowledgeBaseRepo.storeTextContent(file.id(), "served text");
         assertEquals("served text", service.fileContentForPartner(requestingPartner, file.id()));
+        federationRepo.deleteKbShare(share.id(), station.id());
         knowledgeBaseRepo.deleteFile(file.id());
     }
 
@@ -496,7 +548,9 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Order(46)
     void fileContentForPartnerWithoutStoredText() {
         var file = createFile(station.id(), "EmptyContent");
+        var share = federationRepo.createKbShare(station.id(), file.id(), null, ShareScope.ALL_PARTNERS);
         assertEquals("", service.fileContentForPartner(requestingPartner, file.id()));
+        federationRepo.deleteKbShare(share.id(), station.id());
         knowledgeBaseRepo.deleteFile(file.id());
     }
 

@@ -319,14 +319,31 @@ public class KnowledgeBaseFederationService {
     }
 
     /**
-     * Loads a file for a requesting partner, refusing files that belong to another station.
+     * Loads a file for a requesting partner, refusing everything the station has not shared.
+     *
+     * <p>Belonging to the station the partner is paired with is not the same as being shared with
+     * it: file ids are sequential, so a check on ownership alone hands a partner the whole
+     * knowledge base by counting. A file counts as shared when it is shared itself or sits in a
+     * shared folder, which is what the same-instance browse treats as shared too.
      */
     public KbFile fileForPartner(FederationPartner partner, int fileId) {
         var file = knowledgeBaseService.findFile(fileId).orElseThrow(NotFoundResponse::new);
-        if (file.stationId() != partner.stationId()) {
-            throw new ForbiddenResponse("File not shared with this partner");
+        if (file.stationId() != partner.stationId() || !isSharedWithPartner(partner, file)) {
+            throw new NotFoundResponse();
         }
         return file;
+    }
+
+    /**
+     * Whether the station shares the given file with the requesting partner, directly or through
+     * the folder it sits in.
+     */
+    public boolean isSharedWithPartner(FederationPartner partner, KbFile file) {
+        for (var share : federationRepository.findKbShares(partner.stationId())) {
+            if (share.fileId() != null && share.fileId() == file.id()) return true;
+            if (share.folderId() != null && share.folderId().equals(file.folderId())) return true;
+        }
+        return false;
     }
 
     /**
