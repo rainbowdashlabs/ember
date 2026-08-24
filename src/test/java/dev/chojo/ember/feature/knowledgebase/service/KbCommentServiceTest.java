@@ -100,9 +100,9 @@ class KbCommentServiceTest extends RepositoryTestBase {
     void commentMentionsNotifyEveryMentionedAudience() {
         UUID mentionedUid = UUID.randomUUID();
         int mentionedMemberId = member.id() + 1000;
-        int legacyMemberId = member.id() + 2000;
+        int numericMemberId = member.id() + 2000;
         String content = "Ping @[%s/%s:Alice] and @[%d:Bob] and @[GROUP:Crew:7]"
-                .formatted(station.uid(), mentionedUid, legacyMemberId);
+                .formatted(station.uid(), mentionedUid, numericMemberId);
         when(commentRepository.create(anyInt(), any(), any(), anyString()))
                 .thenReturn(storedComment(500, null, content));
         when(stationMemberService.resolveId(station.id(), mentionedUid)).thenReturn(Optional.of(mentionedMemberId));
@@ -127,7 +127,9 @@ class KbCommentServiceTest extends RepositoryTestBase {
                 .map(MentionedInComment::mentionedMemberId)
                 .toList();
         assertTrue(mentioned.contains(mentionedMemberId), "the uuid mention must be delivered");
-        assertTrue(mentioned.contains(legacyMemberId), "the legacy numeric mention must be delivered");
+        assertFalse(
+                mentioned.contains(numericMemberId),
+                "a bare numeric mention names a member on the whole instance and must reach nobody");
 
         var bulk = events.stream()
                 .filter(BulkMentionedInComment.class::isInstance)

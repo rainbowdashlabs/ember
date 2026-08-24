@@ -57,7 +57,6 @@ import java.util.regex.Pattern;
 public class NewsService {
     private static final Logger log = LoggerFactory.getLogger(NewsService.class);
     private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
-    private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
     private static final Pattern BULK_MENTION_PATTERN =
             Pattern.compile("@\\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\\d+)]");
 
@@ -547,21 +546,6 @@ public class NewsService {
                             }
                         });
                     } catch (IllegalArgumentException ignored) {
-                    }
-                }
-                var legacyMatcher = MENTION_PATTERN_LEGACY.matcher(content);
-                while (legacyMatcher.find()) {
-                    int mentionedId = Integer.parseInt(legacyMatcher.group(1));
-                    if (mentionedId != authorMemberId) {
-                        eventBus.publish(new MentionedInComment(
-                                stationId,
-                                mentionedId,
-                                authorMemberId,
-                                authorName,
-                                CommentEntityType.NEWS,
-                                newsId,
-                                news.title(),
-                                preview));
                     }
                 }
                 var bulkMatcher = BULK_MENTION_PATTERN.matcher(content);

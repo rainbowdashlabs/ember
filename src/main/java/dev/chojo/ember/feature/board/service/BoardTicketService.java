@@ -48,7 +48,6 @@ import java.util.regex.Pattern;
 @Singleton
 public class BoardTicketService {
     private static final Logger log = LoggerFactory.getLogger(BoardTicketService.class);
-    private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
     private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
 
     private final BoardTicketRepository ticketRepository;
@@ -597,9 +596,13 @@ public class BoardTicketService {
 
     // -- Activity feed --
 
+    /**
+     * The members a comment mentions, resolved through the station the ticket belongs to. Only the
+     * form carrying a station and a member uid is read: a bare numeric id names a member anywhere
+     * on the instance, and notifying by it reaches into another station.
+     */
     private List<Integer> parseMentions(int stationId, String content) {
         var mentions = new ArrayList<Integer>();
-        // New format: @[stationUid/memberUid:Name]
         var matcher = MENTION_PATTERN.matcher(content);
         while (matcher.find()) {
             try {
@@ -607,11 +610,6 @@ public class BoardTicketService {
                 stationMemberService.resolveId(stationId, memberUid).ifPresent(mentions::add);
             } catch (IllegalArgumentException ignored) {
             }
-        }
-        // Legacy format: @[123:Name]
-        var legacyMatcher = MENTION_PATTERN_LEGACY.matcher(content);
-        while (legacyMatcher.find()) {
-            mentions.add(Integer.parseInt(legacyMatcher.group(1)));
         }
         return mentions;
     }

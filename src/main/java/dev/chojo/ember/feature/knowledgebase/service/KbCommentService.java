@@ -40,7 +40,6 @@ import java.util.regex.Pattern;
 public class KbCommentService {
     private static final Logger log = LoggerFactory.getLogger(KbCommentService.class);
     private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
-    private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
     private static final Pattern BULK_MENTION_PATTERN =
             Pattern.compile("@\\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\\d+)]");
     private static final int PREVIEW_LENGTH = 100;
@@ -154,12 +153,6 @@ public class KbCommentService {
                     .resolveId(stationId, memberUid)
                     .ifPresent(mentionedId ->
                             notifyMention(stationId, fileId, fileTitle, authorId, authorName, mentionedId, preview));
-        }
-
-        var legacyMatcher = MENTION_PATTERN_LEGACY.matcher(content);
-        while (legacyMatcher.find()) {
-            int mentionedId = Integer.parseInt(legacyMatcher.group(1));
-            notifyMention(stationId, fileId, fileTitle, authorId, authorName, mentionedId, preview);
         }
 
         var bulkMatcher = BULK_MENTION_PATTERN.matcher(content);
