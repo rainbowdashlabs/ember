@@ -125,8 +125,7 @@ public class BoardTicketAttachmentRoutes implements Routes {
             })
     private void downloadAttachment(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        guards.requireViewAccess(guards.resolveBoardId(ctx, session.stationId()), session);
-        var att = ticketService.findAttachmentById(pathInt(ctx, "attachmentId")).orElseThrow(NotFoundResponse::new);
+        var att = requireAttachmentOfTicket(ctx, guards.viewableTicketId(ctx, session));
         var path = ticketService.getAttachmentPath(session.stationId(), att);
         if (!Files.exists(path)) throw new NotFoundResponse();
         ctx.contentType(SafeInlineMime.safeContentType(att.contentType()));
@@ -156,11 +155,26 @@ public class BoardTicketAttachmentRoutes implements Routes {
             })
     private void deleteAttachment(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        guards.requireEditAccess(guards.resolveBoardId(ctx, session.stationId()), session);
-        if (ticketService.deleteAttachment(session.stationId(), pathInt(ctx, "attachmentId"))) {
+        var att = requireAttachmentOfTicket(ctx, guards.editableTicketId(ctx, session));
+        if (ticketService.deleteAttachment(session.stationId(), att.id())) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
         }
+    }
+
+    /**
+     * Loads the attachment named in the path and asserts it hangs on the ticket the path names.
+     *
+     * <p>The board and the ticket are resolved against the caller's station, so tying the
+     * attachment to that ticket is what scopes it. Reading the file happened to fail for an
+     * attachment of another station because the path is built from the caller's station, but that
+     * is a property of the storage layout rather than an access decision, and deleting the row
+     * never consulted the layout at all.
+     */
+    private BoardTicketAttachment requireAttachmentOfTicket(Context ctx, int ticketId) {
+        var att = ticketService.findAttachmentById(pathInt(ctx, "attachmentId")).orElseThrow(NotFoundResponse::new);
+        if (att.ticketId() != ticketId) throw new NotFoundResponse();
+        return att;
     }
 }
