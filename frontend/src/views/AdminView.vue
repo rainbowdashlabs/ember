@@ -51,7 +51,8 @@ onMounted(() => {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'building']" :label="t('sidebar.stations')" prefix="/admin/stations">
+      <SidebarGroup :icon="['fas', 'building']" :label="t('sidebar.stations')"
+                    :prefix="['/admin/stations', '/admin/news']">
         <SidebarLink :icon="['fas', 'building']" name="admin-stations" to="/admin/stations" @navigate="close">
           {{ t('sidebar.manageStations') }}
         </SidebarLink>

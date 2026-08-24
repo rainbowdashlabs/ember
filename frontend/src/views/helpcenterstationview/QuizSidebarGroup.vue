@@ -17,7 +17,8 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <SidebarGroup :icon="['fas', 'graduation-cap']" :label="t('sidebar.quiz')" prefix="/helpcenter/station/quiz"
+  <SidebarGroup :icon="['fas', 'graduation-cap']" :label="t('sidebar.quiz')"
+                :prefix="['/helpcenter/station/quiz', '/helpcenter/station/protocols']"
                 to="/helpcenter/station/quiz" name="help-quiz-module-overview" @navigate="close">
     <SidebarExpandableLink :icon="['fas', 'book']" name="help-quiz-catalogs"
                            to="/helpcenter/station/quiz/catalogs" prefix="/helpcenter/station/quiz/catalog" @navigate="close">

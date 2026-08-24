@@ -3364,7 +3364,7 @@ volumes:
             tip: 'Eine Wache kann immer nur einem Verband angehören und immer nur eine Anfrage offen haben.',
         },
         clusterKnowledge: {
-            title: 'Wissen des Verbands',
+            title: 'Wiki des Verbands',
             subtitle: 'Was der Verband allen Wachen zur Verfügung stellt.',
             whatTitle: 'Wofür ist das da?',
             whatText: 'Dienstanweisungen, Merkblätter, Formulare: alles, was für mehrere Wachen gilt, liegt einmal beim Verband statt in jeder Wache in einer eigenen Fassung.',

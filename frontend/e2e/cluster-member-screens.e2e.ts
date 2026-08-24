@@ -41,6 +41,9 @@ test.describe('Cluster member screens', () => {
      * CLS-63 asserted the rows existed, and a row with an empty name is still a row. The search
      * handed the browser a name nothing reads and a null identity, which is what every list draws a
      * person from, so every line carried a blank space beside a blank avatar.
+     *
+     * Read off the rows rather than looked up one by one: the list is live and other stories take people
+     * on while this reads it, so which people are on screen is not what this is about.
      */
     test('every row on the station member list carries a name', async ({browser, request}) => {
         const account = await clusterAccountWith(request, 'CLUSTER_MEMBER_MANAGER')
@@ -49,21 +52,19 @@ test.describe('Cluster member screens', () => {
         const headers = await clusterHeaders(page, cluster)
 
         const found = await page.request
-            .get('/api/v1/cluster/members/manage/search?size=5', {headers})
+            .get('/api/v1/cluster/members/manage/search?size=200', {headers})
             .then(r => r.json())
-        const names: string[] = found.members.map((row: {name: string}) => row.name).filter(Boolean)
-        expect(names.length, 'the association has people at its stations').toBeGreaterThan(0)
+        expect(found.members.length, 'the association has people at its stations').toBeGreaterThan(0)
         expect(found.members.every((row: {identity: unknown}) => !!row.identity),
             'and the search says who each of them is').toBeTruthy()
 
         await page.goto('/cluster/members')
         await expect(page.getByTestId('member-row').first()).toBeVisible({timeout: 15000})
 
-        const table = page.getByTestId('member-row')
-        for (const name of names.slice(0, 3)) {
-            await expect(table.filter({hasText: name}).first(),
-                `${name} is drawn on the row rather than left blank`).toBeVisible({timeout: 15000})
-        }
+        const drawn = await page.getByTestId('member-row').getByTestId('member-name').allInnerTexts()
+        expect(drawn.length, 'the list has rows').toBeGreaterThan(0)
+        expect(drawn.filter(text => text.trim().length === 0),
+            'not one of them is a blank space beside a blank avatar').toEqual([])
 
         await page.context().close()
     })
@@ -74,6 +75,11 @@ test.describe('Cluster member screens', () => {
      * The note was drawn unconditionally, so narrowing to one station left every row repeating the same
      * word. And the search returns one row per membership, so somebody at two stations of the
      * association was two rows that never said they were the same person.
+     *
+     * The narrowing is retried until the screen says so rather than until the box holds the value: the
+     * page is server rendered, and a change fired before Vue is listening sets the box and nothing else.
+     * Each attempt goes back through "every station" first, because picking a value the box already
+     * holds fires nothing at all and the retry would then be no retry.
      */
     test('the station note is silent under a filter and names every station otherwise',
         async ({adminPage: page, browser, request}) => {
@@ -99,15 +105,21 @@ test.describe('Cluster member screens', () => {
 
             const rows = page.getByTestId('member-row').filter({hasText: surname})
             await expect(rows).toHaveCount(2, {timeout: 15000})
-            await expect(rows.first()).toContainText(own.stationName)
-            await expect(rows.first(), 'and the row says both, not only the one it came from')
+            const note = rows.first().getByTestId('member-note')
+            await expect(note).toContainText(own.stationName)
+            await expect(note, 'and the note says both, not only the station the row came from')
                 .toContainText(`${own.name} Zweite`)
 
-            await page.locator('select').first().selectOption({label: own.stationName})
-            await expect(rows, 'one station in view leaves one of the two memberships')
-                .toHaveCount(1, {timeout: 15000})
-            await expect(rows.first(), 'and stops naming a station once there is only one')
-                .not.toContainText(own.stationName, {timeout: 15000})
+            const stationFilter = page.locator('select').first()
+            await expect(async () => {
+                await stationFilter.selectOption('')
+                await stationFilter.selectOption({label: own.stationName})
+                await expect(rows, 'one station in view leaves one of the two memberships')
+                    .toHaveCount(1, {timeout: 5000})
+                await expect(rows.first().getByTestId('member-note'),
+                    'and the note goes silent once there is only one station to name')
+                    .toHaveCount(0, {timeout: 5000})
+            }).toPass({timeout: 30000})
 
             await own.stationPage.context().close()
         })

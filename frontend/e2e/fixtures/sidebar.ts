@@ -30,3 +30,13 @@ export function sidebarEntry(page: Page, label: string): Locator {
     const name = new RegExp(`^${escaped}( \\d+)?$`)
     return sidebar(page).getByRole('link', {name}).or(sidebar(page).getByRole('button', {name}))
 }
+
+/**
+ * The sidebar group marked as the one you are standing in.
+ *
+ * Read off the markup rather than off a colour: which element is lit is the sidebar's design, but
+ * that exactly one is and that it is the right one is a rule, and a rule is what a story asserts.
+ */
+export function activeSidebarGroup(page: Page): Locator {
+    return sidebar(page).locator('[data-active="true"]')
+}

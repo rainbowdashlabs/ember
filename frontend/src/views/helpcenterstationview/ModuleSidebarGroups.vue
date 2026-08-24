@@ -52,7 +52,7 @@ const {t} = useI18n()
   </SidebarGroup>
 
   <SidebarGroup :icon="['fas', 'calendar-days']" :label="t('sidebar.events')"
-                prefix="/helpcenter/station/events"
+                :prefix="['/helpcenter/station/events', '/helpcenter/station/federation/events']"
                 to="/helpcenter/station/events" name="help-events-module-overview" @navigate="close">
     <SidebarLink :icon="['fas', 'calendar-plus']" name="help-events-upcoming"
                  to="/helpcenter/station/events/upcoming" @navigate="close">
@@ -153,8 +153,9 @@ const {t} = useI18n()
 
   <QuizSidebarGroup :close="close"/>
 
-  <SidebarGroup :icon="['fas', 'table-columns']" :label="t('sidebar.boards')" prefix="/helpcenter/station/boards"
-                :prefix2="['/helpcenter/station/federation/boards']" to="/helpcenter/station/boards" name="help-board-overview" @navigate="close">
+  <SidebarGroup :icon="['fas', 'table-columns']" :label="t('sidebar.boards')"
+                :prefix="['/helpcenter/station/boards', '/helpcenter/station/federation/boards']"
+                to="/helpcenter/station/boards" name="help-board-overview" @navigate="close">
     <SidebarLink :icon="['fas', 'gears']" name="help-board-manage" to="/helpcenter/station/boards/manage" @navigate="close">{{ t('helpCenter.boardManage.sidebarLabel') }}</SidebarLink>
     <SidebarLink :icon="['fas', 'table-columns']" name="help-board-view" to="/helpcenter/station/boards/BOARD" @navigate="close">{{ t('helpCenter.boardView.sidebarLabel') }}</SidebarLink>
     <SidebarLink :icon="['fas', 'plus']" name="help-ticket-create" to="/helpcenter/station/boards/BOARD/tickets/new" @navigate="close">{{ t('helpCenter.ticketCreate.sidebarLabel') }}</SidebarLink>

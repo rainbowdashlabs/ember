@@ -82,7 +82,7 @@ const pendingTitle = computed(() => {
     <Td>
       <div class="flex items-center gap-2">
         <MemberName :identity="member.identity" size="sm" class="font-medium"/>
-        <MutedText v-if="rowNote" size="sm">{{ rowNote }}</MutedText>
+        <MutedText v-if="rowNote" data-testid="member-note" size="sm">{{ rowNote }}</MutedText>
         <ErrorBadge v-if="member.profileComplete === false" class="ml-1.5 text-[10px]">{{ t('membersList.incomplete') }}</ErrorBadge>
         <IconButton
             v-if="member.accountSetupPending && canEdit"

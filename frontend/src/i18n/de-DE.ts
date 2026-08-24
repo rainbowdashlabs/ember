@@ -948,7 +948,7 @@ export default {
             subtitle: 'Termine des Verbands im Kalender aller Wachen',
         },
         'cluster-knowledge': {
-            title: 'Wissen',
+            title: 'Wiki',
             subtitle: 'Was der Verband allen Wachen zur Verfügung stellt',
         },
         'admin-settings': {
@@ -5781,8 +5781,7 @@ export default {
         inventory: 'Material',
         stock: 'Bestand',
         movements: 'Offene Schritte',
-        content: 'Inhalte',
-        knowledge: 'Wissen',
+        knowledge: 'Wiki',
         news: 'Neuigkeiten',
         events: 'Termine',
     },

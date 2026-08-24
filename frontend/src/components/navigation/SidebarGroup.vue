@@ -4,17 +4,27 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {Comment as VComment, computed, ref, useSlots, watch, type VNode} from 'vue'
+import {Comment as VComment, computed, onUnmounted, ref, useSlots, watch, type VNode} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
 import {useSidebarInFlyout} from '@/composables/useSidebarFlyoutContext'
 import {useFlyoutHover} from '@/composables/useFlyoutHover'
 import SidebarFlyoutMenu from '@/components/navigation/SidebarFlyoutMenu.vue'
+import {
+  bestSidebarMatch,
+  claimSidebarGroup,
+  releaseSidebarGroup,
+  reportSidebarMatch,
+} from '@/util/sidebarGroupState'
 
 const props = defineProps<{
   icon?: string[]
   label: string
-  prefix: string | string[]
+  /**
+   * Pages this group covers that are not entries in it: a board's own page, a wizard step, anything
+   * reached from a screen rather than from the sidebar. What its entries lead to is read off them.
+   */
+  prefix?: string | string[]
   to?: string
   name?: string
   badge?: number
@@ -30,8 +40,37 @@ const emit = defineEmits<{
 const route = useRoute()
 const router = useRouter()
 const slots = useSlots()
-const prefixes = computed(() => Array.isArray(props.prefix) ? props.prefix : [props.prefix])
-const isActive = computed(() => prefixes.value.some(p => (route.path + '/').startsWith(p + '/') || route.path === p))
+/**
+ * Every address this group covers: the entries in it, plus anything reached from a screen rather than
+ * from the sidebar. Written here rather than read off the entries, and kept honest by the unit test
+ * beside this file, which fails when a group and one of its own entries disagree.
+ */
+const prefixes = computed(() => {
+  const written = Array.isArray(props.prefix) ? props.prefix : props.prefix ? [props.prefix] : []
+  return [...written, ...(props.to ? [props.to] : [])].filter(Boolean)
+})
+
+/** How well this group matches the page being shown: the length of its longest matching prefix. */
+const matchLength = computed(() => {
+  let best = 0
+  for (const prefix of prefixes.value) {
+    if ((route.path + '/').startsWith(prefix + '/') || route.path === prefix) {
+      best = Math.max(best, prefix.length)
+    }
+  }
+  return best
+})
+
+const groupId = claimSidebarGroup()
+watch(matchLength, length => reportSidebarMatch(groupId, length), {immediate: true})
+onUnmounted(() => releaseSidebarGroup(groupId))
+
+/**
+ * Lit only when nothing matches the page better. Without that the group declared `/cluster` would be
+ * highlighted on every page of the association, which is the one group that says nothing about where
+ * you are.
+ */
+const isActive = computed(() => matchLength.value > 0 && matchLength.value === bestSidebarMatch.value)
 
 function countVisibleVNodes(vnodes: VNode[]): number {
   let count = 0
@@ -53,7 +92,7 @@ const hasVisibleChildren = computed(() => {
 })
 
 const localExpanded = ref(isActive.value)
-const key = computed(() => props.groupKey ?? (Array.isArray(props.prefix) ? props.prefix[0] ?? '' : props.prefix))
+const key = computed(() => props.groupKey ?? prefixes.value[0] ?? props.label)
 const accordionMode = computed(() => props.openGroup !== undefined)
 
 const expanded = computed(() => {
@@ -150,6 +189,7 @@ watch(() => collapsed.value, (value) => {
           :to="to"
           :ref="setAnchor"
           :title="collapsed ? label : undefined"
+          :data-active="isActive ? 'true' : undefined"
           :class="[
             isActive ? '!text-primary' : '!text-[var(--text)] hover:bg-primary/5',
             collapsed ? 'lg:justify-center lg:px-2 px-3' : 'px-3',

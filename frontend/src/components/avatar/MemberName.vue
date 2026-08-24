@@ -35,7 +35,7 @@ const displayName = computed(() => {
 <template>
   <span class="inline-flex items-center gap-1.5">
     <UserAvatar :identity="identity" :name="displayName" :size="size"/>
-    <span :style="identity?.nameColor ? { color: identity.nameColor } : {}"><slot>{{ displayName }}</slot></span>
+    <span data-testid="member-name" :style="identity?.nameColor ? { color: identity.nameColor } : {}"><slot>{{ displayName }}</slot></span>
     <span v-if="identity?.displayTag"
           class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none"
           :style="{ backgroundColor: identity.displayTag.color + '20', color: identity.displayTag.color }">

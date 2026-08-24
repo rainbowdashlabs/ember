@@ -7,6 +7,7 @@ import {MADE_BY_A_STORY} from './fixtures/cluster'
 import {
     test, expect, enterCluster, clustersOf, theSeededCluster, apiHeaders, demoAccounts, pageAsThrowaway,
 } from './fixtures/auth'
+import {activeSidebarGroup, sidebarEntry} from './fixtures/sidebar'
 
 /**
  * Identity and context: who reaches the cluster area, what they see once they are in it, and where
@@ -215,5 +216,54 @@ test.describe('Cluster', () => {
             await expect(page.getByTestId('app-shell')).toBeVisible()
             await expect(page.getByText(cluster.name).first()).toBeVisible()
         }
+    })
+
+    /**
+     * CLS-100 - The sidebar marks where you are, and marks nothing else.
+     *
+     * A group decided for itself whether it was active by a prefix written beside it, and in ten places
+     * that prefix and the entries in the group disagreed. The association's first group is declared
+     * `/cluster`, which every route in the panel begins with, so the one group always lit was the one
+     * saying nothing about where you are. Nothing anywhere asserted on highlighting until this.
+     */
+    test('the sidebar lights the group the page belongs to and no other', async ({adminPage: page}) => {
+        await page.goto('/cross-station')
+        await enterCluster(page)
+
+        for (const [route, label] of [
+            ['/cluster/applications', 'Wachen'],
+            ['/cluster/modules', 'Vorgaben'],
+            ['/cluster/knowledge', 'Wiki'],
+        ] as const) {
+            await page.goto(route)
+            await expect(page.getByTestId('app-shell')).toBeVisible()
+
+            const lit = activeSidebarGroup(page)
+            await expect(lit, `${route} lights exactly one group`).toHaveCount(1, {timeout: 15000})
+            await expect(lit, `${route} lights ${label}`).toHaveText(new RegExp(label))
+        }
+    })
+
+    /**
+     * CLS-101 - The wiki is called Wiki and is one click away.
+     *
+     * The association handed somebody a right called Wikiverwaltung over a screen it called Wissen, and
+     * buried that screen with the news and the calendar under a group whose only effect was one more
+     * click. The station has said Wiki and shown all three at the top level all along.
+     */
+    test('the wiki is named Wiki and sits at the top level', async ({adminPage: page}) => {
+        await page.goto('/cross-station')
+        await enterCluster(page)
+        await page.goto('/cluster')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+
+        await expect(sidebarEntry(page, 'Inhalte'), 'the level that only added a click is gone').toHaveCount(0)
+        for (const label of ['Wiki', 'Neuigkeiten', 'Termine']) {
+            await expect(sidebarEntry(page, label), `${label} is an entry of its own`).toBeVisible()
+        }
+
+        await sidebarEntry(page, 'Wiki').click()
+        await expect(page).toHaveURL(/\/cluster\/knowledge$/)
+        await expect(activeSidebarGroup(page)).toHaveText(/Wiki/)
     })
 })

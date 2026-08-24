@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref, watch} from 'vue'
-import deDE from '@/i18n/de-DE'
+import i18n from '@/i18n'
+import {loadHelpcenterMessages} from '@/composables/useHelpcenterMessages'
 
 export interface HelpSearchEntry {
     route: string
@@ -24,7 +25,7 @@ export interface HelpSearchResult {
 /**
  * Maps each help center route name to its i18n key prefix and human-readable section breadcrumb.
  */
-const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section: string }[] = [
+export const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section: string }[] = [
     // Basics
     {route: 'help-welcome', path: '/helpcenter/station/basics', i18nPrefix: 'helpCenter.welcome', section: 'Grundlagen'},
     {route: 'help-basics-overview', path: '/helpcenter/station/basics/overview', i18nPrefix: 'helpCenter.basics.overview', section: 'Grundlagen > Was ist Ember?'},
@@ -137,12 +138,12 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     {route: 'help-lost-and-found', path: '/helpcenter/station/lost-and-found', i18nPrefix: 'helpCenter.lostAndFound', section: 'Fundbüro'},
     // Quiz
     {route: 'help-quiz-module-overview', path: '/helpcenter/station/quiz', i18nPrefix: 'helpCenter.quiz', section: 'Quiz'},
-    {route: 'help-quiz-catalogs', path: '/helpcenter/station/quiz/catalogs', i18nPrefix: 'helpCenter.quiz.catalogs', section: 'Quiz > Kataloge'},
-    {route: 'help-quiz-catalog-detail', path: '/helpcenter/station/quiz/catalogs/0', i18nPrefix: 'helpCenter.quiz.catalogDetail', section: 'Quiz > Katalog Detail'},
+    {route: 'help-quiz-catalogs', path: '/helpcenter/station/quiz/catalogs', i18nPrefix: 'helpCenter.quiz', section: 'Quiz > Kataloge'},
+    {route: 'help-quiz-catalog-detail', path: '/helpcenter/station/quiz/catalogs/0', i18nPrefix: 'helpCenter.quiz', section: 'Quiz > Katalog Detail'},
     {route: 'help-quiz-ai', path: '/helpcenter/station/quiz/ai', i18nPrefix: 'helpCenter.quiz.ai', section: 'Quiz > KI-Generierung'},
-    {route: 'help-quiz-tests', path: '/helpcenter/station/quiz/tests', i18nPrefix: 'helpCenter.quiz.tests', section: 'Quiz > Tests'},
-    {route: 'help-quiz-test-detail', path: '/helpcenter/station/quiz/tests/0', i18nPrefix: 'helpCenter.quiz.testDetail', section: 'Quiz > Test Detail'},
-    {route: 'help-quiz-training', path: '/helpcenter/station/quiz/training', i18nPrefix: 'helpCenter.quiz.training', section: 'Quiz > Training'},
+    {route: 'help-quiz-tests', path: '/helpcenter/station/quiz/tests', i18nPrefix: 'helpCenter.quiz', section: 'Quiz > Tests'},
+    {route: 'help-quiz-test-detail', path: '/helpcenter/station/quiz/tests/0', i18nPrefix: 'helpCenter.quiz', section: 'Quiz > Test Detail'},
+    {route: 'help-quiz-training', path: '/helpcenter/station/quiz/training', i18nPrefix: 'helpCenter.quiz', section: 'Quiz > Training'},
     {route: 'help-quiz-catalog-generate', path: '/helpcenter/station/quiz/catalogs/0/generate', i18nPrefix: 'helpCenter.quizCatalogGenerate', section: 'Quiz > Fragen generieren'},
     {route: 'help-quiz-catalog-import', path: '/helpcenter/station/quiz/catalogs/0/import', i18nPrefix: 'helpCenter.quizCatalogImport', section: 'Quiz > Fragen importieren'},
     {route: 'help-quiz-catalog-mc-fill', path: '/helpcenter/station/quiz/catalogs/0/mc-fill', i18nPrefix: 'helpCenter.quizCatalogMcFill', section: 'Quiz > Falsche Antworten ergänzen'},
@@ -188,13 +189,13 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     // Public Pages
     {route: 'help-pages', path: '/helpcenter/station/pages', i18nPrefix: 'helpCenter.pages', section: 'Öffentliche Seiten'},
     // Admin
-    {route: 'help-admin-module-overview', path: '/helpcenter/admin', i18nPrefix: 'helpCenter.admin', section: 'Administration'},
+    {route: 'help-admin-module-overview', path: '/helpcenter/admin', i18nPrefix: 'helpCenter.adminOverview', section: 'Administration'},
     {route: 'help-admin-stations-module-overview', path: '/helpcenter/admin/stations/overview', i18nPrefix: 'helpCenter.adminStationsOverview', section: 'Administration > Wachen'},
     {route: 'help-admin-stations', path: '/helpcenter/admin/stations', i18nPrefix: 'helpCenter.adminStations', section: 'Administration > Wachen > Liste'},
-    {route: 'help-admin-station-edit', path: '/helpcenter/admin/station-edit', i18nPrefix: 'helpCenter.admin.stationEdit', section: 'Administration > Wache bearbeiten'},
-    {route: 'help-admin-station-applications', path: '/helpcenter/admin/applications', i18nPrefix: 'helpCenter.admin.applications', section: 'Administration > Anträge'},
-    {route: 'help-admin-statistics', path: '/helpcenter/admin/statistics', i18nPrefix: 'helpCenter.admin.statistics', section: 'Administration > Statistiken'},
-    {route: 'help-admin-settings', path: '/helpcenter/admin/settings', i18nPrefix: 'helpCenter.admin.settings', section: 'Administration > Einstellungen'},
+    {route: 'help-admin-station-edit', path: '/helpcenter/admin/station-edit', i18nPrefix: 'helpCenter.adminStationEdit', section: 'Administration > Wache bearbeiten'},
+    {route: 'help-admin-station-applications', path: '/helpcenter/admin/applications', i18nPrefix: 'helpCenter.adminApplications', section: 'Administration > Anträge'},
+    {route: 'help-admin-statistics', path: '/helpcenter/admin/statistics', i18nPrefix: 'helpCenter.adminStatistics', section: 'Administration > Statistiken'},
+    {route: 'help-admin-settings', path: '/helpcenter/admin/settings', i18nPrefix: 'helpCenter.adminSettings', section: 'Administration > Einstellungen'},
     {route: 'help-admin-api-status', path: '/helpcenter/admin/monitoring/api-status', i18nPrefix: 'helpCenter.adminApiStatus', section: 'Administration > Monitoring > API-Status'},
     {route: 'help-admin-feed-metrics', path: '/helpcenter/admin/monitoring/feed-metrics', i18nPrefix: 'helpCenter.adminFeedMetrics', section: 'Administration > Monitoring > Feed-Telemetrie'},
     {route: 'help-admin-traffic', path: '/helpcenter/admin/monitoring/traffic', i18nPrefix: 'helpCenter.adminTraffic', section: 'Administration > Monitoring > Traffic'},
@@ -208,6 +209,39 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     {route: 'help-admin-security-two-factor', path: '/helpcenter/admin/settings/security/two-factor', i18nPrefix: 'helpCenter.adminSecurityTwoFactor', section: 'Administration > Einstellungen > Sicherheit > 2FA'},
     {route: 'help-admin-two-factor', path: '/helpcenter/admin/2fa', i18nPrefix: 'helpCenter.adminTwoFactor', section: 'Administration > 2FA'},
     {route: 'help-station-security', path: '/helpcenter/station/manage/security', i18nPrefix: 'helpCenter.stationSecurity', section: 'Wache > Verwalten > Sicherheit'},
+    {route: 'help-cluster-overview', path: '/helpcenter/cluster', i18nPrefix: 'helpCenter.clusterOverview', section: 'Verband'},
+    {route: 'help-cluster-settings', path: '/helpcenter/cluster/settings', i18nPrefix: 'helpCenter.clusterSettings', section: 'Verband > Einstellungen'},
+    {route: 'help-cluster-stations', path: '/helpcenter/cluster/stations', i18nPrefix: 'helpCenter.clusterStations', section: 'Verband > Wachen'},
+    {route: 'help-cluster-station-groups', path: '/helpcenter/cluster/stations/groups', i18nPrefix: 'helpCenter.clusterStationGroups', section: 'Verband > Wachen > Wachgruppen'},
+    {route: 'help-cluster-applications', path: '/helpcenter/cluster/applications', i18nPrefix: 'helpCenter.clusterApplications', section: 'Verband > Wachen > Beitrittsanfragen'},
+    {route: 'help-cluster-team', path: '/helpcenter/cluster/team', i18nPrefix: 'helpCenter.clusterMembers', section: 'Verband > Verbandsteam'},
+    {route: 'help-cluster-team-groups', path: '/helpcenter/cluster/team/groups', i18nPrefix: 'helpCenter.clusterMemberGroups', section: 'Verband > Verbandsteam > Gruppen'},
+    {route: 'help-cluster-members', path: '/helpcenter/cluster/members', i18nPrefix: 'helpCenter.clusterMemberManagement', section: 'Verband > Mitglieder'},
+    {route: 'help-cluster-member-detail', path: '/helpcenter/cluster/members/0', i18nPrefix: 'helpCenter.clusterMemberDetail', section: 'Verband > Mitglieder > Mitglied'},
+    {route: 'help-cluster-fields', path: '/helpcenter/cluster/members/fields', i18nPrefix: 'helpCenter.clusterFields', section: 'Verband > Mitglieder > Profilfelder'},
+    {route: 'help-cluster-modules', path: '/helpcenter/cluster/modules', i18nPrefix: 'helpCenter.clusterModules', section: 'Verband > Vorgaben > Module'},
+    {route: 'help-cluster-look-and-feel', path: '/helpcenter/cluster/look-and-feel', i18nPrefix: 'helpCenter.clusterLookAndFeel', section: 'Verband > Vorgaben > Erscheinungsbild'},
+    {route: 'help-cluster-storage', path: '/helpcenter/cluster/storage', i18nPrefix: 'helpCenter.clusterStorage', section: 'Verband > Vorgaben > Speicherplatz'},
+    {route: 'help-cluster-storage-backend', path: '/helpcenter/cluster/storage/backend', i18nPrefix: 'helpCenter.clusterStorageBackend', section: 'Verband > Vorgaben > Eigener Speicher'},
+    {route: 'help-cluster-knowledge', path: '/helpcenter/cluster/knowledge', i18nPrefix: 'helpCenter.clusterKnowledge', section: 'Verband > Wiki'},
+    {route: 'help-cluster-news', path: '/helpcenter/cluster/news', i18nPrefix: 'helpCenter.clusterNews', section: 'Verband > Neuigkeiten'},
+    {route: 'help-cluster-events', path: '/helpcenter/cluster/events', i18nPrefix: 'helpCenter.clusterEvents', section: 'Verband > Termine'},
+    {route: 'help-cluster-inventory', path: '/helpcenter/cluster/inventory', i18nPrefix: 'helpCenter.clusterInventory', section: 'Verband > Material'},
+    {route: 'help-cluster-inventory-out', path: '/helpcenter/cluster/inventory/out', i18nPrefix: 'helpCenter.clusterInventoryOut', section: 'Verband > Material > Unterwegs'},
+    {route: 'help-cluster-movements', path: '/helpcenter/cluster/inventory/movements', i18nPrefix: 'helpCenter.clusterMovements', section: 'Verband > Material > Offene Schritte'},
+    {route: 'help-cluster-inventory-movement', path: '/helpcenter/cluster/inventory/movement/0', i18nPrefix: 'helpCenter.clusterMovementDetail', section: 'Verband > Material > Bewegung'},
+    {route: 'help-cluster-inventory-detail', path: '/helpcenter/cluster/inventory/detail/0', i18nPrefix: 'helpCenter.clusterInventoryDetail', section: 'Verband > Material > Inventar'},
+    {route: 'help-cluster-inventory-edit', path: '/helpcenter/cluster/inventory/edit/0', i18nPrefix: 'helpCenter.clusterInventoryEdit', section: 'Verband > Material > Inventar bearbeiten'},
+    {route: 'help-cluster-inventory-item', path: '/helpcenter/cluster/inventory/item/0', i18nPrefix: 'helpCenter.clusterInventoryItem', section: 'Verband > Material > Gegenstand'},
+    {route: 'help-cluster-inventory-storage', path: '/helpcenter/cluster/inventory/storage', i18nPrefix: 'helpCenter.clusterInventoryStorage', section: 'Verband > Material > Lagerorte'},
+    {route: 'help-cluster-inventory-container', path: '/helpcenter/cluster/inventory/storage/0', i18nPrefix: 'helpCenter.clusterInventoryContainer', section: 'Verband > Material > Lagerort'},
+    {route: 'help-cluster-inventory-checks', path: '/helpcenter/cluster/inventory/checks/container', i18nPrefix: 'helpCenter.clusterInventoryChecks', section: 'Verband > Material > Prüfungen'},
+    {route: 'help-cluster-inventory-check-walk', path: '/helpcenter/cluster/inventory/checks/container/0', i18nPrefix: 'helpCenter.clusterInventoryCheckWalk', section: 'Verband > Material > Prüfung durchgehen'},
+    {route: 'help-cluster-inventory-dispatch', path: '/helpcenter/cluster/inventory/dispatch', i18nPrefix: 'helpCenter.clusterInventoryDispatch', section: 'Verband > Material > Ausgabe'},
+    {route: 'help-cluster-inventory-procurement', path: '/helpcenter/cluster/inventory/procurement', i18nPrefix: 'helpCenter.clusterInventoryProcurement', section: 'Verband > Material > Beschaffung'},
+    {route: 'help-cluster-inventory-requirements', path: '/helpcenter/cluster/inventory/requirements', i18nPrefix: 'helpCenter.clusterInventoryRequirements', section: 'Verband > Material > Vorgaben'},
+    {route: 'help-cluster-inventory-settings', path: '/helpcenter/cluster/inventory/settings', i18nPrefix: 'helpCenter.clusterInventorySettings', section: 'Verband > Material > Einstellungen'},
+    {route: 'help-cluster-inventory-statistics', path: '/helpcenter/cluster/inventory/statistics', i18nPrefix: 'helpCenter.clusterInventoryStatistics', section: 'Verband > Material > Zahlen'},
 ]
 
 /**
@@ -237,13 +271,24 @@ function resolveKey(obj: Record<string, unknown>, keyPath: string): unknown {
 }
 
 /**
- * Build the search index at module load time from the static locale file.
- * This ensures the index is always complete regardless of vue-i18n runtime state.
+ * Builds the index from the text the pages actually render.
+ *
+ * <p>It used to be built at module load from the static locale file, on the reasoning that this made it
+ * complete regardless of vue-i18n runtime state. That was true when it was written. The help text then
+ * moved into its own chunk, merged into the active locale when a help center layout renders, and what
+ * stayed in the static file under `helpCenter` was two keys: an index meant to hold 166 pages held one,
+ * which is why the search answered nothing for any word on any page but the waiting lists.
+ *
+ * <p>Reading the merged messages is the fix, and it costs nothing: the search box only ever renders
+ * inside a help center layout, and that layout has awaited the chunk before anybody can type. Importing
+ * the chunk statically here would work too and would undo the code splitting it exists for.
  */
-const SEARCH_INDEX: HelpSearchEntry[] = (() => {
+export async function buildHelpSearchIndex(): Promise<HelpSearchEntry[]> {
+    await loadHelpcenterMessages()
+    const messages = i18n.global.getLocaleMessage('de-DE') as Record<string, unknown>
     const entries: HelpSearchEntry[] = []
     for (const page of HELP_PAGE_MAP) {
-        const subtree = resolveKey(deDE as Record<string, unknown>, page.i18nPrefix)
+        const subtree = resolveKey(messages, page.i18nPrefix)
         if (!subtree) continue
 
         const allStrings = flattenStrings(subtree)
@@ -264,9 +309,35 @@ const SEARCH_INDEX: HelpSearchEntry[] = (() => {
         })
     }
     return entries
-})()
+}
+
+/**
+ * Built once and shared by every box that asks afterwards.
+ *
+ * <p>Started as the help centre renders rather than on the first keystroke: the chunk the text lives in
+ * is four thousand lines, and nobody should be typing into a box that is still reading it.
+ *
+ * <p>A failed attempt is forgotten rather than remembered. The chunk comes over the network, a fetch can
+ * fail, and a remembered failure would leave the box answering nothing for the rest of the visit, which
+ * is the shape of the fault this whole repair is about.
+ */
+const index = ref<HelpSearchEntry[]>([])
+let building: Promise<void> | null = null
+
+function ensureIndex(): void {
+    if (building) return
+    building = buildHelpSearchIndex()
+        .then(entries => {
+            index.value = entries
+        })
+        .catch(() => {
+            building = null
+        })
+}
 
 export function useHelpSearch() {
+    ensureIndex()
+
     const query = ref('')
     const debouncedQuery = ref('')
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -283,7 +354,7 @@ export function useHelpSearch() {
         if (!q || q.length < 2) return []
 
         const matched: HelpSearchResult[] = []
-        for (const entry of SEARCH_INDEX) {
+        for (const entry of index.value) {
             const textLower = entry.text.toLowerCase()
             const matchIndex = textLower.indexOf(q)
             if (matchIndex === -1) continue
