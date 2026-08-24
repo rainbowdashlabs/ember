@@ -248,7 +248,8 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 0,
                 ProfileFieldScope.MEMBER,
                 true,
-                false);
+                false,
+                null);
 
         var profile = service.getMemberProfile(clusterId, peopled.member().id());
 
@@ -277,7 +278,8 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 0,
                 ProfileFieldScope.MEMBER,
                 true,
-                false);
+                false,
+                null);
 
         service.updateMemberProfile(
                 clusterId,

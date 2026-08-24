@@ -555,7 +555,8 @@ public class DemoClusterSeeder implements DemoSeeder {
                 0,
                 ProfileFieldScope.MEMBER,
                 true,
-                false);
+                false,
+                null);
         fieldService.create(
                 cluster.id(),
                 "Atemschutztauglich",
@@ -564,7 +565,8 @@ public class DemoClusterSeeder implements DemoSeeder {
                 1,
                 ProfileFieldScope.MEMBER,
                 false,
-                true);
+                true,
+                null);
 
         var head = member.members().head();
         if (head != null) {

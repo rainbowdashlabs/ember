@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterProfileField;
 import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
@@ -27,9 +28,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The questions a cluster asks of the people at its stations.
@@ -49,6 +53,7 @@ public class ClusterProfileFieldService {
 
     private final ClusterProfileFieldRepository fieldRepository;
     private final ClusterRepository clusterRepository;
+    private final ClusterStationGroupRepository stationGroupRepository;
     private final StationRepository stationRepository;
     private final StationMemberRepository memberRepository;
     private final ProfileFieldChangeRepository changeRepository;
@@ -58,12 +63,14 @@ public class ClusterProfileFieldService {
     public ClusterProfileFieldService(
             ClusterProfileFieldRepository fieldRepository,
             ClusterRepository clusterRepository,
+            ClusterStationGroupRepository stationGroupRepository,
             StationRepository stationRepository,
             StationMemberRepository memberRepository,
             ProfileFieldChangeRepository changeRepository,
             DomainEventBus eventBus) {
         this.fieldRepository = fieldRepository;
         this.clusterRepository = clusterRepository;
+        this.stationGroupRepository = stationGroupRepository;
         this.stationRepository = stationRepository;
         this.memberRepository = memberRepository;
         this.changeRepository = changeRepository;
@@ -93,11 +100,22 @@ public class ClusterProfileFieldService {
             int position,
             ProfileFieldScope scope,
             boolean stationReadonly,
-            boolean keepOnArchive) {
+            boolean keepOnArchive,
+            Integer stationGroupId) {
         requireCluster(clusterId);
         requireUsable(name, fieldType, scope, config);
+        requireOwnGroup(clusterId, stationGroupId);
+        requireReachesNobodyTwice(clusterId, null, name.trim(), scope, stationGroupId);
         ClusterProfileField field = fieldRepository.create(
-                clusterId, name.trim(), fieldType, config, position, scope, stationReadonly, keepOnArchive);
+                clusterId,
+                name.trim(),
+                fieldType,
+                config,
+                position,
+                scope,
+                stationReadonly,
+                keepOnArchive,
+                stationGroupId);
         log.info("Cluster {} added field '{}'", clusterId, field.name());
         return field;
     }
@@ -111,11 +129,22 @@ public class ClusterProfileFieldService {
             int position,
             ProfileFieldScope scope,
             boolean stationReadonly,
-            boolean keepOnArchive) {
+            boolean keepOnArchive,
+            Integer stationGroupId) {
         requireField(clusterId, fieldId);
         requireUsable(name, fieldType, scope, config);
+        requireOwnGroup(clusterId, stationGroupId);
+        requireReachesNobodyTwice(clusterId, fieldId, name.trim(), scope, stationGroupId);
         fieldRepository.update(
-                fieldId, name.trim(), fieldType, config, position, scope, stationReadonly, keepOnArchive);
+                fieldId,
+                name.trim(),
+                fieldType,
+                config,
+                position,
+                scope,
+                stationReadonly,
+                keepOnArchive,
+                stationGroupId);
     }
 
     public void delete(int clusterId, int fieldId) {
@@ -146,6 +175,9 @@ public class ClusterProfileFieldService {
      * <p>One history rather than two, so a member's profile reads as one story: what changed, when, and by
      * whom, whoever asked the question.
      *
+     * <p>Only questions that reach the member's station may be answered. Without that a manager could fill
+     * in an answer to a question the station is never shown.
+     *
      * @param clusterId the cluster asking
      * @param memberId  the member answering
      * @param values    field id to answer
@@ -158,8 +190,18 @@ public class ClusterProfileFieldService {
         Map<Integer, String> before = findValues(clusterId, memberId);
         List<String> changed = new ArrayList<>();
 
+        int stationId = stationOf(memberId);
+        Map<ProfileFieldScope, Set<Integer>> reaching = new HashMap<>();
+
         for (var entry : values.entrySet()) {
             ClusterProfileField field = requireField(clusterId, entry.getKey());
+            Set<Integer> reachingHere = reaching.computeIfAbsent(
+                    field.scope(), scope -> fieldRepository.findForStation(stationId, scope).stream()
+                            .map(ClusterProfileField::id)
+                            .collect(Collectors.toSet()));
+            if (!reachingHere.contains(field.id())) {
+                throw new BadRequestResponse("That question is not asked of this member's station");
+            }
             String oldValue = before.getOrDefault(field.id(), "null");
             String newValue = entry.getValue() != null ? entry.getValue() : "null";
             if (Objects.equals(oldValue, newValue)) continue;
@@ -197,6 +239,51 @@ public class ClusterProfileFieldService {
     /**
      * Refuses the two kinds of field a cluster cannot meaningfully ask for.
      */
+    /**
+     * A question may only be pointed at a group of the association's own.
+     */
+    private void requireOwnGroup(int clusterId, Integer stationGroupId) {
+        if (stationGroupId == null) return;
+        boolean own = stationGroupRepository
+                .findById(stationGroupId)
+                .filter(group -> group.clusterId() == clusterId)
+                .isPresent();
+        if (!own) throw new BadRequestResponse("That group of stations belongs to another association");
+    }
+
+    /**
+     * Two questions of one name may never land on the same profile.
+     *
+     * <p>The database catches the exact duplicate. The interesting case is not exact: a question asked of
+     * everybody and one of the same name asked of a group would both reach the stations in that group, and a
+     * member there would be asked twice with two places to answer. So the check is what each of the two
+     * actually reaches, and whether those two sets meet.
+     *
+     * @param clusterId the association
+     * @param fieldId   the question being edited, or {@code null} when it is being created
+     * @param name      what it is called
+     * @param scope     which kind of member it applies to
+     * @param groupId   the group it is pointed at, or {@code null} for every station
+     */
+    private void requireReachesNobodyTwice(
+            int clusterId, Integer fieldId, String name, ProfileFieldScope scope, Integer groupId) {
+        Set<Integer> reached = new HashSet<>(stationGroupRepository.findStationIdsReachedBy(clusterId, groupId));
+        if (reached.isEmpty()) return;
+
+        for (ClusterProfileField other : fieldRepository.findByCluster(clusterId)) {
+            if (fieldId != null && other.id() == fieldId) continue;
+            if (other.scope() != scope || !other.name().equalsIgnoreCase(name)) continue;
+
+            for (int stationId : stationGroupRepository.findStationIdsReachedBy(clusterId, other.stationGroupId())) {
+                if (reached.contains(stationId)) {
+                    throw new BadRequestResponse(
+                            "A question called '%s' already reaches a station this one would reach as well"
+                                    .formatted(name));
+                }
+            }
+        }
+    }
+
     private static void requireUsable(
             String name, ProfileFieldType fieldType, ProfileFieldScope scope, ProfileFieldConfig config) {
         if (name == null || name.isBlank()) throw new BadRequestResponse("A field needs a name");

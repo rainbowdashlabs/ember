@@ -559,7 +559,8 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 0,
                 ProfileFieldScope.MEMBER,
                 true,
-                false);
+                false,
+                null);
         var open = clusterProfileFieldRepo.create(
                 cluster.id(),
                 "Funkrufname",
@@ -568,7 +569,8 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 1,
                 ProfileFieldScope.MEMBER,
                 false,
-                false);
+                false,
+                null);
 
         var fields = service.findApplicableFields(member.id());
         assertTrue(

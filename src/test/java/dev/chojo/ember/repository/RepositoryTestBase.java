@@ -28,12 +28,14 @@ import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterApplicationRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
 import dev.chojo.ember.feature.cluster.service.ClusterDispatchService;
 import dev.chojo.ember.feature.cluster.service.ClusterGovernanceService;
 import dev.chojo.ember.feature.cluster.service.ClusterInventoryService;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
 import dev.chojo.ember.feature.cluster.service.ClusterProfileFieldService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.cluster.service.ClusterStationGroupService;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageBackendService;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageQuotaService;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
@@ -194,6 +196,8 @@ public abstract class RepositoryTestBase {
     protected static ClusterService clusterService;
 
     protected static ClusterGovernanceService clusterGovernanceService;
+    protected static ClusterStationGroupRepository clusterStationGroupRepo;
+    protected static ClusterStationGroupService clusterStationGroupService;
     protected static ClusterStorageBackendService clusterStorageBackendService;
 
     protected static ClusterMemberService clusterMemberService;
@@ -392,9 +396,12 @@ public abstract class RepositoryTestBase {
                 accountRepo,
                 clusterProfileFieldRepo);
         inventoryService = new InventoryService(inventoryRepo, itemCustodyService, clusterRepo);
+        clusterStationGroupRepo = new ClusterStationGroupRepository();
+        clusterStationGroupService = new ClusterStationGroupService(clusterStationGroupRepo, clusterRepo, stationRepo);
         clusterProfileFieldService = new ClusterProfileFieldService(
                 clusterProfileFieldRepo,
                 clusterRepo,
+                clusterStationGroupRepo,
                 stationRepo,
                 stationMemberRepo,
                 profileFieldChangeRepo,
@@ -425,6 +432,7 @@ public abstract class RepositoryTestBase {
                 clusterProfileFieldService,
                 clusterStorageQuotaRepo,
                 clusterStorageBackendService,
+                clusterStationGroupService,
                 new DomainEventBus(Set.of()));
         clusterMemberService = new ClusterMemberService(clusterRepo, clusterService, new DomainEventBus(Set.of()));
         userSettingsRepo = new UserSettingsRepository();

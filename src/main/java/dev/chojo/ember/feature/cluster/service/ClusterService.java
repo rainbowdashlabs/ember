@@ -60,6 +60,7 @@ public class ClusterService {
     private final ClusterProfileFieldService fieldService;
     private final ClusterStorageQuotaRepository quotaRepository;
     private final ClusterStorageBackendService storageBackendService;
+    private final ClusterStationGroupService stationGroupService;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -72,6 +73,7 @@ public class ClusterService {
             ClusterProfileFieldService fieldService,
             ClusterStorageQuotaRepository quotaRepository,
             ClusterStorageBackendService storageBackendService,
+            ClusterStationGroupService stationGroupService,
             DomainEventBus eventBus) {
         this.clusterRepository = clusterRepository;
         this.stationRepository = stationRepository;
@@ -81,6 +83,7 @@ public class ClusterService {
         this.fieldService = fieldService;
         this.quotaRepository = quotaRepository;
         this.storageBackendService = storageBackendService;
+        this.stationGroupService = stationGroupService;
         this.eventBus = eventBus;
     }
 
@@ -223,6 +226,7 @@ public class ClusterService {
         // The answers go, the history of who changed what stays: an audit trail is not the cluster's to
         // take away when it lets a station go
         fieldService.clearValuesOfStation(stationId);
+        stationGroupService.forgetStation(stationId);
         // The room went with the membership. What the instance says about the station stands again, untouched
         // all along
         quotaRepository.deleteGrant(stationId);

@@ -15,6 +15,7 @@ import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -58,7 +59,8 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 0,
                 ProfileFieldScope.MEMBER,
                 true,
-                false);
+                false,
+                null);
 
         var reaching = clusterProfileFieldService.findForStation(station.id(), ProfileFieldScope.MEMBER);
         assertEquals(1, reaching.size());
@@ -99,8 +101,107 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         0,
                         ProfileFieldScope.GROUP,
                         true,
-                        false));
+                        false,
+                        null));
         assertTrue(refused.getMessage().contains("cannot see"));
+    }
+
+    /**
+     * A question pointed at a group reaches the stations filed under it and nobody else, which is the whole
+     * of the feature: an association's stations do different work.
+     */
+    @Test
+    void aTargetedQuestionReachesTheStationsInItsGroupAndNoOthers() {
+        int clusterId = freshCluster();
+        var inside = clusterService.createStation(clusterId, "Wache Innen " + NAMES.incrementAndGet());
+        var outside = clusterService.createStation(clusterId, "Wache Aussen " + NAMES.incrementAndGet());
+        var group = clusterStationGroupService.create(clusterId, "Atemschutz " + NAMES.incrementAndGet());
+        clusterStationGroupService.setStations(clusterId, group.id(), List.of(inside.uid()));
+
+        clusterProfileFieldService.create(
+                clusterId,
+                "Atemschutztauglich",
+                ProfileFieldType.BOOLEAN,
+                ProfileFieldConfig.empty(),
+                0,
+                ProfileFieldScope.MEMBER,
+                true,
+                false,
+                group.id());
+
+        assertEquals(
+                1,
+                clusterProfileFieldService
+                        .findForStation(inside.id(), ProfileFieldScope.MEMBER)
+                        .size());
+        assertTrue(
+                clusterProfileFieldService
+                        .findForStation(outside.id(), ProfileFieldScope.MEMBER)
+                        .isEmpty(),
+                "a station outside the filing is never asked");
+
+        clusterStationGroupService.setStations(clusterId, group.id(), List.of());
+        assertTrue(clusterProfileFieldService
+                .findForStation(inside.id(), ProfileFieldScope.MEMBER)
+                .isEmpty());
+
+        clusterService.releaseStation(clusterId, inside.id());
+        clusterService.releaseStation(clusterId, outside.id());
+        stationRepo.delete(inside.id());
+        stationRepo.delete(outside.id());
+        clusterService.delete(clusterId);
+    }
+
+    /**
+     * Two questions of one name may never land on the same profile, and may both exist when they cannot meet.
+     */
+    @Test
+    void twoQuestionsOfOneNameMayNotReachTheSameStation() {
+        int clusterId = freshCluster();
+        var station = clusterService.createStation(clusterId, "Wache Doppelt " + NAMES.incrementAndGet());
+        var reaching = clusterStationGroupService.create(clusterId, "Erreicht " + NAMES.incrementAndGet());
+        var empty = clusterStationGroupService.create(clusterId, "Leer " + NAMES.incrementAndGet());
+        clusterStationGroupService.setStations(clusterId, reaching.id(), List.of(station.uid()));
+
+        clusterProfileFieldService.create(
+                clusterId,
+                "Funkrufname",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.empty(),
+                0,
+                ProfileFieldScope.MEMBER,
+                true,
+                false,
+                null);
+
+        var refused = assertThrows(
+                BadRequestResponse.class,
+                () -> clusterProfileFieldService.create(
+                        clusterId,
+                        "Funkrufname",
+                        ProfileFieldType.TEXT,
+                        ProfileFieldConfig.empty(),
+                        1,
+                        ProfileFieldScope.MEMBER,
+                        true,
+                        false,
+                        reaching.id()));
+        assertTrue(refused.getMessage().contains("already reaches"));
+
+        clusterProfileFieldService.create(
+                clusterId,
+                "Funkrufname",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.empty(),
+                1,
+                ProfileFieldScope.MEMBER,
+                true,
+                false,
+                empty.id());
+
+        clusterService.releaseStation(clusterId, station.id());
+        stationRepo.delete(station.id());
+        clusterService.delete(clusterId);
     }
 
     @Test
@@ -117,7 +218,8 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         0,
                         ProfileFieldScope.MEMBER,
                         true,
-                        false));
+                        false,
+                        null));
         assertTrue(refused.getMessage().contains("collide"));
     }
 
@@ -135,7 +237,8 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                         0,
                         ProfileFieldScope.MEMBER,
                         true,
-                        false));
+                        false,
+                        null));
     }
 
     @Test
@@ -151,7 +254,8 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 0,
                 ProfileFieldScope.MEMBER,
                 true,
-                false);
+                false,
+                null);
 
         clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "true"), memberId);
 
@@ -176,7 +280,8 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 0,
                 ProfileFieldScope.MEMBER,
                 true,
-                false);
+                false,
+                null);
         clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "true"), memberId);
 
         clusterService.releaseStation(clusterId, station.id());
@@ -213,7 +318,8 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 0,
                 ProfileFieldScope.MEMBER,
                 true,
-                false);
+                false,
+                null);
 
         clusterProfileFieldService.update(
                 clusterId,
@@ -224,7 +330,8 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 1,
                 ProfileFieldScope.TEAM,
                 false,
-                true);
+                true,
+                null);
 
         var updated = clusterProfileFieldService.findByCluster(clusterId).getFirst();
         assertEquals("Endgültig", updated.name());
@@ -247,7 +354,8 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 0,
                 ProfileFieldScope.MEMBER,
                 true,
-                false);
+                false,
+                null);
 
         assertThrows(NotFoundResponse.class, () -> clusterProfileFieldService.delete(clusterId, field.id()));
     }
@@ -265,7 +373,8 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 0,
                 ProfileFieldScope.MEMBER,
                 true,
-                false);
+                false,
+                null);
         clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "\"da\""), memberId);
 
         assertTrue(clusterProfileFieldRepo.deleteValue(memberId, field.id()));
@@ -287,7 +396,8 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 0,
                 ProfileFieldScope.MEMBER,
                 true,
-                false);
+                false,
+                null);
 
         assertEquals(
                 "Nachschlagen",
@@ -308,7 +418,8 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                 0,
                 ProfileFieldScope.MEMBER,
                 true,
-                false);
+                false,
+                null);
         clusterProfileFieldService.setValues(clusterId, memberId, Map.of(field.id(), "\"gleich\""), memberId);
         int after = profileFieldChangeRepo.findByMember(memberId).size();
 

@@ -25,7 +25,8 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class ClusterProfileFieldRepository {
 
     private static final String FIELD_COLUMNS =
-            "id, cluster_id, name, field_type, config, position, scope, station_readonly, keep_on_archive";
+            "id, cluster_id, name, field_type, config, position, scope, station_readonly, keep_on_archive, "
+                    + "station_group_id";
 
     public List<ClusterProfileField> findByCluster(int clusterId) {
         return query("""
@@ -47,6 +48,9 @@ public class ClusterProfileFieldRepository {
      * <p>Resolved from the station rather than from the cluster, because the station's own screens do not
      * know or care which cluster they answer to.
      *
+     * <p>A question naming a group reaches only the stations filed under it. This is the one place a question
+     * reaches a station at all, so the targeting is written here and nowhere else.
+     *
      * @param stationId the station
      * @param scope     which kind of member the fields apply to
      * @return the fields, empty when the station answers to no cluster
@@ -55,7 +59,13 @@ public class ClusterProfileFieldRepository {
         return query("""
                 SELECT %s FROM cluster_profile_field cpf
                 JOIN station s ON s.cluster_id = cpf.cluster_id
-                WHERE s.id = :station_id AND cpf.scope = :scope
+                WHERE s.id = :station_id
+                  AND cpf.scope = :scope
+                  AND (cpf.station_group_id IS NULL
+                       OR EXISTS (SELECT 1
+                                  FROM cluster_station_group_membership m
+                                  WHERE m.group_id = cpf.station_group_id
+                                    AND m.station_id = s.id))
                 ORDER BY cpf.position, cpf.name;""", SqlSupport.alias("cpf", FIELD_COLUMNS))
                 .single(call().bind("station_id", stationId).bind("scope", scope))
                 .map(ClusterProfileField.map())
@@ -70,16 +80,17 @@ public class ClusterProfileFieldRepository {
             int position,
             ProfileFieldScope scope,
             boolean stationReadonly,
-            boolean keepOnArchive) {
+            boolean keepOnArchive,
+            Integer stationGroupId) {
         return SqlSupport.insertReturning(
                 """
                 INSERT
                 INTO
                     cluster_profile_field(cluster_id, name, field_type, config, position, scope,
-                                          station_readonly, keep_on_archive)
+                                          station_readonly, keep_on_archive, station_group_id)
                 VALUES
                     (:cluster_id, :name, :field_type, :config::JSONB, :position, :scope,
-                     :station_readonly, :keep_on_archive)
+                     :station_readonly, :keep_on_archive, :station_group_id)
                 RETURNING %s;""",
                 call().bind("cluster_id", clusterId)
                         .bind("name", name)
@@ -88,7 +99,8 @@ public class ClusterProfileFieldRepository {
                         .bind("position", position)
                         .bind("scope", scope)
                         .bind("station_readonly", stationReadonly)
-                        .bind("keep_on_archive", keepOnArchive),
+                        .bind("keep_on_archive", keepOnArchive)
+                        .bind("station_group_id", stationGroupId),
                 ClusterProfileField.map(),
                 FIELD_COLUMNS);
     }
@@ -101,7 +113,8 @@ public class ClusterProfileFieldRepository {
             int position,
             ProfileFieldScope scope,
             boolean stationReadonly,
-            boolean keepOnArchive) {
+            boolean keepOnArchive,
+            Integer stationGroupId) {
         return query("""
                 UPDATE cluster_profile_field
                 SET name             = :name,
@@ -110,7 +123,8 @@ public class ClusterProfileFieldRepository {
                     position         = :position,
                     scope            = :scope,
                     station_readonly = :station_readonly,
-                    keep_on_archive  = :keep_on_archive
+                    keep_on_archive  = :keep_on_archive,
+                    station_group_id = :station_group_id
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("name", name)
@@ -119,7 +133,8 @@ public class ClusterProfileFieldRepository {
                         .bind("position", position)
                         .bind("scope", scope)
                         .bind("station_readonly", stationReadonly)
-                        .bind("keep_on_archive", keepOnArchive))
+                        .bind("keep_on_archive", keepOnArchive)
+                        .bind("station_group_id", stationGroupId))
                 .update()
                 .changed();
     }

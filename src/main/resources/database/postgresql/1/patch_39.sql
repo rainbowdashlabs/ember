@@ -931,6 +931,39 @@ CREATE INDEX IF NOT EXISTS idx_cluster_station_quota_cluster
 -- mirrors profile_field almost exactly, and the value hangs off the same station_member row, because the
 -- person being asked is a member of a station and not of the cluster.
 --
+-- An association's stations do different work, and a question sensible at one is noise at the next.
+-- A group is a filing of stations rather than a partition of them: a station can sit in a regional
+-- group and an equipment group at once, because those are two different questions about it.
+
+CREATE TABLE IF NOT EXISTS ember_schema.cluster_station_group
+(
+    id         SERIAL PRIMARY KEY,
+    cluster_id INTEGER NOT NULL REFERENCES ember_schema.cluster (id) ON DELETE CASCADE,
+    name       TEXT    NOT NULL,
+    UNIQUE (cluster_id, name)
+);
+
+COMMENT ON TABLE ember_schema.cluster_station_group
+    IS 'A named set of an association''s stations, which its questions can be pointed at.';
+COMMENT ON COLUMN ember_schema.cluster_station_group.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.cluster_station_group.cluster_id IS 'The association doing the filing.';
+COMMENT ON COLUMN ember_schema.cluster_station_group.name IS 'The label, unique within its association.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.cluster_station_group_membership
+(
+    group_id   INTEGER NOT NULL REFERENCES ember_schema.cluster_station_group (id) ON DELETE CASCADE,
+    station_id INTEGER NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    PRIMARY KEY (group_id, station_id)
+);
+
+COMMENT ON TABLE ember_schema.cluster_station_group_membership
+    IS 'Which stations are in which group. A station may be in several, because the ways of grouping stations cut across each other.';
+COMMENT ON COLUMN ember_schema.cluster_station_group_membership.group_id IS 'The group.';
+COMMENT ON COLUMN ember_schema.cluster_station_group_membership.station_id IS 'The station in it.';
+
+CREATE INDEX IF NOT EXISTS idx_cluster_station_group_membership_station
+    ON ember_schema.cluster_station_group_membership (station_id);
+
 -- Two columns the station's own fields do not have. station_readonly says whether the people at the station
 -- may fill the answer in or only read it, which a station field never has to ask because a station field
 -- belongs to the people looking at it. And the whole row is scoped to the cluster rather than the station,
@@ -947,14 +980,16 @@ CREATE TABLE IF NOT EXISTS ember_schema.cluster_profile_field
     scope            TEXT    NOT NULL DEFAULT 'MEMBER',
     station_readonly BOOLEAN NOT NULL DEFAULT TRUE,
     keep_on_archive  BOOLEAN NOT NULL DEFAULT FALSE,
-    UNIQUE (cluster_id, scope, name)
+    station_group_id INTEGER REFERENCES ember_schema.cluster_station_group (id) ON DELETE RESTRICT,
+    UNIQUE NULLS NOT DISTINCT (cluster_id, scope, station_group_id, name)
 );
 
 COMMENT ON TABLE ember_schema.cluster_profile_field
     IS 'A question a cluster asks of the members at its stations, shaped like a station''s own profile field.';
 COMMENT ON COLUMN ember_schema.cluster_profile_field.id IS 'Auto-generated primary key.';
 COMMENT ON COLUMN ember_schema.cluster_profile_field.cluster_id IS 'The cluster asking.';
-COMMENT ON COLUMN ember_schema.cluster_profile_field.name IS 'The label, unique within its cluster and scope.';
+COMMENT ON COLUMN ember_schema.cluster_profile_field.name
+    IS 'The label, unique within its cluster, its scope and the group of stations it is asked of.';
 COMMENT ON COLUMN ember_schema.cluster_profile_field.field_type
     IS 'What kind of answer it takes, from the same set a station field uses.';
 COMMENT ON COLUMN ember_schema.cluster_profile_field.config
@@ -966,6 +1001,8 @@ COMMENT ON COLUMN ember_schema.cluster_profile_field.station_readonly
     IS 'TRUE when the people at the station may read the answer but not write it.';
 COMMENT ON COLUMN ember_schema.cluster_profile_field.keep_on_archive
     IS 'TRUE when the answer survives the member being marked as having left.';
+COMMENT ON COLUMN ember_schema.cluster_profile_field.station_group_id
+    IS 'The group of stations this question is asked of. NULL asks it of every station under the association.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.cluster_profile_field_value
 (

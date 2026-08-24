@@ -27,6 +27,8 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldType;
  * @param scope           which kind of member it applies to
  * @param stationReadonly whether the people at the station may only read the answer
  * @param keepOnArchive   whether the answer survives the member being marked as having left
+ * @param stationGroupId  the group of stations it is asked of, or {@code null} for every station under the
+ *                        association
  */
 public record ClusterProfileField(
         int id,
@@ -37,7 +39,8 @@ public record ClusterProfileField(
         int position,
         ProfileFieldScope scope,
         boolean stationReadonly,
-        boolean keepOnArchive) {
+        boolean keepOnArchive,
+        Integer stationGroupId) {
 
     public static RowMapping<ClusterProfileField> map() {
         return row -> new ClusterProfileField(
@@ -49,6 +52,7 @@ public record ClusterProfileField(
                 row.getInt("position"),
                 row.getEnum("scope", ProfileFieldScope.class),
                 row.getBoolean("station_readonly"),
-                row.getBoolean("keep_on_archive"));
+                row.getBoolean("keep_on_archive"),
+                row.getObject("station_group_id", Integer.class));
     }
 }

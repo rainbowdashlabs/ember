@@ -102,7 +102,8 @@ public class ClusterFieldRoutes implements Routes {
                 request.position(),
                 parseScope(request.scope()),
                 request.stationReadonly(),
-                request.keepOnArchive());
+                request.keepOnArchive(),
+                request.stationGroupId());
         ctx.status(HttpStatus.CREATED).json(toResponse(field));
     }
 
@@ -126,7 +127,8 @@ public class ClusterFieldRoutes implements Routes {
                 request.position(),
                 parseScope(request.scope()),
                 request.stationReadonly(),
-                request.keepOnArchive());
+                request.keepOnArchive(),
+                request.stationGroupId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -212,7 +214,8 @@ public class ClusterFieldRoutes implements Routes {
                 field.position(),
                 field.scope().name(),
                 field.stationReadonly(),
-                field.keepOnArchive());
+                field.keepOnArchive(),
+                field.stationGroupId());
     }
 
     /**
@@ -225,7 +228,8 @@ public class ClusterFieldRoutes implements Routes {
             int position,
             String scope,
             boolean stationReadonly,
-            boolean keepOnArchive) {}
+            boolean keepOnArchive,
+            Integer stationGroupId) {}
 
     public record ClusterFieldResponse(
             int id,
@@ -235,7 +239,8 @@ public class ClusterFieldRoutes implements Routes {
             int position,
             String scope,
             boolean stationReadonly,
-            boolean keepOnArchive) {}
+            boolean keepOnArchive,
+            Integer stationGroupId) {}
 
     /**
      * @param values field id to answer, in the same JSON shape a station field's answer has

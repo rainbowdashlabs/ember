@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:7cf3da6c883b1eedcc3211523de5d87cbc4a12c4551a6eb67f40109b0ef94fa4",
-  "generatedAt" : "2026-08-23T23:48:21Z",
+  "schemaHash" : "sha256:b040c35fb35b26188506def47c5fe5bd0eabe4d1867fdd5f77c1da5433efd17e",
+  "generatedAt" : "2026-08-24T08:42:26Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -3464,7 +3464,7 @@
     "cluster_profile_field" : {
       "feature" : "cluster",
       "scope" : "CLUSTER",
-      "tableHash" : "sha256:71153aff9e343975ba0d6eb44ebc356e8dbf8810a52145a50470625df1ff3b08",
+      "tableHash" : "sha256:bb11069c47610d136d36d9a63ab5d39d00b3efb0de87f148101e5ea830f52da4",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -3482,7 +3482,7 @@
         "type" : "text",
         "nullable" : false,
         "verified" : true,
-        "description" : "The label, unique within its cluster and scope."
+        "description" : "The label, unique within its cluster, its scope and the group of stations it is asked of."
       }, {
         "name" : "field_type",
         "type" : "text",
@@ -3519,12 +3519,23 @@
         "nullable" : false,
         "verified" : true,
         "description" : "TRUE when the answer survives the member being marked as having left."
+      }, {
+        "name" : "station_group_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The group of stations this question is asked of. NULL asks it of every station under the association."
       } ],
       "foreignKeys" : [ {
         "column" : "cluster_id",
         "refTable" : "cluster",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_group_id",
+        "refTable" : "cluster_station_group",
+        "refColumn" : "id",
+        "onDelete" : "RESTRICT"
       } ],
       "stationTransfer" : {
         "status" : "IGNORED",
@@ -3594,6 +3605,91 @@
         } ]
       },
       "description" : "What one member answered to one cluster question. Keyed on the station member, because that is who was asked."
+    },
+    "cluster_station_group" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:8a7ef709ac6d3bebbb38be75560d870e3bb7e6ebaa29b891534f35f86463f198",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The association doing the filing."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The label, unique within its association."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: how a cluster files its stations"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "A named set of an association's stations, which its questions can be pointed at."
+    },
+    "cluster_station_group_membership" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:5b3a3abc7ae465e3a9f8c27d823c6986445e3467c2e39a2b01a3664f707d26e0",
+      "columns" : [ {
+        "name" : "group_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The group."
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station in it."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "group_id",
+        "refTable" : "cluster_station_group",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: which stations a cluster filed together"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "Which stations are in which group. A station may be in several, because the ways of grouping stations cut across each other."
     },
     "cluster_station_quota" : {
       "feature" : "cluster",
