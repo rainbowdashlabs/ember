@@ -5,10 +5,14 @@
  */
 package dev.chojo.ember.feature.system.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.system.service.InstallPresetService;
+import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -30,10 +34,12 @@ import java.util.Map;
 public class InstallRoutes implements Routes {
 
     private final InstallPresetService presets;
+    private final Network network;
 
     @Inject
-    public InstallRoutes(InstallPresetService presets) {
+    public InstallRoutes(InstallPresetService presets, Network network) {
         this.presets = presets;
+        this.network = network;
     }
 
     @Override
@@ -70,6 +76,13 @@ public class InstallRoutes implements Routes {
             tags = {"Install"},
             responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "404")})
     private void readPreset(Context ctx) {
+        var retryAfter = presets.tryLookup(ClientIp.resolve(ctx, network).getHostAddress());
+        if (retryAfter.isPresent()) {
+            ctx.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .header("Retry-After", String.valueOf(retryAfter.get()))
+                    .json(new ErrorResponseWrapper("Rate limit exceeded"));
+            return;
+        }
         var options = presets.find(ctx.pathParam("code"))
                 .orElseThrow(() -> new NotFoundResponse("Unknown or expired install code"));
         var body = new StringBuilder();
