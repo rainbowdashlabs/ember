@@ -997,6 +997,11 @@ public class ApiServer {
      * {@code nosniff} a browser may look at the body anyway and render it as HTML, which is the
      * hole that allow-list exists to close, so this header is what makes the refusal hold.
      *
+     * <p>Framing is limited to this origin rather than refused outright: the application shows a
+     * PDF, a presentation and a knowledge-base file by pointing an {@code iframe} at the endpoint
+     * that serves it, so a flat refusal blocks the application from displaying its own files while
+     * doing nothing about another site, which the same-origin rule already stops.
+     *
      * <p>A route that has already asked for something stricter keeps its own referrer policy: the
      * user feed says {@code no-referrer} so its token cannot travel in a {@code Referer}. Strict
      * transport security is sent only over HTTPS, and never by a development instance, which is
@@ -1004,7 +1009,8 @@ public class ApiServer {
      */
     private void applyBrowserSecurityHeaders(@NotNull Context ctx) {
         ctx.header("X-Content-Type-Options", "nosniff");
-        ctx.header("X-Frame-Options", "DENY");
+        ctx.header("X-Frame-Options", "SAMEORIGIN");
+        ctx.header("Content-Security-Policy", "frame-ancestors 'self'");
         if (ctx.res().getHeader("Referrer-Policy") == null) {
             ctx.header("Referrer-Policy", "strict-origin-when-cross-origin");
         }
