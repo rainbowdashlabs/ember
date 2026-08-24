@@ -14,7 +14,7 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import ProfileFieldModal from '@/views/stationview/manage/membersconfig/FieldModal.vue'
 import FieldsPanel from '@/views/stationview/manage/membersconfig/FieldsPanel.vue'
 import FieldsPreview from '@/views/stationview/manage/membersconfig/FieldsPreview.vue'
-import {clusterFields} from '@/api'
+import {clusterFields, clusterStationGroups} from '@/api'
 import {CLUSTER_FIELD_SCOPES, CLUSTER_FIELD_TYPES} from '@/api/clusterFields'
 import {useFieldsConfig, type FieldsPort} from '@/composables/useFieldsConfig'
 
@@ -37,10 +37,12 @@ const port: FieldsPort = {
   scopes: CLUSTER_FIELD_SCOPES,
   types: CLUSTER_FIELD_TYPES,
   stationReadonly: true,
+  listStationGroups: () => clusterStationGroups.listGroups(),
 }
 
 const {
-  activeTab, currentFields, dateFields, birthDateField, showFieldModal, editingField,
+  activeTab, currentFields, previewFields, availableStationGroups, selectedStationGroupId,
+  dateFields, birthDateField, showFieldModal, editingField,
   loading, error, openAddField, openEditField, saveField, toggleFieldConfig,
   toggleKeepOnArchive, setWritability, showDeleteModal, deleteTarget, requestDelete,
   confirmDelete, onReorder, applyTemplate,
@@ -52,6 +54,20 @@ const tabs = computed(() => [
   {key: 'TEAM', label: t('membersConfig.tabTeam')},
   {key: 'MANAGER', label: t('membersConfig.tabStationManager')},
 ])
+
+/**
+ * The second axis: who a question is asked of. An association that files nothing sees exactly the
+ * screen it saw before this row existed.
+ */
+const stationGroupTabs = computed(() => [
+  {key: '', label: t('membersConfig.everyStation')},
+  ...availableStationGroups.value.map(g => ({key: String(g.id), label: g.name})),
+])
+
+const activeStationGroup = computed({
+  get: () => selectedStationGroupId.value === null ? '' : String(selectedStationGroupId.value),
+  set: (key: string) => { selectedStationGroupId.value = key ? Number(key) : null },
+})
 </script>
 
 <template>
@@ -64,6 +80,8 @@ const tabs = computed(() => [
 
       <div v-if="!loading" class="space-y-6">
         <TabBar v-model="activeTab" :tabs="tabs"/>
+
+        <TabBar v-if="availableStationGroups.length > 0" v-model="activeStationGroup" :tabs="stationGroupTabs"/>
 
         <FieldsPanel
             :active-tab="activeTab"
@@ -78,7 +96,7 @@ const tabs = computed(() => [
             @apply-template="applyTemplate"
         />
 
-        <FieldsPreview v-if="currentFields.length > 0" :fields="currentFields"/>
+        <FieldsPreview v-if="previewFields.length > 0" :fields="previewFields"/>
       </div>
 
       <ProfileFieldModal

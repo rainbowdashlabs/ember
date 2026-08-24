@@ -345,6 +345,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 clusterMemberService,
                 clusterInventoryService,
                 clusterProfileFieldService,
+                clusterStationGroupService,
                 new ClusterContentService(clusterRepo, stationRepo, stationMemberRepo, kbService),
                 new ClusterApplicationService(
                         clusterApplicationRepo, clusterRepo, stationRepo, clusterService, noOpBus),

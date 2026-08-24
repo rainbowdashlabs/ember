@@ -11,6 +11,7 @@ import {
     DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
     type ProfileField, type ProfileFieldConfig, type ProfileFieldRequest,
 } from '@/api/profileFields'
+import type {StationGroup} from '@/api/clusterStationGroups'
 import type {MemberGroup} from '@/api/types'
 
 /** A field of group scope belongs to a group, and only a station has those. */
@@ -35,6 +36,8 @@ export interface FieldsPort {
     types: readonly string[]
     /** The groups a group-scoped field can name, when this owner has group scope at all. */
     listGroups?: () => Promise<MemberGroup[]>
+    /** The station groups a question can be pointed at, when this owner files its stations at all. */
+    listStationGroups?: () => Promise<StationGroup[]>
     /**
      * Whether this owner has a third party to lock out. An association does, and offers the three way
      * choice of who may change an answer; a station does not, and keeps its single member toggle.
@@ -118,30 +121,53 @@ export function useFieldsConfig(port: FieldsPort) {
 
     const allFields = ref<ProfileField[]>([])
     const availableGroups = ref<MemberGroup[]>([])
+    const availableStationGroups = ref<StationGroup[]>([])
     const activeTab = ref(port.scopes[0] ?? 'MEMBER')
     const selectedGroupId = ref('')
+    /**
+     * Which station group's questions the screen is showing, {@code null} for the ones asked of every
+     * station. Never confuse it with {@code selectedGroupId}, which is a station's member group and the
+     * axis of the GROUP scope: two kinds of group on one screen.
+     */
+    const selectedStationGroupId = ref<number | null>(null)
 
     const showFieldModal = ref(false)
     const editingField = ref<ProfileField | null>(null)
 
     const {loading, error, reload} = useAsyncLoader(async () => {
-        const [fields, groups] = await Promise.all([
+        const [fields, groups, stationGroups] = await Promise.all([
             port.list(),
             port.listGroups ? port.listGroups() : Promise.resolve([] as MemberGroup[]),
+            port.listStationGroups ? port.listStationGroups() : Promise.resolve([] as StationGroup[]),
         ])
         allFields.value = fields
         availableGroups.value = groups
+        availableStationGroups.value = stationGroups
     })
 
     const currentFields = computed(() => {
         if (activeTab.value !== GROUP_SCOPE) {
-            return allFields.value.filter(f => f.scope === activeTab.value)
+            return allFields.value.filter(f => f.scope === activeTab.value
+                && (f.stationGroupId ?? null) === selectedStationGroupId.value)
         }
         if (!selectedGroupId.value) return []
         return allFields.value.filter(f => {
             if (f.scope !== GROUP_SCOPE) return false
             return parseFieldConfig(f.config).groupId === Number(selectedGroupId.value)
         })
+    })
+
+    /**
+     * What a person of the active kind at a station in the active group is actually shown: the questions
+     * asked of every station plus the ones asked of this one, in position order. The table above lists
+     * only the tab's own questions, because that is the set a click can act on.
+     */
+    const previewFields = computed(() => {
+        if (activeTab.value === GROUP_SCOPE || selectedStationGroupId.value === null) return currentFields.value
+        return allFields.value
+            .filter(f => f.scope === activeTab.value
+                && ((f.stationGroupId ?? null) === null || f.stationGroupId === selectedStationGroupId.value))
+            .sort((a, b) => a.position - b.position)
     })
 
     /**
@@ -169,13 +195,22 @@ export function useFieldsConfig(port: FieldsPort) {
         showFieldModal.value = true
     }
 
+    /**
+     * A question is asked of whichever station group the screen is showing. A port that files no station
+     * groups never sends the key, because its endpoint neither expects nor reads it.
+     */
+    function withTarget<T extends ProfileFieldRequest>(data: T): T {
+        if (!port.listStationGroups) return data
+        return {...data, stationGroupId: selectedStationGroupId.value}
+    }
+
     async function saveField(data: ProfileFieldRequest & {scope?: string}) {
         error.value = ''
         try {
             if (editingField.value) {
-                await port.update(editingField.value.id, data)
+                await port.update(editingField.value.id, withTarget(data))
             } else {
-                await port.create({...data, position: currentFields.value.length})
+                await port.create(withTarget({...data, position: currentFields.value.length}))
             }
             showFieldModal.value = false
             await reload()
@@ -197,6 +232,7 @@ export function useFieldsConfig(port: FieldsPort) {
             position: field.position,
             keepOnArchive: field.keepOnArchive,
             stationReadonly: field.stationReadonly,
+            ...(port.listStationGroups ? {stationGroupId: field.stationGroupId ?? null} : {}),
             ...patch,
         }
     }
@@ -276,13 +312,13 @@ export function useFieldsConfig(port: FieldsPort) {
         try {
             const startPosition = currentFields.value.length
             for (const [i, f] of template.fields.entries()) {
-                await port.create({
+                await port.create(withTarget({
                     name: f.name,
                     fieldType: f.fieldType,
                     config: withSelectedGroup(f.config),
                     position: startPosition + i,
                     scope: activeTab.value,
-                })
+                }))
             }
             await reload()
         } catch {
@@ -293,9 +329,12 @@ export function useFieldsConfig(port: FieldsPort) {
     return {
         allFields: allFields as Ref<ProfileField[]>,
         availableGroups,
+        availableStationGroups,
         activeTab,
         selectedGroupId,
+        selectedStationGroupId,
         currentFields,
+        previewFields,
         unassignedGroupFields,
         dateFields,
         birthDateField,

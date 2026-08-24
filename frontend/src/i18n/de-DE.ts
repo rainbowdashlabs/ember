@@ -2267,6 +2267,7 @@ export default {
         tabGuardian: 'Erziehungsberechtigter',
         tabTeam: 'Team',
         tabStationManager: 'Leitung',
+        everyStation: 'Alle Wachen',
         tabGroup: 'Gruppenspezifisch',
         selectGroup: 'Gruppe',
         selectGroupPlaceholder: 'Gruppe auswählen',

@@ -46,6 +46,11 @@ export interface ProfileField {
      * an association declares: a station has nobody above it to lock out.
      */
     stationReadonly?: boolean
+    /**
+     * The group of stations this question is asked of. Only ever set on a field an association declares;
+     * absent means every station of the association.
+     */
+    stationGroupId?: number | null
 }
 
 /** The settings of a field that names none, so a reader never has to check for their absence. */
@@ -62,6 +67,8 @@ export interface ProfileFieldRequest {
     keepOnArchive?: boolean
     /** Sent only by an association's own screens; a station's endpoint neither expects nor reads it. */
     stationReadonly?: boolean
+    /** Sent only by an association's own screens; absent means every station of the association. */
+    stationGroupId?: number | null
 }
 
 export interface ProfileFieldValue {

@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.cluster.service.ClusterInventoryService;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
 import dev.chojo.ember.feature.cluster.service.ClusterProfileFieldService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.cluster.service.ClusterStationGroupService;
 import dev.chojo.ember.feature.cluster.service.ClusterStorageQuotaService;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -44,6 +45,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.ClusterQuotaDefaults;
 import jakarta.inject.Inject;
@@ -62,6 +64,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 /**
@@ -91,6 +94,7 @@ public class DemoClusterSeeder implements DemoSeeder {
     private final ClusterMemberService memberService;
     private final ClusterInventoryService clusterInventoryService;
     private final ClusterProfileFieldService fieldService;
+    private final ClusterStationGroupService stationGroupService;
     private final ClusterContentService contentService;
     private final ClusterApplicationService applicationService;
     private final ClusterStorageQuotaService quotaService;
@@ -113,6 +117,7 @@ public class DemoClusterSeeder implements DemoSeeder {
             ClusterMemberService memberService,
             ClusterInventoryService clusterInventoryService,
             ClusterProfileFieldService fieldService,
+            ClusterStationGroupService stationGroupService,
             ClusterContentService contentService,
             ClusterApplicationService applicationService,
             ClusterStorageQuotaService quotaService,
@@ -132,6 +137,7 @@ public class DemoClusterSeeder implements DemoSeeder {
         this.memberService = memberService;
         this.clusterInventoryService = clusterInventoryService;
         this.fieldService = fieldService;
+        this.stationGroupService = stationGroupService;
         this.contentService = contentService;
         this.applicationService = applicationService;
         this.quotaService = quotaService;
@@ -173,7 +179,7 @@ public class DemoClusterSeeder implements DemoSeeder {
         joinNeighbour(cluster, run);
 
         // A station the cluster made itself, which belonged to it from its first moment
-        clusterService.createStation(cluster.id(), "Löschzug Nord");
+        var ownStation = clusterService.createStation(cluster.id(), "Löschzug Nord");
 
         // The federation partner stays outside and has asked to come in, so the applications screen has
         // something to decide and the standalone case keeps a subject
@@ -186,7 +192,7 @@ public class DemoClusterSeeder implements DemoSeeder {
         seedRoom(cluster, run, member);
         seedFlows(cluster);
         seedGear(cluster, member);
-        seedFields(cluster, member);
+        seedFields(cluster, member, seedStationGroups(cluster, member, ownStation));
         seedContent(cluster, run, member);
         seedNotifications(cluster, member, admin);
 
@@ -544,9 +550,30 @@ public class DemoClusterSeeder implements DemoSeeder {
     }
 
     /**
-     * Two questions the cluster asks of the people at its stations, one of them answered.
+     * Two ways the cluster files its stations, because a demo with one teaches that a station belongs to
+     * exactly one group, which is the thing that is not true.
+     *
+     * @return the group the targeted question is asked of
      */
-    private void seedFields(Cluster cluster, DemoStationContext member) {
+    private int seedStationGroups(Cluster cluster, DemoStationContext member, Station ownStation) {
+        var breathing = stationGroupService.create(cluster.id(), "Atemschutzwachen");
+        var north = stationGroupService.create(cluster.id(), "Nordkreis");
+
+        stationGroupService.setStations(cluster.id(), breathing.id(), List.of(uidOf(member.stationId())));
+        stationGroupService.setStations(cluster.id(), north.id(), List.of(uidOf(member.stationId()), ownStation.uid()));
+        return breathing.id();
+    }
+
+    private UUID uidOf(int stationId) {
+        return stationRepository.findById(stationId).orElseThrow().uid();
+    }
+
+    /**
+     * Two questions the cluster asks, both answered. One is asked of every station and one only of the
+     * stations that carry breathing apparatus, because a demo where everybody is asked everything shows
+     * nothing of what a group of stations is for.
+     */
+    private void seedFields(Cluster cluster, DemoStationContext member, int breathingGroupId) {
         var licence = fieldService.create(
                 cluster.id(),
                 "Führerscheinklasse",
@@ -557,7 +584,7 @@ public class DemoClusterSeeder implements DemoSeeder {
                 true,
                 false,
                 null);
-        fieldService.create(
+        var breathing = fieldService.create(
                 cluster.id(),
                 "Atemschutztauglich",
                 ProfileFieldType.BOOLEAN,
@@ -566,11 +593,12 @@ public class DemoClusterSeeder implements DemoSeeder {
                 ProfileFieldScope.MEMBER,
                 false,
                 true,
-                null);
+                breathingGroupId);
 
         var head = member.members().head();
         if (head != null) {
-            fieldService.setValues(cluster.id(), head.id(), Map.of(licence.id(), "\"C1\""), head.id());
+            fieldService.setValues(
+                    cluster.id(), head.id(), Map.of(licence.id(), "\"C1\"", breathing.id(), "true"), head.id());
         }
     }
 
