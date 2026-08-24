@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.notifications.entity.Notification;
@@ -85,6 +86,7 @@ public class NotificationService {
     private final StationRepository stationRepository;
     private final StationLogoService logoService;
     private final EmailService emailService;
+    private final MailRecipientService mailRecipientService;
 
     @Inject
     public NotificationService(
@@ -96,6 +98,7 @@ public class NotificationService {
             StationRepository stationRepository,
             StationLogoService logoService,
             EmailService emailService,
+            MailRecipientService mailRecipientService,
             Mailing mailing) {
         this.notificationRepository = notificationRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -105,6 +108,7 @@ public class NotificationService {
         this.stationRepository = stationRepository;
         this.logoService = logoService;
         this.emailService = emailService;
+        this.mailRecipientService = mailRecipientService;
 
         int intervalMinutes = mailing.notificationDigestIntervalMinutes();
         if (intervalMinutes > 0) {
@@ -847,7 +851,9 @@ public class NotificationService {
         if (member == null) return false;
 
         var account = accountRepository.findById(member.accountId()).orElse(null);
-        if (account == null || account.email() == null || account.email().isBlank()) return false;
+        if (account == null) return false;
+        var recipients = mailRecipientService.forAccount(account.id());
+        if (recipients.isEmpty()) return false;
 
         int stationId = member.stationId();
         if (!emailService.canStationSend(stationId)) return false;
@@ -868,7 +874,7 @@ public class NotificationService {
                 : null;
 
         String name = (account.firstName() + " " + account.lastName()).trim();
-        if (name.isEmpty()) name = account.email();
+        if (name.isEmpty()) name = account.loginName();
 
         // Build notification items HTML
         String baseUrl = emailService.getBaseUrl();
@@ -925,7 +931,9 @@ public class NotificationService {
                 subjectKey,
                 Map.of("stationName", stationName, "count", String.valueOf(eligible.size())));
         String body = emailService.loadTemplate("notification-digest.html", locale, vars);
-        emailService.queueStationEmail(stationId, account.email(), subject, body);
+        for (var recipient : recipients) {
+            emailService.queueStationEmail(stationId, recipient.email(), subject, body);
+        }
         return true;
     }
 

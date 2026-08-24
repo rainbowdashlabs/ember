@@ -106,6 +106,8 @@ public class ManagedMemberRoutes implements Routes {
         routes.put(prefix + "/managed-members/{memberId}/profile", this::setProfile, StationPermission.MEMBER_GUARDIAN);
         routes.get(prefix + "/managed-members/{memberId}/access", this::getAccess, StationPermission.MEMBER_GUARDIAN);
         routes.put(prefix + "/managed-members/{memberId}/email", this::setEmail, StationPermission.MEMBER_GUARDIAN);
+        routes.put(
+                prefix + "/managed-members/{memberId}/username", this::setUsername, StationPermission.MEMBER_GUARDIAN);
         routes.put(prefix + "/managed-members/{memberId}/login", this::setLogin, StationPermission.MEMBER_GUARDIAN);
         routes.get(
                 prefix + "/managed-members/{memberId}/inventory-items",
@@ -243,6 +245,22 @@ public class ManagedMemberRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/managed-members/{memberId}/username",
+            methods = HttpMethod.PUT,
+            summary = "Set the name a managed member signs in with",
+            description = "A member with a name of their own needs no address to sign in: everything Ember "
+                    + "would write to them goes to their guardians instead. An empty name clears it.",
+            tags = {"Managed Members"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetUsernameRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
+    private void setUsername(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var request = ctx.bodyAsClass(SetUsernameRequest.class);
+        ctx.json(accessService.setUsername(session.member().id(), pathInt(ctx, "memberId"), request.username()));
+    }
+
+    @OpenApi(
             path = "/api/v1/managed-members/{memberId}/login",
             methods = HttpMethod.PUT,
             summary = "Allow or refuse signing in for a managed member",
@@ -262,6 +280,11 @@ public class ManagedMemberRoutes implements Routes {
      * @param email the address the managed member's account should carry
      */
     public record SetEmailRequest(String email) {}
+
+    /**
+     * @param username the name the managed member signs in with, or empty to clear it
+     */
+    public record SetUsernameRequest(String username) {}
 
     /**
      * @param enabled whether the managed member may sign in

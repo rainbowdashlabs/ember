@@ -7,11 +7,15 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.account.service.LoginNameService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
+import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.ManagedLoginNoticeRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -30,12 +34,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /**
- * A guardian speaks for a child: they may give it an address and switch its access on and off.
- * They may not do either for anyone else.
+ * A guardian speaks for a child: they may give it an address, a name to sign in with, and switch its
+ * access on and off. They may do none of it for anyone else.
  */
 class ManagedAccessServiceTest extends RepositoryTestBase {
 
     private static ManagedAccessService service;
+    private static ManagedLoginNoticeRepository noticeRepo;
     private static Station station;
     private static Account guardianAccount;
     private static Account childAccount;
@@ -48,12 +53,23 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
     static void setup() {
         var memberService = new StationMemberService(
                 stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class), mock(MemberLookupService.class));
+        noticeRepo = new ManagedLoginNoticeRepository();
         service = new ManagedAccessService(
                 stationMemberRepo,
                 accountRepo,
                 new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
+                new LoginNameService(accountRepo),
                 memberService,
-                mock(AuthService.class),
+                new ManagedLoginNoticeService(
+                        noticeRepo,
+                        stationMemberRepo,
+                        accountRepo,
+                        stationRepo,
+                        new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
+                        new MailRecipientService(accountRepo, stationMemberRepo),
+                        mock(AuthService.class),
+                        mock(EmailService.class),
+                        new Auth()),
                 mock(EmailService.class));
 
         station = stationRepo.create("Managed Access Station");
@@ -80,6 +96,8 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
 
     @BeforeEach
     void resetChild() {
+        noticeRepo.cancel(child.id());
+        accountRepo.updateUsername(childAccount.id(), null);
         accountRepo.updateEmail(childAccount.id(), "child-1@managed.local");
         stationMemberRepo
                 .findPermissionByName(StationPermission.LOGIN)
@@ -117,7 +135,7 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void signingInNeedsAnAddressFirst() {
+    void signingInNeedsAnAddressOrANameFirst() {
         assertThrows(BadRequestResponse.class, () -> service.setLogin(guardian.id(), child.id(), true));
     }
 
@@ -127,6 +145,63 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
 
         assertTrue(service.setLogin(guardian.id(), child.id(), true).loginEnabled());
         assertFalse(service.setLogin(guardian.id(), child.id(), false).loginEnabled());
+    }
+
+    @Test
+    void switchingAccessOnLeavesTheMemberSomethingToBeTold() {
+        service.setEmail(guardian.id(), child.id(), "lena@example.org");
+
+        service.setLogin(guardian.id(), child.id(), true);
+
+        var waiting = noticeRepo.find(child.id()).orElseThrow();
+        assertTrue(waiting.granted());
+    }
+
+    @Test
+    void switchingBackBeforeTheMailLeftTellsNobody() {
+        service.setEmail(guardian.id(), child.id(), "lena@example.org");
+
+        service.setLogin(guardian.id(), child.id(), true);
+        service.setLogin(guardian.id(), child.id(), false);
+
+        assertTrue(noticeRepo.find(child.id()).isEmpty());
+    }
+
+    @Test
+    void switchingOnTwiceAroundAnUndoLeavesOneThingToBeTold() {
+        service.setEmail(guardian.id(), child.id(), "lena@example.org");
+
+        service.setLogin(guardian.id(), child.id(), true);
+        service.setLogin(guardian.id(), child.id(), false);
+        service.setLogin(guardian.id(), child.id(), true);
+
+        var waiting = noticeRepo.find(child.id()).orElseThrow();
+        assertTrue(waiting.granted());
+    }
+
+    @Test
+    void aNameOfTheirOwnIsEnoughToSignInWithoutAnAddress() {
+        var access = service.setUsername(guardian.id(), child.id(), "lena.sommer");
+
+        assertEquals("lena.sommer", access.username());
+        assertNull(access.email());
+        assertTrue(access.canSignIn());
+        assertTrue(service.setLogin(guardian.id(), child.id(), true).loginEnabled());
+    }
+
+    @Test
+    void theNameThatIsTheOnlyWayInCannotBeTakenAway() {
+        service.setUsername(guardian.id(), child.id(), "lena.sommer");
+
+        assertThrows(BadRequestResponse.class, () -> service.setUsername(guardian.id(), child.id(), ""));
+    }
+
+    @Test
+    void aNameIsGivenUpOnceThereIsAnAddress() {
+        service.setUsername(guardian.id(), child.id(), "lena.sommer");
+        service.setEmail(guardian.id(), child.id(), "lena@example.org");
+
+        assertNull(service.setUsername(guardian.id(), child.id(), "").username());
     }
 
     @Test

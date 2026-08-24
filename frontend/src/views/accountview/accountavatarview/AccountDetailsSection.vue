@@ -10,6 +10,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 
 defineProps<{
@@ -20,6 +21,7 @@ defineProps<{
 const firstName = defineModel<string>('firstName', {required: true})
 const lastName = defineModel<string>('lastName', {required: true})
 const email = defineModel<string>('email', {required: true})
+const username = defineModel<string>('username', {required: true})
 
 const {t} = useI18n()
 </script>
@@ -40,6 +42,11 @@ const {t} = useI18n()
         <FieldLabel>{{ t('profile.email') }}</FieldLabel>
         <TextInput v-model="email"/>
       </div>
+    </div>
+    <div class="space-y-1">
+      <FieldLabel>{{ t('profile.username') }}</FieldLabel>
+      <TextInput v-model="username" :placeholder="email"/>
+      <MutedText tag="p" size="sm">{{ t('profile.usernameHint') }}</MutedText>
     </div>
     <Alert v-if="emailChangePending" variant="info">{{ t('profile.emailChangePending') }}</Alert>
     <SaveButton :action="action">{{ t('profile.saveAccount') }}</SaveButton>

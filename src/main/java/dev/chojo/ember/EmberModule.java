@@ -161,6 +161,7 @@ import dev.chojo.ember.feature.members.route.StationMemberRoutes;
 import dev.chojo.ember.feature.members.route.TransferRoutes;
 import dev.chojo.ember.feature.members.route.UserSettingsRoutes;
 import dev.chojo.ember.feature.members.route.UserTagRoutes;
+import dev.chojo.ember.feature.members.service.ManagedLoginNoticeSweeper;
 import dev.chojo.ember.feature.news.route.AdminNewsRoutes;
 import dev.chojo.ember.feature.news.route.FederatedNewsRoutes;
 import dev.chojo.ember.feature.news.route.NewsRoutes;
@@ -481,6 +482,7 @@ public class EmberModule extends AbstractModule {
         bind(EventThresholdChecker.class).asEagerSingleton();
         bind(EventReminderChecker.class).asEagerSingleton();
         bind(StorageReconciliationService.class).asEagerSingleton();
+        bind(ManagedLoginNoticeSweeper.class).asEagerSingleton();
         bind(FederationVersionBroadcaster.class).asEagerSingleton();
         bind(FeedMetricsService.class).asEagerSingleton();
         // Discovery chain

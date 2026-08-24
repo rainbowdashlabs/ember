@@ -32,6 +32,7 @@ const {t} = useI18n()
 
 const access = ref<ManagedAccess | null>(null)
 const email = ref('')
+const username = ref('')
 const loading = ref(false)
 const error = ref('')
 const notice = ref('')
@@ -43,6 +44,7 @@ async function load() {
   try {
     access.value = await managedMembers.getAccess(props.memberId)
     email.value = access.value.email ?? ''
+    username.value = access.value.username ?? ''
   } catch (e) {
     access.value = null
     error.value = apiErrorMessage(e) ?? t('common.error')
@@ -58,6 +60,19 @@ async function saveEmail() {
     access.value = await managedMembers.setEmail(props.memberId, email.value)
     email.value = access.value.email ?? ''
     notice.value = t('profileManaged.access.emailSaved')
+  } catch (e) {
+    error.value = apiErrorMessage(e) ?? t('common.error')
+    throw e
+  }
+}
+
+async function saveUsername() {
+  error.value = ''
+  notice.value = ''
+  try {
+    access.value = await managedMembers.setUsername(props.memberId, username.value)
+    username.value = access.value.username ?? ''
+    notice.value = t('profileManaged.access.usernameSaved')
   } catch (e) {
     error.value = apiErrorMessage(e) ?? t('common.error')
     throw e
@@ -94,6 +109,13 @@ watch(() => props.memberId, load, {immediate: true})
         <TextInput v-model="email" type="email" :placeholder="t('profileManaged.access.emailPlaceholder')"/>
         <MutedText tag="p" size="sm">{{ t('profileManaged.access.emailHint') }}</MutedText>
         <SaveButton :action="saveEmail"/>
+      </div>
+
+      <div class="space-y-1 border-t border-(--border) pt-4">
+        <FieldLabel>{{ t('profileManaged.access.username') }}</FieldLabel>
+        <TextInput v-model="username" :placeholder="t('profileManaged.access.usernamePlaceholder')"/>
+        <MutedText tag="p" size="sm">{{ t('profileManaged.access.usernameHint') }}</MutedText>
+        <SaveButton :action="saveUsername"/>
       </div>
 
       <div class="flex items-start justify-between gap-4 border-t border-(--border) pt-4">

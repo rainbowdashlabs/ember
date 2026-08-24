@@ -60,7 +60,17 @@ class SessionInfoServiceTest {
 
     private static Account account(int id, String first, String last) {
         return new Account(
-                id, ACCOUNT_UID, "user@ember.local", first, last, true, InstanceUserType.USER, "full", null, null);
+                id,
+                ACCOUNT_UID,
+                "user@ember.local",
+                null,
+                first,
+                last,
+                true,
+                InstanceUserType.USER,
+                "full",
+                null,
+                null);
     }
 
     private static StationMember member(int id, int stationId, Integer accountId, String displayName) {

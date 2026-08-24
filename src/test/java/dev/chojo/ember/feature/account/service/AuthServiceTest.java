@@ -16,6 +16,7 @@ import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
+import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
@@ -62,6 +63,7 @@ class AuthServiceTest extends RepositoryTestBase {
         service = new AuthService(
                 accountRepo,
                 new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
+                new MailRecipientService(accountRepo, stationMemberRepo),
                 registrationCodeRepo,
                 stationMemberRepo,
                 memberGroupRepo,
@@ -441,7 +443,7 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(36)
     void sendPasswordSetup() {
-        assertDoesNotThrow(() -> service.sendPasswordSetup(accountId, EMAIL, "Auth"));
+        assertDoesNotThrow(() -> service.sendPasswordSetup(accountId));
     }
 
     @Test
@@ -814,6 +816,7 @@ class AuthServiceTest extends RepositoryTestBase {
         return new AuthService(
                 accountRepo,
                 new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
+                new MailRecipientService(accountRepo, stationMemberRepo),
                 registrationCodeRepo,
                 stationMemberRepo,
                 memberGroupRepo,
@@ -869,6 +872,35 @@ class AuthServiceTest extends RepositoryTestBase {
 
         accountRepo.delete(fixture.accountId());
         stationRepo.delete(fixture.stationId());
+    }
+
+    /**
+     * Signing in by name rather than by address, including the member who has no address at all:
+     * their name is the only thing they could type, and the unverified-address refusal has nothing
+     * to refuse.
+     */
+    @Test
+    @Order(98)
+    void signingInByName() {
+        var withAddress = accountRepo.create("named@test.com", "Nina", "Name", true);
+        accountRepo.createCredential(withAddress.id(), new PasswordHasher().hash(PASSWORD));
+        accountRepo.updateUsername(withAddress.id(), "nina.name");
+
+        assertTrue(service.login("nina.name", PASSWORD, "agent", "DE").success(), "the name signs them in");
+        assertTrue(service.login("named@test.com", PASSWORD, "agent", "DE").success(), "so does the address");
+        assertFalse(service.login("NINA.NAME", "WrongPassword!", "agent", "DE").success());
+        assertTrue(service.login("NINA.NAME", PASSWORD, "agent", "DE").success(), "case is not part of the name");
+
+        var withoutAddress = accountRepo.create("kid@managed.local", "Kim", "Kind", false);
+        accountRepo.createCredential(withoutAddress.id(), new PasswordHasher().hash(PASSWORD));
+        accountRepo.updateUsername(withoutAddress.id(), "kim.kind");
+
+        assertTrue(
+                service.login("kim.kind", PASSWORD, "agent", "DE").success(),
+                "an account with no address has no address to verify");
+
+        accountRepo.delete(withAddress.id());
+        accountRepo.delete(withoutAddress.id());
     }
 
     @Test

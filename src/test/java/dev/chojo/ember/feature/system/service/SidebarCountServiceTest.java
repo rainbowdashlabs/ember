@@ -92,6 +92,7 @@ class SidebarCountServiceTest {
                 1,
                 UUID.randomUUID(),
                 "test@test.com",
+                null,
                 "Test",
                 "User",
                 true,

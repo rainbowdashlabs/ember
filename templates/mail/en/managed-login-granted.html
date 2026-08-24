@@ -1,0 +1,7 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hi {{ name }},</h2>
+      <p>You can now sign in to <strong>{{ stationName }}</strong> yourself. Your guardian allowed it.</p>
+      <p>Use the email address this message was sent to, together with your password.</p>
+      <div class="btn-wrap"><a class="btn" href="{{ loginUrl }}">Sign in</a></div>
+{% endblock %}

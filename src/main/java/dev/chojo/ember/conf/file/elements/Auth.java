@@ -32,6 +32,17 @@ public class Auth {
     private int resetTokenHours = 1;
 
     /**
+     * How long a mail waits after a guardian switched signing in on or off for a member in their
+     * care, before it is sent.
+     *
+     * <p>The switch itself takes effect at once; only the telling waits. A guardian who flicks it by
+     * accident and flicks it straight back inside this window sends the member nothing at all, which
+     * is the whole point of the delay. Zero sends with the next sweep, about a minute later.
+     */
+    @Overwrite(env = @Env)
+    private int managedLoginNoticeMinutes = 5;
+
+    /**
      * How long a session lasts on a device the person signing in vouched for.
      *
      * <p>This is the long duration, the one somebody asks for by ticking the box on their own
@@ -89,6 +100,13 @@ public class Auth {
 
     public int sessionMinutes() {
         return Math.max(5, sessionMinutes);
+    }
+
+    /**
+     * How long the mail about a guardian's access change waits, never less than no wait at all.
+     */
+    public int managedLoginNoticeMinutes() {
+        return Math.max(0, managedLoginNoticeMinutes);
     }
 
     /**

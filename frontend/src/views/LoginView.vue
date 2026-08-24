@@ -43,7 +43,7 @@ const {
   showTos, tosHtml, tosLoading,
 } = legal
 
-const email = ref('')
+const identifier = ref('')
 const password = ref('')
 /**
  * Whether the person signing in vouches for this machine. Carried into the second factor as well,
@@ -115,10 +115,10 @@ async function resolveStationAndRedirect() {
 }
 
 const {running: loggingIn, error: loginError, run: handleLogin} = useAsyncAction(async () => {
-  if (!email.value || !password.value) return
+  if (!identifier.value || !password.value) return
 
   const result = await auth.login({
-    email: email.value,
+    identifier: identifier.value,
     password: password.value,
     trustedDevice: trustedDevice.value,
   })
@@ -185,7 +185,7 @@ const error = computed(() => loginError.value || demoError.value)
                     :loading="tosLoading" :html="tosHtml"/>
 
         <LoginForm v-if="consent === 'accepted'" class="mx-auto w-full max-w-xs"
-                   v-model:email="email" v-model:password="password"
+                   v-model:identifier="identifier" v-model:password="password"
                    v-model:trustedDevice="trustedDevice"
                    :error="error" :loading="loading"
                    :registration-enabled="registrationEnabled"

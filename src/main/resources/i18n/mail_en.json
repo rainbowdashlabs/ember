@@ -8,6 +8,8 @@
     "email-change-release": "Confirm email change",
     "email-change-claim": "Confirm your new email",
     "email-changed": "Your email address was changed",
+    "managed-login-granted": "You can now sign in to {stationName}",
+    "managed-login-revoked": "You can no longer sign in to {stationName}",
     "reset-password": "Reset your password",
     "email-change": "Confirm your new email address",
     "station-delete": "Confirm station deletion",

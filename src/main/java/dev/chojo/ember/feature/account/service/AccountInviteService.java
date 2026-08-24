@@ -63,7 +63,7 @@ public class AccountInviteService {
         Account account = created ? accountRepository.create(address, firstName, lastName, true, stationId) : existing;
 
         if (!synthetic && needsSetup(account)) {
-            authService.sendPasswordSetup(account.id(), account.email(), account.firstName());
+            authService.sendPasswordSetup(account.id());
         }
         return new Invited(account, created);
     }

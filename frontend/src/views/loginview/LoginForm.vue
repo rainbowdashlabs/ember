@@ -22,7 +22,7 @@ const emit = defineEmits<{
   (e: 'submit'): void
 }>()
 
-const email = defineModel<string>('email', {required: true})
+const identifier = defineModel<string>('identifier', {required: true})
 const password = defineModel<string>('password', {required: true})
 const trustedDevice = defineModel<boolean>('trustedDevice', {default: false})
 
@@ -34,9 +34,9 @@ const {t} = useI18n()
     <Alert v-if="props.error" variant="error">{{ props.error }}</Alert>
 
     <div class="space-y-1">
-      <FieldLabel>{{ t('login.email') }}</FieldLabel>
-      <TextInput v-model="email"
-                 :disabled="props.loading" :placeholder="t('login.email')"/>
+      <FieldLabel>{{ t('login.identifier') }}</FieldLabel>
+      <TextInput v-model="identifier"
+                 :disabled="props.loading" :placeholder="t('login.identifier')"/>
     </div>
 
     <div class="space-y-1">
@@ -53,7 +53,7 @@ const {t} = useI18n()
       </span>
     </label>
 
-    <PrimaryButton :disabled="props.loading || !email || !password" class="w-full" @click="emit('submit')">
+    <PrimaryButton :disabled="props.loading || !identifier || !password" class="w-full" @click="emit('submit')">
       {{ props.loading ? t('common.loading') : t('login.submit') }}
     </PrimaryButton>
 

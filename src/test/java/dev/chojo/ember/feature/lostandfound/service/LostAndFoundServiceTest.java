@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -45,6 +46,7 @@ class LostAndFoundServiceTest extends RepositoryTestBase {
                 stationRepo,
                 mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailService,
+                new MailRecipientService(accountRepo, stationMemberRepo),
                 new Mailing());
         service = new LostAndFoundService(lostAndFoundRepo, notificationService);
 

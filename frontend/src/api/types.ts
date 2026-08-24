@@ -142,6 +142,8 @@ export interface AccountInfo {
     id: number
     uid?: string
     email?: string
+    /** The name this account signs in with, absent when its address is the only way in. */
+    username?: string
     firstName?: string
     lastName?: string
 }
@@ -241,6 +243,8 @@ export interface StationMember {
     accountId: number
     name?: string
     email?: string
+    /** The name this member signs in with, absent when their address is the only way in. */
+    username?: string | null
     userType?: string
     profileComplete?: boolean
     formerAt?: string | null

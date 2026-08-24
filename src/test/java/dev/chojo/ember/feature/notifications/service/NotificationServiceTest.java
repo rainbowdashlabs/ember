@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -59,6 +60,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 stationRepo,
                 mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailService,
+                new MailRecipientService(accountRepo, stationMemberRepo),
                 mailing);
 
         station = stationRepo.create("NotifStation");
@@ -328,6 +330,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 stationRepo,
                 mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailServiceMock,
+                new MailRecipientService(accountRepo, stationMemberRepo),
                 mailing);
 
         // Enable email for member1
@@ -368,6 +371,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 stationRepo,
                 mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailServiceMock,
+                new MailRecipientService(accountRepo, stationMemberRepo),
                 mailing);
 
         userSettingsRepo.updateEmailEnabled(member2.id(), true);
@@ -521,6 +525,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 stationRepo,
                 mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailServiceMock,
+                new MailRecipientService(accountRepo, stationMemberRepo),
                 mailing);
 
         userSettingsRepo.updateEmailEnabled(member1.id(), true);
@@ -557,6 +562,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 stationRepo,
                 mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailServiceMock,
+                new MailRecipientService(accountRepo, stationMemberRepo),
                 mailing);
 
         userSettingsRepo.updateEmailEnabled(member2.id(), true);

@@ -126,6 +126,34 @@ test.describe('Guardian', () => {
     })
 
     /**
+     * A name of their own is the other way in, and the one that makes a child with no address
+     * reachable at all. The story sets one and then signs in with it, because a name that is stored
+     * but does not sign anybody in would prove nothing.
+     */
+    test('a member signs in with the name their guardian gave them', async ({browser, request}) => {
+        const page = await guardianPage(browser, request)
+        const memberId = (await managedMemberToActOn(page, request)).id
+        const headers = await apiHeaders(page)
+        const name = unique('kind').toLowerCase()
+
+        const named = await page.request.put(
+            `/api/v1/managed-members/${memberId}/username`, {headers, data: {username: name}})
+        expect(named.ok()).toBeTruthy()
+        expect((await named.json()).username).toBe(name)
+        expect((await named.json()).canSignIn).toBe(true)
+
+        const wrongPassword = await page.request.post(
+            '/api/v1/auth/login', {data: {identifier: name, password: 'definitely-not-the-password'}})
+        expect(wrongPassword.status(), 'the name reaches the login, the password still decides').toBe(401)
+
+        const taken = await page.request.put(
+            `/api/v1/managed-members/${memberId}/username`, {headers, data: {username: 'a'}})
+        expect(taken.status(), 'a name too short to be one is refused').toBe(400)
+
+        await page.context().close()
+    })
+
+    /**
      * The part that matters most: everything above is scoped to the members in this guardian's
      * care. A member they do not manage is refused, whichever of the three endpoints is asked.
      */

@@ -196,8 +196,7 @@ public class StationMemberService {
         if (addingLogin && authService != null && member != null && member.accountId() != null) {
             var credential = accountRepository.findCredential(member.accountId());
             if (credential.isEmpty()) {
-                var account = accountRepository.findById(member.accountId()).orElseThrow();
-                authService.sendPasswordSetup(member.accountId(), account.email(), account.firstName());
+                authService.sendPasswordSetup(member.accountId());
             }
         }
 

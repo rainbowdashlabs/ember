@@ -31,6 +31,7 @@ const props = defineProps<{
 const editFirstName = ref(props.member.name?.split(' ')[0] ?? '')
 const editLastName = ref(props.member.name?.split(' ').slice(1).join(' ') ?? '')
 const editEmail = ref(props.member.email ?? '')
+const editUsername = ref(props.member.username ?? '')
 const editValues = ref(new Map(props.initialValues))
 const editJoinDate = ref(props.member.joinDate ?? '')
 const error = ref('')
@@ -60,6 +61,7 @@ async function save() {
   try {
     await members.updateAccount(props.member.accountId, {
       email: editEmail.value,
+      username: editUsername.value,
       firstName: editFirstName.value,
       lastName: editLastName.value,
     })
@@ -100,6 +102,11 @@ async function save() {
           <FieldLabel hint>{{ t('memberEdit.email') }}</FieldLabel>
           <TextInput v-model="editEmail"/>
         </div>
+      </div>
+      <div class="space-y-1">
+        <FieldLabel hint>{{ t('memberEdit.username') }}</FieldLabel>
+        <TextInput v-model="editUsername" :placeholder="editEmail"/>
+        <p class="text-xs text-(--text-muted)">{{ t('memberEdit.usernameHint') }}</p>
       </div>
     </NeutralContainer>
 

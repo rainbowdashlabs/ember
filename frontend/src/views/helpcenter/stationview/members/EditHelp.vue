@@ -56,6 +56,7 @@ const dummySelected = new Set([1])
 
     <HelpSection :title="t('helpCenter.membersEdit.accountTitle')">
       <p>{{ t('helpCenter.membersEdit.accountText') }}</p>
+      <p>{{ t('helpCenter.membersEdit.usernameText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.membersEdit.fieldsTitle')">

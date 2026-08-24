@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -65,7 +64,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
                 .orElseThrow();
         assertEquals(StationUserType.TEAM, member.userType());
         assertTrue(memberGroupRepo.findMembers(groupId).stream().anyMatch(m -> m.id() == member.id()));
-        verify(authService).sendPasswordSetup(account.id(), email, "Alice");
+        verify(authService).sendPasswordSetup(account.id());
     }
 
     @Test
@@ -80,7 +79,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
         assertTrue(result.membershipCreated());
         Account reloaded = accountRepo.findById(existing.id()).orElseThrow();
         assertEquals("Bob", reloaded.firstName());
-        verify(authService, never()).sendPasswordSetup(anyInt(), any(), any());
+        verify(authService, never()).sendPasswordSetup(anyInt());
     }
 
     @Test
@@ -90,7 +89,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
 
         service.provision(station.id(), email, "Carol", "Cherry", StationUserType.MEMBER, null);
 
-        verify(authService).sendPasswordSetup(existing.id(), email, "Carol");
+        verify(authService).sendPasswordSetup(existing.id());
     }
 
     @Test
@@ -115,7 +114,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
         var result = service.provision(station.id(), email, "Kid", "Jones", StationUserType.MEMBER, null);
 
         assertTrue(result.accountCreated());
-        verify(authService, never()).sendPasswordSetup(anyInt(), any(), any());
+        verify(authService, never()).sendPasswordSetup(anyInt());
     }
 
     @Test
@@ -150,7 +149,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
         assertEquals(StationUserType.GUARDIAN, parent.userType());
         assertTrue(
                 stationMemberRepo.findManagers(junior.memberId()).stream().anyMatch(m -> m.id() == parent.memberId()));
-        verify(authService, times(2)).sendPasswordSetup(anyInt(), any(), any());
+        verify(authService, times(2)).sendPasswordSetup(anyInt());
     }
 
     @Test

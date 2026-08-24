@@ -40,7 +40,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
 public class AccountRepository {
 
     private static final String ACCOUNT_COLUMNS =
-            "id, uid, email, first_name, last_name, email_verified, instance_user_type, full_name, creating_station_id, setup_completed_at";
+            "id, uid, email, username, first_name, last_name, email_verified, instance_user_type, full_name, creating_station_id, setup_completed_at";
     private static final String CONSENT_COLUMNS =
             "id, account_id, consent_version, privacy_version, tos_version, ip_address, country, user_agent, consented_at";
     private static final String EXTERNAL_AUTH_COLUMNS = "id, account_id, provider, external_id";
@@ -104,6 +104,49 @@ public class AccountRepository {
                 .single(call().bind("email", email))
                 .map(Account.map())
                 .first();
+    }
+
+    /**
+     * Finds an account by the name it signs in with, ignoring case.
+     *
+     * @param username the name, as typed
+     * @return the account, or empty if no account carries that name
+     */
+    public Optional<Account> findByUsername(String username) {
+        return query("SELECT %s FROM account WHERE lower(username) = lower(:username);", ACCOUNT_COLUMNS)
+                .single(call().bind("username", username))
+                .map(Account.map())
+                .first();
+    }
+
+    /**
+     * Whether the name is already somebody else's.
+     *
+     * @param username         the name, as typed
+     * @param exceptAccountId  the account the name may already belong to, or null to ask about anybody
+     */
+    public boolean usernameTaken(String username, Integer exceptAccountId) {
+        return query("""
+                SELECT 1
+                FROM account
+                WHERE lower(username) = lower(:username)
+                  AND (:except::INT IS NULL OR id <> :except);""")
+                .single(call().bind("username", username).bind("except", exceptAccountId))
+                .map(row -> row.getInt(1))
+                .first()
+                .isPresent();
+    }
+
+    /**
+     * Sets or clears the name an account signs in with.
+     *
+     * @param username the name, or null to leave the address as the only way in
+     */
+    public boolean updateUsername(int accountId, String username) {
+        return query("UPDATE account SET username = :username WHERE id = :id;")
+                .single(call().bind("id", accountId).bind("username", username))
+                .update()
+                .changed();
     }
 
     /**

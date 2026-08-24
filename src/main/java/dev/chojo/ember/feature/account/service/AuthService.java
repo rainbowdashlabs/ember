@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
+import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.RegistrationCode;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
@@ -59,6 +60,7 @@ public class AuthService {
 
     private final AccountRepository accountRepository;
     private final MailLocaleService mailLocaleService;
+    private final MailRecipientService mailRecipientService;
     private final RegistrationCodeRepository registrationCodeRepository;
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
@@ -83,6 +85,7 @@ public class AuthService {
     public AuthService(
             AccountRepository accountRepository,
             MailLocaleService mailLocaleService,
+            MailRecipientService mailRecipientService,
             RegistrationCodeRepository registrationCodeRepository,
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
@@ -96,6 +99,7 @@ public class AuthService {
             TrustedDeviceService trustedDeviceService) {
         this.accountRepository = accountRepository;
         this.mailLocaleService = mailLocaleService;
+        this.mailRecipientService = mailRecipientService;
         this.registrationCodeRepository = registrationCodeRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
@@ -182,14 +186,30 @@ public class AuthService {
     }
 
     /**
-     * Sends a password setup email to an existing account that has no credentials yet.
-     * Creates a SET_PASSWORD token and sends the setup email.
+     * The account behind what somebody typed at the login screen: an address when it holds an at
+     * sign, and the name an account signs in with when it does not.
+     */
+    private Optional<Account> findByLoginName(String identifier) {
+        if (identifier == null || identifier.isBlank()) return Optional.empty();
+        String trimmed = identifier.trim();
+        return LoginNameService.looksLikeEmail(trimmed)
+                ? accountRepository.findByEmail(trimmed)
+                : accountRepository.findByUsername(trimmed);
+    }
+
+    /**
+     * Sends the password-setup mail for an account that has no password yet, to whoever can be
+     * reached for it: the account itself, or the guardians of a member who has no address of their
+     * own. Sends nothing when nobody can be reached, and creates no token in that case either.
      *
      * @param accountId the account identifier
-     * @param email     the email address
-     * @param firstName the first name for the email greeting
      */
-    public void sendPasswordSetup(int accountId, String email, String firstName) {
+    public void sendPasswordSetup(int accountId) {
+        var recipients = mailRecipientService.forAccount(accountId);
+        if (recipients.isEmpty()) {
+            log.info("No password-setup mail for account {}: nobody can be written to about it", accountId);
+            return;
+        }
         accountRepository.deleteTokensByAccountAndType(accountId, TokenType.SET_PASSWORD);
         String token = generateToken();
         accountRepository.createToken(
@@ -197,7 +217,10 @@ public class AuthService {
                 token,
                 TokenType.SET_PASSWORD,
                 Instant.now().plus(authConfig.passwordTokenHours(), ChronoUnit.HOURS));
-        emailService.sendPasswordSetupEmail(email, firstName, token, mailLocaleService.forAccount(accountId));
+        String locale = mailLocaleService.forAccount(accountId);
+        for (var recipient : recipients) {
+            emailService.sendPasswordSetupEmail(recipient.email(), recipient.name(), token, locale);
+        }
     }
 
     /**
@@ -308,13 +331,18 @@ public class AuthService {
      *
      * @param email the email address to send the reset link to
      */
-    public void requestPasswordReset(String email) {
-        Optional<Account> accountOpt = accountRepository.findByEmail(email);
+    public void requestPasswordReset(String identifier) {
+        Optional<Account> accountOpt = findByLoginName(identifier);
         if (accountOpt.isEmpty()) {
             return;
         }
 
         Account account = accountOpt.get();
+        var recipients = mailRecipientService.forAccount(account.id());
+        if (recipients.isEmpty()) {
+            log.info("No password-reset mail for account {}: nobody can be written to about it", account.id());
+            return;
+        }
         String token = generateToken();
         accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.RESET_PASSWORD);
         accountRepository.createToken(
@@ -322,9 +350,11 @@ public class AuthService {
                 token,
                 TokenType.RESET_PASSWORD,
                 Instant.now().plus(authConfig.resetTokenHours(), ChronoUnit.HOURS));
-        emailService.sendPasswordResetEmail(
-                account.email(), account.firstName(), token, mailLocaleService.forAccount(account.id()));
-        log.info("Password reset requested for account {} ({})", account.id(), email);
+        String locale = mailLocaleService.forAccount(account.id());
+        for (var recipient : recipients) {
+            emailService.sendPasswordResetEmail(recipient.email(), recipient.name(), token, locale);
+        }
+        log.info("Password reset requested for account {} ({})", account.id(), identifier);
     }
 
     /**
@@ -447,26 +477,26 @@ public class AuthService {
      * the long duration rather than the short one.
      */
     public LoginResult login(
-            String email,
+            String identifier,
             String password,
             String userAgent,
             String location,
             String trustedDeviceCookie,
             boolean trustedDevice) {
-        Optional<Account> accountOpt = accountRepository.findByEmail(email);
+        Optional<Account> accountOpt = findByLoginName(identifier);
         Optional<AccountCredential> credOpt = accountOpt.flatMap(a -> accountRepository.findCredential(a.id()));
 
         String storedHash = credOpt.map(AccountCredential::passwordHash).orElseGet(this::dummyPasswordHash);
         boolean passwordValid = passwordHasher.verify(password, storedHash);
 
         if (accountOpt.isEmpty() || credOpt.isEmpty() || !passwordValid) {
-            log.info("Login failed for '{}': invalid credentials", email);
+            log.info("Login failed for '{}': invalid credentials", identifier);
             return LoginResult.failure("Invalid email or password");
         }
 
         Account account = accountOpt.get();
-        if (!account.emailVerified()) {
-            log.info("Login failed for account {} ({}): email not verified", account.id(), email);
+        if (account.hasRealEmail() && !account.emailVerified()) {
+            log.info("Login failed for account {} ({}): email not verified", account.id(), identifier);
             return LoginResult.failure("Email not verified");
         }
 
@@ -485,7 +515,7 @@ public class AuthService {
             log.info(
                     "Login for account {} ({}) requires password change - issuing password-change token",
                     account.id(),
-                    email);
+                    identifier);
             String token = generateToken();
             accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.FORCE_PASSWORD_CHANGE);
             Instant expiresAt = Instant.now().plus(FORCE_PASSWORD_CHANGE_MINUTES, ChronoUnit.MINUTES);
@@ -505,7 +535,7 @@ public class AuthService {
                     log.info(
                             "Login for account {} ({}) bypassing 2FA via trusted device {}",
                             account.id(),
-                            email,
+                            identifier,
                             trusted.get().id());
                     return createSession(
                             account.id(),
@@ -516,7 +546,7 @@ public class AuthService {
                             trustedDevice);
                 }
             }
-            log.info("Login for account {} ({}) requires 2FA verification", account.id(), email);
+            log.info("Login for account {} ({}) requires 2FA verification", account.id(), identifier);
             String token = generateToken();
             accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.TWO_FACTOR_PENDING);
             Instant expiresAt = Instant.now().plus(5, ChronoUnit.MINUTES);

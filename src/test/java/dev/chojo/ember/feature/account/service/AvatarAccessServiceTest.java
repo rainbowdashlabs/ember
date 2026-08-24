@@ -44,7 +44,7 @@ class AvatarAccessServiceTest {
 
     private static Account account(int id, UUID uid, InstanceUserType type) {
         return new Account(
-                id, uid, "user" + id + "@ember.local", "First", "Last", true, type, "First Last", null, null);
+                id, uid, "user" + id + "@ember.local", null, "First", "Last", true, type, "First Last", null, null);
     }
 
     private static StationMember member(int id, int stationId, Integer accountId) {

@@ -69,8 +69,18 @@ const {t} = useI18n()
           <TextInput model-value="max@beispiel.de"/>
         </div>
       </div>
+      <div class="space-y-1">
+        <FieldLabel>{{ t('profile.username') }}</FieldLabel>
+        <TextInput model-value="max.mustermann"/>
+        <MutedText tag="p" size="sm">{{ t('profile.usernameHint') }}</MutedText>
+      </div>
       <PrimaryButton>{{ t('profile.saveAccount') }}</PrimaryButton>
     </NeutralContainer>
+
+    <HelpSection :title="t('helpCenter.profile.usernameTitle')">
+      <p>{{ t('helpCenter.profile.usernameText') }}</p>
+      <p>{{ t('helpCenter.profile.usernameRulesText') }}</p>
+    </HelpSection>
 
     <HelpSection :title="t('helpCenter.profile.passwordTitle')">
       <p>{{ t('helpCenter.profile.passwordText') }}</p>

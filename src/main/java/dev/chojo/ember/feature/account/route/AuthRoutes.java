@@ -228,7 +228,8 @@ public class AuthRoutes implements Routes {
             path = "/api/v1/auth/forgot-password",
             methods = HttpMethod.POST,
             summary = "Request password reset",
-            description = "Sends a password reset email. Always returns OK to prevent email enumeration.",
+            description =
+                    "Sends a password reset email to whoever can be reached about the account, which for a member with no address of their own is their guardians. Takes an email address or a username. Always returns OK to prevent email enumeration.",
             tags = {"Auth"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EmailRequest.class)),
             responses = {
@@ -251,7 +252,7 @@ public class AuthRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Log in",
             description =
-                    "Authenticates with email and password. Returns a session token, or a password change token if a password change is required.",
+                    "Authenticates with an email address or a username, and a password. Returns a session token, or a password change token if a password change is required.",
             tags = {"Auth"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LoginRequest.class)),
             responses = {
@@ -260,13 +261,13 @@ public class AuthRoutes implements Routes {
             })
     private void login(Context ctx) {
         var request = ctx.bodyAsClass(LoginRequest.class);
-        if (isBlank(request.email()) || isBlank(request.password())) {
-            throw new BadRequestResponse("email and password are required");
+        if (isBlank(request.identifier()) || isBlank(request.password())) {
+            throw new BadRequestResponse("identifier and password are required");
         }
-        enforceLimit(rateLimiter.tryLogin(clientIp(ctx), request.email()));
+        enforceLimit(rateLimiter.tryLogin(clientIp(ctx), request.identifier()));
 
         var result = authService.login(
-                request.email(),
+                request.identifier(),
                 request.password(),
                 ctx.userAgent(),
                 ctx.header("CF-IPCountry"),
@@ -419,12 +420,15 @@ public class AuthRoutes implements Routes {
      * Request body for login with email and password.
      */
     /**
+     * @param identifier    what was typed in the first field: an email address, or the name an
+     *                      account signs in with. Which of the two it is follows from the at sign,
+     *                      because a username never holds one.
      * @param trustedDevice the box on the login screen. Ticked, the session lasts as long as the
      *                      instance allows; left alone it lasts the short duration, which is what a
      *                      borrowed or shared machine should get.
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record LoginRequest(String email, String password, boolean trustedDevice) {}
+    public record LoginRequest(String identifier, String password, boolean trustedDevice) {}
 
     /**
      * Request body for the dev / demo {@code POST /demo/login} quick-login endpoint. Only an
@@ -455,6 +459,10 @@ public class AuthRoutes implements Routes {
 
     /**
      * Request body containing only an email address (used for password reset and resend verification).
+     */
+    /**
+     * @param email the address. The forgotten-password path also accepts the name an account signs
+     *              in with, and then writes to whoever can be reached about that account.
      */
     public record EmailRequest(String email) {}
 

@@ -295,7 +295,7 @@ export default {
     },
     login: {
         title: 'Anmelden',
-        email: 'E-Mail',
+        identifier: 'E-Mail oder Benutzername',
         password: 'Passwort',
         submit: 'Anmelden',
         trustedDevice: 'Auf diesem Gerät angemeldet bleiben',
@@ -308,10 +308,12 @@ export default {
     },
     forgotPassword: {
         title: 'Passwort vergessen',
-        hint: 'Gib deine E-Mail-Adresse ein und wir senden dir einen Link zum Zurücksetzen.',
-        email: 'E-Mail',
+        hint: 'Gib deine E-Mail-Adresse oder deinen Benutzernamen ein und wir senden einen Link zum '
+            + 'Zurücksetzen. Meldest du dich mit einem Benutzernamen an, geht der Link an deine '
+            + 'Aufsichtsperson.',
+        email: 'E-Mail oder Benutzername',
         submit: 'Link senden',
-        sent: 'Falls ein Konto mit dieser E-Mail existiert, wurde ein Link zum Zurücksetzen gesendet.',
+        sent: 'Falls es dazu ein Konto gibt, wurde ein Link zum Zurücksetzen gesendet.',
         backToLogin: 'Zurück zur Anmeldung',
     },
     setPassword: {
@@ -1658,6 +1660,10 @@ export default {
         firstName: 'Vorname',
         lastName: 'Nachname',
         email: 'E-Mail',
+        username: 'Benutzername',
+        usernameHint: 'Optional. Damit kannst du dich statt mit deiner E-Mail-Adresse anmelden; beide '
+            + 'funktionieren. Erlaubt sind 3 bis 32 Zeichen aus Buchstaben, Ziffern, Punkt, Bindestrich '
+            + 'und Unterstrich.',
         saveAccount: 'Kontodaten speichern',
         emailChangePending:
             'Eine Bestätigungs-E-Mail wurde an die neue Adresse gesendet. Die E-Mail-Adresse ändert sich erst nach der Bestätigung.',
@@ -1712,18 +1718,26 @@ export default {
         fields: 'Profilfelder',
         access: {
             title: 'Zugang',
-            hint: 'Du legst fest, unter welcher E-Mail-Adresse dieses Mitglied erreichbar ist und ob es '
-                + 'sich selbst anmelden darf.',
+            hint: 'Du legst fest, unter welcher E-Mail-Adresse dieses Mitglied erreichbar ist, mit welchem '
+                + 'Benutzernamen es sich anmeldet und ob es sich überhaupt anmelden darf.',
             email: 'E-Mail-Adresse',
             emailPlaceholder: "name{'@'}example.org",
             emailHint: 'Die Änderung gilt sofort. Bestehende Anmeldungen dieses Mitglieds werden beendet; '
                 + 'war bereits eine Adresse hinterlegt, werden alte und neue Adresse benachrichtigt.',
             emailSaved: 'Adresse gespeichert.',
+            username: 'Benutzername',
+            usernamePlaceholder: 'z. B. lena.sommer',
+            usernameHint: 'Damit kann sich das Mitglied ohne eigene E-Mail-Adresse anmelden. Alles, was '
+                + 'Ember sonst an das Mitglied schreiben würde, geht dann an dich. Erlaubt sind 3 bis 32 '
+                + 'Zeichen aus Buchstaben, Ziffern, Punkt, Bindestrich und Unterstrich.',
+            usernameSaved: 'Benutzername gespeichert.',
             login: 'Anmeldung erlauben',
-            loginHint: 'Beim Einschalten erhält das Mitglied eine E-Mail, um ein Passwort zu setzen.',
-            loginNeedsEmail: 'Dafür wird zuerst eine E-Mail-Adresse benötigt.',
-            loginOn: 'Anmeldung erlaubt.',
-            loginOff: 'Anmeldung entzogen; offene Sitzungen wurden beendet.',
+            loginHint: 'Das Mitglied wird ein paar Minuten später per E-Mail informiert. Wer noch kein '
+                + 'Passwort hat, erhält stattdessen die Einladung, eines zu setzen.',
+            loginNeedsEmail: 'Dafür wird zuerst eine E-Mail-Adresse oder ein Benutzername benötigt.',
+            loginOn: 'Anmeldung erlaubt. Das Mitglied wird in wenigen Minuten per E-Mail informiert.',
+            loginOff: 'Anmeldung entzogen; offene Sitzungen wurden beendet. Das Mitglied wird in wenigen '
+                + 'Minuten per E-Mail informiert.',
         },
     },
     memberEdit: {
@@ -1746,6 +1760,9 @@ export default {
         firstName: 'Vorname',
         lastName: 'Nachname',
         email: 'E-Mail',
+        username: 'Benutzername',
+        usernameHint: 'Optional. Damit meldet sich das Mitglied statt mit seiner E-Mail-Adresse an; beides '
+            + 'funktioniert. Leer bedeutet: Es meldet sich mit seiner Adresse an.',
         permissions: 'Berechtigungen',
         userType: 'Mitgliedstyp',
         joinDate: 'Beigetreten am',

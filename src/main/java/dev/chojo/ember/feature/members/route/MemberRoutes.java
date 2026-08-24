@@ -13,6 +13,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.account.service.LoginNameService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.ProvisionException;
@@ -44,17 +45,20 @@ public class MemberRoutes implements Routes {
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final StationMemberInviteService inviteService;
+    private final LoginNameService loginNameService;
 
     @Inject
     public MemberRoutes(
             AuthService authService,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
-            StationMemberInviteService inviteService) {
+            StationMemberInviteService inviteService,
+            LoginNameService loginNameService) {
         this.authService = authService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.inviteService = inviteService;
+        this.loginNameService = loginNameService;
     }
 
     private static boolean isBlank(String s) {
@@ -117,6 +121,10 @@ public class MemberRoutes implements Routes {
         // Update name fields immediately
         if (!accountRepository.update(accountId, existing.email(), request.firstName(), request.lastName())) {
             throw new NotFoundResponse();
+        }
+
+        if (request.username() != null) {
+            accountRepository.updateUsername(accountId, loginNameService.validatedFor(existing, request.username()));
         }
 
         if (emailChanged) {
@@ -202,5 +210,9 @@ public class MemberRoutes implements Routes {
 
     public record InviteResponse(int id, String email, String firstName, String lastName) {}
 
-    public record UpdateAccountRequest(String email, String firstName, String lastName) {}
+    /**
+     * @param username the name this account signs in with beside its address. Absent leaves the name
+     *                 as it is; empty clears it.
+     */
+    public record UpdateAccountRequest(String email, String username, String firstName, String lastName) {}
 }

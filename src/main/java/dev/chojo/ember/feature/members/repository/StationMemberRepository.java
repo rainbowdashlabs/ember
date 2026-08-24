@@ -529,6 +529,13 @@ public class StationMemberRepository {
                 .all();
     }
 
+    /**
+     * Whether this member holds one particular permission of their own.
+     */
+    public boolean hasPermission(int memberId, StationPermission permission) {
+        return findPermissions(memberId).stream().anyMatch(held -> held.permission() == permission);
+    }
+
     public Optional<Permission> findPermissionByName(StationPermission permission) {
         return query("SELECT id, name FROM station_permission WHERE name = :name;")
                 .single(call().bind("name", permission))

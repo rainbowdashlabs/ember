@@ -8,6 +8,8 @@
     "email-change-release": "E-Mail-Änderung bestätigen",
     "email-change-claim": "Bestätige deine neue E-Mail-Adresse",
     "email-changed": "Deine E-Mail-Adresse wurde geändert",
+    "managed-login-granted": "Du kannst dich jetzt bei {stationName} anmelden",
+    "managed-login-revoked": "Du kannst dich nicht mehr bei {stationName} anmelden",
     "reset-password": "Passwort zurücksetzen",
     "email-change": "Bestätige deine neue E-Mail-Adresse",
     "station-delete": "Wachen-Löschung bestätigen",

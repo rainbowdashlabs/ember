@@ -84,7 +84,7 @@ class EventRegistrationStatsRouteTest {
 
     private static UserSession session() {
         return new UserSession(
-                new Account(1, null, "manager@test.com", "Mara", "Nager", true, null, "Mara Nager", null, null),
+                new Account(1, null, "manager@test.com", null, "Mara", "Nager", true, null, "Mara Nager", null, null),
                 1,
                 STATION_ID,
                 null,

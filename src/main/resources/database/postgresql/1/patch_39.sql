@@ -1150,3 +1150,47 @@ COMMENT ON COLUMN ember_schema.item_movement_item.subject
 -- than something every order has. Existing rows all name one and keep it.
 ALTER TABLE ember_schema.equipment_procurement
     ALTER COLUMN member_id DROP NOT NULL;
+
+-- A change to a managed member's access that has been made but not yet announced.
+--
+-- A guardian switching signing in on or off tells the member by mail, and the mail waits a few minutes
+-- rather than leaving at once: a switch flicked by accident and flicked straight back should reach
+-- nobody. What waits here is the state to announce, not the message, so the mail that is finally sent is
+-- decided from the account as it stands when the wait is over.
+--
+-- One row per member, because only the newest change is worth telling anybody about.
+CREATE TABLE IF NOT EXISTS ember_schema.managed_login_notice
+(
+    member_id INTEGER PRIMARY KEY REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    granted   BOOLEAN     NOT NULL,
+    due_at    TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_managed_login_notice_due
+    ON ember_schema.managed_login_notice (due_at);
+
+COMMENT ON TABLE ember_schema.managed_login_notice
+    IS 'Access changes a guardian made that the member has not been told about yet. Emptied by the sweeper that sends the mails.';
+COMMENT ON COLUMN ember_schema.managed_login_notice.member_id
+    IS 'The member the change was made for, who is also the recipient of the mail.';
+COMMENT ON COLUMN ember_schema.managed_login_notice.granted
+    IS 'The state waiting to be announced: TRUE when signing in was switched on, FALSE when it was taken away. A switch back to the other value inside the waiting time deletes the row instead of replacing it.';
+COMMENT ON COLUMN ember_schema.managed_login_notice.due_at
+    IS 'When the mail may leave, which is the moment of the change plus the configured waiting time.';
+
+-- The name somebody signs in with, when it is not their address.
+--
+-- A guardian can give a member in their care a name to sign in with, which is what makes a login
+-- possible for somebody who has no address of their own at all. Anybody else may have one too, as a
+-- second way in beside the address they still have to have.
+--
+-- A name never contains '@', so it can never be mistaken for an address and never collide with one.
+-- Uniqueness is therefore name against name, and it is judged without regard to case.
+ALTER TABLE ember_schema.account
+    ADD COLUMN IF NOT EXISTS username TEXT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS account_username_key
+    ON ember_schema.account (lower(username)) WHERE username IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.account.username
+    IS 'The name this account signs in with beside its address, or null when the address is the only way in. Never contains an at sign, and is unique without regard to case. A station arriving from another instance whose name is already taken here arrives without one.';

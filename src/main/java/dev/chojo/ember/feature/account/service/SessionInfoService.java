@@ -130,6 +130,7 @@ public class SessionInfoService {
                                 ? session.account().uid().toString()
                                 : null,
                         session.account().email(),
+                        session.account().username(),
                         session.account().firstName(),
                         session.account().lastName()),
                 session.stationUid() != null ? session.stationUid().toString() : null,
@@ -289,7 +290,10 @@ public class SessionInfoService {
      * @param firstName the first name
      * @param lastName  the last name
      */
-    public record AccountInfo(int id, String uid, String email, String firstName, String lastName) {}
+    /**
+     * @param username the name this account signs in with, or null when its address is the only way in
+     */
+    public record AccountInfo(int id, String uid, String email, String username, String firstName, String lastName) {}
 
     /**
      * Minimal member information for the current session.

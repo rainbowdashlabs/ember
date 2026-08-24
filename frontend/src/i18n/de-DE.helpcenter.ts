@@ -937,6 +937,13 @@ volumes:
             avatarText: 'Du kannst ein Profilbild hochladen. Erlaubte Formate sind PNG, JPEG und WebP. Mit dem Löschen-Button entfernst du dein aktuelles Bild.',
             accountTitle: 'Kontodaten',
             accountText: 'Hier änderst du deinen Vornamen, Nachnamen und deine E-Mail-Adresse. Deine E-Mail wird für die Anmeldung und für Benachrichtigungen verwendet.',
+            usernameTitle: 'Benutzername',
+            usernameText: 'Du kannst dir zusätzlich einen Benutzernamen geben und dich damit anmelden. '
+                + 'Deine E-Mail-Adresse funktioniert weiterhin, beides führt zum selben Konto. Lässt du '
+                + 'das Feld leer, meldest du dich einfach wie bisher mit deiner Adresse an.',
+            usernameRulesText: 'Ein Benutzername ist 3 bis 32 Zeichen lang und besteht aus Buchstaben, '
+                + 'Ziffern, Punkt, Bindestrich und Unterstrich. Ein @ ist nicht erlaubt, damit er nie mit '
+                + 'einer E-Mail-Adresse verwechselt werden kann. Jeder Name kann nur einmal vergeben werden.',
             passwordTitle: 'Passwort ändern',
             passwordText: 'Gib dein aktuelles Passwort ein und wähle ein neues. Das neue Passwort musst du zur Sicherheit zweimal eintippen.',
             fieldsTitle: 'Profilfelder',
@@ -975,9 +982,16 @@ volumes:
             accessText: 'Unter „Zugang" legst du fest, unter welcher E-Mail-Adresse dein Kind erreichbar ist. '
                 + 'Die Änderung gilt sofort, offene Anmeldungen des Mitglieds werden dabei beendet; war schon '
                 + 'eine Adresse hinterlegt, gehen an die alte und die neue Adresse Hinweise raus.',
+            accessUsernameText: 'Statt einer E-Mail-Adresse kannst du deinem Kind auch einen Benutzernamen geben. '
+                + 'Damit meldet es sich an, ganz ohne eigene Adresse, und alles, was Ember sonst an dein Kind '
+                + 'schreiben würde, geht an dich: auch die Einladung, ein Passwort zu setzen. Wer eine eigene '
+                + 'Adresse hat, kann zusätzlich einen Benutzernamen bekommen und sich mit beidem anmelden.',
             accessLoginText: 'Der Schalter „Anmeldung erlauben" entscheidet, ob dein Kind sich selbst anmelden '
-                + 'darf. Beim Einschalten bekommt es eine E-Mail, um ein Passwort zu setzen; ohne hinterlegte '
-                + 'Adresse bleibt der Schalter gesperrt. Beim Ausschalten enden alle offenen Sitzungen sofort.',
+                + 'darf; ohne hinterlegte Adresse bleibt er gesperrt. Beim Ausschalten enden alle offenen '
+                + 'Sitzungen sofort. Dein Kind wird in beiden Fällen per E-Mail informiert, allerdings erst '
+                + 'ein paar Minuten später: Schaltest du versehentlich um und gleich wieder zurück, geht gar '
+                + 'keine Nachricht raus. Hat es noch kein Passwort, bekommt es statt des Hinweises die '
+                + 'Einladung, eines zu setzen.',
             tip: 'Diese Seite ist nur sichtbar, wenn du als Erziehungsberechtigter zugewiesen bist. Wenn du sie nicht siehst, ist dir kein Mitglied zugeordnet.',
         },
         settings: {
@@ -3877,6 +3891,9 @@ volumes:
             formerText: 'Auf der Detailseite kannst du ein Mitglied als ehemalig markieren. Alle zugewiesenen Gegenstände müssen vorher zurückgegeben sein.',
             accountTitle: 'Profil - Kontodaten',
             accountText: 'Im Profil-Tab kannst du Vorname, Nachname, E-Mail-Adresse und die Profilfelder bearbeiten. Klicke auf „Speichern", um die Änderungen zu übernehmen.',
+            usernameText: 'Darunter steht der Benutzername. Damit meldet sich das Mitglied statt mit seiner '
+                + 'E-Mail-Adresse an, beides führt zum selben Konto. Lässt du das Feld leer, meldet es sich '
+                + 'wie bisher mit seiner Adresse an; jeder Name kann nur einmal vergeben werden.',
             fieldsTitle: 'Profil - Profilfelder',
             fieldsText: 'Bearbeite die Profilfelder des Mitglieds. Pflichtfelder sind mit einem Stern markiert.',
             notesTitle: 'Notizen',
