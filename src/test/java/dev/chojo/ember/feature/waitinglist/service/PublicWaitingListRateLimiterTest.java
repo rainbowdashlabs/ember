@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.waitinglist.service;
 
+import dev.chojo.ember.conf.file.elements.Demo;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -15,6 +16,8 @@ import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class PublicWaitingListRateLimiterTest {
 
@@ -80,6 +83,29 @@ class PublicWaitingListRateLimiterTest {
 
         assertTrue(limiter.tryAcquire("198.51.100.200", CODE).isPresent());
         assertFalse(limiter.tryAcquire("198.51.100.201", "another-code").isPresent());
+    }
+
+    /**
+     * The injected limiter takes its capacities from the instance kind: an open one gets the real
+     * ceiling, a development one a ceiling nothing reaches, so the end-to-end suite can register
+     * through the same invite on every run.
+     */
+    @Test
+    void theInjectedLimiterFollowsTheInstanceKind() {
+        var open = mock(Demo.class);
+        when(open.dev()).thenReturn(false);
+        var openLimiter = new PublicWaitingListRateLimiter(open);
+        for (int i = 0; i < PublicWaitingListRateLimiter.PER_ADDRESS_CAPACITY; i++) {
+            assertFalse(openLimiter.tryAcquire("198.51.100.7", CODE).isPresent());
+        }
+        assertTrue(openLimiter.tryAcquire("198.51.100.7", CODE).isPresent());
+
+        var development = mock(Demo.class);
+        when(development.dev()).thenReturn(true);
+        var devLimiter = new PublicWaitingListRateLimiter(development);
+        for (int i = 0; i < PublicWaitingListRateLimiter.PER_ADDRESS_CAPACITY + 1; i++) {
+            assertFalse(devLimiter.tryAcquire("198.51.100.7", CODE).isPresent(), "registration " + i);
+        }
     }
 
     @Test
