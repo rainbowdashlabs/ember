@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
@@ -22,6 +24,7 @@ import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
@@ -96,7 +99,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 contentService,
                 new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
                 new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService),
-                new KbLinkMetadataService(),
+                new KbLinkMetadataService(new RemoteUrlValidator(new Federation(), new Demo())),
                 new PresentationCompressor(storageConfig),
                 new PdfCompressor(storageConfig));
         service = new KnowledgeBaseFederationService(

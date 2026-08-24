@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
+import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.knowledgebase.entity.UrlMetadata;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -27,6 +28,12 @@ import java.util.regex.Pattern;
  *
  * <p>Every lookup is best-effort: an unreachable page, a slow one, or one that says nothing about
  * itself yields empty metadata rather than failing the entry being created.
+ *
+ * <p>The address comes from whoever creates the entry and part of the answer is stored where they
+ * can read it, so an unchecked lookup would let them reach whatever the server can reach and read
+ * back what it found. Every address is therefore put to {@link RemoteUrlValidator} first, and
+ * redirects are walked here rather than by the client, because a public address that redirects into
+ * a private one would otherwise pass a check made only at the start.
  */
 @Singleton
 public class KbLinkMetadataService {
@@ -39,25 +46,31 @@ public class KbLinkMetadataService {
             "<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+name=[\"']description[\"']", Pattern.CASE_INSENSITIVE);
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
     private static final int MAX_SCANNED_CHARACTERS = 10_000;
+    private static final int MAX_REDIRECTS = 3;
 
     private final HttpClient httpClient;
+    private final RemoteUrlValidator urlValidator;
 
     @Inject
-    public KbLinkMetadataService() {
-        this(HttpClient.newBuilder()
-                .connectTimeout(TIMEOUT)
-                .followRedirects(HttpClient.Redirect.NORMAL)
-                .build());
+    public KbLinkMetadataService(RemoteUrlValidator urlValidator) {
+        this(
+                HttpClient.newBuilder()
+                        .connectTimeout(TIMEOUT)
+                        .followRedirects(HttpClient.Redirect.NEVER)
+                        .build(),
+                urlValidator);
     }
 
     /**
      * Builds the service on a caller-supplied client, so the lookups can be driven without
      * reaching the network.
      *
-     * @param httpClient the client every lookup is sent through
+     * @param httpClient   the client every lookup is sent through
+     * @param urlValidator decides which addresses may be reached at all
      */
-    KbLinkMetadataService(HttpClient httpClient) {
+    KbLinkMetadataService(HttpClient httpClient, RemoteUrlValidator urlValidator) {
         this.httpClient = httpClient;
+        this.urlValidator = urlValidator;
     }
 
     private static String firstGroup(Pattern pattern, String body) {
@@ -112,14 +125,36 @@ public class KbLinkMetadataService {
     }
 
     private String get(String url) throws Exception {
+        String target = url;
+        for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
+            if (!urlValidator.isAllowed(target)) {
+                log.debug("Refusing to look up {}: not a public address", target);
+                return null;
+            }
+            HttpResponse<String> response = send(target);
+            if (response.statusCode() == 200) return response.body();
+
+            String location = redirect(response);
+            if (location == null) return null;
+            target = URI.create(target).resolve(location).toString();
+        }
+        log.debug("Refusing to look up {}: too many redirects", url);
+        return null;
+    }
+
+    private HttpResponse<String> send(String url) throws Exception {
         var request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .timeout(TIMEOUT)
                 .header("User-Agent", "Mozilla/5.0 (compatible; EmberBot/1.0)")
                 .GET()
                 .build();
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != 200) return null;
-        return response.body();
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static String redirect(HttpResponse<String> response) {
+        int status = response.statusCode();
+        if (status < 300 || status > 399) return null;
+        return response.headers().firstValue("location").orElse(null);
     }
 }
