@@ -243,7 +243,7 @@ public class AiRoutes implements Routes {
 
         // Start async generation
         String jobId = UUID.randomUUID().toString();
-        var job = new GenerationJob();
+        var job = new GenerationJob(UserSession.from(ctx).stationId());
         generationJobs.put(jobId, job);
 
         Thread.startVirtualThread(() -> {
@@ -312,7 +312,7 @@ public class AiRoutes implements Routes {
     private void pollGeneration(Context ctx) {
         String jobId = ctx.pathParam("jobId");
         var job = generationJobs.get(jobId);
-        if (job == null) throw new NotFoundResponse();
+        if (job == null || job.stationId() != UserSession.from(ctx).stationId()) throw new NotFoundResponse();
         var results = job.drainResults();
         boolean done = job.isDone();
         if (done) generationJobs.remove(jobId);
@@ -431,8 +431,23 @@ public class AiRoutes implements Routes {
     public record BatchResult(int generatedCount, List<String> errors) {}
 
     private static class GenerationJob {
+        /**
+         * The station the job was started for. A job id is unguessable, but it is still a name in a
+         * map shared by the whole instance, and polling both reads the questions and clears the job,
+         * so whoever polls has to be from the station that asked for them.
+         */
+        private final int stationId;
+
         private final List<GeneratedQuestionWithMeta> results = new ArrayList<>();
         private volatile boolean done = false;
+
+        GenerationJob(int stationId) {
+            this.stationId = stationId;
+        }
+
+        int stationId() {
+            return stationId;
+        }
 
         synchronized void addResult(GeneratedQuestionWithMeta result) {
             results.add(result);
