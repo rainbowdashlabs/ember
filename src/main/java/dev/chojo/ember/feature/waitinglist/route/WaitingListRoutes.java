@@ -5,9 +5,11 @@
  */
 package dev.chojo.ember.feature.waitinglist.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
@@ -19,8 +21,10 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
+import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListRateLimiter;
 import dev.chojo.ember.feature.waitinglist.service.ScoreEvaluator;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
+import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -60,13 +64,21 @@ public class WaitingListRoutes implements Routes {
     private final WaitingListService service;
     private final StationRepository stationRepository;
     private final ConsentService consentService;
+    private final PublicWaitingListRateLimiter rateLimiter;
+    private final Network network;
 
     @Inject
     public WaitingListRoutes(
-            WaitingListService service, StationRepository stationRepository, ConsentService consentService) {
+            WaitingListService service,
+            StationRepository stationRepository,
+            ConsentService consentService,
+            PublicWaitingListRateLimiter rateLimiter,
+            Network network) {
         this.service = service;
         this.stationRepository = stationRepository;
         this.consentService = consentService;
+        this.rateLimiter = rateLimiter;
+        this.network = network;
     }
 
     private static String toJson(List<Integer> fieldIds) {
@@ -237,6 +249,13 @@ public class WaitingListRoutes implements Routes {
         var request = ctx.bodyAsClass(RegisterRequest.class);
         if (request.inviteCode() == null || request.firstname() == null) {
             throw new BadRequestResponse("inviteCode and firstname are required");
+        }
+        var retryAfter = rateLimiter.tryAcquire(ClientIp.resolve(ctx, network).getHostAddress(), request.inviteCode());
+        if (retryAfter.isPresent()) {
+            ctx.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .header("Retry-After", String.valueOf(retryAfter.get()))
+                    .json(new ErrorResponseWrapper("Rate limit exceeded"));
+            return;
         }
         var consent = consentService.requireAcceptance(
                 ctx, request.consentVersion(), request.privacyVersion(), request.tosVersion());
@@ -711,6 +730,13 @@ public class WaitingListRoutes implements Routes {
         }
         if (request.email() == null || request.email().isBlank()) {
             throw new BadRequestResponse("email is required");
+        }
+        var retryAfter = rateLimiter.tryAcquire(ClientIp.resolve(ctx, network).getHostAddress(), "list:" + wid);
+        if (retryAfter.isPresent()) {
+            ctx.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .header("Retry-After", String.valueOf(retryAfter.get()))
+                    .json(new ErrorResponseWrapper("Rate limit exceeded"));
+            return;
         }
         service.requireOldEnoughToRegister(list, request.values() != null ? request.values() : Map.of());
         var consent = consentService.requireAcceptance(
