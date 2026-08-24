@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -335,10 +336,24 @@ class LendingServiceTest extends RepositoryTestBase {
     @Test
     @Order(51)
     void getLocalMessages() {
-        var msgs = service.getLocalMessages(requestId, stationA.id());
+        var msgs = service.getLocalMessages(requestId, stationA.id(), stationB.uid());
         assertNotNull(msgs);
         // We sent at least one message from stationA in order 20/21
         assertTrue(msgs.stream().anyMatch(m -> stationA.uid().equals(m.senderStationUid())));
+    }
+
+    /**
+     * A partner reads the messages of a request it is a party to and no other. Without the check,
+     * one partner reads what this station said to another.
+     */
+    @Test
+    @Order(51)
+    void getLocalMessagesRefusesAPartnerOutsideTheRequest() {
+        var outsider = stationRepo.create("LendServiceOutsider");
+
+        assertThrows(NotFoundResponse.class, () -> service.getLocalMessages(requestId, stationA.id(), outsider.uid()));
+
+        stationRepo.delete(outsider.id());
     }
 
     @Test

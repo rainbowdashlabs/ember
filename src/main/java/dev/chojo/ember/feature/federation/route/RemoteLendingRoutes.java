@@ -50,7 +50,7 @@ public class RemoteLendingRoutes implements Routes {
     private void remoteGetMessages(Context ctx) {
         var partner = FederationSession.requirePartner(ctx);
         int requestId = pathInt(ctx, "requestId");
-        var messages = service.getLocalMessages(requestId, partner.stationId());
+        var messages = service.getLocalMessages(requestId, partner.stationId(), partner.partnerStationId());
         ctx.json(messages);
     }
 }
