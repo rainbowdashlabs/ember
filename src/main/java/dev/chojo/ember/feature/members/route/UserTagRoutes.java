@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import io.javalin.http.BadRequestResponse;
@@ -34,6 +35,7 @@ import java.util.List;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwned;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 /**
  * Routes for managing user tags including CRUD operations on tag definitions
@@ -42,21 +44,32 @@ import static dev.chojo.ember.api.RouteSupport.requireOwned;
 @Singleton
 public class UserTagRoutes implements Routes {
     private final UserTagService tagService;
+    private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public UserTagRoutes(
             UserTagService tagService,
+            StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             MemberIdentityFactory memberIdentityFactory) {
         this.tagService = tagService;
+        this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.memberIdentityFactory = memberIdentityFactory;
     }
 
     private static boolean isBlank(String s) {
         return s == null || s.isBlank();
+    }
+
+    /**
+     * Asserts the member named in the path belongs to the caller's station. Answers 404 for a
+     * member of another station, so the tags a stranger carries cannot be read or probed.
+     */
+    private void requireOwnedMember(Context ctx, int memberId) {
+        requireOwnedOrNotFound(ctx, memberId, stationMemberRepository::findById, StationMember::stationId);
     }
 
     @Override
@@ -169,6 +182,7 @@ public class UserTagRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void getMembers(Context ctx) {
         int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, tagService::findById, UserTag::stationId);
         ctx.json(tagService.findMembers(id).stream().map(this::toMemberWithName).toList());
     }
 
@@ -204,6 +218,7 @@ public class UserTagRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = UserTag[].class)))
     private void getMemberTags(Context ctx) {
         int memberId = pathInt(ctx, "memberId");
+        requireOwnedMember(ctx, memberId);
         ctx.json(tagService.findTagsForMember(memberId));
     }
 

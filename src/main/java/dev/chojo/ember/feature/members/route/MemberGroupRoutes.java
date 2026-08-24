@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
@@ -35,6 +36,7 @@ import java.util.List;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwned;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 /**
  * Routes for member group management including CRUD operations on groups,
@@ -43,21 +45,32 @@ import static dev.chojo.ember.api.RouteSupport.requireOwned;
 @Singleton
 public class MemberGroupRoutes implements Routes {
     private final MemberGroupService groupService;
+    private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public MemberGroupRoutes(
             MemberGroupService groupService,
+            StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             MemberIdentityFactory memberIdentityFactory) {
         this.groupService = groupService;
+        this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.memberIdentityFactory = memberIdentityFactory;
     }
 
     private static boolean isBlank(String s) {
         return s == null || s.isBlank();
+    }
+
+    /**
+     * Asserts the member named in the path belongs to the caller's station. Answers 404 for a
+     * member of another station, so the groups a stranger is in cannot be read or probed.
+     */
+    private void requireOwnedMember(Context ctx, int memberId) {
+        requireOwnedOrNotFound(ctx, memberId, stationMemberRepository::findById, StationMember::stationId);
     }
 
     @Override
@@ -138,6 +151,7 @@ public class MemberGroupRoutes implements Routes {
             })
     private void get(Context ctx) {
         int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, groupService::findById, MemberGroup::stationId);
         groupService
                 .findById(id)
                 .ifPresentOrElse(
@@ -206,6 +220,7 @@ public class MemberGroupRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationMember[].class)))
     private void getMembers(Context ctx) {
         int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, groupService::findById, MemberGroup::stationId);
         ctx.json(groupService.findMembers(id).stream()
                 .map(this::toMemberWithName)
                 .toList());
@@ -242,6 +257,7 @@ public class MemberGroupRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberGroup[].class)))
     private void getMemberGroups(Context ctx) {
         int memberId = pathInt(ctx, "memberId");
+        requireOwnedMember(ctx, memberId);
         ctx.json(groupService.findGroupsForMember(memberId));
     }
 
@@ -256,6 +272,7 @@ public class MemberGroupRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Permission[].class)))
     private void getGroupPermissions(Context ctx) {
         int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, groupService::findById, MemberGroup::stationId);
         ctx.json(groupService.findGroupPermissions(id));
     }
 
