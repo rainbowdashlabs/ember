@@ -5,7 +5,7 @@
  */
 import client from './client'
 import type {ProfileFieldConfig} from './profileFields'
-import type {StationUserTypeName} from './types'
+import type {MemberIdentity, StationUserTypeName} from './types'
 import {uploadFile} from './upload'
 import {downloadAuthed} from '@/util/downloadAuthed'
 
@@ -128,6 +128,14 @@ export interface ManagedMember {
     former: boolean
     /** A station's owner cannot be edited from the cluster. */
     stationOwner: boolean
+    /** Who this is, as every list in Ember draws a person: the name, the colour, the tag and the avatar. */
+    identity: MemberIdentity
+    /**
+     * Every station of the association this person belongs to, comma separated. The search returns one
+     * row per membership, so somebody at two stations is two rows; naming all of them on each is what
+     * stops the list saying they are two people.
+     */
+    stationNames: string
 }
 
 export interface ManagedMemberPage {

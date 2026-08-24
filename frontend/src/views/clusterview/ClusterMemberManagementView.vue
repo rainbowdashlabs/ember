@@ -63,9 +63,17 @@ function blockedReason(memberId: number): string {
   return ''
 }
 
-/** Which station somebody belongs to, which a station's own list never has to say. */
+/**
+ * Which stations somebody belongs to, which a station's own list never has to say.
+ *
+ * <p>Silent once the reader has narrowed to one station: every row would then repeat the same word.
+ * All of them rather than the one this row came from, because the search returns one row per
+ * membership and somebody at two stations is two rows that would otherwise never say so.
+ */
 function stationNameOf(memberId: number): string {
-  return managed.value.get(memberId)?.stationName ?? ''
+  if (stationUid.value) return ''
+  const person = managed.value.get(memberId)
+  return person?.stationNames || person?.stationName || ''
 }
 
 provideMemberRowExtras({note: stationNameOf, blockedReason, stationLocalColumns: false})

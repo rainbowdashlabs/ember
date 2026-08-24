@@ -27,6 +27,10 @@ const PAGE_SIZE = 200
  * <p>What the search returns and what the table reads do not line up everywhere, and the gaps here are
  * honest rather than filler. No answers to profile questions, no groups and no tags travel with it,
  * because those belong to the station that holds them and the search does not reach for them.
+ *
+ * <p>The identity is not a gap of that kind. Every row draws its person through it, so passing null left
+ * an empty span beside an empty avatar on every line of the list, with the name sitting unread in the
+ * field beside it.
  */
 function toRich(member: ManagedMember): RichMember {
     return {
@@ -43,7 +47,7 @@ function toRich(member: ManagedMember): RichMember {
         groups: [],
         tags: [],
         profileValues: {},
-        identity: null,
+        identity: member.identity,
     }
 }
 

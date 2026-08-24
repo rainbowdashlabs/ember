@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, clusterAccountWith, clusterPage} from './fixtures/auth'
+import {test, expect, clusterAccountWith, clusterHeaders, clusterPage, theSeededCluster} from './fixtures/auth'
+import {ownCluster} from './fixtures/cluster'
 
 /**
  * The two lists an association keeps of people, and the screen behind one of them.
@@ -33,6 +34,83 @@ test.describe('Cluster member screens', () => {
         await expect(page.locator('select').first()).toBeVisible()
         await page.context().close()
     })
+
+    /**
+     * CLS-96 - The people at the stations are shown as people.
+     *
+     * CLS-63 asserted the rows existed, and a row with an empty name is still a row. The search
+     * handed the browser a name nothing reads and a null identity, which is what every list draws a
+     * person from, so every line carried a blank space beside a blank avatar.
+     */
+    test('every row on the station member list carries a name', async ({browser, request}) => {
+        const account = await clusterAccountWith(request, 'CLUSTER_MEMBER_MANAGER')
+        const page = await clusterPage(browser, request, account)
+        const cluster = await theSeededCluster(page)
+        const headers = await clusterHeaders(page, cluster)
+
+        const found = await page.request
+            .get('/api/v1/cluster/members/manage/search?size=5', {headers})
+            .then(r => r.json())
+        const names: string[] = found.members.map((row: {name: string}) => row.name).filter(Boolean)
+        expect(names.length, 'the association has people at its stations').toBeGreaterThan(0)
+        expect(found.members.every((row: {identity: unknown}) => !!row.identity),
+            'and the search says who each of them is').toBeTruthy()
+
+        await page.goto('/cluster/members')
+        await expect(page.getByTestId('member-row').first()).toBeVisible({timeout: 15000})
+
+        const table = page.getByTestId('member-row')
+        for (const name of names.slice(0, 3)) {
+            await expect(table.filter({hasText: name}).first(),
+                `${name} is drawn on the row rather than left blank`).toBeVisible({timeout: 15000})
+        }
+
+        await page.context().close()
+    })
+
+    /**
+     * CLS-97 - The station is named only while it is worth naming, and then all of them are.
+     *
+     * The note was drawn unconditionally, so narrowing to one station left every row repeating the same
+     * word. And the search returns one row per membership, so somebody at two stations of the
+     * association was two rows that never said they were the same person.
+     */
+    test('the station note is silent under a filter and names every station otherwise',
+        async ({adminPage: page, browser, request}) => {
+            const own = await ownCluster(page, browser, request, 'ZweiWachen')
+            const second = await page.request.post('/api/v1/cluster/stations',
+                {headers: own.headers, data: {name: `${own.name} Zweite`}})
+            expect(second.ok(), `the association made a second station (${await second.text()})`).toBeTruthy()
+            const secondUid = (await second.json()).uid
+
+            const surname = `Doppelt${Date.now()}`
+            const email = `${surname.toLowerCase()}@e2e.ember`
+            for (const stationUid of [own.stationUid, secondUid]) {
+                const taken = await page.request.post(
+                    `/api/v1/cluster/members/manage/stations/${stationUid}/members`,
+                    {headers: own.headers, data: {firstName: 'Erika', lastName: surname, email}})
+                expect(taken.ok(), `they were taken on (${await taken.text()})`).toBeTruthy()
+            }
+
+            await page.goto('/cluster/members')
+            await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+            await page.goto('/cluster/members')
+            await expect(page.getByTestId('app-shell')).toBeVisible()
+
+            const rows = page.getByTestId('member-row').filter({hasText: surname})
+            await expect(rows).toHaveCount(2, {timeout: 15000})
+            await expect(rows.first()).toContainText(own.stationName)
+            await expect(rows.first(), 'and the row says both, not only the one it came from')
+                .toContainText(`${own.name} Zweite`)
+
+            await page.locator('select').first().selectOption({label: own.stationName})
+            await expect(rows, 'one station in view leaves one of the two memberships')
+                .toHaveCount(1, {timeout: 15000})
+            await expect(rows.first(), 'and stops naming a station once there is only one')
+                .not.toContainText(own.stationName)
+
+            await own.stationPage.context().close()
+        })
 
     /**
      * CLS-64 - A station's own questions are not offered as columns.
@@ -157,7 +235,8 @@ test.describe('Cluster member screens', () => {
         await page.getByTestId('cluster-member-create-save').click()
 
         await expect(page.getByTestId('cluster-member-create-modal')).toHaveCount(0, {timeout: 15000})
-        await expect(page.getByText(surname)).toBeVisible({timeout: 15000})
+        await expect(page.getByTestId('member-row').filter({hasText: surname}).first())
+            .toBeVisible({timeout: 15000})
         await page.context().close()
     })
 

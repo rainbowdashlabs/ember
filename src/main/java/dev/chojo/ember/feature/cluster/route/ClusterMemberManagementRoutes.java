@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.cluster.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
@@ -18,6 +19,7 @@ import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.util.SafeContentDisposition;
@@ -61,12 +63,16 @@ public class ClusterMemberManagementRoutes implements Routes {
 
     private final ClusterService clusterService;
     private final ClusterMemberManagementService managementService;
+    private final MemberIdentityFactory identityFactory;
 
     @Inject
     public ClusterMemberManagementRoutes(
-            ClusterService clusterService, ClusterMemberManagementService managementService) {
+            ClusterService clusterService,
+            ClusterMemberManagementService managementService,
+            MemberIdentityFactory identityFactory) {
         this.clusterService = clusterService;
         this.managementService = managementService;
+        this.identityFactory = identityFactory;
     }
 
     @Override
@@ -289,12 +295,7 @@ public class ClusterMemberManagementRoutes implements Routes {
                 intParam(ctx.queryParam("size"), 50));
 
         ctx.json(new MemberPageResponse(
-                page.members().stream()
-                        .map(ClusterMemberManagementRoutes::toResponse)
-                        .toList(),
-                page.total(),
-                page.page(),
-                page.size()));
+                page.members().stream().map(this::toResponse).toList(), page.total(), page.page(), page.size()));
     }
 
     @OpenApi(
@@ -464,7 +465,15 @@ public class ClusterMemberManagementRoutes implements Routes {
         }
     }
 
-    private static ManagedMemberResponse toResponse(StationMemberRepository.ClusterMemberRow row) {
+    /**
+     * One row of the search, with the identity the row is drawn from.
+     *
+     * <p>The name travelled on the row all along and nothing read it: every list in Ember draws a person
+     * through their identity, which is what carries the avatar, the colour and the display tag as well.
+     * Assembling half of one in the browser would get the name back and none of the rest, so the server
+     * sends the whole thing.
+     */
+    private ManagedMemberResponse toResponse(StationMemberRepository.ClusterMemberRow row) {
         return new ManagedMemberResponse(
                 row.id(),
                 row.uid(),
@@ -475,7 +484,9 @@ public class ClusterMemberManagementRoutes implements Routes {
                 row.userType().name(),
                 row.joinDate(),
                 row.former(),
-                row.stationOwner());
+                row.stationOwner(),
+                identityFactory.local(row.stationId(), row.id()),
+                row.stationNames());
     }
 
     public record StationUserTypeRequest(String userType) {}
@@ -486,6 +497,8 @@ public class ClusterMemberManagementRoutes implements Routes {
 
     /**
      * @param stationOwner whether they are their station's owner, which the cluster may not edit
+     * @param stationNames every station of this association the person belongs to, so a row can say so
+     *                     rather than naming only the membership it came from
      */
     public record ManagedMemberResponse(
             int id,
@@ -497,7 +510,9 @@ public class ClusterMemberManagementRoutes implements Routes {
             String userType,
             LocalDate joinDate,
             boolean former,
-            boolean stationOwner) {}
+            boolean stationOwner,
+            MemberIdentity identity,
+            String stationNames) {}
 
     /**
      * @param total how many the search found altogether, not how many are on this page
