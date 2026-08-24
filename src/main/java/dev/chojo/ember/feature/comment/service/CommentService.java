@@ -86,6 +86,16 @@ public class CommentService {
     }
 
     /**
+     * The station owning the event a comment hangs under.
+     *
+     * @param commentId the comment ID
+     * @return the owning station, empty when there is no such comment
+     */
+    public Optional<Integer> findCommentStation(int commentId) {
+        return commentRepository.findCommentStation(commentId);
+    }
+
+    /**
      * Creates a new comment and publishes mention events for any @mentioned members.
      *
      * @param stationId   the station ID

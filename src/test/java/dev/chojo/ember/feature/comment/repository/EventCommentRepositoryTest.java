@@ -278,4 +278,21 @@ class EventCommentRepositoryTest extends RepositoryTestBase {
         eventCommentRepo.delete(june.id());
         eventCommentRepo.delete(july.id());
     }
+
+    /**
+     * A comment carries no station of its own, so the ownership check on the comment endpoints
+     * reaches the station through the event the comment hangs under.
+     */
+    @Test
+    @Order(50)
+    void aCommentReportsTheStationOfItsEvent() {
+        var author = memberIdentityFactory.local(station.id(), member.id());
+        var comment = eventCommentRepo.create(eventId, null, author, "Which station?", null);
+
+        assertEquals(
+                station.id(), eventCommentRepo.findCommentStation(comment.id()).orElseThrow());
+        assertTrue(eventCommentRepo.findCommentStation(-1).isEmpty());
+
+        eventCommentRepo.delete(comment.id());
+    }
 }
