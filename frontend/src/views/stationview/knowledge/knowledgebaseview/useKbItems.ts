@@ -63,7 +63,7 @@ export interface KbItem {
      * How far this entry reaches beyond the reader: on the public wiki, or shared without being open to
      * everyone here. Undefined when it is simply the station's own.
      */
-    shared?: 'public' | 'narrow'
+    shared?: 'public' | 'federated' | 'narrow'
     /** Set when a grant holds the reader below what their station permission would allow. */
     levelLabel?: string
     /** A short line the grid shows under the title, used by the favourites folder. */
@@ -99,6 +99,8 @@ interface KbItemSources {
     sharedFolders: Ref<SharedFolderEntry[]>
     /** The entries standing on the public wiki, keyed the way the browse keys them. */
     publicIds: Ref<Set<number>>
+    /** The entries every partner station reads, which is not the same as nobody outside reading them. */
+    federatedIds: Ref<Set<number>>
     /** The entries shared beyond this station without being open to everyone in it. */
     narrowIds: Ref<Set<number>>
     folderKey: (id: number) => number
@@ -240,9 +242,10 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
      * Which eye a tile carries, if any. Green wins where both would apply: an entry on the public wiki is
      * public whatever else narrows it inside the station.
      */
-    function reachOf(key: number): 'public' | 'narrow' | undefined {
+    function reachOf(key: number): 'public' | 'federated' | 'narrow' | undefined {
         if (sources.publicIds.value.has(key)) return 'public'
         if (sources.narrowIds.value.has(key)) return 'narrow'
+        if (sources.federatedIds.value.has(key)) return 'federated'
         return undefined
     }
 

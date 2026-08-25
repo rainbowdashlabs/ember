@@ -28,7 +28,9 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
     const currentLevel = ref<KbAccessLevelName | undefined>(undefined)
     const folderLevels = ref<Record<number, KbAccessLevelName>>({})
     const fileLevels = ref<Record<number, KbAccessLevelName>>({})
+    const sharedTrail = ref<SharedFolderEntry[]>([])
     const publicIds = ref<Set<number>>(new Set())
+    const federatedIds = ref<Set<number>>(new Set())
     const narrowIds = ref<Set<number>>(new Set())
 
     const favouriteIds = computed(() => new Set(favourites.value.map(f => f.id)))
@@ -45,6 +47,7 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
             breadcrumbs.value = []
             sharedFolders.value = level.folders.map(toSharedFolder)
             sharedFiles.value = level.files.map(toSharedFile)
+            sharedTrail.value = level.trail.map(toSharedFolder)
         } else if (navigation.isFavouritesView.value) {
             const result = await knowledgeBase.browse(null)
             currentFolder.value = null
@@ -63,9 +66,14 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
             currentLevel.value = result.currentLevel
             folderLevels.value = result.folderLevels ?? {}
             fileLevels.value = result.fileLevels ?? {}
+            sharedTrail.value = []
             publicIds.value = new Set([
                 ...(result.folderReach?.publicly ?? []).map(id => folderKey(id)),
                 ...(result.fileReach?.publicly ?? []).map(id => fileKey(id)),
+            ])
+            federatedIds.value = new Set([
+                ...(result.folderReach?.federated ?? []).map(id => folderKey(id)),
+                ...(result.fileReach?.federated ?? []).map(id => fileKey(id)),
             ])
             narrowIds.value = new Set([
                 ...(result.folderReach?.narrowly ?? []).map(id => folderKey(id)),
@@ -169,7 +177,9 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
         files,
         sharedFiles,
         sharedFolders,
+        sharedTrail,
         publicIds,
+        federatedIds,
         narrowIds,
         folderKey,
         fileKey,

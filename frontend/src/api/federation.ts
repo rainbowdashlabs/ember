@@ -150,6 +150,8 @@ export const deleteProtocolShare = protocolShares.remove
 export interface SharedKbBrowse {
     folders: SharedContentItem[]
     files: SharedContentItem[]
+    /** The way back out of a shared folder, outermost first. Empty at the top of the shared list. */
+    trail: SharedContentItem[]
 }
 
 export async function browseSharedKb(): Promise<SharedKbBrowse> {

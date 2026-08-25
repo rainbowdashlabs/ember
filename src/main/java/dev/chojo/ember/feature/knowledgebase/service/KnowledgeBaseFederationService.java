@@ -127,7 +127,8 @@ public class KnowledgeBaseFederationService {
                         .toList(),
                 namedFiles(gathered.files()).stream()
                         .filter(file -> mayRead(file.userTypes(), readerUserType))
-                        .toList());
+                        .toList(),
+                List.of());
     }
 
     /**
@@ -185,6 +186,16 @@ public class KnowledgeBaseFederationService {
                                 uid,
                                 partner.id(),
                                 file.userTypes()))
+                        .toList(),
+                level.trail().stream()
+                        .map(step -> new FederatedKbFolder(
+                                step.id(),
+                                step.name(),
+                                step.description(),
+                                stationName,
+                                uid,
+                                partner.id(),
+                                step.userTypes()))
                         .toList());
     }
 
@@ -468,6 +479,25 @@ public class KnowledgeBaseFederationService {
      */
     public void setAudience(
             int stationId, Integer fileId, Integer folderId, ShareScope scope, List<Integer> partnerIds) {
+        setAudience(stationId, fileId, folderId, true, scope, partnerIds);
+    }
+
+    /**
+     * Says who one entry is for, replacing whatever it said before, including saying nobody.
+     *
+     * <p>Not being shared at all is a state of its own and the one most entries of a station are in. It is
+     * not the same as being shared with an empty list of stations, and a screen that could only choose
+     * between everybody and a chosen few would quietly share everything it saved.
+     *
+     * @param shared whether the entry leaves this station at all
+     */
+    public void setAudience(
+            int stationId,
+            Integer fileId,
+            Integer folderId,
+            boolean shared,
+            ShareScope scope,
+            List<Integer> partnerIds) {
         if ((fileId == null) == (folderId == null)) {
             throw new BadRequestResponse("Name either an article or a folder");
         }
@@ -477,7 +507,7 @@ public class KnowledgeBaseFederationService {
                         : Objects.equals(share.folderId(), folderId))
                 .toList();
 
-        shareEntry(stationId, fileId, folderId, scope, partnerIds);
+        if (shared) shareEntry(stationId, fileId, folderId, scope, partnerIds);
         for (var share : existing) {
             federationRepository.deleteKbShare(share.id(), stationId);
         }
@@ -493,8 +523,26 @@ public class KnowledgeBaseFederationService {
      * @param folders   whether to answer about folders rather than articles
      */
     public Set<Integer> narrowlyShared(int stationId, boolean folders) {
+        return sharedIds(stationId, folders, true);
+    }
+
+    /**
+     * The entries this station shares with every one of its partners.
+     *
+     * <p>Distinct from sharing with a chosen few, and distinct again from keeping something to this
+     * station. Without it the two ends of that look the same on a tile: an entry the whole federation
+     * reads carried no mark at all, exactly like one nobody outside can see.
+     *
+     * @param stationId the station whose shares these are
+     * @param folders   whether to answer about folders rather than articles
+     */
+    public Set<Integer> broadlyShared(int stationId, boolean folders) {
+        return sharedIds(stationId, folders, false);
+    }
+
+    private Set<Integer> sharedIds(int stationId, boolean folders, boolean aimed) {
         return federationRepository.findKbShares(stationId).stream()
-                .filter(share -> share.shareScope() == ShareScope.SPECIFIC)
+                .filter(share -> (share.shareScope() == ShareScope.SPECIFIC) == aimed)
                 .map(share -> folders ? share.folderId() : share.fileId())
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
@@ -559,7 +607,7 @@ public class KnowledgeBaseFederationService {
                 .map(this::summary)
                 .toList();
 
-        return new RemoteKbBrowse(folders, files);
+        return new RemoteKbBrowse(folders, files, List.of());
     }
 
     /**
@@ -585,7 +633,26 @@ public class KnowledgeBaseFederationService {
                         .toList(),
                 knowledgeBaseService.findFiles(servingStationId, folderId).stream()
                         .map(this::summary)
-                        .toList());
+                        .toList(),
+                trailTo(servingStationId, folder, readingPartnerId));
+    }
+
+    /**
+     * The way back out of a shared folder: the outermost folder the reader was given, down to the one they
+     * are standing in.
+     *
+     * <p>It stops at the outermost share rather than at the owning station's root. What lies above that is
+     * not shared, and naming it in a trail would say more about the other station's wiki than it agreed to.
+     */
+    private List<RemoteKbFolderSummary> trailTo(int servingStationId, KbFolder folder, Integer readingPartnerId) {
+        var trail = new ArrayList<RemoteKbFolderSummary>();
+        for (KbFolder step = folder; step != null; ) {
+            trail.addFirst(summary(step));
+            Integer parentId = step.parentId();
+            if (parentId == null || !isFolderShared(servingStationId, parentId, readingPartnerId)) break;
+            step = knowledgeBaseService.findFolder(parentId).orElse(null);
+        }
+        return trail;
     }
 
     /** Whether a folder, or anything above it, is one of the given folders. */
@@ -1134,7 +1201,8 @@ public class KnowledgeBaseFederationService {
     /**
      * One level of what the partners share: their folders and the articles standing beside them.
      */
-    public record FederatedKbBrowse(List<FederatedKbFolder> folders, List<FederatedKbItem> files) {}
+    public record FederatedKbBrowse(
+            List<FederatedKbFolder> folders, List<FederatedKbItem> files, List<FederatedKbFolder> trail) {}
 
     /**
      * A folder a partner shares, as gathered before the partner's name is resolved.
@@ -1161,7 +1229,8 @@ public class KnowledgeBaseFederationService {
     /**
      * One level of a partner's shared wiki: the folders it offers and the articles standing beside them.
      */
-    public record RemoteKbBrowse(List<RemoteKbFolderSummary> folders, List<RemoteKbFileSummary> files) {}
+    public record RemoteKbBrowse(
+            List<RemoteKbFolderSummary> folders, List<RemoteKbFileSummary> files, List<RemoteKbFolderSummary> trail) {}
 
     /**
      * A search match as served to a requesting partner.

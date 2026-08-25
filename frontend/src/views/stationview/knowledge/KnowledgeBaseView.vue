@@ -55,7 +55,7 @@ const {
 const {
     currentFolder, breadcrumbs, favourites, favouriteIds, currentLevel, folderLevels, fileLevels,
     loading, error, loadData, toggleFavourite, copySharedFile, sharedFolders,
-    publicIds, narrowIds, folderKey, fileKey,
+    publicIds, federatedIds, narrowIds, folderKey, fileKey, sharedTrail,
 } = browse
 const {showFederated, filterStationId, filterTag, allKbTags, partnerStations, filteredFolders, filteredFiles, filteredSharedFiles, loadTags} = filters
 const {searchQuery, searchResults, searching, isSearching, filteredSearchResults, onSearchInput} = search
@@ -106,6 +106,7 @@ const {items, toSearchItems} = useKbItems(
         sharedFiles: filteredSharedFiles,
         sharedFolders,
         publicIds,
+        federatedIds,
         narrowIds,
         folderKey,
         fileKey,
@@ -176,6 +177,8 @@ watch(loaded, (isLoaded) => {
             v-if="!isSearching"
             :current-folder="currentFolder"
             :breadcrumbs="breadcrumbs"
+            :shared-trail="sharedTrail"
+            @navigate-shared="navigateToSharedFolder"
             :is-favourites-view="isFavouritesView"
             :is-kb-public="isKbPublic()"
             :share-copied="shareCopied"

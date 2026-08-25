@@ -83,6 +83,26 @@ export interface SharedFileEntry {
     sourceStationUid: string | null
 }
 
+/** Which partner stations one entry of this station's wiki is shared with. */
+export interface EntryAudience {
+    id: number
+    fileId: number | null
+    folderId: number | null
+    scope: string
+    partnerIds: number[]
+}
+
+export async function getAudiences(): Promise<EntryAudience[]> {
+    const res = await client.get<EntryAudience[]>('/kb/audiences')
+    return res.data
+}
+
+export async function setAudience(
+    entry: {fileId?: number; folderId?: number; shared: boolean; everyStation: boolean; partnerIds: number[]},
+): Promise<void> {
+    await client.put('/kb/audiences', entry)
+}
+
 /** A folder a partner shares, drawn in the wiki as any other folder is and opened the same way. */
 export interface SharedFolderEntry {
     id: number
@@ -98,6 +118,7 @@ export interface SharedFolderEntry {
  */
 export interface Reach {
     publicly: number[]
+    federated: number[]
     narrowly: number[]
 }
 

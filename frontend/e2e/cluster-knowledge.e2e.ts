@@ -96,6 +96,13 @@ test.describe('Cluster knowledge', () => {
             await expect(own.stationPage.getByTestId('kb-item').filter({hasText: fileName}))
                 .toHaveCount(1, {timeout: 15000})
 
+            // Inside somebody else's folder there has to be a way back out, and it was missing
+            const trail = own.stationPage.locator('nav').filter({hasText: folderName})
+            await expect(trail).toBeVisible()
+            await trail.getByText('Wiki').first().click()
+            await expect(own.stationPage.getByTestId('kb-item').filter({hasText: folderName}))
+                .toHaveCount(1, {timeout: 15000})
+
             await own.stationPage.context().close()
         })
 
@@ -156,10 +163,11 @@ test.describe('Cluster knowledge', () => {
      * CLS-109 - A tile says how far its entry reaches.
      *
      * A tile carried a lock when not everyone at the station could open an entry, and said nothing at all
-     * about who outside could. Two eyes now: green for the public wiki, yellow for shared without being
-     * open to everyone. Green wins where both would apply, because public is the larger fact.
+     * about who outside could. Three eyes now, and the story walks the whole ladder: blue for an entry
+     * every station of the association reads, yellow for one aimed at some of them, green once it is on
+     * the public web. Green wins where both would apply, because public is the larger fact.
      */
-    test('a tile carries a green eye for public and a yellow one for narrowly shared',
+    test('a tile says whether its entry reaches the association, some of it, or the public',
         async ({adminPage: page, browser, request}) => {
             const own = await ownCluster(page, browser, request, 'Augenverband')
             const stamp = `${test.info().workerIndex}-${Date.now()}`
@@ -195,9 +203,9 @@ test.describe('Cluster knowledge', () => {
             await expect(aimedTile).toHaveCount(1, {timeout: 15000})
             await expect(aimedTile.getByTestId('kb-reach')).toHaveAttribute('data-reach', 'narrow')
 
-            // Nothing is public until the association says its wiki is, so the open one carries no eye yet
+            // Everything an association writes goes to all its stations, which is its own thing to say
             const openTile = page.getByTestId('kb-item').filter({hasText: open})
-            await expect(openTile.getByTestId('kb-reach')).toHaveCount(0)
+            await expect(openTile.getByTestId('kb-reach')).toHaveAttribute('data-reach', 'federated')
 
             await page.getByRole('switch').first().click()
             await expect(async () => {

@@ -6,14 +6,18 @@
 package dev.chojo.ember.feature.knowledgebase.route;
 
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessGrant;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
+import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import io.javalin.http.Context;
+import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -36,11 +40,16 @@ public class KnowledgeBaseAccessRoutes implements Routes {
 
     private final KnowledgeBaseService service;
     private final KbAccessService accessService;
+    private final KnowledgeBaseFederationService federationService;
 
     @Inject
-    public KnowledgeBaseAccessRoutes(KnowledgeBaseService service, KbAccessService accessService) {
+    public KnowledgeBaseAccessRoutes(
+            KnowledgeBaseService service,
+            KbAccessService accessService,
+            KnowledgeBaseFederationService federationService) {
         this.service = service;
         this.accessService = accessService;
+        this.federationService = federationService;
     }
 
     /**
@@ -117,6 +126,9 @@ public class KnowledgeBaseAccessRoutes implements Routes {
                 prefix + "/kb/files/{id}/public-visibility",
                 this::setFilePublicVisibility,
                 StationPermission.KNOWLEDGE_EDIT);
+        routes.get(prefix + "/kb/audiences", this::getAudiences, StationPermission.KNOWLEDGE_FEDERATE);
+        routes.put(prefix + "/kb/audiences", this::setAudience, StationPermission.KNOWLEDGE_FEDERATE);
+
         routes.get(
                 prefix + "/kb/folders/{id}/public-visibility",
                 this::getFolderPublicVisibility,
@@ -126,6 +138,33 @@ public class KnowledgeBaseAccessRoutes implements Routes {
                 this::setFolderPublicVisibility,
                 StationPermission.KNOWLEDGE_EDIT);
     }
+
+    /**
+     * Which partner stations each entry of this station's wiki is shared with.
+     *
+     * <p>Guarded by the knowledge federation right rather than the right to run the station's federation
+     * settings: choosing who an article goes to is a thing done to an article, from the article.
+     */
+    private void getAudiences(Context ctx) {
+        var session = UserSession.from(ctx);
+        ctx.json(federationService.findAudiences(session.stationId()));
+    }
+
+    private void setAudience(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(AudienceRequest.class);
+        federationService.setAudience(
+                session.stationId(),
+                req.fileId(),
+                req.folderId(),
+                req.shared(),
+                req.everyStation() ? ShareScope.ALL_PARTNERS : ShareScope.SPECIFIC,
+                req.partnerIds() != null ? req.partnerIds() : List.of());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    public record AudienceRequest(
+            Integer fileId, Integer folderId, boolean shared, boolean everyStation, List<Integer> partnerIds) {}
 
     private void getFolderRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");

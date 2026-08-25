@@ -688,6 +688,8 @@ public class KnowledgeBaseRoutes implements Routes {
                 .orElse(PublicKbMode.OFF);
         var narrowedFolders = federationService.narrowlyShared(session.stationId(), true);
         var narrowedFiles = federationService.narrowlyShared(session.stationId(), false);
+        var openFolders = federationService.broadlyShared(session.stationId(), true);
+        var openFiles = federationService.broadlyShared(session.stationId(), false);
 
         ctx.json(new BrowseResponse(
                 currentFolder,
@@ -696,15 +698,20 @@ public class KnowledgeBaseRoutes implements Routes {
                 accessService.effectiveLevel(access, folderId, null),
                 levels.folders(),
                 levels.files(),
-                reachOf(folders.stream().map(KbFolder::id).toList(), mode, true, narrowedFolders),
-                reachOf(files.stream().map(KbFile::id).toList(), mode, false, narrowedFiles)));
+                reachOf(folders.stream().map(KbFolder::id).toList(), mode, true, narrowedFolders, openFolders),
+                reachOf(files.stream().map(KbFile::id).toList(), mode, false, narrowedFiles, openFiles)));
     }
 
     /**
-     * Which of one level's entries are public, and which reach past this station without reaching
-     * everyone in it.
+     * How far each entry of one level reaches: onto the public web, out to every partner station, or out
+     * to some of them only.
+     *
+     * <p>An entry restricted to certain readers here counts as the narrow case even when it is shared with
+     * every partner, because the sharper thing to know about it is that not everyone who meets it may open
+     * it.
      */
-    private Reach reachOf(List<Integer> ids, PublicKbMode mode, boolean folders, Set<Integer> narrowed) {
+    private Reach reachOf(
+            List<Integer> ids, PublicKbMode mode, boolean folders, Set<Integer> narrowed, Set<Integer> opened) {
         var publicly = ids.stream()
                 .filter(id -> accessService.isPubliclyVisible(mode, folders ? id : null, folders ? null : id))
                 .collect(Collectors.toSet());
@@ -714,7 +721,11 @@ public class KnowledgeBaseRoutes implements Routes {
                                 .findRestrictions(folders ? id : null, folders ? null : id)
                                 .isEmpty())
                 .collect(Collectors.toSet());
-        return new Reach(publicly, narrowly);
+        var federated = ids.stream()
+                .filter(opened::contains)
+                .filter(id -> !narrowly.contains(id))
+                .collect(Collectors.toSet());
+        return new Reach(publicly, federated, narrowly);
     }
 
     private void getFolderIcon(Context ctx) {
@@ -882,10 +893,11 @@ public class KnowledgeBaseRoutes implements Routes {
      * beyond this station without being open to everyone here. Resolved once for the level rather than
      * once per drawn tile.
      *
-     * @param publicly the ids that are on the public wiki
-     * @param narrowly the ids shared with named stations, or restricted to some of this station's readers
+     * @param publicly  the ids that are on the public wiki
+     * @param federated the ids every partner station reads, which is not the same as nobody outside
+     * @param narrowly  the ids shared with named stations, or restricted to some of this station's readers
      */
-    public record Reach(Set<Integer> publicly, Set<Integer> narrowly) {}
+    public record Reach(Set<Integer> publicly, Set<Integer> federated, Set<Integer> narrowly) {}
 
     /**
      * A file with what the reader may do with it and, when a folder decided that, which one - so

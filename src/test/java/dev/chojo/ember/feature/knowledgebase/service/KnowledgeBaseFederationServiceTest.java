@@ -391,7 +391,6 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 BadRequestResponse.class,
                 () -> service.setAudience(stationB.id(), file.id(), 1, ShareScope.ALL_PARTNERS, List.of()));
 
-        federationRepo.deleteKbShare(named.getFirst().id(), stationB.id());
         knowledgeBaseRepo.deleteFile(file.id());
     }
 
@@ -444,7 +443,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 .thenReturn(new KnowledgeBaseFederationService.RemoteKbBrowse(
                         List.of(),
                         List.of(new KnowledgeBaseFederationService.RemoteKbFileSummary(
-                                99, "RemoteFile", "remote desc", "MARKDOWN", "now", List.of()))));
+                                99, "RemoteFile", "remote desc", "MARKDOWN", "now", List.of())),
+                        List.of()));
 
         var items = service.browseSharedKb(station.id()).files();
         assertTrue(items.stream().anyMatch(item -> item.file().name().equals("RemoteFile")));
@@ -463,7 +463,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 .thenReturn(new KnowledgeBaseFederationService.RemoteKbBrowse(
                         List.of(),
                         List.of(new KnowledgeBaseFederationService.RemoteKbFileSummary(
-                                98, "TypeLess", "no type", null, "now", List.of()))));
+                                98, "TypeLess", "no type", null, "now", List.of())),
+                        List.of()));
 
         var items = service.browseSharedKb(station.id()).files();
         var item = items.stream()
