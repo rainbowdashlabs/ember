@@ -9,9 +9,10 @@ import {useRoute} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import {getTwoFactorStatus, verify2fa, webauthnLoginBegin, webauthnLoginFinish} from '@/api/twoFactor'
 import {getWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
-import {setItem} from '@/api/storage'
+import {getItem, setItem} from '@/api/storage'
 import {scheduleTokenRefresh} from '@/api/client'
 import {session} from '@/api'
+import {useCluster} from '@/composables/useCluster'
 import {useStations} from '@/composables/useStations'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -28,6 +29,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 const {t} = useI18n()
 const route = useRoute()
 const {setActiveStation, clearActiveStation} = useStations()
+const {clearActiveCluster} = useCluster()
 
 const preAuthToken = ref(route.query.token as string || '')
 /** Carried over from the login screen, so ticking the box there is not undone by the second factor. */
@@ -65,7 +67,8 @@ const {running: webauthnRunning, error: webauthnError, run: runWebAuthn, clearEr
   const begin = await webauthnLoginBegin(preAuthToken.value)
   const credentialJson = await getWebAuthnCredential(begin.optionsJson)
   const days = rememberDevice.value ? trustedDeviceMaxDays.value : undefined
-  const result = await webauthnLoginFinish(preAuthToken.value, begin.challengeToken, credentialJson, days)
+  const result = await webauthnLoginFinish(
+      preAuthToken.value, begin.challengeToken, credentialJson, days, trustedDevice.value)
   finalizeSession(result.token, result.expiresAt)
 }, {formatError: (e) => {
   const message = (e as Error | undefined)?.message
@@ -87,10 +90,33 @@ function handleWebAuthn() {
   void runWebAuthn()
 }
 
+/**
+ * Leaves for the signed-in application, unless the session was taken away while this ran.
+ *
+ * <p>A request answered 401 on this screen clears the stored bearer without redirecting, because
+ * the two-factor screen counts as a public path. Walking on regardless put the reader on a page
+ * that immediately bounced them back to the login screen with nothing said, which reads as the
+ * second factor having silently failed. Going there directly, keeping where they were headed, is
+ * the honest version of the same outcome.
+ */
+function leaveFor(path: string) {
+  if (!getItem('session_token')) {
+    window.location.href = '/login?redirect=' + encodeURIComponent(path)
+    return
+  }
+  window.location.href = path
+}
+
+/**
+ * Both contexts are dropped before the session is described, the same way the login screen does
+ * it. What the browser remembers belongs to whoever signed in last, and a station or association
+ * carried over from them is named on every call this account makes afterwards.
+ */
 async function finalizeSession(token: string, expiresAt: string) {
   setItem('session_token', token)
   setItem('session_expires_at', expiresAt)
   clearActiveStation()
+  clearActiveCluster()
   scheduleTokenRefresh(expiresAt)
   const redirect = route.query.redirect as string | undefined
   try {
@@ -102,21 +128,21 @@ async function finalizeSession(token: string, expiresAt: string) {
     const [onlyStation] = stations
     if (stations.length === 1 && onlyStation) {
       setActiveStation(onlyStation.stationId)
-      window.location.href = redirect || '/station/requirements'
+      leaveFor(redirect || '/station/requirements')
       return
     }
     if (stations.length > 1) {
-      window.location.href = redirect || '/cross-station'
+      leaveFor(redirect || '/cross-station')
       return
     }
     if (isAdmin) {
-      window.location.href = redirect || '/admin/dashboard/overview'
+      leaveFor(redirect || '/admin/dashboard/overview')
       return
     }
-    window.location.href = redirect || '/account'
+    leaveFor(redirect || '/account')
     return
   } catch { /* fall through to default redirect */ }
-  window.location.href = redirect || '/station/requirements'
+  leaveFor(redirect || '/station/requirements')
 }
 </script>
 

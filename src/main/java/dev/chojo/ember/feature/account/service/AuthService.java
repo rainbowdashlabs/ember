@@ -813,17 +813,11 @@ public class AuthService {
 
     /**
      * Creates a session that is already marked as 2FA-verified and (optionally) linked to a
-     * trusted-device row. Used by the {@code /auth/2fa} verify path so the freshly-minted
+     * trusted-device row. Used by the {@code /auth/2fa} verify paths so the freshly-minted
      * session passes step-up freshness checks without a second prompt.
-     */
-    public LoginResult createVerifiedSessionForAccount(
-            int accountId, String userAgent, String location, Integer deviceTrustId) {
-        return createVerifiedSessionForAccount(accountId, userAgent, location, deviceTrustId, false);
-    }
-
-    /**
-     * The same, carrying the box from the login screen through the second factor. Without this a
-     * person with two-factor enabled would tick it and still get the short session.
+     *
+     * <p>{@code trustedDevice} carries the box from the login screen through the second factor.
+     * Without it somebody with two-factor enabled would tick it and still get the short session.
      */
     public LoginResult createVerifiedSessionForAccount(
             int accountId, String userAgent, String location, Integer deviceTrustId, boolean trustedDevice) {
@@ -945,7 +939,15 @@ public class AuthService {
             String stableToken =
                     accountRepository.findById(accountId).map(Account::email).orElseGet(this::generateToken);
             Instant stableExpiry = Instant.now().plus(365, ChronoUnit.DAYS);
-            accountRepository.createOrReplaceSession(accountId, stableToken, stableExpiry, userAgent, location);
+            accountRepository.createOrReplaceSession(
+                    accountId,
+                    stableToken,
+                    stableExpiry,
+                    userAgent,
+                    location,
+                    twoFactorVerifiedAt,
+                    deviceTrustId,
+                    trustedDevice);
             accountRepository.markSetupCompleted(accountId);
             log.info("Session created for account {}", accountId);
             return LoginResult.success(stableToken, stableExpiry);

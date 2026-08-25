@@ -134,6 +134,7 @@ export async function logout(data: TokenRequest): Promise<MessageResponse> {
     removeItem('session_token')
     removeItem('session_expires_at')
     removeItem('station_id')
+    removeItem('cluster_id')
     return res.data
 }
 

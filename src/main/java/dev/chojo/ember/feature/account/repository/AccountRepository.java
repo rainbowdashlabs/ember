@@ -848,28 +848,47 @@ public class AccountRepository {
      * written - and a refused login reads as the account being broken. Production tokens are random
      * and keep the plain insert, where a collision must be heard rather than absorbed.
      *
+     * <p>A sign-in taking the row over replaces what the previous one left on it, second factor
+     * included. Carrying the old values forward would let a session count as verified on the
+     * strength of a challenge answered by whoever signed in before it.
+     *
      * @param token the session token, hashed before it is stored as everywhere else
      */
     public InsertionResult createOrReplaceSession(
-            int accountId, String token, Instant expiresAt, String userAgent, String location) {
+            int accountId,
+            String token,
+            Instant expiresAt,
+            String userAgent,
+            String location,
+            Instant twoFactorVerifiedAt,
+            Integer deviceTrustId,
+            boolean trustedDevice) {
         return query("""
                 INSERT
                 INTO
-                    account_session(account_id, token_hash, expires_at, user_agent, location)
+                    account_session(account_id, token_hash, expires_at, user_agent, location,
+                                    two_factor_verified_at, device_trust_id, trusted_device)
                 VALUES
-                    (:account_id, :token_hash, :expires_at, :user_agent, :location)
+                    (:account_id, :token_hash, :expires_at, :user_agent, :location,
+                     :two_factor_verified_at, :device_trust_id, :trusted_device)
                 ON CONFLICT (token_hash) DO UPDATE
                 SET
-                    account_id   = excluded.account_id,
-                    expires_at   = excluded.expires_at,
-                    user_agent   = excluded.user_agent,
-                    location     = excluded.location,
-                    last_used_at = now();""")
+                    account_id             = excluded.account_id,
+                    expires_at             = excluded.expires_at,
+                    user_agent             = excluded.user_agent,
+                    location               = excluded.location,
+                    two_factor_verified_at = excluded.two_factor_verified_at,
+                    device_trust_id        = excluded.device_trust_id,
+                    trusted_device         = excluded.trusted_device,
+                    last_used_at           = now();""")
                 .single(call().bind("account_id", accountId)
                         .bind("token_hash", tokenHasher.hash(token))
                         .bind("expires_at", expiresAt, INSTANT_TIMESTAMP)
                         .bind("user_agent", userAgent)
-                        .bind("location", location))
+                        .bind("location", location)
+                        .bind("two_factor_verified_at", twoFactorVerifiedAt, INSTANT_TIMESTAMP)
+                        .bind("device_trust_id", deviceTrustId)
+                        .bind("trusted_device", trustedDevice))
                 .insert();
     }
 

@@ -676,6 +676,12 @@ public class ApiServer {
      * Before-matched handler that enforces authentication and role-based authorization.
      * Resolves the session from the Authorization header, stores it as a context attribute,
      * and checks that the user has at least one of the required route roles.
+     *
+     * <p>A station or cluster header naming something this instance cannot find is answered as a
+     * bad request, not as an unauthorized one. Only the bearer says whether the sign-in still
+     * stands, and every client reads a 401 as the sign-in being over: answering a stale header
+     * that way threw away a perfectly good session and put the reader back on the login screen,
+     * which is the one thing a wrong header must not be able to do.
      */
     private void handleAccess(@NotNull Context ctx) {
         Set<RouteRole> routeRoles = ctx.routeRoles();
@@ -728,11 +734,11 @@ public class ApiServer {
                 var uid = UUID.fromString(stationIdHeader);
                 station = stationRepository.findByUid(uid).orElse(null);
                 if (station == null) {
-                    throw new UnauthorizedResponse("Unknown station");
+                    throw new BadRequestResponse("Unknown station");
                 }
             } catch (IllegalArgumentException e) {
                 log.warn("Invalid X-Station-Id header value", e);
-                throw new UnauthorizedResponse("Invalid X-Station-Id header");
+                throw new BadRequestResponse("Invalid X-Station-Id header");
             }
         }
 
@@ -743,10 +749,10 @@ public class ApiServer {
             try {
                 cluster = clusterRepository
                         .findByUid(UUID.fromString(clusterIdHeader))
-                        .orElseThrow(() -> new UnauthorizedResponse("Unknown cluster"));
+                        .orElseThrow(() -> new BadRequestResponse("Unknown cluster"));
             } catch (IllegalArgumentException e) {
                 log.warn("Invalid X-Cluster-Id header value", e);
-                throw new UnauthorizedResponse("Invalid X-Cluster-Id header");
+                throw new BadRequestResponse("Invalid X-Cluster-Id header");
             }
         }
 

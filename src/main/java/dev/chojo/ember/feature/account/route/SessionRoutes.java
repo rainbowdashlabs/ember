@@ -83,6 +83,12 @@ public class SessionRoutes implements Routes {
         ctx.json(sessionInfoService.describe(UserSession.from(ctx)));
     }
 
+    /**
+     * A membership whose station is gone is left out rather than listed without one. The caller
+     * picks an entry and sends its identifier back as the station it is acting for, and an entry
+     * with nothing to send names no station the server can find, which is answered as a bad
+     * request on every call the reader makes afterwards.
+     */
     @OpenApi(
             path = "/api/v1/session/stations",
             methods = HttpMethod.GET,
@@ -93,12 +99,8 @@ public class SessionRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         List<StationMember> memberships = memberService.findBelongingByAccount(session.accountId());
         List<StationMembership> result = memberships.stream()
-                .map(m -> {
-                    var station = stationService.findById(m.stationId()).orElse(null);
-                    String stationName = station != null ? station.name() : null;
-                    UUID stationUid = station != null ? station.uid() : null;
-                    return new StationMembership(m.id(), stationUid, stationName);
-                })
+                .flatMap(m -> stationService.findById(m.stationId()).stream()
+                        .map(station -> new StationMembership(m.id(), station.uid(), station.name())))
                 .toList();
         ctx.json(result);
     }

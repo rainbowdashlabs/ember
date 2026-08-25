@@ -161,7 +161,9 @@ const error = computed(() => loginError.value || demoError.value)
         <PageHeader class="text-2xl font-bold">{{ t('login.title') }}</PageHeader>
       </div>
 
-      <Spinner v-if="demoLoading" size="lg"/>
+      <div v-if="demoLoading" class="flex justify-center">
+        <Spinner size="lg"/>
+      </div>
 
       <DemoLogin v-if="isDemo && !demoLoading"
                  v-model:active-station="activeStation" v-model:search="search"

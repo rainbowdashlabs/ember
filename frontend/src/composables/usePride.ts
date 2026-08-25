@@ -14,7 +14,14 @@ function isPrideMonth(): boolean {
 
 const prideMonth = computed(() => isPrideMonth())
 const prideActive = computed(() => prideMonth.value || forcePrideFlag.value)
-const prideVariant = computed((): 'text' | 'banner' => prideMonth.value ? 'banner' : 'text')
+
+/**
+ * The flag looks the same however it was switched on. Reading the month here instead of whether
+ * the flag is showing gave an instance that turned it on itself the gradient clipped into the
+ * letters, and only June and July the flag behind them, so the setting appeared to do something
+ * other than what it says.
+ */
+const prideVariant = computed((): 'text' | 'banner' => prideActive.value ? 'banner' : 'text')
 
 export function usePride() {
     return {
