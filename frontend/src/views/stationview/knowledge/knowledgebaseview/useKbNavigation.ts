@@ -29,6 +29,26 @@ export function useKbNavigation(routes: KbRoutes = STATION_KB_ROUTES) {
 
     const isFavouritesView = computed(() => route.query.folderId === 'favourites')
 
+    /**
+     * The folder of a partner being read, if one is open.
+     *
+     * <p>A folder id belongs to the station that owns it, so a partner's folder is addressed by the pair.
+     * Both sit in the query rather than the path: it is the same wiki screen either way, showing somebody
+     * else's level of it.
+     */
+    const sharedStationUid = computed(() => (route.query.sharedStation as string) || null)
+
+    const sharedFolderId = computed(() => {
+        const param = route.query.sharedFolder
+        return param ? Number(param) : null
+    })
+
+    const isSharedFolderView = computed(() => sharedStationUid.value !== null && sharedFolderId.value !== null)
+
+    function navigateToSharedFolder(stationUid: string, folderId: number) {
+        router.push({name: routes.browse, query: {sharedStation: stationUid, sharedFolder: folderId}})
+    }
+
     const currentFolderId = computed(() => {
         const param = route.query.folderId
         if (!param || param === 'favourites') return null
@@ -63,6 +83,10 @@ export function useKbNavigation(routes: KbRoutes = STATION_KB_ROUTES) {
         folderParam,
         isFavouritesView,
         currentFolderId,
+        sharedStationUid,
+        sharedFolderId,
+        isSharedFolderView,
+        navigateToSharedFolder,
         navigateToFolder,
         navigateToFile,
         navigateToFederatedFile,

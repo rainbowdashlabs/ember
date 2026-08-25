@@ -50,10 +50,11 @@ const search = useKbSearch(filters)
 const {
     folderParam, isFavouritesView, currentFolderId,
     navigateToFolder, navigateToFile, navigateToFederatedFile, navigateToFavourites,
+    navigateToSharedFolder, sharedFolderId,
 } = navigation
 const {
     currentFolder, breadcrumbs, favourites, favouriteIds, currentLevel, folderLevels, fileLevels,
-    loading, error, loadData, toggleFavourite, copySharedFile,
+    loading, error, loadData, toggleFavourite, copySharedFile, sharedFolders,
 } = browse
 const {showFederated, filterStationId, filterTag, allKbTags, partnerStations, filteredFolders, filteredFiles, filteredSharedFiles, loadTags} = filters
 const {searchQuery, searchResults, searching, isSearching, filteredSearchResults, onSearchInput} = search
@@ -102,6 +103,7 @@ const {items, toSearchItems} = useKbItems(
         folders: filteredFolders,
         files: filteredFiles,
         sharedFiles: filteredSharedFiles,
+        sharedFolders,
         favourites,
         favouriteIds,
         currentFolder,
@@ -123,13 +125,14 @@ const {items, toSearchItems} = useKbItems(
         deleteFile: confirmDeleteFile,
         exportFilePdf,
         copySharedFile,
+        openSharedFolder: navigateToSharedFolder,
         removeFavourite: toggleFavourite,
     },
 )
 
 const searchItems = computed(() => toSearchItems(filteredSearchResults.value))
 
-watch(folderParam, () => {
+watch([folderParam, sharedFolderId], () => {
     loadData()
 })
 

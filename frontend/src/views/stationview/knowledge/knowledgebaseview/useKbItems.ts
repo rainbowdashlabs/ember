@@ -15,6 +15,7 @@ import {
     type KbFolder,
     type SearchResult,
     type SharedFileEntry,
+    type SharedFolderEntry,
 } from '@/api/knowledgeBase'
 import {fileIcon} from '@/util/kbFileIcon'
 import {isPdfExportable} from '@/util/kbFileExport'
@@ -82,6 +83,7 @@ interface KbItemHandlers {
     deleteFile: (file: KbFile) => void
     exportFilePdf: (file: KbFile) => void
     copySharedFile: (id: number) => void
+    openSharedFolder: (stationUid: string, folderId: number) => void
     removeFavourite: (file: KbFile, event?: MouseEvent) => void
 }
 
@@ -89,6 +91,7 @@ interface KbItemSources {
     folders: Ref<KbFolder[]>
     files: Ref<KbFile[]>
     sharedFiles: Ref<SharedFileEntry[]>
+    sharedFolders: Ref<SharedFolderEntry[]>
     favourites: Ref<KbFile[]>
     favouriteIds: Ref<Set<number>>
     currentFolder: Ref<KbFolder | null>
@@ -217,6 +220,27 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
         }
     }
 
+    /**
+     * A folder a partner shares, drawn as any other folder and opened the same way. What is inside it
+     * belongs to the partner, so opening it addresses the partner's station along with the folder.
+     */
+    function toSharedFolderItem(shared: SharedFolderEntry): KbItem {
+        const stationUid = shared.sourceStationUid
+        return {
+            key: 'shared-folder-' + stationUid + '-' + shared.id,
+            icon: ['fas', 'folder'],
+            iconClass: 'text-[var(--accent)]',
+            title: shared.name,
+            description: shared.description || undefined,
+            typeLabel: t('kb.typeFolder'),
+            stationName: shared.stationName,
+            restricted: false,
+            favourite: false,
+            open: stationUid ? () => handlers.openSharedFolder(stationUid, shared.id) : undefined,
+            actions: [],
+        }
+    }
+
     function toSharedItem(shared: SharedFileEntry): KbItem {
         const stationUid = shared.sourceStationUid
         return {
@@ -323,6 +347,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
         const result: KbItem[] = []
         if (favouritesItem.value) result.push(favouritesItem.value)
         result.push(...sources.folders.value.map(toFolderItem))
+        result.push(...sources.sharedFolders.value.map(toSharedFolderItem))
         result.push(...sources.files.value.map(toFileItem))
         result.push(...sources.sharedFiles.value.map(toSharedItem))
         return result

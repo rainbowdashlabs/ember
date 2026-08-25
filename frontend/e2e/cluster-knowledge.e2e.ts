@@ -54,4 +54,48 @@ test.describe('Cluster knowledge', () => {
             await stranger.close()
             await own.stationPage.context().close()
         })
+
+    /**
+     * CLS-110 - A folder the association writes arrives at its stations as a folder.
+     *
+     * It did not arrive at all. The association's wiki reached its stations as a flat list of articles:
+     * the folder was shared, the share row written, and the browse dropped every folder share on its first
+     * line because it had no shape to return one in. So an association wrote a structure and its stations
+     * received a heap. The story asserts the folder arrives badged with the association and its article
+     * does not stand loose beside it, then opens the folder and finds the article inside.
+     */
+    test('a folder the association writes arrives at its stations as a folder',
+        async ({adminPage: page, browser, request}) => {
+            const own = await ownCluster(page, browser, request, 'Ordnerverband')
+            const stamp = `${test.info().workerIndex}-${Date.now()}`
+            const folderName = `Dienstanweisungen ${stamp}`
+            const fileName = `Einsatzkleidung ${stamp}`
+
+            const folder = await page.request.post('/api/v1/kb/folders', {
+                headers: own.contentHeaders,
+                data: {parentId: null, name: folderName, description: 'Gilt für alle Wachen'},
+            })
+            expect(folder.ok(), `the association made a folder (${await folder.text()})`).toBeTruthy()
+            const folderId = (await folder.json()).id
+
+            const written = await page.request.post('/api/v1/kb/files/markdown', {
+                headers: own.contentHeaders,
+                data: {folderId, name: fileName, description: 'Pflege und Tausch', content: '# Pflege'},
+            })
+            expect(written.ok(), `and an article inside it (${await written.text()})`).toBeTruthy()
+
+            await own.stationPage.goto('/station/knowledge')
+            await expect(own.stationPage.getByTestId('app-shell')).toBeVisible()
+
+            const arrived = own.stationPage.getByTestId('kb-item').filter({hasText: folderName})
+            await expect(arrived).toHaveCount(1, {timeout: 15000})
+            await expect(arrived).toContainText(own.name)
+            await expect(own.stationPage.getByTestId('kb-item').filter({hasText: fileName})).toHaveCount(0)
+
+            await arrived.click()
+            await expect(own.stationPage.getByTestId('kb-item').filter({hasText: fileName}))
+                .toHaveCount(1, {timeout: 15000})
+
+            await own.stationPage.context().close()
+        })
 })

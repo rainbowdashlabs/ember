@@ -83,6 +83,15 @@ export interface SharedFileEntry {
     sourceStationUid: string | null
 }
 
+/** A folder a partner shares, drawn in the wiki as any other folder is and opened the same way. */
+export interface SharedFolderEntry {
+    id: number
+    name: string
+    description: string
+    stationName: string
+    sourceStationUid: string | null
+}
+
 export interface BrowseResponse {
     currentFolder: KbFolder | null
     folders: KbFolder[]
