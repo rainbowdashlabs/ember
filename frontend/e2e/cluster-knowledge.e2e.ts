@@ -151,4 +151,60 @@ test.describe('Cluster knowledge', () => {
 
             await own.stationPage.context().close()
         })
+
+    /**
+     * CLS-109 - A tile says how far its entry reaches.
+     *
+     * A tile carried a lock when not everyone at the station could open an entry, and said nothing at all
+     * about who outside could. Two eyes now: green for the public wiki, yellow for shared without being
+     * open to everyone. Green wins where both would apply, because public is the larger fact.
+     */
+    test('a tile carries a green eye for public and a yellow one for narrowly shared',
+        async ({adminPage: page, browser, request}) => {
+            const own = await ownCluster(page, browser, request, 'Augenverband')
+            const stamp = `${test.info().workerIndex}-${Date.now()}`
+            const open = `Für alle ${stamp}`
+            const aimed = `Nur für eine ${stamp}`
+
+            for (const name of [open, aimed]) {
+                const written = await page.request.post('/api/v1/kb/files/markdown', {
+                    headers: own.contentHeaders,
+                    data: {folderId: null, name, description: 'Augenprobe', content: '# Text'},
+                })
+                expect(written.ok(), `the association wrote ${name} (${await written.text()})`).toBeTruthy()
+                if (name === aimed) {
+                    const fileId = (await written.json()).id
+                    const partners = await page.request
+                        .get('/api/v1/federation/partners', {headers: own.contentHeaders})
+                        .then(r => r.json())
+                    const named = partners.find((held: {partnerStationName: string}) =>
+                        held.partnerStationName === own.stationName)
+                    const put = await page.request.put('/api/v1/cluster/knowledge/audiences', {
+                        headers: own.headers,
+                        data: {fileId, everyStation: false, partnerIds: [named.partner.id]},
+                    })
+                    expect(put.ok(), `and aimed it (${await put.text()})`).toBeTruthy()
+                }
+            }
+
+            await page.goto('/cluster/knowledge')
+            await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+            await page.goto('/cluster/knowledge')
+
+            const aimedTile = page.getByTestId('kb-item').filter({hasText: aimed})
+            await expect(aimedTile).toHaveCount(1, {timeout: 15000})
+            await expect(aimedTile.getByTestId('kb-reach')).toHaveAttribute('data-reach', 'narrow')
+
+            // Nothing is public until the association says its wiki is, so the open one carries no eye yet
+            const openTile = page.getByTestId('kb-item').filter({hasText: open})
+            await expect(openTile.getByTestId('kb-reach')).toHaveCount(0)
+
+            await page.getByRole('switch').first().click()
+            await expect(async () => {
+                await page.reload()
+                await expect(openTile.getByTestId('kb-reach')).toHaveAttribute('data-reach', 'public', {timeout: 5000})
+            }).toPass({timeout: 30000})
+
+            await own.stationPage.context().close()
+        })
 })

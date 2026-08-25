@@ -55,6 +55,7 @@ const {
 const {
     currentFolder, breadcrumbs, favourites, favouriteIds, currentLevel, folderLevels, fileLevels,
     loading, error, loadData, toggleFavourite, copySharedFile, sharedFolders,
+    publicIds, narrowIds, folderKey, fileKey,
 } = browse
 const {showFederated, filterStationId, filterTag, allKbTags, partnerStations, filteredFolders, filteredFiles, filteredSharedFiles, loadTags} = filters
 const {searchQuery, searchResults, searching, isSearching, filteredSearchResults, onSearchInput} = search
@@ -104,6 +105,10 @@ const {items, toSearchItems} = useKbItems(
         files: filteredFiles,
         sharedFiles: filteredSharedFiles,
         sharedFolders,
+        publicIds,
+        narrowIds,
+        folderKey,
+        fileKey,
         favourites,
         favouriteIds,
         currentFolder,

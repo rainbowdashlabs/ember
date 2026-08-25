@@ -92,6 +92,15 @@ export interface SharedFolderEntry {
     sourceStationUid: string | null
 }
 
+/**
+ * How far each entry of one level reaches: the ids on the public wiki, and the ids shared beyond this
+ * station without being open to everyone in it.
+ */
+export interface Reach {
+    publicly: number[]
+    narrowly: number[]
+}
+
 export interface BrowseResponse {
     currentFolder: KbFolder | null
     folders: KbFolder[]
@@ -104,6 +113,10 @@ export interface BrowseResponse {
     folderLevels?: Record<number, KbAccessLevelName>
     /** What the reader may do with each file, keyed by file id. */
     fileLevels?: Record<number, KbAccessLevelName>
+    /** How far each folder reaches. */
+    folderReach?: Reach
+    /** How far each file reaches. */
+    fileReach?: Reach
 }
 
 /**

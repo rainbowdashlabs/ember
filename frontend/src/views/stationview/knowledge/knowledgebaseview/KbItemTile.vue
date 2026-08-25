@@ -8,6 +8,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import AuthImage from '@/components/display/AuthImage.vue'
 import KbItemActions from './KbItemActions.vue'
+import KbReachEye from './KbReachEye.vue'
 import type {KbItem} from './useKbItems'
 
 defineProps<{
@@ -22,6 +23,8 @@ defineProps<{
         :class="item.open ? 'cursor-pointer' : ''"
         @click="item.open?.()"
     >
+        <KbReachEye v-if="item.shared" :reach="item.shared" class="absolute top-1.5 left-1.5"/>
+
         <div class="flex flex-col items-center gap-2 p-2 text-center">
             <AuthImage
                 v-if="item.imageUrl"

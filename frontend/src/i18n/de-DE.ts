@@ -6828,6 +6828,8 @@ export default {
         tags: 'Schlagwörter',
         tagPlaceholder: 'Neues Schlagwort...',
         share: 'Sichtbarkeit',
+        reachPublic: 'Steht im öffentlichen Wiki',
+        reachNarrow: 'Geteilt, aber nicht mit allen',
         everyStation: 'Für alle Wachen des Verbands',
         forStations: 'Nur für diese Wachen',
         shareHint: 'Wer diesen Eintrag sehen darf, und ob er im öffentlichen Wiki steht.',

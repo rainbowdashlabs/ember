@@ -59,6 +59,11 @@ export interface KbItem {
     stationName?: string
     restricted: boolean
     favourite: boolean
+    /**
+     * How far this entry reaches beyond the reader: on the public wiki, or shared without being open to
+     * everyone here. Undefined when it is simply the station's own.
+     */
+    shared?: 'public' | 'narrow'
     /** Set when a grant holds the reader below what their station permission would allow. */
     levelLabel?: string
     /** A short line the grid shows under the title, used by the favourites folder. */
@@ -92,6 +97,12 @@ interface KbItemSources {
     files: Ref<KbFile[]>
     sharedFiles: Ref<SharedFileEntry[]>
     sharedFolders: Ref<SharedFolderEntry[]>
+    /** The entries standing on the public wiki, keyed the way the browse keys them. */
+    publicIds: Ref<Set<number>>
+    /** The entries shared beyond this station without being open to everyone in it. */
+    narrowIds: Ref<Set<number>>
+    folderKey: (id: number) => number
+    fileKey: (id: number) => number
     favourites: Ref<KbFile[]>
     favouriteIds: Ref<Set<number>>
     currentFolder: Ref<KbFolder | null>
@@ -212,6 +223,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             updatedAt: file.updatedAt,
             restricted: file.restricted === true,
             favourite: sources.favouriteIds.value.has(file.id),
+            shared: reachOf(sources.fileKey(file.id)),
             levelLabel: sources.isFavouritesView.value
                 ? undefined
                 : levelLabel(sources.fileLevels.value[file.id]),
@@ -224,6 +236,16 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
      * A folder a partner shares, drawn as any other folder and opened the same way. What is inside it
      * belongs to the partner, so opening it addresses the partner's station along with the folder.
      */
+    /**
+     * Which eye a tile carries, if any. Green wins where both would apply: an entry on the public wiki is
+     * public whatever else narrows it inside the station.
+     */
+    function reachOf(key: number): 'public' | 'narrow' | undefined {
+        if (sources.publicIds.value.has(key)) return 'public'
+        if (sources.narrowIds.value.has(key)) return 'narrow'
+        return undefined
+    }
+
     function toSharedFolderItem(shared: SharedFolderEntry): KbItem {
         const stationUid = shared.sourceStationUid
         return {
@@ -315,6 +337,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             title: folder.name,
             description: folder.description || undefined,
             typeLabel: t('kb.typeFolder'),
+            shared: reachOf(sources.folderKey(folder.id)),
             updatedAt: folder.updatedAt,
             restricted: folder.restricted === true,
             favourite: false,

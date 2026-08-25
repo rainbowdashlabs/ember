@@ -28,6 +28,8 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
     const currentLevel = ref<KbAccessLevelName | undefined>(undefined)
     const folderLevels = ref<Record<number, KbAccessLevelName>>({})
     const fileLevels = ref<Record<number, KbAccessLevelName>>({})
+    const publicIds = ref<Set<number>>(new Set())
+    const narrowIds = ref<Set<number>>(new Set())
 
     const favouriteIds = computed(() => new Set(favourites.value.map(f => f.id)))
 
@@ -61,6 +63,14 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
             currentLevel.value = result.currentLevel
             folderLevels.value = result.folderLevels ?? {}
             fileLevels.value = result.fileLevels ?? {}
+            publicIds.value = new Set([
+                ...(result.folderReach?.publicly ?? []).map(id => folderKey(id)),
+                ...(result.fileReach?.publicly ?? []).map(id => fileKey(id)),
+            ])
+            narrowIds.value = new Set([
+                ...(result.folderReach?.narrowly ?? []).map(id => folderKey(id)),
+                ...(result.fileReach?.narrowly ?? []).map(id => fileKey(id)),
+            ])
             favourites.value = result.favourites ?? []
             await buildBreadcrumbs()
 
@@ -79,6 +89,18 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
             }
         }
     }, {autoLoad: false})
+
+    /**
+     * A folder and an article can carry the same number, so a reach set holds them apart rather than
+     * marking an article because a folder of that number happened to be public.
+     */
+    function folderKey(id: number): number {
+        return id * 2
+    }
+
+    function fileKey(id: number): number {
+        return id * 2 + 1
+    }
 
     function toSharedFile(item: SharedContentItem): SharedFileEntry {
         return {
@@ -147,6 +169,10 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
         files,
         sharedFiles,
         sharedFolders,
+        publicIds,
+        narrowIds,
+        folderKey,
+        fileKey,
         favourites,
         breadcrumbs,
         currentLevel,

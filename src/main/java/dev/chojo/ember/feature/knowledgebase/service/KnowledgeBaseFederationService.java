@@ -483,6 +483,23 @@ public class KnowledgeBaseFederationService {
         }
     }
 
+    /**
+     * The entries this station shares with named stations rather than with every partner.
+     *
+     * <p>An entry shared with everybody reaches past this station but says nothing about who: it is
+     * simply out there, which is not the same thing as being aimed. Only an aimed one is marked.
+     *
+     * @param stationId the station whose shares these are
+     * @param folders   whether to answer about folders rather than articles
+     */
+    public Set<Integer> narrowlyShared(int stationId, boolean folders) {
+        return federationRepository.findKbShares(stationId).stream()
+                .filter(share -> share.shareScope() == ShareScope.SPECIFIC)
+                .map(share -> folders ? share.folderId() : share.fileId())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
     /** One share of a wiki entry, with the stations it names. */
     public record EntryAudience(int id, Integer fileId, Integer folderId, ShareScope scope, List<Integer> partnerIds) {}
 
