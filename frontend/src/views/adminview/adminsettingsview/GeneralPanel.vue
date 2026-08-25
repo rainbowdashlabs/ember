@@ -53,7 +53,7 @@ function localeLabel(locale: string): string {
         <div class="font-medium">{{ t('adminSettings.stationRegistration') }}</div>
         <div class="text-sm text-(--text-muted)">{{ t('adminSettings.stationRegistrationHint') }}</div>
       </div>
-      <ToggleInput :model-value="registrationEnabled"
+      <ToggleInput data-onboarding="admin.settings.station-registration" :model-value="registrationEnabled"
                    :aria-label="t('adminSettings.stationRegistration')"
                    @update:model-value="(v: boolean) => emit('toggle-registration', v)"/>
     </div>

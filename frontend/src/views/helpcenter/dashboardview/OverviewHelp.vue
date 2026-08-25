@@ -46,6 +46,13 @@ const activeView = ref('')
       <p>{{ t('helpCenter.dashboard.profileIncomplete') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.dashboard.onboardingTitle')">
+      <p>{{ t('helpCenter.dashboard.onboardingText') }}</p>
+      <p>{{ t('helpCenter.dashboard.onboardingGuide') }}</p>
+      <p>{{ t('helpCenter.dashboard.onboardingSkip') }}</p>
+      <p>{{ t('helpCenter.dashboard.onboardingShared') }}</p>
+    </HelpSection>
+
     <!-- Dummy: Profile incomplete banner -->
     <ErrorContainer class="flex items-center justify-between gap-4">
       <div>

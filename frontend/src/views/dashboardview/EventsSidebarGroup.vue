@@ -31,12 +31,12 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :badge="counts.pendingRegistrations + counts.openEvents" :icon="['fas', 'calendar-days']" :label="t('sidebar.events')" to="/station/events/upcoming" name="events-upcoming" @navigate="close">
+  <SidebarGroup data-onboarding="nav.events.upcoming" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :badge="counts.pendingRegistrations + counts.openEvents" :icon="['fas', 'calendar-days']" :label="t('sidebar.events')" to="/station/events/upcoming" name="events-upcoming" @navigate="close">
     <SidebarLink v-if="hasPermission(StationPermission.EVENT_REGISTRATION)" :badge="counts.pendingRegistrations" :icon="['fas', 'clipboard-list']" name="events-registrations"
                  to="/station/events/registrations" @navigate="close">
       {{ t('sidebar.pendingRegistrations') }}
     </SidebarLink>
-    <SidebarLink v-if="hasPermission(StationPermission.EVENT_EDIT)" :icon="['fas', 'gears']" name="events" to="/station/events"
+    <SidebarLink v-if="hasPermission(StationPermission.EVENT_EDIT)" data-onboarding="nav.events" :icon="['fas', 'gears']" name="events" to="/station/events"
                  @navigate="close">
       {{ t('sidebar.manageEvents') }}
     </SidebarLink>

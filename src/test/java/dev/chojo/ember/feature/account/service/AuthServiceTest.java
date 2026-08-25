@@ -904,6 +904,40 @@ class AuthServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(98)
+    void aPasswordSetOnSomebodysBehalfEndsTheirSessionsAndSignsThemIn() {
+        var child = accountRepo.create("kid-behalf@managed.local", "Kim", "Kind", false);
+        accountRepo.updateUsername(child.id(), "kim.behalf");
+        accountRepo.createCredential(child.id(), new PasswordHasher().hash(PASSWORD));
+        var session = service.login("kim.behalf", PASSWORD, "agent", "DE");
+        assertTrue(session.success(), "the old password works before it is replaced");
+
+        var outcome = service.setPasswordFor(child, "SomebodyElseSetThis1!");
+
+        assertEquals(AuthService.SetPasswordOutcome.OK, outcome);
+        assertTrue(accountRepo.findSessionsByAccount(child.id()).isEmpty(), "the sessions that were open have ended");
+        assertTrue(
+                service.login("kim.behalf", "SomebodyElseSetThis1!", "agent", "DE")
+                        .success(),
+                "the new password signs them in");
+        assertFalse(service.login("kim.behalf", PASSWORD, "agent", "DE").success(), "and the old one no longer does");
+
+        accountRepo.delete(child.id());
+    }
+
+    @Test
+    @Order(98)
+    void anAccountWithoutCredentialsGetsThemFromSomebodyElse() {
+        var child = accountRepo.create("kid-fresh@managed.local", "Kai", "Kind", false);
+        accountRepo.updateUsername(child.id(), "kai.fresh");
+
+        assertEquals(AuthService.SetPasswordOutcome.OK, service.setPasswordFor(child, "AFirstPassword1!"));
+        assertTrue(service.login("kai.fresh", "AFirstPassword1!", "agent", "DE").success());
+
+        accountRepo.delete(child.id());
+    }
+
+    @Test
     @Order(99)
     void cleanup() {
         accountRepo.delete(accountId);

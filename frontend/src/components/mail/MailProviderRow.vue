@@ -181,7 +181,7 @@ const user = computed({
         <FieldLabel>{{ t('mailChain.testRecipient') }}</FieldLabel>
         <TextInput v-model="recipient" type="email" :aria-label="t('mailChain.testRecipient')"/>
       </div>
-      <SecondaryButton :icon="['fas', 'paper-plane']" :disabled="props.testing" @click="emit('test', recipient)">
+      <SecondaryButton data-onboarding="mailing.test" :icon="['fas', 'paper-plane']" :disabled="props.testing" @click="emit('test', recipient)">
         {{ props.testing ? t('common.loading') : t('mailChain.test') }}
       </SecondaryButton>
     </div>

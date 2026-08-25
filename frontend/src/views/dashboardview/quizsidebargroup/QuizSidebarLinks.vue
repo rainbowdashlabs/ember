@@ -24,7 +24,7 @@ const {hasPermission} = useSession()
   <SidebarLink :icon="['fas', 'file-lines']" name="quiz-tests" to="/station/quiz/tests" @navigate="emit('navigate')">
     {{ t('sidebar.quizTests') }}
   </SidebarLink>
-  <SidebarLink :icon="['fas', 'brain']" name="quiz-training" to="/station/quiz/training" @navigate="emit('navigate')">
+  <SidebarLink data-onboarding="nav.quiz.training" :icon="['fas', 'brain']" name="quiz-training" to="/station/quiz/training" @navigate="emit('navigate')">
     {{ t('sidebar.quizTraining') }}
   </SidebarLink>
 </template>

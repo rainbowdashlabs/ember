@@ -50,7 +50,7 @@ function handleDecline() { if (selectedId.value != null) emit('decline', selecte
 </script>
 
 <template>
-  <div class="flex items-center gap-2 flex-wrap">
+  <div data-onboarding="events.item.pending" class="flex items-center gap-2 flex-wrap">
     <template v-for="m in eligibleMembers" :key="`reg-${m.id}`">
       <template v-if="getRegistration(m.id)">
         <div class="flex items-center gap-1">
@@ -77,7 +77,8 @@ function handleDecline() { if (selectedId.value != null) emit('decline', selecte
     </template>
 
     <template v-if="membersWithoutRegistration.length > 0">
-      <SelectInput v-if="membersWithoutRegistration.length > 1" v-model="selectedMemberId" class="text-sm w-40">
+      <SelectInput v-if="membersWithoutRegistration.length > 1" v-model="selectedMemberId"
+                   data-onboarding="events.item.member-select" class="text-sm w-40">
         <option disabled value="">{{ t('eventsUpcoming.selectMember') }}</option>
         <option v-for="m in membersWithoutRegistration" :key="m.id" :value="String(m.id)">{{ m.name }}</option>
       </SelectInput>

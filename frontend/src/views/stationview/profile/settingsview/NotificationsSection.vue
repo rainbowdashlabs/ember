@@ -82,7 +82,7 @@ function getToggle(type: string): NotificationToggle {
   </NeutralContainer>
 
   <!-- Per-type notification toggles -->
-  <NeutralContainer class="space-y-4">
+  <NeutralContainer data-onboarding="notifications.matrix" class="space-y-4">
     <SubHeader class="text-sm">{{ t('userSettings.notifications') }}</SubHeader>
     <p class="text-xs text-(--text-muted)">{{ t('userSettings.notificationsHint') }}</p>
 

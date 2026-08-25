@@ -49,3 +49,22 @@ export function emberLogoNoGlow() {
 
 /** All available gaze positions for auto-gaze feature */
 export const defaultGazePositions: EyeDirection[] = ['left', 'mid', 'right']
+
+/** How Ember looks while guiding somebody through a task. */
+export type EmberMood = 'plain' | 'glow' | 'faq' | 'cheer' | 'sober'
+
+/**
+ * Ember as the one doing the talking, rather than as a logo.
+ *
+ * The glow goes with a lit-up target so the figure and the ring read as one thing, the question mark
+ * with an explanation, and the cheer with a task just finished. Sober drops the blush for the parts
+ * of the instance settings where a bashful flame would be out of place.
+ */
+export function emberGuide(mood: EmberMood = 'plain') {
+    const activeLayers = new Set(['fire_blank', 'fire_eyes_mid', 'fire_blush'])
+    if (mood === 'glow' || mood === 'cheer') activeLayers.add('fire_glow')
+    if (mood === 'faq') activeLayers.add('fire_faq')
+    if (mood === 'cheer') activeLayers.add('fire_woah_one')
+    if (mood === 'sober') activeLayers.delete('fire_blush')
+    return {layers: allLayers, activeLayers}
+}

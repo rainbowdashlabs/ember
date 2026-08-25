@@ -167,6 +167,7 @@ import dev.chojo.ember.feature.news.route.FederatedNewsRoutes;
 import dev.chojo.ember.feature.news.route.NewsRoutes;
 import dev.chojo.ember.feature.news.route.RemoteNewsRoutes;
 import dev.chojo.ember.feature.notifications.route.NotificationRoutes;
+import dev.chojo.ember.feature.onboarding.route.OnboardingRoutes;
 import dev.chojo.ember.feature.page.route.PageRoutes;
 import dev.chojo.ember.feature.page.route.PublicPageRoutes;
 import dev.chojo.ember.feature.procedure.route.ProcedureRoutes;
@@ -368,6 +369,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(PublicMapsRoutes.class);
         routesBinder.addBinding().to(AdminMapsRoutes.class);
         routesBinder.addBinding().to(FeedTokenRoutes.class);
+        routesBinder.addBinding().to(OnboardingRoutes.class);
         routesBinder.addBinding().to(UserFeedRoutes.class);
         routesBinder.addBinding().to(FeedMetricsRoutes.class);
         routesBinder.addBinding().to(EventCommentRoutes.class);

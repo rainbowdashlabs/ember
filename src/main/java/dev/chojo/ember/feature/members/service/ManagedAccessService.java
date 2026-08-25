@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
 
 /**
  * The access a guardian manages for the members in their care: the address the account is reached
- * at, the name it signs in with, and whether it may sign in at all.
+ * at, the name and password it signs in with, and whether it may sign in at all.
  *
  * <p>Everything here is deliberately narrow. A guardian speaks for a child, so they may give the
  * child an address, a name and switch its access on and off - but only for the members they manage,
@@ -173,14 +173,10 @@ public class ManagedAccessService {
     /**
      * Sets the password a managed member signs in with.
      *
-     * <p>Only for a member with no address of their own. There the invitation to set a password
-     * already lands in the guardian's own postbox, so they set it either way and this only spares
-     * them the detour: no link that expires, no mail that never arrives. A member who does have an
-     * address of their own keeps that door to themselves, and their guardian is sent back to the
-     * invitation, because setting it here would be taking over an account past its owner's postbox.
-     *
-     * <p>The password rules are the ones everybody else meets, the member's open sessions end, and
-     * whoever looks after them is told.
+     * <p>Only for a member with no address of their own, whose invitation lands in the guardian's
+     * postbox anyway, so this spares them the detour rather than granting them anything new. A
+     * member with an address of their own keeps that door to themselves: setting it here would be
+     * taking over an account past its owner's postbox.
      *
      * @param guardianMemberId the member acting as guardian
      * @param memberId         the member in their care
@@ -199,11 +195,12 @@ public class ManagedAccessService {
         switch (authService.setPasswordFor(account, password)) {
             case PASSWORD_TOO_SHORT -> throw new BadRequestResponse("setPassword.passwordTooShort");
             case PASSWORD_BREACHED -> throw new BadRequestResponse("setPassword.passwordBreached");
-            default -> log.info(
-                    "Guardian {} set the password of managed member {} (account {})",
-                    guardianMemberId,
-                    memberId,
-                    account.id());
+            default ->
+                log.info(
+                        "Guardian {} set the password of managed member {} (account {})",
+                        guardianMemberId,
+                        memberId,
+                        account.id());
         }
         return get(guardianMemberId, memberId);
     }

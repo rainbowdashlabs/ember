@@ -54,7 +54,7 @@ const { t } = useI18n()
   </div>
 
   <div class="flex justify-end">
-    <PrimaryButton :disabled="selectedCatalogIds.size === 0" @click="$emit('start')">
+    <PrimaryButton data-onboarding="quiz.start" :disabled="selectedCatalogIds.size === 0" @click="$emit('start')">
       {{ t('quiz.training.start') }}
     </PrimaryButton>
   </div>

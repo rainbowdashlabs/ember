@@ -271,11 +271,11 @@ public class ManagedMemberRoutes implements Routes {
                     + "and whoever looks after them is told.",
             tags = {"Managed Members"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetPasswordRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetManagedPasswordRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
     private void setPassword(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var request = ctx.bodyAsClass(SetPasswordRequest.class);
+        var request = ctx.bodyAsClass(SetManagedPasswordRequest.class);
         ctx.json(accessService.setPassword(session.member().id(), pathInt(ctx, "memberId"), request.password()));
     }
 
@@ -308,7 +308,7 @@ public class ManagedMemberRoutes implements Routes {
     /**
      * @param password the password the managed member signs in with
      */
-    public record SetPasswordRequest(String password) {}
+    public record SetManagedPasswordRequest(String password) {}
 
     /**
      * @param enabled whether the managed member may sign in

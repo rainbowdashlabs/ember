@@ -152,6 +152,7 @@ function handleSuccess(msg: string) {
 
       <LogoSection
           v-if="!loading"
+          data-onboarding="theme.logo"
           :has-logo="hasLogo"
           :logo-object-url="srcFor('logo')"
           :uploading="uploading"

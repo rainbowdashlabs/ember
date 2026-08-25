@@ -327,16 +327,9 @@ public class AuthService {
 
     /**
      * Sets the password of an account on behalf of somebody entitled to do so, without the detour
-     * over an invitation link.
-     *
-     * <p>Whether anybody is entitled is not decided here. This method only carries out what the
-     * caller has already established, and it holds every password rotation to the same standard as
-     * the account holder's own: the policy and the breach check apply unchanged, every open session
-     * of that account ends, and every outstanding recovery token is dropped.
-     *
-     * <p>Everybody the account is written to is told, which for a member with no address of their
-     * own is the people who look after them. The one who set it hears about their own doing, and a
-     * second guardian hears about somebody else's, which is the reason to send it at all.
+     * over an invitation link. Whether they are entitled is the caller's to establish; the rotation
+     * itself is held to the same standard as the account holder's own, and everybody the account is
+     * written to is told, which for a member without an address of their own is their guardians.
      *
      * @param account  the account whose password is being set, already resolved by the caller
      * @param password the new plaintext password

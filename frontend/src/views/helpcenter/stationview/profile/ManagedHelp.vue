@@ -36,6 +36,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.managed.accessText') }}</p>
       <p>{{ t('helpCenter.managed.accessUsernameText') }}</p>
       <p>{{ t('helpCenter.managed.accessLoginText') }}</p>
+      <p>{{ t('helpCenter.managed.accessPasswordText') }}</p>
     </HelpSection>
 
     <!-- Dummy: Member selector -->
@@ -71,6 +72,11 @@ const {t} = useI18n()
           <MutedText tag="p" size="sm">{{ t('profileManaged.access.loginHint') }}</MutedText>
         </div>
         <ToggleInput :model-value="true" :aria-label="t('profileManaged.access.login')"/>
+      </div>
+      <div class="space-y-1 border-t border-(--border) pt-4">
+        <FieldLabel>{{ t('profileManaged.access.password') }}</FieldLabel>
+        <TextInput type="password" model-value="geheim"/>
+        <MutedText tag="p" size="sm">{{ t('profileManaged.access.passwordHint') }}</MutedText>
       </div>
       <PrimaryButton>{{ t('profile.save') }}</PrimaryButton>
     </NeutralContainer>

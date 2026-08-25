@@ -125,7 +125,7 @@ function canBrowseMedia() {
 
     <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="hasPermission(StationPermission.CHECKLIST_READ)" :icon="['fas', 'list-check']" :label="t('sidebar.checklists')" to="/station/checklist" name="checklist-list" @navigate="close"/>
 
-    <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="isModuleEnabled(StationModules.KNOWLEDGE_BASE)" :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" to="/station/knowledge" name="kb-browse" @navigate="close"/>
+    <SidebarGroup data-onboarding="nav.knowledge" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="isModuleEnabled(StationModules.KNOWLEDGE_BASE)" :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" to="/station/knowledge" name="kb-browse" @navigate="close"/>
 
     <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="canBrowseMedia()" :icon="['fas', 'folder-open']" :label="t('sidebar.media')" to="/station/media" name="station-media" @navigate="close"/>
 

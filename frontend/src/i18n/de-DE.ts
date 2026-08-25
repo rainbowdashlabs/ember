@@ -1731,6 +1731,12 @@ export default {
                 + 'Ember sonst an das Mitglied schreiben würde, geht dann an dich. Erlaubt sind 3 bis 32 '
                 + 'Zeichen aus Buchstaben, Ziffern, Punkt, Bindestrich und Unterstrich.',
             usernameSaved: 'Benutzername gespeichert.',
+            password: 'Passwort',
+            passwordPlaceholder: 'Neues Passwort',
+            passwordHint: 'Weil dieses Mitglied keine eigene E-Mail-Adresse hat, vergibst du das Passwort '
+                + 'hier selbst und gibst es zusammen mit dem Benutzernamen weiter. Offene Anmeldungen des '
+                + 'Mitglieds werden dabei beendet.',
+            passwordSaved: 'Passwort gesetzt. Gib es dem Mitglied zusammen mit dem Benutzernamen weiter.',
             login: 'Anmeldung erlauben',
             loginHint: 'Das Mitglied wird ein paar Minuten später per E-Mail informiert. Wer noch kein '
                 + 'Passwort hat, erhält stattdessen die Einladung, eines zu setzen.',
@@ -6218,6 +6224,317 @@ export default {
         selectAll: 'Alle',
         selectNone: 'Keine',
         noOptions: 'Keine Auswahl verfügbar.',
+    },
+    onboarding: {
+        resume: 'Weiter mit der Einrichtung',
+        card: {
+            begin: 'Los geht’s',
+            confirm: 'Erledigt',
+            skip: 'Überspringen',
+            resume: 'Wieder aufnehmen',
+            allDone: 'Alles erledigt. Schön, dass du dabei bist!',
+            skippedTitle: 'Übersprungen',
+            settledBy: 'von {name}',
+            MEMBER: {
+                title: 'Deine ersten Schritte',
+                hint: 'Ich zeige dir, wo alles liegt. Du klickst selbst, dann kennst du den Weg beim nächsten Mal.',
+            },
+            STATION: {
+                title: 'Eure Wache einrichten',
+                hint: 'Das hier gilt für die ganze Wache. Was einer von euch erledigt, ist für alle erledigt.',
+            },
+            INSTANCE: {
+                title: 'Die Instanz einrichten',
+                hint: 'Das hier gilt für die ganze Instanz und ist für alle Administratoren dasselbe.',
+            },
+        },
+        guide: {
+            reveal: 'Hier steckt es drin. Klapp das auf, dann zeige ich dir weiter.',
+            elsewhere: 'Das findest du unter „{page}". Soll ich dich hinbringen?',
+            takeMeThere: 'Hinbringen',
+            skip: 'Aufgabe überspringen',
+            dismiss: 'Später',
+        },
+        routes: {
+            'profile': 'Profil',
+            'profile-notifications': 'Benachrichtigungen',
+            'profile-absences': 'Abwesenheiten',
+            'profile-managed': 'Verwaltete Profile',
+            'events-upcoming': 'Termine',
+            'events': 'Terminverwaltung',
+            'kb-browse': 'Wiki',
+            'quiz-training': 'Training',
+            'members-create': 'Mitglied anlegen',
+            'members-groups': 'Gruppen',
+            'members-type-permissions': 'Berechtigungen',
+            'station-mailing': 'Mailversand',
+            'station-manage': 'Wachverwaltung',
+            'station-federation-settings': 'Föderation',
+            'account-avatar': 'Konto → Profil',
+            'account-security': 'Konto → Sicherheit',
+            'admin-legal': 'Rechtstexte',
+            'admin-mailing': 'Mailversand der Instanz',
+            'admin-stations': 'Wachen',
+            'admin-settings': 'Einstellungen',
+            'admin-security': 'Sicherheit',
+            'admin-storage': 'Speicher',
+            'admin-maps': 'Karten',
+        },
+        tasks: {
+            member: {
+                profile: {
+                    title: 'Dein Profil vervollständigen',
+                    body: 'Deine Wache braucht ein paar Angaben von dir. Dauert zwei Minuten.',
+                },
+                notifications: {
+                    title: 'Benachrichtigungen einstellen',
+                    body: 'Du entscheidest für jede Art von Nachricht, ob du sie hier, per E-Mail oder im Feed '
+                        + 'bekommst.',
+                },
+                eventAnswer: {
+                    title: 'Auf den nächsten Termin antworten',
+                    body: 'Zusagen oder absagen, beides zählt. Nach Ablauf der Frist geht es nicht mehr.',
+                },
+                calendar: {
+                    title: 'Termine in deinen Kalender holen',
+                    body: 'Einmal abonnieren, danach stehen alle deine Termine automatisch in deiner Kalender-App.',
+                },
+                absence: {
+                    title: 'Schauen, wo Abwesenheiten eingetragen werden',
+                    body: 'Damit du weißt, wo es steht, wenn du mal nicht kannst. Eintragen musst du jetzt nichts.',
+                },
+                bookmark: {
+                    title: 'Ember griffbereit halten',
+                    body: 'Am Rechner als Lesezeichen, am Handy über das Menü auf den Startbildschirm legen.',
+                },
+                wiki: {
+                    title: 'Ins Wiki schauen',
+                    body: 'Merkblätter und Nachschlagewerke deiner Wache liegen hier.',
+                },
+                quiz: {
+                    title: 'Ein Training ausprobieren',
+                    body: 'Übe den Ausbildungsstoff, so oft du magst. Niemand sieht deine Ergebnisse.',
+                },
+            },
+            guardian: {
+                profile: {
+                    title: 'Daten deines Kindes prüfen',
+                    body: 'Schau einmal durch, was die Wache über dein Kind hinterlegt hat.',
+                },
+                username: {
+                    title: 'Benutzernamen festlegen',
+                    body: 'Damit meldet sich dein Kind an, auch ohne eigene E-Mail-Adresse.',
+                },
+                login: {
+                    title: 'Anmeldung freischalten',
+                    body: 'Du entscheidest, ab wann dein Kind selbst hereinkommt, und kannst es jederzeit '
+                        + 'zurücknehmen.',
+                },
+                password: {
+                    title: 'Passwort setzen',
+                    body: 'Vergib das Passwort und gib es deinem Kind zusammen mit dem Benutzernamen weiter.',
+                },
+                eventAnswer: {
+                    title: 'Für dein Kind auf einen Termin antworten',
+                    body: 'Zusagen oder absagen, direkt in der Terminliste.',
+                },
+            },
+            station: {
+                groups: {
+                    title: 'Mitgliedergruppen anlegen',
+                    body: 'Gruppen sind die Grundlage für Berechtigungen, Termine und Auswertungen.',
+                },
+                mail: {
+                    title: 'Mailversand einrichten',
+                    body: 'Ohne Versand geht keine Einladung und keine Benachrichtigung raus.',
+                },
+                branding: {
+                    title: 'Wache einkleiden',
+                    body: 'Logo und Farben, damit eure Seite nach euch aussieht.',
+                },
+                firstEvent: {
+                    title: 'Ersten Termin anlegen',
+                    body: 'Damit eure Mitglieder etwas zum Zusagen haben.',
+                },
+                kbSeed: {
+                    title: 'Erste Wiki-Seite anlegen',
+                    body: 'Ein Merkblatt reicht für den Anfang.',
+                },
+                federation: {
+                    title: 'Sichtbarkeit entscheiden',
+                    body: 'Legt fest, was andere Wachen von euch sehen.',
+                },
+                invites: {
+                    title: 'Erste Mitglieder einladen',
+                    body: 'Anlegen allein reicht nicht: Erst mit erlaubter Anmeldung kommt jemand herein.',
+                },
+                memberTypes: {
+                    title: 'Berechtigungen ansehen',
+                    body: 'Schaut einmal durch, was Mitglieder, Team und Verwaltung dürfen.',
+                },
+            },
+            instance: {
+                ownAccount: {
+                    title: 'Dein eigenes Konto absichern',
+                    body: 'Eine erreichbare Adresse und ein zweiter Faktor. Daran hängt jede Wiederherstellung.',
+                },
+                legal: {
+                    title: 'Rechtstexte hinterlegen',
+                    body: 'Impressum und Datenschutz. Ohne sie läuft die Instanz nicht rechtssicher.',
+                },
+                mail: {
+                    title: 'Mailversand der Instanz einrichten',
+                    body: 'Die erste Mail überhaupt ist die Einladung an eure erste Wachenverwaltung.',
+                },
+                firstStation: {
+                    title: 'Erste Wache anlegen',
+                    body: 'Anlegen und jemandem übergeben, der sie führt.',
+                },
+                stationRegistration: {
+                    title: 'Selbstregistrierung entscheiden',
+                    body: 'Dürfen sich Wachen selbst anmelden, oder legst du sie an?',
+                },
+                security: {
+                    title: 'Sicherheit festlegen',
+                    body: 'Zwei-Faktor-Pflicht und Prüfung gegen bekannte Datenlecks.',
+                },
+                storage: {
+                    title: 'Speicherziel wählen',
+                    body: 'Wo die hochgeladenen Dateien liegen sollen.',
+                },
+                operations: {
+                    title: 'Karten und Protokolle kennen',
+                    body: 'Damit du im Ernstfall weißt, wo du nachschaust.',
+                },
+            },
+        },
+        steps: {
+            member: {
+                profile: {
+                    0: 'Öffne dein Profil, dort steht alles über dich.',
+                    1: 'Fülle die Felder aus, die noch leer sind.',
+                    2: 'Speichern nicht vergessen.',
+                },
+                notifications: {
+                    0: 'Deine Benachrichtigungen liegen hier.',
+                    1: 'Stell für jede Zeile ein, wo du sie haben willst: hier, per E-Mail oder im Feed.',
+                },
+                eventAnswer: {
+                    0: 'Hier stehen alle kommenden Termine.',
+                    1: 'Sag zu oder ab. Beides ist eine Antwort, nur schweigen hilft niemandem.',
+                    2: 'Beantworte noch die Fragen zum Termin und schick sie ab.',
+                },
+                calendar: {
+                    0: 'Deinen Kalender-Zugang findest du bei den Benachrichtigungen.',
+                    1: 'Erzeuge dir einen Feed-Token.',
+                    2: 'Kopiere die Kalender-Adresse und trag sie in deiner Kalender-App als Abo ein.',
+                },
+                absence: {
+                    0: 'Abwesenheiten stehen in deinem Profil.',
+                    1: 'So trägst du eine ein, wenn du mal nicht kannst.',
+                },
+                wiki: {
+                    0: 'Das Wiki deiner Wache.',
+                    1: 'Öffne einen Eintrag und schau dich um.',
+                },
+                quiz: {
+                    0: 'Das Training liegt hier.',
+                    1: 'Wähle einen Katalog und leg los.',
+                },
+            },
+            guardian: {
+                profile: {
+                    0: 'Die Profile, die du verwaltest, liegen hier.',
+                    1: 'Wähle dein Kind aus.',
+                    2: 'Prüfe die Angaben und speichere.',
+                },
+                username: {
+                    0: 'Öffne die verwalteten Profile.',
+                    1: 'Wähle dein Kind aus.',
+                    2: 'Trag einen Benutzernamen ein. Nichts leicht Erratbares, bitte.',
+                    3: 'Speichern.',
+                },
+                login: {
+                    0: 'Öffne die verwalteten Profile.',
+                    1: 'Schalte die Anmeldung frei.',
+                },
+                password: {
+                    0: 'Öffne die verwalteten Profile.',
+                    1: 'Vergib ein Passwort für dein Kind.',
+                    2: 'Speichern, und gib es deinem Kind weiter.',
+                },
+                eventAnswer: {
+                    0: 'Hier stehen die Termine.',
+                    1: 'Wähle dein Kind aus.',
+                    2: 'Sag für dein Kind zu oder ab.',
+                },
+            },
+            station: {
+                groups: {
+                    0: 'Gruppen liegen bei den Mitgliedern.',
+                    1: 'Leg eure erste Gruppe an.',
+                },
+                mail: {
+                    0: 'Der Mailversand eurer Wache.',
+                    1: 'Trag einen Versandweg ein.',
+                    2: 'Schick eine Testmail. Erst wenn die ankommt, funktioniert es wirklich.',
+                },
+                branding: {
+                    0: 'Die Verwaltung eurer Wache.',
+                    1: 'Lade euer Logo hoch.',
+                },
+                firstEvent: {
+                    0: 'Die Terminverwaltung.',
+                    1: 'Leg euren ersten Termin an.',
+                },
+                kbSeed: {
+                    0: 'Euer Wiki.',
+                    1: 'Leg den ersten Eintrag an.',
+                },
+                federation: {
+                    0: 'Die Föderationseinstellungen.',
+                    1: 'Entscheidet, was andere Wachen von euch sehen.',
+                },
+                invites: {
+                    0: 'Hier legt ihr ein Mitglied an. Denkt daran, ihm auch die Anmeldung zu erlauben.',
+                },
+                memberTypes: {
+                    0: 'Hier steht, was jeder Mitgliedstyp darf.',
+                },
+            },
+            instance: {
+                ownAccount: {
+                    0: 'Hinterlege eine Adresse, unter der du wirklich erreichbar bist.',
+                    1: 'Richte einen zweiten Faktor ein.',
+                },
+                legal: {
+                    0: 'Die Rechtstexte der Instanz.',
+                    1: 'Nimm eine Vorlage als Anfang. Sie ersetzt keine Rechtsberatung.',
+                },
+                mail: {
+                    0: 'Der Mailversand der Instanz.',
+                    1: 'Trag einen Versandweg ein.',
+                    2: 'Schick eine Testmail.',
+                },
+                firstStation: {
+                    0: 'Die Wachen dieser Instanz.',
+                    1: 'Leg die erste an und übergib sie jemandem.',
+                },
+                stationRegistration: {
+                    0: 'Die Einstellungen der Instanz.',
+                    1: 'Entscheide, ob sich Wachen selbst registrieren dürfen.',
+                },
+                security: {
+                    0: 'Die Sicherheitseinstellungen.',
+                },
+                storage: {
+                    0: 'Hier legst du fest, wo Dateien liegen.',
+                },
+                operations: {
+                    0: 'Karten und Protokolle. Merk dir den Weg hierher.',
+                },
+            },
+        },
     },
     tour: {
         back: 'Zurück',

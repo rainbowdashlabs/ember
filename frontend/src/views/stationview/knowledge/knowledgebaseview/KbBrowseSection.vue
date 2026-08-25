@@ -51,8 +51,8 @@ const emit = defineEmits<{
                 @import-document="emit('importDocument')"
             />
 
-            <KbItemGrid v-if="items.length > 0 && viewMode === 'grid'" :items="items"/>
-            <KbItemList v-else-if="items.length > 0" :items="items"/>
+            <KbItemGrid v-if="items.length > 0 && viewMode === 'grid'" data-onboarding="knowledge.first-entry" :items="items"/>
+            <KbItemList v-else-if="items.length > 0" data-onboarding="knowledge.first-entry" :items="items"/>
 
             <p v-else class="text-[var(--text-muted)] text-center py-8">
                 {{ t('kb.emptyFolder') }}

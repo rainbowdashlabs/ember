@@ -100,6 +100,7 @@ async function copyUrl(url: string) {
 
         <div class="space-y-3">
           <FeedCard
+            data-onboarding="feed.ical"
             :icon="['fas', 'calendar-days']"
             :title="t('userSettings.feedIcal')"
             help-route-name="help-profile-ical-feed"
@@ -135,7 +136,7 @@ async function copyUrl(url: string) {
       </template>
 
       <template v-else>
-        <PrimaryButton :icon="['fas', 'rss']" @click="createToken">{{ t('userSettings.feedCreate') }}</PrimaryButton>
+        <PrimaryButton data-onboarding="feed.create" :icon="['fas', 'rss']" @click="createToken">{{ t('userSettings.feedCreate') }}</PrimaryButton>
       </template>
     </template>
 

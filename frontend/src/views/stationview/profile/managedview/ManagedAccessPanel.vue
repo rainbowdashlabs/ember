@@ -128,9 +128,10 @@ watch(() => props.memberId, load, {immediate: true})
 
       <div class="space-y-1 border-t border-(--border) pt-4">
         <FieldLabel>{{ t('profileManaged.access.username') }}</FieldLabel>
-        <TextInput v-model="username" :placeholder="t('profileManaged.access.usernamePlaceholder')"/>
+        <TextInput v-model="username" data-onboarding="managed.access.username"
+                   :placeholder="t('profileManaged.access.usernamePlaceholder')"/>
         <MutedText tag="p" size="sm">{{ t('profileManaged.access.usernameHint') }}</MutedText>
-        <SaveButton :action="saveUsername"/>
+        <SaveButton data-onboarding="managed.access.username-save" :action="saveUsername"/>
       </div>
 
       <div class="flex items-start justify-between gap-4 border-t border-(--border) pt-4">
@@ -140,9 +141,18 @@ watch(() => props.memberId, load, {immediate: true})
             {{ access.canSignIn ? t('profileManaged.access.loginHint') : t('profileManaged.access.loginNeedsEmail') }}
           </MutedText>
         </div>
-        <ToggleInput :model-value="access.loginEnabled" :disabled="!access.canSignIn"
+        <ToggleInput data-onboarding="managed.access.login-toggle" :model-value="access.loginEnabled"
+                     :disabled="!access.canSignIn"
                      :aria-label="t('profileManaged.access.login')"
                      @update:model-value="toggleLogin"/>
+      </div>
+
+      <div v-if="!access.email" class="space-y-1 border-t border-(--border) pt-4">
+        <FieldLabel>{{ t('profileManaged.access.password') }}</FieldLabel>
+        <TextInput v-model="password" type="password" data-onboarding="managed.access.password"
+                   :placeholder="t('profileManaged.access.passwordPlaceholder')"/>
+        <MutedText tag="p" size="sm">{{ t('profileManaged.access.passwordHint') }}</MutedText>
+        <SaveButton data-onboarding="managed.access.password-save" :action="savePassword" :disabled="!password"/>
       </div>
     </template>
   </NeutralContainer>

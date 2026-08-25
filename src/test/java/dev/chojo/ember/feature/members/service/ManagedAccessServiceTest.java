@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.account.service.AuthService.SetPasswordOutcome;
 import dev.chojo.ember.feature.account.service.LoginNameService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
@@ -31,7 +32,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * A guardian speaks for a child: they may give it an address, a name to sign in with, and switch its
@@ -40,6 +47,7 @@ import static org.mockito.Mockito.mock;
 class ManagedAccessServiceTest extends RepositoryTestBase {
 
     private static ManagedAccessService service;
+    private static AuthService authService;
     private static ManagedLoginNoticeRepository noticeRepo;
     private static Station station;
     private static Account guardianAccount;
@@ -54,6 +62,7 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
         var memberService = new StationMemberService(
                 stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class), mock(MemberLookupService.class));
         noticeRepo = new ManagedLoginNoticeRepository();
+        authService = mock(AuthService.class);
         service = new ManagedAccessService(
                 stationMemberRepo,
                 accountRepo,
@@ -70,7 +79,8 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
                         mock(AuthService.class),
                         mock(EmailService.class),
                         new Auth()),
-                mock(EmailService.class));
+                mock(EmailService.class),
+                authService);
 
         station = stationRepo.create("Managed Access Station");
         guardianAccount = accountRepo.create("guardian@test.com", "Petra", "Sommer");
@@ -96,6 +106,7 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
 
     @BeforeEach
     void resetChild() {
+        reset(authService);
         noticeRepo.cancel(child.id());
         accountRepo.updateUsername(childAccount.id(), null);
         accountRepo.updateEmail(childAccount.id(), "child-1@managed.local");
@@ -202,6 +213,38 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
         service.setEmail(guardian.id(), child.id(), "lena@example.org");
 
         assertNull(service.setUsername(guardian.id(), child.id(), "").username());
+    }
+
+    @Test
+    void aPasswordIsSetForAChildWithNoAddressOfTheirOwn() {
+        when(authService.setPasswordFor(any(), eq("ein-gutes-passwort"))).thenReturn(SetPasswordOutcome.OK);
+        service.setUsername(guardian.id(), child.id(), "lena.sommer");
+
+        var access = service.setPassword(guardian.id(), child.id(), "ein-gutes-passwort");
+
+        assertEquals("lena.sommer", access.username());
+        verify(authService).setPasswordFor(any(), eq("ein-gutes-passwort"));
+    }
+
+    @Test
+    void aChildWithAnAddressOfTheirOwnKeepsThatDoorToThemselves() {
+        service.setEmail(guardian.id(), child.id(), "lena@example.org");
+
+        assertThrows(
+                ForbiddenResponse.class, () -> service.setPassword(guardian.id(), child.id(), "ein-gutes-passwort"));
+    }
+
+    @Test
+    void aPasswordTheRulesRefuseIsRefusedHereToo() {
+        when(authService.setPasswordFor(any(), eq("kurz"))).thenReturn(SetPasswordOutcome.PASSWORD_TOO_SHORT);
+
+        assertThrows(BadRequestResponse.class, () -> service.setPassword(guardian.id(), child.id(), "kurz"));
+    }
+
+    @Test
+    void anEmptyPasswordNeverReachesTheRules() {
+        assertThrows(BadRequestResponse.class, () -> service.setPassword(guardian.id(), child.id(), " "));
+        verify(authService, never()).setPasswordFor(any(), eq(" "));
     }
 
     @Test

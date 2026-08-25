@@ -104,7 +104,7 @@ function move(index: number, direction: number) {
 
     <div class="flex justify-between gap-2 flex-wrap border-t border-(--border) pt-4">
       <div class="flex gap-2">
-        <SecondaryButton :icon="['fas', 'plus']" :disabled="props.ready === false" @click="add">
+        <SecondaryButton data-onboarding="mailing.add-provider" :icon="['fas', 'plus']" :disabled="props.ready === false" @click="add">
           {{ t('mailChain.add') }}
         </SecondaryButton>
         <ErrorButton

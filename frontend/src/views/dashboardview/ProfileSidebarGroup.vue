@@ -28,16 +28,16 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :icon="['fas', 'user']" :label="t('sidebar.profile')" to="/station/profile" name="profile" @navigate="close">
-    <SidebarLink :icon="['fas', 'calendar-days']" name="profile-absences" to="/station/profile/absences"
-                 @navigate="close">
+  <SidebarGroup data-onboarding="nav.profile" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :icon="['fas', 'user']" :label="t('sidebar.profile')" to="/station/profile" name="profile" @navigate="close">
+    <SidebarLink data-onboarding="nav.profile.absences" :icon="['fas', 'calendar-days']" name="profile-absences"
+                 to="/station/profile/absences" @navigate="close">
       {{ t('sidebar.absences') }}
     </SidebarLink>
-    <SidebarLink v-if="isGuardian()" :icon="['fas', 'users']" name="profile-managed"
-                 to="/station/profile/managed" @navigate="close">
+    <SidebarLink v-if="isGuardian()" data-onboarding="nav.profile.managed" :icon="['fas', 'users']"
+                 name="profile-managed" to="/station/profile/managed" @navigate="close">
       {{ t('sidebar.managedProfiles') }}
     </SidebarLink>
-    <SidebarLink :icon="['fas', 'bell']" name="profile-notifications" to="/station/profile/settings/notifications" @navigate="close">
+    <SidebarLink data-onboarding="nav.profile.notifications" :icon="['fas', 'bell']" name="profile-notifications" to="/station/profile/settings/notifications" @navigate="close">
       {{ t('sidebar.notifications') }}
     </SidebarLink>
   </SidebarGroup>

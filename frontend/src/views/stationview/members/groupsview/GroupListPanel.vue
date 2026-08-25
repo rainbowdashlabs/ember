@@ -36,7 +36,7 @@ const emit = defineEmits<{
   <div class="space-y-4">
     <div class="flex items-center justify-between">
       <SubHeader>{{ t('memberGroups.title') }}</SubHeader>
-      <PrimaryButton :icon="['fas', 'plus']" @click="emit('create')">
+      <PrimaryButton data-onboarding="groups.add" :icon="['fas', 'plus']" @click="emit('create')">
         {{ t('memberGroups.create') }}
       </PrimaryButton>
     </div>

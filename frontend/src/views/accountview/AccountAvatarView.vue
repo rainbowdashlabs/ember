@@ -81,6 +81,7 @@ onMounted(() => {
         />
 
         <AccountDetailsSection
+            data-onboarding="account.email"
             v-model:first-name="editFirstName"
             v-model:last-name="editLastName"
             v-model:email="editEmail"

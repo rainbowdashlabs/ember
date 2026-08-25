@@ -1259,3 +1259,68 @@ COMMENT ON TABLE ember_schema.event_deadline_reminder_sent
 
 COMMENT ON COLUMN ember_schema.event_deadline_reminder_sent.days_before
     IS 'How many days before the registration deadline this warning was the one for.';
+
+
+-- What somebody said about an onboarding task, on the three levels a task can belong to.
+--
+-- Whether a task is done is derived from the thing itself and never stored, because a stored tick
+-- goes on claiming something that has since been undone. Only what somebody said is kept: CONFIRMED
+-- for what nothing in the database can see, SKIPPED for a task passed over, and taking a skip back
+-- is deleting the row.
+--
+-- Three tables rather than one with an owner column, because the owner is what makes them different,
+-- and its foreign key is what clears the rows away when it goes.
+
+CREATE TABLE IF NOT EXISTS ember_schema.onboarding_member_task
+(
+    member_id  INTEGER     NOT NULL
+        REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    task_key   TEXT        NOT NULL,
+    state      TEXT        NOT NULL,
+    changed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (member_id, task_key),
+    CONSTRAINT chk_onboarding_member_task_state CHECK (state IN ('CONFIRMED', 'SKIPPED'))
+);
+
+COMMENT ON TABLE ember_schema.onboarding_member_task
+    IS 'What a member said about their own onboarding tasks. Holds only what cannot be derived: a task ticked off by hand, or one deliberately skipped.';
+COMMENT ON COLUMN ember_schema.onboarding_member_task.member_id IS 'The member whose task this is. Their own, shared with nobody.';
+COMMENT ON COLUMN ember_schema.onboarding_member_task.task_key IS 'Which task, by the key the catalogue gives it. Carries the member it is about where a task repeats per managed member.';
+COMMENT ON COLUMN ember_schema.onboarding_member_task.state IS 'CONFIRMED for a task ticked off by hand, SKIPPED for one passed over. A task taken up again has its row deleted.';
+COMMENT ON COLUMN ember_schema.onboarding_member_task.changed_at IS 'When it was last said.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.onboarding_station_task
+(
+    station_id        INTEGER     NOT NULL
+        REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    task_key          TEXT        NOT NULL,
+    state             TEXT        NOT NULL,
+    changed_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    changed_by_member INTEGER     REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    PRIMARY KEY (station_id, task_key),
+    CONSTRAINT chk_onboarding_station_task_state CHECK (state IN ('CONFIRMED', 'SKIPPED'))
+);
+
+COMMENT ON TABLE ember_schema.onboarding_station_task
+    IS 'What a station said about setting itself up. Shared by everyone who manages the station: what one of them ticks off is ticked off for all.';
+COMMENT ON COLUMN ember_schema.onboarding_station_task.station_id IS 'The station whose setup this is about.';
+COMMENT ON COLUMN ember_schema.onboarding_station_task.task_key IS 'Which task, by the key the catalogue gives it.';
+COMMENT ON COLUMN ember_schema.onboarding_station_task.state IS 'CONFIRMED for a task ticked off by hand, SKIPPED for one passed over. A task taken up again has its row deleted.';
+COMMENT ON COLUMN ember_schema.onboarding_station_task.changed_at IS 'When it was last said.';
+COMMENT ON COLUMN ember_schema.onboarding_station_task.changed_by_member IS 'Who said it, so a colleague can see whose decision they are looking at. Null once that member is gone.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.onboarding_instance_task
+(
+    task_key           TEXT        PRIMARY KEY,
+    state              TEXT        NOT NULL,
+    changed_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    changed_by_account INTEGER     REFERENCES ember_schema.account (id) ON DELETE SET NULL,
+    CONSTRAINT chk_onboarding_instance_task_state CHECK (state IN ('CONFIRMED', 'SKIPPED'))
+);
+
+COMMENT ON TABLE ember_schema.onboarding_instance_task
+    IS 'What an administrator said about setting up the instance. Shared by every administrator, because the instance is set up once and not once per person.';
+COMMENT ON COLUMN ember_schema.onboarding_instance_task.task_key IS 'Which task, by the key the catalogue gives it.';
+COMMENT ON COLUMN ember_schema.onboarding_instance_task.state IS 'CONFIRMED for a task ticked off by hand, SKIPPED for one passed over. A task taken up again has its row deleted.';
+COMMENT ON COLUMN ember_schema.onboarding_instance_task.changed_at IS 'When it was last said.';
+COMMENT ON COLUMN ember_schema.onboarding_instance_task.changed_by_account IS 'Who said it, so another administrator can see whose decision they are looking at. Null once that account is gone.';

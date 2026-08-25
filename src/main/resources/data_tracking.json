@@ -11780,6 +11780,183 @@
       },
       "description" : "In-app notifications for station members."
     },
+    "onboarding_instance_task" : {
+      "feature" : "onboarding",
+      "scope" : "INSTANCE",
+      "tableHash" : "sha256:76246da4aca25c7726a625a72c08e8ac7409aa225e292b8b3533d933e5a511fc",
+      "columns" : [ {
+        "name" : "task_key",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which task, by the key the catalogue gives it."
+      }, {
+        "name" : "state",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "CONFIRMED for a task ticked off by hand, SKIPPED for one passed over. A task taken up again has its row deleted."
+      }, {
+        "name" : "changed_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When it was last said."
+      }, {
+        "name" : "changed_by_account",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who said it, so another administrator can see whose decision they are looking at. Null once that account is gone."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "changed_by_account",
+        "refTable" : "account",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Belongs to the instance, not to any one station"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "ACCOUNT_ID",
+          "column" : "changed_by_account"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "changed_by_account",
+          "strategy" : "ANONYMIZE",
+          "reason" : "FK ON DELETE SET NULL keeps the instance setup and drops who settled it"
+        } ]
+      },
+      "description" : "What an administrator said about setting up the instance. Shared by every administrator, because the instance is set up once and not once per person."
+    },
+    "onboarding_member_task" : {
+      "feature" : "onboarding",
+      "scope" : "USER",
+      "tableHash" : "sha256:a1c8aef3f32c2366169359cbeb5b045dbcc84a86e4bf4b7fc7e3f73bf30ce7ff",
+      "columns" : [ {
+        "name" : "member_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The member whose task this is. Their own, shared with nobody."
+      }, {
+        "name" : "task_key",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which task, by the key the catalogue gives it. Carries the member it is about where a task repeats per managed member."
+      }, {
+        "name" : "state",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "CONFIRMED for a task ticked off by hand, SKIPPED for one passed over. A task taken up again has its row deleted."
+      }, {
+        "name" : "changed_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When it was last said."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "member_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "member_id"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "member_id",
+          "strategy" : "CASCADE",
+          "reason" : "FK ON DELETE CASCADE on member/account delete"
+        } ]
+      },
+      "description" : "What a member said about their own onboarding tasks. Holds only what cannot be derived: a task ticked off by hand, or one deliberately skipped."
+    },
+    "onboarding_station_task" : {
+      "feature" : "onboarding",
+      "scope" : "STATION",
+      "tableHash" : "sha256:884832f7ee4f087fc87015e24aa415713da7269e8a31d3fa0331cdf36089cd16",
+      "columns" : [ {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station whose setup this is about."
+      }, {
+        "name" : "task_key",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which task, by the key the catalogue gives it."
+      }, {
+        "name" : "state",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "CONFIRMED for a task ticked off by hand, SKIPPED for one passed over. A task taken up again has its row deleted."
+      }, {
+        "name" : "changed_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When it was last said."
+      }, {
+        "name" : "changed_by_member",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who said it, so a colleague can see whose decision they are looking at. Null once that member is gone."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "changed_by_member",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "changed_by_member"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "changed_by_member",
+          "strategy" : "ANONYMIZE",
+          "reason" : "FK ON DELETE SET NULL keeps the station setup and drops who settled it"
+        } ]
+      },
+      "description" : "What a station said about setting itself up. Shared by everyone who manages the station: what one of them ticks off is ticked off for all."
+    },
     "page_cell" : {
       "feature" : "page",
       "scope" : "STATION",

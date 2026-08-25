@@ -842,6 +842,17 @@ volumes:
             exchanges: 'Tausch-Anfragen - Wenn du einen Tausch von Ausrüstung angefragt hast, siehst du hier den aktuellen Status.',
             registrations: 'Meine Anmeldungen - Termine, zu denen du dich angemeldet hast, mit ihrem Status (bestätigt, ausstehend, abgelehnt).',
             profileIncomplete: 'Profil unvollständig - Wenn Pflichtfelder in deinem Profil fehlen, wirst du hier daran erinnert.',
+            onboardingTitle: 'Deine ersten Schritte',
+            onboardingText: 'Nach der Einführungstour steht auf der Startseite eine Liste mit Dingen, die du einmal '
+                + 'erledigen solltest: Profil ausfüllen, Benachrichtigungen einstellen, auf einen Termin antworten. '
+                + 'Sie verschwindet, sobald nichts mehr offen ist.',
+            onboardingGuide: 'Klickst du auf „Los geht’s", zeigt Ember dir Schritt für Schritt, wo du klicken musst. '
+                + 'Die Seite bleibt dabei ganz normal bedienbar, und wenn du zwischendurch woanders hingehst, geht '
+                + 'nichts verloren: Das kleine Symbol unten rechts holt den Hinweis zurück.',
+            onboardingSkip: 'Erledigt ist eine Aufgabe erst, wenn die Sache wirklich getan ist. Wer eine Aufgabe '
+                + 'nicht braucht, überspringt sie und kann sie später wieder aufnehmen.',
+            onboardingShared: 'Aufgaben der Wache und der Instanz teilen sich alle, die sie verwalten. Was einer '
+                + 'erledigt, ist für alle erledigt, und daneben steht, wer es war.',
             teamManagerExtra: 'Zusätzlich für Team & Verwalter',
             teamManagerExtraText: 'Als Teammitglied oder Verwalter siehst du zusätzlich:',
             managedRegistrations: 'Anmeldungen anderer Mitglieder - Du siehst auch Anmeldungen von Mitgliedern, die du verwaltest.',
@@ -946,6 +957,11 @@ volumes:
                 + 'ein paar Minuten später: Schaltest du versehentlich um und gleich wieder zurück, geht gar '
                 + 'keine Nachricht raus. Hat es noch kein Passwort, bekommt es statt des Hinweises die '
                 + 'Einladung, eines zu setzen.',
+            accessPasswordText: 'Hat dein Kind keine eigene E-Mail-Adresse, kannst du sein Passwort direkt hier '
+                + 'setzen, statt auf die Einladung in deinem Postfach zu warten. Gib es deinem Kind zusammen '
+                + 'mit dem Benutzernamen weiter. Es gelten dieselben Passwortregeln wie für dich, und offene '
+                + 'Anmeldungen des Mitglieds enden dabei. Sobald dein Kind eine eigene Adresse hat, verschwindet '
+                + 'das Feld: Dann führt der Weg über die Einladung, die an diese Adresse geht.',
             tip: 'Diese Seite ist nur sichtbar, wenn du als Erziehungsberechtigter zugewiesen bist. Wenn du sie nicht siehst, ist dir kein Mitglied zugeordnet.',
         },
         settings: {

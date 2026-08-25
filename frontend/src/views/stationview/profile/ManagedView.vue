@@ -109,7 +109,8 @@ async function saveProfile() {
 
           <div v-else class="space-y-1">
             <FieldLabel>{{ t('profileManaged.selectMember') }}</FieldLabel>
-            <SelectInput v-model="selectedMemberId" class="w-full" @update:model-value="loadMemberProfile">
+            <SelectInput v-model="selectedMemberId" data-onboarding="managed.member-select" class="w-full"
+                         @update:model-value="loadMemberProfile">
               <option value="" disabled>{{ t('profileManaged.selectMemberPlaceholder') }}</option>
               <option v-for="member in members" :key="member.id" :value="String(member.id)">
                 {{ memberDisplayName(member) }}
@@ -141,7 +142,7 @@ async function saveProfile() {
             />
           </div>
 
-          <SaveButton :action="saveProfile"/>
+          <SaveButton data-onboarding="managed.fields.save" :action="saveProfile"/>
         </NeutralContainer>
       </template>
     </div>

@@ -115,7 +115,7 @@ function detailRoute(ev: StationEvent) {
 <SecondaryButton :icon="['fas', 'calendar-plus']" @click="router.push({name: eventRoutes.batch})">
           {{ t('sidebar.eventBatch') }}
         </SecondaryButton>
-        <PrimaryButton :icon="['fas', 'plus']" @click="emit('addEvent')">
+        <PrimaryButton data-onboarding="events.create" :icon="['fas', 'plus']" @click="emit('addEvent')">
           {{ t('events.addEvent') }}
         </PrimaryButton>
       </div>

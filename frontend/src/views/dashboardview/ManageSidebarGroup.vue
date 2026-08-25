@@ -39,11 +39,11 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :icon="['fas', 'gears']" :label="t('sidebar.manage')" prefix="/station/manage" :to="manageDefaultRoute" name="station-manage" @navigate="close">
+  <SidebarGroup data-onboarding="nav.manage" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :icon="['fas', 'gears']" :label="t('sidebar.manage')" prefix="/station/manage" :to="manageDefaultRoute" name="station-manage" @navigate="close">
     <SidebarLink v-if="hasPermission(StationPermission.STATION_LOOK_AND_FEEL)" :icon="['fas', 'palette']" name="station-theme" to="/station/manage/theme" @navigate="close">
       {{ t('sidebar.stationTheme') }}
     </SidebarLink>
-    <SidebarLink v-if="hasPermission(StationPermission.STATION_MAIL)" :icon="['fas', 'envelope']" name="station-mailing" to="/station/manage/mailing" @navigate="close">
+    <SidebarLink v-if="hasPermission(StationPermission.STATION_MAIL)" data-onboarding="nav.manage.mailing" :icon="['fas', 'envelope']" name="station-mailing" to="/station/manage/mailing" @navigate="close">
       {{ t('sidebar.stationMailing') }}
     </SidebarLink>
     <SidebarLink v-if="hasPermission(StationPermission.STATION_MODULES)" :icon="['fas', 'puzzle-piece']" name="station-modules" to="/station/manage/modules" @navigate="close">

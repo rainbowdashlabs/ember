@@ -4,6 +4,8 @@
 
 ### New Features
 
+- **Ember walks you through your first steps.** Where the introduction tour ended, a short list of things to actually do now begins: fill in the profile, choose where notifications go, answer the next event, subscribe the calendar. Ember points at the button to press and the page stays usable throughout, so the way is learned rather than watched.
+- **Setting up a station and the instance comes with the same guidance.** Managers get the steps their station still needs beyond the setup wizard, administrators the ones the instance needs, each on their own start page. Both lists are shared: what one manager settles is settled for the next, and it says who settled it.
 - **The station has a media library.** Everything the station has uploaded lives in one place at `/station/media`, with folders, tags and a search, and every editor reaches into it. Anyone who may log in can upload and insert what they uploaded themselves, so a picture belongs in a board ticket as readily as on a public page.
 - **News entries can hand a file over.** An entry carries attachments picked from the library, named and ordered as the author likes, and they appear as downloads under the text rather than inside it. They travel with the blog feed and to partner stations, so a reader elsewhere is handed the same file.
 - **A news entry can be written with the page editor.** An entry can be switched from the plain text field to rows and columns, with images beside the text, callouts, galleries and code blocks. The switch is one way: the text already written moves into a single block and nothing is lost, but an author who wants the plain field back writes a new entry.
@@ -24,6 +26,7 @@
 
 ### Improvements
 
+- **A guardian sets the password of a child without an address of their own.** Under Profile → Managed profiles the password now stands beside the username, so there is no waiting for an invitation that lands in the guardian's own postbox either way. A member who does have an address of their own keeps setting it themselves.
 - **The wiki of an association can go on the public web.** A switch above the wiki puts it there, with the same three states a station has, and the address it answers at stands beside the switch. Until now an association had no way to publish anything at all: the setting existed but nothing could reach it.
 - **An association can say which of its stations a wiki entry is for.** Everything it writes still goes to all of them unless it says otherwise, and naming stations on a folder applies to everything inside; an entry within can narrow that further but not reach past it.
 - **Folders of an association's wiki arrive at its stations as folders.** What the association sorts into folders was flattened into a loose list of articles on the way; the structure now survives the trip and opens where the reader expects it.

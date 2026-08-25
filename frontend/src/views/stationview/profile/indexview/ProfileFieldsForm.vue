@@ -41,8 +41,8 @@ function valueOf(field: LaidOutField): string {
 
     <EmptyState compact v-if="editableFields.length === 0">{{ t('profile.noFields') }}</EmptyState>
 
-    <ProfileFieldsLayout :fields="editableFields" :get-value="valueOf" @update="onUpdate"/>
+    <ProfileFieldsLayout data-onboarding="profile.fields" :fields="editableFields" :get-value="valueOf" @update="onUpdate"/>
 
-    <SaveButton :action="saveAction"/>
+    <SaveButton data-onboarding="profile.save" :action="saveAction"/>
   </NeutralContainer>
 </template>

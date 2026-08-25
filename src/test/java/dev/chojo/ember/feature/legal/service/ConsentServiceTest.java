@@ -336,4 +336,28 @@ class ConsentServiceTest extends RepositoryTestBase {
         String anonymized = ConsentService.anonymizeIp(InetAddress.getByName("2001:db8:1234:5678::1"));
         assertTrue(anonymized.startsWith("2001:db8:1234:"), "expected /48 prefix retained, got " + anonymized);
     }
+
+    @Test
+    @Order(45)
+    void textsWrittenByTheOperatorAreRecognisedAsTheirOwn() {
+        assertTrue(service.hasOwnLegalTexts());
+    }
+
+    @Test
+    @Order(46)
+    void anEmptyDirectoryIsNotATextOfTheirOwn() throws IOException {
+        Path empty = tempDir.resolve("empty");
+        Files.createDirectories(empty.resolve("de"));
+
+        var apiConfig = mock(Api.class);
+        when(apiConfig.privacyPolicyDir()).thenReturn(empty.toString());
+        when(apiConfig.tosDir()).thenReturn(empty.toString());
+        when(apiConfig.consentDir()).thenReturn(empty.toString());
+        when(apiConfig.imprintDir()).thenReturn(empty.toString());
+        when(apiConfig.placeholderFile())
+                .thenReturn(tempDir.resolve("placeholders.json").toString());
+        var bare = new ConsentService(accountRepo, apiConfig, new Network());
+
+        assertFalse(bare.hasOwnLegalTexts(), "the bundled template standing in is not the operator's own text");
+    }
 }
