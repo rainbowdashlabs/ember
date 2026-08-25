@@ -284,6 +284,18 @@ public class ClusterProfileFieldService {
         }
     }
 
+    /**
+     * Puts a cluster's questions in the given order, in one write.
+     *
+     * @param clusterId the cluster whose questions these are
+     * @param fieldIds  the questions in the order they should stand
+     */
+    public void reorder(int clusterId, List<Integer> fieldIds) {
+        requireCluster(clusterId);
+        int moved = fieldRepository.applyOrder(clusterId, fieldIds);
+        log.info("Cluster questions reordered: cluster={}, fields={}", clusterId, moved);
+    }
+
     private static void requireUsable(
             String name, ProfileFieldType fieldType, ProfileFieldScope scope, ProfileFieldConfig config) {
         if (name == null || name.isBlank()) throw new BadRequestResponse("A field needs a name");

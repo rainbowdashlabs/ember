@@ -33,6 +33,7 @@ const port: FieldsPort = {
   list: () => clusterFields.listFields(),
   create: (field) => clusterFields.createField(field),
   update: (id, field) => clusterFields.updateField(id, field),
+  reorder: (fieldIds) => clusterFields.reorderFields(fieldIds),
   remove: (id) => clusterFields.deleteField(id),
   scopes: CLUSTER_FIELD_SCOPES,
   types: CLUSTER_FIELD_TYPES,

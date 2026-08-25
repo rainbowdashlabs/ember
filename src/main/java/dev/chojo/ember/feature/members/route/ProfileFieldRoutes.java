@@ -96,6 +96,7 @@ public class ProfileFieldRoutes implements Routes {
         // Field definitions (station config)
         routes.get(prefix + "/profile-fields", this::list, StationPermission.USER);
         routes.post(prefix + "/profile-fields", this::create, StationPermission.MEMBER_FIELDS);
+        routes.put(prefix + "/profile-fields/order", this::reorder, StationPermission.MEMBER_FIELDS);
         routes.get(prefix + "/profile-fields/{id}", this::get, StationPermission.USER);
         routes.put(prefix + "/profile-fields/{id}", this::update, StationPermission.MEMBER_FIELDS);
         routes.delete(prefix + "/profile-fields/{id}", this::delete, StationPermission.MEMBER_FIELDS);
@@ -201,6 +202,21 @@ public class ProfileFieldRoutes implements Routes {
                 @OpenApiResponse(status = "204"),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
+    /**
+     * Puts the fields in the given order, in one request rather than one per field.
+     *
+     * <p>Registered before the path that takes a field id, or "order" is read as one.
+     */
+    private void reorder(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(FieldOrderRequest.class);
+        profileFieldService.reorder(session.stationId(), req.fieldIds() != null ? req.fieldIds() : List.of());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /** The fields in the order they should stand. */
+    public record FieldOrderRequest(List<Integer> fieldIds) {}
+
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedField(ctx, id);

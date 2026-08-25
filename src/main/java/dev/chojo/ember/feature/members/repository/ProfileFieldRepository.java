@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -65,23 +66,48 @@ public class ProfileFieldRepository {
     }
 
     /**
-     * Finds the field of the given type in a station, across every scope.
+     * Writes the order of a station's fields in one statement.
+     *
+     * <p>Ordering used to be one update per field, which for a screen holding twenty of them meant twenty
+     * round trips for a single drag. The positions all change together, so they are written together.
+     *
+     * @param stationId the station whose fields these are, so one station cannot reorder another's
+     * @param fieldIds  the fields in the order they should stand
+     * @return how many were moved
+     */
+    public int applyOrder(int stationId, List<Integer> fieldIds) {
+        if (fieldIds.isEmpty()) return 0;
+        return query("""
+                UPDATE profile_field AS f
+                SET position = ordered.position
+                FROM unnest(CAST(:ids AS INTEGER[])) WITH ORDINALITY AS ordered(id, position)
+                WHERE f.id = ordered.id
+                  AND f.station_id = :station_id;""")
+                .single(call().bind("ids", fieldIds, PostgreSqlTypes.INTEGER).bind("station_id", stationId))
+                .update()
+                .rows();
+    }
+
+    /**
+     * Every field of one station carrying a given type.
+     *
+     * <p>More than one is legitimate for the date of birth, which may be asked once of each kind of member,
+     * so the question of whether two collide is about who meets them rather than how many there are.
      *
      * @param stationId the station to search
      * @param fieldType the type to look for
-     * @return the field, or empty if the station declares none of that type
+     * @return the fields, oldest first
      */
-    public Optional<ProfileField> findByStationAndType(int stationId, ProfileFieldType fieldType) {
+    public List<ProfileField> findAllByStationAndType(int stationId, ProfileFieldType fieldType) {
         return query("""
                 SELECT %s
                 FROM profile_field
                 WHERE station_id = :station_id
                   AND field_type = :field_type
-                ORDER BY id
-                LIMIT 1;""", PROFILE_FIELD_COLUMNS)
+                ORDER BY id;""", PROFILE_FIELD_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("field_type", fieldType))
                 .map(ProfileField.map())
-                .first();
+                .all();
     }
 
     /**

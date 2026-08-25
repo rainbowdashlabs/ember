@@ -166,7 +166,7 @@ public class ProfileFieldService {
             ProfileFieldConfig config,
             int position,
             ProfileFieldScope scope) {
-        requireSingleBirthDate(stationId, fieldType, 0);
+        requireSingleBirthDate(stationId, fieldType, scope, 0);
         var field = profileFieldRepository.create(stationId, name, fieldType, config, position, scope);
         log.info(
                 "Profile field created: id={}, station={}, name='{}', type={}, scope={}",
@@ -190,7 +190,8 @@ public class ProfileFieldService {
             log.warn("Profile field update affected no rows: id={}", id);
             return Optional.empty();
         }
-        requireSingleBirthDate(existing.get().stationId(), fieldType, id);
+        requireSingleBirthDate(
+                existing.get().stationId(), fieldType, existing.get().scope(), id);
         if (profileFieldRepository.update(id, name, fieldType, config, position, keepOnArchive)) {
             log.info("Profile field updated: id={}, name='{}', type={}", id, name, fieldType);
             return profileFieldRepository.findById(id);
@@ -204,18 +205,49 @@ public class ProfileFieldService {
      *
      * @param stationId  the station the field belongs to
      * @param fieldType  the type the field is about to carry
+     * @param scope      who the field is put to
      * @param excludedId the field being updated, so it does not clash with itself; 0 when creating
-     * @throws BadRequestResponse if another field of the station already is the birth date
+     * @throws BadRequestResponse if a date of birth already reaches the same members
      */
-    private void requireSingleBirthDate(int stationId, ProfileFieldType fieldType, int excludedId) {
+    private void requireSingleBirthDate(
+            int stationId, ProfileFieldType fieldType, ProfileFieldScope scope, int excludedId) {
         if (fieldType != ProfileFieldType.BIRTH_DATE) return;
-        profileFieldRepository
-                .findByStationAndType(stationId, ProfileFieldType.BIRTH_DATE)
-                .filter(existing -> existing.id() != excludedId)
-                .ifPresent(existing -> {
-                    throw new BadRequestResponse(
-                            "A birth date field already exists in this station: " + existing.name());
-                });
+        for (ProfileField other :
+                profileFieldRepository.findAllByStationAndType(stationId, ProfileFieldType.BIRTH_DATE)) {
+            if (other.id() == excludedId || !birthDatesCollide(scope, other.scope())) continue;
+            throw new BadRequestResponse("A birth date field already reaches these members: " + other.name());
+        }
+    }
+
+    /**
+     * Whether two dates of birth could be put to the same person.
+     *
+     * <p>A field aimed at a kind of member is met only by that kind, and nobody is two kinds at once, so
+     * asking the team and asking the guardians are two questions no single member can answer twice. That is
+     * what makes several of them safe, and a station that wants the date from some kinds and not others
+     * needs them.
+     *
+     * <p>A group is the exception, and the reason the rule cannot simply be dropped: a member belongs to
+     * any number of groups and to a kind besides, so a date asked of a group can meet a member who is
+     * already being asked elsewhere. One of those blocks every other.
+     */
+    private static boolean birthDatesCollide(ProfileFieldScope scope, ProfileFieldScope other) {
+        if (scope == ProfileFieldScope.GROUP || other == ProfileFieldScope.GROUP) return true;
+        return scope == other;
+    }
+
+    /**
+     * Puts a station's fields in the given order, in one write.
+     *
+     * <p>Dragging one field moves every field after it, and sending that as one update per field made a
+     * screen with twenty of them do twenty round trips for a single drag.
+     *
+     * @param stationId the station whose fields these are
+     * @param fieldIds  the fields in the order they should stand
+     */
+    public void reorder(int stationId, List<Integer> fieldIds) {
+        int moved = profileFieldRepository.applyOrder(stationId, fieldIds);
+        log.info("Profile fields reordered: station={}, fields={}", stationId, moved);
     }
 
     public boolean delete(int id) {

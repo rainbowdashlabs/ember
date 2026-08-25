@@ -461,6 +461,115 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         assertTrue(service.findValues(member.id()).isEmpty());
     }
 
+    /**
+     * Nobody is two kinds of member at once, so asking the team for a date of birth and asking the
+     * guardians for one are two questions no single person can answer twice. A group is the exception:
+     * a member belongs to any number of them and to a kind besides, so one of those blocks every other.
+     */
+    @Test
+    @Order(29)
+    void aDateOfBirthPerKindOfMemberIsFineAndAGroupOneIsNot() {
+        var forTeam = service.create(
+                station.id(),
+                "Geburtstag Team",
+                ProfileFieldType.BIRTH_DATE,
+                ProfileFieldConfig.parse("{}"),
+                60,
+                ProfileFieldScope.TEAM);
+
+        var forGuardians = service.create(
+                station.id(),
+                "Geburtstag Eltern",
+                ProfileFieldType.BIRTH_DATE,
+                ProfileFieldConfig.parse("{}"),
+                61,
+                ProfileFieldScope.GUARDIAN);
+        assertNotNull(forGuardians, "a second kind of member may be asked as well");
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.create(
+                        station.id(),
+                        "Noch einer",
+                        ProfileFieldType.BIRTH_DATE,
+                        ProfileFieldConfig.parse("{}"),
+                        62,
+                        ProfileFieldScope.TEAM),
+                "asking the same kind twice would give one member two dates");
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.create(
+                        station.id(),
+                        "Gruppengeburtstag",
+                        ProfileFieldType.BIRTH_DATE,
+                        ProfileFieldConfig.parse("{}"),
+                        63,
+                        ProfileFieldScope.GROUP),
+                "a group reaches members who are already asked by their kind");
+
+        profileFieldRepo.delete(forTeam.id());
+        profileFieldRepo.delete(forGuardians.id());
+    }
+
+    /** With one asked of a group, no other date of birth may be added at all. */
+    @Test
+    @Order(29)
+    void aGroupDateOfBirthBlocksEveryOther() {
+        var forGroup = service.create(
+                station.id(),
+                "Geburtstag Gruppe",
+                ProfileFieldType.BIRTH_DATE,
+                ProfileFieldConfig.parse("{}"),
+                70,
+                ProfileFieldScope.GROUP);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.create(
+                        station.id(),
+                        "Geburtstag Team",
+                        ProfileFieldType.BIRTH_DATE,
+                        ProfileFieldConfig.parse("{}"),
+                        71,
+                        ProfileFieldScope.TEAM),
+                "the group one can meet a team member as well");
+
+        profileFieldRepo.delete(forGroup.id());
+    }
+
+    /** Twenty fields moved by one drag is one request, not twenty. */
+    @Test
+    @Order(29)
+    void anOrderIsWrittenInOneGo() {
+        var first = service.create(
+                station.id(),
+                "Erstes",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                80,
+                ProfileFieldScope.MANAGER);
+        var second = service.create(
+                station.id(),
+                "Zweites",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                81,
+                ProfileFieldScope.MANAGER);
+
+        service.reorder(station.id(), List.of(second.id(), first.id()));
+
+        // Nothing to move is not an error, and writes nothing
+        service.reorder(station.id(), List.of());
+
+        var ordered = service.findByStationAndScope(station.id(), ProfileFieldScope.MANAGER);
+        assertEquals(second.id(), ordered.getFirst().id(), "the order given is the order stored");
+        assertEquals(first.id(), ordered.get(1).id());
+
+        profileFieldRepo.delete(first.id());
+        profileFieldRepo.delete(second.id());
+    }
+
     @Test
     @Order(30)
     void onlyOneBirthDateFieldPerStation() {

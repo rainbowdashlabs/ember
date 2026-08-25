@@ -46,6 +46,43 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         return stationMemberRepo.create(station.id(), account.id()).id();
     }
 
+    /** Twenty questions moved by one drag is one write, not twenty. */
+    @Test
+    void anOrderIsWrittenInOneGo() {
+        int clusterId = freshCluster();
+        var first = clusterProfileFieldService.create(
+                clusterId,
+                "Erste",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.empty(),
+                0,
+                ProfileFieldScope.MEMBER,
+                true,
+                false,
+                null);
+        var second = clusterProfileFieldService.create(
+                clusterId,
+                "Zweite",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.empty(),
+                1,
+                ProfileFieldScope.MEMBER,
+                true,
+                false,
+                null);
+
+        clusterProfileFieldService.reorder(clusterId, List.of(second.id(), first.id()));
+
+        var ordered = clusterProfileFieldService.findByCluster(clusterId);
+        assertEquals(second.id(), ordered.getFirst().id(), "the order given is the order stored");
+
+        // Nothing to move is not an error, and writes nothing
+        clusterProfileFieldService.reorder(clusterId, List.of());
+        assertEquals(
+                second.id(),
+                clusterProfileFieldService.findByCluster(clusterId).getFirst().id());
+    }
+
     @Test
     void aClustersQuestionsReachItsStations() {
         int clusterId = freshCluster();

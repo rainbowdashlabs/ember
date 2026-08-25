@@ -27,6 +27,7 @@ const port: FieldsPort = {
   list: () => profileFields.listFields(),
   create: (field) => profileFields.createField(field),
   update: (id, field) => profileFields.updateField(id, field),
+  reorder: (fieldIds) => profileFields.reorderFields(fieldIds),
   remove: (id) => profileFields.deleteField(id),
   scopes: ['MEMBER', 'GUARDIAN', 'TEAM', 'MANAGER', 'GROUP'],
   types: Object.values(FieldTypes),

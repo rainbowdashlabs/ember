@@ -99,6 +99,16 @@ export const updateField = fields.update
 export const deleteField = fields.remove
 
 /**
+ * Puts the fields in a given order in one request.
+ *
+ * <p>Dragging one field moves every field below it, and writing that a field at a time meant one request
+ * per field for a single drag.
+ */
+export async function reorderFields(fieldIds: number[]): Promise<void> {
+    await client.put('/profile-fields/order', {fieldIds})
+}
+
+/**
  * The questions this member's profile asks: the station's own and the ones its cluster adds.
  *
  * One list rather than two, so the profile lays out as one form. Each entry says who asked, which is what

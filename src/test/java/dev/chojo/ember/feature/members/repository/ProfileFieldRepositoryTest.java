@@ -20,6 +20,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -40,6 +42,77 @@ class ProfileFieldRepositoryTest extends RepositoryTestBase {
     static void cleanup() {
         stationRepo.delete(station.id());
         accountRepo.delete(account.id());
+    }
+
+    /**
+     * The order of a whole level is written in one statement, and only for the station that owns it.
+     */
+    @Test
+    @Order(0)
+    void anOrderIsWrittenInOneStatementAndStaysWithinTheStation() {
+        var other = stationRepo.create("Profile Station Nebenan");
+        var first = profileFieldRepo.create(
+                station.id(),
+                "Erst",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                0,
+                ProfileFieldScope.MANAGER);
+        var second = profileFieldRepo.create(
+                station.id(),
+                "Zweit",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                1,
+                ProfileFieldScope.MANAGER);
+        var elsewhere = profileFieldRepo.create(
+                other.id(),
+                "Fremd",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                0,
+                ProfileFieldScope.MANAGER);
+
+        assertEquals(0, profileFieldRepo.applyOrder(station.id(), List.of()), "nothing to move moves nothing");
+
+        int moved = profileFieldRepo.applyOrder(station.id(), List.of(second.id(), first.id(), elsewhere.id()));
+        assertEquals(2, moved, "a station cannot reorder another station's fields");
+
+        var ordered = profileFieldRepo.findByStationAndScope(station.id(), ProfileFieldScope.MANAGER);
+        assertEquals(second.id(), ordered.getFirst().id());
+        assertEquals(first.id(), ordered.get(1).id());
+        assertEquals(0, profileFieldRepo.findById(elsewhere.id()).orElseThrow().position());
+
+        profileFieldRepo.delete(first.id());
+        profileFieldRepo.delete(second.id());
+        profileFieldRepo.delete(elsewhere.id());
+        stationRepo.delete(other.id());
+    }
+
+    /** Several dates of birth are legitimate now, so the lookup answers with all of them. */
+    @Test
+    @Order(0)
+    void everyFieldOfATypeIsFound() {
+        var forTeam = profileFieldRepo.create(
+                station.id(),
+                "Geb Team",
+                ProfileFieldType.BIRTH_DATE,
+                ProfileFieldConfig.parse("{}"),
+                0,
+                ProfileFieldScope.TEAM);
+        var forGuardians = profileFieldRepo.create(
+                station.id(),
+                "Geb Eltern",
+                ProfileFieldType.BIRTH_DATE,
+                ProfileFieldConfig.parse("{}"),
+                0,
+                ProfileFieldScope.GUARDIAN);
+
+        var found = profileFieldRepo.findAllByStationAndType(station.id(), ProfileFieldType.BIRTH_DATE);
+        assertEquals(2, found.size());
+
+        profileFieldRepo.delete(forTeam.id());
+        profileFieldRepo.delete(forGuardians.id());
     }
 
     @Test

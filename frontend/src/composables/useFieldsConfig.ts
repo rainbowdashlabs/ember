@@ -30,6 +30,8 @@ export interface FieldsPort {
     create(field: ProfileFieldRequest & {scope?: string}): Promise<unknown>
     update(id: number, field: ProfileFieldRequest & {scope?: string}): Promise<unknown>
     remove(id: number): Promise<unknown>
+    /** Writes a whole order at once, because dragging one field moves every field below it. */
+    reorder(fieldIds: number[]): Promise<unknown>
     /** Which scopes this owner may declare, in tab order. */
     scopes: readonly string[]
     /** Which field types this owner may choose. A template naming any other does not offer itself. */
@@ -289,9 +291,7 @@ export function useFieldsConfig(port: FieldsPort) {
         if (!moved) return
         arr.splice(toIndex, 0, moved)
         try {
-            for (const [i, field] of arr.entries()) {
-                await port.update(field.id, requestFor(field, {position: i}))
-            }
+            await port.reorder(arr.map(field => field.id))
             await reload()
         } catch {
             error.value = t('common.error')

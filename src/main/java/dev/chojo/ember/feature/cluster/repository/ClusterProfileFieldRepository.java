@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.cluster.entity.ClusterProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -70,6 +71,26 @@ public class ClusterProfileFieldRepository {
                 .single(call().bind("station_id", stationId).bind("scope", scope))
                 .map(ClusterProfileField.map())
                 .all();
+    }
+
+    /**
+     * Writes the order of a cluster's questions in one statement, for the same reason a station's are.
+     *
+     * @param clusterId the cluster whose questions these are
+     * @param fieldIds  the questions in the order they should stand
+     * @return how many were moved
+     */
+    public int applyOrder(int clusterId, List<Integer> fieldIds) {
+        if (fieldIds.isEmpty()) return 0;
+        return query("""
+                UPDATE cluster_profile_field AS f
+                SET position = ordered.position
+                FROM unnest(CAST(:ids AS INTEGER[])) WITH ORDINALITY AS ordered(id, position)
+                WHERE f.id = ordered.id
+                  AND f.cluster_id = :cluster_id;""")
+                .single(call().bind("ids", fieldIds, PostgreSqlTypes.INTEGER).bind("cluster_id", clusterId))
+                .update()
+                .rows();
     }
 
     public ClusterProfileField create(

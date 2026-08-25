@@ -61,3 +61,8 @@ export async function getMemberValues(memberId: number): Promise<ClusterFieldVal
 export async function setMemberValues(memberId: number, values: Record<number, string>): Promise<void> {
     await client.put(`/cluster/fields/member/${memberId}`, {values})
 }
+
+/** Puts the questions in a given order in one request. */
+export async function reorderFields(fieldIds: number[]): Promise<void> {
+    await client.put('/cluster/fields/order', {fieldIds})
+}

@@ -30,6 +30,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.List;
 import java.util.Map;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -55,6 +56,7 @@ public class ClusterFieldRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/cluster/fields", this::list, ClusterPermission.CLUSTER_MEMBER_READ);
         routes.post(prefix + "/cluster/fields", this::create, ClusterPermission.CLUSTER_FIELD_EDIT);
+        routes.put(prefix + "/cluster/fields/order", this::reorder, ClusterPermission.CLUSTER_FIELD_EDIT);
         routes.put(prefix + "/cluster/fields/{fieldId}", this::update, ClusterPermission.CLUSTER_FIELD_EDIT);
         routes.delete(prefix + "/cluster/fields/{fieldId}", this::delete, ClusterPermission.CLUSTER_FIELD_EDIT);
         routes.get(
@@ -144,6 +146,24 @@ public class ClusterFieldRoutes implements Routes {
         fieldService.delete(cluster.id(), pathInt(ctx, "fieldId"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
+
+    @OpenApi(
+            path = "/api/v1/cluster/fields/order",
+            methods = HttpMethod.PUT,
+            summary = "Put this cluster's questions in a given order",
+            description = "Registered before the path that takes a question id, or 'order' is read as one.",
+            tags = {"Cluster"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ClusterFieldOrderRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void reorder(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        var req = ctx.bodyAsClass(ClusterFieldOrderRequest.class);
+        fieldService.reorder(cluster.id(), req.fieldIds() != null ? req.fieldIds() : List.of());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /** The questions in the order they should stand. */
+    public record ClusterFieldOrderRequest(List<Integer> fieldIds) {}
 
     @OpenApi(
             path = "/api/v1/cluster/fields/member/{memberId}",
