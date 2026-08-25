@@ -2018,6 +2018,7 @@ export default {
         registrations: 'Anmeldungen',
         absentMembers: 'Abwesend',
         noAbsences: 'Keine Abwesenheiten gemeldet.',
+        noAnswerYet: 'Noch keine Antwort',
         myRegistration: 'Meine Anmeldung',
         federatedRegistrations: 'Föderierte Anmeldungen',
         manualRegister: 'Mitglied anmelden',

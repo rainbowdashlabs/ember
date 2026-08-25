@@ -52,20 +52,19 @@ test.describe('Events', () => {
     })
 
     /** Registering and withdrawing in one walk, which is how a member uses this in practice. */
+    /**
+     * Both answers are always offered, so what changes is the state rather than which button is on
+     * screen: asserting on the buttons would pass whatever happened.
+     */
     test('a member registers for an event and withdraws again', async ({memberPage: page}) => {
         await openEventWithRegistration(page)
         await page.getByRole('button', {name: 'Anmeldungen'}).click()
 
-        const register = page.getByRole('button', {name: 'Anmelden'}).first()
-        const decline = page.getByRole('button', {name: 'Absagen'}).first()
+        await page.getByTestId('answer-household').click()
+        await expect(page.getByText('Abgesagt')).toHaveCount(0, {timeout: 15000})
 
-        if (await register.isVisible().catch(() => false)) {
-            await register.click()
-            await expect(decline).toBeVisible()
-        }
-
-        await decline.click()
-        await expect(page.getByRole('button', {name: 'Anmelden'}).first()).toBeVisible()
+        await page.getByTestId('decline-household').click()
+        await expect(page.getByText('Abgesagt').first()).toBeVisible({timeout: 15000})
     })
 
     /**

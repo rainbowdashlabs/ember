@@ -11,6 +11,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -190,10 +191,25 @@ const household = computed(() => props.registrableMembers.map(member => ({
   name: member.name,
 })))
 
+/**
+ * One pair of buttons for however many people the reader answers for. Answering for yourself alone acts
+ * at once, and asks the event's questions on the way if it has any; answering for several opens the
+ * dialog, where they are ticked and each gets their own questions.
+ */
 function answerForHousehold(attending: boolean) {
+  if (household.value.length === 1) {
+    const only = household.value[0]!.memberId
+    return attending ? registerMember(only) : declineMember(only)
+  }
   answeringAttending.value = attending
   showAnswerDialog.value = true
 }
+
+const answerLabel = computed(() =>
+    household.value.length > 1 ? t('events.answerForAll') : t('eventsUpcoming.register'))
+
+const declineLabel = computed(() =>
+    household.value.length > 1 ? t('events.declineForAll') : t('eventsUpcoming.decline'))
 
 async function confirmHouseholdAnswer(answers: PersonAnswer[]) {
   showAnswerDialog.value = false
@@ -251,37 +267,24 @@ onMounted(loadRegistrations)
 
     <NeutralContainer v-if="event.requiresRegistration && !canManageEvents()" class="space-y-3">
       <SubHeader>{{ t('eventDetail.myRegistration') }}</SubHeader>
-      <div v-if="household.length > 1" class="flex items-center gap-2 flex-wrap">
+      <div class="flex items-center gap-2 flex-wrap">
         <PrimaryButton :disabled="registering" data-testid="answer-household"
                        @click="answerForHousehold(true)">
-          <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>{{ t('events.answerForAll') }}
+          <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>{{ answerLabel }}
         </PrimaryButton>
         <ErrorButton :disabled="registering" data-testid="decline-household"
                      @click="answerForHousehold(false)">
-          <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>{{ t('events.declineForAll') }}
+          <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>{{ declineLabel }}
         </ErrorButton>
       </div>
       <div v-for="member in registrableMembers" :key="member.id" class="flex items-center gap-3 flex-wrap">
         <span v-if="hasManagedMembers" class="text-sm font-medium min-w-24">{{ member.name }}</span>
-        <template v-if="getRegistrationForMember(member.id)">
-          <component :is="getRegistrationForMember(member.id)!.status === RegistrationStatus.ACCEPTED ? SuccessBadge : getRegistrationForMember(member.id)!.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge">
-            {{ statusLabel(getRegistrationForMember(member.id)!.status) }}
-          </component>
-          <ErrorButton v-if="getRegistrationForMember(member.id)!.status !== RegistrationStatus.DECLINED" :disabled="registering" @click="declineMember(member.id)">
-            <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>{{ t('eventsUpcoming.decline') }}
-          </ErrorButton>
-          <PrimaryButton v-if="getRegistrationForMember(member.id)!.status === RegistrationStatus.DECLINED" :disabled="registering" @click="registerMember(member.id)">
-            <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>{{ t('eventsUpcoming.register') }}
-          </PrimaryButton>
-        </template>
-        <template v-else>
-          <PrimaryButton :disabled="registering" @click="registerMember(member.id)">
-            <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>{{ t('eventsUpcoming.register') }}
-          </PrimaryButton>
-          <ErrorButton :disabled="registering" @click="declineMember(member.id)">
-            <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>{{ t('eventsUpcoming.decline') }}
-          </ErrorButton>
-        </template>
+        <component
+            v-if="getRegistrationForMember(member.id)"
+            :is="getRegistrationForMember(member.id)!.status === RegistrationStatus.ACCEPTED ? SuccessBadge : getRegistrationForMember(member.id)!.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge">
+          {{ statusLabel(getRegistrationForMember(member.id)!.status) }}
+        </component>
+        <SecondaryBadge v-else>{{ t('eventDetail.noAnswerYet') }}</SecondaryBadge>
       </div>
     </NeutralContainer>
 
