@@ -437,6 +437,56 @@ public class KnowledgeBaseFederationService {
     }
 
     /**
+     * Which stations each entry of one station's wiki is for.
+     *
+     * @param stationId the station whose shares these are
+     * @return one entry per share, with the stations it names
+     */
+    public List<EntryAudience> findAudiences(int stationId) {
+        return federationRepository.findKbShares(stationId).stream()
+                .map(share -> new EntryAudience(
+                        share.id(),
+                        share.fileId(),
+                        share.folderId(),
+                        share.shareScope(),
+                        federationRepository.findKbShareTargets(share.id())))
+                .toList();
+    }
+
+    /**
+     * Says which stations one entry is for, replacing whatever it said before.
+     *
+     * <p>The old share goes only once the new one exists. A refusal in between, which the folder rule can
+     * raise, would otherwise leave the entry shared with nobody: not what anybody asked for, and invisible
+     * until somebody at a station notices an article has gone.
+     *
+     * @param stationId  the station sharing
+     * @param fileId     the article, or {@code null} when it is a folder
+     * @param folderId   the folder, or {@code null} when it is an article
+     * @param scope      everybody, or the stations named
+     * @param partnerIds the stations named, as the partnerships that address them
+     */
+    public void setAudience(
+            int stationId, Integer fileId, Integer folderId, ShareScope scope, List<Integer> partnerIds) {
+        if ((fileId == null) == (folderId == null)) {
+            throw new BadRequestResponse("Name either an article or a folder");
+        }
+        var existing = federationRepository.findKbShares(stationId).stream()
+                .filter(share -> fileId != null
+                        ? Objects.equals(share.fileId(), fileId)
+                        : Objects.equals(share.folderId(), folderId))
+                .toList();
+
+        shareEntry(stationId, fileId, folderId, scope, partnerIds);
+        for (var share : existing) {
+            federationRepository.deleteKbShare(share.id(), stationId);
+        }
+    }
+
+    /** One share of a wiki entry, with the stations it names. */
+    public record EntryAudience(int id, Integer fileId, Integer folderId, ShareScope scope, List<Integer> partnerIds) {}
+
+    /**
      * The shares of one station that reach one reader.
      *
      * <p>A share for everybody reaches every partner. A share naming stations reaches the ones named, which

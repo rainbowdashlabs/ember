@@ -57,6 +57,26 @@ export async function setPublicKb(mode: string): Promise<void> {
     await client.put('/cluster/knowledge/public', {mode})
 }
 
+/** Which stations one entry of the association's wiki is for. */
+export interface WikiAudience {
+    id: number
+    fileId: number | null
+    folderId: number | null
+    scope: string
+    partnerIds: number[]
+}
+
+export async function getWikiAudiences(): Promise<WikiAudience[]> {
+    const res = await client.get<WikiAudience[]>('/cluster/knowledge/audiences')
+    return res.data
+}
+
+export async function setWikiAudience(
+    entry: {fileId?: number; folderId?: number; everyStation: boolean; partnerIds: number[]},
+): Promise<void> {
+    await client.put('/cluster/knowledge/audiences', entry)
+}
+
 export async function getLookAndFeel(): Promise<ClusterLookAndFeel> {
     const res = await client.get<ClusterLookAndFeel>('/cluster/look-and-feel')
     return res.data

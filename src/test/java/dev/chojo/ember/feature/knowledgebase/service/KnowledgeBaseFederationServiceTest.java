@@ -53,6 +53,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import static dev.chojo.ember.feature.federation.FederationTestContracts.pathContains;
@@ -355,6 +356,43 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
 
         federationRepo.deleteKbShare(share.id(), stationB.id());
         knowledgeBaseRepo.deleteFile(forTeam.id());
+    }
+
+    /**
+     * Saying who an entry is for replaces what it said before, and the old share goes only once the new
+     * one exists: a refusal in between would leave the entry shared with nobody and nobody the wiser.
+     */
+    @Test
+    @Order(3)
+    void sayingWhoAnEntryIsForReplacesWhatItSaidBefore() {
+        var file = knowledgeBaseRepo.createFile(
+                stationB.id(), null, "Audienced", "desc", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
+        var servingSide = federationRepo
+                .findPartnerByStationAndRemoteUid(stationB.id(), station.uid())
+                .orElseThrow();
+
+        service.setAudience(stationB.id(), file.id(), null, ShareScope.ALL_PARTNERS, List.of());
+        var everybody = service.findAudiences(stationB.id()).stream()
+                .filter(audience -> Objects.equals(audience.fileId(), file.id()))
+                .toList();
+        assertEquals(1, everybody.size());
+        assertEquals(ShareScope.ALL_PARTNERS, everybody.getFirst().scope());
+        assertTrue(everybody.getFirst().partnerIds().isEmpty());
+
+        service.setAudience(stationB.id(), file.id(), null, ShareScope.SPECIFIC, List.of(servingSide.id()));
+        var named = service.findAudiences(stationB.id()).stream()
+                .filter(audience -> Objects.equals(audience.fileId(), file.id()))
+                .toList();
+        assertEquals(1, named.size(), "the old share is gone rather than standing beside the new one");
+        assertEquals(ShareScope.SPECIFIC, named.getFirst().scope());
+        assertEquals(List.of(servingSide.id()), named.getFirst().partnerIds());
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.setAudience(stationB.id(), file.id(), 1, ShareScope.ALL_PARTNERS, List.of()));
+
+        federationRepo.deleteKbShare(named.getFirst().id(), stationB.id());
+        knowledgeBaseRepo.deleteFile(file.id());
     }
 
     @Test

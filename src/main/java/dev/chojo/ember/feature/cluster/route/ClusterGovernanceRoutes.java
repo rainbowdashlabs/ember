@@ -11,7 +11,10 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterGovernanceService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
+import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService.EntryAudience;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import io.javalin.http.BadRequestResponse;
@@ -42,11 +45,16 @@ import java.util.Set;
 public class ClusterGovernanceRoutes implements Routes {
     private final ClusterService clusterService;
     private final ClusterGovernanceService governanceService;
+    private final KnowledgeBaseFederationService kbFederationService;
 
     @Inject
-    public ClusterGovernanceRoutes(ClusterService clusterService, ClusterGovernanceService governanceService) {
+    public ClusterGovernanceRoutes(
+            ClusterService clusterService,
+            ClusterGovernanceService governanceService,
+            KnowledgeBaseFederationService kbFederationService) {
         this.clusterService = clusterService;
         this.governanceService = governanceService;
+        this.kbFederationService = kbFederationService;
     }
 
     @Override
@@ -59,6 +67,14 @@ public class ClusterGovernanceRoutes implements Routes {
                 prefix + "/cluster/knowledge/public", this::getPublicKb, ClusterPermission.CLUSTER_KNOWLEDGE_MANAGER);
         routes.put(
                 prefix + "/cluster/knowledge/public", this::setPublicKb, ClusterPermission.CLUSTER_KNOWLEDGE_MANAGER);
+        routes.get(
+                prefix + "/cluster/knowledge/audiences",
+                this::getWikiAudiences,
+                ClusterPermission.CLUSTER_KNOWLEDGE_EDIT);
+        routes.put(
+                prefix + "/cluster/knowledge/audiences",
+                this::setWikiAudience,
+                ClusterPermission.CLUSTER_KNOWLEDGE_EDIT);
     }
 
     @OpenApi(
@@ -99,6 +115,36 @@ public class ClusterGovernanceRoutes implements Routes {
         Cluster cluster = requireActive(ctx);
         var req = ctx.bodyAsClass(PublicKbRequest.class);
         governanceService.setPublicKbMode(cluster.id(), parseMode(req.mode()));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/knowledge/audiences",
+            methods = HttpMethod.GET,
+            summary = "Which stations each entry of this cluster's wiki is for",
+            tags = {"Cluster"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EntryAudience[].class)))
+    private void getWikiAudiences(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        ctx.json(kbFederationService.findAudiences(governanceService.homeStationId(cluster.id())));
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/knowledge/audiences",
+            methods = HttpMethod.PUT,
+            summary = "Says which stations one entry of this cluster's wiki is for",
+            tags = {"Cluster"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WikiAudienceRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void setWikiAudience(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        var req = ctx.bodyAsClass(WikiAudienceRequest.class);
+        kbFederationService.setAudience(
+                governanceService.homeStationId(cluster.id()),
+                req.fileId(),
+                req.folderId(),
+                req.everyStation() ? ShareScope.ALL_PARTNERS : ShareScope.SPECIFIC,
+                req.partnerIds() != null ? req.partnerIds() : List.of());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -208,6 +254,9 @@ public class ClusterGovernanceRoutes implements Routes {
     public record PublicKbResponse(String mode, String stationUid) {}
 
     public record PublicKbRequest(String mode) {}
+
+    public record WikiAudienceRequest(
+            Integer fileId, Integer folderId, boolean everyStation, List<Integer> partnerIds) {}
 
     /**
      * @param defaultFeel the feel by name, or {@code null} when the cluster has no opinion about it

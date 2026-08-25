@@ -109,7 +109,14 @@ public class ClusterGovernanceService {
 
     /**
      * The station a cluster keeps its own things on, which is where its wiki lives.
+     *
+     * @param clusterId the cluster
+     * @return the station id its knowledge, news and calendar belong to
      */
+    public int homeStationId(int clusterId) {
+        return homeStation(clusterId).id();
+    }
+
     private Station homeStation(int clusterId) {
         return stationRepository
                 .findById(requireCluster(clusterId).homeStationId())
