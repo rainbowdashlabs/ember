@@ -7,7 +7,8 @@
 import {readdirSync, readFileSync, statSync} from 'node:fs'
 import {join, relative} from 'node:path'
 import {describe, expect, it} from 'vitest'
-import {buildHelpSearchIndex, HELP_PAGE_MAP} from './useHelpSearch'
+import {buildHelpSearchIndex} from './useHelpSearch'
+import {HELP_PAGES} from './helpPages.generated'
 
 const PAGES = join(import.meta.dirname, '..', 'pages', 'helpcenter')
 
@@ -39,11 +40,27 @@ function routeNames(): Map<string, string> {
  * unit test exists for.
  */
 describe('the help center search index', () => {
-    it('holds an entry for every page in the map, not some of them', async () => {
+    it('holds an entry for every page, not some of them', async () => {
         const index = await buildHelpSearchIndex()
-        const missing = HELP_PAGE_MAP.filter(page => !index.some(entry => entry.route === page.route))
+        const missing = HELP_PAGES.filter(page => !index.some(entry => entry.route === page.route))
         expect(missing.map(page => page.i18nPrefix), 'a prefix that resolves to nothing is a page nobody can find')
             .toEqual([])
+    })
+
+    /**
+     * The promise the generated index makes that the hand-written one could not: a page is in the search
+     * because it exists. Nobody adds it, so nobody can forget to.
+     */
+    it('carries text for every page in the tree', async () => {
+        const index = await buildHelpSearchIndex()
+        const silent = index.filter(entry => entry.text.trim().length === 0).map(entry => entry.route)
+        expect(silent, 'a page in the index with no text answers no search').toEqual([])
+    })
+
+    it('says where a page sits, ending with the page itself', async () => {
+        const index = await buildHelpSearchIndex()
+        const wrong = index.filter(entry => !entry.section.endsWith(entry.title)).map(entry => entry.route)
+        expect(wrong, 'the last part of the breadcrumb is the page you are looking at').toEqual([])
     })
 
     it('finds a word the help text certainly contains', async () => {
@@ -53,26 +70,26 @@ describe('the help center search index', () => {
     })
 
     /**
-     * The rule the other three cannot state, because they all start from the map. A page the map has
-     * never heard of is a page the search can never answer with, and the map was ninety-one behind the
-     * tree when this was written.
+     * The rule the others cannot state, because they all start from the index. A page the index has
+     * never heard of is a page the search can never answer with, and the list was ninety-one behind the
+     * tree when it was still written by hand.
      */
     it('has an entry for every page in the tree', () => {
         const pages = routeNames()
-        const mapped = new Set(HELP_PAGE_MAP.map(page => page.route))
+        const mapped = new Set(HELP_PAGES.map(page => page.route))
         const missing = [...pages].filter(([route]) => !mapped.has(route)).map(([, file]) => file)
         expect(missing, 'a page in no map is a page the search cannot answer with').toEqual([])
     })
 
     it('names each page once', () => {
         const seen = new Set<string>()
-        const twice = HELP_PAGE_MAP.filter(page => !seen.add(page.route)).map(page => page.route)
+        const twice = HELP_PAGES.filter(page => !seen.add(page.route)).map(page => page.route)
         expect(twice, 'two entries for one route put the page in the results twice').toEqual([])
     })
 
     it('points every entry at a page that exists', () => {
         const pages = routeNames()
-        const dangling = HELP_PAGE_MAP.filter(page => !pages.has(page.route)).map(page => page.route)
+        const dangling = HELP_PAGES.filter(page => !pages.has(page.route)).map(page => page.route)
         expect(dangling, 'an entry for a page nobody can reach is a dead result').toEqual([])
     })
 
