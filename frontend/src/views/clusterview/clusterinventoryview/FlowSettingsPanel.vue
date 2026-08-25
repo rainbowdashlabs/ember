@@ -88,6 +88,7 @@ function createFlow() {
           v-for="flow in cards"
           :key="flow.id"
           :busy="busy"
+          :data-testid="`cluster-flow-${flow.id}`"
           :flow="flow"
           @add-step="(flowId: number, step: StepRequest) => run(() => clusterInventory.addStep(flowId, step))"
           @archive-step="(stepId: number) => run(() => clusterInventory.archiveStep(stepId))"

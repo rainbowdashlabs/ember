@@ -140,6 +140,9 @@ test.describe('Cluster inventory screens', () => {
      * oldest unarchived chain for a purpose wins silently, a wrong one was permanent: creating was the
      * only act available and it was the one act that could not help. A second chain for a purpose
      * already covered is now refused, naming the one in the way.
+     *
+     * An association starts with a chain for every purpose, so the walk begins where a real one does:
+     * the refusal comes first, and the chain it names has to go before another can take its place.
      */
     test('a movement chain is read, corrected and retired', async ({adminPage: page, browser, request}) => {
         const own = await ownCluster(page, browser, request, 'Ablauf')
@@ -152,20 +155,37 @@ test.describe('Cluster inventory screens', () => {
         const name = `Ausgabe ${Date.now()}`
         await page.getByTestId('cluster-flow-name').fill(name)
         await page.getByTestId('cluster-flow-create').click()
-        await expect(page.getByText(name)).toBeVisible({timeout: 15000})
-
-        await page.getByTestId('cluster-flow-name').fill(`${name} zwei`)
-        await page.getByTestId('cluster-flow-create').click()
         await expect(page.getByText(/already walks every/i)).toBeVisible({timeout: 15000})
+
+        const presets = await page.request
+            .get('/api/v1/cluster/inventory/flows', {headers: own.headers})
+            .then(r => r.json())
+        const issue = presets.find((flow: {purpose: string}) => flow.purpose === 'ISSUE')
+        expect(issue, 'an association starts with a chain per purpose').toBeTruthy()
+        expect(
+            presets.filter((flow: {name: string}) => flow.name === name),
+            'the refused one was not accepted and ignored',
+        ).toHaveLength(0)
+
+        const archived = await page.request.delete(`/api/v1/cluster/inventory/flows/${issue.id}`,
+            {headers: own.headers})
+        expect(archived.ok(), `the preset was retired (${await archived.text()})`).toBeTruthy()
+
+        await page.reload()
+        await expect(page.getByTestId('inventory-flow-setting')).toBeVisible({timeout: 15000})
+        await page.getByTestId('cluster-flow-name').fill(name)
+        await page.getByTestId('cluster-flow-create').click()
+        await expect(page.getByText(name)).toBeVisible({timeout: 15000})
 
         const created = await page.request
             .get('/api/v1/cluster/inventory/flows', {headers: own.headers})
             .then(r => r.json())
-        expect(created, 'the second was refused rather than accepted and ignored').toHaveLength(1)
-        expect(created[0].steps, 'a fresh chain has no steps and the screen can say so').toEqual([])
+        const mine = created.find((flow: {name: string}) => flow.name === name)
+        expect(mine, 'the one made in its place is there').toBeTruthy()
+        expect(mine.steps, 'a fresh chain has no steps and the screen can say so').toEqual([])
 
         const added = await page.request.post(
-            `/api/v1/cluster/inventory/flows/${created[0].id}/steps`,
+            `/api/v1/cluster/inventory/flows/${mine.id}/steps`,
             {
                 headers: own.headers,
                 data: {
@@ -177,11 +197,12 @@ test.describe('Cluster inventory screens', () => {
 
         await page.reload()
         await expect(page.getByTestId('inventory-flow-setting')).toBeVisible({timeout: 15000})
-        await expect(page.getByText('1 Schritte')).toBeVisible({timeout: 15000})
-        await page.getByRole('button', {name: 'Schritte anzeigen'}).first().click()
-        await expect(page.getByText('Verband gibt aus')).toBeVisible({timeout: 15000})
+        const card = page.getByTestId(`cluster-flow-${mine.id}`)
+        await expect(card.getByText('1 Schritte')).toBeVisible({timeout: 15000})
+        await card.getByRole('button', {name: 'Schritte anzeigen'}).click()
+        await expect(card.getByText('Verband gibt aus')).toBeVisible({timeout: 15000})
 
-        const retired = await page.request.delete(`/api/v1/cluster/inventory/flows/${created[0].id}`,
+        const retired = await page.request.delete(`/api/v1/cluster/inventory/flows/${mine.id}`,
             {headers: own.headers})
         expect(retired.ok(), `and the chain was retired (${await retired.text()})`).toBeTruthy()
 
