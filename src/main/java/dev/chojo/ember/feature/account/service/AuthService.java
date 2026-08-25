@@ -371,7 +371,7 @@ public class AuthService {
      * Initiates a password reset by sending a reset email. Silently does nothing if the email is not found,
      * to prevent email enumeration.
      *
-     * @param email the email address to send the reset link to
+     * @param identifier the email address or username naming the account to write to
      */
     public void requestPasswordReset(String identifier) {
         Optional<Account> accountOpt = findByLoginName(identifier);
