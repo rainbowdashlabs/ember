@@ -143,6 +143,8 @@ watch(loaded, (isLoaded) => {
         :title="title ?? t('pages.kb-browse.title')"
         :subtitle="subtitle ?? t('pages.kb-browse.subtitle')"
     >
+        <slot name="before"/>
+
         <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
 
         <div class="mb-4">

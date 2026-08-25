@@ -42,6 +42,21 @@ export async function setDeniedModules(
     })
 }
 
+/** Whether the association's wiki stands on the public web, and the address it answers at. */
+export interface ClusterPublicKb {
+    mode: string
+    stationUid: string
+}
+
+export async function getPublicKb(): Promise<ClusterPublicKb> {
+    const res = await client.get<ClusterPublicKb>('/cluster/knowledge/public')
+    return res.data
+}
+
+export async function setPublicKb(mode: string): Promise<void> {
+    await client.put('/cluster/knowledge/public', {mode})
+}
+
 export async function getLookAndFeel(): Promise<ClusterLookAndFeel> {
     const res = await client.get<ClusterLookAndFeel>('/cluster/look-and-feel')
     return res.data
