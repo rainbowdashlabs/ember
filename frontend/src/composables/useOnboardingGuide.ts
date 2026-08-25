@@ -30,6 +30,17 @@ function findTarget(mark: string | undefined): HTMLElement | null {
 }
 
 /**
+ * Whether anything has been put into the marked control, or into any of the fields it holds. A mark
+ * sits on a single field in one flow and on a whole form in another, and both have to answer this.
+ */
+function filled(element: HTMLElement): boolean {
+    const controls = element.matches('input, textarea, select')
+        ? [element as HTMLInputElement]
+        : Array.from(element.querySelectorAll<HTMLInputElement>('input, textarea, select'))
+    return controls.some(control => control.value.trim() !== '')
+}
+
+/**
  * Whether the thing being pointed at cannot be used yet, which a step must not demand a click on.
  * The training's start button is the case that matters: it stays disabled until a catalogue is
  * ticked, so a reader told to press it presses nothing.
@@ -184,6 +195,23 @@ export function useOnboardingGuide() {
         if (element && event.target instanceof Node && element.contains(event.target)) advance()
     }
 
+    /**
+     * Carries a step that is being filled in, once the reader leaves the field with something in it.
+     *
+     * Moving between two fields of the same marked form is not leaving it, so a form is filled in
+     * peace and keeps its light throughout. Leaving it empty is not leaving it either: the step
+     * waits, because nothing has been done yet.
+     */
+    function onFocusOut(event: FocusEvent) {
+        const current = step.value
+        if (!current || current.advance !== 'fill') return
+        const element = findTarget(current.target)
+        if (!element || !(event.target instanceof Node) || !element.contains(event.target)) return
+        if (event.relatedTarget instanceof Node && element.contains(event.relatedTarget)) return
+        if (!filled(element)) return
+        advance()
+    }
+
     function dismiss() {
         guideDismissed.value = true
     }
@@ -203,6 +231,7 @@ export function useOnboardingGuide() {
     onMounted(() => {
         reducedMotion.value = prefersReducedMotion()
         document.addEventListener('click', onDocumentClick, true)
+        document.addEventListener('focusout', onFocusOut, true)
         window.addEventListener('resize', measure)
         window.addEventListener('scroll', measure, true)
         watchPage(activeTaskKey.value !== null)
@@ -211,6 +240,7 @@ export function useOnboardingGuide() {
 
     onBeforeUnmount(() => {
         document.removeEventListener('click', onDocumentClick, true)
+        document.removeEventListener('focusout', onFocusOut, true)
         window.removeEventListener('resize', measure)
         window.removeEventListener('scroll', measure, true)
         watchPage(false)

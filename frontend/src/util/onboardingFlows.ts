@@ -15,8 +15,15 @@ export interface OnboardingStep {
     target?: string
     /** The route the step happens on. Reaching it ends a step that has no target. */
     route?: string
-    /** Whether the step ends when the target is clicked or when the route is reached. */
-    advance: 'click' | 'route'
+    /**
+     * What ends the step.
+     *
+     * `click` and `route` end it on the reader's click and on arriving at a page. `fill` is for
+     * anything that has to be typed into: clicking into a field is the start of the work and not the
+     * end of it, so such a step keeps its light until the reader leaves the field with something in
+     * it. A step that moved on at the click would darken the very field being filled.
+     */
+    advance: 'click' | 'route' | 'fill'
     optional?: boolean
 }
 
@@ -29,7 +36,7 @@ export interface OnboardingStep {
 export const ONBOARDING_FLOWS: Record<string, OnboardingStep[]> = {
     'member.profile': [
         {target: 'nav.profile', route: 'profile', advance: 'route'},
-        {target: 'profile.fields', advance: 'click', optional: true},
+        {target: 'profile.fields', advance: 'fill', optional: true},
         {target: 'profile.save', advance: 'click'},
     ],
     'member.notifications': [
@@ -68,7 +75,7 @@ export const ONBOARDING_FLOWS: Record<string, OnboardingStep[]> = {
     'guardian.username': [
         {target: 'nav.profile.managed', route: 'profile-managed', advance: 'route'},
         {target: 'managed.member-select', advance: 'click', optional: true},
-        {target: 'managed.access.username', advance: 'click'},
+        {target: 'managed.access.username', advance: 'fill'},
         {target: 'managed.access.username-save', advance: 'click'},
     ],
     'guardian.login': [
@@ -77,7 +84,7 @@ export const ONBOARDING_FLOWS: Record<string, OnboardingStep[]> = {
     ],
     'guardian.password': [
         {target: 'nav.profile.managed', route: 'profile-managed', advance: 'route'},
-        {target: 'managed.access.password', advance: 'click'},
+        {target: 'managed.access.password', advance: 'fill'},
         {target: 'managed.access.password-save', advance: 'click'},
     ],
     'guardian.eventAnswer': [
