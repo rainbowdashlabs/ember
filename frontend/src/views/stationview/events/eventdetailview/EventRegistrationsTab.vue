@@ -281,10 +281,11 @@ onMounted(loadRegistrations)
         <span v-if="hasManagedMembers" class="text-sm font-medium min-w-24">{{ member.name }}</span>
         <component
             v-if="getRegistrationForMember(member.id)"
+            :data-testid="`my-answer-${member.id}`"
             :is="getRegistrationForMember(member.id)!.status === RegistrationStatus.ACCEPTED ? SuccessBadge : getRegistrationForMember(member.id)!.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge">
           {{ statusLabel(getRegistrationForMember(member.id)!.status) }}
         </component>
-        <SecondaryBadge v-else>{{ t('eventDetail.noAnswerYet') }}</SecondaryBadge>
+        <SecondaryBadge v-else :data-testid="`my-answer-${member.id}`">{{ t('eventDetail.noAnswerYet') }}</SecondaryBadge>
       </div>
     </NeutralContainer>
 

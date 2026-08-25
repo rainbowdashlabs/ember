@@ -51,20 +51,25 @@ test.describe('Events', () => {
         await expect(page.getByText(/Meine Anmeldung|Anmeldungen/).first()).toBeVisible()
     })
 
-    /** Registering and withdrawing in one walk, which is how a member uses this in practice. */
     /**
-     * Both answers are always offered, so what changes is the state rather than which button is on
-     * screen: asserting on the buttons would pass whatever happened.
+     * Registering and withdrawing in one walk, which is how a member uses this in practice.
+     *
+     * <p>Both answers are always offered, so what changes is the state rather than which button is
+     * on screen: asserting on the buttons would pass whatever happened. The badge read is the one
+     * beside the member's own name, because the seeded event is answered by other stories at the
+     * same time and the word alone appears wherever any of them has just declined.
      */
     test('a member registers for an event and withdraws again', async ({memberPage: page}) => {
         await openEventWithRegistration(page)
         await page.getByRole('button', {name: 'Anmeldungen'}).click()
 
+        const myAnswer = page.locator('[data-testid^="my-answer-"]').first()
+
         await page.getByTestId('answer-household').click()
-        await expect(page.getByText('Abgesagt')).toHaveCount(0, {timeout: 15000})
+        await expect(myAnswer).toHaveText('Bestätigt', {timeout: 15000})
 
         await page.getByTestId('decline-household').click()
-        await expect(page.getByText('Abgesagt').first()).toBeVisible({timeout: 15000})
+        await expect(myAnswer).toHaveText('Abgesagt', {timeout: 15000})
     })
 
     /**
