@@ -27,7 +27,7 @@ import {activeLevel, activeTaskId, activeTaskKey, activeStep, guideDismissed} fr
  */
 const {t} = useI18n()
 const router = useRouter()
-const {box, step, steps, pointing, revealing, gaze, finished, reducedMotion, onStepRoute, dismiss} =
+const {box, step, steps, pointing, revealing, gaze, targetLow, finished, reducedMotion, onStepRoute, dismiss} =
     useOnboardingGuide()
 const {stop, skip, load} = useOnboardingTasks()
 
@@ -56,6 +56,16 @@ const ring = computed(() => {
   }
 })
 
+/**
+ * The ring's own geometry, plus the shade that falls over everything outside it. One spread shadow
+ * large enough to cover any screen darkens the whole page and leaves the target lit, which needs no
+ * second element and changes nothing about what can be clicked: the layer catches no pointer events.
+ */
+const spotlight = computed(() => (ring.value ? {...ring.value, boxShadow: '0 0 0 9999px rgb(0 0 0 / 0.55)'} : undefined))
+
+/** The task being walked, named above the step so a reader who looked away can pick it up again. */
+const taskTitle = computed(() => (activeTaskKey.value ? t(`onboarding.tasks.${activeTaskKey.value}.title`) : ''))
+
 const bubbleText = computed(() => {
   if (!activeTaskKey.value || !step.value) return ''
   if (revealing.value) return t('onboarding.guide.reveal')
@@ -81,16 +91,22 @@ function skipTask() {
   <Teleport to="body">
     <div v-if="visible" class="pointer-events-none fixed inset-0 z-50">
       <div
-          v-if="ring"
+          v-if="spotlight"
           aria-hidden="true"
-          class="absolute rounded-theme border-2 border-primary"
-          :class="reducedMotion ? '' : 'animate-pulse'"
+          class="absolute rounded-theme border-4 border-primary"
+          :style="spotlight"
+      />
+      <div
+          v-if="ring && !reducedMotion"
+          aria-hidden="true"
+          class="absolute rounded-theme border-2 border-primary animate-ping"
           :style="ring"
       />
 
       <div role="status" aria-live="polite" tabindex="-1" @keydown.esc="dismiss"
-           class="pointer-events-auto absolute bottom-4 left-1/2 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2
-                  rounded-theme border border-(--border) bg-(--bg) p-3 shadow-lg">
+           :class="targetLow ? 'top-4' : 'bottom-4'"
+           class="pointer-events-auto absolute left-1/2 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2
+                  rounded-theme border border-(--border) bg-(--bg) p-4 shadow-xl">
         <div class="flex items-start gap-3">
           <LayeredEmberLogo
               :layers="logo.layers"
@@ -101,12 +117,13 @@ function skipTask() {
               :gaze-positions="[gaze]"
           />
           <div class="min-w-0 flex-1 space-y-2">
-            <p class="text-sm text-(--text)">{{ bubbleText }}</p>
+            <p class="text-sm font-semibold text-(--text-muted)">{{ taskTitle }}</p>
+            <p class="text-base text-(--text)">{{ bubbleText }}</p>
             <div class="flex flex-wrap items-center gap-2">
-              <PrimaryButton v-if="!pointing && !onStepRoute && step?.route" class="text-xs" @click="goToStepRoute">
+              <PrimaryButton v-if="!pointing && !onStepRoute && step?.route" class="text-sm" @click="goToStepRoute">
                 {{ t('onboarding.guide.takeMeThere') }}
               </PrimaryButton>
-              <SecondaryButton class="text-xs" @click="skipTask">{{ t('onboarding.guide.skip') }}</SecondaryButton>
+              <SecondaryButton class="text-sm" @click="skipTask">{{ t('onboarding.guide.skip') }}</SecondaryButton>
               <span class="ml-auto text-xs text-(--text-muted)">{{ progress }}</span>
             </div>
           </div>

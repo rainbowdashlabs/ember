@@ -66,6 +66,16 @@ export function useOnboardingGuide() {
 
     /** Where the reader should look: at the element, or at the page the element is on. */
     const pointing = computed(() => box.value !== null)
+
+    /**
+     * Whether the ring sits in the lower half of the window, which is where the bubble would cover
+     * it. The bubble moves to the opposite half rather than over the very thing being pointed at.
+     */
+    const targetLow = computed(() => {
+        if (!box.value || typeof window === 'undefined') return false
+        return box.value.top + box.value.height / 2 > window.innerHeight / 2
+    })
+
     const gaze = computed<'left' | 'mid' | 'right'>(() => {
         if (!box.value || typeof window === 'undefined') return 'mid'
         const centre = box.value.left + box.value.width / 2
@@ -160,5 +170,7 @@ export function useOnboardingGuide() {
         measure()
     })
 
-    return {box, step, steps, pointing, revealing, gaze, finished, reducedMotion, onStepRoute, advance, dismiss}
+    return {
+        box, step, steps, pointing, revealing, gaze, targetLow, finished, reducedMotion, onStepRoute, advance, dismiss,
+    }
 }
