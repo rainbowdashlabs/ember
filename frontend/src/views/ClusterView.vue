@@ -15,6 +15,7 @@ import AdminPanelButton from '@/components/layout/AdminPanelButton.vue'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import ClusterSwitcher from '@/components/navigation/ClusterSwitcher.vue'
 import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
+import ReportProblemButton from '@/components/feedback/ReportProblemButton.vue'
 import QuickSearchTrigger from '@/components/quicksearch/QuickSearchTrigger.vue'
 import {useQuickSearchShortcut} from '@/composables/useQuickSearchShortcut'
 import {useSession} from '@/composables/useSession'
@@ -231,6 +232,7 @@ onMounted(() => {
     </template>
 
     <slot/>
+    <ReportProblemButton/>
     <QuickSearchPalette/>
   </SidebarLayout>
 </template>

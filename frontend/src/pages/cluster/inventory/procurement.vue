@@ -21,8 +21,9 @@ const {homeStationId} = useClusterHomeStation()
 </script>
 
 <template>
-  <div class="space-y-6">
-    <InventoryTabs/>
-    <ProcurementView v-if="homeStationId" />
-  </div>
+  <ProcurementView v-if="homeStationId">
+    <template #before>
+      <InventoryTabs/>
+    </template>
+  </ProcurementView>
 </template>

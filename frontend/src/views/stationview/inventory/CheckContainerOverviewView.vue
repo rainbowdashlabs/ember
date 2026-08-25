@@ -83,6 +83,8 @@ onMounted(load)
       :title="t('pages.inventory-check-container-overview.title')"
       :subtitle="t('pages.inventory-check-container-overview.subtitle')"
   >
+    <slot name="before"/>
+
     <NeutralContainer class="mb-4">
       <SearchInput v-model="search" :placeholder="t('inventory.checkContainer.searchPlaceholder')" />
     </NeutralContainer>

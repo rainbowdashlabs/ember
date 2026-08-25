@@ -76,6 +76,8 @@ function onError() {
       :subtitle="props.subtitle ?? t('pages.inventory-manage.subtitle')"
   >
     <div class="space-y-6">
+      <slot name="before"/>
+
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 

@@ -171,6 +171,8 @@ async function onReorder(group: RequirementGroup, fromIndex: number, toIndex: nu
       :title="t('pages.inventory-requirements.title')"
       :subtitle="t('pages.inventory-requirements.subtitle')"
   >
+    <slot name="before"/>
+
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error || addError" variant="error">{{ error || addError }}</Alert>

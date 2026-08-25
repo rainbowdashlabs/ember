@@ -85,6 +85,8 @@ function onCreateError() {
       :title="t('pages.inventory-procurement.title')"
       :subtitle="t('pages.inventory-procurement.subtitle')"
   >
+    <slot name="before"/>
+
     <div class="space-y-6">
       <div class="flex items-center justify-end">
         <PrimaryButton
