@@ -460,6 +460,16 @@ public class NotificationFeedRenderer {
                     enrichWithEventContext(details, notification, ctx);
                 }
             }
+            case REGISTRATION_CLOSING -> {
+                if (params
+                        instanceof
+                        NotificationParams.RegistrationClosing(String eventName, int daysBefore, String memberName)) {
+                    putIfPresent(details, label(ctx, "event", "Event"), eventName);
+                    putIfPresent(details, label(ctx, "member", "Member"), memberName);
+                    details.put(label(ctx, "daysBefore"), String.valueOf(daysBefore));
+                    enrichWithEventContext(details, notification, ctx);
+                }
+            }
             case EXCHANGE_NEW_REQUEST -> {
                 if (params
                         instanceof

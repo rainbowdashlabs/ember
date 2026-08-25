@@ -36,6 +36,7 @@ public enum NotificationType {
             NotificationParams.RegistrationDeadlineExpired.class, "notification.registrationDeadlineExpired"),
     EVENT_CANCELLED(NotificationParams.EventCancelled.class, "notification.eventCancelled"),
     EVENT_REMINDER(NotificationParams.EventReminder.class, "notification.eventReminder"),
+    REGISTRATION_CLOSING(NotificationParams.RegistrationClosing.class, "notification.registrationClosing"),
     PROCEDURE_ASSIGNED(NotificationParams.ProcedureAssigned.class, "notification.procedureAssigned"),
     PROCEDURE_RESOLVED(NotificationParams.ProcedureResolvedParams.class, "notification.procedureResolved"),
     PROCEDURE_REOPENED(NotificationParams.ProcedureReopenedParams.class, "notification.procedureReopened"),

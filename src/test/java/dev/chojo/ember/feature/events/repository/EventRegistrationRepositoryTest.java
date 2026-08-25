@@ -62,6 +62,39 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
                 null);
     }
 
+    /**
+     * Saying nothing is having no answer on record, or having taken one back. Declining is an answer and
+     * is not asked again; withdrawing leaves the event unanswered, which is what a reminder is for.
+     */
+    @Test
+    void whoStillOwesAnAnswer() {
+        var created = event("Antwortpflicht", Instant.parse("2028-06-01T09:00:00Z"));
+        LocalDate date = LocalDate.of(2028, 6, 1);
+        try {
+            assertTrue(
+                    eventRegistrationRepo
+                            .findUnansweredMemberIds(created.id(), station.id())
+                            .contains(member.id()),
+                    "somebody who has not answered owes one");
+
+            var reg = eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.DECLINED, null);
+            assertFalse(
+                    eventRegistrationRepo
+                            .findUnansweredMemberIds(created.id(), station.id())
+                            .contains(member.id()),
+                    "declining is an answer");
+
+            eventRegistrationRepo.updateStatus(reg.id(), RegistrationStatus.WITHDRAWN);
+            assertTrue(
+                    eventRegistrationRepo
+                            .findUnansweredMemberIds(created.id(), station.id())
+                            .contains(member.id()),
+                    "taking an answer back leaves none");
+        } finally {
+            eventRepo.delete(created.id());
+        }
+    }
+
     @Test
     void createReadUpdateDelete() {
         var created = event("Registration Lifecycle", Instant.parse("2027-05-15T09:00:00Z"));

@@ -362,6 +362,36 @@ public class EventRegistrationRepository {
     }
 
     /**
+     * The members of a station who have said nothing about an event.
+     *
+     * <p>Saying nothing means having no answer on record, or having taken one back: a withdrawn
+     * registration leaves the event without an answer again, which is exactly the state a reminder is for.
+     * Being turned down is an answer, and so is declining, so neither is asked again.
+     *
+     * <p>Eligibility is not decided here. It depends on the reader's rights as well as the event's
+     * restrictions, so the caller filters what this returns.
+     *
+     * @param eventId   the event
+     * @param stationId the station whose members are candidates
+     * @return the member ids still owing an answer
+     */
+    public List<Integer> findUnansweredMemberIds(int eventId, int stationId) {
+        return query("""
+                SELECT sm.id AS member_id
+                FROM station_member sm
+                WHERE sm.station_id = :station_id
+                  AND sm.former = FALSE
+                  AND NOT EXISTS (SELECT 1
+                                  FROM event_registration er
+                                  WHERE er.event_id = :event_id
+                                    AND er.member_id = sm.id
+                                    AND er.status <> 'WITHDRAWN');""")
+                .single(call().bind("event_id", eventId).bind("station_id", stationId))
+                .map(row -> row.getInt("member_id"))
+                .all();
+    }
+
+    /**
      * Counts the pending registrations across a station's events.
      *
      * @param stationId the station ID

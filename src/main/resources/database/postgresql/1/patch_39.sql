@@ -1244,3 +1244,18 @@ COMMENT ON COLUMN ember_schema.inventory_requirement.station_group_id
 
 CREATE INDEX IF NOT EXISTS idx_inventory_requirement_station_group
     ON ember_schema.inventory_requirement (station_group_id);
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_deadline_reminder_sent
+(
+    event_id    INTEGER     NOT NULL
+        REFERENCES ember_schema.station_event (id) ON DELETE CASCADE,
+    days_before INTEGER     NOT NULL,
+    sent_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (event_id, days_before)
+);
+
+COMMENT ON TABLE ember_schema.event_deadline_reminder_sent
+    IS 'Which run-out warnings have gone out for an event, so a sweep every few minutes warns once.';
+
+COMMENT ON COLUMN ember_schema.event_deadline_reminder_sent.days_before
+    IS 'How many days before the registration deadline this warning was the one for.';

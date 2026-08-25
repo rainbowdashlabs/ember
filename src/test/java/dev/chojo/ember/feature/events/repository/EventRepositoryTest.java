@@ -65,6 +65,64 @@ class EventRepositoryTest extends RepositoryTestBase {
                 null);
     }
 
+    /**
+     * An event closing inside the window is offered once for that lead time and never again, which is
+     * what keeps a sweep running every few minutes from warning every few minutes.
+     */
+    @Test
+    void anEventClosingSoonIsOfferedUntilItsWarningIsRecorded() {
+        var closing = eventRepo.create(
+                station.id(),
+                "Bald zu",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(java.time.Duration.ofDays(10)),
+                Instant.now().plus(java.time.Duration.ofDays(10)).plusSeconds(3600),
+                null,
+                true,
+                Instant.now().plus(java.time.Duration.ofDays(2)),
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var later = eventRepo.create(
+                station.id(),
+                "Noch lange",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(java.time.Duration.ofDays(40)),
+                Instant.now().plus(java.time.Duration.ofDays(40)).plusSeconds(3600),
+                null,
+                true,
+                Instant.now().plus(java.time.Duration.ofDays(30)),
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        try {
+            var due = eventRepo.findEventsClosingIn(3);
+            assertTrue(due.stream().anyMatch(e -> e.eventId() == closing.id()));
+            assertTrue(due.stream().noneMatch(e -> e.eventId() == later.id()), "a distant deadline waits");
+
+            eventReminderRepo.markDeadlineWarningSent(closing.id(), 3);
+            assertTrue(
+                    eventRepo.findEventsClosingIn(3).stream().noneMatch(e -> e.eventId() == closing.id()),
+                    "a warning already given is not given again");
+            assertTrue(
+                    eventRepo.findEventsClosingIn(1).stream().noneMatch(e -> e.eventId() == closing.id()),
+                    "and one day out is still two days away");
+        } finally {
+            eventRepo.delete(closing.id());
+            eventRepo.delete(later.id());
+        }
+    }
+
     @Test
     void createReadUpdateDelete() {
         var event = eventRepo.create(

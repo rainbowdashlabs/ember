@@ -391,6 +391,45 @@ public class EventRepository {
     }
 
     /**
+     * Finds one-time events whose registration closes within the given number of days and whose warning
+     * for that lead time has not gone out yet.
+     *
+     * <p>Cancelled events are left alone, and so are events nobody has to answer: a deadline that closes
+     * nothing is not worth warning about.
+     *
+     * @param daysBefore the lead time being warned about
+     * @return the events due that warning
+     */
+    public List<ClosingEvent> findEventsClosingIn(int daysBefore) {
+        return query("""
+                SELECT
+                    e.id AS event_id,
+                    e.station_id,
+                    e.name,
+                    e.registration_deadline
+                FROM
+                    station_event e
+                WHERE e.requires_registration
+                  AND e.event_type = 'ONE_TIME'
+                  AND e.cancelled = FALSE
+                  AND e.registration_deadline IS NOT NULL
+                  AND e.registration_deadline > now()
+                  AND e.registration_deadline <= now() + make_interval(days => :days_before)
+                  AND NOT EXISTS (SELECT 1
+                                  FROM event_deadline_reminder_sent s
+                                  WHERE s.event_id = e.id
+                                    AND s.days_before = :days_before);""")
+                .single(call().bind("days_before", daysBefore))
+                .map(row -> new ClosingEvent(
+                        row.getInt("event_id"),
+                        row.getInt("station_id"),
+                        row.getString("name"),
+                        row.get("registration_deadline", INSTANT_TIMESTAMP),
+                        daysBefore))
+                .all();
+    }
+
+    /**
      * Finds active recurring events that close their registration a fixed number of days before
      * each occurrence.
      */
@@ -532,4 +571,11 @@ public class EventRepository {
      * A one-time event whose registration deadline has passed with pending registrations left.
      */
     public record ExpiredDeadlineEvent(int eventId, int stationId, String name, int pendingCount) {}
+
+    /**
+     * An event whose registration is about to close.
+     *
+     * @param daysLeft the lead time this warning is for, rather than a measured distance
+     */
+    public record ClosingEvent(int eventId, int stationId, String name, Instant deadline, int daysLeft) {}
 }

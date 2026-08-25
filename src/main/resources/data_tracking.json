@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:8dd795b01777df02c7094790ec772692242d9f32d896d27bc22f6a8312e13559",
-  "generatedAt" : "2026-08-24T22:53:21Z",
+  "schemaHash" : "sha256:7e1098f0819bd069a2298ca0f1fc1ff5f032dabf3f7d6f10a2a5b6f8f3a7f26a",
+  "generatedAt" : "2026-08-25T12:15:16Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -4857,6 +4857,47 @@
         } ]
       },
       "description" : "Comments on station events (threaded via parent_id)."
+    },
+    "event_deadline_reminder_sent" : {
+      "feature" : "events",
+      "scope" : "STATION",
+      "tableHash" : "sha256:9fe12727e41957ecfeb2ad7d582d238c059164e95602b488d685276cd1defff7",
+      "columns" : [ {
+        "name" : "event_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "days_before",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "How many days before the registration deadline this warning was the one for."
+      }, {
+        "name" : "sent_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ {
+        "column" : "event_id",
+        "refTable" : "station_event",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Notification dedup state for registration deadlines, ephemeral"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Event structure data, not per-member"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Event structure data, not per-member"
+      },
+      "description" : "Which run-out warnings have gone out for an event, so a sweep every few minutes warns once."
     },
     "event_federation_registration" : {
       "feature" : "events",

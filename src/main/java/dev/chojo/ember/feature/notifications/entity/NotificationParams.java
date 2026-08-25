@@ -114,6 +114,14 @@ public sealed interface NotificationParams {
 
     record EventReminder(String eventName, int daysBefore, LocalDate eventDate) implements NotificationParams {}
 
+    /**
+     * Registration for an event is about to close and this member has not said whether they are coming.
+     *
+     * @param memberName whose answer is missing, which is the reader themselves or somebody they look
+     *                   after; a guardian needs to know which of their children it is about
+     */
+    record RegistrationClosing(String eventName, int daysBefore, String memberName) implements NotificationParams {}
+
     record ProcedureAssigned(String procedureName, String assignedByName) implements NotificationParams {}
 
     record ProcedureResolvedParams(String procedureName) implements NotificationParams {}
