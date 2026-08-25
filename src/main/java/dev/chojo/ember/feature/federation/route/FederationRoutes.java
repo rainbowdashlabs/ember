@@ -334,7 +334,14 @@ public class FederationRoutes implements Routes {
 
     private void listKbShares(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(service.findKbShares(session.stationId()));
+        ctx.json(service.findKbShares(session.stationId()).stream()
+                .map(share -> new KbShareResponse(
+                        share.id(),
+                        share.fileId(),
+                        share.folderId(),
+                        share.shareScope().name(),
+                        service.findKbShareTargets(share.id())))
+                .toList());
     }
 
     private void createKbShare(Context ctx) {
@@ -419,6 +426,13 @@ public class FederationRoutes implements Routes {
     public record CapabilityRequest(CapabilityType capability, Direction direction, boolean enabled) {}
 
     public record KbShareRequest(Integer fileId, Integer folderId, ShareScope shareScope, List<Integer> partnerIds) {}
+
+    /**
+     * A knowledge share as the screens read it, carrying the stations it names so the dialog can show
+     * the audience it is about to change rather than starting blank every time.
+     */
+    public record KbShareResponse(
+            int id, Integer fileId, Integer folderId, String shareScope, List<Integer> partnerIds) {}
 
     public record QuizShareRequest(int catalogId, ShareScope shareScope) {}
 

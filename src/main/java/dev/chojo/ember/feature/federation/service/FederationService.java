@@ -466,6 +466,11 @@ public class FederationService {
         return repository.findKbShares(stationId);
     }
 
+    /** The stations one knowledge share is aimed at, empty when it is for everybody. */
+    public List<Integer> findKbShareTargets(int shareId) {
+        return repository.findKbShareTargets(shareId);
+    }
+
     public FederationShare createKbShare(int stationId, Integer fileId, Integer folderId, ShareScope shareScope) {
         return createKbShare(stationId, fileId, folderId, shareScope, List.of());
     }
