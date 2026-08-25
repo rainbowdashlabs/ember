@@ -115,6 +115,7 @@ import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
 import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
 import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
+import dev.chojo.ember.feature.quiz.repository.QuizQuestionReportRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
 import dev.chojo.ember.feature.restriction.repository.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
@@ -251,6 +252,7 @@ public abstract class RepositoryTestBase {
     protected static FeedMetricsRepository feedMetricsRepo;
     protected static QuizCatalogRepository quizCatalogRepo;
     protected static QuizTestRepository quizTestRepo;
+    protected static QuizQuestionReportRepository quizQuestionReportRepo;
     protected static AiProviderRepository aiProviderRepo;
     protected static TestProtocolRepository testProtocolRepo;
     protected static KnowledgeBaseRepository knowledgeBaseRepo;
@@ -457,6 +459,7 @@ public abstract class RepositoryTestBase {
         feedMetricsRepo = new FeedMetricsRepository();
         quizCatalogRepo = new QuizCatalogRepository();
         quizTestRepo = new QuizTestRepository();
+        quizQuestionReportRepo = new QuizQuestionReportRepository();
         aiProviderRepo = new AiProviderRepository();
         testProtocolRepo = new TestProtocolRepository();
         knowledgeBaseRepo = new KnowledgeBaseRepository();
