@@ -113,4 +113,20 @@ class InstallPresetServiceTest {
     void theLifetimeIsSaidSoThePageCanShowIt() {
         assertTrue(service.lifetime().toHours() > 0);
     }
+
+    /**
+     * A six-character code is short enough to hunt for. Typing one in takes a lookup or two; going
+     * through the space takes far more than an address is given.
+     */
+    @Test
+    void lookupsFromOneAddressRunOut() {
+        for (int i = 0; i < InstallPresetService.LOOKUP_CAPACITY; i++) {
+            assertTrue(service.tryLookup("198.51.100.7").isEmpty(), "lookup " + i);
+        }
+
+        var retry = service.tryLookup("198.51.100.7");
+        assertTrue(retry.isPresent());
+        assertTrue(retry.get() > 0);
+        assertTrue(service.tryLookup("203.0.113.9").isEmpty());
+    }
 }

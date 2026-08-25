@@ -39,6 +39,7 @@ import java.time.LocalDate;
 import java.util.Set;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 /**
  * HTTP routes for managing lost and found items. Provides endpoints for listing, creating,
@@ -135,8 +136,7 @@ public class LostAndFoundRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = LostAndFoundItemResponse.class)))
     private void getById(Context ctx) {
         int id = pathInt(ctx, "id");
-        var item = lostAndFoundService.findById(id).orElseThrow(() -> new NotFoundResponse("Item not found"));
-        ctx.json(toResponse(item));
+        ctx.json(toResponse(requireOwnedItem(ctx, id)));
     }
 
     @OpenApi(
@@ -234,7 +234,7 @@ public class LostAndFoundRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void provided(Context ctx) {
         int id = pathInt(ctx, "id");
-        var item = lostAndFoundService.findById(id).orElseThrow(() -> new NotFoundResponse("Item not found"));
+        var item = requireOwnedItem(ctx, id);
         if (item.claimedBy() == null) {
             throw new BadRequestResponse("Item has not been claimed yet");
         }
@@ -252,9 +252,18 @@ public class LostAndFoundRoutes implements Routes {
     private void delete(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
+        requireOwnedItem(ctx, id);
         lostAndFoundService.delete(id);
         imageService.delete(session.stationId(), id);
         ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Loads the item named in the path, in the caller's station. Answers 404 for an item of another
+     * station, so an item id cannot be walked to find out what other stations have lost.
+     */
+    private LostAndFoundItem requireOwnedItem(Context ctx, int id) {
+        return requireOwnedOrNotFound(ctx, id, lostAndFoundService::findById, LostAndFoundItem::stationId);
     }
 
     private String resolveMemberName(int memberId) {

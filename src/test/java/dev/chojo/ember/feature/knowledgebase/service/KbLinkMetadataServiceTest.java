@@ -5,12 +5,16 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
+import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.http.HttpClient;
+import java.net.http.HttpHeaders;
 import java.net.http.HttpResponse;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -18,20 +22,47 @@ import static org.mockito.Mockito.*;
 
 class KbLinkMetadataServiceTest {
     private HttpClient httpClient;
+    private RemoteUrlValidator urlValidator;
     private KbLinkMetadataService service;
 
     @SuppressWarnings("unchecked")
-    private void respondWith(int status, String body) throws Exception {
+    private static HttpResponse<String> response(int status, String body) {
         HttpResponse<String> response = mock(HttpResponse.class);
         when(response.statusCode()).thenReturn(status);
         when(response.body()).thenReturn(body);
+        return response;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static HttpResponse<String> redirectTo(String location) {
+        HttpResponse<String> response = mock(HttpResponse.class);
+        when(response.statusCode()).thenReturn(302);
+        when(response.headers()).thenReturn(HttpHeaders.of(Map.of("location", List.of(location)), (a, b) -> true));
+        return response;
+    }
+
+    /**
+     * The responses are built before the stubbing starts. Mockito treats a {@code mock()} call made
+     * while a stub is being written as part of that stub and fails the test.
+     */
+    private void respondWith(HttpResponse<String> response) throws Exception {
         when(httpClient.<String>send(any(), any())).thenReturn(response);
+    }
+
+    private void respondWith(HttpResponse<String> first, HttpResponse<String> second) throws Exception {
+        when(httpClient.<String>send(any(), any())).thenReturn(first).thenReturn(second);
+    }
+
+    private void respondWith(int status, String body) throws Exception {
+        respondWith(response(status, body));
     }
 
     @BeforeEach
     void setup() {
         httpClient = mock(HttpClient.class);
-        service = new KbLinkMetadataService(httpClient);
+        urlValidator = mock(RemoteUrlValidator.class);
+        when(urlValidator.isAllowed(any())).thenReturn(true);
+        service = new KbLinkMetadataService(httpClient, urlValidator);
     }
 
     /**
@@ -144,6 +175,54 @@ class KbLinkMetadataServiceTest {
      */
     @Test
     void theDefaultClientIsBuiltWithoutACaller() {
-        assertNotNull(new KbLinkMetadataService());
+        assertNotNull(new KbLinkMetadataService(urlValidator));
+    }
+
+    /**
+     * The address is the member's to choose and part of the answer is stored where they can read
+     * it, so an address the validator refuses is never reached at all.
+     */
+    @Test
+    void anAddressTheValidatorRefusesIsNotFetched() throws Exception {
+        when(urlValidator.isAllowed("http://169.254.169.254/latest/meta-data")).thenReturn(false);
+
+        var metadata = service.fetchUrlMetadata("http://169.254.169.254/latest/meta-data");
+
+        assertNull(metadata.title());
+        verify(httpClient, never()).send(any(), any());
+    }
+
+    /**
+     * A public page that redirects into private space would pass a check made only at the start,
+     * so every hop is checked and the walk stops where the validator says no.
+     */
+    @Test
+    void aRedirectIntoPrivateSpaceIsNotFollowed() throws Exception {
+        when(urlValidator.isAllowed("http://127.0.0.1:8080/secret")).thenReturn(false);
+        respondWith(redirectTo("http://127.0.0.1:8080/secret"));
+
+        var metadata = service.fetchUrlMetadata("https://public.example");
+
+        assertNull(metadata.title());
+        verify(httpClient, times(1)).send(any(), any());
+    }
+
+    @Test
+    void aRedirectToAnotherPublicPageIsFollowed() throws Exception {
+        respondWith(redirectTo("https://elsewhere.example/page"), response(200, "<title>Moved Here</title>"));
+
+        assertEquals(
+                "Moved Here", service.fetchUrlMetadata("https://public.example").title());
+    }
+
+    /**
+     * A chain that never arrives is abandoned rather than walked forever.
+     */
+    @Test
+    void aRedirectLoopEndsWithoutMetadata() throws Exception {
+        respondWith(redirectTo("https://public.example/next"));
+
+        assertNull(service.fetchUrlMetadata("https://public.example").title());
+        verify(httpClient, times(4)).send(any(), any());
     }
 }

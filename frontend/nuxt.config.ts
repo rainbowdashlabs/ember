@@ -9,6 +9,11 @@ export default defineNuxtConfig({
     // Where the server itself reaches the backend. A server render cannot use the browser's
     // relative `/api/v1`, because on the server there is no origin to resolve it against.
     backendUrl: process.env.NUXT_BACKEND_URL || 'http://localhost:8080',
+    // How the content security policy is sent: `report` observes and reports violations without
+    // refusing anything, `enforce` refuses them, `off` sends no policy. Report-only is the default
+    // so an upgrade cannot break a page an operator has embedded something into; an instance that
+    // has run a while with a quiet console switches to `enforce`.
+    cspMode: process.env.NUXT_CSP_MODE || 'report',
     public: {
       googleSiteVerification: process.env.NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION || '',
     },

@@ -260,6 +260,7 @@ public class QuizTestRoutes implements Routes {
         var test = guards.requireModifiableTest(ctx);
         int position = pathInt(ctx, "position");
         var req = ctx.bodyAsClass(ReplaceQuestionRequest.class);
+        guards.requireOwnedQuestion(ctx, req.questionId());
         testService.replaceFrozenQuestion(test.id(), position, req.questionId());
         ctx.json(buildFrozenQuestionResponse(test.id()));
     }

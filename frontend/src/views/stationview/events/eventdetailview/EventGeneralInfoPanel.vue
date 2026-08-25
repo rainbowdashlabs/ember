@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import {marked} from 'marked'
+import {renderMarkdown} from '@/util/markdown'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
@@ -32,10 +32,6 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-
-function renderMarkdown(md: string): string {
-  try { return marked.parse(md) as string } catch { return md }
-}
 </script>
 
 <template>

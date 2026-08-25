@@ -673,11 +673,13 @@ public class AttendanceRoutes implements Routes {
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = AttendanceEntry[].class)))
     private void createEntry(Context ctx) {
         int sessionId = pathInt(ctx, "sessionId");
-        verifySessionOwnership(sessionId, UserSession.from(ctx));
+        var session = UserSession.from(ctx);
+        verifySessionOwnership(sessionId, session);
         var request = ctx.bodyAsClass(CreateEntryRequest.class);
         if (request.memberId() == null) {
             throw new BadRequestResponse("memberId is required");
         }
+        verifyMemberInStation(request.memberId(), session);
         var source = request.source() != null ? request.source() : AttendanceEntry.EntrySource.EXTRA;
         ctx.status(HttpStatus.CREATED).json(attendanceService.createEntry(sessionId, request.memberId(), source));
     }

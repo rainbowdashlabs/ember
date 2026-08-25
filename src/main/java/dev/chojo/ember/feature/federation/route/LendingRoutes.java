@@ -351,7 +351,7 @@ public class LendingRoutes implements Routes {
 
     private void deleteBlock(Context ctx) {
         int id = pathInt(ctx, "id");
-        service.deleteBlock(id);
+        service.deleteBlock(id, UserSession.from(ctx).stationId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

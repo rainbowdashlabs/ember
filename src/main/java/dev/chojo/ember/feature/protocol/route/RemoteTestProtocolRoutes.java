@@ -10,13 +10,13 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -73,12 +73,21 @@ public class RemoteTestProtocolRoutes implements Routes {
         ctx.json(result);
     }
 
+    /**
+     * Whether the station shares the protocol with the requesting partner. A partner is paired with
+     * a station, not entitled to everything it holds, and protocol ids are sequential.
+     */
+    private boolean isShared(FederationPartner partner, int protocolId) {
+        return federationRepository.findProtocolShares(partner.stationId()).stream()
+                .anyMatch(share -> share.protocolId() != null && share.protocolId() == protocolId);
+    }
+
     private void remoteGetProtocol(Context ctx) {
         var partner = FederationSession.requirePartner(ctx);
         int protocolId = pathInt(ctx, "id");
         var protocol = service.findProtocol(protocolId).orElseThrow(NotFoundResponse::new);
-        if (protocol.stationId() != partner.stationId()) {
-            throw new ForbiddenResponse("Protocol not shared with this partner");
+        if (protocol.stationId() != partner.stationId() || !isShared(partner, protocolId)) {
+            throw new NotFoundResponse();
         }
         var sections = service.findSections(protocolId);
         var items = service.findAllItemsByProtocol(protocolId);

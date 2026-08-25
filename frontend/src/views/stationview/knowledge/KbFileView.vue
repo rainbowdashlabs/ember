@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import {ref, watch, computed} from 'vue'
-import {marked} from 'marked'
+import {renderMarkdown} from '@/util/markdown'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -209,7 +209,7 @@ async function loadFederatedFile(stationUid: string) {
 
     const content = await knowledgeBase.getFederatedFileContent(stationUid, props.fileId)
     if (file.value.fileType === KbFileType.MARKDOWN) {
-        markdownData.value = {html: await marked.parse(content), markdown: content}
+        markdownData.value = {html: renderMarkdown(content), markdown: content}
     } else {
         textContent.value = content
     }

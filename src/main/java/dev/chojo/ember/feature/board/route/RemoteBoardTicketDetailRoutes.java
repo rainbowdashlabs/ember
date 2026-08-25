@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.Context;
+import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -185,9 +186,9 @@ public class RemoteBoardTicketDetailRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void editComment(Context ctx) {
         var partner = guards.requirePartner(ctx);
-        guards.writableBoardId(ctx, partner);
+        int commentId = requireCommentOnTicket(ctx, guards.writableTicketId(ctx, partner));
         var req = ctx.bodyAsClass(RemoteEditCommentRequest.class);
-        ticketService.updateComment(pathInt(ctx, "commentId"), req.content());
+        ticketService.updateComment(commentId, req.content());
         ctx.status(204);
     }
 
@@ -204,9 +205,28 @@ public class RemoteBoardTicketDetailRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void deleteComment(Context ctx) {
         var partner = guards.requirePartner(ctx);
-        guards.writableBoardId(ctx, partner);
-        ticketService.deleteComment(pathInt(ctx, "commentId"));
+        ticketService.deleteComment(requireCommentOnTicket(ctx, guards.writableTicketId(ctx, partner)));
         ctx.status(204);
+    }
+
+    /**
+     * Reads the addressed comment id after asserting it belongs to the addressed ticket.
+     *
+     * <p>The board and the ticket are checked against what is shared with the partner; the comment
+     * id was not, so without this a partner with write access to one shared board could rewrite or
+     * delete any board comment this instance holds, in any station. The local route class resolves
+     * its comments the same way.
+     *
+     * <p>What this does not do is ask whether the partner's member wrote the comment. The remote
+     * edit request carries no member, and adding one changes the federation contract, so that check
+     * waits for a contract version that can carry it.
+     */
+    private int requireCommentOnTicket(Context ctx, int ticketId) {
+        int commentId = pathInt(ctx, "commentId");
+        if (ticketService.findComments(ticketId).stream().noneMatch(comment -> comment.id() == commentId)) {
+            throw new NotFoundResponse();
+        }
+        return commentId;
     }
 
     @OpenApi(

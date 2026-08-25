@@ -74,6 +74,7 @@ import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -126,6 +127,17 @@ class DomainEventHandlerTest {
     private StationMember member(int id) {
         return new StationMember(
                 id, STATION_ID, UUID.randomUUID(), id, false, null, "Member " + id, StationUserType.MEMBER, null);
+    }
+
+    /** A mentioned group that belongs to the station the comment was written in. */
+    private void groupInStation(int groupId) {
+        when(memberGroupRepository.findById(groupId))
+                .thenReturn(Optional.of(new MemberGroup(groupId, STATION_ID, "Crew", null, 0)));
+    }
+
+    /** A mentioned event that belongs to the station the comment was written in. */
+    private void eventInStation(int eventId) {
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(stationEvent(eventId, "Event " + eventId)));
     }
 
     // -- EventCreatedHandler --
@@ -528,6 +540,7 @@ class DomainEventHandlerTest {
 
     @Test
     void bulkMentionGroupNotifiesGroupMembers() {
+        groupInStation(5);
         when(memberGroupRepository.findMembers(5)).thenReturn(List.of(member(20), member(21)));
         when(memberRepository.findManagers(20)).thenReturn(List.of());
         when(memberRepository.findManagers(21)).thenReturn(List.of());
@@ -552,6 +565,7 @@ class DomainEventHandlerTest {
 
     @Test
     void bulkMentionGroupSkipsAuthor() {
+        groupInStation(5);
         when(memberGroupRepository.findMembers(5)).thenReturn(List.of(member(MEMBER_ID), member(21)));
 
         bulkHandler()
@@ -665,8 +679,58 @@ class DomainEventHandlerTest {
                 .notifyIfAbsent(eq(30), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
     }
 
+    /**
+     * A mention names a group by an id that runs across the whole instance. Without the station
+     * test, a member of one station addresses another station's group and everyone in it is handed
+     * the comment.
+     */
+    @Test
+    void bulkMentionOfAnotherStationsGroupNotifiesNobody() {
+        when(memberGroupRepository.findById(5))
+                .thenReturn(Optional.of(new MemberGroup(5, STATION_ID + 1, "Foreign crew", null, 0)));
+
+        bulkHandler()
+                .handle(new BulkMentionedInComment(
+                        STATION_ID,
+                        MEMBER_ID,
+                        "Author",
+                        CommentEntityType.NEWS,
+                        1,
+                        "Title",
+                        MentionType.GROUP,
+                        5,
+                        "preview snippet"));
+
+        verify(memberGroupRepository, never()).findMembers(anyInt());
+        verify(notificationService, never()).notifyIfAbsent(anyInt(), any(), any());
+    }
+
+    /** The same for an event: the registrations of another station's event reach nobody. */
+    @Test
+    void bulkMentionOfAnotherStationsEventNotifiesNobody() {
+        var foreignEvent = mock(StationEvent.class);
+        when(foreignEvent.stationId()).thenReturn(STATION_ID + 1);
+        when(eventRepository.findById(42)).thenReturn(Optional.of(foreignEvent));
+
+        bulkHandler()
+                .handle(new BulkMentionedInComment(
+                        STATION_ID,
+                        MEMBER_ID,
+                        "Author",
+                        CommentEntityType.NEWS,
+                        1,
+                        "Title",
+                        MentionType.REGISTERED,
+                        42,
+                        "preview snippet"));
+
+        verify(registrationRepository, never()).findByEvent(anyInt());
+        verify(notificationService, never()).notifyIfAbsent(anyInt(), any(), any());
+    }
+
     @Test
     void bulkMentionRegisteredNotifiesAcceptedMembers() {
+        eventInStation(42);
         when(registrationRepository.findByEvent(42))
                 .thenReturn(List.of(
                         new EventRegistration(
@@ -695,6 +759,7 @@ class DomainEventHandlerTest {
 
     @Test
     void bulkMentionDeclinedNotifiesDeclinedMembers() {
+        eventInStation(42);
         when(registrationRepository.findByEvent(42))
                 .thenReturn(List.of(
                         new EventRegistration(
@@ -723,6 +788,7 @@ class DomainEventHandlerTest {
 
     @Test
     void bulkMentionAddsGuardiansForNonGroupMentions() {
+        eventInStation(42);
         when(registrationRepository.findByEvent(42))
                 .thenReturn(List.of(new EventRegistration(
                         1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null)));
@@ -749,6 +815,7 @@ class DomainEventHandlerTest {
 
     @Test
     void bulkMentionUsesCorrectLinkForEntityType() {
+        groupInStation(5);
         when(memberGroupRepository.findMembers(5)).thenReturn(List.of(member(20)));
 
         bulkHandler()

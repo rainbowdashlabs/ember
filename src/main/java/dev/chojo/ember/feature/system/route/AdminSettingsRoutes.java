@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Auth;
@@ -380,6 +381,7 @@ public class AdminSettingsRoutes implements Routes {
         }
     }
 
+    @StationFree("the logo belongs to the instance and is served to anyone, station or not")
     private void serveLogoFragment(Context ctx) {
         String name = safeLogoName(ctx);
         if (name == null) {

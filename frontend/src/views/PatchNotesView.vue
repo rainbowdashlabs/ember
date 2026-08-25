@@ -15,6 +15,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import { formatDateLong } from '@/util/format'
+import { renderMarkdown } from '@/util/markdown'
 
 const { t } = useI18n()
 
@@ -31,21 +32,6 @@ interface GithubRelease {
 const releases = ref<GithubRelease[]>([])
 const loading = ref(true)
 const error = ref('')
-
-function renderMarkdown(body: string): string {
-  return body
-    .replace(/^### (.+)$/gm, '<h3 class="font-semibold text-base mt-4 mb-1">$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2 class="font-semibold text-lg mt-5 mb-2">$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1 class="font-bold text-xl mt-6 mb-2">$1</h1>')
-    .replace(/^\- \*\*(.+?)\*\*: (.+)$/gm, '<li><strong>$1</strong>: $2</li>')
-    .replace(/^\- \*\*(.+?)\*\*(.*)$/gm, '<li><strong>$1</strong>$2</li>')
-    .replace(/^\- (.+)$/gm, '<li>$1</li>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code class="text-xs bg-[var(--bg-accent)] px-1 py-0.5 rounded">$1</code>')
-    .replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul class="list-disc pl-5 space-y-0.5 text-sm">${match}</ul>`)
-    .replace(/\n\n/g, '<br/>')
-}
 
 onMounted(async () => {
   try {

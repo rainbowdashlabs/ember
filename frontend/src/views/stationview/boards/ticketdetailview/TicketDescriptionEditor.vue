@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
-import { marked } from 'marked'
+import { renderMarkdown } from '@/util/markdown'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -23,10 +23,6 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-
-function renderMarkdown(md: string): string {
-    try { return marked.parse(md) as string } catch { return md }
-}
 </script>
 
 <template>

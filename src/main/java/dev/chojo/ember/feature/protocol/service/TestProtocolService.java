@@ -97,8 +97,8 @@ public class TestProtocolService {
         return updated;
     }
 
-    public boolean deleteProtocol(int id) {
-        boolean deleted = repository.deleteProtocol(id);
+    public boolean deleteProtocol(int id, int stationId) {
+        boolean deleted = repository.deleteProtocol(id, stationId);
         if (deleted) log.info("Deleted test protocol {}", id);
         else log.warn("Delete of test protocol {} did not change any row", id);
         return deleted;
@@ -108,6 +108,20 @@ public class TestProtocolService {
 
     public List<TestProtocolSection> findSections(int protocolId) {
         return repository.findSections(protocolId);
+    }
+
+    /**
+     * The station owning the protocol a section belongs to, empty when there is no such section.
+     */
+    public Optional<Integer> findSectionStation(int sectionId) {
+        return repository.findSectionStation(sectionId);
+    }
+
+    /**
+     * The station owning the protocol an item belongs to, empty when there is no such item.
+     */
+    public Optional<Integer> findItemStation(int itemId) {
+        return repository.findItemStation(itemId);
     }
 
     public TestProtocolSection createSection(
@@ -210,8 +224,8 @@ public class TestProtocolService {
         return closed;
     }
 
-    public boolean deleteRun(int id) {
-        boolean deleted = repository.deleteRun(id);
+    public boolean deleteRun(int id, int stationId) {
+        boolean deleted = repository.deleteRun(id, stationId);
         if (deleted) log.info("Deleted protocol run {}", id);
         else log.warn("Delete of protocol run {} did not change any row", id);
         return deleted;

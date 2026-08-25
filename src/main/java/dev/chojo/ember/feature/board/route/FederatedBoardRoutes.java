@@ -336,7 +336,8 @@ public class FederatedBoardRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalDeleteBookmark(Context ctx) {
         int bookmarkId = ctx.pathParamAsClass("bookmarkId", Integer.class).get();
-        federatedBoardService.deleteBookmark(bookmarkId);
+        federatedBoardService.deleteBookmark(
+                bookmarkId, UserSession.from(ctx).member().id());
         ctx.status(204);
     }
 

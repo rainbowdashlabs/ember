@@ -12,9 +12,10 @@ import dev.chojo.ember.feature.events.service.EventCrudService;
 import io.javalin.http.NotFoundResponse;
 
 /**
- * The station-ownership guard shared by the event route classes.
+ * The station-ownership guard shared by the event route classes and by everything else that hangs
+ * off an event, such as its comments.
  */
-final class EventOwnership {
+public final class EventOwnership {
 
     private EventOwnership() {}
 
@@ -23,7 +24,7 @@ final class EventOwnership {
      * the event is absent and when it is owned by another station, so an event id from one
      * station cannot be used to probe or act on another station's event.
      */
-    static StationEvent requireOwnedEvent(EventCrudService crudService, int eventId, UserSession session) {
+    public static StationEvent requireOwnedEvent(EventCrudService crudService, int eventId, UserSession session) {
         var event = crudService.findById(eventId).orElseThrow(NotFoundResponse::new);
         RouteSupport.requireSameStation(session, event.stationId());
         return event;

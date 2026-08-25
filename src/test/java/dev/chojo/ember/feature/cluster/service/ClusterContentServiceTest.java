@@ -5,9 +5,12 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
@@ -56,7 +59,7 @@ class ClusterContentServiceTest extends RepositoryTestBase {
                 contentService,
                 new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
                 new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService),
-                new KbLinkMetadataService(),
+                new KbLinkMetadataService(new RemoteUrlValidator(new Federation(), new Demo())),
                 new PresentationCompressor(storage),
                 new PdfCompressor(storage),
                 new ClusterAutoShareService(clusterRepo, new FederationRepository()));

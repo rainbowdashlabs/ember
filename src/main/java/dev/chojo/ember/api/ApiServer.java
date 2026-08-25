@@ -413,6 +413,8 @@ public class ApiServer {
                         responseBody);
             });
 
+            config.routes.after(this::applyBrowserSecurityHeaders);
+
             // Cache-control headers
             config.routes.after(this::applyCacheHeaders);
 
@@ -1047,6 +1049,44 @@ public class ApiServer {
      * that merely contains {@code image}/{@code logo} as a substring (e.g. the logout
      * endpoint) is not mis-tagged as cacheable.
      */
+    /**
+     * Hardens every response in the browser.
+     *
+     * <p>The API hands out what members uploaded, and {@code SafeInlineMime} answers with
+     * {@code application/octet-stream} for everything it will not show inline. Without
+     * {@code nosniff} a browser may look at the body anyway and render it as HTML, which is the
+     * hole that allow-list exists to close, so this header is what makes the refusal hold.
+     *
+     * <p>Framing is limited to this origin rather than refused outright: the application shows a
+     * PDF, a presentation and a knowledge-base file by pointing an {@code iframe} at the endpoint
+     * that serves it, so a flat refusal blocks the application from displaying its own files while
+     * doing nothing about another site, which the same-origin rule already stops.
+     *
+     * <p>A route that has already asked for something stricter keeps its own referrer policy: the
+     * user feed says {@code no-referrer} so its token cannot travel in a {@code Referer}. Strict
+     * transport security is sent only over HTTPS, and never by a development instance, which is
+     * served over plain HTTP and would pin a browser to a scheme it cannot answer.
+     */
+    private void applyBrowserSecurityHeaders(@NotNull Context ctx) {
+        ctx.header("X-Content-Type-Options", "nosniff");
+        ctx.header("X-Frame-Options", "SAMEORIGIN");
+        ctx.header("Content-Security-Policy", "frame-ancestors 'self'");
+        if (ctx.res().getHeader("Referrer-Policy") == null) {
+            ctx.header("Referrer-Policy", "strict-origin-when-cross-origin");
+        }
+        if (!demoConfig.dev() && isHttps(ctx)) {
+            ctx.header("Strict-Transport-Security", "max-age=31536000");
+        }
+    }
+
+    private static boolean isHttps(@NotNull Context ctx) {
+        String forwarded = ctx.header("X-Forwarded-Proto");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return "https".equalsIgnoreCase(forwarded.split(",")[0].trim());
+        }
+        return "https".equalsIgnoreCase(ctx.scheme());
+    }
+
     private void applyCacheHeaders(@NotNull Context ctx) {
         if (ctx.method() != HandlerType.GET) return;
         if (ctx.statusCode() >= 400) return;

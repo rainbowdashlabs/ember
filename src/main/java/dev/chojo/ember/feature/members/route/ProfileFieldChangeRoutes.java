@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -102,10 +103,19 @@ public class ProfileFieldChangeRoutes implements Routes {
 
     /**
      * Refuses a caller who is limited to their managed members and asks about someone else.
+     *
+     * <p>An unlimited caller is still limited to their own station: seeing the whole station means
+     * that station, and a member id names a row on the whole instance. Answering 404 there rather
+     * than 403 keeps a member of another station indistinguishable from one that does not exist.
      */
     private void assertVisible(UserSession session, int memberId) {
         var visible = visibleMembers(session);
-        if (visible.isPresent() && !visible.get().contains(memberId)) {
+        if (visible.isEmpty()) {
+            var member = memberService.findById(memberId).orElseThrow(NotFoundResponse::new);
+            RouteSupport.requireSameStation(session, member.stationId());
+            return;
+        }
+        if (!visible.get().contains(memberId)) {
             throw new ForbiddenResponse("You may only see the members you manage");
         }
     }

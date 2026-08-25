@@ -302,7 +302,10 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
         var remoteUid2 = UUID.fromString("22222222-2222-2222-2222-222222222222");
         var bookmark = federatedBoardRepo.createBookmark(
                 member.id(), partnerId, remoteUid2, "Board 2", "B2", BoardShareMode.FULL);
-        federatedBoardRepo.deleteBookmark(bookmark.id());
+        federatedBoardRepo.deleteBookmark(bookmark.id(), member.id() + 1);
+        assertFalse(federatedBoardRepo.findBookmarks(member.id()).isEmpty());
+
+        federatedBoardRepo.deleteBookmark(bookmark.id(), member.id());
         var bookmarks = federatedBoardRepo.findBookmarks(member.id());
         assertTrue(bookmarks.isEmpty());
     }

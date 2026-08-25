@@ -328,7 +328,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     @Order(64)
     void deleteBookmark() {
         var bookmarks = service.findBookmarks(member.id());
-        service.deleteBookmark(bookmarks.getFirst().id());
+        service.deleteBookmark(bookmarks.getFirst().id(), member.id());
         assertTrue(service.findBookmarks(member.id()).isEmpty());
     }
 

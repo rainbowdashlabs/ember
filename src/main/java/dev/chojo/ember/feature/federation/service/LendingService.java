@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLocationService;
 import io.javalin.http.ForbiddenResponse;
+import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -248,8 +249,30 @@ public class LendingService {
         return msg;
     }
 
-    public List<LendingMessage> getLocalMessages(int requestId, int stationId) {
-        return repository.findLocalMessages(requestId, stationRepository.resolveUid(stationId));
+    /**
+     * The messages this station wrote on a lending request, for the partner on the other side of
+     * that request.
+     *
+     * <p>Being a partner of this station is not the same as being a party to one of its lending
+     * negotiations. Request ids run in sequence, so without asking whose request it is, one partner
+     * reads what this station said to another: what was asked for, what was refused, and when.
+     *
+     * @param requestId         the lending request being read
+     * @param stationId         this station, whose messages are stored here
+     * @param partnerStationUid the station asking, which has to be the other side of the request
+     */
+    public List<LendingMessage> getLocalMessages(int requestId, int stationId, UUID partnerStationUid) {
+        var request = repository.findRequestById(requestId).orElseThrow(NotFoundResponse::new);
+        UUID localStationUid = stationRepository.resolveUid(stationId);
+        if (!isParty(request, localStationUid) || !isParty(request, partnerStationUid)) {
+            throw new NotFoundResponse();
+        }
+        return repository.findLocalMessages(requestId, localStationUid);
+    }
+
+    private static boolean isParty(LendingRequest request, UUID stationUid) {
+        return Objects.equals(request.requestingStationUid(), stationUid)
+                || Objects.equals(request.owningStationUid(), stationUid);
     }
 
     /**
@@ -291,8 +314,8 @@ public class LendingService {
 
     // -- Messages --
 
-    public boolean deleteBlock(int blockId) {
-        boolean deleted = repository.deleteBlock(blockId);
+    public boolean deleteBlock(int blockId, int stationId) {
+        boolean deleted = repository.deleteBlock(blockId, stationId);
         if (deleted) {
             log.info("Deleted inventory block {}", blockId);
         } else {

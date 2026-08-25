@@ -7,9 +7,11 @@ package dev.chojo.ember.feature.system.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import dev.chojo.ember.util.LeakyBucket;
 import jakarta.inject.Singleton;
 
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -68,7 +70,21 @@ public class InstallPresetService {
     /** What a value may look like. Anything a shell would read as more than a value is refused. */
     private static final String VALUE_PATTERN = "[A-Za-z0-9._:/,@ -]{0,200}";
 
+    /**
+     * Lookups admitted from one address before it has to wait.
+     *
+     * <p>A code is six characters and the store holds thousands at a time, so guessing one is not
+     * hopeless for somebody willing to try all day. Typing a code in takes one lookup, or a handful
+     * with fingers involved; hunting for someone else's takes many more than this allows.
+     */
+    public static final int LOOKUP_CAPACITY = 20;
+
+    private static final Duration LOOKUP_REFILL = Duration.ofMinutes(3);
+
     private final SecureRandom random = new SecureRandom();
+
+    private final LeakyBucket lookups =
+            new LeakyBucket(LOOKUP_CAPACITY, LOOKUP_REFILL, Duration.ofHours(1), Clock.systemUTC());
 
     private final Cache<String, Map<String, String>> presets =
             Caffeine.newBuilder().expireAfterWrite(TTL).maximumSize(MAX_ENTRIES).build();
@@ -91,6 +107,14 @@ public class InstallPresetService {
         String code = generateCode();
         presets.put(code, Map.copyOf(kept));
         return code;
+    }
+
+    /**
+     * @param clientIp the address asking for a preset
+     * @return empty when the lookup is allowed, or the seconds until the next refill
+     */
+    public Optional<Long> tryLookup(String clientIp) {
+        return lookups.tryAcquire(clientIp);
     }
 
     /**

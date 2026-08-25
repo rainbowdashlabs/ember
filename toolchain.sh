@@ -48,6 +48,8 @@ Frontend
   fe-lint <name> [args] One linter, e.g. `fe-lint style` runs scripts/lint-style.mjs. Trailing
                         arguments reach the script, e.g. `fe-lint component-size --error=30`
   fe-dev                Dev server
+  fe-prepare            Write .nuxt, the generated tsconfig the tests and the type-check need, for
+                        a checkout where npm did not run the postinstall hook
   fe-install            npm install - reconciles node_modules and the lock file with package.json,
                         which is how a conflict in the generated lock file is resolved
   fe-preview [port]     Serve the last build (default port 3000), the steady target for the stories
@@ -171,6 +173,12 @@ case "$cmd" in
         # touched dependencies: the lock file is generated, so a conflict in it is resolved by
         # writing it again rather than by editing the two sides together.
         fe; NODE_OPTIONS="$NODE_HEAP" run npm install "$@"
+        ;;
+    fe-prepare)
+        # Writes .nuxt, which holds the tsconfig the tests and the type-check resolve against.
+        # npm does it on install through the postinstall hook, so this is for the checkout where
+        # that hook did not run: a fresh worktree, or an install that left package scripts pending.
+        fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi prepare "$@"
         ;;
     fe-preview)
         # Serves the last build. Unlike the dev server this compiles nothing on demand, which is

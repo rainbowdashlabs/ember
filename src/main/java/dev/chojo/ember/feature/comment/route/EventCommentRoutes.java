@@ -6,12 +6,12 @@
 package dev.chojo.ember.feature.comment.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.service.CommentService;
-import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -34,6 +34,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEvent;
 
 /**
  * HTTP route definitions for event comments.
@@ -86,6 +87,7 @@ public class EventCommentRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void list(Context ctx) {
         int eventId = pathInt(ctx, "eventId");
+        requireOwnedEvent(crudService, eventId, UserSession.from(ctx));
         String dateParam = ctx.queryParam("date");
         String scope = ctx.queryParam("scope");
         // Default behaviour stays "everything for the event" so existing callers don't
@@ -125,7 +127,7 @@ public class EventCommentRoutes implements Routes {
         }
         var author = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
-        String eventName = crudService.findById(eventId).map(StationEvent::name).orElse("");
+        String eventName = requireOwnedEvent(crudService, eventId, session).name();
         var comment = commentService.create(
                 session.stationId(),
                 eventId,
@@ -181,6 +183,8 @@ public class EventCommentRoutes implements Routes {
         int commentId = pathInt(ctx, "commentId");
         UserSession session = UserSession.from(ctx);
         var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
+        RouteSupport.requireSameStation(
+                session, commentService.findCommentStation(commentId).orElseThrow(NotFoundResponse::new));
         var authorIdentity = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
         boolean isAuthor = comment.author() != null && comment.author().sameMember(authorIdentity);

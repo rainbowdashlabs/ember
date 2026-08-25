@@ -28,7 +28,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.api.RouteSupport.requireOwned;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 @Singleton
 public class ProcedureRoutes implements Routes {
@@ -102,7 +102,8 @@ public class ProcedureRoutes implements Routes {
 
     private void getTemplate(Context ctx) {
         int tid = pathInt(ctx, "tid");
-        var template = requireOwned(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
+        var template =
+                requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
         var items = procedureService.findTemplateItems(tid);
         var deps = procedureService.findTemplateItemDependencies(tid);
         ctx.json(new TemplateDetail(template, items, deps));
@@ -121,7 +122,7 @@ public class ProcedureRoutes implements Routes {
 
     private void updateTemplate(Context ctx) {
         int tid = pathInt(ctx, "tid");
-        requireOwned(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
+        requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
         var req = ctx.bodyAsClass(TemplateRequest.class);
         if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
         procedureService.updateTemplate(tid, req.name(), req.description()).ifPresentOrElse(ctx::json, () -> {
@@ -131,14 +132,14 @@ public class ProcedureRoutes implements Routes {
 
     private void archiveTemplate(Context ctx) {
         int tid = pathInt(ctx, "tid");
-        requireOwned(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
+        requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
         procedureService.archiveTemplate(tid);
         ctx.status(204);
     }
 
     private void createTemplateItem(Context ctx) {
         int tid = pathInt(ctx, "tid");
-        requireOwned(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
+        requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
         var req = ctx.bodyAsClass(ItemRequest.class);
         if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
         ctx.json(procedureService.createTemplateItem(
@@ -146,7 +147,8 @@ public class ProcedureRoutes implements Routes {
     }
 
     private void updateTemplateItem(Context ctx) {
-        requireOwned(ctx, pathInt(ctx, "tid"), procedureService::findTemplateById, ProcedureTemplate::stationId);
+        requireOwnedOrNotFound(
+                ctx, pathInt(ctx, "tid"), procedureService::findTemplateById, ProcedureTemplate::stationId);
         int iid = pathInt(ctx, "iid");
         var req = ctx.bodyAsClass(ItemRequest.class);
         if (!procedureService.updateTemplateItem(
@@ -157,7 +159,8 @@ public class ProcedureRoutes implements Routes {
     }
 
     private void deleteTemplateItem(Context ctx) {
-        requireOwned(ctx, pathInt(ctx, "tid"), procedureService::findTemplateById, ProcedureTemplate::stationId);
+        requireOwnedOrNotFound(
+                ctx, pathInt(ctx, "tid"), procedureService::findTemplateById, ProcedureTemplate::stationId);
         int iid = pathInt(ctx, "iid");
         if (!procedureService.deleteTemplateItem(iid)) throw new NotFoundResponse();
         ctx.status(204);
@@ -165,7 +168,7 @@ public class ProcedureRoutes implements Routes {
 
     private void setTemplateDependencies(Context ctx) {
         int tid = pathInt(ctx, "tid");
-        requireOwned(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
+        requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
         var req = ctx.bodyAsClass(DependencyRequest.class);
         var deps = req.dependencies() != null
                 ? req.dependencies().stream()
@@ -178,7 +181,7 @@ public class ProcedureRoutes implements Routes {
 
     private void setProcedureDependencies(Context ctx) {
         int rid = pathInt(ctx, "rid");
-        requireOwned(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
+        requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         var req = ctx.bodyAsClass(DependencyRequest.class);
         var deps = req.dependencies() != null
                 ? req.dependencies().stream()
@@ -211,7 +214,7 @@ public class ProcedureRoutes implements Routes {
     private void getProcedure(Context ctx) {
         var session = UserSession.from(ctx);
         int rid = pathInt(ctx, "rid");
-        var procedure = requireOwned(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
+        var procedure = requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
 
         // Non-EDIT users can only see public procedures they're assigned to
         if (!session.hasPermission(StationPermission.PROCEDURE_EDIT)) {
@@ -252,7 +255,7 @@ public class ProcedureRoutes implements Routes {
 
     private void updateProcedure(Context ctx) {
         int rid = pathInt(ctx, "rid");
-        requireOwned(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
+        requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         var req = ctx.bodyAsClass(UpdateProcedureRequest.class);
         if (!procedureService.updateProcedure(rid, req.name(), req.description(), req.isPublic(), req.dueAt())) {
             throw new NotFoundResponse();
@@ -262,7 +265,7 @@ public class ProcedureRoutes implements Routes {
 
     private void deleteProcedure(Context ctx) {
         int rid = pathInt(ctx, "rid");
-        requireOwned(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
+        requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         procedureService.deleteProcedure(rid);
         ctx.status(204);
     }
@@ -270,7 +273,7 @@ public class ProcedureRoutes implements Routes {
     private void resolveProcedure(Context ctx) {
         var session = UserSession.from(ctx);
         int rid = pathInt(ctx, "rid");
-        requireOwned(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
+        requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         if (!procedureService.resolveProcedure(rid, session.member().id())) {
             throw new BadRequestResponse("Already resolved");
         }
@@ -280,7 +283,7 @@ public class ProcedureRoutes implements Routes {
     private void reopenProcedure(Context ctx) {
         var session = UserSession.from(ctx);
         int rid = pathInt(ctx, "rid");
-        requireOwned(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
+        requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         if (!procedureService.reopenProcedure(rid, session.member().id())) {
             throw new BadRequestResponse("Already open");
         }
@@ -292,7 +295,7 @@ public class ProcedureRoutes implements Routes {
     private void addAssignees(Context ctx) {
         var session = UserSession.from(ctx);
         int rid = pathInt(ctx, "rid");
-        requireOwned(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
+        requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         var req = ctx.bodyAsClass(AssigneeRequest.class);
         if (req.memberIds() == null || req.memberIds().isEmpty()) throw new BadRequestResponse("memberIds required");
         procedureService.addAssignees(rid, req.memberIds(), session.member().id());
@@ -301,7 +304,7 @@ public class ProcedureRoutes implements Routes {
 
     private void removeAssignee(Context ctx) {
         int rid = pathInt(ctx, "rid");
-        requireOwned(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
+        requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         int mid = pathInt(ctx, "mid");
         procedureService.removeAssignee(rid, mid);
         ctx.json(procedureService.findAssigneeIds(rid));
@@ -311,7 +314,7 @@ public class ProcedureRoutes implements Routes {
 
     private void addItem(Context ctx) {
         int rid = pathInt(ctx, "rid");
-        requireOwned(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
+        requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         var req = ctx.bodyAsClass(ItemRequest.class);
         if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
         ctx.json(procedureService.createItem(
@@ -319,7 +322,7 @@ public class ProcedureRoutes implements Routes {
     }
 
     private void editItem(Context ctx) {
-        requireOwned(ctx, pathInt(ctx, "rid"), procedureService::findProcedureById, Procedure::stationId);
+        requireOwnedOrNotFound(ctx, pathInt(ctx, "rid"), procedureService::findProcedureById, Procedure::stationId);
         int iid = pathInt(ctx, "iid");
         var req = ctx.bodyAsClass(ItemRequest.class);
         if (!procedureService.updateItem(
@@ -330,7 +333,7 @@ public class ProcedureRoutes implements Routes {
     }
 
     private void deleteItem(Context ctx) {
-        requireOwned(ctx, pathInt(ctx, "rid"), procedureService::findProcedureById, Procedure::stationId);
+        requireOwnedOrNotFound(ctx, pathInt(ctx, "rid"), procedureService::findProcedureById, Procedure::stationId);
         int iid = pathInt(ctx, "iid");
         if (!procedureService.deleteItem(iid)) throw new NotFoundResponse();
         ctx.status(204);
@@ -339,7 +342,7 @@ public class ProcedureRoutes implements Routes {
     private void patchItem(Context ctx) {
         var session = UserSession.from(ctx);
         int rid = pathInt(ctx, "rid");
-        requireOwned(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
+        requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         int iid = pathInt(ctx, "iid");
         var req = ctx.bodyAsClass(PatchItemRequest.class);
 

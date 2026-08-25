@@ -158,7 +158,7 @@ class CommentServiceTest extends RepositoryTestBase {
     @Order(6)
     void createWithMentionPublishesEvent() {
         reset(eventBus);
-        String content = "Hey @[" + member2.id() + ":Bob] check this out!";
+        String content = "Hey " + mention(station, member2, "Bob") + " check this out!";
         var comment = service.create(station.id(), eventId, null, identity1, "Alice", content, "Test Event", null);
         assertNotNull(comment);
         assertEquals(content, comment.content());
@@ -189,7 +189,7 @@ class CommentServiceTest extends RepositoryTestBase {
     @Order(7)
     void createWithSelfMentionDoesNotPublish() {
         reset(eventBus);
-        String content = "Talking about @[" + member1.id() + ":Alice] myself";
+        String content = "Talking about " + mention(station, member1, "Alice") + " myself";
         var comment = service.create(station.id(), eventId, null, identity1, "Alice", content, "Test Event", null);
         assertNotNull(comment);
         assertEquals(content, comment.content());
@@ -239,13 +239,58 @@ class CommentServiceTest extends RepositoryTestBase {
         assertFalse(service.update(999999, "new content"));
     }
 
+    /** The markup an editor writes for a mention: the member named with its station. */
+    private static String mention(Station memberStation, StationMember member, String name) {
+        return "@[" + memberStation.uid() + "/" + member.uid() + ":" + name + "]";
+    }
+
+    /**
+     * A member of another station is not notified, however the mention is written. The numeric form
+     * an older editor produced carried no station at all, so it reached anyone on the instance.
+     */
+    @Test
+    @Order(14)
+    void aMentionOfAnotherStationsMemberNotifiesNobody() {
+        reset(eventBus);
+        var otherStation = stationRepo.create("CommentOtherStation");
+        var otherAccount = accountRepo.create("comment-other@test.com", "Carol", "Elsewhere");
+        var otherMember = stationMemberRepo.create(otherStation.id(), otherAccount.id());
+
+        var byUid = service.create(
+                station.id(),
+                eventId,
+                null,
+                identity1,
+                "Alice",
+                "Hello " + mention(otherStation, otherMember, "Carol"),
+                "Test Event",
+                null);
+        var byId = service.create(
+                station.id(),
+                eventId,
+                null,
+                identity1,
+                "Alice",
+                "Hello @[" + otherMember.id() + ":Carol]",
+                "Test Event",
+                null);
+
+        verify(eventBus, never()).publish(any());
+
+        service.delete(byId.id());
+        service.delete(byUid.id());
+        stationRepo.delete(otherStation.id());
+        accountRepo.delete(otherAccount.id());
+    }
+
     @Test
     @Order(14)
     void createWithMultipleMentions() {
         reset(eventBus);
 
         // Multiple mentions in one comment - both different from author
-        String content = "Hey @[" + member2.id() + ":Bob] and @[" + member2.id() + ":Bob] again";
+        String content =
+                "Hey " + mention(station, member2, "Bob") + " and " + mention(station, member2, "Bob") + " again";
         var comment = service.create(station.id(), eventId, null, identity1, "Alice", content, "Test Event", null);
         assertNotNull(comment);
         // eventBus should have been called for member2 twice

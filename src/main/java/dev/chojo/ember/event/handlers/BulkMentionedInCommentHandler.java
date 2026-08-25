@@ -63,14 +63,10 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
     public void handle(BulkMentionedInComment event) {
         Set<Integer> memberIds =
                 switch (event.mentionType()) {
-                    case GROUP ->
-                        memberGroupRepository.findMembers(event.mentionTargetId()).stream()
-                                .map(StationMember::id)
-                                .collect(Collectors.toCollection(HashSet::new));
+                    case GROUP -> resolveGroupMembers(event);
                     case EVENT -> resolveEventMembers(event);
-                    case REGISTERED ->
-                        resolveRegistrationsByStatus(event.mentionTargetId(), RegistrationStatus.ACCEPTED);
-                    case DECLINED -> resolveRegistrationsByStatus(event.mentionTargetId(), RegistrationStatus.DECLINED);
+                    case REGISTERED -> resolveRegistrationsByStatus(event, RegistrationStatus.ACCEPTED);
+                    case DECLINED -> resolveRegistrationsByStatus(event, RegistrationStatus.DECLINED);
                 };
 
         if (event.mentionType() != MentionType.GROUP) {
@@ -96,9 +92,25 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
         }
     }
 
+    /**
+     * The members of a mentioned group, when the group belongs to the station the comment was
+     * written in.
+     *
+     * <p>A mention names a group by its id, and the ids run across the whole instance, so without
+     * the station test a member of one station addresses another station's group and everyone in it
+     * is handed the comment.
+     */
+    private Set<Integer> resolveGroupMembers(BulkMentionedInComment event) {
+        var group = memberGroupRepository.findById(event.mentionTargetId()).orElse(null);
+        if (group == null || group.stationId() != event.stationId()) return new HashSet<>();
+        return memberGroupRepository.findMembers(group.id()).stream()
+                .map(StationMember::id)
+                .collect(Collectors.toCollection(HashSet::new));
+    }
+
     private Set<Integer> resolveEventMembers(BulkMentionedInComment event) {
         var stationEvent = eventRepository.findById(event.mentionTargetId()).orElse(null);
-        if (stationEvent == null) return Set.of();
+        if (stationEvent == null || stationEvent.stationId() != event.stationId()) return new HashSet<>();
 
         var allRegs = registrationRepository.findByEvent(event.mentionTargetId());
         var declinedIds = allRegs.stream()
@@ -131,9 +143,15 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
         return ids;
     }
 
-    private Set<Integer> resolveRegistrationsByStatus(int eventId, RegistrationStatus status) {
-        return registrationRepository.findByEvent(eventId).stream()
-                .filter(r -> r.status() == status)
+    /**
+     * Those registered for a mentioned event with the given status, when the event belongs to the
+     * station the comment was written in.
+     */
+    private Set<Integer> resolveRegistrationsByStatus(BulkMentionedInComment event, RegistrationStatus status) {
+        var stationEvent = eventRepository.findById(event.mentionTargetId()).orElse(null);
+        if (stationEvent == null || stationEvent.stationId() != event.stationId()) return new HashSet<>();
+        return registrationRepository.findByEvent(stationEvent.id()).stream()
+                .filter(registration -> registration.status() == status)
                 .map(EventRegistration::memberId)
                 .collect(Collectors.toCollection(HashSet::new));
     }
