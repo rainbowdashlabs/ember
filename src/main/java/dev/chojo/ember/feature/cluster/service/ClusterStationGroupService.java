@@ -80,20 +80,26 @@ public class ClusterStationGroupService {
     }
 
     /**
-     * Removes a filing, unless questions are pointed at it.
+     * Removes a filing, unless something is keyed to it.
      *
      * <p>Refused rather than cascaded: deleting a way of filing stations would otherwise silently delete
-     * questions and every answer anybody gave to them.
+     * questions and every answer anybody gave to them, or quietly switch a denied module back on at every
+     * station that was in the group.
      *
      * @param clusterId the association
      * @param groupId   the group
      */
     public void delete(int clusterId, int groupId) {
         requireOwnGroup(clusterId, groupId);
-        int used = groupRepository.countFieldsUsing(groupId);
-        if (used > 0) {
+        int questions = groupRepository.countFieldsUsing(groupId);
+        if (questions > 0) {
             throw new BadRequestResponse(
-                    "%d question(s) are asked of this group. Point them somewhere else first.".formatted(used));
+                    "%d question(s) are asked of this group. Point them somewhere else first.".formatted(questions));
+        }
+        int denials = clusterRepository.countDenialsUsingGroup(groupId);
+        if (denials > 0) {
+            throw new BadRequestResponse(
+                    "%d module(s) are switched off for this group. Switch them back on first.".formatted(denials));
         }
         groupRepository.delete(groupId);
         log.info("Cluster {} removed station group {}", clusterId, groupId);

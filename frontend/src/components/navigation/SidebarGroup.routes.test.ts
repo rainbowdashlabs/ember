@@ -50,7 +50,7 @@ function routePaths(): Set<string> {
     return paths
 }
 
-/** One `<SidebarGroup …>` opening tag, whether it closes itself or holds entries. */
+/** One `<SidebarGroup …>` or `<SidebarSubGroup …>` opening tag, whether it closes itself or holds entries. */
 interface Group {
     file: string
     prefixes: string[]
@@ -92,40 +92,49 @@ function literal(attributes: string, name: string): string | null {
     return match ? match[1]! : null
 }
 
-function groupsIn(file: string): Group[] {
+/**
+ * What one group's entries say, which is what it reads off them at runtime: where an entry leads, and
+ * what a subsection nested in it declares. A subsection's own entries are not in that set, because a
+ * group holds the subsection, not the subsection's contents.
+ */
+function entriesIn(body: string, tag: string): {paths: string[]; dynamic: boolean} {
+    const own = tag === 'SidebarGroup' ? body.replace(/<SidebarSubGroup\b[\s\S]*?<\/SidebarSubGroup>/g, '') : body
+    const nested = tag === 'SidebarGroup'
+        ? [...body.matchAll(/<SidebarSubGroup\b([^>]*)>/g)].map(match => literal(match[1]!, 'prefix'))
+        : []
+    const paths = [
+        ...[...own.matchAll(/\sto="([^"{]*)"/g)].map(match => match[1]!),
+        ...nested.filter((prefix): prefix is string => prefix !== null),
+    ].filter(path => path.startsWith('/'))
+    return {paths, dynamic: /\s:to="/.test(own) || /<SidebarSubGroup\b[^>]*\s:prefix="/.test(body)}
+}
+
+function groupsIn(file: string, tag: string): Group[] {
     const source = readFileSync(file, 'utf8')
     const groups: Group[] = []
-    for (const match of source.matchAll(/<SidebarGroup\b/g)) {
+    for (const match of source.matchAll(new RegExp(`<${tag}\\b`, 'g'))) {
         const {attributes, selfClosing, end} = openingTag(source, match.index + match[0].length)
         const prefix = literal(attributes, 'prefix')
         const ownPath = literal(attributes, 'to')
 
-        const childPaths: string[] = []
-        let dynamicChild = false
-        if (!selfClosing) {
-            const body = source.slice(end)
-            const closing = body.indexOf('</SidebarGroup>')
-            const inside = closing < 0 ? body : body.slice(0, closing)
-            dynamicChild = /\s:to="/.test(inside) || /<SidebarSubGroup/.test(inside)
-            for (const child of inside.matchAll(/\sto="([^"{]*)"/g)) {
-                if (child[1]!.startsWith('/')) childPaths.push(child[1]!)
-            }
-        }
+        const body = selfClosing ? '' : source.slice(end).split(`</${tag}>`)[0]!
+        const {paths, dynamic} = entriesIn(body, tag)
 
         groups.push({
             file: relative(SRC, file),
             prefixes: prefix ? [prefix] : [],
-            childPaths,
+            childPaths: paths,
             ownPath: ownPath && ownPath.startsWith('/') ? ownPath : null,
-            dynamic: /\s:prefix="/.test(attributes) || /\s:to="/.test(attributes) || dynamicChild,
+            dynamic: /\s:prefix="/.test(attributes) || /\s:to="/.test(attributes) || dynamic,
         })
     }
     return groups
 }
 
-const groups = filesUnder(SRC, '.vue')
-    .filter(file => readFileSync(file, 'utf8').includes('<SidebarGroup'))
-    .flatMap(groupsIn)
+const groups = ['SidebarGroup', 'SidebarSubGroup']
+    .flatMap(tag => filesUnder(SRC, '.vue')
+        .filter(file => readFileSync(file, 'utf8').includes(`<${tag}`))
+        .flatMap(file => groupsIn(file, tag)))
     .filter(group => !group.dynamic)
 
 describe('every sidebar group', () => {
@@ -141,14 +150,23 @@ describe('every sidebar group', () => {
         expect(invented, 'a prefix nobody can stand on leaves its group dark for good').toEqual([])
     })
 
-    it('covers every entry it holds', () => {
-        const stray = groups.flatMap(group => {
-            const covered = [...group.prefixes, ...(group.ownPath ? [group.ownPath] : [])]
-            return group.childPaths
-                .filter(path => !covered.some(prefix => path === prefix || path.startsWith(`${prefix}/`)))
-                .map(path => ({file: group.file, path}))
+    /**
+     * A group reads where its entries lead off the entries themselves, so a written prefix has to earn its
+     * place by reaching a page they do not: an overview nobody links to, a detail page opened from a list.
+     * A prefix whose whole area the entries already cover is the duplication this repair was about, put
+     * back by hand, and it is what lets a group and its own contents drift apart again.
+     */
+    it('writes a prefix only for pages its entries do not already reach', () => {
+        const pages = routePaths()
+        const dead = groups.flatMap(group => {
+            const said = [...group.childPaths, ...(group.ownPath ? [group.ownPath] : [])]
+            return group.prefixes
+                .filter(prefix => [...pages]
+                    .filter(page => page === prefix || page.startsWith(`${prefix}/`))
+                    .every(page => said.some(path => page === path || page.startsWith(`${path}/`))))
+                .map(prefix => ({file: group.file, prefix}))
         })
-        expect(stray, 'an entry outside its own group leaves the group dark while it is open').toEqual([])
+        expect(dead, 'the entries already reach every page under this, so it says nothing new').toEqual([])
     })
 
     /**

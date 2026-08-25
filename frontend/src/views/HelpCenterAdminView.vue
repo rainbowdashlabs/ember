@@ -33,7 +33,7 @@ watch(
 <template>
   <SidebarLayout :subtitle="t('helpCenter.title')" :title="pageTitle" :station-name="t('helpCenter.adminHelp')" :collapsible="false">
     <template #sidebar="{ close }">
-      <SidebarGroup :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/helpcenter/admin/dashboard">
+      <SidebarGroup :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')">
         <SidebarLink :icon="['fas', 'house']" name="help-admin-module-overview"
                      to="/helpcenter/admin/dashboard/overview" @navigate="close">
           {{ t('sidebar.overview') }}
@@ -44,7 +44,7 @@ watch(
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'building']" :label="t('sidebar.stations')" prefix="/helpcenter/admin/stations"
+      <SidebarGroup :icon="['fas', 'building']" :label="t('sidebar.stations')"
                     to="/helpcenter/admin/stations/overview" name="help-admin-stations-module-overview" @navigate="close">
         <SidebarLink :icon="['fas', 'building']" name="help-admin-stations"
                      to="/helpcenter/admin/stations" @navigate="close">
@@ -56,14 +56,14 @@ watch(
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'sitemap']" :label="t('sidebar.clusters')" prefix="/helpcenter/admin/clusters">
+      <SidebarGroup :icon="['fas', 'sitemap']" :label="t('sidebar.clusters')">
         <SidebarLink :icon="['fas', 'sitemap']" name="help-admin-clusters"
                      to="/helpcenter/admin/clusters" @navigate="close">
           {{ t('sidebar.manageClusters') }}
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'gear']" :label="t('sidebar.settings')" prefix="/helpcenter/admin/settings">
+      <SidebarGroup :icon="['fas', 'gear']" :label="t('sidebar.settings')">
         <SidebarLink :icon="['fas', 'sliders']" name="help-admin-settings"
                      to="/helpcenter/admin/settings" @navigate="close">
           {{ t('sidebar.general') }}
@@ -72,8 +72,7 @@ watch(
                      to="/helpcenter/admin/settings/mailing" @navigate="close">
           {{ t('sidebar.mailing') }}
         </SidebarLink>
-        <SidebarGroup :icon="['fas', 'shield']" :label="t('sidebar.security')"
-                      prefix="/helpcenter/admin/settings/security" to="/helpcenter/admin/settings/security"
+        <SidebarGroup :icon="['fas', 'shield']" :label="t('sidebar.security')" to="/helpcenter/admin/settings/security"
                       name="help-admin-security" @navigate="close">
           <SidebarLink :icon="['fas', 'key']" name="help-admin-security-tokens"
                        to="/helpcenter/admin/settings/security/tokens" @navigate="close">
@@ -94,12 +93,11 @@ watch(
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'mobile-screen']" :label="t('sidebar.twoFactor')" prefix="/helpcenter/admin/2fa"
+      <SidebarGroup :icon="['fas', 'mobile-screen']" :label="t('sidebar.twoFactor')"
                     to="/helpcenter/admin/2fa" name="help-admin-two-factor" @navigate="close">
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')"
-                    prefix="/helpcenter/admin/monitoring" group-key="monitoring">
+      <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" prefix="/helpcenter/admin/monitoring" group-key="monitoring">
         <SidebarLink :icon="['fas', 'hard-drive']" name="help-admin-storage"
                      to="/helpcenter/admin/monitoring/storage" @navigate="close">
           {{ t('sidebar.storageDashboard') }}
@@ -134,7 +132,7 @@ watch(
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'code']" :label="t('sidebar.devTools')" prefix="/helpcenter/admin/dev"
+      <SidebarGroup :icon="['fas', 'code']" :label="t('sidebar.devTools')"
                     group-key="dev">
         <SidebarLink :icon="['fas', 'database']" name="help-admin-data-tracking"
                      to="/helpcenter/admin/dev/data-tracking" @navigate="close">

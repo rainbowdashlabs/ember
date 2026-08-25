@@ -31,10 +31,14 @@ export function claimSidebarGroup(): number {
 /**
  * Says how well this group matches the page being shown.
  *
+ * <p>Nothing is registered on the server. The map is module level, a render there never unmounts, and
+ * entries from one request would otherwise decide the highlight of the next.
+ *
  * @param id     the group's handle
  * @param length the length of its longest matching prefix, or 0 when none matches
  */
 export function reportSidebarMatch(id: number, length: number): void {
+    if (import.meta.server) return
     const next = new Map(claims.value)
     if (length > 0) next.set(id, length)
     else next.delete(id)

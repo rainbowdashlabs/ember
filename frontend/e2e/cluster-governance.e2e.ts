@@ -43,6 +43,68 @@ test.describe('Cluster governance', () => {
     })
 
     /**
+     * CLS-104 - A module denied for one group is denied there and nowhere else.
+     *
+     * The denial list was association-wide because there was nothing finer to key it to, and the
+     * association's own document said so. Station groups are that finer thing. Not every station of an
+     * association does the same work, so not every station has to lose the same module. The station in
+     * the filing loses it and the one beside it does not, which is the whole of the claim.
+     */
+    test('a module denied for one group is denied there and nowhere else',
+        async ({adminPage: page, browser, request}) => {
+            const own = await ownCluster(page, browser, request, 'Wachgruppenmodule')
+            const second = await page.request.post('/api/v1/cluster/stations',
+                {headers: own.headers, data: {name: `${own.name} Aussen`}})
+            expect(second.ok(), `the association made a second station (${await second.text()})`).toBeTruthy()
+            const outsideUid = (await second.json()).uid
+
+            const group = await page.request.post('/api/v1/cluster/station-groups',
+                {headers: own.headers, data: {name: `Ohne Boards ${Date.now()}`}})
+            expect(group.ok(), `the association filed a group (${await group.text()})`).toBeTruthy()
+            const groupId = (await group.json()).id
+            const filed = await page.request.put(`/api/v1/cluster/station-groups/${groupId}/stations`,
+                {headers: own.headers, data: {stationUids: [own.stationUid]}})
+            expect(filed.ok(), `and put one station in it (${await filed.text()})`).toBeTruthy()
+
+            await page.goto('/cluster/modules')
+            await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
+            await page.goto('/cluster/modules')
+            await expect(page.getByTestId('cluster-module-switches')).toBeVisible({timeout: 15000})
+
+            await page.getByRole('button', {name: /Ohne Boards/}).click()
+            const boards = page.getByTestId('cluster-module-switches')
+                .locator('div')
+                .filter({hasText: /^Boards/})
+                .getByRole('switch')
+            await expect(boards).toBeVisible({timeout: 15000})
+            await boards.click()
+            await page.getByRole('button', {name: 'Speichern', exact: true}).click()
+
+            await own.stationPage.goto('/station/manage/modules')
+            await expect(own.stationPage
+                .locator('[data-testid="module-toggle"][data-module="BOARDS"]')
+                .getByRole('switch')).toBeDisabled({timeout: 15000})
+
+            const outside = await page.request
+                .get('/api/v1/cluster/members/manage/stations', {headers: own.headers})
+                .then(r => r.json())
+            expect(outside.some((s: {uid: string}) => s.uid === outsideUid),
+                'the station outside the filing is still one of the association\'s').toBeTruthy()
+
+            const stillDenied = await page.request
+                .get(`/api/v1/cluster/modules?stationGroupId=${groupId}`, {headers: own.headers})
+                .then(r => r.json())
+            expect(stillDenied.deniedModules, 'the denial is written against the group').toContain('BOARDS')
+
+            const everybody = await page.request
+                .get('/api/v1/cluster/modules', {headers: own.headers})
+                .then(r => r.json())
+            expect(everybody.deniedModules, 'and nothing was denied of everybody').toEqual([])
+
+            await own.stationPage.context().close()
+        })
+
+    /**
      * CLS-18 - Everything not denied stays the station's own choice.
      *
      * A cluster that switches one thing off has not taken the rest, which is the difference between a

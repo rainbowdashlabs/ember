@@ -23,7 +23,6 @@ const {t} = useI18n()
 
 <template>
   <SidebarGroup :icon="['fas', 'clipboard-user']" :label="t('sidebar.attendance')"
-                prefix="/helpcenter/station/attendance"
                 to="/helpcenter/station/attendance" name="help-attendance-module-overview" @navigate="close">
     <SidebarLink :icon="['fas', 'calendar-plus']" name="help-attendance-new"
                  to="/helpcenter/station/attendance/new" @navigate="close">
@@ -52,7 +51,6 @@ const {t} = useI18n()
   </SidebarGroup>
 
   <SidebarGroup :icon="['fas', 'calendar-days']" :label="t('sidebar.events')"
-                :prefix="['/helpcenter/station/events', '/helpcenter/station/federation/events']"
                 to="/helpcenter/station/events" name="help-events-module-overview" @navigate="close">
     <SidebarLink :icon="['fas', 'calendar-plus']" name="help-events-upcoming"
                  to="/helpcenter/station/events/upcoming" @navigate="close">
@@ -90,7 +88,6 @@ const {t} = useI18n()
   </SidebarGroup>
 
   <SidebarGroup :icon="['fas', 'square-poll-vertical']" :label="t('sidebar.forms')"
-                prefix="/helpcenter/station/forms"
                 to="/helpcenter/station/forms" name="help-forms-module-overview" @navigate="close">
     <SidebarLink :icon="['fas', 'plus']" name="help-forms-create"
                  to="/helpcenter/station/forms/create" @navigate="close">
@@ -110,11 +107,11 @@ const {t} = useI18n()
     </SidebarLink>
   </SidebarGroup>
 
-  <SidebarGroup :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')" prefix="/helpcenter/station/lost-and-found"
+  <SidebarGroup :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')"
                 to="/helpcenter/station/lost-and-found" name="help-lost-and-found" @navigate="close">
   </SidebarGroup>
 
-  <SidebarGroup :icon="['fas', 'list-check']" :label="t('sidebar.checklists')" prefix="/helpcenter/station/checklist"
+  <SidebarGroup :icon="['fas', 'list-check']" :label="t('sidebar.checklists')"
                 to="/helpcenter/station/checklist" name="help-checklist-list" @navigate="close">
     <SidebarLink :icon="['fas', 'table-columns']" name="help-checklist-detail" to="/helpcenter/station/checklist/1" @navigate="close">
       {{ t('helpCenter.checklist.detailSidebarLabel') }}
@@ -122,7 +119,6 @@ const {t} = useI18n()
   </SidebarGroup>
 
   <SidebarGroup :icon="['fas', 'list-check']" :label="t('sidebar.procedures')"
-                prefix="/helpcenter/station/procedures"
                 to="/helpcenter/station/procedures/overview" name="help-procedure-module-overview" @navigate="close">
     <SidebarLink :icon="['fas', 'list-check']" name="help-procedure-list"
                  to="/helpcenter/station/procedures" @navigate="close">
@@ -154,7 +150,6 @@ const {t} = useI18n()
   <QuizSidebarGroup :close="close"/>
 
   <SidebarGroup :icon="['fas', 'table-columns']" :label="t('sidebar.boards')"
-                :prefix="['/helpcenter/station/boards', '/helpcenter/station/federation/boards']"
                 to="/helpcenter/station/boards" name="help-board-overview" @navigate="close">
     <SidebarLink :icon="['fas', 'gears']" name="help-board-manage" to="/helpcenter/station/boards/manage" @navigate="close">{{ t('helpCenter.boardManage.sidebarLabel') }}</SidebarLink>
     <SidebarLink :icon="['fas', 'table-columns']" name="help-board-view" to="/helpcenter/station/boards/BOARD" @navigate="close">{{ t('helpCenter.boardView.sidebarLabel') }}</SidebarLink>
@@ -164,8 +159,7 @@ const {t} = useI18n()
     <SidebarLink :icon="['fas', 'folder']" name="help-board-archived" to="/helpcenter/station/boards/BOARD/archived" @navigate="close">{{ t('helpCenter.archived.sidebarLabel') }}</SidebarLink>
     <SidebarLink :icon="['fas', 'gear']" name="help-board-settings" to="/helpcenter/station/boards/BOARD/settings" @navigate="close">{{ t('helpCenter.boardSettings.sidebarLabel') }}</SidebarLink>
     <SidebarExpandableLink :icon="['fas', 'arrow-right-arrow-left']" name="help-federated-boards"
-                           to="/helpcenter/station/federation/boards"
-                           prefix="/helpcenter/station/federation/boards" @navigate="close">
+                           to="/helpcenter/station/federation/boards" @navigate="close">
       <template #label>{{ t('helpCenter.federatedBoards.sidebarLabel') }}</template>
       <SidebarLink :icon="['fas', 'table-columns']" name="help-federated-board-view"
                    to="/helpcenter/station/federation/boards/0/BOARD" @navigate="close">
@@ -178,7 +172,7 @@ const {t} = useI18n()
     </SidebarExpandableLink>
   </SidebarGroup>
 
-  <SidebarGroup :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" prefix="/helpcenter/station/knowledge"
+  <SidebarGroup :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')"
                 to="/helpcenter/station/knowledge" name="help-knowledge-module-overview" @navigate="close">
     <SidebarLink :icon="['fas', 'house']" name="help-knowledge-base" to="/helpcenter/station/knowledge/browse" @navigate="close">
       {{ t('sidebar.overview') }}
@@ -197,6 +191,6 @@ const {t} = useI18n()
     </SidebarLink>
   </SidebarGroup>
 
-  <SidebarGroup :icon="['fas', 'file-lines']" :label="t('sidebar.pages')" prefix="/helpcenter/station/pages"
+  <SidebarGroup :icon="['fas', 'file-lines']" :label="t('sidebar.pages')"
                 to="/helpcenter/station/pages" name="help-pages" @navigate="close"/>
 </template>

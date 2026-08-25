@@ -9,10 +9,12 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterModuleDenied;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -20,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -44,51 +47,87 @@ public class ClusterGovernanceService {
     private static final Logger log = LoggerFactory.getLogger(ClusterGovernanceService.class);
 
     private final ClusterRepository clusterRepository;
+    private final ClusterStationGroupRepository stationGroupRepository;
     private final StationRepository stationRepository;
     private final DomainEventBus eventBus;
 
     @Inject
     public ClusterGovernanceService(
-            ClusterRepository clusterRepository, StationRepository stationRepository, DomainEventBus eventBus) {
+            ClusterRepository clusterRepository,
+            ClusterStationGroupRepository stationGroupRepository,
+            StationRepository stationRepository,
+            DomainEventBus eventBus) {
         this.clusterRepository = clusterRepository;
+        this.stationGroupRepository = stationGroupRepository;
         this.stationRepository = stationRepository;
         this.eventBus = eventBus;
     }
 
     // -- Modules --
 
-    public Set<StationModule> findDeniedModules(int clusterId) {
-        return clusterRepository.findDeniedModules(clusterId);
+    /**
+     * What the cluster denies of one group of its stations, or of all of them.
+     *
+     * @param clusterId      the cluster
+     * @param stationGroupId the group, or {@code null} for the denials that reach every station
+     */
+    public Set<StationModule> findDeniedModules(int clusterId, Integer stationGroupId) {
+        requireOwnGroup(clusterId, stationGroupId);
+        return clusterRepository.findDeniedModules(clusterId, stationGroupId);
     }
 
     /**
-     * Sets which modules the cluster switches off for every station under it.
+     * Sets which modules the cluster switches off, for one group of its stations or for all of them.
      *
      * <p>Nothing is deleted. A denied module stops being reachable and everything already in it stays where
      * it is, ready to reappear if the denial is lifted or the station released. The stations that were
      * actually using one are told, because a page disappearing without explanation is the kind of thing
      * people report as a fault.
      *
-     * @param clusterId the cluster
-     * @param modules   the modules it now denies
+     * <p>Denials add up and never cancel: a station loses a module when the cluster denies it outright or
+     * denies it for any group that station is in. So the stations told about a new denial are the ones it
+     * actually reaches, which for a group is the stations filed under it and for everybody is all of them.
+     *
+     * @param clusterId      the cluster
+     * @param stationGroupId the group it is deciding for, or {@code null} for every station
+     * @param modules        the modules it now denies there
      */
-    public void setDeniedModules(int clusterId, Set<StationModule> modules) {
+    public void setDeniedModules(int clusterId, Integer stationGroupId, Set<StationModule> modules) {
         Cluster cluster = requireCluster(clusterId);
-        Set<StationModule> before = clusterRepository.findDeniedModules(clusterId);
+        requireOwnGroup(clusterId, stationGroupId);
+        Set<StationModule> before = clusterRepository.findDeniedModules(clusterId, stationGroupId);
         Set<StationModule> newlyDenied = EnumSet.noneOf(StationModule.class);
         newlyDenied.addAll(modules);
         newlyDenied.removeAll(before);
 
-        clusterRepository.setDeniedModules(clusterId, modules);
-        log.info("Cluster {} now denies {}", clusterId, modules);
+        clusterRepository.setDeniedModules(clusterId, stationGroupId, modules);
+        log.info("Cluster {} now denies {} for group {}", clusterId, modules, stationGroupId);
 
         for (StationModule module : newlyDenied) {
-            for (Station station : stationRepository.findByCluster(clusterId)) {
+            for (Station station : reached(clusterId, stationGroupId)) {
                 // Only the stations that had it switched on lose anything they can see
                 if (stationRepository.findDisabledModules(station.id()).contains(module)) continue;
                 eventBus.publish(new ClusterModuleDenied(station.id(), cluster.name(), module));
             }
         }
+    }
+
+    /** The stations a denial reaches: the group's, or every one of the cluster's. */
+    private List<Station> reached(int clusterId, Integer stationGroupId) {
+        List<Station> all = stationRepository.findByCluster(clusterId);
+        if (stationGroupId == null) return all;
+        Set<Integer> inGroup = Set.copyOf(stationGroupRepository.findStationIds(stationGroupId));
+        return all.stream().filter(station -> inGroup.contains(station.id())).toList();
+    }
+
+    /** A group of another association is not this one's to decide for. */
+    private void requireOwnGroup(int clusterId, Integer stationGroupId) {
+        if (stationGroupId == null) return;
+        boolean own = stationGroupRepository
+                .findById(stationGroupId)
+                .filter(group -> group.clusterId() == clusterId)
+                .isPresent();
+        if (!own) throw new BadRequestResponse("That group of stations belongs to another association");
     }
 
     // -- Look and feel --

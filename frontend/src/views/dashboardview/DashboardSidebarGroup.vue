@@ -31,7 +31,7 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :badge="counts.notifications" :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/station/dashboard" to="/station/dashboard/overview" name="dashboard-overview" @navigate="close">
+  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :badge="counts.notifications" :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" to="/station/dashboard/overview" name="dashboard-overview" @navigate="close">
     <SidebarLink v-if="hasPermission(StationPermission.STATION_STATISTICS)" :icon="['fas', 'chart-line']" name="dashboard-statistics"
                  to="/station/dashboard/statistics" @navigate="close">
       {{ t('sidebar.statistics') }}

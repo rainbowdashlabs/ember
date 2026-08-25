@@ -18,7 +18,6 @@ const {t} = useI18n()
 
 <template>
   <SidebarGroup :icon="['fas', 'graduation-cap']" :label="t('sidebar.quiz')"
-                :prefix="['/helpcenter/station/quiz', '/helpcenter/station/protocols']"
                 to="/helpcenter/station/quiz" name="help-quiz-module-overview" @navigate="close">
     <SidebarExpandableLink :icon="['fas', 'book']" name="help-quiz-catalogs"
                            to="/helpcenter/station/quiz/catalogs" prefix="/helpcenter/station/quiz/catalog" @navigate="close">
@@ -61,7 +60,7 @@ const {t} = useI18n()
     <SidebarLink :icon="['fas', 'brain']" name="help-quiz-training" to="/helpcenter/station/quiz/training" @navigate="close">
       {{ t('sidebar.quizTraining') }}
     </SidebarLink>
-    <SidebarExpandableLink :icon="['fas', 'clipboard-check']" name="help-protocol-module-overview" to="/helpcenter/station/protocols" prefix="/helpcenter/station/protocols" @navigate="close">
+    <SidebarExpandableLink :icon="['fas', 'clipboard-check']" name="help-protocol-module-overview" to="/helpcenter/station/protocols" @navigate="close">
       <template #label>{{ t('sidebar.protocols') }}</template>
       <SidebarLink :icon="['fas', 'eye']" name="help-protocol-detail" to="/helpcenter/station/protocols/0" @navigate="close">
         {{ t('sidebar.protocolDetail') }}

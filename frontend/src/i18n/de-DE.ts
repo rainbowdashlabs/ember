@@ -5971,7 +5971,9 @@ export default {
         },
     },
     clusterModules: {
-        hint: 'Ein abgeschaltetes Modul steht keiner Wache des Verbands zur Verfügung und kann dort auch nicht wieder eingeschaltet werden. Vorhandene Daten bleiben erhalten und sind wieder da, sobald ihr das Modul freigebt.',
+        hint: 'Ein abgeschaltetes Modul steht der Wache nicht zur Verfügung und kann dort auch nicht wieder eingeschaltet werden. Vorhandene Daten bleiben erhalten und sind wieder da, sobald ihr das Modul freigebt.',
+        everyStation: 'Alle Wachen',
+        groupHint: 'Abschaltungen addieren sich: Was ihr für alle Wachen abschaltet, bleibt auch hier abgeschaltet. Über diese Gruppe könnt ihr nur zusätzlich abschalten, nichts wieder freigeben.',
         saved: 'Die Modulvorgaben wurden gespeichert.',
     },
     clusterLookAndFeel: {

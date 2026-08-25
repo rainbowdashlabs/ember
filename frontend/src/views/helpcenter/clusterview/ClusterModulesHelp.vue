@@ -18,6 +18,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.clusterModules.whatText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.clusterModules.groupsTitle')">
+      <p>{{ t('helpCenter.clusterModules.groupsText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.clusterModules.effectTitle')">
       <p>{{ t('helpCenter.clusterModules.effectText') }}</p>
     </HelpSection>

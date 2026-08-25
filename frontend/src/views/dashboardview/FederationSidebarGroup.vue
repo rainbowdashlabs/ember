@@ -28,7 +28,7 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :badge="counts.federationRequests" :icon="['fas', 'arrow-right-arrow-left']" :label="t('sidebar.federation')" :prefix="['/station/federate', '/station/federate/discovery']" to="/station/federate" name="station-federation" @navigate="close">
+  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :badge="counts.federationRequests" :icon="['fas', 'arrow-right-arrow-left']" :label="t('sidebar.federation')" to="/station/federate" name="station-federation" @navigate="close">
     <SidebarLink :badge="counts.federationRequests" :icon="['fas', 'gear']" name="station-federation-settings" to="/station/federate/settings" @navigate="close">
       {{ t('sidebar.federationSettings') }}
     </SidebarLink>

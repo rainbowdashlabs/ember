@@ -19,13 +19,27 @@ export interface ClusterLookAndFeel {
     logoLocked: boolean
 }
 
-export async function getDeniedModules(): Promise<ClusterDeniedModules> {
-    const res = await client.get<ClusterDeniedModules>('/cluster/modules')
+/**
+ * What the association switches off, for one group of its stations or for all of them.
+ *
+ * <p>Leaving the group out asks about the denials that reach every station, which is what the screen
+ * shows until somebody picks a tab. Denials add up: a station loses a module when the association
+ * denies it outright or denies it for a group that station is in.
+ */
+export async function getDeniedModules(stationGroupId?: number | null): Promise<ClusterDeniedModules> {
+    const res = await client.get<ClusterDeniedModules>('/cluster/modules', {
+        params: stationGroupId == null ? {} : {stationGroupId},
+    })
     return res.data
 }
 
-export async function setDeniedModules(deniedModules: string[]): Promise<void> {
-    await client.put('/cluster/modules', {deniedModules})
+export async function setDeniedModules(
+    deniedModules: string[],
+    stationGroupId?: number | null,
+): Promise<void> {
+    await client.put('/cluster/modules', {deniedModules}, {
+        params: stationGroupId == null ? {} : {stationGroupId},
+    })
 }
 
 export async function getLookAndFeel(): Promise<ClusterLookAndFeel> {

@@ -384,10 +384,7 @@ public class StationService {
      * @return what its cluster denies, empty when it answers to no cluster
      */
     public Set<StationModule> findClusterDeniedModules(int stationId) {
-        return clusterRepository
-                .findByStation(stationId)
-                .map(cluster -> clusterRepository.findDeniedModules(cluster.id()))
-                .orElseGet(() -> EnumSet.noneOf(StationModule.class));
+        return clusterRepository.findDeniedModulesForStation(stationId);
     }
 
     /**

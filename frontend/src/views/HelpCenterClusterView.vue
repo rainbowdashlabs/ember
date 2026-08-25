@@ -33,7 +33,7 @@ watch(
   <SidebarLayout :collapsible="false" :station-name="t('helpCenter.clusterHelp')" :subtitle="t('helpCenter.title')"
                  :title="pageTitle">
     <template #sidebar="{ close }">
-      <SidebarGroup :icon="['fas', 'sitemap']" :label="t('clusterSidebar.cluster')" prefix="/helpcenter/cluster">
+      <SidebarGroup :icon="['fas', 'sitemap']" :label="t('clusterSidebar.cluster')">
         <SidebarLink :icon="['fas', 'house']" name="help-cluster-overview" to="/helpcenter/cluster" @navigate="close">
           {{ t('clusterSidebar.overview') }}
         </SidebarLink>
@@ -43,8 +43,7 @@ watch(
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'building']" :label="t('clusterSidebar.stations')"
-                    :prefix="['/helpcenter/cluster/stations', '/helpcenter/cluster/applications']">
+      <SidebarGroup :icon="['fas', 'building']" :label="t('clusterSidebar.stations')">
         <SidebarLink :icon="['fas', 'building']" name="help-cluster-stations" to="/helpcenter/cluster/stations"
                      @navigate="close">
           {{ t('clusterSidebar.stationList') }}
@@ -55,8 +54,7 @@ watch(
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'users']" :label="t('clusterSidebar.members')"
-                    prefix="/helpcenter/cluster/members">
+      <SidebarGroup :icon="['fas', 'users']" :label="t('clusterSidebar.members')">
         <SidebarLink :icon="['fas', 'users']" name="help-cluster-members"
                      to="/helpcenter/cluster/members" @navigate="close">
           {{ t('clusterSidebar.memberList') }}
@@ -75,18 +73,14 @@ watch(
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'book']" :label="t('clusterSidebar.knowledge')"
-                    prefix="/helpcenter/cluster/knowledge" to="/helpcenter/cluster/knowledge"
+      <SidebarGroup :icon="['fas', 'book']" :label="t('clusterSidebar.knowledge')" to="/helpcenter/cluster/knowledge"
                     name="help-cluster-knowledge" @navigate="close"/>
-      <SidebarGroup :icon="['fas', 'newspaper']" :label="t('clusterSidebar.news')"
-                    prefix="/helpcenter/cluster/news" to="/helpcenter/cluster/news"
+      <SidebarGroup :icon="['fas', 'newspaper']" :label="t('clusterSidebar.news')" to="/helpcenter/cluster/news"
                     name="help-cluster-news" @navigate="close"/>
-      <SidebarGroup :icon="['fas', 'calendar']" :label="t('clusterSidebar.events')"
-                    prefix="/helpcenter/cluster/events" to="/helpcenter/cluster/events"
+      <SidebarGroup :icon="['fas', 'calendar']" :label="t('clusterSidebar.events')" to="/helpcenter/cluster/events"
                     name="help-cluster-events" @navigate="close"/>
 
-      <SidebarGroup :icon="['fas', 'boxes-stacked']" :label="t('clusterSidebar.inventory')"
-                    prefix="/helpcenter/cluster/inventory">
+      <SidebarGroup :icon="['fas', 'boxes-stacked']" :label="t('clusterSidebar.inventory')">
         <SidebarLink :icon="['fas', 'boxes-stacked']" name="help-cluster-inventory"
                      to="/helpcenter/cluster/inventory" @navigate="close">
           {{ t('clusterSidebar.stock') }}
@@ -98,8 +92,6 @@ watch(
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'gear']" :label="t('clusterSidebar.governance')"
-                    :prefix="['/helpcenter/cluster/modules', '/helpcenter/cluster/look-and-feel',
-                              '/helpcenter/cluster/storage']"
                     group-key="help-cluster-governance">
         <SidebarLink :icon="['fas', 'puzzle-piece']" name="help-cluster-modules"
                      to="/helpcenter/cluster/modules" @navigate="close">

@@ -435,7 +435,7 @@ class StationServiceTest extends RepositoryTestBase {
         stationRepo.setCluster(member.id(), cluster.id());
 
         stationRepo.setDisabledModules(member.id(), Set.of(StationModule.NEWS));
-        clusterRepo.setDeniedModules(cluster.id(), Set.of(StationModule.BOARDS));
+        clusterRepo.setDeniedModules(cluster.id(), null, Set.of(StationModule.BOARDS));
 
         assertEquals(Set.of(StationModule.NEWS), service.findDisabledModules(member.id()));
         assertEquals(

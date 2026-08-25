@@ -375,6 +375,47 @@ test.describe('Cluster inventory', () => {
     })
 
     /**
+     * CLS-105 - Handing a piece of the association's gear back is pressed, not merely offered.
+     *
+     * CLS-42 asserts the panel holding the two actions is on screen and stops there, so the movement
+     * either of them starts was proven by nothing: the buttons could have been wired to nothing and
+     * every story would have stayed green. This presses one and follows it to the other end, which is
+     * the whole point, because a button that starts nothing looks the same from the station.
+     */
+    test('a station hands a piece of the association gear back from the item itself',
+        async ({browser, request}) => {
+            const page = await clusterGearManagerPage(browser, request)
+            const cluster = await enterCluster(page)
+            const headers = {...await apiHeaders(page), 'X-Cluster-Id': cluster.uid}
+            const items = await page.request
+                .get('/api/v1/cluster/inventory/items', {headers})
+                .then(r => r.json())
+            const at = items.find((i: {custody: string}) => i.custody === 'AT_STATION')
+            expect(at, 'the association has gear resting at a station').toBeTruthy()
+
+            const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
+            await station.goto(`/station/inventory/item/${at.id}`)
+            await expect(station.getByTestId('owned-elsewhere')).toBeVisible({timeout: 15000})
+
+            const reason = `Passt nicht mehr ${Date.now()}`
+            await station.getByRole('button', {name: 'Zurückgeben'}).click()
+            await station.getByRole('textbox').last().fill(reason)
+            await station.getByRole('button', {name: 'Abschicken'}).click()
+
+            await expect(async () => {
+                const queue = await page.request
+                    .get('/api/v1/cluster/inventory/queue', {headers})
+                    .then(r => r.json())
+                expect(queue.some((entry: {purpose: string; itemName: string}) =>
+                    entry.purpose === 'RETURN' && entry.itemName === at.name),
+                'the association is now being asked to take it back').toBeTruthy()
+            }).toPass({timeout: 30000})
+
+            await station.context().close()
+            await page.context().close()
+        })
+
+    /**
      * CLS-43 - Cluster requirements are counted at the station.
      *
      * A piece the cluster owns and the member holds counts towards what that member is supposed to have,

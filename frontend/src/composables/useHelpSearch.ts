@@ -25,7 +25,19 @@ export interface HelpSearchResult {
 /**
  * Maps each help center route name to its i18n key prefix and human-readable section breadcrumb.
  */
-export const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section: string }[] = [
+export interface HelpPage {
+    route: string
+    path: string
+    /**
+     * Where the page's text lives under `helpCenter`. A list where one page renders more than one
+     * block, which the events overview does: its manager half sits under a key of its own and would
+     * otherwise be in no index at all.
+     */
+    i18nPrefix: string | string[]
+    section: string
+}
+
+export const HELP_PAGE_MAP: HelpPage[] = [
     // Basics
     {route: 'help-welcome', path: '/helpcenter/station/basics', i18nPrefix: 'helpCenter.welcome', section: 'Grundlagen'},
     {route: 'help-basics-overview', path: '/helpcenter/station/basics/overview', i18nPrefix: 'helpCenter.basics.overview', section: 'Grundlagen > Was ist Ember?'},
@@ -71,8 +83,6 @@ export const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; s
     {route: 'help-station-attendance-config', path: '/helpcenter/station/attendance/config', i18nPrefix: 'helpCenter.attendanceConfig', section: 'Anwesenheit > Konfiguration'},
     {route: 'help-station-attendance-config-edit', path: '/helpcenter/station/attendance/config/edit', i18nPrefix: 'helpCenter.attendanceConfigEdit', section: 'Anwesenheit > Vorlage bearbeiten'},
     {route: 'help-station-members-config', path: '/helpcenter/station/members/config', i18nPrefix: 'helpCenter.membersConfig', section: 'Mitglieder > Konfiguration'},
-    {route: 'help-station-mail-config', path: '/helpcenter/station/manage/mail-config', i18nPrefix: 'helpCenter.mailConfig', section: 'Verwaltung > E-Mail'},
-    {route: 'help-station-theme-manage', path: '/helpcenter/station/manage/theme', i18nPrefix: 'helpCenter.themeManage', section: 'Verwaltung > Farbschema'},
     {route: 'help-station-federation', path: '/helpcenter/station/federate', i18nPrefix: 'helpCenter.federation', section: 'Verwaltung > Föderation'},
     {route: 'help-station-federation-partner', path: '/helpcenter/station/federate/0', i18nPrefix: 'helpCenter.federationPartner', section: 'Verwaltung > Föderationspartner'},
     // Members
@@ -118,10 +128,9 @@ export const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; s
     {route: 'help-attendance-past', path: '/helpcenter/station/attendance/past', i18nPrefix: 'helpCenter.attendancePast', section: 'Anwesenheit > Vergangene'},
     {route: 'help-attendance-report', path: '/helpcenter/station/attendance/report', i18nPrefix: 'helpCenter.attendanceReport', section: 'Anwesenheit > Bericht'},
     // Events
-    {route: 'help-events-module-overview', path: '/helpcenter/station/events', i18nPrefix: 'helpCenter.eventsOverview', section: 'Termine'},
+    {route: 'help-events-module-overview', path: '/helpcenter/station/events', i18nPrefix: ['helpCenter.eventsOverview', 'helpCenter.eventsManage'], section: 'Termine'},
     {route: 'help-events-upcoming', path: '/helpcenter/station/events/upcoming', i18nPrefix: 'helpCenter.eventsUpcoming', section: 'Termine > Anstehend'},
     {route: 'help-events-registrations', path: '/helpcenter/station/events/registrations', i18nPrefix: 'helpCenter.eventsRegistrations', section: 'Termine > Anmeldungen'},
-    {route: 'help-events', path: '/helpcenter/station/events', i18nPrefix: 'helpCenter.eventsManage', section: 'Termine > Verwalten'},
     {route: 'help-event-new', path: '/helpcenter/station/events/new', i18nPrefix: 'helpCenter.eventEdit', section: 'Termine > Erstellen'},
     {route: 'help-event-edit', path: '/helpcenter/station/events/edit', i18nPrefix: 'helpCenter.eventEdit', section: 'Termine > Bearbeiten'},
     {route: 'help-event-detail', path: '/helpcenter/station/events/0', i18nPrefix: 'helpCenter.eventDetail', section: 'Termine > Detail'},
@@ -242,6 +251,72 @@ export const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; s
     {route: 'help-cluster-inventory-requirements', path: '/helpcenter/cluster/inventory/requirements', i18nPrefix: 'helpCenter.clusterInventoryRequirements', section: 'Verband > Material > Vorgaben'},
     {route: 'help-cluster-inventory-settings', path: '/helpcenter/cluster/inventory/settings', i18nPrefix: 'helpCenter.clusterInventorySettings', section: 'Verband > Material > Einstellungen'},
     {route: 'help-cluster-inventory-statistics', path: '/helpcenter/cluster/inventory/statistics', i18nPrefix: 'helpCenter.clusterInventoryStatistics', section: 'Verband > Material > Zahlen'},
+    {route: 'help-admin-clusters', path: '/helpcenter/admin/clusters', i18nPrefix: 'helpCenter.adminClusters', section: 'Administration > Verbände'},
+    {route: 'help-admin-news', path: '/helpcenter/admin/news', i18nPrefix: 'helpCenter.adminSystemNews', section: 'Administration > Systemnachrichten'},
+    {route: 'help-admin-station-import', path: '/helpcenter/admin/stations/import/0', i18nPrefix: 'helpCenter.adminStationImport', section: 'Administration > Wachen > Import'},
+    {route: 'help-admin-legal', path: '/helpcenter/admin/settings/legal', i18nPrefix: 'helpCenter.adminLegal', section: 'Administration > Einstellungen > Rechtliches'},
+    {route: 'help-admin-mailing', path: '/helpcenter/admin/settings/mailing', i18nPrefix: 'helpCenter.adminMailing', section: 'Administration > Einstellungen > Mailing'},
+    {route: 'help-admin-data-tracking', path: '/helpcenter/admin/dev/data-tracking', i18nPrefix: 'helpCenter.adminDataTracking', section: 'Administration > Entwicklung > Datenerfassung'},
+    {route: 'help-admin-discovery', path: '/helpcenter/admin/monitoring/discovery', i18nPrefix: 'helpCenter.adminDiscovery', section: 'Administration > Monitoring > Verzeichnis'},
+    {route: 'help-admin-log', path: '/helpcenter/admin/monitoring/log', i18nPrefix: 'helpCenter.adminLog', section: 'Administration > Monitoring > Protokoll'},
+    {route: 'help-admin-mail-log', path: '/helpcenter/admin/monitoring/mail-log', i18nPrefix: 'helpCenter.adminMailLog', section: 'Administration > Monitoring > Mail-Protokoll'},
+    {route: 'help-admin-maps', path: '/helpcenter/admin/monitoring/maps', i18nPrefix: 'helpCenter.adminMaps', section: 'Administration > Monitoring > Karten'},
+    {route: 'help-admin-storage', path: '/helpcenter/admin/monitoring/storage', i18nPrefix: 'helpCenter.adminStorage', section: 'Administration > Monitoring > Speicherplatz'},
+    {route: 'help-admin-storage-backend', path: '/helpcenter/admin/monitoring/storage/backend', i18nPrefix: 'helpCenter.adminStorageBackend', section: 'Administration > Monitoring > Speicher-Backend'},
+    {route: 'help-admin-storage-audit', path: '/helpcenter/admin/monitoring/storage/audit', i18nPrefix: 'helpCenter.adminStorageAudit', section: 'Administration > Monitoring > Speicher-Prüfung'},
+    {route: 'help-admin-api-status-detail', path: '/helpcenter/admin/monitoring/api-status/detail', i18nPrefix: 'helpCenter.adminApiStatusDetail', section: 'Administration > Monitoring > API-Status'},
+    {route: 'help-cluster-news-create', path: '/helpcenter/cluster/news/create', i18nPrefix: 'helpCenter.newsEdit', section: 'Verband > Neuigkeiten > Erstellen'},
+    {route: 'help-cluster-news-edit', path: '/helpcenter/cluster/news/0/edit', i18nPrefix: 'helpCenter.newsEdit', section: 'Verband > Neuigkeiten > Bearbeiten'},
+    {route: 'help-cluster-news-detail', path: '/helpcenter/cluster/news/0', i18nPrefix: 'helpCenter.newsDetail', section: 'Verband > Neuigkeiten > Beitrag lesen'},
+    {route: 'help-cluster-kb-file', path: '/helpcenter/cluster/knowledge/file/0', i18nPrefix: 'helpCenter.kbFileView', section: 'Verband > Wiki > Artikel'},
+    {route: 'help-cluster-kb-versions', path: '/helpcenter/cluster/knowledge/file/0/versions', i18nPrefix: 'helpCenter.kbVersions', section: 'Verband > Wiki > Versionen'},
+    {route: 'help-cluster-event-batch', path: '/helpcenter/cluster/events/batch', i18nPrefix: 'helpCenter.batchCreate', section: 'Verband > Termine > Serie'},
+    {route: 'help-cluster-event-categories', path: '/helpcenter/cluster/events/categories', i18nPrefix: 'helpCenter.categories', section: 'Verband > Termine > Kategorien'},
+    {route: 'help-cluster-event-new', path: '/helpcenter/cluster/events/new', i18nPrefix: 'helpCenter.eventEdit', section: 'Verband > Termine > Anlegen'},
+    {route: 'help-cluster-event-detail-date', path: '/helpcenter/cluster/events/0/0', i18nPrefix: 'helpCenter.eventDetail', section: 'Verband > Termine > Termin an einem Tag'},
+    {route: 'help-cluster-event-edit', path: '/helpcenter/cluster/events/0/edit', i18nPrefix: 'helpCenter.eventEdit', section: 'Verband > Termine > Bearbeiten'},
+    {route: 'help-cluster-event-detail', path: '/helpcenter/cluster/events/0', i18nPrefix: 'helpCenter.eventDetail', section: 'Verband > Termine > Termin'},
+    {route: 'help-station-media', path: '/helpcenter/station/media', i18nPrefix: 'helpCenter.media', section: 'Wache > Mediathek'},
+    {route: 'help-station-discovery-network', path: '/helpcenter/station/discovery', i18nPrefix: 'helpCenter.stationDiscoveryNetwork', section: 'Wache > Verzeichnis'},
+    {route: 'help-page-editor', path: '/helpcenter/station/pages/0', i18nPrefix: 'helpCenter.pageEditor', section: 'Seiten > Seiteneditor'},
+    {route: 'help-pages-forms', path: '/helpcenter/station/pages/forms', i18nPrefix: 'helpCenter.pageForms', section: 'Seiten > Formulare'},
+    {route: 'help-pages-polls', path: '/helpcenter/station/pages/polls', i18nPrefix: 'helpCenter.pagePolls', section: 'Seiten > Umfragen'},
+    {route: 'help-pages-polls-analytics', path: '/helpcenter/station/pages/polls/forms/0/analytics', i18nPrefix: 'helpCenter.formsAnalytics', section: 'Seiten > Umfragen > Auswertung'},
+    {route: 'help-pages-forms-submissions', path: '/helpcenter/station/pages/forms/0/submissions', i18nPrefix: 'helpCenter.pagesFormsSubmissions', section: 'Seiten > Formulare > Einsendungen'},
+    {route: 'help-station-manage-cluster', path: '/helpcenter/station/manage/cluster', i18nPrefix: 'helpCenter.stationCluster', section: 'Wache > Verwalten > Verband'},
+    {route: 'help-station-import', path: '/helpcenter/station/manage/import', i18nPrefix: 'helpCenter.import', section: 'Wache > Verwalten > Import'},
+    {route: 'help-station-modules', path: '/helpcenter/station/manage/modules', i18nPrefix: 'helpCenter.modules', section: 'Wache > Verwalten > Module'},
+    {route: 'help-station-theme', path: '/helpcenter/station/manage/theme', i18nPrefix: 'helpCenter.themeManage', section: 'Wache > Verwalten > Erscheinungsbild'},
+    {route: 'help-station-mailing-vendor', path: '/helpcenter/station/manage/mailing/smtp', i18nPrefix: 'helpCenter.mailVendor', section: 'Wache > Verwalten > Mailing > Anbieter'},
+    {route: 'help-station-mailing', path: '/helpcenter/station/manage/mailing', i18nPrefix: 'helpCenter.mailConfig', section: 'Wache > Verwalten > Mailing'},
+    {route: 'help-station-storage', path: '/helpcenter/station/manage/storage', i18nPrefix: 'helpCenter.stationStorage', section: 'Wache > Verwalten > Speicherplatz'},
+    {route: 'help-station-storage-backend', path: '/helpcenter/station/manage/storage/backend', i18nPrefix: 'helpCenter.stationStorageBackend', section: 'Wache > Verwalten > Eigener Speicher'},
+    {route: 'help-checklist-detail', path: '/helpcenter/station/checklist/0', i18nPrefix: 'helpCenter.checklist', section: 'Checklisten > Checkliste'},
+    {route: 'help-checklist-list', path: '/helpcenter/station/checklist', i18nPrefix: 'helpCenter.checklist', section: 'Checklisten'},
+    {route: 'help-federated-kb-file', path: '/helpcenter/station/federation/knowledge/0/1', i18nPrefix: 'helpCenter.federatedKbFile', section: 'Föderation > Wiki-Artikel'},
+    {route: 'help-federated-protocol', path: '/helpcenter/station/federation/protocols/0/1', i18nPrefix: 'helpCenter.federatedProtocol', section: 'Föderation > Protokoll'},
+    {route: 'help-federated-quiz-catalog', path: '/helpcenter/station/federation/quiz/0/1', i18nPrefix: 'helpCenter.federatedQuizCatalog', section: 'Föderation > Fragenkatalog'},
+    {route: 'help-inventory-assign', path: '/helpcenter/station/inventory/assign', i18nPrefix: 'helpCenter.inventoryAssignHelp', section: 'Inventar > Ausgabe'},
+    {route: 'help-inventory-check-container-walk', path: '/helpcenter/station/inventory/checks/container/0', i18nPrefix: 'helpCenter.inventoryCheckContainerWalk', section: 'Inventar > Prüfung durchgehen'},
+    {route: 'help-inventory-check-container', path: '/helpcenter/station/inventory/checks/container', i18nPrefix: 'helpCenter.inventoryCheckContainerHelp', section: 'Inventar > Prüfungen'},
+    {route: 'help-inventory-movement-detail', path: '/helpcenter/station/inventory/movement/0', i18nPrefix: 'helpCenter.movementDetail', section: 'Inventar > Bewegung'},
+    {route: 'help-inventory-container-detail', path: '/helpcenter/station/inventory/storage/0', i18nPrefix: 'helpCenter.inventoryContainerDetailHelp', section: 'Inventar > Lagerort'},
+    {route: 'help-inventory-storage', path: '/helpcenter/station/inventory/storage', i18nPrefix: 'helpCenter.inventoryStorageHelp', section: 'Inventar > Lagerorte'},
+    {route: 'help-inventory-lending-blocks-create', path: '/helpcenter/station/inventory/lending/blocks/create', i18nPrefix: 'helpCenter.lendingBlocksCreate', section: 'Inventar > Verleih > Sperren anlegen'},
+    {route: 'help-station-moved-delete', path: '/helpcenter/station/moved/delete', i18nPrefix: 'helpCenter.stationMoved', section: 'Wache umgezogen > Löschen'},
+    {route: 'help-station-moved', path: '/helpcenter/station/moved', i18nPrefix: 'helpCenter.stationMoved', section: 'Wache umgezogen'},
+    {route: 'help-profile-notifications', path: '/helpcenter/station/profile/settings/notifications', i18nPrefix: 'helpCenter.notifications', section: 'Profil > Einstellungen > Benachrichtigungen'},
+    {route: 'help-profile-security', path: '/helpcenter/station/profile/settings/security', i18nPrefix: 'helpCenter.security', section: 'Profil > Einstellungen > Sicherheit'},
+    {route: 'help-profile-sessions', path: '/helpcenter/station/profile/settings/sessions', i18nPrefix: 'helpCenter.sessions', section: 'Profil > Einstellungen > Sitzungen'},
+    {route: 'help-profile-theming', path: '/helpcenter/station/profile/settings/theming', i18nPrefix: 'helpCenter.theming', section: 'Profil > Einstellungen > Erscheinungsbild'},
+    {route: 'help-profile-ical-feed', path: '/helpcenter/station/profile/feeds/ical', i18nPrefix: 'helpCenter.icalFeed', section: 'Profil > Feeds > Kalender'},
+    {route: 'help-profile-rss-feed', path: '/helpcenter/station/profile/feeds/rss', i18nPrefix: 'helpCenter.rssFeed', section: 'Profil > Feeds > RSS'},
+    {route: 'help-event-batch', path: '/helpcenter/station/events/batch', i18nPrefix: 'helpCenter.batchCreate', section: 'Termine > Serie'},
+    {route: 'help-event-categories', path: '/helpcenter/station/events/categories', i18nPrefix: 'helpCenter.categories', section: 'Termine > Kategorien'},
+    {route: 'help-station-discovery', path: '/helpcenter/station/federate/discovery', i18nPrefix: 'helpCenter.discovery', section: 'Föderation > Verzeichnis'},
+    {route: 'help-station-federation-settings', path: '/helpcenter/station/federate/settings', i18nPrefix: 'helpCenter.federationSettings', section: 'Föderation > Einstellungen'},
+    {route: 'help-procedure-edit', path: '/helpcenter/station/procedures/0/edit', i18nPrefix: 'helpCenter.procedureCreate', section: 'Abläufe > Bearbeiten'},
+    {route: 'help-member-documents', path: '/helpcenter/station/members/documents', i18nPrefix: 'helpCenter.memberDocuments', section: 'Mitglieder > Dokumente'},
 ]
 
 /**
@@ -288,16 +363,20 @@ export async function buildHelpSearchIndex(): Promise<HelpSearchEntry[]> {
     const messages = i18n.global.getLocaleMessage('de-DE') as Record<string, unknown>
     const entries: HelpSearchEntry[] = []
     for (const page of HELP_PAGE_MAP) {
-        const subtree = resolveKey(messages, page.i18nPrefix)
-        if (!subtree) continue
+        const prefixes = Array.isArray(page.i18nPrefix) ? page.i18nPrefix : [page.i18nPrefix]
+        const subtrees = prefixes.map(prefix => resolveKey(messages, prefix)).filter(Boolean)
+        if (subtrees.length === 0) continue
 
-        const allStrings = flattenStrings(subtree)
-        const text = allStrings.join(' ')
+        const text = subtrees.flatMap(subtree => flattenStrings(subtree)).join(' ')
 
         let title = page.section
-        if (typeof subtree === 'object' && subtree !== null) {
+        for (const subtree of subtrees) {
+            if (typeof subtree !== 'object' || subtree === null) continue
             const t = (subtree as Record<string, unknown>)['title'] ?? (subtree as Record<string, unknown>)['overviewTitle']
-            if (typeof t === 'string') title = t
+            if (typeof t === 'string') {
+                title = t
+                break
+            }
         }
 
         entries.push({

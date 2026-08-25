@@ -31,7 +31,7 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :badge="counts.procedureCount" :icon="['fas', 'list-check']" :label="t('sidebar.procedures')" prefix="/station/procedures" to="/station/procedures" name="procedure-list" @navigate="close">
+  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :badge="counts.procedureCount" :icon="['fas', 'list-check']" :label="t('sidebar.procedures')" to="/station/procedures" name="procedure-list" @navigate="close">
     <SidebarLink v-if="hasPermission(StationPermission.PROCEDURE_MANAGER)" :icon="['fas', 'clipboard-list']" name="procedure-template-list" to="/station/procedures/templates" @navigate="close">
       {{ t('sidebar.procedureTemplates') }}
     </SidebarLink>

@@ -47,7 +47,7 @@ onMounted(() => {
 <template>
   <SidebarLayout :station-name="activeCluster?.name" :subtitle="pageSubtitle" :title="pageTitle">
     <template #sidebar="{ close }">
-      <SidebarGroup :icon="['fas', 'sitemap']" :label="t('clusterSidebar.cluster')" prefix="/cluster">
+      <SidebarGroup :icon="['fas', 'sitemap']" :label="t('clusterSidebar.cluster')">
         <SidebarLink :icon="['fas', 'house']" name="cluster-overview" to="/cluster" @navigate="close">
           {{ t('clusterSidebar.overview') }}
         </SidebarLink>
@@ -66,7 +66,6 @@ onMounted(() => {
           v-if="hasClusterPermission(ClusterPermission.USER)"
           :icon="['fas', 'building']"
           :label="t('clusterSidebar.stations')"
-          :prefix="['/cluster/stations', '/cluster/applications']"
       >
         <SidebarLink :icon="['fas', 'building']" name="cluster-stations" to="/cluster/stations" @navigate="close">
           {{ t('clusterSidebar.stationList') }}
@@ -95,7 +94,6 @@ onMounted(() => {
           v-if="hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_READ)"
           :icon="['fas', 'user-group']"
           :label="t('clusterSidebar.team')"
-          prefix="/cluster/team"
       >
         <SidebarLink :icon="['fas', 'users']" name="cluster-team" to="/cluster/team" @navigate="close">
           {{ t('clusterSidebar.teamList') }}
@@ -114,7 +112,6 @@ onMounted(() => {
           v-if="hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER)"
           :icon="['fas', 'users']"
           :label="t('clusterSidebar.members')"
-          prefix="/cluster/members"
       >
         <SidebarLink
             :icon="['fas', 'users-gear']"
@@ -138,7 +135,6 @@ onMounted(() => {
           v-if="hasClusterPermission(ClusterPermission.USER)"
           :icon="['fas', 'book']"
           :label="t('clusterSidebar.knowledge')"
-          prefix="/cluster/knowledge"
           to="/cluster/knowledge"
           name="cluster-knowledge"
           @navigate="close"
@@ -147,7 +143,6 @@ onMounted(() => {
           v-if="hasClusterPermission(ClusterPermission.USER)"
           :icon="['fas', 'newspaper']"
           :label="t('clusterSidebar.news')"
-          prefix="/cluster/news"
           to="/cluster/news"
           name="cluster-news"
           @navigate="close"
@@ -156,7 +151,6 @@ onMounted(() => {
           v-if="hasClusterPermission(ClusterPermission.USER)"
           :icon="['fas', 'calendar']"
           :label="t('clusterSidebar.events')"
-          prefix="/cluster/events"
           to="/cluster/events"
           name="cluster-events"
           @navigate="close"
@@ -166,7 +160,6 @@ onMounted(() => {
           v-if="hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_READ)"
           :icon="['fas', 'boxes-stacked']"
           :label="t('clusterSidebar.inventory')"
-          prefix="/cluster/inventory"
       >
         <SidebarLink
             :icon="['fas', 'boxes-stacked']"
@@ -192,7 +185,6 @@ onMounted(() => {
               || hasClusterPermission(ClusterPermission.CLUSTER_STORAGE)"
           :icon="['fas', 'gear']"
           :label="t('clusterSidebar.governance')"
-          :prefix="['/cluster/modules', '/cluster/look-and-feel', '/cluster/storage']"
           group-key="cluster-governance"
       >
         <SidebarLink

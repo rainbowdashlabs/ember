@@ -18,8 +18,10 @@ import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
+import dev.chojo.ember.feature.members.entity.UserTag;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.util.SafeContentDisposition;
@@ -63,16 +65,19 @@ public class ClusterMemberManagementRoutes implements Routes {
 
     private final ClusterService clusterService;
     private final ClusterMemberManagementService managementService;
-    private final MemberIdentityFactory identityFactory;
+    private final MemberGroupRepository memberGroupRepository;
+    private final UserTagRepository userTagRepository;
 
     @Inject
     public ClusterMemberManagementRoutes(
             ClusterService clusterService,
             ClusterMemberManagementService managementService,
-            MemberIdentityFactory identityFactory) {
+            MemberGroupRepository memberGroupRepository,
+            UserTagRepository userTagRepository) {
         this.clusterService = clusterService;
         this.managementService = managementService;
-        this.identityFactory = identityFactory;
+        this.memberGroupRepository = memberGroupRepository;
+        this.userTagRepository = userTagRepository;
     }
 
     @Override
@@ -294,8 +299,19 @@ public class ClusterMemberManagementRoutes implements Routes {
                 intParam(ctx.queryParam("page"), 0),
                 intParam(ctx.queryParam("size"), 50));
 
+        var ids = page.members().stream()
+                .map(StationMemberRepository.ClusterMemberRow::id)
+                .toList();
+        var colors = memberGroupRepository.findNameColors(ids);
+        var tags = userTagRepository.findDisplayTags(ids);
+
         ctx.json(new MemberPageResponse(
-                page.members().stream().map(this::toResponse).toList(), page.total(), page.page(), page.size()));
+                page.members().stream()
+                        .map(row -> toResponse(row, colors.get(row.id()), tags.get(row.id())))
+                        .toList(),
+                page.total(),
+                page.page(),
+                page.size()));
     }
 
     @OpenApi(
@@ -473,7 +489,8 @@ public class ClusterMemberManagementRoutes implements Routes {
      * Assembling half of one in the browser would get the name back and none of the rest, so the server
      * sends the whole thing.
      */
-    private ManagedMemberResponse toResponse(StationMemberRepository.ClusterMemberRow row) {
+    private static ManagedMemberResponse toResponse(
+            StationMemberRepository.ClusterMemberRow row, String nameColor, UserTag tag) {
         return new ManagedMemberResponse(
                 row.id(),
                 row.uid(),
@@ -485,7 +502,13 @@ public class ClusterMemberManagementRoutes implements Routes {
                 row.joinDate(),
                 row.former(),
                 row.stationOwner(),
-                identityFactory.local(row.stationId(), row.id()),
+                new MemberIdentity(
+                        row.stationUid(),
+                        row.uid(),
+                        row.name(),
+                        row.stationName(),
+                        nameColor,
+                        tag == null ? null : new MemberIdentity.DisplayTag(tag.name(), tag.color())),
                 row.stationNames());
     }
 

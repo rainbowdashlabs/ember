@@ -59,21 +59,35 @@ public class ClusterGovernanceRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/cluster/modules",
             methods = HttpMethod.GET,
-            summary = "The modules this cluster denies its stations",
+            summary = "The modules this cluster denies its stations, or one group of them",
             tags = {"Cluster"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DeniedModulesResponse.class)))
     private void getModules(Context ctx) {
         Cluster cluster = requireActive(ctx);
-        ctx.json(new DeniedModulesResponse(governanceService.findDeniedModules(cluster.id()).stream()
+        ctx.json(new DeniedModulesResponse(governanceService.findDeniedModules(cluster.id(), stationGroup(ctx)).stream()
                 .map(Enum::name)
                 .sorted()
                 .toList()));
     }
 
+    /**
+     * Which group of stations the request is about, or {@code null} for every station of the cluster,
+     * which is what the screen asks for until somebody picks a tab.
+     */
+    private static Integer stationGroup(Context ctx) {
+        String raw = ctx.queryParam("stationGroupId");
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return Integer.valueOf(raw.trim());
+        } catch (NumberFormatException e) {
+            throw new BadRequestResponse("That is not a group of stations");
+        }
+    }
+
     @OpenApi(
             path = "/api/v1/cluster/modules",
             methods = HttpMethod.PUT,
-            summary = "Set which modules this cluster denies its stations",
+            summary = "Set which modules this cluster denies its stations, or one group of them",
             tags = {"Cluster"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DeniedModulesResponse.class)),
             responses = @OpenApiResponse(status = "204"))
@@ -88,7 +102,7 @@ public class ClusterGovernanceRoutes implements Routes {
                 throw new BadRequestResponse("No such module: " + name);
             }
         }
-        governanceService.setDeniedModules(cluster.id(), modules);
+        governanceService.setDeniedModules(cluster.id(), stationGroup(ctx), modules);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

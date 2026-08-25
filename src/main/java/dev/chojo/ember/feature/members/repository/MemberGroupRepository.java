@@ -5,13 +5,17 @@
  */
 package dev.chojo.ember.feature.members.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -101,6 +105,34 @@ public class MemberGroupRepository {
                 .single(call().bind("group_id", groupId))
                 .map(StationMember.map())
                 .all();
+    }
+
+    /**
+     * The colour each of these members shows their name in, which is the highest placed of their groups
+     * that carries one.
+     *
+     * <p>One query for a whole list. Asking per member costs a round trip a row, and on a page of two
+     * hundred that was measured at most of the time the page took.
+     *
+     * @param memberIds the members
+     * @return member id to colour, holding only the members that have one
+     */
+    public Map<Integer, String> findNameColors(Collection<Integer> memberIds) {
+        if (memberIds == null || memberIds.isEmpty()) return Map.of();
+        Map<Integer, String> colors = new HashMap<>();
+        for (var row : query("""
+                SELECT DISTINCT ON (mge.member_id) mge.member_id, mg.color
+                FROM member_group_entry mge
+                JOIN member_group mg ON mg.id = mge.group_id
+                WHERE mge.member_id = ANY(:member_ids)
+                  AND mg.color IS NOT NULL AND mg.color <> ''
+                ORDER BY mge.member_id, mg.position DESC;""")
+                .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt("member_id"), row.getString("color")))
+                .all()) {
+            colors.put(row.getKey(), row.getValue());
+        }
+        return colors;
     }
 
     /**

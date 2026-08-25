@@ -72,6 +72,8 @@
 - **A second-factor confirmation could stop counting shortly after it was given.** A session renews itself in the background while you work, and the renewal used to forget both the confirmation just made and any device you had asked it to remember; it now carries them over.
 - **A refused security confirmation left the action with nothing to answer.** Where the confirmation was accepted but the action turned down again, no new prompt appeared and only a general error showed; it is now offered once more, and a message says plainly when the instance keeps refusing.
 - **Staying signed in made the session shorter, not longer.** Ticking the box on your own machine gave half an hour where leaving it unticked gave a full hour; a device you vouch for now keeps its session for thirty days, and an instance that set `auth.sessionMinutes` itself keeps the value it chose.
+- **The sidebar did not always mark where you were.** On a number of pages the section holding the page you had open stayed unmarked, and elsewhere a section was marked on every page whatever you were looking at. The section you are in is now the one that is marked, and it is the only one.
+- **The help centre search found nothing.** Typing an ordinary word into it returned no results at all, on any page but one, so the only way through the help centre was clicking down the tree. It searches the whole help centre again, the association's own pages among them.
 
 ## v26.12.0
 

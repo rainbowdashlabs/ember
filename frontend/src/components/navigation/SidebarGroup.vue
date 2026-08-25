@@ -4,12 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {Comment as VComment, computed, onUnmounted, ref, useSlots, watch, type VNode} from 'vue'
+import {computed, onUnmounted, ref, useSlots, watch} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
 import {useSidebarInFlyout} from '@/composables/useSidebarFlyoutContext'
 import {useFlyoutHover} from '@/composables/useFlyoutHover'
 import SidebarFlyoutMenu from '@/components/navigation/SidebarFlyoutMenu.vue'
+import {collectSidebarPaths, sidebarEntryVNodes} from '@/util/sidebarEntries'
 import {
   bestSidebarMatch,
   claimSidebarGroup,
@@ -41,13 +42,17 @@ const route = useRoute()
 const router = useRouter()
 const slots = useSlots()
 /**
- * Every address this group covers: the entries in it, plus anything reached from a screen rather than
- * from the sidebar. Written here rather than read off the entries, and kept honest by the unit test
- * beside this file, which fails when a group and one of its own entries disagree.
+ * Every address this group covers: where its own entries lead, plus anything written on it by hand.
+ *
+ * <p>The written {@code prefix} is for the pages a group covers that are not entries in it, a board's own
+ * page or a wizard step, and for a destination the markup works out at runtime, which is not a path
+ * anything here can read.
  */
 const prefixes = computed(() => {
   const written = Array.isArray(props.prefix) ? props.prefix : props.prefix ? [props.prefix] : []
-  return [...written, ...(props.to ? [props.to] : [])].filter(Boolean)
+  const slotFn = slots.default
+  return [...written, ...(props.to ? [props.to] : []), ...(slotFn ? collectSidebarPaths(slotFn()) : [])]
+      .filter(Boolean)
 })
 
 /** How well this group matches the page being shown: the length of its longest matching prefix. */
@@ -69,30 +74,34 @@ onUnmounted(() => releaseSidebarGroup(groupId))
  * Lit only when nothing matches the page better. Without that the group declared `/cluster` would be
  * highlighted on every page of the association, which is the one group that says nothing about where
  * you are.
+ *
+ * <p>A best of zero means nobody has reported yet, which on a server render is every time, and matching
+ * at all is then the best answer available.
  */
-const isActive = computed(() => matchLength.value > 0 && matchLength.value === bestSidebarMatch.value)
-
-function countVisibleVNodes(vnodes: VNode[]): number {
-  let count = 0
-  for (const vnode of vnodes) {
-    if (vnode.type === VComment) continue
-    if (typeof vnode.type === 'symbol' && Array.isArray(vnode.children)) {
-      count += countVisibleVNodes(vnode.children as VNode[])
-    } else {
-      count++
-    }
-  }
-  return count
-}
+const isActive = computed(() => {
+  if (matchLength.value === 0) return false
+  const best = bestSidebarMatch.value
+  return best === 0 || matchLength.value === best
+})
 
 const hasVisibleChildren = computed(() => {
   const slotFn = slots.default
   if (!slotFn) return false
-  return countVisibleVNodes(slotFn()) > 0
+  return sidebarEntryVNodes(slotFn()).length > 0
 })
 
 const localExpanded = ref(isActive.value)
-const key = computed(() => props.groupKey ?? prefixes.value[0] ?? props.label)
+
+/**
+ * What the accordion calls this group. Written things only: a derived key would move when a permission
+ * arrives and changes which entry comes first, and a group whose name changes under the accordion loses
+ * whether it was open.
+ */
+const key = computed(() => {
+  if (props.groupKey) return props.groupKey
+  const written = Array.isArray(props.prefix) ? props.prefix[0] : props.prefix
+  return written ?? props.to ?? props.label
+})
 const accordionMode = computed(() => props.openGroup !== undefined)
 
 const expanded = computed(() => {

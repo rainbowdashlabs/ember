@@ -61,4 +61,20 @@ test.describe('Help centre', () => {
         await expect(results.filter({hasText: 'Verband'}).first(),
             'the association is named in what comes back').toBeVisible()
     })
+
+    /**
+     * CLS-106 - A station page is as findable as an association one.
+     *
+     * Repairing the index left the map ninety-one pages behind the tree, and the association's share was
+     * only a third of that. This searches for a word that lives on a station page which was in no map at
+     * all, so it fails again the moment the map falls behind the pages.
+     */
+    test('the search reaches a station page that was in no map', async ({managerPage: page}) => {
+        await page.goto('/helpcenter/station/basics')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+
+        const results = await search(page, 'Medienverwaltung')
+        await expect(results.filter({hasText: 'Mediathek'}).first(),
+            'the media library page answers for a word only it uses').toBeVisible()
+    })
 })

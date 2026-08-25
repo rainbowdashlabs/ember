@@ -41,7 +41,7 @@ onMounted(() => {
 <template>
   <SidebarLayout :subtitle="pageSubtitle" :title="pageTitle">
     <template #sidebar="{ close }">
-      <SidebarGroup :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/admin/dashboard">
+      <SidebarGroup :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')">
         <SidebarLink :icon="['fas', 'house']" name="admin-overview" to="/admin/dashboard/overview" @navigate="close">
           {{ t('sidebar.overview') }}
         </SidebarLink>
@@ -51,8 +51,7 @@ onMounted(() => {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'building']" :label="t('sidebar.stations')"
-                    :prefix="['/admin/stations', '/admin/news']">
+      <SidebarGroup :icon="['fas', 'building']" :label="t('sidebar.stations')">
         <SidebarLink :icon="['fas', 'building']" name="admin-stations" to="/admin/stations" @navigate="close">
           {{ t('sidebar.manageStations') }}
         </SidebarLink>
@@ -65,21 +64,20 @@ onMounted(() => {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'sitemap']" :label="t('sidebar.clusters')" prefix="/admin/clusters">
+      <SidebarGroup :icon="['fas', 'sitemap']" :label="t('sidebar.clusters')">
         <SidebarLink :icon="['fas', 'sitemap']" name="admin-clusters" to="/admin/clusters" @navigate="close">
           {{ t('sidebar.manageClusters') }}
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'gear']" :label="t('sidebar.settings')" prefix="/admin/settings">
+      <SidebarGroup :icon="['fas', 'gear']" :label="t('sidebar.settings')">
         <SidebarLink :icon="['fas', 'sliders']" name="admin-settings" to="/admin/settings" @navigate="close">
           {{ t('sidebar.general') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'envelope']" name="admin-mailing" to="/admin/settings/mailing" @navigate="close">
           {{ t('sidebar.mailing') }}
         </SidebarLink>
-        <SidebarGroup :icon="['fas', 'shield']" :label="t('sidebar.security')"
-                      prefix="/admin/settings/security" to="/admin/settings/security" name="admin-security"
+        <SidebarGroup :icon="['fas', 'shield']" :label="t('sidebar.security')" to="/admin/settings/security" name="admin-security"
                       @navigate="close">
           <SidebarLink :icon="['fas', 'key']" name="admin-security-tokens"
                        to="/admin/settings/security/tokens" @navigate="close">
@@ -99,12 +97,12 @@ onMounted(() => {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'mobile-screen']" :label="t('sidebar.twoFactor')" prefix="/admin/2fa"
+      <SidebarGroup :icon="['fas', 'mobile-screen']" :label="t('sidebar.twoFactor')"
                     to="/admin/2fa" name="admin-two-factor"
                     @navigate="close">
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" prefix="/admin/monitoring" group-key="monitoring">
+      <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" group-key="monitoring">
         <SidebarLink :icon="['fas', 'hard-drive']" name="admin-storage" to="/admin/monitoring/storage" @navigate="close">
           {{ t('sidebar.storageDashboard') }}
         </SidebarLink>
@@ -141,7 +139,6 @@ onMounted(() => {
           v-if="isDev"
           :icon="['fas', 'code']"
           :label="t('sidebar.devTools')"
-          prefix="/admin/dev"
           group-key="dev"
       >
         <SidebarLink

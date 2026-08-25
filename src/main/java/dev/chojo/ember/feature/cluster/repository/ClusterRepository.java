@@ -299,15 +299,20 @@ public class ClusterRepository {
     }
 
     /**
-     * The modules this cluster switches off for every station under it.
+     * The modules this cluster switches off, for one group of its stations or for all of them.
      *
-     * @param clusterId the cluster
+     * @param clusterId      the cluster
+     * @param stationGroupId the group the denials are asked about, or {@code null} for the ones that
+     *                       reach every station
      * @return the denied modules, skipping any name the code no longer knows
      */
-    public Set<StationModule> findDeniedModules(int clusterId) {
+    public Set<StationModule> findDeniedModules(int clusterId, Integer stationGroupId) {
         Set<StationModule> denied = EnumSet.noneOf(StationModule.class);
-        for (String name : query("SELECT module FROM cluster_denied_module WHERE cluster_id = :cluster_id;")
-                .single(call().bind("cluster_id", clusterId))
+        for (String name : query("""
+                SELECT module FROM cluster_denied_module
+                WHERE cluster_id = :cluster_id
+                  AND station_group_id IS NOT DISTINCT FROM :station_group_id;""")
+                .single(call().bind("cluster_id", clusterId).bind("station_group_id", stationGroupId))
                 .map(row -> row.getString("module"))
                 .all()) {
             // A module dropped from the code leaves its rows behind, and a denial of something that no
@@ -322,23 +327,80 @@ public class ClusterRepository {
     }
 
     /**
-     * Replaces the denial list outright.
+     * Replaces the denial list for one group of stations, or for all of them.
      *
-     * @param clusterId the cluster
-     * @param modules   what it now denies
+     * <p>Only that group's rows are touched. Saving what the association denies of everybody leaves
+     * what it denies of the north exactly where it was, which is what makes the screen's tabs
+     * independent of one another.
+     *
+     * @param clusterId      the cluster
+     * @param stationGroupId the group being written, or {@code null} for every station
+     * @param modules        what it now denies there
      */
-    public void setDeniedModules(int clusterId, Set<StationModule> modules) {
-        query("DELETE FROM cluster_denied_module WHERE cluster_id = :cluster_id;")
-                .single(call().bind("cluster_id", clusterId))
+    public void setDeniedModules(int clusterId, Integer stationGroupId, Set<StationModule> modules) {
+        query("""
+                DELETE FROM cluster_denied_module
+                WHERE cluster_id = :cluster_id
+                  AND station_group_id IS NOT DISTINCT FROM :station_group_id;""")
+                .single(call().bind("cluster_id", clusterId).bind("station_group_id", stationGroupId))
                 .delete();
         for (StationModule module : modules) {
             query("""
-                    INSERT INTO cluster_denied_module(cluster_id, module)
-                    VALUES (:cluster_id, :module)
+                    INSERT INTO cluster_denied_module(cluster_id, module, station_group_id)
+                    VALUES (:cluster_id, :module, :station_group_id)
                     ON CONFLICT DO NOTHING;""")
-                    .single(call().bind("cluster_id", clusterId).bind("module", module))
+                    .single(call().bind("cluster_id", clusterId)
+                            .bind("module", module)
+                            .bind("station_group_id", stationGroupId))
                     .insert();
         }
+    }
+
+    /**
+     * Everything one station's cluster denies it, whichever way the denial was written.
+     *
+     * <p>The union of what the cluster denies outright and what it denies of every group this station is
+     * filed under, because denials add up and never cancel.
+     *
+     * @param stationId the station
+     * @return the denied modules, empty when it answers to no cluster
+     */
+    public Set<StationModule> findDeniedModulesForStation(int stationId) {
+        Set<StationModule> denied = EnumSet.noneOf(StationModule.class);
+        for (String name : query("""
+                SELECT DISTINCT cdm.module
+                FROM cluster_denied_module cdm
+                JOIN station s ON s.cluster_id = cdm.cluster_id
+                WHERE s.id = :station_id
+                  AND (cdm.station_group_id IS NULL
+                       OR EXISTS (SELECT 1
+                                  FROM cluster_station_group_membership m
+                                  WHERE m.group_id = cdm.station_group_id
+                                    AND m.station_id = s.id));""")
+                .single(call().bind("station_id", stationId))
+                .map(row -> row.getString("module"))
+                .all()) {
+            try {
+                denied.add(StationModule.valueOf(name));
+            } catch (IllegalArgumentException ignored) {
+                // A module dropped from the code leaves its rows behind, and it is not worth failing over
+            }
+        }
+        return denied;
+    }
+
+    /**
+     * How many denials are keyed to one group, so a refused delete can say what is in the way.
+     *
+     * @param stationGroupId the group
+     * @return the number of modules denied through it
+     */
+    public int countDenialsUsingGroup(int stationGroupId) {
+        return query("SELECT count(*) AS used FROM cluster_denied_module WHERE station_group_id = :group_id;")
+                .single(call().bind("group_id", stationGroupId))
+                .map(row -> row.getInt("used"))
+                .first()
+                .orElse(0);
     }
 
     /**
@@ -352,7 +414,13 @@ public class ClusterRepository {
         return SqlSupport.exists("""
                 SELECT 1 FROM cluster_denied_module cdm
                 JOIN station s ON s.cluster_id = cdm.cluster_id
-                WHERE s.id = :station_id AND cdm.module = :module;""", call().bind("station_id", stationId).bind("module", module));
+                WHERE s.id = :station_id
+                  AND cdm.module = :module
+                  AND (cdm.station_group_id IS NULL
+                       OR EXISTS (SELECT 1
+                                  FROM cluster_station_group_membership m
+                                  WHERE m.group_id = cdm.station_group_id
+                                    AND m.station_id = s.id));""", call().bind("station_id", stationId).bind("module", module));
     }
 
     /**

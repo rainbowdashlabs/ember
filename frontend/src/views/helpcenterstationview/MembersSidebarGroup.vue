@@ -17,7 +17,7 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <SidebarGroup :icon="['fas', 'users']" :label="t('sidebar.members')" prefix="/helpcenter/station/members"
+  <SidebarGroup :icon="['fas', 'users']" :label="t('sidebar.members')"
                 to="/helpcenter/station/members" name="help-members-module-overview" @navigate="close">
     <SidebarLink :icon="['fas', 'user-plus']" name="help-members-create"
                  to="/helpcenter/station/members/create" @navigate="close">
