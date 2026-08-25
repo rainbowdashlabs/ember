@@ -12,7 +12,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import LegalFileRow from './LegalFileRow.vue'
 import type {LegalFile} from '@/api/adminSettings'
 import {applyPlaceholders} from '@/util/placeholders'
-import {marked} from 'marked'
+import {renderMarkdown} from '@/util/markdown'
 
 const {t} = useI18n()
 
@@ -34,7 +34,7 @@ const emit = defineEmits<{
 const renderedPreview = computed(() => {
   const enabledContent = files.value.filter(f => f.enabled).map(f => f.content).join('\n\n')
   if (!enabledContent) return ''
-  return marked.parse(applyPlaceholders(enabledContent, props.placeholderValues)) as string
+  return renderMarkdown(applyPlaceholders(enabledContent, props.placeholderValues))
 })
 
 function toggleEnabled(index: number) {

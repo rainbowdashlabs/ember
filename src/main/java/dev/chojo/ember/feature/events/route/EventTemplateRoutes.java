@@ -252,11 +252,13 @@ public class EventTemplateRoutes implements Routes {
 
     private void getReminders(Context ctx) {
         int id = pathInt(ctx, "id");
+        requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         ctx.json(eventTemplateService.findReminderDays(id));
     }
 
     private void setReminders(Context ctx) {
         int id = pathInt(ctx, "id");
+        requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var req = ctx.bodyAsClass(SetRemindersRequest.class);
         eventTemplateService.setReminders(id, req.daysBefore() != null ? req.daysBefore() : List.of());
         ctx.json(eventTemplateService.findReminderDays(id));

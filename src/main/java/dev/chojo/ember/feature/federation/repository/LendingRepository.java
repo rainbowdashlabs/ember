@@ -22,7 +22,6 @@ import java.util.UUID;
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static dev.chojo.ember.util.sql.SqlSupport.count;
-import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
 import static dev.chojo.ember.util.sql.SqlSupport.findById;
 import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
@@ -220,8 +219,17 @@ public class LendingRepository {
                 .all();
     }
 
-    public boolean deleteBlock(int id) {
-        return deleteById("federation_inventory_block", id);
+    /**
+     * Deletes a block of the given station. The station is part of the statement rather than
+     * checked by the caller, so a block belonging to another station cannot be deleted however
+     * this is called: a block is what holds equipment back from a partner, and one deleted
+     * silently reopens the owning station's inventory.
+     */
+    public boolean deleteBlock(int id, int stationId) {
+        return query("DELETE FROM federation_inventory_block WHERE id = :id AND station_id = :station_id;")
+                .single(call().bind("id", id).bind("station_id", stationId))
+                .delete()
+                .changed();
     }
 
     public List<InventoryBlock> findActiveBlocks(int stationId, LocalDate dateFrom, LocalDate dateTo) {

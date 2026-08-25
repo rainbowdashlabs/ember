@@ -150,6 +150,25 @@ public class EventCommentRepository {
     }
 
     /**
+     * The station owning the event a comment hangs under. A comment carries no station of its own,
+     * so this is what an ownership check on a comment endpoint compares against.
+     *
+     * @param commentId the comment ID
+     * @return the owning station, empty when there is no such comment
+     */
+    public Optional<Integer> findCommentStation(int commentId) {
+        return query("""
+                SELECT e.station_id
+                FROM
+                    event_comment c
+                    JOIN station_event e ON e.id = c.event_id
+                WHERE c.id = :id;""")
+                .single(call().bind("id", commentId))
+                .map(row -> row.getInt("station_id"))
+                .first();
+    }
+
+    /**
      * Checks whether a comment has any child replies.
      *
      * @param id the comment ID

@@ -5,11 +5,10 @@
  */
 <script setup lang="ts">
 import {computed} from 'vue'
-import {marked} from 'marked'
 import {CellContentType, isLayoutKind, type ImageConfig, type LayoutKindName, type PageCell} from '@/api/pageManage'
 import CellLayoutRender from '@/components/content/blockeditor/CellLayoutRender.vue'
 import CellImagePreview from '@/components/content/blockeditor/CellImagePreview.vue'
-import {enhancePageMarkdownImages} from '@/util/pageMarkdownImages'
+import {renderPageMarkdown} from '@/util/markdown'
 import {isYoutubeUrl, youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
 import type {ContentRenderContext} from '@/util/contentContext'
 
@@ -27,8 +26,8 @@ const props = defineProps<{
 }>()
 
 const markdownHtml = computed(() => {
-    if (props.cell.contentType !== CellContentType.MARKDOWN || !props.cell.content) return ''
-    return enhancePageMarkdownImages(marked.parse(props.cell.content) as string)
+    if (props.cell.contentType !== CellContentType.MARKDOWN) return ''
+    return renderPageMarkdown(props.cell.content)
 })
 
 interface NestedRow { cells: PageCell[] }

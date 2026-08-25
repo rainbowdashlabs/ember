@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -17,6 +18,7 @@ import dev.chojo.ember.feature.board.entity.BoardWeblink;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
+import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -43,13 +45,39 @@ public class BoardTicketLinkRoutes implements Routes {
 
     private final BoardTicketService ticketService;
     private final BoardService boardService;
+    private final KnowledgeBaseService knowledgeBaseService;
     private final BoardRouteGuards guards;
 
     @Inject
-    public BoardTicketLinkRoutes(BoardTicketService ticketService, BoardService boardService, BoardRouteGuards guards) {
+    public BoardTicketLinkRoutes(
+            BoardTicketService ticketService,
+            BoardService boardService,
+            KnowledgeBaseService knowledgeBaseService,
+            BoardRouteGuards guards) {
         this.ticketService = ticketService;
         this.boardService = boardService;
+        this.knowledgeBaseService = knowledgeBaseService;
         this.guards = guards;
+    }
+
+    /**
+     * Asserts a ticket handed over in a request belongs to a board of the caller's station. The
+     * ticket in the path is resolved through its board key and is scoped by that; a second ticket
+     * named in the body is not, and linking one pulls its title into a panel the caller can read.
+     */
+    private void requireTicketInStation(int ticketId, UserSession session) {
+        var ticket = ticketService.findById(ticketId).orElseThrow(NotFoundResponse::new);
+        var board = boardService.findById(ticket.boardId()).orElseThrow(NotFoundResponse::new);
+        RouteSupport.requireSameStation(session, board.stationId());
+    }
+
+    /**
+     * Asserts a knowledge base file named in the path belongs to the caller's station, for the same
+     * reason: the link list shows what it points at.
+     */
+    private void requireKbFileInStation(int kbFileId, UserSession session) {
+        var file = knowledgeBaseService.findFile(kbFileId).orElseThrow(NotFoundResponse::new);
+        RouteSupport.requireSameStation(session, file.stationId());
     }
 
     @Override
@@ -103,6 +131,7 @@ public class BoardTicketLinkRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
         var req = ctx.bodyAsClass(LinkRequest.class);
+        requireTicketInStation(req.linkedTicketId(), session);
         ticketService.linkTickets(ticketId, req.linkedTicketId(), req.linkType(), guards.actor(session));
         ctx.status(HttpStatus.CREATED).json(ticketService.findLinks(ticketId));
     }
@@ -278,7 +307,9 @@ public class BoardTicketLinkRoutes implements Routes {
     private void addKbLink(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int ticketId = guards.editableTicketId(ctx, session);
-        var link = ticketService.addKbLink(ticketId, pathInt(ctx, "kbFileId"));
+        int kbFileId = pathInt(ctx, "kbFileId");
+        requireKbFileInStation(kbFileId, session);
+        var link = ticketService.addKbLink(ticketId, kbFileId);
         if (link != null) ctx.status(HttpStatus.CREATED).json(link);
         else ctx.status(HttpStatus.OK).json(ticketService.findKbLinks(ticketId));
     }

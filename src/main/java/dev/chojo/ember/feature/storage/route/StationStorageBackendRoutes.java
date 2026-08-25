@@ -37,6 +37,8 @@ import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.time.Instant;
@@ -52,6 +54,16 @@ import java.util.Optional;
  */
 @Singleton
 public class StationStorageBackendRoutes implements Routes {
+    /**
+     * What a failed probe tells the client. The endpoint builds a connection to an address from the
+     * request, so a verbatim failure would tell apart a refused connection, a timeout and a protocol
+     * error, which is a port scan of whatever the address validator does not cover. The real cause
+     * goes to the log, where the operator can still read it.
+     */
+    private static final String PROBE_FAILED = "The backend could not be reached with this configuration";
+
+    private static final Logger log = LoggerFactory.getLogger(StationStorageBackendRoutes.class);
+
     private final StationStorageConfigRepository repository;
     private final StorageBackendFactory factory;
     private final StorageBackendResolver resolver;
@@ -171,11 +183,12 @@ public class StationStorageBackendRoutes implements Routes {
         try (StorageBackend backend = factory.buildForStation(row.config())) {
             HealthStatus status = backend.probe();
             healthy = status.healthy();
-            errorOrNull = status.error().orElse(null);
+            errorOrNull =
+                    status.error().map(error -> probeFailure(stationId, error)).orElse(null);
             checkedAt = status.checkedAt();
         } catch (Exception e) {
             healthy = false;
-            errorOrNull = e.getMessage();
+            errorOrNull = probeFailure(stationId, e.getMessage());
             checkedAt = Instant.now();
         }
         auditService.recordProbe(
@@ -190,7 +203,7 @@ public class StationStorageBackendRoutes implements Routes {
      * "Verbindung testen" button so admins can validate credentials before clicking Save.
      */
     private void probeConfig(Context ctx) {
-        sessionStationId(ctx);
+        int stationId = sessionStationId(ctx);
         BackendOverrideRequest request = ctx.bodyAsClass(BackendOverrideRequest.class);
         StationStorageBackendConfig config = toEntity(request);
         boolean healthy;
@@ -199,14 +212,20 @@ public class StationStorageBackendRoutes implements Routes {
         try (StorageBackend backend = factory.buildForStation(config)) {
             HealthStatus status = backend.probe();
             healthy = status.healthy();
-            errorOrNull = status.error().orElse(null);
+            errorOrNull =
+                    status.error().map(error -> probeFailure(stationId, error)).orElse(null);
             checkedAt = status.checkedAt();
         } catch (Exception e) {
             healthy = false;
-            errorOrNull = e.getMessage();
+            errorOrNull = probeFailure(stationId, e.getMessage());
             checkedAt = Instant.now();
         }
         ctx.status(HttpStatus.OK).json(new ProbeResult(healthy, errorOrNull, checkedAt.toString()));
+    }
+
+    private static String probeFailure(int stationId, String cause) {
+        log.warn("Storage backend probe for station {} failed: {}", stationId, cause);
+        return PROBE_FAILED;
     }
 
     private void listAudit(Context ctx) {

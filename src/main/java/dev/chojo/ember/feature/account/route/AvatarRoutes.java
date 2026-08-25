@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.account.route;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.service.AvatarAccessService;
@@ -70,6 +71,7 @@ public class AvatarRoutes implements Routes {
      * 404 when the caller has no relationship to the target account (no shared station
      * membership, no federation partnership, no admin role).
      */
+    @StationFree("an avatar belongs to an account, and who may see it is decided by AvatarAccessService")
     private void getAvatarByAccount(Context ctx) {
         UUID accountUid = pathUuid(ctx, "accountUid");
         serveAvatar(ctx, avatarAccessService.accountAvatarUid(UserSession.from(ctx), accountUid));
@@ -80,6 +82,7 @@ public class AvatarRoutes implements Routes {
      * the transition window while the frontend migrates to the account-keyed endpoint;
      * resolves the underlying account UUID and falls through to the same disk lookup.
      */
+    @StationFree("the same, reached by the member uid the frontend still uses in places")
     private void getAvatarByMember(Context ctx) {
         UUID stationUid = pathUuid(ctx, "stationUid");
         UUID memberUid = pathUuid(ctx, "memberUid");

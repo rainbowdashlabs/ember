@@ -5,7 +5,6 @@
  */
 <script lang="ts" setup>
 import {ref} from 'vue'
-import {marked} from 'marked'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -21,16 +20,9 @@ import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import SystemNewsList from './adminnewsview/SystemNewsList.vue'
 import SystemNewsEditor from './adminnewsview/SystemNewsEditor.vue'
+import {renderMarkdown} from '@/util/markdown'
 
 const {t} = useI18n()
-
-function renderMarkdown(markdown: string): string {
-  try {
-    return marked.parse(markdown) as string
-  } catch {
-    return ''
-  }
-}
 
 const {config: entries, loading, error, runWith} = useConfigPanel<SystemNewsEntry[]>({
   initial: [],

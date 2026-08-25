@@ -25,6 +25,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 import static dev.chojo.ember.util.sql.SqlSupport.alias;
 import static dev.chojo.ember.util.sql.SqlSupport.count;
 import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
+import static dev.chojo.ember.util.sql.SqlSupport.deleteByIdInStation;
 import static dev.chojo.ember.util.sql.SqlSupport.findById;
 import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
@@ -102,8 +103,13 @@ public class TestProtocolRepository {
                 .changed();
     }
 
-    public boolean deleteProtocol(int id) {
-        return deleteById("test_protocol", id);
+    /**
+     * Deletes a protocol of the given station, cascading to its sections, items and runs. The
+     * station is part of the statement, so a caller that forgets to check whose protocol it is
+     * removes nothing rather than another station's work.
+     */
+    public boolean deleteProtocol(int id, int stationId) {
+        return deleteByIdInStation("test_protocol", id, stationId);
     }
 
     // -- Sections --
@@ -163,6 +169,22 @@ public class TestProtocolRepository {
         return deleteById("test_protocol_section", id);
     }
 
+    /**
+     * The station owning the protocol a section belongs to. Sections carry no station of their own,
+     * so this is what an ownership check on a section endpoint compares against.
+     */
+    public Optional<Integer> findSectionStation(int sectionId) {
+        return query("""
+                SELECT p.station_id
+                FROM
+                    test_protocol_section s
+                    JOIN test_protocol p ON p.id = s.protocol_id
+                WHERE s.id = :id;""")
+                .single(call().bind("id", sectionId))
+                .map(row -> row.getInt("station_id"))
+                .first();
+    }
+
     // -- Items --
 
     public List<TestProtocolItem> findItems(int sectionId) {
@@ -220,6 +242,22 @@ public class TestProtocolRepository {
         return deleteById("test_protocol_item", id);
     }
 
+    /**
+     * The station owning the protocol an item belongs to, reached through its section.
+     */
+    public Optional<Integer> findItemStation(int itemId) {
+        return query("""
+                SELECT p.station_id
+                FROM
+                    test_protocol_item i
+                    JOIN test_protocol_section s ON s.id = i.section_id
+                    JOIN test_protocol p ON p.id = s.protocol_id
+                WHERE i.id = :id;""")
+                .single(call().bind("id", itemId))
+                .map(row -> row.getInt("station_id"))
+                .first();
+    }
+
     // -- Runs --
 
     public List<TestProtocolRun> findRuns(int stationId) {
@@ -263,8 +301,8 @@ public class TestProtocolRepository {
                 .changed();
     }
 
-    public boolean deleteRun(int id) {
-        return deleteById("test_protocol_run", id);
+    public boolean deleteRun(int id, int stationId) {
+        return deleteByIdInStation("test_protocol_run", id, stationId);
     }
 
     // -- Run Members --

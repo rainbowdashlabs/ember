@@ -5,8 +5,8 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
-import {marked} from 'marked'
 import {CalloutVariant, type CalloutConfig} from '@/api/pageManage'
+import {renderMarkdown} from '@/util/markdown'
 
 const props = defineProps<{
     config: CalloutConfig
@@ -27,10 +27,7 @@ const calloutStyle = computed(() => {
     }
 })
 
-const renderedContent = computed(() => {
-    if (!props.content) return ''
-    try { return marked.parse(props.content) as string } catch { return props.content }
-})
+const renderedContent = computed(() => renderMarkdown(props.content))
 </script>
 
 <template>

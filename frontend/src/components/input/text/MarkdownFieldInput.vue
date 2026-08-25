@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {marked} from 'marked'
+import {renderMarkdown} from '@/util/markdown'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -27,7 +27,7 @@ watch(showModal, v => {
     if (v) draft.value = model.value ?? ''
 })
 
-const renderedHtml = computed(() => model.value ? (marked.parse(model.value) as string) : '')
+const renderedHtml = computed(() => renderMarkdown(model.value))
 
 function apply() {
     model.value = draft.value

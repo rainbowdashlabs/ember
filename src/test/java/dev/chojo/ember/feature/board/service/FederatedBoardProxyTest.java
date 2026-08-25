@@ -530,7 +530,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     @Test
     @Order(62)
     void deleteBookmark() {
-        federatedBoardService.deleteBookmark(bookmarkId);
+        federatedBoardService.deleteBookmark(bookmarkId, memberId);
         var bookmarks = federatedBoardService.findBookmarks(memberId);
         assertTrue(bookmarks.isEmpty());
     }

@@ -124,13 +124,16 @@ public class RemoteKnowledgeBaseRoutes implements Routes {
     }
 
     private void listComments(Context ctx) {
-        FederationSession.requirePartner(ctx);
-        ctx.json(federationService.listComments(pathInt(ctx, "fileId")));
+        var partner = FederationSession.requirePartner(ctx);
+        int fileId = pathInt(ctx, "fileId");
+        federationService.fileForPartner(partner, fileId);
+        ctx.json(federationService.listComments(fileId));
     }
 
     private void createComment(Context ctx) {
         var partner = FederationSession.requirePartner(ctx);
         int fileId = pathInt(ctx, "fileId");
+        federationService.fileForPartner(partner, fileId);
         var req = ctx.bodyAsClass(RemoteKbCommentRequest.class);
         var comment = federationService.createRemoteComment(
                 fileId,

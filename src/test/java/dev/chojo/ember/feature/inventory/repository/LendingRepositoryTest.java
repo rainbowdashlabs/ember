@@ -249,7 +249,7 @@ class LendingRepositoryTest extends RepositoryTestBase {
     @Order(43)
     void isBlockedInventoryLevel() {
         // Delete station-wide block and create inventory-level block
-        lendingRepo.deleteBlock(blockId);
+        lendingRepo.deleteBlock(blockId, stationA.id());
         var invBlock = lendingRepo.createBlock(
                 stationA.id(),
                 inventoryIdA,
@@ -272,7 +272,7 @@ class LendingRepositoryTest extends RepositoryTestBase {
                 LocalDate.now(),
                 LocalDate.now().plusDays(1)));
 
-        lendingRepo.deleteBlock(invBlock.id());
+        lendingRepo.deleteBlock(invBlock.id(), stationA.id());
     }
 
     @Test
@@ -300,7 +300,7 @@ class LendingRepositoryTest extends RepositoryTestBase {
                 LocalDate.now(),
                 LocalDate.now().plusDays(1)));
 
-        lendingRepo.deleteBlock(itemBlock.id());
+        lendingRepo.deleteBlock(itemBlock.id(), stationA.id());
     }
 
     @Test
@@ -308,8 +308,24 @@ class LendingRepositoryTest extends RepositoryTestBase {
     void deleteBlock() {
         var block = lendingRepo.createBlock(
                 stationA.id(), null, null, LocalDate.now(), LocalDate.now().plusDays(1), "Temp block");
-        assertTrue(lendingRepo.deleteBlock(block.id()));
+        assertTrue(lendingRepo.deleteBlock(block.id(), stationA.id()));
         assertFalse(lendingRepo.findBlocksByStation(stationA.id()).stream().anyMatch(b -> b.id() == block.id()));
+    }
+
+    /**
+     * The station is part of the delete, so a block another station owns survives an attempt to
+     * remove it: a deleted block would silently reopen that station's inventory to lending.
+     */
+    @Test
+    @Order(46)
+    void deleteBlockOfAnotherStationDoesNothing() {
+        var block = lendingRepo.createBlock(
+                stationA.id(), null, null, LocalDate.now(), LocalDate.now().plusDays(1), "Foreign block");
+
+        assertFalse(lendingRepo.deleteBlock(block.id(), stationB.id()));
+        assertTrue(lendingRepo.findBlocksByStation(stationA.id()).stream().anyMatch(b -> b.id() == block.id()));
+
+        assertTrue(lendingRepo.deleteBlock(block.id(), stationA.id()));
     }
 
     // -- Lent Out Items --

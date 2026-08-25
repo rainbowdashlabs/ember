@@ -159,6 +159,7 @@ public class RemoteEventRoutes implements Routes {
     private void remoteWithdraw(Context ctx) {
         var partner = FederationSession.requirePartner(ctx);
         int eventId = pathInt(ctx, "id");
+        requireSharedEvent(partner, eventId);
         var req = ctx.bodyAsClass(RemoteRegistrationRequest.class);
         eventFederationService.withdrawRegistration(eventId, partner.id(), req.remoteMemberId(), req.eventDate());
         ctx.status(HttpStatus.NO_CONTENT);

@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {marked} from 'marked'
+import {renderMarkdown} from '@/util/markdown'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Modal from '@/components/feedback/Modal.vue'
@@ -24,7 +24,7 @@ const {t} = useI18n()
 const showModal = ref(false)
 const draft = ref('')
 
-const renderedHtml = computed(() => content.value ? (marked.parse(content.value) as string) : '')
+const renderedHtml = computed(() => renderMarkdown(content.value))
 
 function openEditor() {
     draft.value = content.value

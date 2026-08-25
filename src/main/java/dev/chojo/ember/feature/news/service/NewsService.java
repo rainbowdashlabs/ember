@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
+import dev.chojo.ember.feature.comment.service.MentionLimits;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentMode;
@@ -57,7 +58,6 @@ import java.util.regex.Pattern;
 public class NewsService {
     private static final Logger log = LoggerFactory.getLogger(NewsService.class);
     private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
-    private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
     private static final Pattern BULK_MENTION_PATTERN =
             Pattern.compile("@\\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\\d+)]");
 
@@ -530,7 +530,8 @@ public class NewsService {
 
             if (authorMemberId != null) {
                 var matcher = MENTION_PATTERN.matcher(content);
-                while (matcher.find()) {
+                int mentioned = 0;
+                while (matcher.find() && mentioned++ < MentionLimits.MAX_MEMBER_MENTIONS) {
                     try {
                         var memberUid = UUID.fromString(matcher.group(2));
                         memberLookupService.resolveId(stationId, memberUid).ifPresent(mentionedId -> {
@@ -549,23 +550,9 @@ public class NewsService {
                     } catch (IllegalArgumentException ignored) {
                     }
                 }
-                var legacyMatcher = MENTION_PATTERN_LEGACY.matcher(content);
-                while (legacyMatcher.find()) {
-                    int mentionedId = Integer.parseInt(legacyMatcher.group(1));
-                    if (mentionedId != authorMemberId) {
-                        eventBus.publish(new MentionedInComment(
-                                stationId,
-                                mentionedId,
-                                authorMemberId,
-                                authorName,
-                                CommentEntityType.NEWS,
-                                newsId,
-                                news.title(),
-                                preview));
-                    }
-                }
                 var bulkMatcher = BULK_MENTION_PATTERN.matcher(content);
-                while (bulkMatcher.find()) {
+                int addressed = 0;
+                while (bulkMatcher.find() && addressed++ < MentionLimits.MAX_BULK_MENTIONS) {
                     var type = MentionType.valueOf(bulkMatcher.group(1));
                     int targetId = Integer.parseInt(bulkMatcher.group(3));
                     eventBus.publish(new BulkMentionedInComment(

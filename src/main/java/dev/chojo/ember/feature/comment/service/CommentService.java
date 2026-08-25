@@ -34,7 +34,6 @@ import java.util.regex.Pattern;
 @Singleton
 public class CommentService {
     private static final Logger log = LoggerFactory.getLogger(CommentService.class);
-    private static final Pattern MENTION_PATTERN_LEGACY = Pattern.compile("@\\[(\\d+):([^\\]]+)]");
     private static final Pattern MENTION_PATTERN = Pattern.compile("@\\[([^/]+)/([^:]+):([^\\]]+)]");
     private static final Pattern BULK_MENTION_PATTERN =
             Pattern.compile("@\\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\\d+)]");
@@ -83,6 +82,16 @@ public class CommentService {
      */
     public Optional<Comment> findById(int id) {
         return commentRepository.findById(id);
+    }
+
+    /**
+     * The station owning the event a comment hangs under.
+     *
+     * @param commentId the comment ID
+     * @return the owning station, empty when there is no such comment
+     */
+    public Optional<Integer> findCommentStation(int commentId) {
+        return commentRepository.findCommentStation(commentId);
     }
 
     /**
@@ -226,7 +235,8 @@ public class CommentService {
             String content,
             String preview) {
         var matcher = BULK_MENTION_PATTERN.matcher(content);
-        while (matcher.find()) {
+        int addressed = 0;
+        while (matcher.find() && addressed++ < MentionLimits.MAX_BULK_MENTIONS) {
             var type = MentionType.valueOf(matcher.group(1));
             int targetId = Integer.parseInt(matcher.group(3));
             eventBus.publish(new BulkMentionedInComment(
@@ -234,21 +244,23 @@ public class CommentService {
         }
     }
 
+    /**
+     * The members a comment mentions, resolved through the station the comment was written in.
+     *
+     * <p>Only the form carrying a station and a member uid is read. The numeric form editors used
+     * to write names a member by a bare id, which is an id on the whole instance, so reading it
+     * notifies a stranger in another station and hands them the comment. Comments already written
+     * in that form still render; they simply raise no notification.
+     */
     private List<Integer> parseMentions(int stationId, String content) {
         var mentions = new ArrayList<Integer>();
-        // New format: @[stationUid/memberUid:Name]
         var matcher = MENTION_PATTERN.matcher(content);
-        while (matcher.find()) {
+        while (matcher.find() && mentions.size() < MentionLimits.MAX_MEMBER_MENTIONS) {
             try {
                 var memberUid = UUID.fromString(matcher.group(2));
                 stationMemberService.resolveId(stationId, memberUid).ifPresent(mentions::add);
             } catch (IllegalArgumentException ignored) {
             }
-        }
-        // Legacy format: @[123:Name]
-        var legacyMatcher = MENTION_PATTERN_LEGACY.matcher(content);
-        while (legacyMatcher.find()) {
-            mentions.add(Integer.parseInt(legacyMatcher.group(1)));
         }
         return mentions;
     }

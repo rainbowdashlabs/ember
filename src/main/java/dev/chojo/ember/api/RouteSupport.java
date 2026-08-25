@@ -6,7 +6,6 @@
 package dev.chojo.ember.api;
 
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 
 import java.util.Optional;
@@ -65,25 +64,12 @@ public final class RouteSupport {
     }
 
     /**
-     * Loads an entity by id and confirms it belongs to the caller's station, returning
-     * it. Answers {@code 404} when the entity is absent and {@code 403} when it belongs
-     * to another station - the predominant ownership pattern across the API.
+     * Loads an entity by id and confirms it belongs to the caller's station, returning it.
      *
-     * @param finder    the repository/service lookup for the entity type
-     * @param stationOf extracts the owning station id from the entity
-     */
-    public static <T> T requireOwned(Context ctx, int id, IntFunction<Optional<T>> finder, ToIntFunction<T> stationOf) {
-        T entity = finder.apply(id).orElseThrow(NotFoundResponse::new);
-        if (stationOf.applyAsInt(entity) != UserSession.from(ctx).stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
-        return entity;
-    }
-
-    /**
-     * Variant of {@link #requireOwned} that answers {@code 404} rather than {@code 403}
-     * on a station mismatch, so the existence of another station's resource is not
-     * revealed. Matches handlers that deliberately hide cross-station resources.
+     * <p>A missing entity and one belonging to another station answer the same {@code 404}. The
+     * variant that answered {@code 403} on a mismatch is gone: it told a caller that the id exists
+     * somewhere on the instance, which is the one thing an ownership check is meant not to say, and
+     * having both meant the weaker one was picked by whoever wrote the handler next.
      *
      * @param finder    the repository/service lookup for the entity type
      * @param stationOf extracts the owning station id from the entity
