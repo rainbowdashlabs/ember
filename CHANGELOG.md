@@ -26,6 +26,8 @@
 
 ### Improvements
 
+- **Date and time fields open their picker by themselves.** Reaching such a field opens the calendar or the clock the browser provides, instead of leaving the small icon at the field's edge to be found first.
+
 - **A guardian sets the password of a child without an address of their own.** Under Profile → Managed profiles the password now stands beside the username, so there is no waiting for an invitation that lands in the guardian's own postbox either way. A member who does have an address of their own keeps setting it themselves.
 - **The wiki of an association can go on the public web.** A switch above the wiki puts it there, with the same three states a station has, and the address it answers at stands beside the switch. Until now an association had no way to publish anything at all: the setting existed but nothing could reach it.
 - **An association can say which of its stations a wiki entry is for.** Everything it writes still goes to all of them unless it says otherwise, and naming stations on a folder applies to everything inside; an entry within can narrow that further but not reach past it.
