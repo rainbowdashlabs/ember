@@ -26,6 +26,7 @@ import {ContentMode, type ContentModeName} from '@/api/news'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import type {PageRow, SaveRowRequest, SaveCellRequest} from '@/api/pageManage'
 import KbEditFileModal from '@/views/stationview/knowledge/knowledgebaseview/KbEditFileModal.vue'
+import KbShareModal from '@/views/stationview/knowledge/knowledgebaseview/KbShareModal.vue'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {knowledgeBase} from '@/api'
@@ -82,6 +83,7 @@ const {
 
 const showPresentation = ref(false)
 const showEditMetadataModal = ref(false)
+const showShareModal = ref(false)
 async function downloadOriginal() {
     if (!file.value) return
     await downloadAuthed(knowledgeBase.originalFileUrl(file.value.id), file.value.name)
@@ -346,6 +348,7 @@ watch(() => [props.fileId, props.stationUid], () => {
                 @copy-share-link="copyShareLink"
                 @copy-to-station="copyToStation"
                 @open-edit-metadata="showEditMetadataModal = true"
+                @open-share="showShareModal = true"
                 @toggle-edit="toggleEdit"
                 @open-versions="router.push({name: routes.versions, params: {id: file.id}})"
                 @open-presentation="showPresentation = true"
@@ -454,6 +457,13 @@ watch(() => [props.fileId, props.stationUid], () => {
         />
 
         <!-- Edit metadata modal (name / description / visibility / restrictions / tags) -->
+        <KbShareModal
+            v-model:show="showShareModal"
+            :entry="file"
+            kind="files"
+            @saved="loadData()"
+        />
+
         <KbEditFileModal
             :show="showEditMetadataModal"
             :file="file"

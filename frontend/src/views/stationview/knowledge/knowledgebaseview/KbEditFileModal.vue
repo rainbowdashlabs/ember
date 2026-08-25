@@ -12,13 +12,8 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {knowledgeBase} from '@/api'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {KbFile} from '@/api/knowledgeBase'
-import {useSession} from '@/composables/useSession'
-import KbRestrictionsField from './KbRestrictionsField.vue'
-import KbPublicVisibilityField from './KbPublicVisibilityField.vue'
 import KbTagsEditor from './KbTagsEditor.vue'
 import {useKbEntryEditor} from './useKbEntryEditor'
-
-const {isKbPublic} = useSession()
 
 const {t} = useI18n()
 
@@ -35,12 +30,7 @@ const emit = defineEmits<{
 const {
     editName,
     editDescription,
-    restriction,
-    grantLevels,
     tags,
-    publicVisibility,
-    allGroups,
-    allTags,
     save,
 } = useKbEntryEditor(show, () => props.file, {
     visibilityKind: 'files',
@@ -62,13 +52,6 @@ async function handleSave() {
         <form @submit.prevent="handleSave" class="flex flex-col gap-3">
             <TextInput v-model="editName" :placeholder="t('kb.fileName')" required/>
             <TextAreaInput v-model="editDescription" :placeholder="t('kb.description')"/>
-            <KbRestrictionsField
-                :all-groups="allGroups"
-                :all-tags="allTags"
-                v-model="restriction"
-                v-model:levels="grantLevels"
-            />
-            <KbPublicVisibilityField v-if="isKbPublic()" v-model="publicVisibility"/>
             <KbTagsEditor v-model="tags"/>
             <PrimaryButton type="submit">{{ t('common.save') }}</PrimaryButton>
         </form>

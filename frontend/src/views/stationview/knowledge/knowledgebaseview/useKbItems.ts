@@ -75,8 +75,10 @@ interface KbItemHandlers {
     openFederatedFile: (stationUid: string, fileId: number) => void
     openFavourites: () => void
     editFolder: (folder: KbFolder) => void
+    shareFolder: (folder: KbFolder) => void
     deleteFolder: (folder: KbFolder) => void
     editFile: (file: KbFile) => void
+    shareFile: (file: KbFile) => void
     deleteFile: (file: KbFile) => void
     exportFilePdf: (file: KbFile) => void
     copySharedFile: (id: number) => void
@@ -174,6 +176,13 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
                 iconClass: 'text-info-accent dark:text-info',
                 run: () => handlers.editFile(file),
             })
+            actions.push({
+                key: 'share',
+                icon: ['fas', 'eye'],
+                label: t('kb.share'),
+                onHover: true,
+                run: () => handlers.shareFile(file),
+            })
         }
         if (sources.canManage.value && levelCovers(level, KbAccessLevel.MANAGE)) {
             actions.push({
@@ -250,6 +259,13 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
                 class: 'text-info-accent hover:bg-info/15 dark:text-info',
                 iconClass: 'text-info-accent dark:text-info',
                 run: () => handlers.editFolder(folder),
+            })
+            actions.push({
+                key: 'share',
+                icon: ['fas', 'eye'],
+                label: t('kb.share'),
+                onHover: true,
+                run: () => handlers.shareFolder(folder),
             })
         }
         if (levelCovers(level, KbAccessLevel.MANAGE)) {

@@ -25,6 +25,7 @@ defineEmits<{
     copyShareLink: []
     copyToStation: []
     openEditMetadata: []
+    openShare: []
     toggleEdit: []
     openVersions: []
     openPresentation: []
@@ -65,6 +66,10 @@ const {t} = useI18n()
             {{ t('federation.copyToStation') }}
         </PrimaryButton>
         <template v-else>
+            <SecondaryButton v-if="canEdit" @click="$emit('openShare')">
+                <font-awesome-icon :icon="['fas', 'eye']"/>
+                {{ t('kb.share') }}
+            </SecondaryButton>
             <SecondaryButton v-if="canEdit" @click="$emit('openEditMetadata')">
                 <font-awesome-icon :icon="['fas', 'gear']"/>
                 {{ t('kb.editMetadata') }}

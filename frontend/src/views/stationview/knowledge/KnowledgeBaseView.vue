@@ -14,6 +14,7 @@ import KbBrowseSection from './knowledgebaseview/KbBrowseSection.vue'
 import KbCreateModals from './knowledgebaseview/KbCreateModals.vue'
 import KbDeleteModals from './knowledgebaseview/KbDeleteModals.vue'
 import KbEditModals from './knowledgebaseview/KbEditModals.vue'
+import KbShareModals from './knowledgebaseview/KbShareModals.vue'
 import KbFiltersBar from './knowledgebaseview/KbFiltersBar.vue'
 import KbSearchResults from './knowledgebaseview/KbSearchResults.vue'
 import {useKbBrowse} from './knowledgebaseview/useKbBrowse'
@@ -66,6 +67,7 @@ const canCreateHere = computed(() => canEditKnowledge() && levelCovers(currentLe
 
 const createModalsRef = ref<InstanceType<typeof KbCreateModals> | null>(null)
 const editModalsRef = ref<InstanceType<typeof KbEditModals> | null>(null)
+const shareModalsRef = ref<InstanceType<typeof KbShareModals> | null>(null)
 
 const {
     show: showDeleteFolderModal,
@@ -114,8 +116,10 @@ const {items, toSearchItems} = useKbItems(
         openFederatedFile: navigateToFederatedFile,
         openFavourites: navigateToFavourites,
         editFolder: folder => editModalsRef.value?.openFolder(folder),
+        shareFolder: folder => shareModalsRef.value?.openFolder(folder),
         deleteFolder: confirmDeleteFolder,
         editFile: file => editModalsRef.value?.openFile(file),
+        shareFile: file => shareModalsRef.value?.openFile(file),
         deleteFile: confirmDeleteFile,
         exportFilePdf,
         copySharedFile,
@@ -202,6 +206,11 @@ watch(loaded, (isLoaded) => {
 
         <KbEditModals
             ref="editModalsRef"
+            @saved="loadData()"
+        />
+
+        <KbShareModals
+            ref="shareModalsRef"
             @saved="loadData()"
         />
 
