@@ -50,6 +50,7 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/federated/kb", this::browseKb, StationPermission.USER);
+        routes.get(prefix + "/federated/{stationuid}/kb/folders/{id}", this::browseKbFolder, StationPermission.USER);
         routes.get(prefix + "/federated/{stationuid}/kb/files/{id}", this::getFile, StationPermission.USER);
         routes.get(
                 prefix + "/federated/{stationuid}/kb/files/{id}/content", this::getFileContent, StationPermission.USER);
@@ -81,6 +82,12 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
     private void browseKb(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(federationService.browseFederatedKb(session.stationId()));
+    }
+
+    private void browseKbFolder(Context ctx) {
+        var session = UserSession.from(ctx);
+        ctx.json(federationService.browseFederatedKbFolder(
+                session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "id")));
     }
 
     private void getFile(Context ctx) {

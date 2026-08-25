@@ -160,7 +160,9 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void browseSharedKbEmptyWithoutShares() {
-        assertTrue(service.browseSharedKb(station.id()).isEmpty());
+        var level = service.browseSharedKb(station.id());
+        assertTrue(level.folders().isEmpty());
+        assertTrue(level.files().isEmpty());
     }
 
     @Test
@@ -169,7 +171,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var file = createFile(stationB.id(), "FedFile");
         var share = federationRepo.createKbShare(stationB.id(), file.id(), null, ShareScope.ALL_PARTNERS);
 
-        var items = service.browseSharedKb(station.id());
+        var items = service.browseSharedKb(station.id()).files();
         assertTrue(items.stream().anyMatch(item -> item.file().id() == file.id()));
         assertTrue(items.stream().allMatch(item -> item.sourceStationId() == stationB.id()));
 
@@ -193,12 +195,61 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 member.id());
         var share = federationRepo.createKbShare(stationB.id(), null, folder.id(), ShareScope.ALL_PARTNERS);
 
-        var items = service.browseSharedKb(station.id());
-        assertTrue(items.stream().anyMatch(item -> item.file().id() == file.id()));
+        // A shared folder arrives as a folder now, with its article inside rather than loose beside it
+        var level = service.browseSharedKb(station.id());
+        assertTrue(level.folders().stream().anyMatch(shared -> shared.id() == folder.id()));
+        assertTrue(level.files().stream().noneMatch(item -> item.file().id() == file.id()));
+
+        var inside = service.browseFederatedKbFolder(station.id(), stationB.uid(), folder.id());
+        assertTrue(inside.files().stream().anyMatch(item -> item.remoteId() == file.id()));
 
         federationRepo.deleteKbShare(share.id(), stationB.id());
         knowledgeBaseRepo.deleteFile(file.id());
         knowledgeBaseRepo.deleteFolder(folder.id());
+    }
+
+    /**
+     * Sharing a folder shares what is under it, to the bottom. The article here sits two levels down, so
+     * it is reached by neither its own share nor a direct parent, which is all the check used to match.
+     */
+    @Test
+    @Order(3)
+    void aSharedFolderCarriesItsSubfoldersAndWhatIsDeepInThem() {
+        var outer = knowledgeBaseRepo.createFolder(stationB.id(), null, "Outer", "the shared one", member.id());
+        var inner = knowledgeBaseRepo.createFolder(stationB.id(), outer.id(), "Inner", "", member.id());
+        var deep = knowledgeBaseRepo.createFile(
+                stationB.id(),
+                inner.id(),
+                "DeepFile",
+                "desc",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                0,
+                null,
+                member.id());
+        var share = federationRepo.createKbShare(stationB.id(), null, outer.id(), ShareScope.ALL_PARTNERS);
+
+        var top = service.browseFederatedKb(station.id());
+        var served = top.folders().stream()
+                .filter(candidate -> candidate.remoteId() == outer.id())
+                .findFirst()
+                .orElseThrow();
+        assertEquals("Outer", served.title());
+        assertEquals("the shared one", served.description());
+        assertEquals(stationB.name(), served.stationName());
+
+        // The subfolder is offered inside the shared one, not beside it at the top
+        assertTrue(top.folders().stream().noneMatch(candidate -> candidate.remoteId() == inner.id()));
+        var opened = service.browseFederatedKbFolder(station.id(), stationB.uid(), outer.id());
+        assertTrue(opened.folders().stream().anyMatch(candidate -> candidate.remoteId() == inner.id()));
+
+        var deepLevel = service.browseFederatedKbFolder(station.id(), stationB.uid(), inner.id());
+        assertTrue(deepLevel.files().stream().anyMatch(candidate -> candidate.remoteId() == deep.id()));
+
+        federationRepo.deleteKbShare(share.id(), stationB.id());
+        knowledgeBaseRepo.deleteFile(deep.id());
+        knowledgeBaseRepo.deleteFolder(inner.id());
+        knowledgeBaseRepo.deleteFolder(outer.id());
     }
 
     @Test
@@ -207,7 +258,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var file = createFile(stationB.id(), "NamedFedFile");
         var share = federationRepo.createKbShare(stationB.id(), file.id(), null, ShareScope.ALL_PARTNERS);
 
-        var items = service.browseFederatedKb(station.id());
+        var items = service.browseFederatedKb(station.id()).files();
         var item = items.stream()
                 .filter(candidate -> candidate.remoteId() == file.id())
                 .findFirst()
@@ -239,34 +290,38 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(6)
     void browseSharedKbViaHttp() {
-        when(httpClient.getList(
+        when(httpClient.get(
                         eq(REMOTE_HOST),
                         pathIs("/remote/kb/browse"),
                         any(),
                         eq(station.id()),
                         any(),
-                        eq(KnowledgeBaseFederationService.RemoteKbFileSummary.class)))
-                .thenReturn(List.of(new KnowledgeBaseFederationService.RemoteKbFileSummary(
-                        99, "RemoteFile", "remote desc", "MARKDOWN", "now")));
+                        eq(KnowledgeBaseFederationService.RemoteKbBrowse.class)))
+                .thenReturn(new KnowledgeBaseFederationService.RemoteKbBrowse(
+                        List.of(),
+                        List.of(new KnowledgeBaseFederationService.RemoteKbFileSummary(
+                                99, "RemoteFile", "remote desc", "MARKDOWN", "now"))));
 
-        var items = service.browseSharedKb(station.id());
+        var items = service.browseSharedKb(station.id()).files();
         assertTrue(items.stream().anyMatch(item -> item.file().name().equals("RemoteFile")));
     }
 
     @Test
     @Order(7)
     void browseSharedKbViaHttpDefaultsMissingFileType() {
-        when(httpClient.getList(
+        when(httpClient.get(
                         eq(REMOTE_HOST),
                         pathIs("/remote/kb/browse"),
                         any(),
                         eq(station.id()),
                         any(),
-                        eq(KnowledgeBaseFederationService.RemoteKbFileSummary.class)))
-                .thenReturn(List.of(new KnowledgeBaseFederationService.RemoteKbFileSummary(
-                        98, "TypeLess", "no type", null, "now")));
+                        eq(KnowledgeBaseFederationService.RemoteKbBrowse.class)))
+                .thenReturn(new KnowledgeBaseFederationService.RemoteKbBrowse(
+                        List.of(),
+                        List.of(new KnowledgeBaseFederationService.RemoteKbFileSummary(
+                                98, "TypeLess", "no type", null, "now"))));
 
-        var items = service.browseSharedKb(station.id());
+        var items = service.browseSharedKb(station.id()).files();
         var item = items.stream()
                 .filter(candidate -> candidate.file().id() == 98)
                 .findFirst()
@@ -433,7 +488,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var file = createFile(station.id(), "ServedFile");
         var share = federationRepo.createKbShare(station.id(), file.id(), null, ShareScope.ALL_PARTNERS);
 
-        var served = service.browseForPartner(requestingPartner);
+        var served = service.browseForPartner(requestingPartner).files();
         var entry = served.stream()
                 .filter(candidate -> candidate.id() == file.id())
                 .findFirst()

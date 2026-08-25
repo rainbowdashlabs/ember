@@ -16,7 +16,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
-import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService.RemoteKbFileSummary;
+import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService.RemoteKbBrowse;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService.RemoteKbSearchResultItem;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -41,7 +41,9 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 public class RemoteKnowledgeBaseRoutes implements Routes {
 
     public static final FederationEndpoint BROWSE_KB =
-            FederationEndpoint.getList(FederationSurface.KB_SHARE, "/remote/kb/browse", RemoteKbFileSummary.class);
+            FederationEndpoint.get(FederationSurface.KB_SHARE, "/remote/kb/browse", RemoteKbBrowse.class);
+    public static final FederationEndpoint BROWSE_KB_FOLDER =
+            FederationEndpoint.get(FederationSurface.KB_SHARE, "/remote/kb/folders/{id}/browse", RemoteKbBrowse.class);
     public static final FederationEndpoint SEARCH_KB =
             FederationEndpoint.getList(FederationSurface.KB_SHARE, "/remote/kb/search", RemoteKbSearchResultItem.class);
     public static final FederationEndpoint GET_FILE =
@@ -68,6 +70,7 @@ public class RemoteKnowledgeBaseRoutes implements Routes {
 
     public static final List<FederationEndpoint> CONTRACT = List.of(
             BROWSE_KB,
+            BROWSE_KB_FOLDER,
             SEARCH_KB,
             GET_FILE,
             GET_FILE_CONTENT,
@@ -94,6 +97,7 @@ public class RemoteKnowledgeBaseRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         FederationContractBinder.register(routes, prefix, CONTRACT, binder -> binder.handle(BROWSE_KB, this::browseKb)
+                .handle(BROWSE_KB_FOLDER, this::browseKbFolder)
                 .handle(SEARCH_KB, this::searchKb)
                 .handle(GET_FILE, this::getFile)
                 .handle(GET_FILE_CONTENT, this::getFileContent)
@@ -105,6 +109,11 @@ public class RemoteKnowledgeBaseRoutes implements Routes {
 
     private void browseKb(Context ctx) {
         ctx.json(federationService.browseForPartner(FederationSession.requirePartner(ctx)));
+    }
+
+    private void browseKbFolder(Context ctx) {
+        var partner = FederationSession.requirePartner(ctx);
+        ctx.json(federationService.folderForPartner(partner, pathInt(ctx, "id")));
     }
 
     private void searchKb(Context ctx) {

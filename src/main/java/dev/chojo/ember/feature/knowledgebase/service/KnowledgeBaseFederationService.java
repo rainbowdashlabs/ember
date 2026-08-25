@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.RemoteKbFile;
@@ -42,7 +43,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -113,8 +113,61 @@ public class KnowledgeBaseFederationService {
      * @param stationId the browsing station ID
      * @return the shared files of all partners that answered
      */
-    public List<FederatedKbItem> browseFederatedKb(int stationId) {
-        return browseSharedKb(stationId).stream()
+    public FederatedKbBrowse browseFederatedKb(int stationId) {
+        var gathered = browseSharedKb(stationId);
+        return new FederatedKbBrowse(named(gathered.folders()), namedFiles(gathered.files()));
+    }
+
+    /**
+     * What is inside one folder a partner shares.
+     *
+     * @param stationId         the reading station
+     * @param partnerStationUid the partner serving the folder
+     * @param folderId          the folder being opened
+     */
+    public FederatedKbBrowse browseFederatedKbFolder(int stationId, UUID partnerStationUid, int folderId) {
+        var level = entityResolver.resolve(
+                stationId,
+                partnerStationUid,
+                RemoteKnowledgeBaseRoutes.BROWSE_KB_FOLDER.at(folderId),
+                RemoteKbBrowse.class,
+                "folder",
+                partner -> folderLevel(partnerStationId(partner), folderId));
+        var partner = federationRepository
+                .findPartnerByStationAndRemoteUid(stationId, partnerStationUid)
+                .orElseThrow(NotFoundResponse::new);
+        String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
+        String uid = partnerStationUid.toString();
+        return new FederatedKbBrowse(
+                level.folders().stream()
+                        .map(folder -> new FederatedKbFolder(
+                                folder.id(), folder.name(), folder.description(), stationName, uid, partner.id()))
+                        .toList(),
+                level.files().stream()
+                        .map(file -> new FederatedKbItem(
+                                file.id(), file.name(), file.description(), stationName, uid, partner.id()))
+                        .toList());
+    }
+
+    private List<FederatedKbFolder> named(List<SharedKbFolder> folders) {
+        return folders.stream()
+                .map(folder -> {
+                    var partner = federationRepository
+                            .findPartnerById(folder.partnerId())
+                            .orElse(null);
+                    return new FederatedKbFolder(
+                            folder.id(),
+                            folder.name(),
+                            folder.description(),
+                            FederationDisplayNames.partnerName(stationRepository, partner, "Unknown"),
+                            partner != null ? partner.partnerStationId().toString() : null,
+                            folder.partnerId());
+                })
+                .toList();
+    }
+
+    private List<FederatedKbItem> namedFiles(List<SharedKbItem> items) {
+        return items.stream()
                 .map(item -> {
                     var partner = federationRepository
                             .findPartnerById(item.partnerId())
@@ -137,11 +190,14 @@ public class KnowledgeBaseFederationService {
      * @param stationId the browsing station ID
      * @return the shared files with their owning station and partnership
      */
-    public List<SharedKbItem> browseSharedKb(int stationId) {
-        return fanout.fanOut(
+    public SharedKbLevel browseSharedKb(int stationId) {
+        var levels = fanout.fanOut(
                 sharedKbPartners(stationId),
-                partner -> browseSharedKbDirect(partnerStationId(partner), partner),
-                partner -> browseSharedKbViaHttp(stationId, partner, partnerStationId(partner)));
+                partner -> List.of(browseSharedKbDirect(partnerStationId(partner), partner)),
+                partner -> List.of(browseSharedKbViaHttp(stationId, partner, partnerStationId(partner))));
+        return new SharedKbLevel(
+                levels.stream().flatMap(level -> level.folders().stream()).toList(),
+                levels.stream().flatMap(level -> level.files().stream()).toList());
     }
 
     /**
@@ -281,18 +337,98 @@ public class KnowledgeBaseFederationService {
      * @param partner the verified requesting partner
      * @return the shared files in their list representation
      */
-    public List<RemoteKbFileSummary> browseForPartner(FederationPartner partner) {
-        return federationRepository.findKbShares(partner.stationId()).stream()
-                .filter(share -> share.fileId() != null)
-                .flatMap(share -> knowledgeBaseService.findFile(share.fileId()).stream())
-                .filter(file -> file.stationId() == partner.stationId())
-                .map(file -> new RemoteKbFileSummary(
-                        file.id(),
-                        file.name(),
-                        file.description() != null ? file.description() : "",
-                        file.fileType().name(),
-                        file.updatedAt().toString()))
+    public RemoteKbBrowse browseForPartner(FederationPartner partner) {
+        return servedLevel(partner.stationId());
+    }
+
+    /**
+     * The top of what one station shares: its shared folders, and the articles shared in their own right.
+     *
+     * <p>Keyed by the serving station rather than by a partnership, because a partnership row means the
+     * opposite thing on each side of it: serving a partner, {@code stationId} is this station, and reading
+     * a partner it is the one doing the reading.
+     */
+    private RemoteKbBrowse servedLevel(int servingStationId) {
+        var shares = federationRepository.findKbShares(servingStationId);
+        var sharedFolders = sharedFolderIds(servingStationId);
+
+        // A folder inside a shared folder is reached by opening the one above it, not by standing on its own
+        // at the top. Only the outermost shared folders belong here.
+        var folders = shares.stream()
+                .map(FederationShare::folderId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .flatMap(id -> knowledgeBaseService.findFolder(id).stream())
+                .filter(folder -> folder.stationId() == servingStationId)
+                .filter(folder -> !isInsideAnyOf(folder.parentId(), sharedFolders))
+                .map(KnowledgeBaseFederationService::summary)
                 .toList();
+
+        // An article whose folder is shared arrives inside that folder, so offering it here as well would
+        // show it twice, once loose and once where it belongs.
+        var files = shares.stream()
+                .map(FederationShare::fileId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .flatMap(id -> knowledgeBaseService.findFile(id).stream())
+                .filter(file -> file.stationId() == servingStationId)
+                .filter(file -> !isInsideAnyOf(file.folderId(), sharedFolders))
+                .map(KnowledgeBaseFederationService::summary)
+                .toList();
+
+        return new RemoteKbBrowse(folders, files);
+    }
+
+    /**
+     * What is inside one shared folder, for a partner that may open it.
+     *
+     * @param partner  the requesting partner
+     * @param folderId the folder being opened
+     * @return its subfolders and its articles
+     */
+    public RemoteKbBrowse folderForPartner(FederationPartner partner, int folderId) {
+        return folderLevel(partner.stationId(), folderId);
+    }
+
+    /** What is inside one shared folder of a serving station, refused unless a share covers it. */
+    private RemoteKbBrowse folderLevel(int servingStationId, int folderId) {
+        var folder = knowledgeBaseService.findFolder(folderId).orElseThrow(NotFoundResponse::new);
+        if (folder.stationId() != servingStationId || !isFolderShared(servingStationId, folderId)) {
+            throw new NotFoundResponse();
+        }
+        return new RemoteKbBrowse(
+                knowledgeBaseService.findFolders(servingStationId, folderId).stream()
+                        .map(KnowledgeBaseFederationService::summary)
+                        .toList(),
+                knowledgeBaseService.findFiles(servingStationId, folderId).stream()
+                        .map(KnowledgeBaseFederationService::summary)
+                        .toList());
+    }
+
+    /** Whether a folder, or anything above it, is one of the given folders. */
+    private boolean isInsideAnyOf(Integer folderId, Set<Integer> folders) {
+        if (folders.isEmpty()) return false;
+        for (Integer id = folderId; id != null; ) {
+            if (folders.contains(id)) return true;
+            var folder = knowledgeBaseService.findFolder(id).orElse(null);
+            if (folder == null) return false;
+            id = folder.parentId();
+        }
+        return false;
+    }
+
+    private static RemoteKbFolderSummary summary(KbFolder folder) {
+        return new RemoteKbFolderSummary(
+                folder.id(), folder.name(), folder.description() != null ? folder.description() : "");
+    }
+
+    private static RemoteKbFileSummary summary(KbFile file) {
+        return new RemoteKbFileSummary(
+                file.id(),
+                file.name(),
+                file.description() != null ? file.description() : "",
+                file.fileType().name(),
+                file.updatedAt().toString());
     }
 
     /**
@@ -343,9 +479,34 @@ public class KnowledgeBaseFederationService {
     public boolean isSharedWithPartner(FederationPartner partner, KbFile file) {
         for (var share : federationRepository.findKbShares(partner.stationId())) {
             if (share.fileId() != null && share.fileId() == file.id()) return true;
-            if (share.folderId() != null && share.folderId().equals(file.folderId())) return true;
         }
-        return false;
+        return isFolderSharedWithPartner(partner, file.folderId());
+    }
+
+    /**
+     * Whether a folder is shared with this partner, itself or through a folder above it.
+     *
+     * <p>Sharing a folder shares what is under it, to the bottom. The check used to match a direct parent
+     * only, so an article one level deeper was refused, which is not what sharing a folder means to
+     * anybody and disagrees with public visibility, which walks the whole ancestry.
+     *
+     * @param partner  the requesting partner
+     * @param folderId the folder to ask about, or {@code null} for the root, which is never shared
+     */
+    public boolean isFolderSharedWithPartner(FederationPartner partner, Integer folderId) {
+        return isFolderShared(partner.stationId(), folderId);
+    }
+
+    private boolean isFolderShared(int servingStationId, Integer folderId) {
+        return isInsideAnyOf(folderId, sharedFolderIds(servingStationId));
+    }
+
+    /** The folders one station shares, by id. */
+    private Set<Integer> sharedFolderIds(int servingStationId) {
+        return federationRepository.findKbShares(servingStationId).stream()
+                .map(FederationShare::folderId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -515,24 +676,28 @@ public class KnowledgeBaseFederationService {
         return comment;
     }
 
-    private List<SharedKbItem> browseSharedKbDirect(int remoteStationId, FederationPartner partner) {
-        var result = new ArrayList<SharedKbItem>();
-        // An article can be reached by two shares at once: its own, and the one on the folder holding it.
-        // Sharing a folder and then an article inside it is a reasonable thing to do, and the reader should
-        // still see the article once.
-        var seen = new HashSet<Integer>();
-        for (var share : federationRepository.findKbShares(remoteStationId)) {
-            if (share.fileId() != null) {
-                knowledgeBaseService
-                        .findFile(share.fileId())
-                        .ifPresent(file -> take(file, remoteStationId, partner, seen, result));
-            } else if (share.folderId() != null) {
-                for (var file : knowledgeBaseService.findFiles(remoteStationId, share.folderId())) {
-                    take(file, remoteStationId, partner, seen, result);
-                }
-            }
+    /**
+     * What one partner on this instance offers at the top of its shared wiki.
+     *
+     * <p>A shared folder arrives as a folder, and what is in it stays in it: the reader opens it the way
+     * they open any other. An article whose folder is already shared is therefore not offered loose as
+     * well, or it would stand twice, once at the top and once where it belongs.
+     */
+    private SharedKbLevel browseSharedKbDirect(int remoteStationId, FederationPartner partner) {
+        var served = servedLevel(remoteStationId);
+        var folders = served.folders().stream()
+                .map(folder -> new SharedKbFolder(
+                        folder.id(), folder.name(), folder.description(), remoteStationId, partner.id()))
+                .toList();
+        var files = new ArrayList<SharedKbItem>();
+        for (var summary : served.files()) {
+            knowledgeBaseService.findFile(summary.id()).ifPresent(file -> {
+                files.add(new SharedKbItem(KbFileSummary.of(file), remoteStationId, partner.id()));
+                federationRepository.upsertMetadataCache(
+                        partner.id(), ContentType.KB, file.id(), file.name(), file.description());
+            });
         }
-        return result;
+        return new SharedKbLevel(folders, files);
     }
 
     /** Adds one shared article to the answer, unless another share has already offered it. */
@@ -544,12 +709,11 @@ public class KnowledgeBaseFederationService {
                 partner.id(), ContentType.KB, file.id(), file.name(), file.description());
     }
 
-    private List<SharedKbItem> browseSharedKbViaHttp(
-            int localStationId, FederationPartner partner, int remoteStationId) {
+    private SharedKbLevel browseSharedKbViaHttp(int localStationId, FederationPartner partner, int remoteStationId) {
         var result = new ArrayList<SharedKbItem>();
-        var files = fetchSharedKbFiles(
+        var served = fetchSharedKb(
                 partner.remoteHost(), partner.partnerStationId(), localStationId, privateKey(localStationId));
-        for (var remoteFile : files) {
+        for (var remoteFile : served.files()) {
             var summary = new KbFileSummary(
                     remoteFile.id(),
                     remoteStationId,
@@ -563,7 +727,11 @@ public class KnowledgeBaseFederationService {
             federationRepository.upsertMetadataCache(
                     partner.id(), ContentType.KB, remoteFile.id(), remoteFile.name(), remoteFile.description());
         }
-        return result;
+        var folders = served.folders().stream()
+                .map(folder -> new SharedKbFolder(
+                        folder.id(), folder.name(), folder.description(), remoteStationId, partner.id()))
+                .toList();
+        return new SharedKbLevel(folders, result);
     }
 
     private List<FederatedSearchResult> searchKbDirect(FederationPartner partner, String query) {
@@ -599,15 +767,15 @@ public class KnowledgeBaseFederationService {
                 .toList();
     }
 
-    private List<RemoteKbFileSummary> fetchSharedKbFiles(
+    private RemoteKbBrowse fetchSharedKb(
             String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
-        return httpClient.getList(
+        return httpClient.get(
                 remoteHost,
                 RemoteKnowledgeBaseRoutes.BROWSE_KB.at(),
                 partnerStationUid,
                 localStationId,
                 localPrivateKeyBase64,
-                RemoteKbFileSummary.class);
+                RemoteKbBrowse.class);
     }
 
     private List<RemoteKbSearchResultItem> searchKb(
@@ -718,9 +886,40 @@ public class KnowledgeBaseFederationService {
             int remoteId, String title, String description, String stationName, String stationUid, int partnerId) {}
 
     /**
+     * A folder a partner shares, as offered to the station reading it.
+     */
+    public record FederatedKbFolder(
+            int remoteId, String title, String description, String stationName, String stationUid, int partnerId) {}
+
+    /**
+     * One level of what the partners share: their folders and the articles standing beside them.
+     */
+    public record FederatedKbBrowse(List<FederatedKbFolder> folders, List<FederatedKbItem> files) {}
+
+    /**
+     * A folder a partner shares, as gathered before the partner's name is resolved.
+     */
+    public record SharedKbFolder(int id, String name, String description, int sourceStationId, int partnerId) {}
+
+    /**
+     * One level of a partner's shared wiki, as gathered.
+     */
+    public record SharedKbLevel(List<SharedKbFolder> folders, List<SharedKbItem> files) {}
+
+    /**
      * A shared file as served to a requesting partner.
      */
     public record RemoteKbFileSummary(int id, String name, String description, String fileType, String updatedAt) {}
+
+    /**
+     * A shared folder as served to a requesting partner.
+     */
+    public record RemoteKbFolderSummary(int id, String name, String description) {}
+
+    /**
+     * One level of a partner's shared wiki: the folders it offers and the articles standing beside them.
+     */
+    public record RemoteKbBrowse(List<RemoteKbFolderSummary> folders, List<RemoteKbFileSummary> files) {}
 
     /**
      * A search match as served to a requesting partner.
