@@ -273,6 +273,14 @@ class OnboardingServiceTest {
     }
 
     @Test
+    void aGuardianIsNotAskedToTrain() {
+        var tasks = keysOf(service.forMember(member(MEMBER, StationUserType.GUARDIAN), StationUserType.GUARDIAN));
+
+        assertFalse(tasks.contains("member.quiz"));
+        assertTrue(tasks.contains("member.profile"));
+    }
+
+    @Test
     void whatIsNotAGuardiansBusinessIsNotOnTheirList() {
         var tasks = keysOf(service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER));
 
