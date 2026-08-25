@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.quiz.route;
 
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
@@ -292,6 +293,7 @@ public class QuizCatalogRoutes implements Routes {
      * building their own starts from something that already imports rather than from a page of
      * prose about what the fields mean.
      */
+    @StationFree("the parameter is a file format, not a row; the example file is the same for every station")
     private void downloadTemplate(Context ctx) {
         var template = QuizCatalogTemplate.byFormat(ctx.pathParam("format"));
         if (template == null) throw new NotFoundResponse();
