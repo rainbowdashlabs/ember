@@ -74,7 +74,7 @@ test.describe('Help centre', () => {
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
         const results = await search(page, 'Medienverwaltung')
-        await expect(results.filter({hasText: 'Mediathek'}).first(),
+        await expect(results.filter({hasText: 'Medien'}).first(),
             'the media library page answers for a word only it uses').toBeVisible()
     })
 })

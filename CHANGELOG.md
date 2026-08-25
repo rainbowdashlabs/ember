@@ -24,6 +24,13 @@
 
 ### Improvements
 
+- **The wiki of an association can go on the public web.** A switch above the wiki puts it there, with the same three states a station has, and the address it answers at stands beside the switch. Until now an association had no way to publish anything at all: the setting existed but nothing could reach it.
+- **An association can say which of its stations a wiki entry is for.** Everything it writes still goes to all of them unless it says otherwise, and naming stations on a folder applies to everything inside; an entry within can narrow that further but not reach past it.
+- **Folders of an association's wiki arrive at its stations as folders.** What the association sorts into folders was flattened into a loose list of articles on the way; the structure now survives the trip and opens where the reader expects it.
+- **Who may see a wiki entry sits in its own place.** Visibility is its own point in the menu of every folder and article, beside Edit, rather than a section at the foot of the edit dialog. Editing keeps the name, the description and the tags.
+- **A wiki tile says how far its entry reaches.** A green eye marks an entry on the public wiki, a yellow one marks an entry shared without being open to everyone, and no eye means everyone who reads this wiki sees it.
+- **A role named on a shared wiki entry is the reader's own role.** An entry marked for the leadership reaches the leaderships of the stations it was shared with, rather than meaning nothing once it crosses to another station.
+- **The public setting of a wiki no longer disappears when the wiki is not public.** It stays visible and says that the public wiki is off and where it is switched on, instead of vanishing and leaving nobody able to find it.
 - **A question under a system notice reaches the instance.** Anyone may comment on a notice from the instance. A station sees the comments written in its own station, and the administrator sees all of them with the station each came from, so a question asked under a notice can be answered.
 - **Every text editor can insert a picture.** Where an editor only accepted a pasted address before, it now opens the media library to browse, search, upload and insert. News, board tickets, event descriptions, the knowledge base and the page editor all gain it at once.
 - **Clearing out unused files leaves what members brought in.** A file nothing points at is still offered for removal, but one somebody uploaded themselves is kept: a picture can outlive the first place it was used.

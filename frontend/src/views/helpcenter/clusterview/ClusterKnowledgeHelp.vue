@@ -22,8 +22,20 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.clusterKnowledge.sharingText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.clusterKnowledge.structureTitle')">
+      <p>{{ t('helpCenter.clusterKnowledge.structureText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.clusterKnowledge.rolesTitle')">
+      <p>{{ t('helpCenter.clusterKnowledge.rolesText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.clusterKnowledge.publicTitle')">
       <p>{{ t('helpCenter.clusterKnowledge.publicText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.clusterKnowledge.eyesTitle')">
+      <p>{{ t('helpCenter.clusterKnowledge.eyesText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.clusterKnowledge.tip') }}</HelpTip>

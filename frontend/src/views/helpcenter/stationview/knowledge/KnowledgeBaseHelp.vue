@@ -54,6 +54,14 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.kb.actionsMenuText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.kb.visibilityTitle')">
+      <p>{{ t('helpCenter.kb.visibilityText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.kb.eyesTitle')">
+      <p>{{ t('helpCenter.kb.eyesText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.kb.fileTypesTitle')">
       <BulletList>
         <li><strong>Markdown</strong>: {{ t('helpCenter.kb.markdownDesc') }}</li>
