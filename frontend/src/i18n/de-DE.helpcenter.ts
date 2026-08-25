@@ -856,7 +856,9 @@ volumes:
                 + 'App zu installieren. Dann steht dort ein Knopf dafür bereit, und Ember öffnet sich danach in '
                 + 'einem eigenen Fenster. In allen anderen Browsern legst du dir wie bisher ein Lesezeichen an.',
             onboardingSkip: 'Erledigt ist eine Aufgabe erst, wenn die Sache wirklich getan ist. Wer eine Aufgabe '
-                + 'nicht braucht, überspringt sie und kann sie später wieder aufnehmen.',
+                + 'nicht braucht, überspringt sie und kann sie später wieder aufnehmen. Wer sie gar nicht mehr '
+                + 'sehen will, verwirft sie unter „Übersprungen": dann verschwindet sie dauerhaft und kommt auch '
+                + 'nicht zurück, wenn die Sache später doch erledigt wird.',
             onboardingShared: 'Aufgaben der Wache und der Instanz teilen sich alle, die sie verwalten. Was einer '
                 + 'erledigt, ist für alle erledigt, und daneben steht, wer es war.',
             teamManagerExtra: 'Zusätzlich für Team & Verwalter',

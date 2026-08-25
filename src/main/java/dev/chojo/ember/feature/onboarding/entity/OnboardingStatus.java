@@ -19,13 +19,23 @@ import java.util.List;
  */
 public record OnboardingStatus(OnboardingLevel level, List<OnboardingTaskView> tasks, int open, int done, int skipped) {
 
+    /**
+     * Counts what is left of a level's tasks.
+     *
+     * <p>A dismissed task is dropped here rather than reported: somebody threw it away, and a list
+     * that keeps showing it, if only as a number, has not thrown anything away. Dropping it in the
+     * one place every level passes through is also what lets the list run out entirely.
+     */
     public static OnboardingStatus of(OnboardingLevel level, List<OnboardingTaskView> tasks) {
-        int done = (int) tasks.stream()
+        List<OnboardingTaskView> listed = tasks.stream()
+                .filter(task -> task.state() != OnboardingTaskState.DISMISSED)
+                .toList();
+        int done = (int) listed.stream()
                 .filter(task -> task.state() == OnboardingTaskState.DONE)
                 .count();
-        int skipped = (int) tasks.stream()
+        int skipped = (int) listed.stream()
                 .filter(task -> task.state() == OnboardingTaskState.SKIPPED)
                 .count();
-        return new OnboardingStatus(level, tasks, tasks.size() - done - skipped, done, skipped);
+        return new OnboardingStatus(level, listed, listed.size() - done - skipped, done, skipped);
     }
 }

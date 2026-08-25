@@ -12,10 +12,11 @@ import java.time.Instant;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
- * What somebody said about one task: that they ticked it off, or that they passed it over.
+ * What somebody said about one task: that they ticked it off, that they passed it over, or that they
+ * threw it away.
  *
  * @param taskKey the task this is about
- * @param state   {@code CONFIRMED} or {@code SKIPPED}
+ * @param state   {@code CONFIRMED}, {@code SKIPPED} or {@code DISMISSED}
  * @param changedAt when it was said
  * @param actorId who said it, on the shared levels, or null on a member's own tasks and once that
  *                person is gone
@@ -35,5 +36,10 @@ public record OnboardingMark(String taskKey, String state, Instant changedAt, In
 
     public boolean confirmed() {
         return "CONFIRMED".equals(state);
+    }
+
+    /** Whether the task was thrown away for good and is not to be listed again. */
+    public boolean dismissed() {
+        return "DISMISSED".equals(state);
     }
 }

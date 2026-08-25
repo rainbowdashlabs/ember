@@ -210,6 +210,32 @@ class OnboardingServiceTest {
     }
 
     @Test
+    void whatSomebodyThrewAwayIsNotListedAgain() {
+        when(markRepository.findByMember(MEMBER))
+                .thenReturn(List.of(new OnboardingMark("member.absence", "DISMISSED", Instant.now(), null)));
+
+        var status = service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER);
+
+        assertFalse(keysOf(status).contains("member.absence"));
+        assertTrue(keysOf(status).contains("member.profile"));
+    }
+
+    /**
+     * A derived task reads its answer from the data, so throwing it away has to beat that answer.
+     * Otherwise the one task somebody wanted rid of would come back the moment it became true.
+     */
+    @Test
+    void aThrownAwayTaskStaysGoneEvenOnceItsAnswerIsThere() {
+        when(markRepository.findByMember(MEMBER))
+                .thenReturn(List.of(new OnboardingMark("member.calendar", "DISMISSED", Instant.now(), null)));
+        when(feedTokenRepository.findByMember(MEMBER))
+                .thenReturn(Optional.of(new FeedToken(MEMBER, "token", Instant.now(), Instant.now(), null)));
+
+        assertFalse(keysOf(service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER))
+                .contains("member.calendar"));
+    }
+
+    @Test
     void aTaskThatReadsItsOwnAnswerCannotBeTickedOff() {
         assertThrows(
                 BadRequestResponse.class,

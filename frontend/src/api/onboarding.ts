@@ -17,6 +17,8 @@ export const OnboardingTaskState = {
     OPEN: 'OPEN',
     DONE: 'DONE',
     SKIPPED: 'SKIPPED',
+    /** Thrown away for good. Sent to the server, never received: such a task is not listed again. */
+    DISMISSED: 'DISMISSED',
 } as const
 
 export type OnboardingTaskStateName = (typeof OnboardingTaskState)[keyof typeof OnboardingTaskState]

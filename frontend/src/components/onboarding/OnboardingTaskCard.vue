@@ -34,7 +34,7 @@ const props = defineProps<{
 }>()
 
 const {t} = useI18n()
-const {status, load, start, skip, resume, confirm} = useOnboardingTasks()
+const {status, load, start, skip, discard, resume, confirm} = useOnboardingTasks()
 
 const tasks = computed(() => status.value[props.level]?.tasks ?? [])
 const open = computed(() => tasks.value.filter(task => task.state === OnboardingTaskState.OPEN))
@@ -118,6 +118,7 @@ onMounted(() => load(props.level))
 
     <div v-if="skipped.length > 0" class="space-y-2 border-t border-(--border) pt-3">
       <MutedText tag="p" size="sm">{{ t('onboarding.card.skippedTitle') }}</MutedText>
+      <MutedText tag="p" size="sm">{{ t('onboarding.card.skippedHint') }}</MutedText>
       <div v-for="task in skipped" :key="task.id" class="flex flex-wrap items-center gap-2 text-sm">
         <span class="text-(--text-muted)">{{ title(task) }}</span>
         <MutedText v-if="shared && task.actorName" size="sm">
@@ -125,6 +126,9 @@ onMounted(() => load(props.level))
         </MutedText>
         <SecondaryButton class="ml-auto text-xs" @click="resume(level, task.id)">
           {{ t('onboarding.card.resume') }}
+        </SecondaryButton>
+        <SecondaryButton class="text-xs" @click="discard(level, task.id)">
+          {{ t('onboarding.card.discard') }}
         </SecondaryButton>
       </div>
     </div>

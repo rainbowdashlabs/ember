@@ -75,6 +75,12 @@ export function useOnboardingTasks() {
 
     const skip = (level: OnboardingLevelName, taskId: string) => mark(level, taskId, OnboardingTaskState.SKIPPED)
 
+    /**
+     * Throws a passed-over task away for good. It leaves the list and does not come back, which is
+     * how a list of first steps is finally done with rather than carrying its leftovers forever.
+     */
+    const discard = (level: OnboardingLevelName, taskId: string) => mark(level, taskId, OnboardingTaskState.DISMISSED)
+
     /** Puts a skipped task back on the list, which anyone sharing it may do. */
     const resume = (level: OnboardingLevelName, taskId: string) => mark(level, taskId, OnboardingTaskState.OPEN)
 
@@ -120,6 +126,7 @@ export function useOnboardingTasks() {
         load,
         confirm,
         skip,
+        discard,
         resume,
         start,
         startNext,

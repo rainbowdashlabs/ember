@@ -186,7 +186,11 @@ public class OnboardingService {
         if (state == OnboardingTaskState.DONE && task.derived()) {
             throw new BadRequestResponse("This task finishes itself once it is actually done");
         }
-        String stored = state == OnboardingTaskState.DONE ? "CONFIRMED" : "SKIPPED";
+        String stored = switch (state) {
+            case DONE -> "CONFIRMED";
+            case DISMISSED -> "DISMISSED";
+            case OPEN, SKIPPED -> "SKIPPED";
+        };
         switch (level) {
             case MEMBER -> {
                 if (state == OnboardingTaskState.OPEN) markRepository.clearForMember(memberId, taskId);
@@ -216,7 +220,10 @@ public class OnboardingService {
         String id = subjectId == null ? task.key() : task.key() + ":" + subjectId;
         OnboardingMark mark = marks.get(id);
         OnboardingTaskState state;
-        if (task.derived()) {
+        if (mark != null && mark.dismissed()) {
+            // Thrown away for good, and so not asked about again, whatever the data would now say.
+            state = OnboardingTaskState.DISMISSED;
+        } else if (task.derived()) {
             state = derived.done()
                     ? OnboardingTaskState.DONE
                     : mark != null && mark.skipped() ? OnboardingTaskState.SKIPPED : OnboardingTaskState.OPEN;

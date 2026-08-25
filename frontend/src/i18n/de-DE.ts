@@ -6234,8 +6234,10 @@ export default {
             confirm: 'Erledigt',
             skip: 'Überspringen',
             resume: 'Wieder aufnehmen',
+            discard: 'Verwerfen',
             allDone: 'Alles erledigt. Schön, dass du dabei bist!',
             skippedTitle: 'Übersprungen',
+            skippedHint: 'Verworfene Aufgaben verschwinden dauerhaft und kommen nicht zurück.',
             settledBy: 'von {name}',
             MEMBER: {
                 title: 'Deine ersten Schritte',
