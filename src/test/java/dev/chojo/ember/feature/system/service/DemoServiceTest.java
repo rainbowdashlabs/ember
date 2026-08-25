@@ -212,7 +212,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 memberNameResolver,
                 federationFanout,
                 federationEntityResolver,
-                mock(KbPdfExportService.class));
+                mock(KbPdfExportService.class),
+                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo));
         var quizQuestionService = new QuizQuestionService(quizCatalogRepo);
         var quizService = new QuizService(
                 new QuizCatalogService(quizCatalogRepo),

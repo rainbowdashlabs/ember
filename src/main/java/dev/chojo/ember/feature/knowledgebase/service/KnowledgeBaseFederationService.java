@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -21,6 +22,7 @@ import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.knowledgebase.entity.KbAccessGrant;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
@@ -75,6 +77,7 @@ public class KnowledgeBaseFederationService {
     private final FederationFanout fanout;
     private final FederationEntityResolver entityResolver;
     private final KbPdfExportService pdfExportService;
+    private final KbAccessService accessService;
 
     @Inject
     public KnowledgeBaseFederationService(
@@ -90,7 +93,8 @@ public class KnowledgeBaseFederationService {
             MemberNameResolver memberNameResolver,
             FederationFanout fanout,
             FederationEntityResolver entityResolver,
-            KbPdfExportService pdfExportService) {
+            KbPdfExportService pdfExportService,
+            KbAccessService accessService) {
         this.knowledgeBaseService = knowledgeBaseService;
         this.contentService = contentService;
         this.searchService = searchService;
@@ -104,6 +108,7 @@ public class KnowledgeBaseFederationService {
         this.fanout = fanout;
         this.entityResolver = entityResolver;
         this.pdfExportService = pdfExportService;
+        this.accessService = accessService;
     }
 
     /**
@@ -114,9 +119,27 @@ public class KnowledgeBaseFederationService {
      * @param stationId the browsing station ID
      * @return the shared files of all partners that answered
      */
-    public FederatedKbBrowse browseFederatedKb(int stationId) {
+    public FederatedKbBrowse browseFederatedKb(int stationId, StationUserType readerUserType) {
         var gathered = browseSharedKb(stationId);
-        return new FederatedKbBrowse(named(gathered.folders()), namedFiles(gathered.files()));
+        return new FederatedKbBrowse(
+                named(gathered.folders()).stream()
+                        .filter(folder -> mayRead(folder.userTypes(), readerUserType))
+                        .toList(),
+                namedFiles(gathered.files()).stream()
+                        .filter(file -> mayRead(file.userTypes(), readerUserType))
+                        .toList());
+    }
+
+    /**
+     * Whether a reader's own user type is one an entry names.
+     *
+     * <p>An entry that names none is for everybody. One that names some is for the readers of those types
+     * at the stations it reached, which is the whole of what a user type means across a share: the type is
+     * the reader's, held at their own station.
+     */
+    private static boolean mayRead(List<String> userTypes, StationUserType readerUserType) {
+        if (userTypes == null || userTypes.isEmpty()) return true;
+        return readerUserType != null && userTypes.contains(readerUserType.name());
     }
 
     /**
@@ -126,7 +149,8 @@ public class KnowledgeBaseFederationService {
      * @param partnerStationUid the partner serving the folder
      * @param folderId          the folder being opened
      */
-    public FederatedKbBrowse browseFederatedKbFolder(int stationId, UUID partnerStationUid, int folderId) {
+    public FederatedKbBrowse browseFederatedKbFolder(
+            int stationId, UUID partnerStationUid, int folderId, StationUserType readerUserType) {
         var level = entityResolver.resolve(
                 stationId,
                 partnerStationUid,
@@ -141,12 +165,26 @@ public class KnowledgeBaseFederationService {
         String uid = partnerStationUid.toString();
         return new FederatedKbBrowse(
                 level.folders().stream()
+                        .filter(folder -> mayRead(folder.userTypes(), readerUserType))
                         .map(folder -> new FederatedKbFolder(
-                                folder.id(), folder.name(), folder.description(), stationName, uid, partner.id()))
+                                folder.id(),
+                                folder.name(),
+                                folder.description(),
+                                stationName,
+                                uid,
+                                partner.id(),
+                                folder.userTypes()))
                         .toList(),
                 level.files().stream()
+                        .filter(file -> mayRead(file.userTypes(), readerUserType))
                         .map(file -> new FederatedKbItem(
-                                file.id(), file.name(), file.description(), stationName, uid, partner.id()))
+                                file.id(),
+                                file.name(),
+                                file.description(),
+                                stationName,
+                                uid,
+                                partner.id(),
+                                file.userTypes()))
                         .toList());
     }
 
@@ -162,7 +200,8 @@ public class KnowledgeBaseFederationService {
                             folder.description(),
                             FederationDisplayNames.partnerName(stationRepository, partner, "Unknown"),
                             partner != null ? partner.partnerStationId().toString() : null,
-                            folder.partnerId());
+                            folder.partnerId(),
+                            folder.userTypes());
                 })
                 .toList();
     }
@@ -180,7 +219,8 @@ public class KnowledgeBaseFederationService {
                             item.file().description() != null ? item.file().description() : "",
                             stationName,
                             partner != null ? partner.partnerStationId().toString() : null,
-                            item.partnerId());
+                            item.partnerId(),
+                            item.userTypes());
                 })
                 .toList();
     }
@@ -437,7 +477,7 @@ public class KnowledgeBaseFederationService {
                 .flatMap(id -> knowledgeBaseService.findFolder(id).stream())
                 .filter(folder -> folder.stationId() == servingStationId)
                 .filter(folder -> !isInsideAnyOf(folder.parentId(), sharedFolders))
-                .map(KnowledgeBaseFederationService::summary)
+                .map(this::summary)
                 .toList();
 
         // An article whose folder is shared arrives inside that folder, so offering it here as well would
@@ -449,7 +489,7 @@ public class KnowledgeBaseFederationService {
                 .flatMap(id -> knowledgeBaseService.findFile(id).stream())
                 .filter(file -> file.stationId() == servingStationId)
                 .filter(file -> !isInsideAnyOf(file.folderId(), sharedFolders))
-                .map(KnowledgeBaseFederationService::summary)
+                .map(this::summary)
                 .toList();
 
         return new RemoteKbBrowse(folders, files);
@@ -474,10 +514,10 @@ public class KnowledgeBaseFederationService {
         }
         return new RemoteKbBrowse(
                 knowledgeBaseService.findFolders(servingStationId, folderId).stream()
-                        .map(KnowledgeBaseFederationService::summary)
+                        .map(this::summary)
                         .toList(),
                 knowledgeBaseService.findFiles(servingStationId, folderId).stream()
-                        .map(KnowledgeBaseFederationService::summary)
+                        .map(this::summary)
                         .toList());
     }
 
@@ -493,18 +533,43 @@ public class KnowledgeBaseFederationService {
         return false;
     }
 
-    private static RemoteKbFolderSummary summary(KbFolder folder) {
+    private RemoteKbFolderSummary summary(KbFolder folder) {
         return new RemoteKbFolderSummary(
-                folder.id(), folder.name(), folder.description() != null ? folder.description() : "");
+                folder.id(),
+                folder.name(),
+                folder.description() != null ? folder.description() : "",
+                travellingUserTypes(folder.id(), null));
     }
 
-    private static RemoteKbFileSummary summary(KbFile file) {
+    private RemoteKbFileSummary summary(KbFile file) {
         return new RemoteKbFileSummary(
                 file.id(),
                 file.name(),
                 file.description() != null ? file.description() : "",
                 file.fileType().name(),
-                file.updatedAt().toString());
+                file.updatedAt().toString(),
+                travellingUserTypes(null, file.id()));
+    }
+
+    /**
+     * The user types an entry is restricted to, which travel with it to the station reading it.
+     *
+     * <p>The station serving an entry never learns who is reading it: it is handed a partnership, which is
+     * a station, and the person behind the request does not cross the boundary. So the audience goes over
+     * and the receiving station, where the reader is known, drops what does not match.
+     *
+     * <p>Only user types travel. A member group and a user tag are one station's own rows with no
+     * counterpart at the next, so the receiving station could not apply them.
+     *
+     * @return the user types named, or empty when the entry names none and is therefore for everybody
+     */
+    private List<String> travellingUserTypes(Integer folderId, Integer fileId) {
+        return accessService.findRestrictions(folderId, fileId).stream()
+                .map(KbAccessGrant::userType)
+                .filter(Objects::nonNull)
+                .map(Enum::name)
+                .distinct()
+                .toList();
     }
 
     /**
@@ -763,26 +828,22 @@ public class KnowledgeBaseFederationService {
         var served = servedLevel(remoteStationId, servingSideId(partner));
         var folders = served.folders().stream()
                 .map(folder -> new SharedKbFolder(
-                        folder.id(), folder.name(), folder.description(), remoteStationId, partner.id()))
+                        folder.id(),
+                        folder.name(),
+                        folder.description(),
+                        remoteStationId,
+                        partner.id(),
+                        folder.userTypes()))
                 .toList();
         var files = new ArrayList<SharedKbItem>();
         for (var summary : served.files()) {
             knowledgeBaseService.findFile(summary.id()).ifPresent(file -> {
-                files.add(new SharedKbItem(KbFileSummary.of(file), remoteStationId, partner.id()));
+                files.add(new SharedKbItem(KbFileSummary.of(file), remoteStationId, partner.id(), summary.userTypes()));
                 federationRepository.upsertMetadataCache(
                         partner.id(), ContentType.KB, file.id(), file.name(), file.description());
             });
         }
         return new SharedKbLevel(folders, files);
-    }
-
-    /** Adds one shared article to the answer, unless another share has already offered it. */
-    private void take(
-            KbFile file, int remoteStationId, FederationPartner partner, Set<Integer> seen, List<SharedKbItem> result) {
-        if (!seen.add(file.id())) return;
-        result.add(new SharedKbItem(KbFileSummary.of(file), remoteStationId, partner.id()));
-        federationRepository.upsertMetadataCache(
-                partner.id(), ContentType.KB, file.id(), file.name(), file.description());
     }
 
     private SharedKbLevel browseSharedKbViaHttp(int localStationId, FederationPartner partner, int remoteStationId) {
@@ -799,13 +860,18 @@ public class KnowledgeBaseFederationService {
                     KbFileType.valueOf(remoteFile.fileType() != null ? remoteFile.fileType() : "MARKDOWN"),
                     Instant.now(),
                     false);
-            result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
+            result.add(new SharedKbItem(summary, remoteStationId, partner.id(), remoteFile.userTypes()));
             federationRepository.upsertMetadataCache(
                     partner.id(), ContentType.KB, remoteFile.id(), remoteFile.name(), remoteFile.description());
         }
         var folders = served.folders().stream()
                 .map(folder -> new SharedKbFolder(
-                        folder.id(), folder.name(), folder.description(), remoteStationId, partner.id()))
+                        folder.id(),
+                        folder.name(),
+                        folder.description(),
+                        remoteStationId,
+                        partner.id(),
+                        folder.userTypes()))
                 .toList();
         return new SharedKbLevel(folders, result);
     }
@@ -965,7 +1031,7 @@ public class KnowledgeBaseFederationService {
      * A file shared by a partner, carrying the station that owns it and the partnership it came
      * through.
      */
-    public record SharedKbItem(KbFileSummary file, int sourceStationId, int partnerId) {}
+    public record SharedKbItem(KbFileSummary file, int sourceStationId, int partnerId, List<String> userTypes) {}
 
     /**
      * A search match from a partner, carrying the name and UUID of the serving station.
@@ -978,13 +1044,25 @@ public class KnowledgeBaseFederationService {
      * can no longer be resolved.
      */
     public record FederatedKbItem(
-            int remoteId, String title, String description, String stationName, String stationUid, int partnerId) {}
+            int remoteId,
+            String title,
+            String description,
+            String stationName,
+            String stationUid,
+            int partnerId,
+            List<String> userTypes) {}
 
     /**
      * A folder a partner shares, as offered to the station reading it.
      */
     public record FederatedKbFolder(
-            int remoteId, String title, String description, String stationName, String stationUid, int partnerId) {}
+            int remoteId,
+            String title,
+            String description,
+            String stationName,
+            String stationUid,
+            int partnerId,
+            List<String> userTypes) {}
 
     /**
      * One level of what the partners share: their folders and the articles standing beside them.
@@ -994,7 +1072,8 @@ public class KnowledgeBaseFederationService {
     /**
      * A folder a partner shares, as gathered before the partner's name is resolved.
      */
-    public record SharedKbFolder(int id, String name, String description, int sourceStationId, int partnerId) {}
+    public record SharedKbFolder(
+            int id, String name, String description, int sourceStationId, int partnerId, List<String> userTypes) {}
 
     /**
      * One level of a partner's shared wiki, as gathered.
@@ -1004,12 +1083,13 @@ public class KnowledgeBaseFederationService {
     /**
      * A shared file as served to a requesting partner.
      */
-    public record RemoteKbFileSummary(int id, String name, String description, String fileType, String updatedAt) {}
+    public record RemoteKbFileSummary(
+            int id, String name, String description, String fileType, String updatedAt, List<String> userTypes) {}
 
     /**
      * A shared folder as served to a requesting partner.
      */
-    public record RemoteKbFolderSummary(int id, String name, String description) {}
+    public record RemoteKbFolderSummary(int id, String name, String description, List<String> userTypes) {}
 
     /**
      * One level of a partner's shared wiki: the folders it offers and the articles standing beside them.

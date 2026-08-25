@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
@@ -33,6 +34,8 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
@@ -79,6 +82,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     private static Account account;
     private static StationMember member;
     private static FederationPartner requestingPartner;
+    private static KbAccessService accessService;
 
     @BeforeAll
     static void setup() {
@@ -105,6 +109,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 new PresentationCompressor(storageConfig),
                 new PdfCompressor(storageConfig),
                 new ClusterAutoShareService(new ClusterRepository(), new FederationRepository()));
+        accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
         service = new KnowledgeBaseFederationService(
                 kbService,
                 contentService,
@@ -118,7 +123,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 memberNameResolver,
                 new FederationFanout(),
                 new FederationEntityResolver(federationRepo, stationRepo, httpClient),
-                mock(KbPdfExportService.class));
+                mock(KbPdfExportService.class),
+                accessService);
 
         station = stationRepo.create("KbFedStation");
         stationB = stationRepo.create("KbFedStationB");
@@ -200,7 +206,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertTrue(level.folders().stream().anyMatch(shared -> shared.id() == folder.id()));
         assertTrue(level.files().stream().noneMatch(item -> item.file().id() == file.id()));
 
-        var inside = service.browseFederatedKbFolder(station.id(), stationB.uid(), folder.id());
+        var inside = service.browseFederatedKbFolder(station.id(), stationB.uid(), folder.id(), StationUserType.MEMBER);
         assertTrue(inside.files().stream().anyMatch(item -> item.remoteId() == file.id()));
 
         federationRepo.deleteKbShare(share.id(), stationB.id());
@@ -229,7 +235,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 member.id());
         var share = federationRepo.createKbShare(stationB.id(), null, outer.id(), ShareScope.ALL_PARTNERS);
 
-        var top = service.browseFederatedKb(station.id());
+        var top = service.browseFederatedKb(station.id(), StationUserType.MEMBER);
         var served = top.folders().stream()
                 .filter(candidate -> candidate.remoteId() == outer.id())
                 .findFirst()
@@ -240,10 +246,11 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
 
         // The subfolder is offered inside the shared one, not beside it at the top
         assertTrue(top.folders().stream().noneMatch(candidate -> candidate.remoteId() == inner.id()));
-        var opened = service.browseFederatedKbFolder(station.id(), stationB.uid(), outer.id());
+        var opened = service.browseFederatedKbFolder(station.id(), stationB.uid(), outer.id(), StationUserType.MEMBER);
         assertTrue(opened.folders().stream().anyMatch(candidate -> candidate.remoteId() == inner.id()));
 
-        var deepLevel = service.browseFederatedKbFolder(station.id(), stationB.uid(), inner.id());
+        var deepLevel =
+                service.browseFederatedKbFolder(station.id(), stationB.uid(), inner.id(), StationUserType.MEMBER);
         assertTrue(deepLevel.files().stream().anyMatch(candidate -> candidate.remoteId() == deep.id()));
 
         federationRepo.deleteKbShare(share.id(), stationB.id());
@@ -325,13 +332,39 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         knowledgeBaseRepo.deleteFolder(folder.id());
     }
 
+    /**
+     * A user type set on a shared entry means the reader's own type at their own station. The station
+     * serving the entry never learns who is reading, so the audience travels and is applied at the far end.
+     */
+    @Test
+    @Order(3)
+    void aUserTypeOnASharedEntryIsTheReadersOwn() {
+        var forTeam = knowledgeBaseRepo.createFile(
+                stationB.id(), null, "TeamOnly", "desc", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
+        var share = federationRepo.createKbShare(stationB.id(), forTeam.id(), null, ShareScope.ALL_PARTNERS);
+        accessService.setRestrictions(
+                null,
+                forTeam.id(),
+                new RestrictionSelection(
+                        List.of(StationUserType.TEAM), List.of(), List.of(), List.of(), RestrictionMode.AND));
+
+        assertTrue(service.browseFederatedKb(station.id(), StationUserType.TEAM).files().stream()
+                .anyMatch(item -> item.remoteId() == forTeam.id()));
+        assertTrue(service.browseFederatedKb(station.id(), StationUserType.MEMBER).files().stream()
+                .noneMatch(item -> item.remoteId() == forTeam.id()));
+
+        federationRepo.deleteKbShare(share.id(), stationB.id());
+        knowledgeBaseRepo.deleteFile(forTeam.id());
+    }
+
     @Test
     @Order(4)
     void browseFederatedKbCarriesPartnerStationName() {
         var file = createFile(stationB.id(), "NamedFedFile");
         var share = federationRepo.createKbShare(stationB.id(), file.id(), null, ShareScope.ALL_PARTNERS);
 
-        var items = service.browseFederatedKb(station.id()).files();
+        var items =
+                service.browseFederatedKb(station.id(), StationUserType.MEMBER).files();
         var item = items.stream()
                 .filter(candidate -> candidate.remoteId() == file.id())
                 .findFirst()
@@ -373,7 +406,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 .thenReturn(new KnowledgeBaseFederationService.RemoteKbBrowse(
                         List.of(),
                         List.of(new KnowledgeBaseFederationService.RemoteKbFileSummary(
-                                99, "RemoteFile", "remote desc", "MARKDOWN", "now"))));
+                                99, "RemoteFile", "remote desc", "MARKDOWN", "now", List.of()))));
 
         var items = service.browseSharedKb(station.id()).files();
         assertTrue(items.stream().anyMatch(item -> item.file().name().equals("RemoteFile")));
@@ -392,7 +425,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 .thenReturn(new KnowledgeBaseFederationService.RemoteKbBrowse(
                         List.of(),
                         List.of(new KnowledgeBaseFederationService.RemoteKbFileSummary(
-                                98, "TypeLess", "no type", null, "now"))));
+                                98, "TypeLess", "no type", null, "now", List.of()))));
 
         var items = service.browseSharedKb(station.id()).files();
         var item = items.stream()
@@ -944,7 +977,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     void federationRecords() {
         var summary = new KbFileSummary(1, 2, null, "Test", "Desc", KbFileType.MARKDOWN, Instant.now(), false);
 
-        var shared = new KnowledgeBaseFederationService.SharedKbItem(summary, 2, 3);
+        var shared = new KnowledgeBaseFederationService.SharedKbItem(summary, 2, 3, List.of());
         assertEquals(1, shared.file().id());
         assertEquals(2, shared.sourceStationId());
         assertEquals(3, shared.partnerId());
@@ -954,14 +987,17 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals("Station", result.stationName());
         assertEquals("uid-123", result.stationUid());
 
-        var item = new KnowledgeBaseFederationService.FederatedKbItem(4, "Title", "Desc", "Station", "uid-456", 6);
+        var item = new KnowledgeBaseFederationService.FederatedKbItem(
+                4, "Title", "Desc", "Station", "uid-456", 6, List.of());
         assertEquals(4, item.remoteId());
         assertEquals("Title", item.title());
         assertEquals("uid-456", item.stationUid());
 
-        var served = new KnowledgeBaseFederationService.RemoteKbFileSummary(7, "Name", "Desc", "MARKDOWN", "now");
+        var served = new KnowledgeBaseFederationService.RemoteKbFileSummary(
+                7, "Name", "Desc", "MARKDOWN", "now", List.of("TEAM"));
         assertEquals(7, served.id());
         assertEquals("MARKDOWN", served.fileType());
+        assertEquals(List.of("TEAM"), served.userTypes());
 
         var match = new KnowledgeBaseFederationService.RemoteKbSearchResultItem(8, "Name", "Desc", "Snippet");
         assertEquals(8, match.id());
