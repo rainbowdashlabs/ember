@@ -164,7 +164,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 memberLookupService,
                 accountRepo);
-        var inventoryService = new InventoryService(inventoryRepo, itemCustodyService, clusterRepo);
+        var inventoryService =
+                new InventoryService(inventoryRepo, itemCustodyService, clusterRepo, clusterStationGroupRepo);
         var exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         var procurementService = new ProcurementService(
                 procurementRepo, inventoryService, inventoryRepo, clusterRepo, itemCustodyService, noOpBus);
@@ -370,11 +371,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var quizSeeder = new DemoQuizSeeder(quizCatalogRepo, quizTestRepo, quizService, quizImageService);
         var kbSeeder = new DemoKnowledgeBaseSeeder(kbService, kbContentService, knowledgeBaseRepo);
         var protocolSeeder = new DemoProtocolSeeder(testProtocolRepo);
-        var mediaSeeder = new DemoMediaSeeder(
-                avatarService,
-                stationService,
-                mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
-                accountRepo);
+        var avatarSeeder = new DemoAvatarSeeder(avatarService, accountRepo);
         var federationSeeder = new DemoFederationSeeder(
                 stationRepo,
                 federationService,
@@ -471,7 +468,7 @@ class DemoServiceTest extends RepositoryTestBase {
                         kbSeeder,
                         protocolSeeder,
                         procedureSeeder,
-                        mediaSeeder,
+                        avatarSeeder,
                         federationSeeder,
                         settingsSeeder,
                         checklistSeederLocal,

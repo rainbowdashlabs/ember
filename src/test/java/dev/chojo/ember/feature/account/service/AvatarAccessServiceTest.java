@@ -6,10 +6,13 @@
 package dev.chojo.ember.feature.account.service;
 
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.cluster.entity.ClusterMember;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -40,6 +43,7 @@ class AvatarAccessServiceTest {
     private StationMemberRepository stationMemberRepository;
     private StationRepository stationRepository;
     private FederationRepository federationRepository;
+    private ClusterRepository clusterRepository;
     private AvatarAccessService service;
 
     private static Account account(int id, UUID uid, InstanceUserType type) {
@@ -55,6 +59,11 @@ class AvatarAccessServiceTest {
         return new UserSession(account, 1, stationId, null, null, Set.of(), Set.of(), null);
     }
 
+    /** Somebody acting for an association, who may hold no station of their own. */
+    private static UserSession clusterSession(Account account, Integer clusterId) {
+        return new UserSession(account, 1, null, null, null, Set.of(), Set.of(), null, clusterId, null, null, Set.of());
+    }
+
     private static FederationPartner partner(FederationPartner.FederationStatus status) {
         return new FederationPartner(
                 1, 1, TARGET_UID, "code", "pub", "partnerPub", status, null, Instant.now(), Instant.now(), null, "P");
@@ -66,8 +75,9 @@ class AvatarAccessServiceTest {
         stationMemberRepository = mock(StationMemberRepository.class);
         stationRepository = mock(StationRepository.class);
         federationRepository = mock(FederationRepository.class);
+        clusterRepository = mock(ClusterRepository.class);
         service = new AvatarAccessService(
-                accountRepository, stationMemberRepository, stationRepository, federationRepository);
+                accountRepository, stationMemberRepository, stationRepository, federationRepository, clusterRepository);
     }
 
     @Test
@@ -293,6 +303,61 @@ class AvatarAccessServiceTest {
         assertTrue(service.memberAvatarUid(
                         session(account(1, CALLER_UID, InstanceUserType.USER), 8), STATION_UID, MEMBER_UID)
                 .isEmpty());
+    }
+
+    @Test
+    void accountAvatarUid_fellowMemberOfTheAssociation_isVisible() {
+        when(accountRepository.findByUid(TARGET_UID))
+                .thenReturn(Optional.of(account(2, TARGET_UID, InstanceUserType.USER)));
+        when(clusterRepository.findMember(5, 2))
+                .thenReturn(Optional.of(new ClusterMember(1, 5, 2, ClusterUserType.CLUSTER_USER)));
+
+        assertEquals(
+                Optional.of(TARGET_UID),
+                service.accountAvatarUid(clusterSession(account(1, CALLER_UID, InstanceUserType.USER), 5), TARGET_UID));
+    }
+
+    @Test
+    void accountAvatarUid_somebodyAtAGovernedStation_isVisible() {
+        when(accountRepository.findByUid(TARGET_UID))
+                .thenReturn(Optional.of(account(2, TARGET_UID, InstanceUserType.USER)));
+        when(clusterRepository.findMember(5, 2)).thenReturn(Optional.empty());
+        when(stationMemberRepository.findByAccount(2)).thenReturn(List.of(member(20, 7, 2)));
+        when(clusterRepository.findStationIds(5)).thenReturn(List.of(7));
+
+        assertEquals(
+                Optional.of(TARGET_UID),
+                service.accountAvatarUid(clusterSession(account(1, CALLER_UID, InstanceUserType.USER), 5), TARGET_UID));
+    }
+
+    @Test
+    void accountAvatarUid_somebodyAtAStationTheAssociationDoesNotGovern_isEmpty() {
+        when(accountRepository.findByUid(TARGET_UID))
+                .thenReturn(Optional.of(account(2, TARGET_UID, InstanceUserType.USER)));
+        when(clusterRepository.findMember(5, 2)).thenReturn(Optional.empty());
+        when(stationMemberRepository.findByAccount(2)).thenReturn(List.of(member(20, 9, 2)));
+        when(clusterRepository.findStationIds(5)).thenReturn(List.of(7));
+        when(stationMemberRepository.findByAccount(1)).thenReturn(List.of());
+
+        assertTrue(
+                service.accountAvatarUid(clusterSession(account(1, CALLER_UID, InstanceUserType.USER), 5), TARGET_UID)
+                        .isEmpty());
+    }
+
+    @Test
+    void memberAvatarUid_atAGovernedStation_isVisible() {
+        var station = mock(Station.class);
+        when(station.id()).thenReturn(7);
+        when(stationRepository.findByUid(STATION_UID)).thenReturn(Optional.of(station));
+        when(stationMemberRepository.findByUid(7, MEMBER_UID)).thenReturn(Optional.of(member(20, 7, 2)));
+        when(stationMemberRepository.findByStationAndAccount(7, 1)).thenReturn(Optional.empty());
+        when(clusterRepository.findStationIds(5)).thenReturn(List.of(7));
+        when(accountRepository.resolveUid(2)).thenReturn(TARGET_UID);
+
+        assertEquals(
+                Optional.of(TARGET_UID),
+                service.memberAvatarUid(
+                        clusterSession(account(1, CALLER_UID, InstanceUserType.USER), 5), STATION_UID, MEMBER_UID));
     }
 
     @Test

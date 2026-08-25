@@ -11,7 +11,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {ClusterMemberSummary} from '@/api/clusterMembers'
+import MemberName from '@/components/avatar/MemberName.vue'
+import {clusterMemberIdentity, type ClusterMemberSummary} from '@/api/clusterMembers'
 
 /** Who runs the association. The list the page opens on, rather than a form. */
 const props = defineProps<{
@@ -51,7 +52,7 @@ const {t} = useI18n()
           @click="emit('select', member)"
       >
         <div class="flex items-center justify-between gap-2">
-          <span class="font-medium">{{ member.name ?? member.email }}</span>
+          <MemberName :identity="clusterMemberIdentity(member)" size="md" class="font-medium"/>
           <SecondaryBadge>{{ t(`clusterOverview.role.${member.userType}`) }}</SecondaryBadge>
         </div>
         <MutedText v-if="member.name && member.email" size="sm">{{ member.email }}</MutedText>

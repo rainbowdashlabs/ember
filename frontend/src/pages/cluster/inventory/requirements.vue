@@ -23,6 +23,6 @@ const {homeStationId} = useClusterHomeStation()
 <template>
   <div class="space-y-6">
     <InventoryTabs/>
-    <RequirementsView v-if="homeStationId" />
+    <RequirementsView v-if="homeStationId" station-scoped/>
   </div>
 </template>

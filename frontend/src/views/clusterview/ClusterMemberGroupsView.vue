@@ -16,6 +16,7 @@ import GroupDeleteModal from '@/views/stationview/members/groupsview/GroupDelete
 import {useMemberAssignment} from '@/views/stationview/members/useMemberAssignment'
 import {memberDisplayName} from '@/views/stationview/members/listview/useMemberData'
 import {clusterMembers, data} from '@/api'
+import {clusterMemberIdentity, type ClusterMemberSummary} from '@/api/clusterMembers'
 import {ClusterPermission} from '@/api/clusters'
 import {useSession} from '@/composables/useSession'
 import {useGroupsConfig, type GroupsPort} from '@/composables/useGroupsConfig'
@@ -37,10 +38,21 @@ const grants = ref<PermissionGrant[]>([])
 const idByName = computed(() => new Map(grants.value.map(g => [g.permission, g.id])))
 const nameById = computed(() => new Map(grants.value.map(g => [g.id, g.permission])))
 
+/**
+ * A member in the shape the shared group panels draw a person in.
+ *
+ * <p>Those panels read one field for the whole row: the identity. An association's people are accounts
+ * rather than members of a station, so the identity is built from the account here instead of arriving
+ * from the server, and without it every row showed a blank name beside an empty avatar.
+ */
+function drawable(member: ClusterMemberSummary) {
+  return {...member, identity: clusterMemberIdentity(member)}
+}
+
 /** An association's group gathers the people who run it, carries no colour and cannot become a tag. */
 const port: GroupsPort = {
   listGroups: () => clusterMembers.listGroups(),
-  listCandidates: () => clusterMembers.listMembers(),
+  listCandidates: async () => (await clusterMembers.listMembers()).map(drawable),
   listAllRoles: async () => {
     const hierarchy = await data.getClusterPermissionHierarchy().catch(() => [])
     grants.value = hierarchy.map((node, index) => ({id: index + 1, permission: node.name}))
@@ -53,7 +65,7 @@ const port: GroupsPort = {
     ])
     const held = new Set(detail.memberIds)
     return {
-      members: all.filter(m => held.has(m.id)),
+      members: all.filter(m => held.has(m.id)).map(drawable),
       roles: detail.permissions
           .map(name => idByName.value.get(name))
           .filter((id): id is number => !!id)
@@ -76,7 +88,13 @@ const {
   groupLoading, loading, error, showGroupModal, editingGroup, groupName, groupColor,
   groupSaving, groupSaveError, selectGroup, openCreateGroup, openEditGroup, saveGroup,
   showDeleteModal, deleteTarget, requestDelete, confirmDelete,
-} = useGroupsConfig(port, {hasColour: false, canConvertToTag: false, hasPermissions: true, holds: 'members'})
+} = useGroupsConfig(port, {
+    hasColour: false,
+    canConvertToTag: false,
+    hasPermissions: true,
+    permissionScope: 'cluster',
+    holds: 'members',
+})
 
 const sortedGroupMembers = computed(() =>
     [...groupMembers.value].sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))

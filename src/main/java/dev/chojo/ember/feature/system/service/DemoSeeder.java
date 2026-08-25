@@ -70,6 +70,13 @@ public interface DemoSeeder {
     int SETUP_STATE = 90;
 
     /**
+     * Profile pictures, once every account the run makes exists. Last on purpose: an earlier band
+     * would leave whoever is created after it faceless, which is what happened to the association's
+     * people and the un-set-up station's administrator.
+     */
+    int PORTRAITS = 100;
+
+    /**
      * The band this seeder belongs to. Lower values run first; equal values run in parallel.
      *
      * @return the order value

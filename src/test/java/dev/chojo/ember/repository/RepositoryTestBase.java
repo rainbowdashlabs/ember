@@ -396,8 +396,9 @@ public abstract class RepositoryTestBase {
                 stationMemberRepo,
                 accountRepo,
                 clusterProfileFieldRepo);
-        inventoryService = new InventoryService(inventoryRepo, itemCustodyService, clusterRepo);
         clusterStationGroupRepo = new ClusterStationGroupRepository();
+        inventoryService =
+                new InventoryService(inventoryRepo, itemCustodyService, clusterRepo, clusterStationGroupRepo);
         clusterStationGroupService = new ClusterStationGroupService(clusterStationGroupRepo, clusterRepo, stationRepo);
         clusterProfileFieldService = new ClusterProfileFieldService(
                 clusterProfileFieldRepo,
@@ -408,7 +409,8 @@ public abstract class RepositoryTestBase {
                 profileFieldChangeRepo,
                 new DomainEventBus(Set.of()));
         clusterStorageQuotaRepo = new ClusterStorageQuotaRepository();
-        clusterGovernanceService = new ClusterGovernanceService(clusterRepo, stationRepo, new DomainEventBus(Set.of()));
+        clusterGovernanceService = new ClusterGovernanceService(
+                clusterRepo, clusterStationGroupRepo, stationRepo, new DomainEventBus(Set.of()));
         var storageMigrationService = new StorageMigrationService(
                 stationRepo,
                 new StationStorageConfigRepository(),

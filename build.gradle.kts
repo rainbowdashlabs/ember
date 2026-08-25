@@ -330,11 +330,11 @@ tasks {
                     "*.ApiRequestLogger*",
                     "*.DataInitializer",
                     "*.ProblemLogAppender*",
-                    // Demo/seed data generators. Only the media seeder is exempt: it fetches
-                    // avatars from a third-party API with a hard-wired client and caches them in
+                    // Demo/seed data generators. Only the avatar seeder is exempt: it fetches
+                    // pictures from a third-party API with a hard-wired client and caches them in
                     // a hard-wired directory, so covering it would mean two production seams for
-                    // demo data. The other 23 seeders are gated like any other service.
-                    "*.DemoMediaSeeder*",
+                    // demo data. Every other seeder is gated like any other service.
+                    "*.DemoAvatarSeeder*",
                     "*.DemoService*",
                     // PDF/export services requiring external binaries
                     "*PdfService*",

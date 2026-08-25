@@ -7,7 +7,9 @@ package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.entity.ClusterStationGroup;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemHistory;
@@ -38,16 +40,19 @@ public class InventoryService {
     private static final Logger log = LoggerFactory.getLogger(InventoryService.class);
     private final InventoryRepository inventoryRepository;
     private final ClusterRepository clusterRepository;
+    private final ClusterStationGroupRepository stationGroupRepository;
     private final ItemCustodyService custodyService;
 
     @Inject
     public InventoryService(
             InventoryRepository inventoryRepository,
             ItemCustodyService custodyService,
-            ClusterRepository clusterRepository) {
+            ClusterRepository clusterRepository,
+            ClusterStationGroupRepository stationGroupRepository) {
         this.inventoryRepository = inventoryRepository;
         this.custodyService = custodyService;
         this.clusterRepository = clusterRepository;
+        this.stationGroupRepository = stationGroupRepository;
     }
 
     // -- Inventories --
@@ -352,6 +357,33 @@ public class InventoryService {
      * <p>A cluster's own station passes too, because that is where a cluster's store sits and it answers to
      * itself rather than joining anything.
      */
+    /**
+     * Refuses a group of stations that is not the association's whose inventory this is.
+     *
+     * <p>A requirement naming a group is an association saying where it applies, so the group has to be
+     * one the same association filed. A station writing its own requirement names none, and passes here
+     * without a query.
+     */
+    private void requireGroupOfTheOwningCluster(int inventoryId, Integer stationGroupId) {
+        if (stationGroupId == null) return;
+        int stationId = inventoryRepository
+                .findById(inventoryId)
+                .map(Inventory::stationId)
+                .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
+        int groupCluster = stationGroupRepository
+                .findById(stationGroupId)
+                .map(ClusterStationGroup::clusterId)
+                .orElseThrow(() -> new BadRequestResponse("That group of stations does not exist"));
+        boolean itsOwnStore = clusterRepository
+                .findById(groupCluster)
+                .map(cluster -> cluster.homeStationId() == stationId)
+                .orElse(false);
+        if (!itsOwnStore) {
+            throw new BadRequestResponse(
+                    "A requirement can only name a group of stations of the association that wrote it");
+        }
+    }
+
     private void requireOwningCluster(int inventoryId, Integer ownerClusterId) {
         if (ownerClusterId == null) return;
         int stationId = inventoryRepository
@@ -518,12 +550,15 @@ public class InventoryService {
     }
 
     /**
-     * The name to put on a requirement the station did not write, when there is one to put.
+     * The body above this station that keeps its gear in Ember, when there is one.
      *
-     * @param stationId the station reading it
-     * @return the cluster above the station, if it keeps its gear here
+     * <p>Two screens ask it: a requirement the station did not write is badged with the name, and the
+     * button asking that body for a piece appears only where there is somebody to ask.
+     *
+     * @param stationId the station asking
+     * @return the association above it, if it keeps its gear here
      */
-    public Optional<String> requirementSourceAbove(int stationId) {
+    public Optional<String> ownerAbove(int stationId) {
         return clusterRepository
                 .findByStation(stationId)
                 .filter(Cluster::usesInventory)
@@ -535,19 +570,22 @@ public class InventoryService {
      *
      * @param inventoryId the inventory ID
      * @param userType    the user type name, or {@code null} if not user-type-based
-     * @param groupId     the group ID (0 if not group-based)
-     * @param quantity    the required quantity
+     * @param groupId        the group ID (0 if not group-based)
+     * @param stationGroupId the group of stations it counts at, or null for every station reading it
+     * @param quantity       the required quantity
      * @return the created requirement
      */
     public InventoryRequirement createRequirement(
-            int inventoryId, StationUserType userType, int groupId, int quantity) {
+            int inventoryId, StationUserType userType, int groupId, Integer stationGroupId, int quantity) {
+        requireGroupOfTheOwningCluster(inventoryId, stationGroupId);
         InventoryRequirement requirement =
-                inventoryRepository.createRequirement(inventoryId, userType, groupId, quantity);
+                inventoryRepository.createRequirement(inventoryId, userType, groupId, stationGroupId, quantity);
         log.info(
-                "Created requirement {} (userType={}, groupId={}, quantity={}) for inventory {}",
+                "Created requirement {} (userType={}, groupId={}, stationGroupId={}, quantity={}) for inventory {}",
                 requirement.id(),
                 userType,
                 groupId,
+                stationGroupId,
                 quantity,
                 inventoryId);
         return requirement;

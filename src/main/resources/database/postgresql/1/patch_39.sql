@@ -964,6 +964,35 @@ COMMENT ON COLUMN ember_schema.cluster_station_group_membership.station_id IS 'T
 CREATE INDEX IF NOT EXISTS idx_cluster_station_group_membership_station
     ON ember_schema.cluster_station_group_membership (station_id);
 
+-- A denial can now name a group instead of everybody. Null keeps what the column meant before it
+-- existed, every station of the cluster, so every row already written goes on meaning what it meant.
+--
+-- Denials add up and never cancel: a module is unreachable at a station when the cluster denies it
+-- outright or denies it for any group that station is in. There is deliberately no way to permit
+-- something for a group that is denied for everybody, because a permission that beats a denial is a
+-- second rule and the screen would have to explain which of the two wins.
+--
+-- RESTRICT rather than CASCADE, because dropping a way of grouping stations must not quietly switch
+-- modules back on at every station that was in it.
+
+ALTER TABLE ember_schema.cluster_denied_module
+    ADD COLUMN IF NOT EXISTS station_group_id INTEGER
+        REFERENCES ember_schema.cluster_station_group (id) ON DELETE RESTRICT;
+
+COMMENT ON COLUMN ember_schema.cluster_denied_module.station_group_id
+    IS 'The group of stations the denial applies to, or null for every station of the cluster.';
+
+-- A unique constraint rather than the primary key it replaces: a primary key column cannot be null,
+-- and null is exactly what "denied for everybody" is written as. NULLS NOT DISTINCT is what makes two
+-- rows denying the same module to everybody a collision rather than two separate facts.
+
+ALTER TABLE ember_schema.cluster_denied_module
+    DROP CONSTRAINT IF EXISTS cluster_denied_module_pkey;
+
+ALTER TABLE ember_schema.cluster_denied_module
+    ADD CONSTRAINT cluster_denied_module_key
+        UNIQUE NULLS NOT DISTINCT (cluster_id, module, station_group_id);
+
 -- Two columns the station's own fields do not have. station_readonly says whether the people at the station
 -- may fill the answer in or only read it, which a station field never has to ask because a station field
 -- belongs to the people looking at it. And the whole row is scoped to the cluster rather than the station,
@@ -1194,3 +1223,24 @@ CREATE UNIQUE INDEX IF NOT EXISTS account_username_key
 
 COMMENT ON COLUMN ember_schema.account.username
     IS 'The name this account signs in with beside its address, or null when the address is the only way in. Never contains an at sign, and is unique without regard to case. A station arriving from another instance whose name is already taken here arrives without one.';
+
+-- A requirement of the association's can name a group of stations instead of all of them.
+--
+-- An association writes one requirement and every station under it counts against it, which is right for
+-- a jacket and wrong for a boat. Naming a group is how it says where a requirement applies, and null
+-- keeps what the column meant before it existed: every station of the association.
+--
+-- Only an association's requirement ever names one. A station writing its own is not in a position to
+-- group anything, and the column stays null on every row it writes.
+--
+-- RESTRICT for the same reason the denials use it: dropping a way of grouping stations must not quietly
+-- widen a requirement to every station that was in the group.
+ALTER TABLE ember_schema.inventory_requirement
+    ADD COLUMN IF NOT EXISTS station_group_id INTEGER
+        REFERENCES ember_schema.cluster_station_group (id) ON DELETE RESTRICT;
+
+COMMENT ON COLUMN ember_schema.inventory_requirement.station_group_id
+    IS 'The group of stations this requirement counts at, or null for every station reading it.';
+
+CREATE INDEX IF NOT EXISTS idx_inventory_requirement_station_group
+    ON ember_schema.inventory_requirement (station_group_id);

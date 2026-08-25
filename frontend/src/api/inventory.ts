@@ -141,6 +141,8 @@ export interface InventoryRequirement {
     inventoryId: number
     userType: string
     groupId: number
+    /** The group of stations it counts at, absent when it counts at every station reading it. */
+    stationGroupId?: number | null
     quantity: number
     position: number
     /**
@@ -160,6 +162,11 @@ export interface RequirementRequest {
     inventoryId: number
     userType?: string
     groupId?: number
+    /**
+     * The group of stations it counts at, absent for every station reading it. Only an association
+     * writing its own requirement may name one.
+     */
+    stationGroupId?: number
     quantity?: number
 }
 
@@ -378,6 +385,15 @@ export async function lossReportTerms(itemId: number): Promise<LossReportTerms> 
  */
 export async function reportLoss(itemId: number, note: string, document?: File | null): Promise<void> {
     await uploadFile(`/inventory-items/${itemId}/loss-report`, {note, document})
+}
+
+/**
+ * The body above this station that keeps its gear in Ember, or null when there is none. What a station
+ * may ask for follows from it: with nobody above, there is nobody to ask.
+ */
+export async function ownerAbove(): Promise<string | null> {
+    const res = await client.get<{name: string | null}>('/inventory-owner-above')
+    return res.data.name
 }
 
 export async function getSettings(): Promise<InventorySettings> {

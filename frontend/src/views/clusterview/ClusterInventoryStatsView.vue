@@ -3,75 +3,54 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-<script lang="ts" setup>
-import {computed, ref} from 'vue'
+<script setup lang="ts">
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import InventoryStatsPanel from '@/views/stationview/inventory/detailview/InventoryStatsPanel.vue'
 import InventoryTabs from './clusterinventoryview/InventoryTabs.vue'
 import {clusterInventory} from '@/api'
-import type {ClusterItem} from '@/api/clusterInventory'
+import type {ClusterInventoryStat, ClusterSizeStat} from '@/api/clusterInventory'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
- * How much of the association's gear there is and where it stands.
+ * How much of each kind of thing the association owns and where it stands.
  *
- * <p>Counted over what the association owns, which is the summary the station's own panel already
- * draws. This is not the reporting across a whole association that is still deferred: it says how
- * many, not how well.
+ * <p>One block per inventory rather than one pile of everything: the question an association has is how
+ * many jackets there are and how many of those are still in its store, which a single total answers for
+ * nothing. The sizes sit inside the block they belong to for the same reason.
+ *
+ * <p>Only what the association owns is counted. Gear a station bought itself belongs to that station and
+ * is none of this page's business, whoever happens to be wearing it.
  */
 const {t} = useI18n()
 
-const items = ref<ClusterItem[]>([])
+const stats = ref<ClusterInventoryStat[]>([])
 
 const {loading, error} = useAsyncLoader(async () => {
-  items.value = await clusterInventory.listItems()
+  stats.value = await clusterInventory.statistics()
 })
 
-const counts = computed(() => {
-  let free = 0
-  let away = 0
-  let lost = 0
-  for (const item of items.value) {
-    if (item.custody === 'WITH_OWNER') free++
-    else if (item.custody === 'LOST') lost++
-    else away++
-  }
-  return {total: items.value.length, free, away, lost}
-})
+/** What is not resting in the association's own store, however far it has gone. */
+function outOf(stat: ClusterInventoryStat | ClusterSizeStat): number {
+  return stat.atStation + stat.withMember
+}
 
-/**
- * The same counts once more, cut by size.
- *
- * <p>An association buying two hundred jackets has to know how many of each size are still in its own
- * store, which the four totals cannot say. Gear from an inventory that keeps no sizes is left out
- * rather than gathered under a nameless row: it has no size, it is not of an unknown one.
- */
-const sizeStats = computed(() => {
-  const bySize = new Map<number, {label: string; total: number; assigned: number; free: number; lost: number}>()
-  for (const item of items.value) {
-    if (item.sizeId == null) continue
-    const stat = bySize.get(item.sizeId)
-        ?? {label: item.sizeLabel ?? `#${item.sizeId}`, total: 0, assigned: 0, free: 0, lost: 0}
-    stat.total++
-    if (item.custody === 'WITH_OWNER') stat.free++
-    else if (item.custody === 'LOST') stat.lost++
-    else stat.assigned++
-    bySize.set(item.sizeId, stat)
-  }
-  return [...bySize.entries()]
-      .map(([id, stat]) => ({
-        size: {id, inventoryId: 0, label: stat.label, position: 0, note: ''},
-        total: stat.total,
-        assigned: stat.assigned,
-        free: stat.free,
-        lost: stat.lost,
-      }))
-      .sort((a, b) => a.size.label.localeCompare(b.size.label))
-})
+function sizeStats(stat: ClusterInventoryStat) {
+  return stat.sizes.map(size => ({
+    size: {id: size.sizeId, inventoryId: stat.inventoryId, label: size.label, position: 0, note: ''},
+    total: size.total,
+    assigned: outOf(size),
+    free: size.inStore,
+    lost: size.lost,
+  }))
+}
 </script>
 
 <template>
@@ -84,17 +63,25 @@ const sizeStats = computed(() => {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <EmptyState v-if="counts.total === 0">{{ t('clusterInventory.empty') }}</EmptyState>
-        <InventoryStatsPanel
-            v-else
-            :total-count="counts.total"
-            :free-count="counts.free"
-            :assigned-count="counts.away"
-            :lost-count="counts.lost"
-            :lent-out-count="0"
-            :has-sizes="sizeStats.length > 0"
-            :size-stats="sizeStats"
-        />
+        <EmptyState v-if="stats.length === 0">{{ t('clusterInventory.empty') }}</EmptyState>
+
+        <template v-else>
+          <MutedText tag="p" size="sm">{{ t('clusterInventory.statsScope') }}</MutedText>
+
+          <NeutralContainer v-for="stat in stats" :key="stat.inventoryId"
+                            data-testid="cluster-stat-group" class="space-y-3">
+            <SectionHeader>{{ stat.inventoryName }}</SectionHeader>
+            <InventoryStatsPanel
+                :total-count="stat.total"
+                :free-count="stat.inStore"
+                :assigned-count="outOf(stat)"
+                :lost-count="stat.lost"
+                :lent-out-count="stat.lent"
+                :has-sizes="stat.sizes.length > 0"
+                :size-stats="sizeStats(stat)"
+            />
+          </NeutralContainer>
+        </template>
       </template>
     </div>
   </ViewContent>

@@ -205,7 +205,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     @Order(60)
     void getRequiredItems() {
         // Create a requirement for MEMBER user type
-        var req = inventoryRepo.createRequirement(inventoryId, StationUserType.MEMBER, 0, 2);
+        var req = inventoryRepo.createRequirement(inventoryId, StationUserType.MEMBER, 0, null, 2);
 
         var required = service.getRequiredItems(station.id(), target.id());
         assertTrue(required.stream().anyMatch(r -> r.inventoryId() == inventoryId && r.requiredQuantity() == 2));
@@ -293,7 +293,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         var group = memberGroupRepo.create(station.id(), "CheckGroup");
         memberGroupRepo.addMember(group.id(), target.id());
 
-        var req = inventoryRepo.createRequirement(inventoryId, null, group.id(), 1);
+        var req = inventoryRepo.createRequirement(inventoryId, null, group.id(), null, 1);
         var required = service.getRequiredItems(station.id(), target.id());
         assertTrue(required.stream().anyMatch(r -> r.inventoryId() == inventoryId));
 

@@ -32,6 +32,7 @@ import jakarta.inject.Singleton;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -315,6 +316,7 @@ public class ClusterMemberRoutes implements Routes {
         var account = accountRepository.findById(member.accountId());
         return new ClusterMemberResponse(
                 member.id(),
+                account.map(a -> a.uid()).map(UUID::toString).orElse(null),
                 account.map(a -> a.fullName()).orElse(null),
                 account.map(a -> a.email()).orElse(null),
                 member.userType().name());
@@ -365,7 +367,12 @@ public class ClusterMemberRoutes implements Routes {
      */
     public record ClusterGroupUpdateRequest(String name, List<String> permissions, List<Integer> memberIds) {}
 
-    public record ClusterMemberResponse(int id, String name, String email, String userType) {}
+    /**
+     * @param accountUid the account behind this member, which is what their picture is keyed by. An
+     *                   association's person need belong to no station, so there is no member of a
+     *                   station to draw them as: the account is the only handle every one of them has.
+     */
+    public record ClusterMemberResponse(int id, String accountUid, String name, String email, String userType) {}
 
     public record ClusterGroupResponse(int id, String name) {}
 

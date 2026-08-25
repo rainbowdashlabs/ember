@@ -61,7 +61,7 @@ async function save() {
             <SelectInput v-model="look.defaultFeel">
               <option :value="null">{{ t('clusterLookAndFeel.noOpinion') }}</option>
               <option v-for="feel in FEELS" :key="feel" :value="feel">
-                {{ t(`stationTheme.feel.${feel}`) }}
+                {{ t(`theme.feel${feel}`) }}
               </option>
             </SelectInput>
           </div>

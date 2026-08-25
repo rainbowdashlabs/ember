@@ -68,7 +68,7 @@ const roleIdsModel = useModelProxy(() => props.groupRoleIds, emit, 'groupRoleIds
 
       <template v-if="detailTab === 'permissions'">
         <div v-if="canEditRoles" class="space-y-2">
-          <PermissionPicker v-model="roleIdsModel" :all-roles="allRoles"/>
+          <PermissionPicker v-model="roleIdsModel" :all-roles="allRoles" :scope="capabilities.permissionScope"/>
           <MutedText v-if="groupRoles.length === 0" size="sm">{{ t('memberGroups.noPermissions') }}</MutedText>
         </div>
         <MutedText v-else size="sm">{{ t('memberGroups.noPermissionAccess') }}</MutedText>

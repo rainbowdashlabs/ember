@@ -99,6 +99,8 @@ public class ClusterInventoryRoutes implements Routes {
         routes.post(
                 prefix + "/cluster/inventory/dispatch", this::dispatch, ClusterPermission.CLUSTER_INVENTORY_TRANSFER);
         routes.get(
+                prefix + "/cluster/inventory/statistics", this::statistics, ClusterPermission.CLUSTER_INVENTORY_READ);
+        routes.get(
                 prefix + "/cluster/inventory/loss-report",
                 this::getLossReportSettings,
                 ClusterPermission.CLUSTER_INVENTORY_READ);
@@ -106,6 +108,41 @@ public class ClusterInventoryRoutes implements Routes {
                 prefix + "/cluster/inventory/loss-report",
                 this::setLossReportSettings,
                 ClusterPermission.CLUSTER_INVENTORY_MANAGER);
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/inventory/statistics",
+            methods = HttpMethod.GET,
+            summary = "How much the association owns of each kind of thing",
+            description = "Counted per inventory and per size, over what the association owns rather than over "
+                    + "everything at its stations.",
+            tags = {"Cluster"},
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryStatResponse[].class)))
+    private void statistics(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        ctx.json(inventoryService.statistics(cluster.id()).stream()
+                .map(stat -> new InventoryStatResponse(
+                        stat.inventoryId(),
+                        stat.inventoryName(),
+                        stat.total(),
+                        stat.inStore(),
+                        stat.atStation(),
+                        stat.withMember(),
+                        stat.lent(),
+                        stat.lost(),
+                        stat.sizes().stream()
+                                .map(size -> new SizeStatResponse(
+                                        size.sizeId(),
+                                        size.label(),
+                                        size.total(),
+                                        size.inStore(),
+                                        size.atStation(),
+                                        size.withMember(),
+                                        size.lent(),
+                                        size.lost()))
+                                .toList()))
+                .toList());
     }
 
     @OpenApi(
@@ -159,7 +196,7 @@ public class ClusterInventoryRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ClusterFlowResponse[].class)))
     private void listFlows(Context ctx) {
         Cluster cluster = requireActive(ctx);
-        ctx.json(inventoryService.findFlows(cluster.id()).stream()
+        ctx.json(inventoryService.findFlowsForSettings(cluster.id()).stream()
                 .map(flow -> toFlow(cluster.id(), flow))
                 .toList());
     }
@@ -429,6 +466,29 @@ public class ClusterInventoryRoutes implements Routes {
             String holderName,
             Integer sizeId,
             String sizeLabel) {}
+
+    /**
+     * One kind of thing the association owns.
+     *
+     * @param inStore   resting in the association's own store
+     * @param atStation at one of its stations, on the way there included
+     */
+    public record InventoryStatResponse(
+            int inventoryId,
+            String inventoryName,
+            int total,
+            int inStore,
+            int atStation,
+            int withMember,
+            int lent,
+            int lost,
+            List<SizeStatResponse> sizes) {}
+
+    /**
+     * The same counts for one size of one kind of thing.
+     */
+    public record SizeStatResponse(
+            int sizeId, String label, int total, int inStore, int atStation, int withMember, int lent, int lost) {}
 
     /**
      * @param stepLabel what the cluster is being asked to confirm

@@ -12,6 +12,8 @@ export const MovementPurpose = {
     ISSUE: 'ISSUE',
     RETURN: 'RETURN',
     EXCHANGE: 'EXCHANGE',
+    /** A station asking the body above it for a piece it does not have. */
+    REQUEST: 'REQUEST',
 } as const
 
 export type MovementPurposeName = (typeof MovementPurpose)[keyof typeof MovementPurpose]

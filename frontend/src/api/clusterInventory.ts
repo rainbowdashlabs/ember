@@ -23,6 +23,38 @@ export interface ClusterItem {
     sizeLabel?: string | null
 }
 
+/** How much the association owns of one kind of thing, and where those pieces stand. */
+export interface ClusterInventoryStat {
+    inventoryId: number
+    inventoryName: string
+    total: number
+    /** Resting in the association's own store. */
+    inStore: number
+    /** At one of its stations, on the way there included. */
+    atStation: number
+    withMember: number
+    lent: number
+    lost: number
+    sizes: ClusterSizeStat[]
+}
+
+/** The same counts for one size of one kind of thing. */
+export interface ClusterSizeStat {
+    sizeId: number
+    label: string
+    total: number
+    inStore: number
+    atStation: number
+    withMember: number
+    lent: number
+    lost: number
+}
+
+export async function statistics(): Promise<ClusterInventoryStat[]> {
+    const res = await client.get<ClusterInventoryStat[]>('/cluster/inventory/statistics')
+    return res.data
+}
+
 /** A movement that has stopped on a step only the cluster can answer. */
 export interface ClusterQueueEntry {
     movementId: number

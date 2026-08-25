@@ -157,6 +157,7 @@ public class InventoryRoutes implements Routes {
         routes.delete(prefix + "/inventory-items/{id}", this::deleteItem, StationPermission.INVENTORY_EDIT);
 
         routes.get(prefix + "/inventory-requirements", this::listAllRequirements, StationPermission.INVENTORY_READ);
+        routes.get(prefix + "/inventory-owner-above", this::ownerAbove, StationPermission.INVENTORY_READ);
         routes.post(prefix + "/inventory-requirements", this::createRequirement, StationPermission.INVENTORY_MANAGER);
         routes.put(
                 prefix + "/inventory-requirements/{id}", this::updateRequirement, StationPermission.INVENTORY_MANAGER);
@@ -925,8 +926,7 @@ public class InventoryRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RequirementResponse[].class)))
     private void listAllRequirements(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        String clusterName =
-                inventoryService.requirementSourceAbove(session.stationId()).orElse(null);
+        String clusterName = inventoryService.ownerAbove(session.stationId()).orElse(null);
         ctx.json(inventoryService.findRequirementsVisibleAt(session.stationId()).stream()
                 .map(visible -> new RequirementResponse(
                         visible.requirement().id(),
@@ -934,10 +934,25 @@ public class InventoryRoutes implements Routes {
                         visible.inventoryName(),
                         visible.requirement().userType(),
                         visible.requirement().groupId(),
+                        visible.requirement().stationGroupId(),
                         visible.requirement().quantity(),
                         visible.requirement().position(),
                         visible.fromCluster() ? clusterName : null))
                 .toList());
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-owner-above",
+            methods = HttpMethod.GET,
+            summary = "The body above this station that keeps its gear here",
+            description = "Answers with a name when the station belongs to an association that keeps its gear in "
+                    + "Ember, and with nothing when it does not. What a station may ask for follows from it.",
+            tags = {"Inventory"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = OwnerAboveResponse.class)))
+    private void ownerAbove(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(new OwnerAboveResponse(
+                inventoryService.ownerAbove(session.stationId()).orElse(null)));
     }
 
     // -- Requirements --
@@ -966,7 +981,11 @@ public class InventoryRoutes implements Routes {
         }
         ctx.status(HttpStatus.CREATED)
                 .json(inventoryService.createRequirement(
-                        request.inventoryId(), userType, groupId, request.quantity() > 0 ? request.quantity() : 1));
+                        request.inventoryId(),
+                        userType,
+                        groupId,
+                        request.stationGroupId(),
+                        request.quantity() > 0 ? request.quantity() : 1));
     }
 
     @OpenApi(
@@ -1155,13 +1174,24 @@ public class InventoryRoutes implements Routes {
             String inventoryName,
             StationUserType userType,
             int groupId,
+            Integer stationGroupId,
             int quantity,
             int position,
             String clusterName) {}
 
-    public record RequirementRequest(int inventoryId, StationUserType userType, Integer groupId, int quantity) {}
+    /**
+     * @param stationGroupId the group of stations it counts at, or null for every station reading it. Only
+     *                       an association writing its own requirement may name one.
+     */
+    public record RequirementRequest(
+            int inventoryId, StationUserType userType, Integer groupId, Integer stationGroupId, int quantity) {}
 
     public record UpdateRequirementRequest(int quantity) {}
+
+    /**
+     * @param name the association above the station, or null when there is none keeping gear here
+     */
+    public record OwnerAboveResponse(String name) {}
 
     public record UpdatePositionRequest(int position) {}
 

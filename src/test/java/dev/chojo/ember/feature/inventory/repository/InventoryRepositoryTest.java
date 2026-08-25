@@ -227,7 +227,7 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void createRequirementByUserType() {
-        InventoryRequirement req = inventoryRepo.createRequirement(inventoryId, StationUserType.MEMBER, 0, 2);
+        InventoryRequirement req = inventoryRepo.createRequirement(inventoryId, StationUserType.MEMBER, 0, null, 2);
         assertNotNull(req);
         assertEquals(inventoryId, req.inventoryId());
         assertEquals(2, req.quantity());
@@ -261,7 +261,7 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Order(44)
     void createRequirementByGroup() {
         MemberGroup group = memberGroupRepo.create(station.id(), "Req Group");
-        InventoryRequirement req = inventoryRepo.createRequirement(inventoryId, null, group.id(), 3);
+        InventoryRequirement req = inventoryRepo.createRequirement(inventoryId, null, group.id(), null, 3);
         assertNotNull(req);
         assertEquals(group.id(), req.groupId());
         assertEquals(3, req.quantity());
@@ -369,9 +369,42 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(43)
     void updateRequirementPosition() {
-        var req = inventoryRepo.createRequirement(inventoryId, StationUserType.TEAM, 0, 1);
+        var req = inventoryRepo.createRequirement(inventoryId, StationUserType.TEAM, 0, null, 1);
         assertTrue(inventoryRepo.updateRequirementPosition(req.id(), 5));
         inventoryRepo.deleteRequirement(req.id());
+    }
+
+    /**
+     * What an association owns, counted where the pieces are rather than fetched row by row. A piece the
+     * station bought itself is in nobody's count here, which is the point of asking by owner.
+     */
+    @Test
+    @Order(45)
+    void countItemsOwnedByCluster() {
+        var home = stationRepo.create("Träger Zählung");
+        var cluster = clusterRepo.create("Kreisverband Zählung", null, home.id());
+        var jackets = inventoryRepo.create(station.id(), "Jacken Zählung", InventoryType.EXTERNAL, true);
+        inventoryRepo.createSize(jackets.id(), "52", 0, null);
+        int size = inventoryRepo.findSizes(jackets.id()).getFirst().id();
+        inventoryRepo.createItem(jackets.id(), "JZ-1", "Jacke", size, null, ItemOwner.CLUSTER, cluster.id());
+        inventoryRepo.createItem(jackets.id(), "JZ-2", "Jacke", size, null, ItemOwner.CLUSTER, cluster.id());
+        inventoryRepo.createItem(jackets.id(), "JZ-3", "Jacke", size, null, ItemOwner.STATION, null);
+
+        var counts = inventoryRepo.countItemsOwnedByCluster(cluster.id());
+
+        assertEquals(1, counts.size(), "one row per kind and size");
+        var row = counts.getFirst();
+        assertEquals(jackets.id(), row.inventoryId());
+        assertEquals("Jacken Zählung", row.inventoryName());
+        assertEquals("52", row.sizeLabel());
+        assertEquals(2, row.total(), "the station's own jacket is not the association's to count");
+        assertEquals(2, row.atStation(), "gear a station recorded for the body above it is held at that station");
+        assertEquals(0, row.inStore());
+        assertEquals(0, row.lost());
+
+        inventoryRepo.delete(jackets.id());
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(home.id());
     }
 
     // -- Cleanup --

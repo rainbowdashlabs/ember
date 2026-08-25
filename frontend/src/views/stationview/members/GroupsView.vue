@@ -56,6 +56,7 @@ const {
   hasColour: true,
   canConvertToTag: hasPermission(StationPermission.MEMBER_MANAGE_TAGS),
   hasPermissions: true,
+  permissionScope: 'station',
   holds: 'members',
 })
 

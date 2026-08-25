@@ -13,6 +13,9 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import InventoryTabs from './clusterinventoryview/InventoryTabs.vue'
 import {clusterInventory} from '@/api'
@@ -37,10 +40,24 @@ const {loading, error} = useAsyncLoader(async () => {
 /** Everything that is not resting at the association. */
 const away = computed(() => items.value.filter(item => item.custody !== 'WITH_OWNER'))
 
+/** The station the list is narrowed to, empty for all of them. */
+const station = ref('')
+
+function stationOf(item: ClusterItem): string {
+  return item.stationName ?? t('clusterInventory.inTransit')
+}
+
+/**
+ * Only the stations actually holding something. An association with fifty stations and gear at six of
+ * them offers six, because a picker listing the other forty-four is the same scrolling problem again.
+ */
+const stations = computed(() => [...new Set(away.value.map(stationOf))].sort((a, b) => a.localeCompare(b)))
+
 const byStation = computed(() => {
   const groups = new Map<string, ClusterItem[]>()
   for (const item of away.value) {
-    const key = item.stationName ?? t('clusterInventory.inTransit')
+    const key = stationOf(item)
+    if (station.value && key !== station.value) continue
     const bucket = groups.get(key)
     if (bucket) bucket.push(item)
     else groups.set(key, [item])
@@ -60,6 +77,14 @@ const byStation = computed(() => {
       <template v-if="!loading">
         <EmptyState v-if="away.length === 0">{{ t('clusterInventory.outEmpty') }}</EmptyState>
 
+        <div v-else class="space-y-1 max-w-xs">
+          <FieldLabel>{{ t('clusterInventory.stationFilter') }}</FieldLabel>
+          <SelectInput v-model="station" data-testid="out-station-filter">
+            <option value="">{{ t('clusterInventory.stationFilterAll') }}</option>
+            <option v-for="name in stations" :key="name" :value="name">{{ name }}</option>
+          </SelectInput>
+        </div>
+
         <NeutralContainer v-for="[station, stationItems] in byStation" :key="station"
                           data-testid="out-station-group" class="space-y-3">
           <div class="flex items-center justify-between gap-3">
@@ -70,7 +95,10 @@ const byStation = computed(() => {
           <div class="space-y-1">
             <div v-for="item in stationItems" :key="item.id" data-testid="out-item"
                  class="flex flex-wrap items-center justify-between gap-2 border-b border-(--border) py-1 last:border-0">
-              <span class="font-medium">{{ item.name }}</span>
+              <span class="flex items-center gap-2 min-w-0">
+                <span class="font-medium truncate">{{ item.name }}</span>
+                <PrimaryBadge v-if="item.sizeLabel">{{ item.sizeLabel }}</PrimaryBadge>
+              </span>
               <div class="flex items-center gap-2">
                 <MutedText v-if="item.holderName" size="sm">{{ item.holderName }}</MutedText>
                 <SecondaryBadge>{{ t(`clusterInventory.custody.${item.custody}`) }}</SecondaryBadge>

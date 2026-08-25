@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:c313fb16c9b343cee8c21539a0de75db0b2a94d39095bf398b48c772fc04f9bd",
-  "generatedAt" : "2026-08-24T20:56:52Z",
+  "schemaHash" : "sha256:8dd795b01777df02c7094790ec772692242d9f32d896d27bc22f6a8312e13559",
+  "generatedAt" : "2026-08-24T22:53:21Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -3171,7 +3171,7 @@
     "cluster_denied_module" : {
       "feature" : "cluster",
       "scope" : "CLUSTER",
-      "tableHash" : "sha256:b7031c25d57684a9e4f51fe0e22757e03a126f905238e995b0641fd48f226424",
+      "tableHash" : "sha256:24db249ce62d8fa070ade365b352623972ccd06c3fde02d804eed914d413f74f",
       "columns" : [ {
         "name" : "cluster_id",
         "type" : "int4",
@@ -3184,12 +3184,23 @@
         "nullable" : false,
         "verified" : true,
         "description" : "The module name, matching the values a station uses for its own switched-off modules."
+      }, {
+        "name" : "station_group_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The group of stations the denial applies to, or null for every station of the cluster."
       } ],
       "foreignKeys" : [ {
         "column" : "cluster_id",
         "refTable" : "cluster",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_group_id",
+        "refTable" : "cluster_station_group",
+        "refColumn" : "id",
+        "onDelete" : "RESTRICT"
       } ],
       "stationTransfer" : {
         "status" : "IGNORED",
@@ -8775,7 +8786,7 @@
     "inventory_requirement" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:3b9ca1a1748efe4fc2593ab93a75b7b2afa322d49bfe77f36993104f6b87c64d",
+      "tableHash" : "sha256:080bf10d04eb1de5b1d507965b90c49c047a20596afea0b7a4119a60bdeb96bc",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -8811,6 +8822,12 @@
         "type" : "text",
         "nullable" : true,
         "verified" : true
+      }, {
+        "name" : "station_group_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The group of stations this requirement counts at, or null for every station reading it."
       } ],
       "foreignKeys" : [ {
         "column" : "group_id",
@@ -8822,6 +8839,11 @@
         "refTable" : "inventory",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_group_id",
+        "refTable" : "cluster_station_group",
+        "refColumn" : "id",
+        "onDelete" : "RESTRICT"
       } ],
       "stationTransfer" : {
         "status" : "TRACKED"

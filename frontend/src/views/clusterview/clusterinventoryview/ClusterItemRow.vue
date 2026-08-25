@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import type {ClusterItem} from '@/api/clusterInventory'
 
 defineProps<{
@@ -26,6 +27,9 @@ const {t} = useI18n()
         <template v-if="item.holderName"> · {{ item.holderName }}</template>
       </p>
     </div>
-    <SecondaryBadge>{{ t(`clusterInventory.custody.${item.custody}`) }}</SecondaryBadge>
+    <div class="flex items-center gap-2">
+      <PrimaryBadge v-if="item.sizeLabel">{{ item.sizeLabel }}</PrimaryBadge>
+      <SecondaryBadge>{{ t(`clusterInventory.custody.${item.custody}`) }}</SecondaryBadge>
+    </div>
   </NeutralContainer>
 </template>

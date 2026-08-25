@@ -13,9 +13,19 @@ import {downloadAuthed} from '@/util/downloadAuthed'
 
 export interface ClusterMemberSummary {
     id: number
+    /** The account behind them, which is what their picture is keyed by. */
+    accountUid?: string | null
     name?: string | null
     email?: string | null
     userType: string
+}
+
+/**
+ * How a cluster member is drawn in the lists that draw a person: by their account, because somebody
+ * who runs an association need belong to no station and so is nobody's member.
+ */
+export function clusterMemberIdentity(member: ClusterMemberSummary): MemberIdentity {
+    return {accountUid: member.accountUid ?? undefined, name: member.name ?? member.email ?? ''}
 }
 
 export interface ClusterGroupSummary {

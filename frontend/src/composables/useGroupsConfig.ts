@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import type {PermissionScope} from '@/composables/usePermissionTree'
 import {apiErrorMessage} from '@/util/apiError'
 import type {MemberGroup, MemberIdentity, PermissionGrant} from '@/api/types'
 
@@ -75,6 +76,11 @@ export interface GroupsCapabilities {
     canConvertToTag: boolean
     /** A group of people grants permissions. A group of stations grants nothing. */
     hasPermissions: boolean
+    /**
+     * Whose permissions the picker draws. An association's are a different set with a root of their
+     * own, and drawing a station's here offers rights over features an association does not have.
+     */
+    permissionScope: PermissionScope
     /** What the group holds, which is what the assignment panel calls the things it lists. */
     holds: 'members' | 'stations'
 }
@@ -85,6 +91,7 @@ const STATION_CAPABILITIES: GroupsCapabilities = {
     hasColour: true,
     canConvertToTag: true,
     hasPermissions: true,
+    permissionScope: 'station',
     holds: 'members',
 }
 

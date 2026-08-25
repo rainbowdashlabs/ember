@@ -31,10 +31,12 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 /**
@@ -118,6 +120,61 @@ public class ClusterInventoryService {
     }
 
     /**
+     * How much the association owns of each kind of thing, and where those pieces stand.
+     *
+     * <p>Grouped by the inventory a piece belongs to, because "how many jackets" is the question and one
+     * pile of everything answers it for nothing. Counted in the database: the association that needs this
+     * screen is the one with too many pieces to send to a browser.
+     *
+     * <p>Only what the association owns is counted. Gear a station bought with its own money is the
+     * station's business and never appears here, whoever is holding it.
+     *
+     * @param clusterId the cluster
+     * @return one block per inventory, each with the sizes it keeps
+     */
+    public List<InventoryStat> statistics(int clusterId) {
+        var byInventory = new LinkedHashMap<Integer, List<InventoryRepository.OwnedCount>>();
+        for (var count : inventoryRepository.countItemsOwnedByCluster(clusterId)) {
+            byInventory
+                    .computeIfAbsent(count.inventoryId(), id -> new ArrayList<>())
+                    .add(count);
+        }
+
+        List<InventoryStat> stats = new ArrayList<>();
+        for (var entry : byInventory.entrySet()) {
+            var rows = entry.getValue();
+            var sizes = rows.stream()
+                    .filter(row -> row.sizeId() != null)
+                    .map(row -> new SizeStat(
+                            row.sizeId(),
+                            row.sizeLabel(),
+                            row.total(),
+                            row.inStore(),
+                            row.atStation(),
+                            row.withMember(),
+                            row.lent(),
+                            row.lost()))
+                    .toList();
+            stats.add(new InventoryStat(
+                    entry.getKey(),
+                    rows.getFirst().inventoryName(),
+                    sum(rows, InventoryRepository.OwnedCount::total),
+                    sum(rows, InventoryRepository.OwnedCount::inStore),
+                    sum(rows, InventoryRepository.OwnedCount::atStation),
+                    sum(rows, InventoryRepository.OwnedCount::withMember),
+                    sum(rows, InventoryRepository.OwnedCount::lent),
+                    sum(rows, InventoryRepository.OwnedCount::lost),
+                    sizes));
+        }
+        return stats;
+    }
+
+    private static int sum(
+            List<InventoryRepository.OwnedCount> rows, ToIntFunction<InventoryRepository.OwnedCount> field) {
+        return rows.stream().mapToInt(field).sum();
+    }
+
+    /**
      * The movements standing on a step only the cluster can answer.
      *
      * @param clusterId the cluster
@@ -152,6 +209,24 @@ public class ClusterInventoryService {
     }
 
     public List<MovementFlow> findFlows(int clusterId) {
+        return flowService.findClusterFlows(clusterId);
+    }
+
+    /**
+     * The chains as the settings screen reads them, with the ready-made set written first where the
+     * association has none.
+     *
+     * <p>Separate from {@link #findFlows(int)} on purpose, and the only place the set is written. Reading
+     * what an association has must not be the thing that gives it chains, or one that deliberately keeps
+     * none would find four every time anything looked. This is the screen asking, which is the moment
+     * somebody is there to edit or remove them, and an association only ever holds one chain per purpose:
+     * the set arrives whole or not at all.
+     *
+     * @param clusterId the association
+     * @return its chains
+     */
+    public List<MovementFlow> findFlowsForSettings(int clusterId) {
+        flowService.ensureClusterPresets(clusterId);
         return flowService.findClusterFlows(clusterId);
     }
 
@@ -337,6 +412,29 @@ public class ClusterInventoryService {
             String holderName,
             Integer sizeId,
             String sizeLabel) {}
+
+    /**
+     * One kind of thing the association owns, with the sizes it is cut to.
+     *
+     * @param inStore   resting in the association's own store
+     * @param atStation at one of its stations, on the way there included
+     */
+    public record InventoryStat(
+            int inventoryId,
+            String inventoryName,
+            int total,
+            int inStore,
+            int atStation,
+            int withMember,
+            int lent,
+            int lost,
+            List<SizeStat> sizes) {}
+
+    /**
+     * The same counts for one size of one kind of thing.
+     */
+    public record SizeStat(
+            int sizeId, String label, int total, int inStore, int atStation, int withMember, int lent, int lost) {}
 
     /**
      * @param stepLabel what the cluster is being asked to confirm

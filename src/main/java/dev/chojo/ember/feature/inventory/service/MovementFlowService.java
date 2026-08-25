@@ -138,6 +138,96 @@ public class MovementFlowService {
                             ItemCustody.AT_STATION,
                             true))));
 
+    /**
+     * The chains an association starts with, one per purpose and named in a word.
+     *
+     * <p>Written from the association's side: its store sends, its store receives, and the steps the
+     * station walks are the station's. An association that wants something else edits or removes them
+     * like any other chain, which is why this is a starting point and not a fixture.
+     *
+     * <p>An association's chain needs no binding row: a chain is found by the association and the purpose,
+     * because its gear is one pool rather than several inventories with different habits.
+     */
+    private static final List<Preset> CLUSTER_PRESETS = List.of(
+            new Preset(
+                    "Ausgabe",
+                    MovementPurpose.ISSUE,
+                    ItemOwner.CLUSTER,
+                    List.of(
+                            new PresetStep(
+                                    "Verschickt", StepActor.OWNER, StepSubject.INCOMING, ItemCustody.IN_TRANSIT, true),
+                            new PresetStep(
+                                    "Angekommen",
+                                    StepActor.STATION,
+                                    StepSubject.INCOMING,
+                                    ItemCustody.AT_STATION,
+                                    false))),
+            new Preset(
+                    "Rückgabe",
+                    MovementPurpose.RETURN,
+                    ItemOwner.CLUSTER,
+                    List.of(
+                            new PresetStep(
+                                    "Abgeschickt",
+                                    StepActor.STATION,
+                                    StepSubject.OUTGOING,
+                                    ItemCustody.IN_TRANSIT,
+                                    false),
+                            new PresetStep(
+                                    "Zurück im Lager",
+                                    StepActor.OWNER,
+                                    StepSubject.OUTGOING,
+                                    ItemCustody.WITH_OWNER,
+                                    false))),
+            new Preset(
+                    "Tausch",
+                    MovementPurpose.EXCHANGE,
+                    ItemOwner.CLUSTER,
+                    List.of(
+                            new PresetStep(
+                                    "Altes Teil zurückgenommen",
+                                    StepActor.STATION,
+                                    StepSubject.OUTGOING,
+                                    ItemCustody.AT_STATION,
+                                    false),
+                            new PresetStep(
+                                    "Abgeschickt",
+                                    StepActor.STATION,
+                                    StepSubject.OUTGOING,
+                                    ItemCustody.IN_TRANSIT,
+                                    false),
+                            new PresetStep(
+                                    "Ersatz verschickt",
+                                    StepActor.OWNER,
+                                    StepSubject.INCOMING,
+                                    ItemCustody.IN_TRANSIT,
+                                    true),
+                            new PresetStep(
+                                    "Ersatz angekommen",
+                                    StepActor.STATION,
+                                    StepSubject.INCOMING,
+                                    ItemCustody.AT_STATION,
+                                    false))),
+            new Preset(
+                    "Anfrage",
+                    MovementPurpose.REQUEST,
+                    ItemOwner.CLUSTER,
+                    List.of(
+                            new PresetStep(
+                                    "Angefragt",
+                                    StepActor.STATION,
+                                    StepSubject.INCOMING,
+                                    ItemCustody.WITH_OWNER,
+                                    false),
+                            new PresetStep(
+                                    "Verschickt", StepActor.OWNER, StepSubject.INCOMING, ItemCustody.IN_TRANSIT, true),
+                            new PresetStep(
+                                    "Angekommen",
+                                    StepActor.STATION,
+                                    StepSubject.INCOMING,
+                                    ItemCustody.AT_STATION,
+                                    false))));
+
     private final MovementFlowRepository flowRepository;
     private final ItemMovementRepository movementRepository;
     private final ClusterRepository clusterRepository;
@@ -253,6 +343,31 @@ public class MovementFlowService {
                 .filter(Cluster::usesInventory)
                 .flatMap(cluster -> flowRepository.findClusterBoundFlow(cluster.id(), purpose))
                 .orElse(null);
+    }
+
+    /**
+     * Gives an association the ready-made chains if it has none, so nobody opens an empty screen and
+     * invents five of them. An association that has written or deleted its own is left alone.
+     *
+     * @param clusterId the association
+     */
+    public void ensureClusterPresets(int clusterId) {
+        if (!flowRepository.findClusterFlows(clusterId).isEmpty()) return;
+        for (Preset preset : CLUSTER_PRESETS) {
+            MovementFlow flow = flowRepository.createClusterFlow(clusterId, preset.name(), preset.purpose());
+            int position = 0;
+            for (PresetStep step : preset.steps()) {
+                flowRepository.createStep(
+                        flow.id(),
+                        position++,
+                        step.label(),
+                        step.actor(),
+                        step.subject(),
+                        step.custodyAfter(),
+                        step.picksItem());
+            }
+        }
+        log.info("Seeded {} movement flow presets for cluster {}", CLUSTER_PRESETS.size(), clusterId);
     }
 
     /**

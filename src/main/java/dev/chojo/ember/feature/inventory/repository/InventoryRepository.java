@@ -43,7 +43,7 @@ public class InventoryRepository {
     private static final String INVENTORY_ITEM_HISTORY_COLUMNS =
             "id, item_id, member_id, member_name, given_out, returned";
     private static final String INVENTORY_REQUIREMENT_COLUMNS =
-            "id, inventory_id, user_type, group_id, quantity, position";
+            "id, inventory_id, user_type, group_id, station_group_id, quantity, position";
 
     /**
      * Finds an inventory by its ID.
@@ -388,6 +388,70 @@ public class InventoryRepository {
                 .map(InventoryItem.map())
                 .all();
     }
+
+    /**
+     * How much a cluster owns of each kind of thing, and where those pieces stand.
+     *
+     * <p>Counted in the database rather than over a list fetched into memory: an association with a few
+     * thousand pieces has no use for every row when the question is how many jackets there are. The
+     * grouping is the inventory the piece belongs to and the size it is cut to, which is what somebody
+     * ordering a batch reads; a size of null is a row from an inventory that keeps none.
+     *
+     * @param clusterId the owning cluster
+     * @return one row per inventory and size, the inventory's name on each
+     */
+    public List<OwnedCount> countItemsOwnedByCluster(int clusterId) {
+        return query("""
+                SELECT
+                    i.id                                                          AS inventory_id,
+                    i.name                                                        AS inventory_name,
+                    it.size_id                                                    AS size_id,
+                    s.label                                                       AS size_label,
+                    count(*)                                                      AS total,
+                    count(*) FILTER (WHERE it.custody = 'WITH_OWNER')             AS in_store,
+                    count(*) FILTER (WHERE it.custody = 'WITH_MEMBER')            AS with_member,
+                    count(*) FILTER (WHERE it.custody = 'WITH_PARTNER')           AS lent,
+                    count(*) FILTER (WHERE it.custody = 'LOST')                   AS lost,
+                    count(*) FILTER (WHERE it.custody IN ('AT_STATION', 'IN_TRANSIT')) AS at_station
+                FROM inventory_item it
+                JOIN inventory i ON i.id = it.inventory_id
+                LEFT JOIN inventory_size s ON s.id = it.size_id
+                WHERE it.owner_kind = 'CLUSTER' AND it.owner_cluster_id = :cluster_id
+                GROUP BY i.id, i.name, it.size_id, s.label, s.position
+                ORDER BY i.name, s.position NULLS FIRST, s.label;""")
+                .single(call().bind("cluster_id", clusterId))
+                .map(row -> new OwnedCount(
+                        row.getInt("inventory_id"),
+                        row.getString("inventory_name"),
+                        row.getObject("size_id", Integer.class),
+                        row.getString("size_label"),
+                        row.getInt("total"),
+                        row.getInt("in_store"),
+                        row.getInt("at_station"),
+                        row.getInt("with_member"),
+                        row.getInt("lent"),
+                        row.getInt("lost")))
+                .all();
+    }
+
+    /**
+     * One kind of thing in one size, and where its pieces stand.
+     *
+     * @param sizeId    the size, or null for an inventory that keeps none
+     * @param inStore   resting in the owner's own store
+     * @param atStation at one of its stations, on the way there included
+     */
+    public record OwnedCount(
+            int inventoryId,
+            String inventoryName,
+            Integer sizeId,
+            String sizeLabel,
+            int total,
+            int inStore,
+            int atStation,
+            int withMember,
+            int lent,
+            int lost) {}
 
     public List<InventorySize> findSizesByStation(int stationId) {
         return query("""
@@ -766,6 +830,9 @@ public class InventoryRepository {
      * cluster that does not keep its gear in Ember contributes none, which is what lets a station under such
      * a cluster carry on exactly as it did before.
      *
+     * <p>A cluster's requirement may name a group of stations, and then counts only at the stations in it. A
+     * station's own requirement never names one, so the same condition leaves every one of those alone.
+     *
      * @param stationId the station reading them
      * @return its own and the cluster's, ordered by position
      */
@@ -773,10 +840,13 @@ public class InventoryRepository {
         return query("""
                 SELECT %s FROM inventory_requirement r
                 JOIN inventory i ON r.inventory_id = i.id
-                WHERE i.station_id = :station_id
+                WHERE (i.station_id = :station_id
                    OR i.station_id IN (SELECT c.home_station_id FROM cluster c
                                        JOIN station s ON s.cluster_id = c.id
-                                       WHERE s.id = :station_id AND c.uses_inventory)
+                                       WHERE s.id = :station_id AND c.uses_inventory))
+                  AND (r.station_group_id IS NULL
+                       OR EXISTS (SELECT 1 FROM cluster_station_group_membership m
+                                  WHERE m.group_id = r.station_group_id AND m.station_id = :station_id))
                 ORDER BY r.position, r.id;""", SqlSupport.alias("r", INVENTORY_REQUIREMENT_COLUMNS))
                 .single(call().bind("station_id", stationId))
                 .map(InventoryRequirement.map())
@@ -798,10 +868,13 @@ public class InventoryRepository {
                 SELECT %s, i.name AS inventory_name, i.station_id <> :station_id AS from_cluster
                 FROM inventory_requirement r
                 JOIN inventory i ON r.inventory_id = i.id
-                WHERE i.station_id = :station_id
+                WHERE (i.station_id = :station_id
                    OR i.station_id IN (SELECT c.home_station_id FROM cluster c
                                        JOIN station s ON s.cluster_id = c.id
-                                       WHERE s.id = :station_id AND c.uses_inventory)
+                                       WHERE s.id = :station_id AND c.uses_inventory))
+                  AND (r.station_group_id IS NULL
+                       OR EXISTS (SELECT 1 FROM cluster_station_group_membership m
+                                  WHERE m.group_id = r.station_group_id AND m.station_id = :station_id))
                 ORDER BY r.position, r.id;""", SqlSupport.alias("r", INVENTORY_REQUIREMENT_COLUMNS))
                 .single(call().bind("station_id", stationId))
                 .map(row -> new VisibleRequirement(
@@ -826,20 +899,22 @@ public class InventoryRepository {
      *
      * @param inventoryId the inventory ID
      * @param userType    the user type name, or {@code null} for no user type restriction
-     * @param groupId     the group ID (0 means no group restriction)
-     * @param quantity    the required quantity
+     * @param groupId        the group ID (0 means no group restriction)
+     * @param stationGroupId the group of stations it counts at, or null for every station reading it
+     * @param quantity       the required quantity
      * @return the created requirement
      */
     public InventoryRequirement createRequirement(
-            int inventoryId, StationUserType userType, int groupId, int quantity) {
+            int inventoryId, StationUserType userType, int groupId, Integer stationGroupId, int quantity) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO inventory_requirement(inventory_id, user_type, group_id, quantity)
-                VALUES(:inventoryId, :userType, :groupId, :quantity)
+                INSERT INTO inventory_requirement(inventory_id, user_type, group_id, station_group_id, quantity)
+                VALUES(:inventoryId, :userType, :groupId, :stationGroupId, :quantity)
                 RETURNING %s;""",
                 call().bind("inventoryId", inventoryId)
                         .bind("userType", userType)
                         .bind("groupId", groupId == 0 ? null : groupId)
+                        .bind("stationGroupId", stationGroupId)
                         .bind("quantity", quantity),
                 InventoryRequirement.map(),
                 INVENTORY_REQUIREMENT_COLUMNS);

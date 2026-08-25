@@ -477,7 +477,7 @@ public class DemoClusterSeeder implements DemoSeeder {
 
         // The requirement hangs off the cluster's own inventory, so there is one definition rather than one
         // per station that would have to be kept matching by hand
-        inventoryRepository.createRequirement(pool.id(), StationUserType.MEMBER, 0, 1);
+        inventoryRepository.createRequirement(pool.id(), StationUserType.MEMBER, 0, null, 1);
 
         seedMovements(cluster, member, pool.id(), smallId, largeId);
 

@@ -107,6 +107,72 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
     }
 
+    /**
+     * What the statistics page reads: one block per kind of thing, the sizes inside the block they
+     * belong to, and nothing at all from gear the association does not own.
+     */
+    @Test
+    void whatTheAssociationOwnsIsCountedByKindAndBySize() {
+        var cluster = freshCluster();
+        var station = stationOf(cluster);
+        var jackets =
+                inventoryRepo.create(station.id(), "Jacken " + NAMES.incrementAndGet(), InventoryType.EXTERNAL, true);
+        inventoryRepo.createSize(jackets.id(), "52", 0, null);
+        int sizeId = inventoryRepo.findSizes(jackets.id()).getFirst().id();
+        inventoryRepo.createItem(
+                jackets.id(), "J-" + NAMES.incrementAndGet(), "Jacke", sizeId, null, ItemOwner.CLUSTER, cluster.id());
+        inventoryRepo.createItem(
+                jackets.id(), "J-" + NAMES.incrementAndGet(), "Jacke", sizeId, null, ItemOwner.CLUSTER, cluster.id());
+        var helmets =
+                inventoryRepo.create(station.id(), "Helme " + NAMES.incrementAndGet(), InventoryType.EXTERNAL, false);
+        inventoryRepo.createItem(
+                helmets.id(), "H-" + NAMES.incrementAndGet(), "Helm", null, null, ItemOwner.CLUSTER, cluster.id());
+        inventoryRepo.createItem(
+                helmets.id(), "H-" + NAMES.incrementAndGet(), "Helm", null, null, ItemOwner.STATION, null);
+
+        var stats = clusterInventoryService.statistics(cluster.id());
+
+        assertEquals(2, stats.size(), "one block per kind of thing, and the station's own helmet in neither");
+        var jacketStat = stats.stream()
+                .filter(stat -> stat.inventoryId() == jackets.id())
+                .findFirst()
+                .orElseThrow();
+        assertEquals(2, jacketStat.total());
+        assertEquals(2, jacketStat.atStation(), "gear recorded at a station is held there");
+        assertEquals(1, jacketStat.sizes().size());
+        assertEquals("52", jacketStat.sizes().getFirst().label());
+        assertEquals(2, jacketStat.sizes().getFirst().total());
+        var helmetStat = stats.stream()
+                .filter(stat -> stat.inventoryId() == helmets.id())
+                .findFirst()
+                .orElseThrow();
+        assertEquals(1, helmetStat.total(), "only the one the association owns");
+        assertTrue(helmetStat.sizes().isEmpty(), "an inventory that keeps no sizes has no size rows");
+
+        clusterService.releaseStation(cluster.id(), station.id());
+        stationRepo.delete(station.id());
+    }
+
+    /**
+     * The ready-made chains arrive the first time the settings screen asks for them, and asking again
+     * does not write a second set.
+     */
+    @Test
+    void theSettingsScreenFindsTheReadyMadeChains() {
+        var cluster = freshCluster();
+
+        assertTrue(clusterInventoryService.findFlows(cluster.id()).isEmpty(), "reading alone writes nothing");
+
+        var first = clusterInventoryService.findFlowsForSettings(cluster.id());
+        var second = clusterInventoryService.findFlowsForSettings(cluster.id());
+
+        assertEquals(4, first.size(), "one chain per purpose");
+        assertEquals(first.size(), second.size(), "asking twice does not write them twice");
+        assertTrue(
+                first.stream().anyMatch(flow -> flow.purpose() == MovementPurpose.REQUEST),
+                "a station asking for something is one of them");
+    }
+
     @Test
     void aStationCannotRenameOrDeleteGearItDoesNotOwn() {
         var cluster = freshCluster();

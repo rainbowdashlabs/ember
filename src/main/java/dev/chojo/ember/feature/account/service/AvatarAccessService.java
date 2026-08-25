@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.account.service;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -23,6 +24,10 @@ import java.util.UUID;
  * Resolves which account an avatar request may be served for. Every lookup ends in the account
  * UUID the avatar is stored under, or an empty result when the caller has no relationship to the
  * target - existence of the target is never distinguishable from a missing permission.
+ *
+ * <p>A relationship is a shared station, a federation partnership between the caller's station and
+ * the target's, an association both belong to, or an association of the caller's that governs the
+ * target's station. The last two are what let an association's screens draw the people on them.
  */
 @Singleton
 public class AvatarAccessService {
@@ -30,17 +35,20 @@ public class AvatarAccessService {
     private final StationMemberRepository stationMemberRepository;
     private final StationRepository stationRepository;
     private final FederationRepository federationRepository;
+    private final ClusterRepository clusterRepository;
 
     @Inject
     public AvatarAccessService(
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
             StationRepository stationRepository,
-            FederationRepository federationRepository) {
+            FederationRepository federationRepository,
+            ClusterRepository clusterRepository) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.stationRepository = stationRepository;
         this.federationRepository = federationRepository;
+        this.clusterRepository = clusterRepository;
     }
 
     /**
@@ -93,10 +101,11 @@ public class AvatarAccessService {
     /**
      * Returns true when the calling session is allowed to view an avatar belonging
      * to {@code targetStationId}: the caller has a membership at the target station,
-     * is an instance administrator, or the caller's currently selected station has
-     * an active federation partnership with the target station. All other cases -
-     * including a logged-in account with no station memberships - fall through to
-     * an empty result to avoid leaking whether the target member exists.
+     * is an instance administrator, acts for an association that governs the station,
+     * or the caller's currently selected station has an active federation partnership
+     * with the target station. All other cases - including a logged-in account with no
+     * station memberships - fall through to an empty result to avoid leaking whether
+     * the target member exists.
      */
     private boolean canSeeMemberAvatar(UserSession session, int targetStationId) {
         if (session.account() == null) return false;
@@ -108,6 +117,7 @@ public class AvatarAccessService {
                 .isPresent()) {
             return true;
         }
+        if (governsStation(session, targetStationId)) return true;
         if (session.stationId() == null) return false;
         UUID targetUid = stationRepository.resolveUid(targetStationId);
         if (targetUid == null) return false;
@@ -120,9 +130,10 @@ public class AvatarAccessService {
     /**
      * Returns true when the calling session is allowed to view the avatar of the
      * account with id {@code targetAccountId}. Visibility rules: caller is the owner,
-     * caller is an instance administrator, caller shares any station membership with
-     * the target, or caller's currently-selected station has an active federation
-     * partnership with any station the target is a member of.
+     * caller is an instance administrator, both belong to the association the caller is
+     * acting for, that association governs a station the target belongs to, caller shares
+     * any station membership with the target, or caller's currently-selected station has
+     * an active federation partnership with any station the target is a member of.
      */
     private boolean canSeeAccountAvatar(UserSession session, int targetAccountId) {
         if (session.account() == null) return false;
@@ -130,8 +141,12 @@ public class AvatarAccessService {
         if (session.account().instanceUserType() == InstanceUserType.ADMINISTRATOR) {
             return true;
         }
+        if (sharesCluster(session, targetAccountId)) return true;
         var targetMemberships = stationMemberRepository.findByAccount(targetAccountId);
         if (targetMemberships.isEmpty()) return false;
+        for (var targetMembership : targetMemberships) {
+            if (governsStation(session, targetMembership.stationId())) return true;
+        }
         var callerMemberships =
                 stationMemberRepository.findByAccount(session.account().id());
         var callerStationIds =
@@ -151,5 +166,30 @@ public class AvatarAccessService {
             }
         }
         return false;
+    }
+
+    /**
+     * Whether the caller is acting for an association the target account also belongs to.
+     *
+     * <p>An association's people are its own: belonging to it says nothing about belonging to any of
+     * its stations, so two of them may share no station at all. Without this they would look at each
+     * other's rows and see nobody, which is what the roll and the group screens showed.
+     */
+    private boolean sharesCluster(UserSession session, int targetAccountId) {
+        if (session.clusterId() == null) return false;
+        return clusterRepository
+                .findMember(session.clusterId(), targetAccountId)
+                .isPresent();
+    }
+
+    /**
+     * Whether the caller is acting for an association that governs this station.
+     *
+     * <p>Somebody running an association reads the people at every station under it, so their pictures
+     * are theirs to see as well, whether or not they are a member of that station themselves.
+     */
+    private boolean governsStation(UserSession session, int targetStationId) {
+        if (session.clusterId() == null) return false;
+        return clusterRepository.findStationIds(session.clusterId()).contains(targetStationId);
     }
 }
