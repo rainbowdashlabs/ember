@@ -301,6 +301,34 @@ public class FederationRepository {
                 FEDERATION_KB_SHARE_COLUMNS);
     }
 
+    /**
+     * Replaces the stations one knowledge share is aimed at.
+     *
+     * <p>Only read when the share's scope is {@code SPECIFIC}. An empty list with that scope reaches
+     * nobody, which is a thing somebody may legitimately write.
+     *
+     * @param shareId    the share
+     * @param partnerIds the partnerships it is for
+     */
+    public void setKbShareTargets(int shareId, List<Integer> partnerIds) {
+        query("DELETE FROM federation_kb_share_target WHERE share_id = :share_id;")
+                .single(call().bind("share_id", shareId))
+                .delete();
+        for (int partnerId : partnerIds) {
+            query("INSERT INTO federation_kb_share_target(share_id, partner_id) VALUES (:share_id, :partner_id);")
+                    .single(call().bind("share_id", shareId).bind("partner_id", partnerId))
+                    .insert();
+        }
+    }
+
+    /** The stations one knowledge share is aimed at. */
+    public List<Integer> findKbShareTargets(int shareId) {
+        return query("SELECT partner_id FROM federation_kb_share_target WHERE share_id = :share_id;")
+                .single(call().bind("share_id", shareId))
+                .map(row -> row.getInt("partner_id"))
+                .all();
+    }
+
     public boolean deleteKbShare(int id, int stationId) {
         return query("DELETE FROM federation_kb_share WHERE id = :id AND station_id = :station_id;")
                 .single(call().bind("id", id).bind("station_id", stationId))

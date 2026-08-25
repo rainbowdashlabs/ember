@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
@@ -132,7 +133,7 @@ public class KnowledgeBaseFederationService {
                 RemoteKnowledgeBaseRoutes.BROWSE_KB_FOLDER.at(folderId),
                 RemoteKbBrowse.class,
                 "folder",
-                partner -> folderLevel(partnerStationId(partner), folderId));
+                partner -> folderLevel(partnerStationId(partner), folderId, servingSideId(partner)));
         var partner = federationRepository
                 .findPartnerByStationAndRemoteUid(stationId, partnerStationUid)
                 .orElseThrow(NotFoundResponse::new);
@@ -338,7 +339,82 @@ public class KnowledgeBaseFederationService {
      * @return the shared files in their list representation
      */
     public RemoteKbBrowse browseForPartner(FederationPartner partner) {
-        return servedLevel(partner.stationId());
+        return servedLevel(partner.stationId(), partner.id());
+    }
+
+    /**
+     * Shares a knowledge folder or article, with everybody or with named stations.
+     *
+     * <p>Naming stations on a folder names them for everything under it, and an entry inside may narrow
+     * that set but not widen it: a folder for two stations holding an article for a third is a
+     * contradiction, and the answer to it is a refusal rather than a guess about which one wins.
+     *
+     * @param stationId  the station sharing
+     * @param fileId     the article, or {@code null} when sharing a folder
+     * @param folderId   the folder, or {@code null} when sharing an article
+     * @param scope      everybody, or the named stations
+     * @param partnerIds the partnerships it is for, read only when the scope names stations
+     */
+    public FederationShare shareEntry(
+            int stationId, Integer fileId, Integer folderId, ShareScope scope, List<Integer> partnerIds) {
+        Integer parent = fileId != null
+                ? knowledgeBaseService.findFile(fileId).map(KbFile::folderId).orElse(null)
+                : knowledgeBaseService
+                        .findFolder(folderId)
+                        .map(KbFolder::parentId)
+                        .orElse(null);
+        var reachable = inheritedAim(stationId, parent);
+        if (reachable != null) {
+            if (scope != ShareScope.SPECIFIC) {
+                throw new BadRequestResponse("The folder above this is shared with named stations only");
+            }
+            var widened =
+                    partnerIds.stream().filter(id -> !reachable.contains(id)).toList();
+            if (!widened.isEmpty()) {
+                throw new BadRequestResponse("The folder above this does not reach every station named");
+            }
+        }
+        return federationService.createKbShare(stationId, fileId, folderId, scope, partnerIds);
+    }
+
+    /**
+     * The stations the nearest shared folder above reaches, or {@code null} when nothing above narrows
+     * anything: either no folder above is shared, or one is shared with everybody.
+     */
+    private Set<Integer> inheritedAim(int stationId, Integer folderId) {
+        var shares = federationRepository.findKbShares(stationId);
+        for (Integer id = folderId; id != null; ) {
+            for (var share : shares) {
+                if (!Objects.equals(share.folderId(), id)) continue;
+                if (share.shareScope() != ShareScope.SPECIFIC) return null;
+                return Set.copyOf(federationRepository.findKbShareTargets(share.id()));
+            }
+            var folder = knowledgeBaseService.findFolder(id).orElse(null);
+            if (folder == null) return null;
+            id = folder.parentId();
+        }
+        return null;
+    }
+
+    /**
+     * The shares of one station that reach one reader.
+     *
+     * <p>A share for everybody reaches every partner. A share naming stations reaches the ones named, which
+     * is how an association says an entry is for some of its stations and not the rest.
+     *
+     * @param servingStationId  the station whose shares these are
+     * @param readingPartnerId  the partnership the reader arrives on, or {@code null} to ignore the aim
+     */
+    private List<FederationShare> sharesReaching(int servingStationId, Integer readingPartnerId) {
+        return federationRepository.findKbShares(servingStationId).stream()
+                .filter(share -> reaches(share, readingPartnerId))
+                .toList();
+    }
+
+    private boolean reaches(FederationShare share, Integer readingPartnerId) {
+        if (share.shareScope() != ShareScope.SPECIFIC) return true;
+        if (readingPartnerId == null) return true;
+        return federationRepository.findKbShareTargets(share.id()).contains(readingPartnerId);
     }
 
     /**
@@ -348,9 +424,9 @@ public class KnowledgeBaseFederationService {
      * opposite thing on each side of it: serving a partner, {@code stationId} is this station, and reading
      * a partner it is the one doing the reading.
      */
-    private RemoteKbBrowse servedLevel(int servingStationId) {
-        var shares = federationRepository.findKbShares(servingStationId);
-        var sharedFolders = sharedFolderIds(servingStationId);
+    private RemoteKbBrowse servedLevel(int servingStationId, Integer readingPartnerId) {
+        var shares = sharesReaching(servingStationId, readingPartnerId);
+        var sharedFolders = sharedFolderIds(servingStationId, readingPartnerId);
 
         // A folder inside a shared folder is reached by opening the one above it, not by standing on its own
         // at the top. Only the outermost shared folders belong here.
@@ -387,13 +463,13 @@ public class KnowledgeBaseFederationService {
      * @return its subfolders and its articles
      */
     public RemoteKbBrowse folderForPartner(FederationPartner partner, int folderId) {
-        return folderLevel(partner.stationId(), folderId);
+        return folderLevel(partner.stationId(), folderId, partner.id());
     }
 
-    /** What is inside one shared folder of a serving station, refused unless a share covers it. */
-    private RemoteKbBrowse folderLevel(int servingStationId, int folderId) {
+    /** What is inside one shared folder of a serving station, refused unless a share reaching the reader covers it. */
+    private RemoteKbBrowse folderLevel(int servingStationId, int folderId, Integer readingPartnerId) {
         var folder = knowledgeBaseService.findFolder(folderId).orElseThrow(NotFoundResponse::new);
-        if (folder.stationId() != servingStationId || !isFolderShared(servingStationId, folderId)) {
+        if (folder.stationId() != servingStationId || !isFolderShared(servingStationId, folderId, readingPartnerId)) {
             throw new NotFoundResponse();
         }
         return new RemoteKbBrowse(
@@ -477,7 +553,7 @@ public class KnowledgeBaseFederationService {
      * the folder it sits in.
      */
     public boolean isSharedWithPartner(FederationPartner partner, KbFile file) {
-        for (var share : federationRepository.findKbShares(partner.stationId())) {
+        for (var share : sharesReaching(partner.stationId(), partner.id())) {
             if (share.fileId() != null && share.fileId() == file.id()) return true;
         }
         return isFolderSharedWithPartner(partner, file.folderId());
@@ -494,16 +570,16 @@ public class KnowledgeBaseFederationService {
      * @param folderId the folder to ask about, or {@code null} for the root, which is never shared
      */
     public boolean isFolderSharedWithPartner(FederationPartner partner, Integer folderId) {
-        return isFolderShared(partner.stationId(), folderId);
+        return isFolderShared(partner.stationId(), folderId, partner.id());
     }
 
-    private boolean isFolderShared(int servingStationId, Integer folderId) {
-        return isInsideAnyOf(folderId, sharedFolderIds(servingStationId));
+    private boolean isFolderShared(int servingStationId, Integer folderId, Integer readingPartnerId) {
+        return isInsideAnyOf(folderId, sharedFolderIds(servingStationId, readingPartnerId));
     }
 
-    /** The folders one station shares, by id. */
-    private Set<Integer> sharedFolderIds(int servingStationId) {
-        return federationRepository.findKbShares(servingStationId).stream()
+    /** The folders one station shares that reach one reader, by id. */
+    private Set<Integer> sharedFolderIds(int servingStationId, Integer readingPartnerId) {
+        return sharesReaching(servingStationId, readingPartnerId).stream()
                 .map(FederationShare::folderId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
@@ -684,7 +760,7 @@ public class KnowledgeBaseFederationService {
      * well, or it would stand twice, once at the top and once where it belongs.
      */
     private SharedKbLevel browseSharedKbDirect(int remoteStationId, FederationPartner partner) {
-        var served = servedLevel(remoteStationId);
+        var served = servedLevel(remoteStationId, servingSideId(partner));
         var folders = served.folders().stream()
                 .map(folder -> new SharedKbFolder(
                         folder.id(), folder.name(), folder.description(), remoteStationId, partner.id()))
@@ -846,6 +922,25 @@ public class KnowledgeBaseFederationService {
         return stationRepository
                 .findById(stationId)
                 .map(Station::federationPrivateKey)
+                .orElse(null);
+    }
+
+    /**
+     * The id of the partnership row the serving station holds, seen from the reader's own row.
+     *
+     * <p>A share aimed at named stations names them by the partnerships the serving station keeps, and the
+     * reader arrives holding the mirror image of one. Both sides exist for the same pairing, and they have
+     * different ids, so reading the aim means crossing over to the serving station's row.
+     *
+     * @param partner the reader's own partnership row
+     * @return the serving station's row id, or {@code null} when the pairing has no other side recorded
+     */
+    private Integer servingSideId(FederationPartner partner) {
+        var readerStation = stationRepository.findById(partner.stationId()).orElse(null);
+        if (readerStation == null) return null;
+        return federationRepository
+                .findPartnerByStationAndRemoteUid(partnerStationId(partner), readerStation.uid())
+                .map(FederationPartner::id)
                 .orElse(null);
     }
 

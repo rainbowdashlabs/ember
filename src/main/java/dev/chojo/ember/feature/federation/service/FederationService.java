@@ -467,12 +467,26 @@ public class FederationService {
     }
 
     public FederationShare createKbShare(int stationId, Integer fileId, Integer folderId, ShareScope shareScope) {
+        return createKbShare(stationId, fileId, folderId, shareScope, List.of());
+    }
+
+    /**
+     * Shares a knowledge entry, with everybody or with named stations.
+     *
+     * @param partnerIds the partnerships it is for, read only when the scope names stations
+     */
+    public FederationShare createKbShare(
+            int stationId, Integer fileId, Integer folderId, ShareScope shareScope, List<Integer> partnerIds) {
         var share = repository.createKbShare(stationId, fileId, folderId, shareScope);
+        if (shareScope == ShareScope.SPECIFIC) {
+            repository.setKbShareTargets(share.id(), partnerIds);
+        }
         log.info(
-                "Created knowledge-base federation share {} for station {} (scope {})",
+                "Created knowledge-base federation share {} for station {} (scope {}, {} targets)",
                 share.id(),
                 stationId,
-                shareScope);
+                shareScope,
+                partnerIds.size());
         return share;
     }
 

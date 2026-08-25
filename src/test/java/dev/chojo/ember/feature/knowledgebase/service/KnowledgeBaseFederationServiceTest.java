@@ -252,6 +252,79 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         knowledgeBaseRepo.deleteFolder(outer.id());
     }
 
+    /**
+     * An entry for named stations reaches those and nobody else. Both sides of a pairing exist as rows of
+     * their own, and the aim is written against the serving station's row, so the reader's row is the
+     * wrong one to look for and this is where that goes wrong if it goes wrong.
+     */
+    @Test
+    @Order(3)
+    void anEntryForNamedStationsReachesThoseAndNoOther() {
+        var forOne = knowledgeBaseRepo.createFile(
+                stationB.id(),
+                null,
+                "ForStationOnly",
+                "desc",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                0,
+                null,
+                member.id());
+        var servingSide = federationRepo
+                .findPartnerByStationAndRemoteUid(stationB.id(), station.uid())
+                .orElseThrow();
+        var share = federationService.createKbShare(
+                stationB.id(), forOne.id(), null, ShareScope.SPECIFIC, List.of(servingSide.id()));
+
+        assertTrue(service.browseSharedKb(station.id()).files().stream()
+                .anyMatch(item -> item.file().id() == forOne.id()));
+
+        federationRepo.setKbShareTargets(share.id(), List.of());
+        assertTrue(service.browseSharedKb(station.id()).files().stream()
+                .noneMatch(item -> item.file().id() == forOne.id()));
+
+        federationRepo.deleteKbShare(share.id(), stationB.id());
+        knowledgeBaseRepo.deleteFile(forOne.id());
+    }
+
+    /** A folder for named stations holding an article for a different one is a contradiction, so it is refused. */
+    @Test
+    @Order(3)
+    void anArticleCannotReachPastTheFolderHoldingIt() {
+        var folder = knowledgeBaseRepo.createFolder(stationB.id(), null, "Narrow", "", member.id());
+        var inside = knowledgeBaseRepo.createFile(
+                stationB.id(),
+                folder.id(),
+                "Inside",
+                "desc",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                0,
+                null,
+                member.id());
+        var servingSide = federationRepo
+                .findPartnerByStationAndRemoteUid(stationB.id(), station.uid())
+                .orElseThrow();
+        var folderShare =
+                service.shareEntry(stationB.id(), null, folder.id(), ShareScope.SPECIFIC, List.of(servingSide.id()));
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.shareEntry(
+                        stationB.id(), inside.id(), null, ShareScope.SPECIFIC, List.of(servingSide.id() + 9999)));
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.shareEntry(stationB.id(), inside.id(), null, ShareScope.ALL_PARTNERS, List.of()));
+
+        // Narrowing to nobody is allowed: it says less than the folder above, not more
+        var narrowed = service.shareEntry(stationB.id(), inside.id(), null, ShareScope.SPECIFIC, List.of());
+
+        federationRepo.deleteKbShare(narrowed.id(), stationB.id());
+        federationRepo.deleteKbShare(folderShare.id(), stationB.id());
+        knowledgeBaseRepo.deleteFile(inside.id());
+        knowledgeBaseRepo.deleteFolder(folder.id());
+    }
+
     @Test
     @Order(4)
     void browseFederatedKbCarriesPartnerStationName() {
