@@ -102,6 +102,12 @@ Docker
   docker-app-restart    Build and start the containers again, which is how a change is picked up:
                         the backend compiles on start. Name one to restart only that, e.g.
                         `docker-app-restart ember`
+  docker-e2e            Start the stack the stories run against, detached: its own database and a
+                        backend on 8899. The suite starts it itself when it is down, so this is for
+                        having it up in advance
+  docker-e2e-down       Stop it again. Add -v to throw the database away with it
+  docker-e2e-restart    Build and start it again, which is how a backend change reaches the stories:
+                        a stack that is already up keeps running the sources it started with
   docker-app-logs       Follow what the containers print, which is where the first start is
                         watched: `up -d` returns long before the backend has finished building
 
@@ -268,6 +274,21 @@ case "$cmd" in
         ;;
     docker-app-down)
         cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile full down "$@"
+        ;;
+    docker-e2e)
+        cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile e2e up -d --build "$@"
+        ;;
+    docker-e2e-down)
+        # Without -v the database volume outlives the stack. The stories do not need it thrown away,
+        # since each run drops the schema and migrates it back, but a stack that will not start is
+        # often quickest cured by taking the volume with it.
+        cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile e2e down "$@"
+        ;;
+    docker-e2e-restart)
+        # How a backend change reaches the stories: the suite reuses a stack that is already up, and
+        # that one is still running the sources as they were when it started.
+        cd "$ROOT/docker"
+        run docker compose -f compose.dev.yaml --profile e2e up -d --build --force-recreate "$@"
         ;;
     docker-app-restart)
         # An up rather than a restart, because `docker compose restart` takes no --build: it starts

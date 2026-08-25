@@ -116,13 +116,13 @@ public class DemoService {
                 return;
             }
             log.info("Dev mode: schema changed, re-seeding database...");
-            resetAndSeed();
+            if (!seedQuietly()) return;
             writeSchemaHash();
             return;
         }
         if (!demoConfig.enabled()) return;
         log.info("Demo mode enabled. Idle reset after {} minutes of inactivity", demoConfig.idleResetMinutes());
-        resetAndSeed();
+        seedQuietly();
         scheduler.scheduleAtFixedRate(this::checkIdleReset, 1, 1, TimeUnit.MINUTES);
     }
 
@@ -135,23 +135,35 @@ public class DemoService {
         needsReset = true;
     }
 
+    /**
+     * Throws away the schema, migrates it back and seeds it again.
+     *
+     * <p>Failure is raised rather than logged, because a caller that goes on regardless works against
+     * a database that is neither the old one nor a seeded one. The end-to-end suite asks for this
+     * before every run and takes the answer as its guarantee that the data is fresh: swallowed here,
+     * a failed wipe reads to it as a clean start and every story after it fails somewhere else.
+     * Callers that must not fall over, the ones on the start up path, catch it themselves.
+     */
     public void resetAndSeed() {
         log.info("Demo: Wiping and re-seeding database...");
-        try {
-            wipeDatabase();
-            // The identities cached in memory belong to the stations and associations just thrown away
-            stationRepository.invalidateIdentityCaches();
-            clusterRepository.invalidateIdentityCache();
-            // And so does every cached answer to "where does this station keep its files". Station
-            // identifiers start again from the same numbers after a wipe, so a stale entry hands the next
-            // station to hold that number the storage of the one that held it before, which reads as a file
-            // vanishing on the first move somebody makes
-            backendResolver.invalidateAll();
-            seedData();
-            log.info("Demo: Database seeded successfully");
-        } catch (Exception e) {
-            log.error("Demo: Failed to seed database", e);
-        }
+        wipeDatabase();
+        invalidateCachesOfTheDiscardedData();
+        seedData();
+        log.info("Demo: Database seeded successfully");
+    }
+
+    /**
+     * Forgets what was remembered about the stations and associations just thrown away.
+     *
+     * <p>The identities are cached in memory, and so is every answer to "where does this station keep
+     * its files". Station identifiers start again from the same numbers after a wipe, so a stale entry
+     * hands the next station to hold a number the storage of the one that held it before, which reads
+     * as a file vanishing on the first move somebody makes.
+     */
+    private void invalidateCachesOfTheDiscardedData() {
+        stationRepository.invalidateIdentityCaches();
+        clusterRepository.invalidateIdentityCache();
+        backendResolver.invalidateAll();
     }
 
     private void checkIdleReset() {
@@ -160,7 +172,26 @@ public class DemoService {
         if (idleMinutes >= demoConfig.idleResetMinutes()) {
             log.info("Demo: {} minutes idle, resetting data...", idleMinutes);
             needsReset = false;
+            seedQuietly();
+        }
+    }
+
+    /**
+     * Seeds where nothing is waiting for an answer: the start up path and the idle timer.
+     *
+     * <p>Neither may fall over. An instance that cannot seed still has to finish starting, and a
+     * failure on the timer that escaped would take the schedule with it and no reset would happen
+     * again until a restart.
+     *
+     * @return whether the data is now the seeded data
+     */
+    private boolean seedQuietly() {
+        try {
             resetAndSeed();
+            return true;
+        } catch (Exception e) {
+            log.error("Demo: Failed to seed database", e);
+            return false;
         }
     }
 

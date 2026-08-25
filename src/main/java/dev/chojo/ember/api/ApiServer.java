@@ -599,6 +599,10 @@ public class ApiServer {
      * <p>Registered only while the backend runs with {@code demo.dev}, alongside the password-free
      * login that serves the same purpose. It is destructive by design and has no place anywhere a
      * real station's data lives.
+     *
+     * <p>A wipe that fails answers with the failure rather than with success, because the end-to-end
+     * suite asks for this before every run and stops when it is refused. Told that a database it
+     * never got was fresh, it would run its stories against whatever the run before left.
      */
     private void handleDevReset(@NotNull Context ctx) {
         log.info("Dev reset requested, discarding all data and seeding again");
