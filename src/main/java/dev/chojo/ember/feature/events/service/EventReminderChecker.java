@@ -41,6 +41,7 @@ public class EventReminderChecker {
     private final StationMemberRepository stationMemberRepository;
     private final NotificationService notificationService;
     private final MemberNameResolver memberNameResolver;
+    private final EventRestrictionService restrictionService;
     private final StationReadOnlyGuard readOnlyGuard;
 
     @Inject
@@ -51,6 +52,7 @@ public class EventReminderChecker {
             StationMemberRepository stationMemberRepository,
             NotificationService notificationService,
             MemberNameResolver memberNameResolver,
+            EventRestrictionService restrictionService,
             StationReadOnlyGuard readOnlyGuard) {
         this.eventRepository = eventRepository;
         this.reminderRepository = reminderRepository;
@@ -58,6 +60,7 @@ public class EventReminderChecker {
         this.stationMemberRepository = stationMemberRepository;
         this.notificationService = notificationService;
         this.memberNameResolver = memberNameResolver;
+        this.restrictionService = restrictionService;
         this.readOnlyGuard = readOnlyGuard;
         var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "event-reminder-checker");
@@ -148,6 +151,10 @@ public class EventReminderChecker {
      *
      * <p>Three days out and one day out, each sent once per event: the sweep runs every half hour, and a
      * warning that arrived every half hour would be worse than none.
+     *
+     * <p>Only people the event is actually open to are warned. Eligibility is asked without any
+     * permissions, so nobody is reminded merely because they could override the restriction: somebody the
+     * event is closed to has nothing to answer.
      *
      * <p>The warning goes to everyone who could answer, which is the member and whoever looks after them.
      * A household where a guardian and two children are all still unanswered therefore hears three times,

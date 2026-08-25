@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.LoginNameService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
@@ -52,6 +53,7 @@ public class ManagedAccessService {
     private final StationMemberService memberService;
     private final ManagedLoginNoticeService noticeService;
     private final EmailService emailService;
+    private final AuthService authService;
 
     @Inject
     public ManagedAccessService(
@@ -61,7 +63,8 @@ public class ManagedAccessService {
             LoginNameService loginNameService,
             StationMemberService memberService,
             ManagedLoginNoticeService noticeService,
-            EmailService emailService) {
+            EmailService emailService,
+            AuthService authService) {
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
         this.mailLocaleService = mailLocaleService;
@@ -69,6 +72,7 @@ public class ManagedAccessService {
         this.memberService = memberService;
         this.noticeService = noticeService;
         this.emailService = emailService;
+        this.authService = authService;
     }
 
     /**
@@ -163,6 +167,44 @@ public class ManagedAccessService {
                 guardianMemberId,
                 memberId,
                 account.id());
+        return get(guardianMemberId, memberId);
+    }
+
+    /**
+     * Sets the password a managed member signs in with.
+     *
+     * <p>Only for a member with no address of their own. There the invitation to set a password
+     * already lands in the guardian's own postbox, so they set it either way and this only spares
+     * them the detour: no link that expires, no mail that never arrives. A member who does have an
+     * address of their own keeps that door to themselves, and their guardian is sent back to the
+     * invitation, because setting it here would be taking over an account past its owner's postbox.
+     *
+     * <p>The password rules are the ones everybody else meets, the member's open sessions end, and
+     * whoever looks after them is told.
+     *
+     * @param guardianMemberId the member acting as guardian
+     * @param memberId         the member in their care
+     * @param password         the new password
+     * @return the access state after the change
+     */
+    public ManagedAccess setPassword(int guardianMemberId, int memberId, String password) {
+        StationMember member = requireManaged(guardianMemberId, memberId);
+        var account = account(member);
+        if (account.hasRealEmail()) {
+            throw new ForbiddenResponse("This member has an address of their own and sets their own password");
+        }
+        if (password == null || password.isBlank()) {
+            throw new BadRequestResponse("setPassword.passwordTooShort");
+        }
+        switch (authService.setPasswordFor(account, password)) {
+            case PASSWORD_TOO_SHORT -> throw new BadRequestResponse("setPassword.passwordTooShort");
+            case PASSWORD_BREACHED -> throw new BadRequestResponse("setPassword.passwordBreached");
+            default -> log.info(
+                    "Guardian {} set the password of managed member {} (account {})",
+                    guardianMemberId,
+                    memberId,
+                    account.id());
+        }
         return get(guardianMemberId, memberId);
     }
 

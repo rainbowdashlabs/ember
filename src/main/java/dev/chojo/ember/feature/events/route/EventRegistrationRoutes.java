@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -68,6 +69,7 @@ public class EventRegistrationRoutes implements Routes {
     private final EventCrudService crudService;
     private final EventRegistrationService registrationService;
     private final EventRestrictionService restrictionService;
+    private final MemberNameResolver memberNameResolver;
     private final StationMemberService stationMemberService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
@@ -80,6 +82,7 @@ public class EventRegistrationRoutes implements Routes {
             EventCrudService crudService,
             EventRegistrationService registrationService,
             EventRestrictionService restrictionService,
+            MemberNameResolver memberNameResolver,
             StationMemberService stationMemberService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
@@ -89,6 +92,7 @@ public class EventRegistrationRoutes implements Routes {
         this.crudService = crudService;
         this.registrationService = registrationService;
         this.restrictionService = restrictionService;
+        this.memberNameResolver = memberNameResolver;
         this.stationMemberService = stationMemberService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
@@ -105,6 +109,7 @@ public class EventRegistrationRoutes implements Routes {
                 this::listPendingRegistrations,
                 StationPermission.EVENT_REGISTRATION);
         routes.get(prefix + "/events/registrations/counts", this::listRegistrationCounts, StationPermission.USER);
+        routes.get(prefix + "/events/registrations/awaiting", this::listAwaitingAnswer, StationPermission.USER);
         routes.put(
                 prefix + "/events/registrations/{id}/status",
                 this::updateRegistrationStatus,
@@ -248,6 +253,51 @@ public class EventRegistrationRoutes implements Routes {
             summary = "List my registrations",
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRegistration[].class)))
+    @OpenApi(
+            path = "/api/v1/events/registrations/awaiting",
+            methods = HttpMethod.GET,
+            summary = "Events still waiting on an answer from the reader or anyone they answer for",
+            tags = {"Events"},
+            description = "One entry per event, naming everyone in the household who still owes an "
+                    + "answer, soonest deadline first. Only events open to that person are listed, and "
+                    + "only while their registration is still open.",
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AwaitingAnswer[].class)))
+    private void listAwaitingAnswer(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        if (session.member() == null) {
+            ctx.json(Collections.emptyList());
+            return;
+        }
+
+        var household = new ArrayList<Integer>();
+        household.add(session.member().id());
+        if (session.hasPermission(StationPermission.MEMBER_GUARDIAN)) {
+            for (var managed : stationMemberService.findManaged(session.member().id())) {
+                household.add(managed.id());
+            }
+        }
+
+        var byEvent = new LinkedHashMap<Integer, AwaitingAnswer>();
+        for (var row : registrationService.findAwaitingAnswer(household)) {
+            if (!restrictionService.isMemberEligible(row.eventId(), row.memberId(), session.permissions())) {
+                continue;
+            }
+            var entry = byEvent.computeIfAbsent(
+                    row.eventId(),
+                    id -> new AwaitingAnswer(
+                            id, row.name(), row.startTime(), row.registrationDeadline(), new ArrayList<>()));
+            entry.members().add(new AwaitingMember(row.memberId(), memberNameResolver.resolveLocal(row.memberId())));
+        }
+        ctx.json(List.copyOf(byEvent.values()));
+    }
+
+    /** An event still waiting on an answer, and everyone in the household who owes one. */
+    public record AwaitingAnswer(
+            int eventId, String name, Instant startTime, Instant registrationDeadline, List<AwaitingMember> members) {}
+
+    /** Somebody who still owes an answer, named so a guardian can tell their children apart. */
+    public record AwaitingMember(int memberId, String name) {}
+
     private void listMyRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) {

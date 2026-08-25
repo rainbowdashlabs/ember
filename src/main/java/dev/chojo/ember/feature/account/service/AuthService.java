@@ -326,6 +326,55 @@ public class AuthService {
     }
 
     /**
+     * Sets the password of an account on behalf of somebody entitled to do so, without the detour
+     * over an invitation link.
+     *
+     * <p>Whether anybody is entitled is not decided here. This method only carries out what the
+     * caller has already established, and it holds every password rotation to the same standard as
+     * the account holder's own: the policy and the breach check apply unchanged, every open session
+     * of that account ends, and every outstanding recovery token is dropped.
+     *
+     * <p>Everybody the account is written to is told, which for a member with no address of their
+     * own is the people who look after them. The one who set it hears about their own doing, and a
+     * second guardian hears about somebody else's, which is the reason to send it at all.
+     *
+     * @param account  the account whose password is being set, already resolved by the caller
+     * @param password the new plaintext password
+     * @return {@link SetPasswordOutcome#OK}, or why the password was refused. Never
+     *         {@link SetPasswordOutcome#TOKEN_INVALID}, because no token is involved.
+     */
+    public SetPasswordOutcome setPasswordFor(Account account, String password) {
+        PasswordPolicy.Result policy = validateNewPassword(password);
+        if (policy == PasswordPolicy.Result.TOO_SHORT) {
+            return SetPasswordOutcome.PASSWORD_TOO_SHORT;
+        }
+        if (policy == PasswordPolicy.Result.BREACHED) {
+            return SetPasswordOutcome.PASSWORD_BREACHED;
+        }
+
+        String hash = passwordHasher.hash(password);
+        if (accountRepository.findCredential(account.id()).isPresent()) {
+            accountRepository.updateCredential(account.id(), hash);
+        } else {
+            accountRepository.createCredential(account.id(), hash);
+        }
+        invalidateAfterPasswordRotation(account.id(), null);
+        notifyPasswordSetOnBehalf(account);
+        return SetPasswordOutcome.OK;
+    }
+
+    private void notifyPasswordSetOnBehalf(Account account) {
+        try {
+            String locale = mailLocaleService.forAccount(account.id());
+            for (var recipient : mailRecipientService.forAccount(account.id())) {
+                emailService.sendPasswordChangedNotice(recipient.email(), recipient.name(), locale);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to enqueue password-changed notice for account {}", account.id(), e);
+        }
+    }
+
+    /**
      * Initiates a password reset by sending a reset email. Silently does nothing if the email is not found,
      * to prevent email enumeration.
      *

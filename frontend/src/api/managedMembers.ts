@@ -75,6 +75,15 @@ export async function setUsername(memberId: number, username: string): Promise<M
     return res.data
 }
 
+/**
+ * Sets the password of a member in the guardian's care. Only accepted for a member with no address
+ * of their own, whose invitation would land in the guardian's postbox anyway.
+ */
+export async function setPassword(memberId: number, password: string): Promise<ManagedAccess> {
+    const res = await client.put<ManagedAccess>(`/managed-members/${memberId}/password`, {password})
+    return res.data
+}
+
 export async function setLogin(memberId: number, enabled: boolean): Promise<ManagedAccess> {
     const res = await client.put<ManagedAccess>(`/managed-members/${memberId}/login`, {enabled})
     return res.data

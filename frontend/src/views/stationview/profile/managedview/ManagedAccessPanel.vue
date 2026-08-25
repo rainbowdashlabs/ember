@@ -33,6 +33,7 @@ const {t} = useI18n()
 const access = ref<ManagedAccess | null>(null)
 const email = ref('')
 const username = ref('')
+const password = ref('')
 const loading = ref(false)
 const error = ref('')
 const notice = ref('')
@@ -45,6 +46,7 @@ async function load() {
     access.value = await managedMembers.getAccess(props.memberId)
     email.value = access.value.email ?? ''
     username.value = access.value.username ?? ''
+    password.value = ''
   } catch (e) {
     access.value = null
     error.value = apiErrorMessage(e) ?? t('common.error')
@@ -73,6 +75,19 @@ async function saveUsername() {
     access.value = await managedMembers.setUsername(props.memberId, username.value)
     username.value = access.value.username ?? ''
     notice.value = t('profileManaged.access.usernameSaved')
+  } catch (e) {
+    error.value = apiErrorMessage(e) ?? t('common.error')
+    throw e
+  }
+}
+
+async function savePassword() {
+  error.value = ''
+  notice.value = ''
+  try {
+    access.value = await managedMembers.setPassword(props.memberId, password.value)
+    password.value = ''
+    notice.value = t('profileManaged.access.passwordSaved')
   } catch (e) {
     error.value = apiErrorMessage(e) ?? t('common.error')
     throw e

@@ -14,6 +14,7 @@ import {StationModules} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import NotificationsPanel from './overviewview/NotificationsPanel.vue'
 import ExchangesPanel from './overviewview/ExchangesPanel.vue'
+import AwaitingAnswerPanel from './overviewview/AwaitingAnswerPanel.vue'
 import RegistrationsPanel from './overviewview/RegistrationsPanel.vue'
 import UpcomingEventsPanel from './overviewview/UpcomingEventsPanel.vue'
 import SetupChecklist from './overviewview/SetupChecklist.vue'
@@ -44,6 +45,7 @@ const profileIncomplete = computed(() => sessionInfo.value?.profileComplete === 
       <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
         <NotificationsPanel/>
         <ExchangesPanel v-if="isModuleEnabled(StationModules.INVENTORY)"/>
+        <AwaitingAnswerPanel v-if="isModuleEnabled(StationModules.EVENTS)"/>
         <RegistrationsPanel v-if="isModuleEnabled(StationModules.EVENTS)"/>
         <UpcomingEventsPanel v-if="isModuleEnabled(StationModules.EVENTS)"/>
       </div>

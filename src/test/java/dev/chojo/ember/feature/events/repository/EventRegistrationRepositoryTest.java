@@ -95,6 +95,72 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
         }
     }
 
+    /**
+     * What the dashboard reads: events still open for answers that this household has not answered, one
+     * row per event and member. A closed one is not listed, because the answer is no longer theirs to
+     * give, and an answered one is not either.
+     */
+    @Test
+    void whatIsStillWaitingOnAnAnswer() {
+        var open = eventRepo.create(
+                station.id(),
+                "Offen",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(java.time.Duration.ofDays(9)),
+                Instant.now().plus(java.time.Duration.ofDays(9)).plusSeconds(3600),
+                null,
+                true,
+                Instant.now().plus(java.time.Duration.ofDays(2)),
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var closed = eventRepo.create(
+                station.id(),
+                "Zu",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(java.time.Duration.ofDays(9)),
+                Instant.now().plus(java.time.Duration.ofDays(9)).plusSeconds(3600),
+                null,
+                true,
+                Instant.now().minus(java.time.Duration.ofDays(1)),
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        try {
+            var waiting = eventRegistrationRepo.findAwaitingAnswer(List.of(member.id()));
+            assertTrue(waiting.stream().anyMatch(a -> a.eventId() == open.id()), "an open one waits");
+            assertTrue(waiting.stream().noneMatch(a -> a.eventId() == closed.id()), "a closed one does not");
+
+            var entry = waiting.stream()
+                    .filter(a -> a.eventId() == open.id())
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(member.id(), entry.memberId());
+            assertEquals("Offen", entry.name());
+
+            eventRegistrationRepo.create(open.id(), member.id(), LocalDate.now(), RegistrationStatus.DECLINED, null);
+            assertTrue(
+                    eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
+                            .noneMatch(a -> a.eventId() == open.id()),
+                    "an answer settles it");
+
+            assertTrue(eventRegistrationRepo.findAwaitingAnswer(List.of()).isEmpty(), "nobody owes nothing");
+        } finally {
+            eventRepo.delete(open.id());
+            eventRepo.delete(closed.id());
+        }
+    }
+
     @Test
     void createReadUpdateDelete() {
         var created = event("Registration Lifecycle", Instant.parse("2027-05-15T09:00:00Z"));

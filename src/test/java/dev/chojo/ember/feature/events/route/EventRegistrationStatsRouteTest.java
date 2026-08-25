@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import io.javalin.http.Context;
@@ -103,6 +104,7 @@ class EventRegistrationStatsRouteTest {
                 crudService,
                 registrationService,
                 mock(EventRestrictionService.class),
+                mock(MemberNameResolver.class),
                 mock(StationMemberService.class),
                 mock(StationMemberRepository.class),
                 mock(AccountRepository.class),

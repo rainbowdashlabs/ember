@@ -40,6 +40,7 @@ class EventReminderCheckerTest {
     private StationMemberRepository stationMemberRepository;
     private NotificationService notificationService;
     private MemberNameResolver memberNameResolver;
+    private EventRestrictionService restrictionService;
     private StationReadOnlyGuard readOnlyGuard;
 
     private static final int STATION_ID = 1;
@@ -52,6 +53,8 @@ class EventReminderCheckerTest {
         stationMemberRepository = mock(StationMemberRepository.class);
         notificationService = mock(NotificationService.class);
         memberNameResolver = mock(MemberNameResolver.class);
+        restrictionService = mock(EventRestrictionService.class);
+        when(restrictionService.isMemberEligible(anyInt(), anyInt(), any())).thenReturn(true);
         readOnlyGuard = mock(StationReadOnlyGuard.class);
         when(readOnlyGuard.isWritable(anyInt())).thenReturn(true);
     }
@@ -193,14 +196,7 @@ class EventReminderCheckerTest {
         when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10), member(11)));
         when(registrationRepository.findDeclinedMemberIds(42, eventDate)).thenReturn(List.of());
 
-        new EventReminderChecker(
-                eventRepository,
-                reminderRepository,
-                registrationRepository,
-                stationMemberRepository,
-                notificationService,
-                memberNameResolver,
-                readOnlyGuard);
+        createCheckerWithoutScheduler();
 
         // The check runs after 5 minutes delay via scheduler, so we invoke it indirectly via constructor.
         // Instead, we test the logic by calling the method reflectively.
@@ -439,6 +435,7 @@ class EventReminderCheckerTest {
                     stationMemberRepository,
                     notificationService,
                     memberNameResolver,
+                    restrictionService,
                     readOnlyGuard);
         } catch (Exception e) {
             throw new RuntimeException(e);

@@ -500,6 +500,27 @@ export async function withdrawRegistration(id: number): Promise<void> {
     await client.delete(`/events/registrations/${id}`)
 }
 
+/** Somebody in the household who still owes an answer. */
+export interface AwaitingMember {
+    memberId: number
+    name: string
+}
+
+/** An event still waiting on an answer, and everyone who owes one. */
+export interface AwaitingAnswer {
+    eventId: number
+    name: string
+    startTime: string
+    registrationDeadline: string
+    members: AwaitingMember[]
+}
+
+/** Events whose registration closes soon and which the household has not answered. */
+export async function listAwaitingAnswer(): Promise<AwaitingAnswer[]> {
+    const res = await client.get<AwaitingAnswer[]>('/events/registrations/awaiting')
+    return res.data
+}
+
 /**
  * Changes whether somebody is coming.
  *

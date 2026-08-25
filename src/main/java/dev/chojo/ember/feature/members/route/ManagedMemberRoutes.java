@@ -108,6 +108,8 @@ public class ManagedMemberRoutes implements Routes {
         routes.put(prefix + "/managed-members/{memberId}/email", this::setEmail, StationPermission.MEMBER_GUARDIAN);
         routes.put(
                 prefix + "/managed-members/{memberId}/username", this::setUsername, StationPermission.MEMBER_GUARDIAN);
+        routes.put(
+                prefix + "/managed-members/{memberId}/password", this::setPassword, StationPermission.MEMBER_GUARDIAN);
         routes.put(prefix + "/managed-members/{memberId}/login", this::setLogin, StationPermission.MEMBER_GUARDIAN);
         routes.get(
                 prefix + "/managed-members/{memberId}/inventory-items",
@@ -261,6 +263,23 @@ public class ManagedMemberRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/managed-members/{memberId}/password",
+            methods = HttpMethod.PUT,
+            summary = "Set the password of a managed member",
+            description = "Only for a member with no address of their own, whose invitation would land in the "
+                    + "guardian's postbox anyway. The usual password rules apply, the member's open sessions end, "
+                    + "and whoever looks after them is told.",
+            tags = {"Managed Members"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetPasswordRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
+    private void setPassword(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var request = ctx.bodyAsClass(SetPasswordRequest.class);
+        ctx.json(accessService.setPassword(session.member().id(), pathInt(ctx, "memberId"), request.password()));
+    }
+
+    @OpenApi(
             path = "/api/v1/managed-members/{memberId}/login",
             methods = HttpMethod.PUT,
             summary = "Allow or refuse signing in for a managed member",
@@ -285,6 +304,11 @@ public class ManagedMemberRoutes implements Routes {
      * @param username the name the managed member signs in with, or empty to clear it
      */
     public record SetUsernameRequest(String username) {}
+
+    /**
+     * @param password the password the managed member signs in with
+     */
+    public record SetPasswordRequest(String password) {}
 
     /**
      * @param enabled whether the managed member may sign in
