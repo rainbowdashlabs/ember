@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:7e1098f0819bd069a2298ca0f1fc1ff5f032dabf3f7d6f10a2a5b6f8f3a7f26a",
-  "generatedAt" : "2026-08-25T12:15:16Z",
+  "schemaHash" : "sha256:1f8e4eebeea1f7d523784c8a016b37c8e736d4fae3f51e1983b5d60be8002ec2",
+  "generatedAt" : "2026-08-25T16:51:04Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -12936,7 +12936,7 @@
     "quiz_catalog" : {
       "feature" : "quiz",
       "scope" : "STATION",
-      "tableHash" : "sha256:d4b64ae635c1eb7759ef4758857afd7b168be380036c8406ae380f692914a828",
+      "tableHash" : "sha256:0324ff00f0953b134c307f451f1867af3af97ddff2c28659614ebf743d99db12",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -12985,6 +12985,30 @@
         "nullable" : false,
         "verified" : true,
         "description" : "When true, the catalog's questions are eligible for the public quiz random endpoint that backs the QUIZ_TEASER cell. Defaults to FALSE; catalog managers opt-in per catalog from the catalog settings view."
+      }, {
+        "name" : "language",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The language the questions are written in, as a BCP 47 tag. Null when nobody said."
+      }, {
+        "name" : "source",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Where the questions came from, in free text: the sheet, the handbook or the station they were taken over from. Null when nobody said."
+      }, {
+        "name" : "author",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who wrote the questions, in free text. Null when nobody said."
+      }, {
+        "name" : "license",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The terms the questions may be used under, in free text. Null when nobody said."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
@@ -13168,6 +13192,73 @@
         "reason" : "Quiz structure data — pending detailed review"
       },
       "description" : "Individual quiz questions within a catalog."
+    },
+    "quiz_question_report" : {
+      "feature" : "quiz",
+      "scope" : "STATION",
+      "tableHash" : "sha256:6aca8821881c3073ce418a8b3c2d6e176c1b4d907b0bd185bd0e8dfd04719a24",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "question_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The question the note is about. The note goes when the question goes."
+      }, {
+        "name" : "reported_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who wrote the note, so somebody can ask back. Null once that member is gone, which leaves the note itself standing."
+      }, {
+        "name" : "note",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the member says is wrong with the question, in their own words."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the note was written."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "question_id",
+        "refTable" : "quiz_question",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "reported_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "rationale" : "Belongs in station transfer; handler in StationExportService/StationImportService not yet implemented"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "reported_by"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "reported_by",
+          "strategy" : "NULL",
+          "reason" : "Note preserved so the catalog keeps the open remark, reporter cleared"
+        } ]
+      },
+      "description" : "Notes members left on a quiz question while training, saying that something about it is wrong, out of date or ambiguous. Deleted once whoever maintains the catalog has acknowledged the note."
     },
     "quiz_test" : {
       "feature" : "quiz",

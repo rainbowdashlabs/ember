@@ -9,9 +9,9 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import type {QuizCatalog, QuizCatalogExport, SharedCatalogEntry} from '@/api/quiz'
+import Alert from '@/components/feedback/Alert.vue'
+import type {QuizCatalog, SharedCatalogEntry} from '@/api/quiz'
 import { quiz, federation } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -96,8 +96,6 @@ const {
   error,
 })
 
-const fileInput = ref<HTMLInputElement | null>(null)
-
 function openCreateModal() {
   createName.value = ''
   createDescription.value = ''
@@ -133,24 +131,7 @@ async function exportCatalog(catalog: QuizCatalog) {
 }
 
 function triggerImport() {
-  fileInput.value?.click()
-}
-
-async function handleImportFile(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-  error.value = ''
-  try {
-    const text = await file.text()
-    const data: QuizCatalogExport = JSON.parse(text)
-    await quiz.importCatalog(data)
-    await loadData()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    input.value = ''
-  }
+  router.push({ name: 'quiz-catalog-create-import' })
 }
 
 async function copySharedCatalog(catalogId: number) {
@@ -186,8 +167,6 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
         @open-create-modal="openCreateModal"
         @trigger-import="triggerImport"
       />
-
-      <input ref="fileInput" type="file" accept=".json" class="hidden" @change="handleImportFile" />
 
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>

@@ -249,6 +249,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-quiz-catalog-generate', path: '/helpcenter/station/quiz/catalogs/0/generate', i18nPrefix: 'helpCenter.quizCatalogGenerate'},
     {route: 'help-quiz-catalog-import', path: '/helpcenter/station/quiz/catalogs/0/import', i18nPrefix: 'helpCenter.quizCatalogImport'},
     {route: 'help-quiz-catalog-mc-fill', path: '/helpcenter/station/quiz/catalogs/0/mc-fill', i18nPrefix: 'helpCenter.quizCatalogMcFill'},
+    {route: 'help-quiz-catalog-create-import', path: '/helpcenter/station/quiz/catalogs/import', i18nPrefix: 'helpCenter.quizCatalogCreateImport'},
     {route: 'help-quiz-tests', path: '/helpcenter/station/quiz/tests', i18nPrefix: 'helpCenter.quiz'},
     {route: 'help-quiz-test-detail', path: '/helpcenter/station/quiz/tests/0', i18nPrefix: ['helpCenter.quiz', 'helpCenter.quizTestDetailFrozenQuestion', 'helpCenter.quizTestDetailFrozenQuestions']},
     {route: 'help-quiz-test-edit', path: '/helpcenter/station/quiz/tests/0/edit', i18nPrefix: 'helpCenter.quizTestEdit'},

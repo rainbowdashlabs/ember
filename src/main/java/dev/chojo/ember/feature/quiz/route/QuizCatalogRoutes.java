@@ -8,33 +8,29 @@ package dev.chojo.ember.feature.quiz.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
+import dev.chojo.ember.feature.quiz.entity.QuizCatalogTemplate;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
-import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.service.QuizCatalogService;
+import dev.chojo.ember.feature.quiz.service.QuizCatalogTransferService;
+import dev.chojo.ember.feature.quiz.service.QuizCatalogTransferService.TransferProblem;
 import dev.chojo.ember.feature.quiz.service.QuizFederationService;
 import dev.chojo.ember.feature.quiz.service.QuizFederationService.SharedQuizCatalog;
 import dev.chojo.ember.feature.quiz.service.QuizImportService;
 import dev.chojo.ember.feature.quiz.service.QuizImportService.CsvMappings;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
-import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import tools.jackson.databind.JsonNode;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,17 +38,18 @@ import java.util.Map;
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 /**
- * Local catalog-scoped quiz endpoints: catalogs and their station-wide categories, the
- * training view, catalog import/export and the CSV import.
+ * Local catalog-scoped quiz endpoints: catalogs and their station-wide categories, the training
+ * view, the export, the two ways a file is imported, the reading of a sheet into a draft, and the
+ * example files that document both formats.
  */
 @Singleton
 public class QuizCatalogRoutes implements Routes {
-    private static final Logger log = LoggerFactory.getLogger(QuizCatalogRoutes.class);
 
     private final QuizCatalogService catalogService;
     private final QuizQuestionService questionService;
     private final QuizFederationService federationService;
     private final QuizImportService importService;
+    private final QuizCatalogTransferService transferService;
     private final QuizRouteGuards guards;
 
     @Inject
@@ -61,11 +58,13 @@ public class QuizCatalogRoutes implements Routes {
             QuizQuestionService questionService,
             QuizFederationService federationService,
             QuizImportService importService,
+            QuizCatalogTransferService transferService,
             QuizRouteGuards guards) {
         this.catalogService = catalogService;
         this.questionService = questionService;
         this.federationService = federationService;
         this.importService = importService;
+        this.transferService = transferService;
         this.guards = guards;
     }
 
@@ -96,8 +95,12 @@ public class QuizCatalogRoutes implements Routes {
 
         routes.get(prefix + "/quiz/catalogs/{id}/export", this::exportCatalog, StationPermission.TEST_CATALOG_EDIT);
         routes.post(prefix + "/quiz/catalogs/import", this::importCatalog, StationPermission.TEST_CATALOG_EDIT);
-
-        routes.post(prefix + "/quiz/catalogs/{id}/import-csv", this::importCsv, StationPermission.TEST_CATALOG_EDIT);
+        routes.post(prefix + "/quiz/catalogs/{id}/import", this::appendToCatalog, StationPermission.TEST_CATALOG_EDIT);
+        routes.post(prefix + "/quiz/catalogs/csv-draft", this::draftFromCsv, StationPermission.TEST_CATALOG_EDIT);
+        routes.get(
+                prefix + "/quiz/catalogs/template/{format}",
+                this::downloadTemplate,
+                StationPermission.TEST_CATALOG_EDIT);
     }
 
     /**
@@ -129,6 +132,7 @@ public class QuizCatalogRoutes implements Routes {
                                     catalog.name(),
                                     catalog.description(),
                                     catalog.trainingEnabled(),
+                                    catalog.metadata(),
                                     questions.size(),
                                     typeCounts,
                                     categories,
@@ -148,7 +152,8 @@ public class QuizCatalogRoutes implements Routes {
                 session.stationId(),
                 req.name(),
                 req.description() != null ? req.description() : "",
-                req.trainingEnabled() != null && req.trainingEnabled());
+                req.trainingEnabled() != null && req.trainingEnabled(),
+                CatalogMetadata.orNone(req.metadata()));
         ctx.status(HttpStatus.CREATED).json(catalog);
     }
 
@@ -160,7 +165,8 @@ public class QuizCatalogRoutes implements Routes {
                 id,
                 req.name(),
                 req.description() != null ? req.description() : "",
-                req.trainingEnabled() != null && req.trainingEnabled())) {
+                req.trainingEnabled() != null && req.trainingEnabled(),
+                CatalogMetadata.orNone(req.metadata()))) {
             throw new NotFoundResponse();
         }
         catalogService.findCatalog(id).ifPresentOrElse(ctx::json, () -> {
@@ -232,81 +238,80 @@ public class QuizCatalogRoutes implements Routes {
     }
 
     private void exportCatalog(Context ctx) {
-        int catalogId = pathInt(ctx, "id");
-        var catalog = guards.requireOwnedCatalog(ctx, catalogId);
-        var categories = catalogService.findCategories(catalog.stationId());
-        var questions = questionService.findQuestions(catalogId);
-        ctx.json(new CatalogExport(
-                catalog.name(), catalog.description(), catalog.trainingEnabled(), categories, questions));
+        var catalog = guards.requireOwnedCatalog(ctx, pathInt(ctx, "id"));
+        ctx.json(transferService.export(catalog));
     }
 
+    /**
+     * Creates a catalog from an uploaded file. A file with anything wrong in it is answered with
+     * every problem at once and creates nothing, so the person correcting it sees the whole list
+     * rather than the first line that failed.
+     */
     private void importCatalog(Context ctx) {
         var session = UserSession.from(ctx);
-        var req = ctx.bodyAsClass(CatalogExport.class);
-        if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
-        var catalog = catalogService.createCatalog(
-                session.stationId(),
-                req.name(),
-                req.description() != null ? req.description() : "",
-                req.trainingEnabled());
-
-        var categoryIdMap = new HashMap<Integer, Integer>();
-        if (req.categories() != null) {
-            for (var cat : req.categories()) {
-                var created =
-                        catalogService.createCategory(catalog.id(), cat.name(), cat.description(), cat.position());
-                categoryIdMap.put(cat.id(), created.id());
-            }
+        var transfer = transferService.read(ctx.bodyAsClass(JsonNode.class));
+        var outcome = transferService.importInto(session.stationId(), transfer);
+        if (!outcome.problems().isEmpty()) {
+            ctx.status(HttpStatus.BAD_REQUEST).json(new ImportRejected(outcome.problems()));
+            return;
         }
-
-        if (req.questions() != null) {
-            for (var q : req.questions()) {
-                Integer newCategoryId = q.categoryId() != null ? categoryIdMap.get(q.categoryId()) : null;
-                questionService.createQuestion(
-                        CreateQuestionCommand.builder(catalog.id(), q.quizQuestionType(), q.title())
-                                .category(newCategoryId)
-                                .description(q.description())
-                                .imageUrl(q.imageUrl())
-                                .points(q.points())
-                                .autoPoints(q.autoPoints())
-                                .config(q.config())
-                                .position(q.position())
-                                .build());
-            }
-        }
-        ctx.status(HttpStatus.CREATED).json(catalog);
+        ctx.status(HttpStatus.CREATED).json(outcome.catalog());
     }
 
-    private void importCsv(Context ctx) {
-        int catalogId = pathInt(ctx, "id");
-        var catalog = guards.requireOwnedCatalog(ctx, catalogId);
-
-        var csvFile = ctx.uploadedFile("file");
-        if (csvFile == null) throw new BadRequestResponse("No CSV file uploaded");
-
-        String mappingsJson = ctx.formParam("mappings");
-        if (mappingsJson == null || mappingsJson.isBlank()) throw new BadRequestResponse("mappings is required");
-
-        CsvMappings mappings;
-        try {
-            mappings = Json.MAPPER.readValue(mappingsJson, CsvMappings.class);
-        } catch (Exception e) {
-            log.warn("Invalid mappings JSON for CSV import", e);
-            throw new BadRequestResponse("Invalid mappings JSON");
+    /**
+     * Adds the questions of an uploaded file to a catalog that already exists. Refused the same way
+     * and for the same reasons as creating one, except that the file need not name a catalog.
+     */
+    private void appendToCatalog(Context ctx) {
+        var catalog = guards.requireOwnedCatalog(ctx, pathInt(ctx, "id"));
+        var transfer = transferService.read(ctx.bodyAsClass(JsonNode.class));
+        var outcome = transferService.appendTo(catalog, transfer);
+        if (!outcome.problems().isEmpty()) {
+            ctx.status(HttpStatus.BAD_REQUEST).json(new ImportRejected(outcome.problems()));
+            return;
         }
-
-        String csvContent;
-        try (var content = csvFile.content()) {
-            csvContent = new String(content.readAllBytes(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            log.error("Failed to read CSV file for catalog {}", catalogId, e);
-            throw new InternalServerErrorResponse("Failed to read CSV file");
-        }
-
-        ctx.json(importService.importCsv(catalog, csvContent, mappings));
+        ctx.json(outcome.catalog());
     }
 
-    public record CatalogRequest(String name, String description, Boolean trainingEnabled) {}
+    /**
+     * Reads an uploaded sheet into the same shape a catalog file has, without writing anything.
+     * The wizard shows what came out, lets it be corrected, and sends the result back to one of the
+     * two import endpoints, so what was confirmed on screen is what is created.
+     */
+    private void draftFromCsv(Context ctx) {
+        var request = ctx.bodyAsClass(CsvDraftRequest.class);
+        if (request.content() == null || request.content().isBlank()) {
+            throw new BadRequestResponse("content is required");
+        }
+        if (request.mappings() == null) throw new BadRequestResponse("mappings is required");
+        ctx.json(importService.draft(request.content(), request.mappings()));
+    }
+
+    /**
+     * Hands out the example file the format panel and the help centre describe, so somebody
+     * building their own starts from something that already imports rather than from a page of
+     * prose about what the fields mean.
+     */
+    private void downloadTemplate(Context ctx) {
+        var template = QuizCatalogTemplate.byFormat(ctx.pathParam("format"));
+        if (template == null) throw new NotFoundResponse();
+        ctx.contentType(template.contentType())
+                .header("Content-Disposition", "attachment; filename=\"" + template.fileName() + "\"")
+                .result(template.read());
+    }
+
+    public record CatalogRequest(String name, String description, Boolean trainingEnabled, CatalogMetadata metadata) {}
+
+    /**
+     * @param problems every reason the uploaded file was refused
+     */
+    public record ImportRejected(List<TransferProblem> problems) {}
+
+    /**
+     * @param content  the decoded sheet
+     * @param mappings which column carries which field, plus the parsing separators
+     */
+    public record CsvDraftRequest(String content, CsvMappings mappings) {}
 
     public record CategoryRequest(String name, String description, Integer position) {}
 
@@ -316,18 +321,12 @@ public class QuizCatalogRoutes implements Routes {
             String name,
             String description,
             boolean trainingEnabled,
+            CatalogMetadata metadata,
             int questionCount,
             Map<String, Integer> questionTypeCounts,
             List<QuizCategory> categories,
             Instant createdAt,
             Instant updatedAt) {}
-
-    public record CatalogExport(
-            String name,
-            String description,
-            boolean trainingEnabled,
-            List<QuizCategory> categories,
-            List<QuizQuestion> questions) {}
 
     private record CatalogListResponse(List<QuizCatalog> catalogs, List<SharedQuizCatalog> sharedCatalogs) {}
 }

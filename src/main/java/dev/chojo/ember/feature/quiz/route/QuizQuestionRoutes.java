@@ -12,6 +12,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionImageService;
+import dev.chojo.ember.feature.quiz.service.QuizQuestionReportService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionSanitizer;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import io.javalin.http.BadRequestResponse;
@@ -43,6 +44,7 @@ public class QuizQuestionRoutes implements Routes {
     private final QuizQuestionService questionService;
     private final QuizQuestionSanitizer sanitizer;
     private final QuizQuestionImageService imageService;
+    private final QuizQuestionReportService reportService;
     private final QuizRouteGuards guards;
     private final Api apiConfig;
 
@@ -51,11 +53,13 @@ public class QuizQuestionRoutes implements Routes {
             QuizQuestionService questionService,
             QuizQuestionSanitizer sanitizer,
             QuizQuestionImageService imageService,
+            QuizQuestionReportService reportService,
             QuizRouteGuards guards,
             Api apiConfig) {
         this.questionService = questionService;
         this.sanitizer = sanitizer;
         this.imageService = imageService;
+        this.reportService = reportService;
         this.guards = guards;
         this.apiConfig = apiConfig;
     }
@@ -74,6 +78,41 @@ public class QuizQuestionRoutes implements Routes {
                 prefix + "/quiz/questions/{id}/image", this::uploadQuestionImage, StationPermission.TEST_CATALOG_EDIT);
         routes.delete(
                 prefix + "/quiz/questions/{id}/image", this::deleteQuestionImage, StationPermission.TEST_CATALOG_EDIT);
+
+        routes.post(prefix + "/quiz/questions/{id}/reports", this::reportQuestion, StationPermission.USER);
+        routes.get(
+                prefix + "/quiz/catalogs/{id}/reports", this::listCatalogReports, StationPermission.TEST_CATALOG_VIEW);
+        routes.delete(prefix + "/quiz/reports/{id}", this::acknowledgeReport, StationPermission.TEST_CATALOG_EDIT);
+    }
+
+    /**
+     * Records what a member says is wrong with a question. Open to anyone who may train, because
+     * the person who trains against a catalog is the one who notices that an answer has gone stale.
+     */
+    private void reportQuestion(Context ctx) {
+        var question = guards.requireOwnedQuestion(ctx, pathInt(ctx, "id"));
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(ReportRequest.class);
+        var member = session.member();
+        ctx.status(HttpStatus.CREATED)
+                .json(reportService.report(question.id(), member != null ? member.id() : null, req.note()));
+    }
+
+    private void listCatalogReports(Context ctx) {
+        var catalog = guards.requireOwnedCatalog(ctx, pathInt(ctx, "id"));
+        ctx.json(reportService.findByCatalog(catalog.id()));
+    }
+
+    /**
+     * Acknowledges a note, which deletes it. Whoever maintains the catalog says with this that the
+     * question has been dealt with, so what remains on a catalog is only what is still open.
+     */
+    private void acknowledgeReport(Context ctx) {
+        int reportId = pathInt(ctx, "id");
+        int catalogId = reportService.findCatalogOfReport(reportId).orElseThrow(NotFoundResponse::new);
+        guards.requireOwnedCatalog(ctx, catalogId);
+        if (!reportService.acknowledge(reportId)) throw new NotFoundResponse();
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private void listQuestions(Context ctx) {
@@ -206,4 +245,9 @@ public class QuizQuestionRoutes implements Routes {
             return config != null ? config.toString() : "{}";
         }
     }
+
+    /**
+     * @param note what the member says is wrong with the question, in their own words
+     */
+    public record ReportRequest(String note) {}
 }

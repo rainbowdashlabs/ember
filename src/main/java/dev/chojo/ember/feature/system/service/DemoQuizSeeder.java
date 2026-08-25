@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
@@ -67,7 +68,11 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
     public void seedQuiz(int stationId, int createdBy, List<Integer> memberIds) {
         // -- Anfänger-Katalog (40+ questions) --
         var anfaengerCatalog = quizCatalogRepository.create(
-                stationId, "Anfänger-Wissen", "Grundlagenwissen für neue Mitglieder der Jugendfeuerwehr", true);
+                stationId,
+                "Anfänger-Wissen",
+                "Grundlagenwissen für neue Mitglieder der Jugendfeuerwehr",
+                true,
+                CatalogMetadata.none());
         quizCatalogRepository.setPublicRender(anfaengerCatalog.id(), true);
         var catGrundlagen =
                 quizCatalogRepository.createCategory(stationId, "Grundlagen", "Allgemeine Grundlagen der Feuerwehr", 0);
@@ -383,7 +388,8 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
                 stationId,
                 "Fortgeschrittenen-Wissen",
                 "Vertiefendes Wissen für erfahrene Jugendfeuerwehr-Mitglieder",
-                true);
+                true,
+                CatalogMetadata.none());
         var catBrandlehre = quizCatalogRepository.createCategory(
                 stationId, "Brandlehre", "Verbrennungsdreieck, Brandklassen und Löschmittel", 4);
         var catTaktik = quizCatalogRepository.createCategory(
@@ -612,7 +618,7 @@ public class DemoQuizSeeder implements DemoPerStationSeeder {
 
         // -- Test 3: Showcase test with every question type --
         var showcaseCatalog = quizCatalogRepository.create(
-                stationId, "Showcase-Katalog", "Ein Katalog mit je einer Frage pro Typ", true);
+                stationId, "Showcase-Katalog", "Ein Katalog mit je einer Frage pro Typ", true, CatalogMetadata.none());
         var catShowcase = quizCatalogRepository.createCategory(stationId, "Showcase", "Demo aller Fragetypen", 7);
 
         createMcQuestion(

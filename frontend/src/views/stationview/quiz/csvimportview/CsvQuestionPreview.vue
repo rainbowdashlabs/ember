@@ -4,64 +4,70 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
+import {computed} from 'vue'
+import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import CsvQuestionCard from './CsvQuestionCard.vue'
-import { needsSplit, splitAnswer, type ImportQuestion } from './quizCsvImport'
+import {answerList, resplitAnswers, setAnswerList, toggleCorrect, type ImportDraft} from './quizCsvImport'
+import type {QuizCatalogExportCategory} from '@/api/quiz'
 
 const props = defineProps<{
-  questions: ImportQuestion[]
+  drafts: ImportDraft[]
+  categories: QuizCatalogExportCategory[]
   status: string
 }>()
 
-const { t } = useI18n()
+const {t} = useI18n()
 
-const includedCount = computed(() => props.questions.filter(question => question.included).length)
+const includedCount = computed(() => props.drafts.filter(draft => draft.included).length)
+const categoryNames = computed(() => new Map(props.categories.map(category => [category.key, category.name])))
+
+function categoryName(draft: ImportDraft): string {
+  const key = draft.question.categoryKey
+  return key ? categoryNames.value.get(key) ?? key : ''
+}
+
+function at(index: number): ImportDraft | undefined {
+  return props.drafts[index]
+}
 
 function toggleInclude(index: number) {
-  const question = props.questions[index]
-  if (!question) return
-  question.included = !question.included
+  const draft = at(index)
+  if (draft) draft.included = !draft.included
 }
 
 function resplit(index: number) {
-  const question = props.questions[index]
-  if (!question) return
-  question.splitItems = needsSplit(question.type) ? splitAnswer(question) : []
-  question.mcCorrectIndices.clear()
+  const draft = at(index)
+  if (draft) resplitAnswers(draft)
 }
 
 function setSeparator(index: number, value: string) {
-  const question = props.questions[index]
-  if (!question) return
-  question.answerSeparator = value
-  resplit(index)
+  const draft = at(index)
+  if (!draft) return
+  draft.answerSeparator = value
+  resplitAnswers(draft)
 }
 
-function toggleMcCorrect(index: number, optionIndex: number) {
-  const correct = props.questions[index]?.mcCorrectIndices
-  if (!correct) return
-  if (correct.has(optionIndex)) correct.delete(optionIndex)
-  else correct.add(optionIndex)
+function onToggleCorrect(index: number, answerIndex: number) {
+  const draft = at(index)
+  if (draft) toggleCorrect(draft, answerIndex)
 }
 
-function updateSplitItem(index: number, optionIndex: number, value: string) {
-  const question = props.questions[index]
-  if (!question) return
-  question.splitItems[optionIndex] = value
+function updateAnswer(index: number, answerIndex: number, value: string) {
+  const draft = at(index)
+  if (!draft) return
+  const answers = [...answerList(draft)]
+  answers[answerIndex] = value
+  setAnswerList(draft, answers)
 }
 
-function removeSplitItem(index: number, optionIndex: number) {
-  const question = props.questions[index]
-  if (!question) return
-  question.splitItems.splice(optionIndex, 1)
-  const shifted = [...question.mcCorrectIndices]
-      .filter(correctIndex => correctIndex !== optionIndex)
-      .map(correctIndex => correctIndex > optionIndex ? correctIndex - 1 : correctIndex)
-  question.mcCorrectIndices.clear()
-  shifted.forEach(correctIndex => question.mcCorrectIndices.add(correctIndex))
+function removeAnswer(index: number, answerIndex: number) {
+  const draft = at(index)
+  if (!draft) return
+  const answers = [...answerList(draft)]
+  answers.splice(answerIndex, 1)
+  setAnswerList(draft, answers)
 }
 </script>
 
@@ -69,7 +75,7 @@ function removeSplitItem(index: number, optionIndex: number) {
   <NeutralContainer class="space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <SectionHeader>
-        {{ t('quiz.csv.preview') }} ({{ includedCount }} / {{ questions.length }})
+        {{ t('quiz.csv.preview') }} ({{ includedCount }} / {{ drafts.length }})
       </SectionHeader>
       <span v-if="status" class="text-xs text-(--text-muted)">
         <font-awesome-icon :icon="['fas', 'spinner']" spin class="mr-1" />
@@ -79,16 +85,17 @@ function removeSplitItem(index: number, optionIndex: number) {
 
     <div class="space-y-3">
       <CsvQuestionCard
-          v-for="(question, index) in questions"
+          v-for="(draft, index) in drafts"
           :key="index"
-          :question="question"
+          :draft="draft"
           :index="index"
+          :category-name="categoryName(draft)"
           @toggle-include="toggleInclude"
           @resplit="resplit"
           @set-separator="setSeparator"
-          @toggle-mc-correct="toggleMcCorrect"
-          @update-split-item="updateSplitItem"
-          @remove-split-item="removeSplitItem"
+          @toggle-correct="onToggleCorrect"
+          @update-answer="updateAnswer"
+          @remove-answer="removeAnswer"
       />
     </div>
   </NeutralContainer>

@@ -4,23 +4,27 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import CsvColumnSelect from '@/components/csv/CsvColumnSelect.vue'
-import type {QuizQuestionTypeName} from '@/api/quiz'
-import {ANSWER_SEPARATOR_PRESETS, QUIZ_CSV_TYPES, type QuizCsvMapping} from './quizCsvImport'
+import type {CsvMappings, QuizQuestionTypeName} from '@/api/quiz'
+import AnswerSeparatorPicker from './AnswerSeparatorPicker.vue'
+import {QUIZ_CSV_TYPES} from './quizCsvImport'
 
-const mapping = defineModel<QuizCsvMapping>('mapping', {required: true})
+const mapping = defineModel<CsvMappings>('mapping', {required: true})
 
 defineProps<{
   headers: string[]
 }>()
 
 const {t} = useI18n()
+
+const showFurther = ref(false)
 
 function onDefaultTypeUpdate(value: string | number | null | undefined) {
   if (value === null || value === undefined) return
@@ -61,19 +65,55 @@ function onDefaultTypeUpdate(value: string | number | null | undefined) {
           :label="t('quiz.csv.pointsColumn')"
           optional
       />
-      <div>
-        <FieldLabel hint class="mb-1">{{ t('quiz.csv.answerSeparator') }}</FieldLabel>
-        <div class="flex items-center gap-1">
-          <SelectionToggleButton
-              v-for="preset in ANSWER_SEPARATOR_PRESETS"
-              :key="preset.label"
-              :selected="mapping.answerSeparator === preset.value"
-              @toggle="mapping.answerSeparator = preset.value"
-          >
-            {{ preset.label }}
-          </SelectionToggleButton>
-        </div>
-      </div>
+      <CsvColumnSelect
+          v-model="mapping.distractorColumn"
+          :headers="headers"
+          :label="t('quiz.csv.distractorColumn')"
+          optional
+      />
+      <AnswerSeparatorPicker v-model:separator="mapping.answerSeparator" />
+    </div>
+
+    <p class="text-xs text-(--text-muted)">{{ t('quiz.csv.distractorHint') }}</p>
+
+    <SecondaryButton
+        :icon="['fas', showFurther ? 'chevron-up' : 'chevron-down']"
+        @click="showFurther = !showFurther"
+    >
+      {{ showFurther ? t('quiz.csv.hideFurtherColumns') : t('quiz.csv.showFurtherColumns') }}
+    </SecondaryButton>
+
+    <div v-if="showFurther" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <CsvColumnSelect
+          v-model="mapping.descriptionColumn"
+          :headers="headers"
+          :label="t('quiz.csv.descriptionColumn')"
+          optional
+      />
+      <CsvColumnSelect
+          v-model="mapping.imageColumn"
+          :headers="headers"
+          :label="t('quiz.csv.imageColumn')"
+          optional
+      />
+      <CsvColumnSelect
+          v-model="mapping.pointsPerCorrectColumn"
+          :headers="headers"
+          :label="t('quiz.csv.pointsPerCorrectColumn')"
+          optional
+      />
+      <CsvColumnSelect
+          v-model="mapping.requiredCountColumn"
+          :headers="headers"
+          :label="t('quiz.csv.requiredCountColumn')"
+          optional
+      />
+      <CsvColumnSelect
+          v-model="mapping.orderedRequiredColumn"
+          :headers="headers"
+          :label="t('quiz.csv.orderedRequiredColumn')"
+          optional
+      />
     </div>
 
     <div v-if="!mapping.typeColumn">

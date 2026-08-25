@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.quiz.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import de.chojo.sadu.queries.api.call.Call;
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
@@ -21,12 +23,14 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 import static dev.chojo.ember.util.sql.SqlSupport.alias;
 import static dev.chojo.ember.util.sql.SqlSupport.count;
 import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
+import static dev.chojo.ember.util.sql.SqlSupport.exists;
 import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
 @Singleton
 public class QuizCatalogRepository {
-    private static final String QUIZ_CATALOG_COLUMNS =
-            "id, station_id, name, description, training_enabled, public_render, created_at, updated_at";
+    private static final String QUIZ_CATALOG_COLUMNS = """
+            id, station_id, name, description, training_enabled, public_render, \
+            language, source, author, license, created_at, updated_at""";
     private static final String QUIZ_CATEGORY_COLUMNS = "id, station_id, name, description, position";
     private static final String QUIZ_QUESTION_COLUMNS = """
             id, catalog_id, category_id, question_type, title, description, image_url, points, \
@@ -45,31 +49,55 @@ public class QuizCatalogRepository {
         return SqlSupport.findById("quiz_catalog", QUIZ_CATALOG_COLUMNS, id, QuizCatalog.map());
     }
 
-    public QuizCatalog create(int stationId, String name, String description, boolean trainingEnabled) {
+    /** Whether this station has anything somebody could actually train on. */
+    public boolean hasTrainableCatalog(int stationId) {
+        return exists("""
+                SELECT 1 FROM quiz_catalog c
+                WHERE c.station_id = :station_id
+                  AND c.training_enabled = TRUE
+                  AND EXISTS (SELECT 1 FROM quiz_question q WHERE q.catalog_id = c.id)
+                LIMIT 1;""", call().bind("station_id", stationId));
+    }
+
+    public QuizCatalog create(
+            int stationId, String name, String description, boolean trainingEnabled, CatalogMetadata metadata) {
         return insertReturning(
                 """
-                INSERT INTO quiz_catalog(station_id, name, description, training_enabled)
-                VALUES (:station_id, :name, :description, :training_enabled)
+                INSERT INTO quiz_catalog(station_id, name, description, training_enabled, language, source, author, license)
+                VALUES (:station_id, :name, :description, :training_enabled, :language, :source, :author, :license)
                 RETURNING %s;""",
-                call().bind("station_id", stationId)
-                        .bind("name", name)
-                        .bind("description", description)
-                        .bind("training_enabled", trainingEnabled),
+                bindMetadata(
+                        call().bind("station_id", stationId)
+                                .bind("name", name)
+                                .bind("description", description)
+                                .bind("training_enabled", trainingEnabled),
+                        metadata),
                 QuizCatalog.map(),
                 QUIZ_CATALOG_COLUMNS);
     }
 
-    public boolean update(int id, String name, String description, boolean trainingEnabled) {
+    public boolean update(int id, String name, String description, boolean trainingEnabled, CatalogMetadata metadata) {
         return query("""
                 UPDATE quiz_catalog
-                SET name = :name, description = :description, training_enabled = :training_enabled, updated_at = now()
+                SET name = :name, description = :description, training_enabled = :training_enabled,
+                    language = :language, source = :source, author = :author, license = :license, updated_at = now()
                 WHERE id = :id;""")
-                .single(call().bind("id", id)
-                        .bind("name", name)
-                        .bind("description", description)
-                        .bind("training_enabled", trainingEnabled))
+                .single(bindMetadata(
+                        call().bind("id", id)
+                                .bind("name", name)
+                                .bind("description", description)
+                                .bind("training_enabled", trainingEnabled),
+                        metadata))
                 .update()
                 .changed();
+    }
+
+    private static Call bindMetadata(Call call, CatalogMetadata metadata) {
+        var resolved = CatalogMetadata.orNone(metadata);
+        return call.bind("language", resolved.language())
+                .bind("source", resolved.source())
+                .bind("author", resolved.author())
+                .bind("license", resolved.license());
     }
 
     public boolean delete(int id) {

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -37,7 +38,8 @@ class QuizCatalogServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void createCatalog() {
-        var catalog = service.createCatalog(station.id(), "Safety Quiz", "Safety questions", true);
+        var catalog =
+                service.createCatalog(station.id(), "Safety Quiz", "Safety questions", true, CatalogMetadata.none());
         assertNotNull(catalog);
         assertEquals("Safety Quiz", catalog.name());
         catalogId = catalog.id();
@@ -59,8 +61,8 @@ class QuizCatalogServiceTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void updateCatalog() {
-        assertTrue(service.updateCatalog(catalogId, "Updated Safety", "Updated", false));
-        assertFalse(service.updateCatalog(99999, "Nothing", "", false));
+        assertTrue(service.updateCatalog(catalogId, "Updated Safety", "Updated", false, CatalogMetadata.none()));
+        assertFalse(service.updateCatalog(99999, "Nothing", "", false, CatalogMetadata.none()));
     }
 
     @Test
@@ -68,7 +70,7 @@ class QuizCatalogServiceTest extends RepositoryTestBase {
     void findTrainingCatalogs() {
         assertFalse(service.findTrainingCatalogs(station.id()).stream().anyMatch(c -> c.id() == catalogId));
 
-        service.updateCatalog(catalogId, "Updated Safety", "Updated", true);
+        service.updateCatalog(catalogId, "Updated Safety", "Updated", true, CatalogMetadata.none());
         assertTrue(service.findTrainingCatalogs(station.id()).stream().anyMatch(c -> c.id() == catalogId));
     }
 

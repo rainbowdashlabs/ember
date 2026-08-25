@@ -1324,3 +1324,46 @@ COMMENT ON COLUMN ember_schema.onboarding_instance_task.task_key IS 'Which task,
 COMMENT ON COLUMN ember_schema.onboarding_instance_task.state IS 'CONFIRMED for a task ticked off by hand, SKIPPED for one passed over. A task taken up again has its row deleted.';
 COMMENT ON COLUMN ember_schema.onboarding_instance_task.changed_at IS 'When it was last said.';
 COMMENT ON COLUMN ember_schema.onboarding_instance_task.changed_by_account IS 'Who said it, so another administrator can see whose decision they are looking at. Null once that account is gone.';
+
+-- Where a question catalog came from.
+--
+-- A catalog travels: it is exported to a file, handed to another station and imported there. Until
+-- now it arrived anonymous, and the station that received it had no way to say who wrote the
+-- questions or under what terms they may be used. These four columns travel with it in the export
+-- file and are filled in on import.
+
+ALTER TABLE ember_schema.quiz_catalog ADD COLUMN IF NOT EXISTS language TEXT;
+ALTER TABLE ember_schema.quiz_catalog ADD COLUMN IF NOT EXISTS source TEXT;
+ALTER TABLE ember_schema.quiz_catalog ADD COLUMN IF NOT EXISTS author TEXT;
+ALTER TABLE ember_schema.quiz_catalog ADD COLUMN IF NOT EXISTS license TEXT;
+
+COMMENT ON COLUMN ember_schema.quiz_catalog.language IS 'The language the questions are written in, as a BCP 47 tag. Null when nobody said.';
+COMMENT ON COLUMN ember_schema.quiz_catalog.source IS 'Where the questions came from, in free text: the sheet, the handbook or the station they were taken over from. Null when nobody said.';
+COMMENT ON COLUMN ember_schema.quiz_catalog.author IS 'Who wrote the questions, in free text. Null when nobody said.';
+COMMENT ON COLUMN ember_schema.quiz_catalog.license IS 'The terms the questions may be used under, in free text. Null when nobody said.';
+
+-- What a member said is wrong with a question.
+--
+-- Whoever trains against a catalog is the one who notices that an answer is out of date, that two
+-- options are both defensible, or that the question reads two ways. Until now there was nowhere to
+-- put that: the member had to remember it and find whoever maintains the catalog. A note lands here
+-- instead, is shown on the question in the catalog, and is deleted once somebody has dealt with it.
+
+CREATE TABLE IF NOT EXISTS ember_schema.quiz_question_report
+(
+    id          SERIAL PRIMARY KEY,
+    question_id INTEGER     NOT NULL REFERENCES ember_schema.quiz_question (id) ON DELETE CASCADE,
+    reported_by INTEGER     REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    note        TEXT        NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_quiz_question_report_question ON ember_schema.quiz_question_report (question_id);
+
+COMMENT ON TABLE ember_schema.quiz_question_report
+    IS 'Notes members left on a quiz question while training, saying that something about it is wrong, out of date or ambiguous. Deleted once whoever maintains the catalog has acknowledged the note.';
+COMMENT ON COLUMN ember_schema.quiz_question_report.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.quiz_question_report.question_id IS 'The question the note is about. The note goes when the question goes.';
+COMMENT ON COLUMN ember_schema.quiz_question_report.reported_by IS 'Who wrote the note, so somebody can ask back. Null once that member is gone, which leaves the note itself standing.';
+COMMENT ON COLUMN ember_schema.quiz_question_report.note IS 'What the member says is wrong with the question, in their own words.';
+COMMENT ON COLUMN ember_schema.quiz_question_report.created_at IS 'When the note was written.';

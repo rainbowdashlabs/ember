@@ -8,7 +8,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import QuestionCardCollapsedMobile from './QuestionCardCollapsedMobile.vue'
 import QuestionCardCollapsedDesktop from './QuestionCardCollapsedDesktop.vue'
 import QuestionInlineEditor from './QuestionInlineEditor.vue'
-import type { QuizCategory, QuizQuestion, QuizQuestionTypeName } from '@/api/quiz'
+import QuestionReportList from './QuestionReportList.vue'
+import type { QuizCategory, QuizQuestion, QuizQuestionReport, QuizQuestionTypeName } from '@/api/quiz'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 
 const editorTitle = defineModel<string>('editorTitle', {required: true})
@@ -23,6 +24,7 @@ defineProps<{
   question: QuizQuestion
   expanded: boolean
   selected: boolean
+  reports: QuizQuestionReport[]
   categoryName: string
   categories: QuizCategory[]
   editorImagePreview: string | null
@@ -38,6 +40,8 @@ const emit = defineEmits<{
   'remove-image': []
   save: []
   cancel: []
+  reportAcknowledged: []
+  reportError: [message: string]
 }>()
 
 const { isMobile } = useBreakpoint()
@@ -83,6 +87,13 @@ const { isMobile } = useBreakpoint()
       @remove-image="emit('remove-image')"
       @save="emit('save')"
       @cancel="emit('cancel')"
+    />
+
+    <QuestionReportList
+      class="mt-3"
+      :reports="reports"
+      @acknowledged="emit('reportAcknowledged')"
+      @error="(message: string) => emit('reportError', message)"
     />
   </NeutralContainer>
 </template>

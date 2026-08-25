@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.repository;
 
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -39,7 +40,8 @@ class QuizCatalogRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void createCatalog() {
-        var catalog = quizCatalogRepo.create(station.id(), "Safety Catalog", "Safety questions", true);
+        var catalog = quizCatalogRepo.create(
+                station.id(), "Safety Catalog", "Safety questions", true, CatalogMetadata.none());
         assertNotNull(catalog);
         assertEquals("Safety Catalog", catalog.name());
         assertTrue(catalog.trainingEnabled());
@@ -74,7 +76,8 @@ class QuizCatalogRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(5)
     void updateCatalog() {
-        boolean updated = quizCatalogRepo.update(catalogId, "Updated Catalog", "Updated desc", false);
+        boolean updated =
+                quizCatalogRepo.update(catalogId, "Updated Catalog", "Updated desc", false, CatalogMetadata.none());
         assertTrue(updated);
         var found = quizCatalogRepo.findById(catalogId).orElseThrow();
         assertEquals("Updated Catalog", found.name());

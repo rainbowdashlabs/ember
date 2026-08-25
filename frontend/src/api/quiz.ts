@@ -36,12 +36,21 @@ export const QuizAttemptStatus = {
 
 export type QuizAttemptStatusName = (typeof QuizAttemptStatus)[keyof typeof QuizAttemptStatus]
 
+/** Where a catalog's questions came from, filled in by an import or a copy from a partner. */
+export interface CatalogMetadata {
+    language: string | null
+    source: string | null
+    author: string | null
+    license: string | null
+}
+
 export interface QuizCatalog {
     id: number
     stationId: string
     name: string
     description: string
     trainingEnabled: boolean
+    metadata: CatalogMetadata
     createdAt: string
     updatedAt: string
 }
@@ -76,6 +85,7 @@ export interface QuizCatalogDetail {
     name: string
     description: string
     trainingEnabled: boolean
+    metadata: CatalogMetadata
     questionCount: number
     questionTypeCounts: Record<string, number>
     categories: QuizCategory[]
@@ -184,12 +194,45 @@ export interface QuizAttemptDetail {
     memberIdentity?: MemberIdentity | null
 }
 
+/**
+ * The file a catalog is exported to and imported from. Categories are addressed by the key the
+ * file itself defines, because a database id from the exporting station names nothing here.
+ */
 export interface QuizCatalogExport {
+    formatVersion: number
+    catalog: {
+        name: string
+        description: string
+        trainingEnabled: boolean
+        metadata: CatalogMetadata
+    }
+    categories: QuizCatalogExportCategory[]
+    questions: QuizCatalogExportQuestion[]
+}
+
+export interface QuizCatalogExportCategory {
+    key: string
     name: string
     description: string
-    trainingEnabled: boolean
-    categories: QuizCategory[]
-    questions: QuizQuestion[]
+    position: number
+}
+
+export interface QuizCatalogExportQuestion {
+    categoryKey: string | null
+    quizQuestionType: QuizQuestionTypeName
+    title: string
+    description: string
+    imageUrl: string | null
+    points: number
+    autoPoints: boolean
+    config: Record<string, unknown>
+    position: number
+}
+
+/** One reason an uploaded file was refused, pointing at the place in the file. */
+export interface CatalogTransferProblem {
+    location: string
+    message: string
 }
 import {uploadFile} from './upload'
 import {downloadAuthed} from '@/util/downloadAuthed'
@@ -232,6 +275,7 @@ interface CatalogRequest {
     name: string
     description?: string
     trainingEnabled?: boolean
+    metadata?: CatalogMetadata
 }
 
 interface CategoryRequest {
@@ -495,22 +539,85 @@ export async function importCatalog(data: QuizCatalogExport): Promise<QuizCatalo
     return res.data
 }
 
-// -- CSV Import --
+/** Adds the questions a file carries to a catalog that already exists, behind the ones in it. */
+export async function appendToCatalog(catalogId: number, data: QuizCatalogExport): Promise<QuizCatalog> {
+    const res = await client.post<QuizCatalog>(`/quiz/catalogs/${catalogId}/import`, data)
+    return res.data
+}
 
+// -- Reading a sheet --
+
+/** Which column of a sheet carries which field. Everything but the question text is optional. */
 export interface CsvMappings {
     questionColumn: string
     answerColumn: string
     categoryColumn: string
     typeColumn: string
     pointsColumn: string
+    descriptionColumn: string
+    imageColumn: string
+    distractorColumn: string
+    pointsPerCorrectColumn: string
+    requiredCountColumn: string
+    orderedRequiredColumn: string
     separator: string
     answerSeparator: string
-    defaultType: string
+    defaultType: QuizQuestionTypeName
 }
 
-export async function importCsv(catalogId: number, file: File, mappings: CsvMappings): Promise<{ imported: number }> {
-    return uploadFile<{ imported: number }>(`/quiz/catalogs/${catalogId}/import-csv`, {
-        file,
-        mappings: JSON.stringify(mappings),
-    })
+/**
+ * One row read into the shape a catalog file carries, alongside the answer cell it came from.
+ * The wizard keeps that cell so it can offer to split it again on a different separator.
+ */
+export interface QuizCsvDraftQuestion {
+    question: QuizCatalogExportQuestion
+    rawAnswer: string
+    answerSeparator: string
+}
+
+export interface QuizCsvDraft {
+    categories: QuizCatalogExportCategory[]
+    questions: QuizCsvDraftQuestion[]
+}
+
+/** Reads a sheet into a draft without writing anything, so the wizard can show what would arrive. */
+export async function draftFromCsv(content: string, mappings: CsvMappings): Promise<QuizCsvDraft> {
+    const res = await client.post<QuizCsvDraft>('/quiz/catalogs/csv-draft', {content, mappings})
+    return res.data
+}
+
+/** Saves the shipped example of a format, which is a file that already imports as it stands. */
+export async function downloadCatalogTemplate(format: 'csv' | 'json'): Promise<void> {
+    await downloadAuthed(`/quiz/catalogs/template/${format}`)
+}
+
+// -- Reports on questions --
+
+/**
+ * A note somebody left on a question while training, saying that something about it is wrong, out
+ * of date or ambiguous. It exists until somebody who maintains the catalog acknowledges it.
+ */
+export interface QuizQuestionReport {
+    id: number
+    questionId: number
+    reporterName: string
+    note: string
+    createdAt: string
+}
+
+/** Reports a question from the training view. */
+export async function reportQuestion(questionId: number, note: string): Promise<QuizQuestionReport> {
+    const res = await client.post<QuizQuestionReport>(`/quiz/questions/${questionId}/reports`, {note})
+    return res.data
+}
+
+/** Every open note on the questions of one catalog. */
+export async function listCatalogReports(catalogId: number): Promise<QuizQuestionReport[]> {
+    const res = await client.get<QuizQuestionReport[]>(`/quiz/catalogs/${catalogId}/reports`)
+    return res.data
+}
+
+/** Acknowledges a note, which removes it. */
+export async function acknowledgeReport(reportId: number): Promise<void> {
+    await client.delete(`/quiz/reports/${reportId}`)
 }

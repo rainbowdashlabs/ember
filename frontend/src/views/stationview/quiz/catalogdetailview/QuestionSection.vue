@@ -22,16 +22,22 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import BatchActionModal from './BatchActionModal.vue'
-import type { QuizCategory, QuizQuestion } from '@/api/quiz'
+import type { QuizCategory, QuizQuestion, QuizQuestionReport } from '@/api/quiz'
 import { quiz } from '@/api'
 
 const props = defineProps<{
   catalogId: number
   questions: QuizQuestion[]
+  reports: QuizQuestionReport[]
   categories: QuizCategory[]
   isFederated: boolean
   readonly?: boolean
 }>()
+
+/** The open notes on one question, so each card carries only what was said about it. */
+function reportsFor(questionId: number): QuizQuestionReport[] {
+  return props.reports.filter(report => report.questionId === questionId)
+}
 
 const emit = defineEmits<{
   updated: []
@@ -169,6 +175,7 @@ function onBatchDone() {
         :question="q"
         :expanded="expandedQuestion === q.id"
         :selected="selectedIds.has(q.id)"
+        :reports="reportsFor(q.id)"
         :category-name="getCategoryName(q.categoryId)"
         :categories="categories"
         v-model:editor-title="questionTitle"
@@ -189,6 +196,8 @@ function onBatchDone() {
         @remove-image="removeImage"
         @save="saveQuestion"
         @cancel="collapseQuestion"
+        @report-acknowledged="emit('updated')"
+        @report-error="(message: string) => emit('error', message)"
       />
     </div>
   </div>

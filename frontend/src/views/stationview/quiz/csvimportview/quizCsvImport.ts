@@ -3,33 +3,18 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {QuizQuestionTypes, type QuizQuestionTypeName} from '@/api/quiz'
+import {QuizQuestionTypes, type CsvMappings, type QuizCatalogExportQuestion, type QuizQuestionTypeName} from '@/api/quiz'
 
-/** Column assignment shared by the quiz CSV importers. */
-export interface QuizCsvMapping {
-    questionColumn: string
-    answerColumn: string
-    categoryColumn: string
-    typeColumn: string
-    pointsColumn: string
+/**
+ * A drafted question as the wizard holds it: what would be created, the answer cell it was read
+ * from, and whether it is still going in. Reading a cell into a config happens on the way in, so
+ * everything here edits a config that already has its shape.
+ */
+export interface ImportDraft {
+    question: QuizCatalogExportQuestion
+    rawAnswer: string
     answerSeparator: string
-    defaultType: QuizQuestionTypeName
-}
-
-/** A single CSV row turned into an editable question draft. */
-export interface ImportQuestion {
-    title: string
-    answer: string
-    category: string
-    type: QuizQuestionTypeName
-    points: number
     included: boolean
-    answerSeparator: string
-    mcCorrectIndices: Set<number>
-    mcPointsPerCorrect: number
-    enumRequiredCount: number
-    enumOrderRequired: boolean
-    splitItems: string[]
 }
 
 export const QUIZ_CSV_TYPES: QuizQuestionTypeName[] = [
@@ -49,102 +34,100 @@ export const ANSWER_SEPARATOR_PRESETS: {label: string; value: string}[] = [
     {label: '␣', value: ' '},
 ]
 
-const SPLIT_TYPES: QuizQuestionTypeName[] = [
-    QuizQuestionTypes.MULTIPLE_CHOICE,
-    QuizQuestionTypes.ORDERING,
-    QuizQuestionTypes.FILL_IN_THE_BLANK,
-    QuizQuestionTypes.ENUMERATION,
-]
-
-const TRUE_VALUES = ['true', 'wahr', 'ja', '1']
-
-export function createQuizCsvMapping(headers: string[]): QuizCsvMapping {
+export function createQuizCsvMapping(headers: string[]): CsvMappings {
     return {
         questionColumn: headers[0] ?? '',
         answerColumn: headers[1] ?? '',
         categoryColumn: '',
         typeColumn: '',
         pointsColumn: '',
+        descriptionColumn: '',
+        imageColumn: '',
+        distractorColumn: '',
+        pointsPerCorrectColumn: '',
+        requiredCountColumn: '',
+        orderedRequiredColumn: '',
+        separator: ',',
         answerSeparator: ';',
         defaultType: QuizQuestionTypes.MULTIPLE_CHOICE,
     }
 }
 
-/** Maps a free form type cell (``MC``, ``Wahr/Falsch``, ``ordering``, …) onto a question type. */
-export function parseQuizType(value: string, fallback: QuizQuestionTypeName): QuizQuestionTypeName {
-    const normalized = value.trim().toUpperCase().replace(/[\s-]/g, '_')
-    if (normalized === 'MC' || normalized.includes('MULTIPLE')) return QuizQuestionTypes.MULTIPLE_CHOICE
-    if (normalized === 'TF' || normalized.includes('TRUE') || normalized.includes('WAHR')) return QuizQuestionTypes.TRUE_FALSE
-    if (normalized.includes('FREE') || normalized.includes('FREI')) return QuizQuestionTypes.FREE_ANSWER
-    if (normalized.includes('FILL') || normalized.includes('LÜCKE') || normalized.includes('LUECKE')) return QuizQuestionTypes.FILL_IN_THE_BLANK
-    if (normalized.includes('ORDER') || normalized.includes('REIHEN')) return QuizQuestionTypes.ORDERING
-    if (normalized.includes('CONNECT') || normalized.includes('ZUORDN')) return QuizQuestionTypes.CONNECT
-    return fallback
+type OptionConfig = {options?: {text: string; correct: boolean}[]}
+type PairConfig = {pairs?: {left: string; right: string}[]}
+type ListConfig = {items?: string[]; answers?: string[]}
+
+/** Whether a question of this type keeps its answers as a list the wizard can edit. */
+export function hasAnswerList(type: QuizQuestionTypeName): boolean {
+    return type !== QuizQuestionTypes.TRUE_FALSE && type !== QuizQuestionTypes.IMAGE_TEXT
 }
 
-export function needsSplit(type: QuizQuestionTypeName): boolean {
-    return SPLIT_TYPES.includes(type)
+/** Whether the wizard offers to mark single entries right or wrong. */
+export function hasCorrectness(type: QuizQuestionTypeName): boolean {
+    return type === QuizQuestionTypes.MULTIPLE_CHOICE
 }
 
-export function splitAnswer(question: ImportQuestion): string[] {
-    return question.answer.split(question.answerSeparator).map(part => part.trim()).filter(Boolean)
-}
-
-/** Turns the parsed rows into question drafts the preview step lets the user refine. */
-export function buildImportQuestions(headers: string[], rows: string[][], mapping: QuizCsvMapping): ImportQuestion[] {
-    function cell(row: string[], column: string): string {
-        if (!column) return ''
-        const index = headers.indexOf(column)
-        return index >= 0 ? row[index] ?? '' : ''
-    }
-
-    return rows.map(row => {
-        const title = cell(row, mapping.questionColumn)
-        const typeValue = cell(row, mapping.typeColumn)
-        const pointsValue = cell(row, mapping.pointsColumn)
-        const question: ImportQuestion = {
-            title,
-            answer: cell(row, mapping.answerColumn),
-            category: cell(row, mapping.categoryColumn),
-            type: typeValue ? parseQuizType(typeValue, mapping.defaultType) : mapping.defaultType,
-            points: pointsValue ? parseInt(pointsValue) || 1 : 1,
-            included: title.trim().length > 0,
-            answerSeparator: mapping.answerSeparator,
-            mcCorrectIndices: new Set<number>(),
-            mcPointsPerCorrect: 1,
-            enumRequiredCount: 3,
-            enumOrderRequired: false,
-            splitItems: [],
-        }
-        question.splitItems = needsSplit(question.type) ? splitAnswer(question) : []
-        return question
-    })
-}
-
-/** Serializes a question draft into the backend question config for its type. */
-export function buildQuestionConfig(question: ImportQuestion): string {
-    const parts = question.splitItems.length > 0 ? question.splitItems : [question.answer]
-    switch (question.type) {
-        case QuizQuestionTypes.MULTIPLE_CHOICE: {
-            const allCorrect = question.mcCorrectIndices.size === 0
-            const options = parts.map((text, index) => ({text, correct: allCorrect || question.mcCorrectIndices.has(index)}))
-            return JSON.stringify({options, pointsPerCorrect: question.mcPointsPerCorrect})
-        }
-        case QuizQuestionTypes.TRUE_FALSE:
-            return JSON.stringify({correctAnswer: TRUE_VALUES.includes(question.answer.trim().toLowerCase())})
-        case QuizQuestionTypes.FREE_ANSWER:
-            return JSON.stringify({lines: 3, answers: question.answer ? [question.answer] : []})
-        case QuizQuestionTypes.FILL_IN_THE_BLANK:
-            return JSON.stringify({text: question.title, answers: parts})
+/** The answers of a drafted config, whichever field its type keeps them in. */
+export function answerList(draft: ImportDraft): string[] {
+    const config = draft.question.config
+    switch (draft.question.quizQuestionType) {
+        case QuizQuestionTypes.MULTIPLE_CHOICE:
+            return ((config as OptionConfig).options ?? []).map(option => option.text)
+        case QuizQuestionTypes.CONNECT:
+            return ((config as PairConfig).pairs ?? []).map(pair => `${pair.left}=${pair.right}`)
         case QuizQuestionTypes.ORDERING:
-            return JSON.stringify({items: parts})
-        case QuizQuestionTypes.ENUMERATION:
-            return JSON.stringify({
-                answers: parts,
-                requiredCount: question.enumRequiredCount,
-                orderedRequired: question.enumOrderRequired,
-            })
+            return (config as ListConfig).items ?? []
         default:
-            return '{}'
+            return (config as ListConfig).answers ?? []
     }
+}
+
+/** Whether the entry at this position counts as a right answer. */
+export function isCorrect(draft: ImportDraft, index: number): boolean {
+    return (draft.question.config as OptionConfig).options?.[index]?.correct ?? false
+}
+
+/**
+ * Writes an edited answer list back into the config, keeping what the wizard cannot show. A
+ * multiple-choice option keeps whether it was right where it stays in place, so renaming one does
+ * not silently make it wrong.
+ */
+export function setAnswerList(draft: ImportDraft, answers: string[]) {
+    const config = draft.question.config
+    switch (draft.question.quizQuestionType) {
+        case QuizQuestionTypes.MULTIPLE_CHOICE: {
+            const previous = (config as OptionConfig).options ?? []
+            ;(config as OptionConfig).options = answers.map((text, index) => ({
+                text,
+                correct: previous[index]?.correct ?? index === 0,
+            }))
+            return
+        }
+        case QuizQuestionTypes.CONNECT: {
+            ;(config as PairConfig).pairs = answers.map(entry => {
+                const [left, right] = entry.split('=', 2)
+                return {left: (left ?? '').trim(), right: (right ?? '').trim()}
+            })
+            return
+        }
+        case QuizQuestionTypes.ORDERING:
+            ;(config as ListConfig).items = answers
+            return
+        default:
+            ;(config as ListConfig).answers = answers
+    }
+}
+
+export function toggleCorrect(draft: ImportDraft, index: number) {
+    const option = (draft.question.config as OptionConfig).options?.[index]
+    if (option) option.correct = !option.correct
+}
+
+/** Splits the answer cell again on a different separator, for a sheet with mixed punctuation. */
+export function resplitAnswers(draft: ImportDraft) {
+    const parts = draft.rawAnswer
+        .split(draft.answerSeparator)
+        .map(part => part.trim())
+        .filter(Boolean)
+    setAnswerList(draft, parts)
 }

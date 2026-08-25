@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.quiz.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.QuizTest;
 import dev.chojo.ember.feature.quiz.entity.SectionEntry;
@@ -45,7 +46,7 @@ class QuizAttemptServiceTest extends RepositoryTestBase {
         account = accountRepo.create("quiz-attempt-svc@test.com", "Quiz", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
         catalogId = quizCatalogRepo
-                .create(station.id(), "Attempt Catalog", "Questions", false)
+                .create(station.id(), "Attempt Catalog", "Questions", false, CatalogMetadata.none())
                 .id();
         questionId =
                 createQuestion(QuizQuestionType.TRUE_FALSE, "Is the sky blue?", "{\"correctAnswer\":true}", 2.0, 0);
