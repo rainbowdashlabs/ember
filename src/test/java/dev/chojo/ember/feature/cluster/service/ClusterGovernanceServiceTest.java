@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -19,6 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,6 +38,38 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
         return clusterService
                 .create("Kreisverband Regie " + NAMES.incrementAndGet(), null)
                 .id();
+    }
+
+    /**
+     * The setting the per-entry visibility field depends on had no owner: an association cannot reach the
+     * station screen that carries it, so its wiki could never be published at all.
+     */
+    @Test
+    void anAssociationTurnsItsPublicWikiOnAndOffAgain() {
+        int clusterId = freshCluster();
+
+        assertEquals(PublicKbMode.OFF, clusterGovernanceService.findPublicKbMode(clusterId));
+
+        clusterGovernanceService.setPublicKbMode(clusterId, PublicKbMode.DENY_ALL);
+        assertEquals(PublicKbMode.DENY_ALL, clusterGovernanceService.findPublicKbMode(clusterId));
+
+        clusterGovernanceService.setPublicKbMode(clusterId, PublicKbMode.OFF);
+        assertEquals(PublicKbMode.OFF, clusterGovernanceService.findPublicKbMode(clusterId));
+    }
+
+    /** The address the wiki answers at is the association's own station, not one of its members. */
+    @Test
+    void thePublicWikiAddressIsTheAssociationsOwnStation() {
+        int clusterId = freshCluster();
+        var member = clusterService.createStation(clusterId, "Wache Adresse " + NAMES.incrementAndGet());
+
+        var uid = clusterGovernanceService.publicKbStationUid(clusterId);
+
+        assertNotNull(uid);
+        assertNotEquals(stationRepo.findById(member.id()).orElseThrow().uid(), uid);
+
+        clusterService.releaseStation(clusterId, member.id());
+        stationRepo.delete(member.id());
     }
 
     @Test

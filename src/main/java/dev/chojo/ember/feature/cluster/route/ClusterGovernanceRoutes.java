@@ -11,6 +11,7 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterGovernanceService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import io.javalin.http.BadRequestResponse;
@@ -54,6 +55,10 @@ public class ClusterGovernanceRoutes implements Routes {
         routes.put(prefix + "/cluster/modules", this::setModules, ClusterPermission.CLUSTER_MODULES);
         routes.get(prefix + "/cluster/look-and-feel", this::getLookAndFeel, ClusterPermission.CLUSTER_LOOK_AND_FEEL);
         routes.put(prefix + "/cluster/look-and-feel", this::setLookAndFeel, ClusterPermission.CLUSTER_LOOK_AND_FEEL);
+        routes.get(
+                prefix + "/cluster/knowledge/public", this::getPublicKb, ClusterPermission.CLUSTER_KNOWLEDGE_MANAGER);
+        routes.put(
+                prefix + "/cluster/knowledge/public", this::setPublicKb, ClusterPermission.CLUSTER_KNOWLEDGE_MANAGER);
     }
 
     @OpenApi(
@@ -68,6 +73,42 @@ public class ClusterGovernanceRoutes implements Routes {
                 .map(Enum::name)
                 .sorted()
                 .toList()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/knowledge/public",
+            methods = HttpMethod.GET,
+            summary = "Whether this cluster's wiki stands on the public web",
+            tags = {"Cluster"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicKbResponse.class)))
+    private void getPublicKb(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        ctx.json(new PublicKbResponse(
+                governanceService.findPublicKbMode(cluster.id()).name(),
+                governanceService.publicKbStationUid(cluster.id()).toString()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/knowledge/public",
+            methods = HttpMethod.PUT,
+            summary = "Puts this cluster's wiki on the public web, or takes it off",
+            tags = {"Cluster"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PublicKbRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void setPublicKb(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        var req = ctx.bodyAsClass(PublicKbRequest.class);
+        governanceService.setPublicKbMode(cluster.id(), parseMode(req.mode()));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /** A mode the enum does not know is a bad request, not a stack trace. */
+    private static PublicKbMode parseMode(String raw) {
+        try {
+            return PublicKbMode.valueOf(raw);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new BadRequestResponse("Unknown public wiki mode");
+        }
     }
 
     /**
@@ -163,6 +204,10 @@ public class ClusterGovernanceRoutes implements Routes {
     }
 
     public record DeniedModulesResponse(List<String> deniedModules) {}
+
+    public record PublicKbResponse(String mode, String stationUid) {}
+
+    public record PublicKbRequest(String mode) {}
 
     /**
      * @param defaultFeel the feel by name, or {@code null} when the cluster has no opinion about it

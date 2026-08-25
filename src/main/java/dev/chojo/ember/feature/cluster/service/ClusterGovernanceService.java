@@ -10,6 +10,7 @@ import dev.chojo.ember.event.events.ClusterModuleDenied;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
@@ -24,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * The part of a cluster that reaches into its stations.
@@ -61,6 +63,57 @@ public class ClusterGovernanceService {
         this.stationGroupRepository = stationGroupRepository;
         this.stationRepository = stationRepository;
         this.eventBus = eventBus;
+    }
+
+    // -- Public wiki --
+
+    /**
+     * Whether the cluster's wiki stands on the public web, and how.
+     *
+     * <p>The wiki is the one of the station the cluster owns, so this is that station's setting. The
+     * cluster cannot reach the screen that carries it: running a cluster is not running a station, and
+     * only the content rights are translated. Without this the setting had no owner at all, and the
+     * per-entry visibility field, which is drawn only where the mode is on, could never appear.
+     *
+     * @param clusterId the cluster
+     * @return the mode of the station the cluster owns
+     */
+    public PublicKbMode findPublicKbMode(int clusterId) {
+        return homeStation(clusterId).publicKbMode();
+    }
+
+    /**
+     * Puts the cluster's wiki on the public web, or takes it off.
+     *
+     * @param clusterId the cluster
+     * @param mode      what the public web may see
+     */
+    public void setPublicKbMode(int clusterId, PublicKbMode mode) {
+        var station = homeStation(clusterId);
+        stationRepository.updatePublicKbMode(station.id(), mode);
+        log.info("Cluster {} set its public wiki to {}", clusterId, mode);
+    }
+
+    /**
+     * The address the cluster's public wiki answers at, which is the identifier of the station it owns.
+     *
+     * <p>A readable name would do as well and the station has none, so the uid stands in. It is a public
+     * identifier already: the public wiki of any station answers at it.
+     *
+     * @param clusterId the cluster
+     * @return the uid to build the public address from
+     */
+    public UUID publicKbStationUid(int clusterId) {
+        return homeStation(clusterId).uid();
+    }
+
+    /**
+     * The station a cluster keeps its own things on, which is where its wiki lives.
+     */
+    private Station homeStation(int clusterId) {
+        return stationRepository
+                .findById(requireCluster(clusterId).homeStationId())
+                .orElseThrow(() -> new NotFoundResponse("No such station"));
     }
 
     // -- Modules --
