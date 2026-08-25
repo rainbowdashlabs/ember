@@ -849,6 +849,12 @@ volumes:
             onboardingGuide: 'Klickst du auf „Los geht’s", zeigt Ember dir Schritt für Schritt, wo du klicken musst. '
                 + 'Die Seite bleibt dabei ganz normal bedienbar, und wenn du zwischendurch woanders hingehst, geht '
                 + 'nichts verloren: Das kleine Symbol unten rechts holt den Hinweis zurück.',
+            onboardingFinish: 'Ist ein Schritt durch, sagt Ember das und bietet dir den Weg zurück zu deiner Liste '
+                + 'an. Wenn ein Knopf noch grau ist, sagt Ember dir das ebenfalls, statt dich darauf klicken zu '
+                + 'lassen.',
+            onboardingInstall: 'Bei der Aufgabe „Ember griffbereit halten" bieten manche Browser an, Ember wie eine '
+                + 'App zu installieren. Dann steht dort ein Knopf dafür bereit, und Ember öffnet sich danach in '
+                + 'einem eigenen Fenster. In allen anderen Browsern legst du dir wie bisher ein Lesezeichen an.',
             onboardingSkip: 'Erledigt ist eine Aufgabe erst, wenn die Sache wirklich getan ist. Wer eine Aufgabe '
                 + 'nicht braucht, überspringt sie und kann sie später wieder aufnehmen.',
             onboardingShared: 'Aufgaben der Wache und der Instanz teilen sich alle, die sie verwalten. Was einer '

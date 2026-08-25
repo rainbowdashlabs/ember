@@ -15,6 +15,7 @@ import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import {emberGuide, defaultGazePositions} from '@/composables/useEmberLogo'
 import {useOnboardingTasks} from '@/composables/useOnboardingTasks'
 import {flowFor} from '@/util/onboardingFlows'
+import {canInstall, runInstall} from '@/util/installPrompt'
 import {OnboardingTaskState, type OnboardingLevelName, type OnboardingTaskView} from '@/api/onboarding'
 
 /**
@@ -52,6 +53,20 @@ function title(task: OnboardingTaskView): string {
   return task.subject ? `${text} (${task.subject})` : text
 }
 
+/**
+ * Whether the browser can be asked to install Ember for this task. Only the task about keeping
+ * Ember to hand offers it, and only where the browser made the offer in the first place; everywhere
+ * else the task keeps the written instructions it always had.
+ */
+function installable(task: OnboardingTaskView): boolean {
+  return task.key === 'member.bookmark' && canInstall.value
+}
+
+/** Ticks the task off when the reader went through with the installation, and not before. */
+async function install(task: OnboardingTaskView) {
+  if (await runInstall()) confirm(props.level, task.id)
+}
+
 onMounted(() => load(props.level))
 </script>
 
@@ -87,6 +102,9 @@ onMounted(() => load(props.level))
         <div class="flex flex-wrap items-center gap-2 pt-1">
           <PrimaryButton v-if="walkable(task)" class="text-xs" @click="start(level, task)">
             {{ t('onboarding.card.begin') }}
+          </PrimaryButton>
+          <PrimaryButton v-if="installable(task)" class="text-xs" @click="install(task)">
+            {{ t('onboarding.card.install') }}
           </PrimaryButton>
           <SecondaryButton v-if="task.confirmable" class="text-xs" @click="confirm(level, task.id)">
             {{ t('onboarding.card.confirm') }}

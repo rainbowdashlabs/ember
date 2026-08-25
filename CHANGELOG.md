@@ -23,6 +23,7 @@
 - **An association can tell its stations something.** News it writes, appointments it makes and articles it files reach every member station, all with the association as the sender, and it writes them on the same screens a station writes its own with: folders, tags, versions and restrictions in the knowledge base, categories and registrations in the calendar, the page editor in both. Nothing is copied: the stations read what was written once, over the connection they already have.
 - **Signing in with a username instead of an email address.** Under Account → Profile anyone can pick a name to sign in with, and the address keeps working alongside it. A guardian can give one to a member or trial member in their care under Profile → Managed profiles, which is what lets a child with no address of their own sign in at all: everything Ember would write to that member, the invitation to set a password included, goes to their guardians.
 - **The directory groups stations by their association.** Stations that answer to the same association appear under its name instead of scattered through the list, and everything else keeps its own place below. An association has no page of its own; only its stations do.
+- **Ember can be installed like an app.** Where the browser supports it, Ember goes onto the home screen or into the dock and opens in a window of its own, offered with a single button among your first steps. Browsers that make no such offer keep the written instructions for a bookmark.
 
 ### Improvements
 
