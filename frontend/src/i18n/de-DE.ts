@@ -5145,6 +5145,7 @@ export default {
             REGISTRATION_DEADLINE_EXPIRED: 'Anmeldefrist abgelaufen',
             EVENT_CANCELLED: 'Veranstaltung abgesagt',
             EVENT_REMINDER: 'Termin-Erinnerung',
+            REGISTRATION_CLOSING: 'Anmeldefrist endet',
             PROCEDURE_ASSIGNED: 'Ablauf zugewiesen',
             PROCEDURE_RESOLVED: 'Ablauf abgeschlossen',
             PROCEDURE_REOPENED: 'Ablauf wieder geöffnet',

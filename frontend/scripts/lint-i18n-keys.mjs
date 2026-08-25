@@ -227,11 +227,20 @@ for (const prefix of prefixPropValues) {
 
 const REPO_ROOT = new URL('../..', import.meta.url).pathname
 
+/**
+ * Locale sections whose keys are one per constant of a backend enum. `leaves` names the keys
+ * below each constant; a section without it carries the translation on the constant itself,
+ * which is the shape of a plain label map.
+ */
 const ENUM_BACKED_SECTIONS = [
     {
         enumFile: 'src/main/java/dev/chojo/ember/api/auth/StationPermission.java',
         prefix: 'permissions',
         leaves: ['label', 'desc'],
+    },
+    {
+        enumFile: 'src/main/java/dev/chojo/ember/feature/notifications/entity/NotificationType.java',
+        prefix: 'notification.typeLabel',
     },
 ]
 
@@ -311,14 +320,16 @@ if (backendSourcesPresent) {
         }
         const constants = parseJavaEnumConstants(text)
         for (const constant of constants) {
-            for (const leaf of section.leaves) {
-                const key = `${section.prefix}.${constant}.${leaf}`
+            const keys = section.leaves
+                ? section.leaves.map(leaf => `${section.prefix}.${constant}.${leaf}`)
+                : [`${section.prefix}.${constant}`]
+            for (const key of keys) {
                 if (!definedKeys.has(key)) {
                     error(I18N_FILE, 0, `missing translation for enum value ${constant}: ${key}`, CAT_ENUM)
                 }
             }
         }
-        const stalePattern = new RegExp(`^${section.prefix}\\.([A-Z][A-Z0-9_]*)\\.`)
+        const stalePattern = new RegExp(`^${section.prefix.replace(/\./g, '\\.')}\\.([A-Z][A-Z0-9_]*)(?:\\.|$)`)
         const reported = new Set()
         for (const key of definedKeys) {
             const m = key.match(stalePattern)
