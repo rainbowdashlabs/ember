@@ -4,14 +4,35 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-defineProps<{
+import {computed, onMounted, ref} from 'vue'
+
+const props = defineProps<{
   active: boolean
   variant?: 'text' | 'banner'
 }>()
+
+/**
+ * Whether the flag may be painted yet.
+ *
+ * <p>Whether it is forced on is known only to the browser: the setting is fetched after the page is
+ * served, so a server render always says no. Painting it during hydration would therefore disagree with
+ * the markup the server sent, and Vue does not repair a class that disagrees at hydration: it keeps what
+ * the server said and never revisits it. The flag stayed off for good on every server-rendered page,
+ * which is the landing page, the login page and the public station pages.
+ *
+ * <p>So the first client render deliberately agrees with the server, says no, and the flag appears one
+ * tick later as an ordinary change, which Vue does apply.
+ */
+const painted = ref(false)
+onMounted(() => {
+  painted.value = true
+})
+
+const showing = computed(() => props.active && painted.value)
 </script>
 
 <template>
-  <span :class="active ? ['pride-flag', variant === 'banner' ? 'pride-banner' : 'pride-text'] : ''"><slot/></span>
+  <span :class="showing ? ['pride-flag', variant === 'banner' ? 'pride-banner' : 'pride-text'] : ''"><slot/></span>
 </template>
 
 <style scoped>
