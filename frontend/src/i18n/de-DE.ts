@@ -2090,6 +2090,11 @@ export default {
     },
     events: {
         register: 'Anmelden',
+        answerFor: 'Für wen zusagen?',
+        declineFor: 'Für wen absagen?',
+        answerForHint: 'Wähle aus, für wen die Antwort gilt. Fragen des Termins werden je Person gestellt.',
+        answerForAll: 'Für alle zusagen',
+        declineForAll: 'Für alle absagen',
         registrationFields: {
             title: 'Angaben zur Anmeldung',
             sectionTitle: 'Fragen bei der Anmeldung',

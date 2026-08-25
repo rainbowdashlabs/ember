@@ -1883,6 +1883,12 @@ volumes:
             },
         },
         eventDetail: {
+            answeringTitle: 'Zu- und absagen, auch für mehrere',
+            answeringText: 'Wer nur für sich selbst antwortet, drückt auf Zusagen oder Absagen. Wer für mehrere antwortet, etwa für sich und die eigenen Kinder, bekommt zusätzlich Für alle zusagen: dort wird angehakt, für wen die Antwort gilt. Stellt der Termin Fragen, bekommt jede angehakte Person eine eigene Kachel, denn die Antworten gehören der einzelnen Person.',
+            changingTitle: 'Antwort ändern',
+            changingText: 'Solange die Anmeldung läuft, könnt ihr eure Antwort jederzeit ändern. Danach kann das nur noch, wer den Termin betreut, weil bis dahin mit der Liste geplant wurde. Wer erst absagt und später doch zusagt, meldet sich neu an: einen einmal freigegebenen Platz behält niemand.',
+            reminderTitle: 'Erinnerung vor Anmeldeschluss',
+            reminderText: 'Drei Tage und einen Tag vor Anmeldeschluss bekommt eine Benachrichtigung, wer weder zu- noch abgesagt hat. Sie geht an alle, die antworten dürfen, und nennt, um wessen Antwort es geht.',
             title: 'Termin-Detailansicht',
             subtitle: 'Alle Infos zu einem einzelnen Termin.',
             whatIs: 'Was zeigt diese Seite?',

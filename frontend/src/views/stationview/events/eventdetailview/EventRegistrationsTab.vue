@@ -23,6 +23,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import RegistrationsPanel from './RegistrationsPanel.vue'
 import FederatedRegistrationsPanel from './FederatedRegistrationsPanel.vue'
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
+import EventAnswerDialog, {type PersonAnswer} from '../eventshared/EventAnswerDialog.vue'
 
 const props = defineProps<{
   event: StationEvent
@@ -177,6 +178,33 @@ function declineMember(memberId: number) {
   return runRegistration('decline', memberId)
 }
 
+const showAnswerDialog = ref(false)
+const answeringAttending = ref(true)
+
+/**
+ * Everyone this reader answers for. Offered as one dialog only when there is more than one of them: a
+ * member answering for themselves is a button, and turning that into a dialog would be a step for nothing.
+ */
+const household = computed(() => props.registrableMembers.map(member => ({
+  memberId: member.id,
+  name: member.name,
+})))
+
+function answerForHousehold(attending: boolean) {
+  answeringAttending.value = attending
+  showAnswerDialog.value = true
+}
+
+async function confirmHouseholdAnswer(answers: PersonAnswer[]) {
+  showAnswerDialog.value = false
+  for (const answer of answers) {
+    await runRegistration(
+        answeringAttending.value ? 'register' : 'decline',
+        answer.memberId,
+        answeringAttending.value ? answer.fields : undefined)
+  }
+}
+
 async function acceptFederatedReg(regId: number) {
   await events.updateFederationRegistrationStatus(regId, 'ACCEPTED')
   await loadRegistrations()
@@ -223,6 +251,16 @@ onMounted(loadRegistrations)
 
     <NeutralContainer v-if="event.requiresRegistration && !canManageEvents()" class="space-y-3">
       <SubHeader>{{ t('eventDetail.myRegistration') }}</SubHeader>
+      <div v-if="household.length > 1" class="flex items-center gap-2 flex-wrap">
+        <PrimaryButton :disabled="registering" data-testid="answer-household"
+                       @click="answerForHousehold(true)">
+          <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>{{ t('events.answerForAll') }}
+        </PrimaryButton>
+        <ErrorButton :disabled="registering" data-testid="decline-household"
+                     @click="answerForHousehold(false)">
+          <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>{{ t('events.declineForAll') }}
+        </ErrorButton>
+      </div>
       <div v-for="member in registrableMembers" :key="member.id" class="flex items-center gap-3 flex-wrap">
         <span v-if="hasManagedMembers" class="text-sm font-medium min-w-24">{{ member.name }}</span>
         <template v-if="getRegistrationForMember(member.id)">
@@ -246,6 +284,16 @@ onMounted(loadRegistrations)
         </template>
       </div>
     </NeutralContainer>
+
+    <EventAnswerDialog
+        v-model="showAnswerDialog"
+        :people="household"
+        :fields="registrationFields"
+        :attending="answeringAttending"
+        :busy="registering"
+        :error="registrationError"
+        @confirm="confirmHouseholdAnswer"
+    />
 
     <RegistrationsPanel
         :event="event"

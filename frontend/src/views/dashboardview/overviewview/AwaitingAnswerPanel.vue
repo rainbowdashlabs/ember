@@ -11,6 +11,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
+import EventAnswerDialog, {type PersonAnswer} from
+    '@/views/stationview/events/eventshared/EventAnswerDialog.vue'
 import {events} from '@/api'
 import type {AwaitingAnswer} from '@/api/events'
 
@@ -35,6 +38,40 @@ function daysLeft(entry: AwaitingAnswer): number {
 }
 
 const soonest = computed(() => awaiting.value.length > 0 ? daysLeft(awaiting.value[0]!) : 0)
+
+const declining = ref<AwaitingAnswer | null>(null)
+const showDeclineDialog = ref(false)
+const declineError = ref('')
+
+/**
+ * Declining straight from the row, without opening the event.
+ *
+ * <p>Where the row covers one person it is a click, and where it covers several it opens the dialog
+ * first: a guardian declining for one child and not the other has to be able to say so.
+ */
+function decline(entry: AwaitingAnswer) {
+  declining.value = entry
+  declineError.value = ''
+  if (entry.members.length > 1) {
+    showDeclineDialog.value = true
+    return
+  }
+  void sendDeclines([{memberId: entry.members[0]!.memberId, fields: []}])
+}
+
+async function sendDeclines(answers: PersonAnswer[]) {
+  const entry = declining.value
+  if (!entry) return
+  showDeclineDialog.value = false
+  try {
+    for (const answer of answers) {
+      await events.declineEvent(entry.eventId, {memberId: answer.memberId})
+    }
+    await loadData()
+  } catch {
+    declineError.value = t('common.error')
+  }
+}
 
 async function loadData() {
   try {
@@ -67,10 +104,23 @@ onMounted(loadData)
             {{ entry.members.map(m => m.name).join(', ') }}
           </p>
         </div>
-        <span class="text-xs text-(--text-muted) shrink-0">
-          {{ t('dashboard.awaitingDaysLeft', {days: daysLeft(entry)}) }}
-        </span>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="text-xs text-(--text-muted)">
+            {{ t('dashboard.awaitingDaysLeft', {days: daysLeft(entry)}) }}
+          </span>
+          <ErrorButton data-testid="awaiting-decline" @click.stop="decline(entry)">
+            {{ t('eventsUpcoming.decline') }}
+          </ErrorButton>
+        </div>
       </NeutralContainer>
     </div>
+    <EventAnswerDialog
+        v-model="showDeclineDialog"
+        :people="declining?.members.map(m => ({memberId: m.memberId, name: m.name})) ?? []"
+        :fields="[]"
+        :attending="false"
+        :error="declineError"
+        @confirm="sendDeclines"
+    />
   </NeutralContainer>
 </template>
