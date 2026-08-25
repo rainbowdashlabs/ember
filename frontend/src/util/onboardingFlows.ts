@@ -56,6 +56,7 @@ export const ONBOARDING_FLOWS: Record<string, OnboardingStep[]> = {
     ],
     'member.quiz': [
         {target: 'nav.quiz.training', route: 'quiz-training', advance: 'route'},
+        {target: 'quiz.catalogs', advance: 'click'},
         {target: 'quiz.start', advance: 'click'},
     ],
 

@@ -6230,6 +6230,7 @@ export default {
         resume: 'Weiter mit der Einrichtung',
         card: {
             begin: 'Los geht’s',
+            install: 'Ember installieren',
             confirm: 'Erledigt',
             skip: 'Überspringen',
             resume: 'Wieder aufnehmen',
@@ -6255,6 +6256,12 @@ export default {
             takeMeThere: 'Hinbringen',
             skip: 'Aufgabe überspringen',
             dismiss: 'Später',
+            blocked: 'Das geht noch nicht. Erledige zuerst, was auf der Seite darüber steht, dann wird der Knopf aktiv.',
+            finished: 'Geschafft. Willst du zurück zu deiner Liste?',
+            notYet: 'Die Schritte sind durch, die Aufgabe aber noch nicht: Ember hakt sie erst ab, wenn die Sache '
+                + 'wirklich getan ist. Prüfe, ob deine Eingabe auch gespeichert wurde.',
+            toList: 'Zurück zur Liste',
+            stayHere: 'Hier bleiben',
         },
         routes: {
             'profile': 'Profil',
@@ -6432,7 +6439,8 @@ export default {
                 },
                 absence: {
                     0: 'Abwesenheiten stehen in deinem Profil.',
-                    1: 'So trägst du eine ein, wenn du mal nicht kannst.',
+                    1: 'Hier trägst du Anfang und Ende ein und sagst kurz, warum. Deine Wache sieht dann, dass du '
+                        + 'in der Zeit nicht kannst. Eintragen musst du jetzt nichts.',
                 },
                 wiki: {
                     0: 'Das Wiki deiner Wache.',
@@ -6440,7 +6448,8 @@ export default {
                 },
                 quiz: {
                     0: 'Das Training liegt hier.',
-                    1: 'Wähle einen Katalog und leg los.',
+                    1: 'Wähle mindestens einen Katalog aus. Ohne Auswahl bleibt der Startknopf grau.',
+                    2: 'Jetzt kannst du starten.',
                 },
             },
             guardian: {
