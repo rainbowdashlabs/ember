@@ -3303,6 +3303,19 @@ export default {
             externalItemsHint: 'Externe Gegenstände werden automatisch erstellt, wenn sie einem Mitglied zugewiesen werden. Nutze "Ausgeben" um Gegenstände zuzuweisen.',
             searchItems: 'Gegenstände durchsuchen...',
         },
+        request: {
+            title: 'Material anfragen',
+            hint: 'Ihr könnt {name} um ein Teil bitten, das ihr nicht habt. Der Verband schickt eines oder '
+                + 'lehnt mit einer Begründung ab; ihr seht beides in den Bewegungen.',
+            ask: 'Beim Verband anfragen',
+            what: 'Was braucht ihr?',
+            selectWhat: 'Art auswählen',
+            size: 'Größe',
+            anySize: 'Egal',
+            reason: 'Begründung',
+            reasonPlaceholder: 'z. B. neues Mitglied, nichts mehr auf Lager',
+            send: 'Anfrage senden',
+        },
         requirements: {
             title: 'Benötigt',
             hint: 'Definiere, welche Inventargegenstände Mitglieder mit einer bestimmten Rolle oder Gruppe besitzen sollen.',
@@ -3312,6 +3325,9 @@ export default {
             userType: 'Benutzertyp',
             group: 'Gruppe',
             targetType: 'Zuweisungstyp',
+            stationGroup: 'Gilt für',
+            everyStation: 'Alle Wachen',
+            stationGroupBadge: 'Nur {name}',
             selectUserType: 'Benutzertyp auswählen',
             selectGroup: 'Gruppe auswählen',
             inventory: 'Inventar',
@@ -4854,7 +4870,6 @@ export default {
     },
     news: {
         systemBadge: 'System',
-        title: 'Neuigkeiten',
         create: 'Neuigkeit erstellen',
         empty: 'Keine Neuigkeiten vorhanden.',
         titleField: 'Titel',
@@ -5208,6 +5223,7 @@ export default {
             ISSUE: 'Ausgabe',
             RETURN: 'Rückgabe',
             EXCHANGE: 'Tausch',
+            REQUEST: 'Anfrage',
         },
         state: {
             OPEN: 'Offen',
@@ -5841,13 +5857,17 @@ export default {
         usesHint: 'Ist das aus, verhalten sich alle Wachen so, als gäbe es keinen Verband über ihnen, wenn es um Material geht: sie tauschen und geben zurück in ihren eigenen Abläufen, ohne Schritte, die auf euch warten.',
         empty: 'Dem Verband gehört noch kein Material.',
         custody: {
-            WITH_OWNER: 'Im Lager des Verbands',
-            AT_STATION: 'Bei der Wache',
-            WITH_MEMBER: 'Bei einem Mitglied',
+            WITH_OWNER: 'Im Lager',
+            AT_STATION: 'Wache',
+            WITH_MEMBER: 'Mitglied',
             WITH_PARTNER: 'Verliehen',
             IN_TRANSIT: 'Unterwegs',
             LOST: 'Verloren',
         },
+        stationFilter: 'Wache',
+        stationFilterAll: 'Alle Wachen',
+        statsScope: 'Gezählt wird nur, was dem Verband gehört. Was eine Wache selbst gekauft hat, '
+            + 'gehört ihr und steht hier nicht.',
     },
     clusterMovements: {
         hint: 'Hier stehen die Vorgänge, die auf einen Schritt warten, den nur der Verband bestätigen kann.',
@@ -5857,6 +5877,7 @@ export default {
             EXCHANGE: 'Tausch',
             RETURN: 'Rückgabe',
             ISSUE: 'Ausgabe',
+            REQUEST: 'Anfrage',
         },
     },
     clusterFields: {
