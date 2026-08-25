@@ -110,6 +110,7 @@ public class EventRegistrationRoutes implements Routes {
                 this::updateRegistrationStatus,
                 StationPermission.EVENT_REGISTRATION);
         routes.delete(prefix + "/events/registrations/{id}", this::withdrawRegistration, StationPermission.USER);
+        routes.put(prefix + "/events/registrations/{id}/answer", this::changeAnswer, StationPermission.USER);
 
         routes.get(
                 prefix + "/events/{eventId}/registration-stats",
@@ -559,6 +560,63 @@ public class EventRegistrationRoutes implements Routes {
                 @OpenApiResponse(status = "204"),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
+    @OpenApi(
+            path = "/api/v1/events/registrations/{id}/answer",
+            methods = HttpMethod.PUT,
+            summary = "Change whether somebody is coming",
+            description = "While registration is open a member changes their own answer, and so does "
+                    + "whoever looks after them. Once it has closed only the people who run the event can, "
+                    + "because the list has been counted on by then. Coming back after declining is a "
+                    + "fresh answer rather than the old place restored: an event that confirms its list "
+                    + "confirms this one too, so nobody keeps a place they gave up.",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AnswerRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void changeAnswer(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        var req = ctx.bodyAsClass(AnswerRequest.class);
+        var registration = registrationService.findById(id).orElseThrow(NotFoundResponse::new);
+        var event = requireOwnedEvent(crudService, registration.eventId(), session);
+
+        boolean manages = answersFor(session, registration.memberId());
+        boolean runsTheEvent = session.hasPermission(StationPermission.EVENT_MANAGER)
+                || session.hasPermission(StationPermission.EVENT_REGISTRATION);
+        if (!manages && !runsTheEvent) {
+            throw new ForbiddenResponse("You cannot answer for this member");
+        }
+
+        boolean closed = event.registrationDeadline() != null && Instant.now().isAfter(event.registrationDeadline());
+        if (closed && !runsTheEvent) {
+            throw new BadRequestResponse("Registration has closed; ask whoever runs the event");
+        }
+
+        var status = req.attending()
+                ? (event.requiresConfirmation() ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED)
+                : RegistrationStatus.DECLINED;
+        if (!registrationService.updateStatus(id, status)) {
+            throw new NotFoundResponse();
+        }
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /** Whether this session answers for that member: their own answer, or one they look after. */
+    private boolean answersFor(UserSession session, int memberId) {
+        if (session.member() == null) return false;
+        if (session.member().id() == memberId) return true;
+        return session.hasPermission(StationPermission.MEMBER_GUARDIAN)
+                && stationMemberService.findManaged(session.member().id()).stream()
+                        .anyMatch(m -> m.id() == memberId);
+    }
+
+    /** Whether somebody is coming. */
+    public record AnswerRequest(boolean attending) {}
+
     private void withdrawRegistration(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");

@@ -500,6 +500,17 @@ export async function withdrawRegistration(id: number): Promise<void> {
     await client.delete(`/events/registrations/${id}`)
 }
 
+/**
+ * Changes whether somebody is coming.
+ *
+ * <p>Open to the member and whoever looks after them while registration is open, and to the people who
+ * run the event afterwards. Coming back after declining is a fresh answer, so an event that confirms its
+ * list confirms this one too.
+ */
+export async function changeRegistrationAnswer(id: number, attending: boolean): Promise<void> {
+    await client.put(`/events/registrations/${id}/answer`, {attending})
+}
+
 export async function updateRegistrationStatus(id: number, status: string): Promise<unknown> {
     const res = await client.put(`/events/registrations/${id}/status`, {status})
     return res.data

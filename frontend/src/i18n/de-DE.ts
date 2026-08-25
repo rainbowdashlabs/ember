@@ -5086,6 +5086,7 @@ export default {
         registrationDeadlineExpired: '{eventName}: {pendingCount} offene Anmeldungen nach Fristende',
         eventCancelled: '{eventName} wurde abgesagt',
         eventReminder: '{eventName} findet in {daysBefore} Tagen statt ({eventDate})',
+        registrationClosing: 'Die Anmeldung für {eventName} endet in {daysBefore} Tagen. Für {memberName} steht noch keine Antwort.',
         procedureAssigned: 'Neuer Ablauf: {procedureName} - zugewiesen von {assignedByName}',
         procedureResolved: 'Ablauf abgeschlossen: {procedureName}',
         procedureReopened: 'Ablauf wieder geöffnet: {procedureName}',
