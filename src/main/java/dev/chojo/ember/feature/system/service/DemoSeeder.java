@@ -50,6 +50,17 @@ public interface DemoSeeder {
     int LOST_AND_FOUND = 50;
 
     /**
+     * The last band that changes who is a member of a station.
+     *
+     * <p>A waiting list ends in people joining and people withdrawing, and somebody who withdrew
+     * after being invited leaves no member behind. That deletion cannot happen beside a seeder
+     * reading the roster: the reader lists the member, the deletion lands, and the write that
+     * follows points at somebody who is no longer there. Everything from here on reads a roster
+     * that has stopped moving.
+     */
+    int WAITING_LIST = 15;
+
+    /**
      * Independent feature modules; everything in this band runs in parallel.
      */
     int MODULES = 60;
