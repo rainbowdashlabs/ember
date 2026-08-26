@@ -17,6 +17,7 @@ import java.time.Instant;
  * @param inventoryId     the inventory the exchange is for
  * @param oldSizeId       the current size of the item, or {@code null} if not applicable
  * @param newSizeId       the desired new size, or {@code null} if not applicable
+ * @param purpose         whether the gear is being issued, handed back or exchanged
  * @param exchangedItemId the replacement item assigned after exchange, or {@code null} if not yet exchanged
  * @param status          the current status of the exchange request
  * @param reason          the reason for the exchange
@@ -27,6 +28,7 @@ import java.time.Instant;
 public record ExchangeRequest(
         int id,
         int stationId,
+        MovementPurpose purpose,
         int memberId,
         Integer itemId,
         int inventoryId,

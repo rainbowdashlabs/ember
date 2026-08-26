@@ -16,13 +16,16 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.AckKind;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.MovementState;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -65,6 +68,7 @@ public class MovementRoutes implements Routes {
     private final StationMemberRepository stationMemberRepository;
     private final MemberIdentityFactory memberIdentityFactory;
     private final LossReportService lossReportService;
+    private final InventoryService inventoryService;
 
     @Inject
     public MovementRoutes(
@@ -73,19 +77,23 @@ public class MovementRoutes implements Routes {
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
             MemberIdentityFactory memberIdentityFactory,
-            LossReportService lossReportService) {
+            LossReportService lossReportService,
+            InventoryService inventoryService) {
         this.movementService = movementService;
         this.inventoryRepository = inventoryRepository;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberIdentityFactory = memberIdentityFactory;
         this.lossReportService = lossReportService;
+        this.inventoryService = inventoryService;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/movements", this::list, StationPermission.USER);
         routes.post(prefix + "/movements", this::create, StationPermission.USER);
+        routes.post(
+                prefix + "/movements/return-everything", this::returnEverything, StationPermission.INVENTORY_MANAGER);
         routes.get(
                 prefix + "/movements/{id}",
                 this::get,
@@ -198,9 +206,66 @@ public class MovementRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         ItemMovement movement = requireVisible(pathInt(ctx, "id"), session);
         var request = ctx.bodyAsClass(AcknowledgeStepRequest.class);
+        Integer picked = request.pickedItemId();
+        if (request.newItem() != null)
+            picked = recordArrival(movement, request.newItem()).id();
         var updated = movementService.acknowledge(
-                movement.id(), request.stepId(), actorOf(session, movement), request.note(), request.pickedItemId());
+                movement.id(), request.stepId(), actorOf(session, movement), request.note(), picked);
         ctx.json(toDetail(updated, session));
+    }
+
+    /**
+     * Writes down the piece that just arrived and was never here before.
+     *
+     * <p>Only where nobody else could have named it: a body that keeps its gear on this instance says
+     * what it sends when it sends it, and letting the station invent a second row for the same piece
+     * would give one thing two records. Where the owner is outside Ember there is nothing to pick
+     * from, and this is the only way the chain gets past the step that asks which piece came.
+     *
+     * <p>It lands in the inventory the movement is about and keeps the owner of the piece that left,
+     * because a replacement belongs to whoever owned what it replaces.
+     */
+    private InventoryItem recordArrival(ItemMovement movement, NewItemRequest request) {
+        if (movement.inventoryId() == null) {
+            throw new BadRequestResponse("This movement is about no inventory, so a new piece has no home");
+        }
+        if (movementService.ownerAnswersHere(movement)) {
+            throw new BadRequestResponse("The owner names what it sends, so pick the piece rather than recording one");
+        }
+        if (request.name() == null || request.name().isBlank()) {
+            throw new BadRequestResponse("A piece needs a name");
+        }
+
+        ItemOwner owner = movementService.ownerOf(movement);
+        return inventoryService.createItem(
+                movement.inventoryId(),
+                request.internalId(),
+                request.name(),
+                request.sizeId(),
+                InventoryItemMetadata.empty(),
+                owner,
+                null);
+    }
+
+    @OpenApi(
+            path = "/api/v1/movements/return-everything",
+            methods = HttpMethod.POST,
+            summary = "Ask a member for every piece they hold, one chain per piece",
+            tags = {"Inventory"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ReturnEverythingRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MovementResponse[].class)))
+    private void returnEverything(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var request = ctx.bodyAsClass(ReturnEverythingRequest.class);
+        if (request.memberId() == null) throw new BadRequestResponse("memberId is required");
+        var member = stationMemberRepository
+                .findById(request.memberId())
+                .filter(row -> row.stationId() == session.stationId())
+                .orElseThrow(() -> new BadRequestResponse("That member is not at this station"));
+
+        var started = movementService.requestEverythingBack(
+                session.stationId(), member.id(), memberName(member.id()), actorOf(session, null));
+        ctx.json(started.stream().map(this::toResponse).toList());
     }
 
     @OpenApi(
@@ -373,9 +438,12 @@ public class MovementRoutes implements Routes {
                 current.map(s -> s.label()).orElse(null),
                 current.map(s -> s.actor()).orElse(null),
                 movement.reason(),
+                movement.oldSizeId(),
+                movement.newSizeId(),
                 movement.createdAt(),
                 movement.closedAt(),
-                movement.closeReason());
+                movement.closeReason(),
+                movementService.ownerAnswersHere(movement));
     }
 
     /**
@@ -465,7 +533,28 @@ public class MovementRoutes implements Routes {
             String reason,
             Integer pickedItemId) {}
 
-    public record AcknowledgeStepRequest(int stepId, String note, Integer pickedItemId) {}
+    /**
+     * @param pickedItemId the arriving piece, when it is one the station already has on its books
+     * @param newItem      the arriving piece, when it has never been recorded here. A piece coming
+     *                     from a body outside Ember is the ordinary case for this: there is nothing
+     *                     to pick, and without it the chain stops on the step that asks
+     */
+    public record AcknowledgeStepRequest(int stepId, String note, Integer pickedItemId, NewItemRequest newItem) {}
+
+    /**
+     * A piece recorded at the moment it arrives. Owner and inventory are not asked: they are the
+     * ones the movement is already about.
+     *
+     * @param internalId what is written on it
+     * @param name       what it is
+     * @param sizeId     the size, or null where the inventory keeps none
+     */
+    public record NewItemRequest(String internalId, String name, Integer sizeId) {}
+
+    /**
+     * @param memberId the member who is to hand everything back
+     */
+    public record ReturnEverythingRequest(Integer memberId) {}
 
     public record CloseMovementRequest(String reason) {}
 
@@ -481,10 +570,18 @@ public class MovementRoutes implements Routes {
             String currentStepLabel,
             StepActor currentStepActor,
             String reason,
+            /** The size being replaced, and the size asked for, which a piece written down starts as. */
+            Integer oldSizeId,
+            Integer newSizeId,
             Instant createdAt,
             Instant closedAt,
             /** Why it was refused or taken back, which the reason it was started does not say. */
-            String closeReason) {}
+            String closeReason,
+            /**
+             * Whether the body that owns the gear can answer for itself here. Where it cannot, the
+             * station both walks its steps and writes down what arrived, because nobody else will.
+             */
+            boolean ownerAnswersHere) {}
 
     public record MovementStepResponse(
             int id,

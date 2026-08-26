@@ -22,6 +22,7 @@ import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import {moveWithin} from '@/util/reorder'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -139,11 +140,8 @@ function navigateToEdit(page: StationPage) {
 }
 
 function onReorder(fromIndex: number, toIndex: number) {
-    const items = [...flatPages.value]
-    const [moved] = items.splice(fromIndex, 1)
-    if (!moved) return
-    items.splice(toIndex, 0, moved)
-    pages.value = items.map((entry, i) => ({...entry.page, sortOrder: i}))
+    pages.value = moveWithin(flatPages.value, fromIndex, toIndex)
+        .map((entry, i) => ({...entry.page, sortOrder: i}))
 }
 
 </script>

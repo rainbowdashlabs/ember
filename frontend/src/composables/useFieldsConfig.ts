@@ -13,6 +13,7 @@ import {
 } from '@/api/profileFields'
 import type {StationGroup} from '@/api/clusterStationGroups'
 import type {MemberGroup} from '@/api/types'
+import {moveWithin} from '@/util/reorder'
 
 /** A field of group scope belongs to a group, and only a station has those. */
 export const GROUP_SCOPE = 'GROUP'
@@ -286,10 +287,7 @@ export function useFieldsConfig(port: FieldsPort) {
     })
 
     async function onReorder(fromIndex: number, toIndex: number) {
-        const arr = [...currentFields.value]
-        const [moved] = arr.splice(fromIndex, 1)
-        if (!moved) return
-        arr.splice(toIndex, 0, moved)
+        const arr = moveWithin(currentFields.value, fromIndex, toIndex)
         try {
             await port.reorder(arr.map(field => field.id))
             await reload()

@@ -39,10 +39,9 @@ function onReadonlyChange(v: boolean) {
 </script>
 
 <template>
-  <NeutralContainer class="space-y-2 mb-2 cursor-grab active:cursor-grabbing">
+  <NeutralContainer class="space-y-2 mb-2">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) h-3.5 w-3.5"/>
         <span class="font-medium text-sm">{{ field.name }}</span>
         <span class="text-xs text-(--text-muted)">{{ typeLabel }}</span>
         <span v-if="!isSection(field)" class="text-xs text-(--text-muted)">{{ widthLabel(t, widthOf(field)) }}</span>

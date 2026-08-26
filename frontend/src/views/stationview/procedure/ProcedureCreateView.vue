@@ -98,7 +98,7 @@ watch(loaded, (v) => {
         <ItemsSection
             :items="items"
             @add="form.addItem()"
-            @move="form.moveItem"
+            @reorder="form.reorderItems"
             @remove="form.removeItem"
         />
 

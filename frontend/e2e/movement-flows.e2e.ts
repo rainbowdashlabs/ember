@@ -62,28 +62,35 @@ const SENDS = {label: 'Wache schickt', actor: 'STATION', subject: 'OUTGOING',
     custodyAfter: 'IN_TRANSIT', picksItem: false}
 const ARRIVES = {label: 'Träger nimmt an', actor: 'OWNER', subject: 'OUTGOING',
     custodyAfter: 'WITH_OWNER', picksItem: false}
+const FILED = {label: 'Träger legt weg', actor: 'OWNER', subject: 'OUTGOING',
+    custodyAfter: 'WITH_OWNER', picksItem: false}
 
 test.describe('Movement flows', () => {
     /**
      * ITM-22 - A flow is edited and the next movement walks the new one.
      *
      * A chain is read when a movement starts, so adding a step changes what starts afterwards and leaves
-     * what is already walking alone.
+     * what is already walking alone. A chain is also not reshaped under somebody who is walking it, so
+     * the first movement is finished before the step is added.
      */
     test('a movement started afterwards walks the added step', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
         const {inventoryId, item} = await ownGround(page, headers, 'EDIT')
-        const {flowId} = await chain(page, headers, inventoryId, `Kurz ${Date.now()}`, [SENDS])
+        const {flowId} = await chain(page, headers, inventoryId, `Kurz ${Date.now()}`, [SENDS, ARRIVES])
 
         const before = await page.request.post('/api/v1/movements',
             {headers, data: {purpose: 'RETURN', outgoingItemId: item.id, inventoryId, reason: 'Erst'}})
         expect(before.ok()).toBeTruthy()
         const early = await before.json()
-        expect(early.steps.length).toBe(1)
+        expect(early.steps.length).toBe(2)
+
+        const waiting = early.steps.find((step: {current: boolean}) => step.current)
+        expect((await page.request.post(`/api/v1/movements/${early.movement.id}/acknowledge`,
+            {headers, data: {stepId: waiting.id, note: ''}})).ok()).toBeTruthy()
 
         const added = await page.request.post(`/api/v1/movement-flows/${flowId}/steps`,
-            {headers, data: ARRIVES})
-        expect(added.ok()).toBeTruthy()
+            {headers, data: FILED})
+        expect(added.ok(), await added.text()).toBeTruthy()
 
         const second = (await page.request.post(`/api/v1/inventories/${inventoryId}/items`, {
             headers,
@@ -95,12 +102,12 @@ test.describe('Movement flows', () => {
             data: {purpose: 'RETURN', outgoingItemId: (await second).id, inventoryId, reason: 'Danach'},
         })
         expect(after.ok()).toBeTruthy()
-        expect((await after.json()).steps.length, 'the one started afterwards carries the added step').toBe(2)
+        expect((await after.json()).steps.length, 'the one started afterwards carries the added step').toBe(3)
 
         const untouched = await page.request
             .get(`/api/v1/movements/${early.movement.id}`, {headers})
             .then(r => r.json())
-        expect(untouched.steps.length, 'and the one already walking does not').toBe(1)
+        expect(untouched.steps.length, 'and the one already walking does not').toBe(2)
     })
 
     /**
@@ -112,7 +119,8 @@ test.describe('Movement flows', () => {
     test('reshaping is refused while a movement is walking it', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
         const {inventoryId, item} = await ownGround(page, headers, 'BUSY')
-        const {stepIds} = await chain(page, headers, inventoryId, `Beschäftigt ${Date.now()}`, [SENDS, ARRIVES])
+        const {stepIds} = await chain(page, headers, inventoryId, `Beschäftigt ${Date.now()}`,
+            [SENDS, ARRIVES, FILED])
 
         const started = await page.request.post('/api/v1/movements',
             {headers, data: {purpose: 'RETURN', outgoingItemId: item.id, inventoryId, reason: 'Läuft'}})
@@ -147,7 +155,7 @@ test.describe('Movement flows', () => {
     test('a step that has been walked is kept in the history it belongs to', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
         const {inventoryId, item} = await ownGround(page, headers, 'ARCH')
-        const {stepIds} = await chain(page, headers, inventoryId, `Archiv ${Date.now()}`, [SENDS, ARRIVES])
+        const {stepIds} = await chain(page, headers, inventoryId, `Archiv ${Date.now()}`, [SENDS, ARRIVES, FILED])
 
         const started = await page.request.post('/api/v1/movements',
             {headers, data: {purpose: 'RETURN', outgoingItemId: item.id, inventoryId, reason: 'Läuft'}})
@@ -191,9 +199,11 @@ test.describe('Movement flows', () => {
                 ownerKind: 'STATION', ownerClusterId: null},
         }).then(r => r.json())
 
-        await chain(page, headers, inventoryId, `Träger ${Date.now()}`, [SENDS, ARRIVES])
+        await chain(page, headers, inventoryId, `Träger ${Date.now()}`, [SENDS, ARRIVES, FILED])
         await chain(page, headers, inventoryId, `Wache ${Date.now()}`,
-            [{label: 'Wache legt zurück', actor: 'STATION', subject: 'OUTGOING',
+            [{label: 'Rückgabe angefordert', actor: 'STATION', subject: 'OUTGOING',
+                custodyAfter: 'AT_STATION', picksItem: false},
+             {label: 'Wache legt zurück', actor: 'STATION', subject: 'OUTGOING',
                 custodyAfter: 'WITH_OWNER', picksItem: false}], 'RETURN', 'STATION')
 
         const forBorrowed = await page.request.post('/api/v1/movements',
@@ -202,8 +212,8 @@ test.describe('Movement flows', () => {
             {headers, data: {purpose: 'RETURN', outgoingItemId: own.id, inventoryId, reason: 'Zurück'}})
         expect(forBorrowed.ok() && forOwn.ok()).toBeTruthy()
 
-        expect((await forBorrowed.json()).steps.length, 'the borrowed piece walks the longer chain').toBe(2)
-        expect((await forOwn.json()).steps.length, 'and the station\'s own the shorter one').toBe(1)
+        expect((await forBorrowed.json()).steps.length, 'the borrowed piece walks the longer chain').toBe(3)
+        expect((await forOwn.json()).steps.length, 'and the station\'s own the shorter one').toBe(2)
     })
 
     /**

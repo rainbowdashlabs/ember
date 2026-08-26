@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:1f8e4eebeea1f7d523784c8a016b37c8e736d4fae3f51e1983b5d60be8002ec2",
-  "generatedAt" : "2026-08-25T16:51:04Z",
+  "schemaHash" : "sha256:0989b453642cbf686729d499edf3398c662dc0cec09414a1dd1e769b77579889",
+  "generatedAt" : "2026-08-26T00:33:10Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -11030,7 +11030,7 @@
     "movement_flow_binding" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:887fb6f8f1101c3e909d856f35a760cc563ee046b836412b560958d42a4d23db",
+      "tableHash" : "sha256:3bbcfb33112dba876fc56f17a804e0214d01a6eff5c32feec96fe3e3f0e24f95",
       "columns" : [ {
         "name" : "station_id",
         "type" : "int4",
@@ -11054,7 +11054,13 @@
         "type" : "text",
         "nullable" : false,
         "verified" : true,
-        "description" : "Which purpose the binding applies to: ISSUE, RETURN or EXCHANGE."
+        "description" : "Which purpose the binding applies to: ISSUE, RETURN, EXCHANGE or REQUEST."
+      }, {
+        "name" : "party",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which end the chain runs to: STORE for the station shelf, MEMBER for somebody wearing it. An issue that fills a shelf and one that dresses a member are different chains."
       }, {
         "name" : "flow_id",
         "type" : "int4",
@@ -11795,7 +11801,7 @@
         "type" : "text",
         "nullable" : false,
         "verified" : true,
-        "description" : "CONFIRMED for a task ticked off by hand, SKIPPED for one passed over. A task taken up again has its row deleted."
+        "description" : "CONFIRMED for a task ticked off by hand, SKIPPED for one passed over, DISMISSED for one thrown away for good. A task taken up again has its row deleted."
       }, {
         "name" : "changed_at",
         "type" : "timestamptz",
@@ -11857,7 +11863,7 @@
         "type" : "text",
         "nullable" : false,
         "verified" : true,
-        "description" : "CONFIRMED for a task ticked off by hand, SKIPPED for one passed over. A task taken up again has its row deleted."
+        "description" : "CONFIRMED for a task ticked off by hand, SKIPPED for one passed over, DISMISSED for one thrown away for good. A task taken up again has its row deleted."
       }, {
         "name" : "changed_at",
         "type" : "timestamptz",
@@ -11912,7 +11918,7 @@
         "type" : "text",
         "nullable" : false,
         "verified" : true,
-        "description" : "CONFIRMED for a task ticked off by hand, SKIPPED for one passed over. A task taken up again has its row deleted."
+        "description" : "CONFIRMED for a task ticked off by hand, SKIPPED for one passed over, DISMISSED for one thrown away for good. A task taken up again has its row deleted."
       }, {
         "name" : "changed_at",
         "type" : "timestamptz",

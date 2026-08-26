@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import DragList from '@/components/input/DragList.vue'
 import TestSectionCard from './TestSectionCard.vue'
 import type { QuizCatalog, QuizCategory } from '@/api/quiz'
 
@@ -34,7 +35,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   addSection: []
-  moveSection: [index: number, direction: -1 | 1]
+  reorderSections: [fromIndex: number, toIndex: number]
   removeSection: [index: number]
   addSource: [section: SectionDraft]
   removeSource: [section: SectionDraft, sourceIndex: number]
@@ -54,19 +55,24 @@ const { t } = useI18n()
 
     <EmptyState compact v-if="props.sections.length === 0">{{ t('quiz.sections.noSections') }}</EmptyState>
 
-    <TestSectionCard
-        v-for="(section, sIdx) in props.sections"
-        :key="section.key"
-        :section="section"
-        :index="sIdx"
-        :total="props.sections.length"
-        :catalogs="props.catalogs"
-        :get-categories-for-catalog="props.getCategoriesForCatalog"
-        :on-catalog-change="props.onCatalogChange"
-        @move="d => emit('moveSection', sIdx, d)"
-        @remove="emit('removeSection', sIdx)"
-        @add-source="emit('addSource', section)"
-        @remove-source="srcIdx => emit('removeSource', section, srcIdx)"
-    />
+    <DragList
+        :items="props.sections"
+        :key-fn="(section) => section.key"
+        class="space-y-4"
+        @reorder="(from, to) => emit('reorderSections', from, to)"
+    >
+      <template #default="{item: section, index: sIdx}">
+        <TestSectionCard
+            :section="section"
+            :index="sIdx"
+            :catalogs="props.catalogs"
+            :get-categories-for-catalog="props.getCategoriesForCatalog"
+            :on-catalog-change="props.onCatalogChange"
+            @remove="emit('removeSection', sIdx)"
+            @add-source="emit('addSource', section)"
+            @remove-source="srcIdx => emit('removeSource', section, srcIdx)"
+        />
+      </template>
+    </DragList>
   </div>
 </template>

@@ -65,6 +65,11 @@ export interface Movement {
     inventoryName?: string | null
     currentStepLabel?: string | null
     currentStepActor?: StepActorName | null
+    /** Whether the owner of the gear can answer for itself here, which decides who names arrivals. */
+    ownerAnswersHere?: boolean
+    /** The size being replaced, and the one asked for, which a piece written down starts out as. */
+    oldSizeId?: number | null
+    newSizeId?: number | null
     reason: string
     createdAt: string
     closedAt?: string | null
@@ -134,6 +139,15 @@ export interface AcknowledgeStepRequest {
     stepId: number
     note?: string
     pickedItemId?: number | null
+    /** The arriving piece, where it has never been recorded here and there is nothing to pick. */
+    newItem?: NewItemRequest | null
+}
+
+/** A piece written down at the moment it arrives. Owner and inventory come from the movement. */
+export interface NewItemRequest {
+    internalId?: string
+    name: string
+    sizeId?: number | null
 }
 
 export async function listMovements(): Promise<Movement[]> {
@@ -153,6 +167,12 @@ export async function createMovement(data: CreateMovementRequest): Promise<Movem
 
 export async function acknowledgeStep(id: number, data: AcknowledgeStepRequest): Promise<MovementDetail> {
     const res = await client.post<MovementDetail>(`/movements/${id}/acknowledge`, data)
+    return res.data
+}
+
+/** Asks a member for every piece they hold, one chain per piece. */
+export async function returnEverything(memberId: number): Promise<Movement[]> {
+    const res = await client.post<Movement[]>('/movements/return-everything', {memberId})
     return res.data
 }
 
@@ -196,6 +216,8 @@ export interface MovementFlow {
     archived: boolean
     /** Flows the body above the station owns are shown and named here, but not edited. */
     ownedByCluster: boolean
+    /** What stops this chain from being walked, or null when nothing does. */
+    problem?: string | null
     steps: MovementFlowStep[]
 }
 
@@ -203,8 +225,20 @@ export interface MovementFlowBinding {
     inventoryId?: number | null
     ownerKind: ItemOwnerName
     purpose: MovementPurposeName
+    party: MovementPartyName
     flowId: number
 }
+
+/**
+ * The end of a movement that is not the owner. An issue that fills a shelf and one that dresses a
+ * member are different chains, and this is what tells them apart.
+ */
+export const MovementParty = {
+    STORE: 'STORE',
+    MEMBER: 'MEMBER',
+} as const
+
+export type MovementPartyName = (typeof MovementParty)[keyof typeof MovementParty]
 
 export interface FlowRequest {
     name: string
@@ -251,6 +285,11 @@ export async function updateStep(stepId: number, data: StepRequest): Promise<voi
 /** Retires a step. It stays readable for the movements that passed it. */
 export async function archiveStep(stepId: number): Promise<void> {
     await client.delete(`/movement-flow-steps/${stepId}`)
+}
+
+/** Puts the steps in the order they are to be walked, the whole order in one call. */
+export async function reorderSteps(flowId: number, stepIds: number[]): Promise<void> {
+    await client.put(`/movement-flows/${flowId}/step-order`, {stepIds})
 }
 
 export async function listBindings(): Promise<MovementFlowBinding[]> {

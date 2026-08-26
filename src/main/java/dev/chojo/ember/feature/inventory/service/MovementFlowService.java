@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementFlow;
 import dev.chojo.ember.feature.inventory.entity.MovementFlowBinding;
 import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
+import dev.chojo.ember.feature.inventory.entity.MovementParty;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
@@ -25,6 +26,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Flows, their steps, and the bindings that decide which flow a movement walks.
@@ -40,103 +43,211 @@ public class MovementFlowService {
      * The presets a station starts with. Kept next to the seeding that writes them rather than in
      * the migration alone, because a station created after that migration needs them too.
      *
-     * <p>None of them has a step belonging to the body above the station, and that is the point. A
-     * station whose umbrella organisation does not use Ember knows two things about the parcel it
-     * posted: that it sent it, and that something came back. Asking it to tick "arrived at the
-     * owner" and "replacement dispatched" would be asking it to invent both, and a record of an
-     * invention is worse than no record. What it posted and never saw again settles with its owner
-     * when the movement ends, which is the last thing the station honestly knows.
+     * <p>Every chain opens with a request at the place that wants something and closes with a
+     * receipt at the place the gear ends up. The receipt is the only confirmation that counts:
+     * whoever ends up holding it says so, rather than somebody saying it for them. Two steps is
+     * therefore the shortest a chain can be, and {@link MovementFlowValidation} keeps it that way
+     * for the ones a station writes itself.
      *
-     * <p>Owner steps are not gone from the model: a body that runs on this instance can answer for
-     * itself, and its own flow is where those steps belong. A station that wants to track the
-     * owner's leg anyway can add the steps to its own flow and they will read as asserted.
+     * <p>Where a chain names the body above the station, that step belongs to it. A body that does
+     * not run on this instance cannot press anything, so the station walks those steps in its place
+     * and the record says asserted rather than confirmed. That is the same chain either way, which
+     * is what makes the two cases comparable afterwards.
      */
     private static final List<Preset> PRESETS = List.of(
             new Preset(
-                    "Tausch (Eigentum der Wache)",
-                    MovementPurpose.EXCHANGE,
-                    ItemOwner.STATION,
-                    List.of(
-                            new PresetStep(
-                                    "Tausch angekündigt",
-                                    StepActor.MEMBER,
-                                    StepSubject.OUTGOING,
-                                    ItemCustody.WITH_MEMBER,
-                                    false),
-                            new PresetStep(
-                                    "Altes Teil zurückgenommen",
-                                    StepActor.STATION,
-                                    StepSubject.OUTGOING,
-                                    ItemCustody.WITH_OWNER,
-                                    false),
-                            new PresetStep(
-                                    "Ersatz ausgegeben",
-                                    StepActor.STATION,
-                                    StepSubject.INCOMING,
-                                    ItemCustody.WITH_MEMBER,
-                                    true))),
-            new Preset(
-                    "Tausch (Eigentum des Trägers)",
-                    MovementPurpose.EXCHANGE,
+                    "Ausgabe durch den Träger ins Lager",
+                    MovementPurpose.ISSUE,
                     ItemOwner.CLUSTER,
+                    MovementParty.STORE,
                     List.of(
-                            new PresetStep(
-                                    "Tausch angekündigt",
-                                    StepActor.MEMBER,
-                                    StepSubject.OUTGOING,
-                                    ItemCustody.WITH_MEMBER,
-                                    false),
-                            new PresetStep(
-                                    "Altes Teil zurückgenommen",
-                                    StepActor.STATION,
-                                    StepSubject.OUTGOING,
-                                    ItemCustody.AT_STATION,
-                                    false),
-                            new PresetStep(
-                                    "An den Träger geschickt",
-                                    StepActor.STATION,
-                                    StepSubject.OUTGOING,
-                                    ItemCustody.IN_TRANSIT,
-                                    false),
-                            new PresetStep(
-                                    "Ersatz erhalten",
-                                    StepActor.STATION,
-                                    StepSubject.INCOMING,
-                                    ItemCustody.AT_STATION,
-                                    true),
-                            new PresetStep(
-                                    "Ersatz ausgegeben",
-                                    StepActor.STATION,
-                                    StepSubject.INCOMING,
-                                    ItemCustody.WITH_MEMBER,
-                                    false))),
+                            PresetStep.of("Bestellt", StepActor.STATION, StepSubject.INCOMING, ItemCustody.WITH_OWNER),
+                            PresetStep.naming(
+                                    "Verschickt", StepActor.OWNER, StepSubject.INCOMING, ItemCustody.IN_TRANSIT),
+                            PresetStep.of(
+                                    "Erhalten", StepActor.STATION, StepSubject.INCOMING, ItemCustody.AT_STATION))),
             new Preset(
-                    "Rückgabe an den Träger",
+                    "Ausgabe durch den Träger an ein Mitglied",
+                    MovementPurpose.ISSUE,
+                    ItemOwner.CLUSTER,
+                    MovementParty.MEMBER,
+                    List.of(
+                            PresetStep.of("Bestellt", StepActor.STATION, StepSubject.INCOMING, ItemCustody.WITH_OWNER),
+                            PresetStep.naming(
+                                    "Verschickt", StepActor.OWNER, StepSubject.INCOMING, ItemCustody.IN_TRANSIT),
+                            PresetStep.of(
+                                    "An der Wache angekommen",
+                                    StepActor.STATION,
+                                    StepSubject.INCOMING,
+                                    ItemCustody.AT_STATION),
+                            PresetStep.of(
+                                    "An das Mitglied ausgegeben",
+                                    StepActor.STATION,
+                                    StepSubject.INCOMING,
+                                    ItemCustody.WITH_MEMBER),
+                            PresetStep.of(
+                                    "Erhalten", StepActor.MEMBER, StepSubject.INCOMING, ItemCustody.WITH_MEMBER))),
+            new Preset(
+                    "Ausgabe eigener Ausrüstung an ein Mitglied",
+                    MovementPurpose.ISSUE,
+                    ItemOwner.STATION,
+                    MovementParty.MEMBER,
+                    List.of(
+                            PresetStep.of(
+                                    "Angefordert", StepActor.MEMBER, StepSubject.INCOMING, ItemCustody.WITH_OWNER),
+                            PresetStep.naming(
+                                    "Ausgegeben", StepActor.STATION, StepSubject.INCOMING, ItemCustody.WITH_MEMBER),
+                            PresetStep.of(
+                                    "Erhalten", StepActor.MEMBER, StepSubject.INCOMING, ItemCustody.WITH_MEMBER))),
+            new Preset(
+                    "Rückgabe an den Träger aus dem Lager",
                     MovementPurpose.RETURN,
                     ItemOwner.CLUSTER,
+                    MovementParty.STORE,
                     List.of(
-                            new PresetStep(
+                            PresetStep.of(
                                     "Rückgabe angekündigt",
                                     StepActor.STATION,
                                     StepSubject.OUTGOING,
-                                    ItemCustody.AT_STATION,
-                                    false),
-                            new PresetStep(
+                                    ItemCustody.AT_STATION),
+                            PresetStep.of(
                                     "An den Träger geschickt",
                                     StepActor.STATION,
                                     StepSubject.OUTGOING,
-                                    ItemCustody.IN_TRANSIT,
-                                    false))),
+                                    ItemCustody.IN_TRANSIT),
+                            PresetStep.of("Erhalten", StepActor.OWNER, StepSubject.OUTGOING, ItemCustody.WITH_OWNER))),
             new Preset(
-                    "Ausgabe durch den Träger",
-                    MovementPurpose.ISSUE,
+                    "Rückgabe an den Träger vom Mitglied",
+                    MovementPurpose.RETURN,
                     ItemOwner.CLUSTER,
-                    List.of(new PresetStep(
-                            "Vom Träger erhalten",
-                            StepActor.STATION,
-                            StepSubject.INCOMING,
-                            ItemCustody.AT_STATION,
-                            true))));
+                    MovementParty.MEMBER,
+                    List.of(
+                            PresetStep.of(
+                                    "Rückgabe angefordert",
+                                    StepActor.STATION,
+                                    StepSubject.OUTGOING,
+                                    ItemCustody.WITH_MEMBER),
+                            PresetStep.of(
+                                    "Bei der Wache abgegeben",
+                                    StepActor.STATION,
+                                    StepSubject.OUTGOING,
+                                    ItemCustody.AT_STATION),
+                            PresetStep.of(
+                                    "An den Träger geschickt",
+                                    StepActor.STATION,
+                                    StepSubject.OUTGOING,
+                                    ItemCustody.IN_TRANSIT),
+                            PresetStep.of("Erhalten", StepActor.OWNER, StepSubject.OUTGOING, ItemCustody.WITH_OWNER))),
+            new Preset(
+                    "Rückgabe an die Wache vom Mitglied",
+                    MovementPurpose.RETURN,
+                    ItemOwner.STATION,
+                    MovementParty.MEMBER,
+                    List.of(
+                            PresetStep.of(
+                                    "Rückgabe angefordert",
+                                    StepActor.STATION,
+                                    StepSubject.OUTGOING,
+                                    ItemCustody.WITH_MEMBER),
+                            PresetStep.of(
+                                    "Erhalten", StepActor.STATION, StepSubject.OUTGOING, ItemCustody.WITH_OWNER))),
+            new Preset(
+                    "Tausch eigener Ausrüstung",
+                    MovementPurpose.EXCHANGE,
+                    ItemOwner.STATION,
+                    MovementParty.MEMBER,
+                    List.of(
+                            PresetStep.of(
+                                    "Tausch angefordert",
+                                    StepActor.MEMBER,
+                                    StepSubject.OUTGOING,
+                                    ItemCustody.WITH_MEMBER),
+                            PresetStep.of(
+                                    "Altes Teil zurückgenommen",
+                                    StepActor.STATION,
+                                    StepSubject.OUTGOING,
+                                    ItemCustody.WITH_OWNER),
+                            PresetStep.naming(
+                                    "Ersatz ausgegeben",
+                                    StepActor.STATION,
+                                    StepSubject.INCOMING,
+                                    ItemCustody.WITH_MEMBER),
+                            PresetStep.of(
+                                    "Erhalten", StepActor.MEMBER, StepSubject.INCOMING, ItemCustody.WITH_MEMBER))),
+            new Preset(
+                    "Tausch von Ausrüstung des Trägers",
+                    MovementPurpose.EXCHANGE,
+                    ItemOwner.CLUSTER,
+                    MovementParty.MEMBER,
+                    List.of(
+                            PresetStep.of(
+                                    "Tausch angefordert",
+                                    StepActor.MEMBER,
+                                    StepSubject.OUTGOING,
+                                    ItemCustody.WITH_MEMBER),
+                            PresetStep.of(
+                                    "Altes Teil zurückgenommen",
+                                    StepActor.STATION,
+                                    StepSubject.OUTGOING,
+                                    ItemCustody.AT_STATION),
+                            PresetStep.of(
+                                    "An den Träger geschickt",
+                                    StepActor.STATION,
+                                    StepSubject.OUTGOING,
+                                    ItemCustody.IN_TRANSIT),
+                            PresetStep.of("Erhalten", StepActor.OWNER, StepSubject.OUTGOING, ItemCustody.WITH_OWNER),
+                            PresetStep.naming(
+                                    "Ersatz verschickt", StepActor.OWNER, StepSubject.INCOMING, ItemCustody.IN_TRANSIT),
+                            PresetStep.of(
+                                    "An der Wache angekommen",
+                                    StepActor.STATION,
+                                    StepSubject.INCOMING,
+                                    ItemCustody.AT_STATION),
+                            PresetStep.of(
+                                    "Ersatz ausgegeben",
+                                    StepActor.STATION,
+                                    StepSubject.INCOMING,
+                                    ItemCustody.WITH_MEMBER),
+                            PresetStep.of(
+                                    "Erhalten", StepActor.MEMBER, StepSubject.INCOMING, ItemCustody.WITH_MEMBER))),
+            new Preset(
+                    "Anfrage an den Träger fürs Lager",
+                    MovementPurpose.REQUEST,
+                    ItemOwner.CLUSTER,
+                    MovementParty.STORE,
+                    List.of(
+                            PresetStep.of("Angefragt", StepActor.STATION, StepSubject.INCOMING, ItemCustody.WITH_OWNER),
+                            PresetStep.naming(
+                                    "Zugesagt und verschickt",
+                                    StepActor.OWNER,
+                                    StepSubject.INCOMING,
+                                    ItemCustody.IN_TRANSIT),
+                            PresetStep.of(
+                                    "Erhalten", StepActor.STATION, StepSubject.INCOMING, ItemCustody.AT_STATION))),
+            new Preset(
+                    "Anfrage an den Träger für ein Mitglied",
+                    MovementPurpose.REQUEST,
+                    ItemOwner.CLUSTER,
+                    MovementParty.MEMBER,
+                    List.of(
+                            PresetStep.of("Angefragt", StepActor.STATION, StepSubject.INCOMING, ItemCustody.WITH_OWNER),
+                            PresetStep.naming(
+                                    "Zugesagt und verschickt",
+                                    StepActor.OWNER,
+                                    StepSubject.INCOMING,
+                                    ItemCustody.IN_TRANSIT),
+                            PresetStep.of(
+                                    "An der Wache angekommen",
+                                    StepActor.STATION,
+                                    StepSubject.INCOMING,
+                                    ItemCustody.AT_STATION),
+                            PresetStep.of(
+                                    "An das Mitglied ausgegeben",
+                                    StepActor.STATION,
+                                    StepSubject.INCOMING,
+                                    ItemCustody.WITH_MEMBER),
+                            PresetStep.of(
+                                    "Erhalten", StepActor.MEMBER, StepSubject.INCOMING, ItemCustody.WITH_MEMBER))));
 
     /**
      * The chains an association starts with, one per purpose and named in a word.
@@ -154,60 +265,56 @@ public class MovementFlowService {
                     MovementPurpose.ISSUE,
                     ItemOwner.CLUSTER,
                     List.of(
-                            new PresetStep(
-                                    "Verschickt", StepActor.OWNER, StepSubject.INCOMING, ItemCustody.IN_TRANSIT, true),
-                            new PresetStep(
-                                    "Angekommen",
-                                    StepActor.STATION,
-                                    StepSubject.INCOMING,
-                                    ItemCustody.AT_STATION,
-                                    false))),
+                            PresetStep.of("Bestellt", StepActor.STATION, StepSubject.INCOMING, ItemCustody.WITH_OWNER),
+                            PresetStep.naming(
+                                    "Verschickt", StepActor.OWNER, StepSubject.INCOMING, ItemCustody.IN_TRANSIT),
+                            PresetStep.of(
+                                    "Erhalten", StepActor.STATION, StepSubject.INCOMING, ItemCustody.AT_STATION))),
             new Preset(
                     "Rückgabe",
                     MovementPurpose.RETURN,
                     ItemOwner.CLUSTER,
                     List.of(
-                            new PresetStep(
-                                    "Abgeschickt",
+                            PresetStep.of(
+                                    "Rückgabe angekündigt",
                                     StepActor.STATION,
                                     StepSubject.OUTGOING,
-                                    ItemCustody.IN_TRANSIT,
-                                    false),
-                            new PresetStep(
-                                    "Zurück im Lager",
-                                    StepActor.OWNER,
-                                    StepSubject.OUTGOING,
-                                    ItemCustody.WITH_OWNER,
-                                    false))),
+                                    ItemCustody.AT_STATION),
+                            PresetStep.of(
+                                    "Abgeschickt", StepActor.STATION, StepSubject.OUTGOING, ItemCustody.IN_TRANSIT),
+                            PresetStep.of("Erhalten", StepActor.OWNER, StepSubject.OUTGOING, ItemCustody.WITH_OWNER))),
             new Preset(
                     "Tausch",
                     MovementPurpose.EXCHANGE,
                     ItemOwner.CLUSTER,
                     List.of(
-                            new PresetStep(
+                            PresetStep.of(
+                                    "Tausch angefordert",
+                                    StepActor.MEMBER,
+                                    StepSubject.OUTGOING,
+                                    ItemCustody.WITH_MEMBER),
+                            PresetStep.of(
                                     "Altes Teil zurückgenommen",
                                     StepActor.STATION,
                                     StepSubject.OUTGOING,
-                                    ItemCustody.AT_STATION,
-                                    false),
-                            new PresetStep(
-                                    "Abgeschickt",
-                                    StepActor.STATION,
-                                    StepSubject.OUTGOING,
-                                    ItemCustody.IN_TRANSIT,
-                                    false),
-                            new PresetStep(
-                                    "Ersatz verschickt",
-                                    StepActor.OWNER,
-                                    StepSubject.INCOMING,
-                                    ItemCustody.IN_TRANSIT,
-                                    true),
-                            new PresetStep(
+                                    ItemCustody.AT_STATION),
+                            PresetStep.of(
+                                    "Abgeschickt", StepActor.STATION, StepSubject.OUTGOING, ItemCustody.IN_TRANSIT),
+                            PresetStep.of("Erhalten", StepActor.OWNER, StepSubject.OUTGOING, ItemCustody.WITH_OWNER),
+                            PresetStep.naming(
+                                    "Ersatz verschickt", StepActor.OWNER, StepSubject.INCOMING, ItemCustody.IN_TRANSIT),
+                            PresetStep.of(
                                     "Ersatz angekommen",
                                     StepActor.STATION,
                                     StepSubject.INCOMING,
-                                    ItemCustody.AT_STATION,
-                                    false))),
+                                    ItemCustody.AT_STATION),
+                            PresetStep.of(
+                                    "Ersatz ausgegeben",
+                                    StepActor.STATION,
+                                    StepSubject.INCOMING,
+                                    ItemCustody.WITH_MEMBER),
+                            PresetStep.of(
+                                    "Erhalten", StepActor.MEMBER, StepSubject.INCOMING, ItemCustody.WITH_MEMBER))),
             new Preset(
                     "Anfrage",
                     MovementPurpose.REQUEST,
@@ -220,9 +327,13 @@ public class MovementFlowService {
                                     ItemCustody.WITH_OWNER,
                                     false),
                             new PresetStep(
-                                    "Verschickt", StepActor.OWNER, StepSubject.INCOMING, ItemCustody.IN_TRANSIT, true),
+                                    "Zugesagt und verschickt",
+                                    StepActor.OWNER,
+                                    StepSubject.INCOMING,
+                                    ItemCustody.IN_TRANSIT,
+                                    true),
                             new PresetStep(
-                                    "Angekommen",
+                                    "Erhalten",
                                     StepActor.STATION,
                                     StepSubject.INCOMING,
                                     ItemCustody.AT_STATION,
@@ -248,24 +359,49 @@ public class MovementFlowService {
      *
      * @param stationId the station
      */
+    /**
+     * Lays out the chains a station starts with, and fills in the ones it is still missing.
+     *
+     * <p>Missing rather than absent: a station that wrote its own chain for one combination keeps it
+     * and gets the presets for the combinations nothing covers yet. Checking "has any chain at all"
+     * was enough while there were four of them and they all arrived together. It is not enough now
+     * that there are ten, because a station seeded with the old four would never see the six that
+     * came later and every movement of those kinds would answer that no chain is bound.
+     *
+     * @param stationId the station
+     */
     public void ensurePresets(int stationId) {
-        if (flowRepository.hasAnyFlow(stationId)) return;
+        var bound = flowRepository.findBindings(stationId).stream()
+                .map(binding -> combinationOf(binding.ownerKind(), binding.purpose(), binding.party()))
+                .collect(Collectors.toSet());
+
+        int added = 0;
         for (Preset preset : PRESETS) {
-            MovementFlow flow = flowRepository.createFlow(stationId, preset.name(), preset.purpose());
-            int position = 0;
-            for (PresetStep step : preset.steps()) {
-                flowRepository.createStep(
-                        flow.id(),
-                        position++,
-                        step.label(),
-                        step.actor(),
-                        step.subject(),
-                        step.custodyAfter(),
-                        step.picksItem());
-            }
-            flowRepository.bind(stationId, null, preset.ownerKind(), preset.purpose(), flow.id());
+            if (bound.contains(combinationOf(preset.ownerKind(), preset.purpose(), preset.party()))) continue;
+            writePreset(stationId, preset);
+            added++;
         }
-        log.info("Seeded {} movement flow presets for station {}", PRESETS.size(), stationId);
+        if (added > 0) log.info("Seeded {} movement flow preset(s) for station {}", added, stationId);
+    }
+
+    private void writePreset(int stationId, Preset preset) {
+        MovementFlow flow = flowRepository.createFlow(stationId, preset.name(), preset.purpose());
+        int position = 0;
+        for (PresetStep step : preset.steps()) {
+            flowRepository.createStep(
+                    flow.id(),
+                    position++,
+                    step.label(),
+                    step.actor(),
+                    step.subject(),
+                    step.custodyAfter(),
+                    step.picksItem());
+        }
+        flowRepository.bind(stationId, null, preset.ownerKind(), preset.purpose(), preset.party(), flow.id());
+    }
+
+    private static String combinationOf(ItemOwner ownerKind, MovementPurpose purpose, MovementParty party) {
+        return "%s|%s|%s".formatted(ownerKind, purpose, party);
     }
 
     public List<MovementFlow> findFlows(int stationId) {
@@ -313,16 +449,21 @@ public class MovementFlowService {
      * @throws BadRequestResponse when the station has no flow bound for that pair
      */
     public int resolveFlow(
-            int stationId, Integer inventoryId, ItemOwner ownerKind, Integer ownerId, MovementPurpose purpose) {
+            int stationId,
+            Integer inventoryId,
+            ItemOwner ownerKind,
+            Integer ownerId,
+            MovementPurpose purpose,
+            MovementParty party) {
         ensurePresets(stationId);
         if (ownerKind == ItemOwner.CLUSTER && ownerId != null) {
             Integer clusterFlow = clusterOwnedFlow(ownerId, purpose);
             if (clusterFlow != null) return clusterFlow;
         }
         return flowRepository
-                .findBoundFlow(stationId, inventoryId, ownerKind, purpose)
-                .orElseThrow(() -> new BadRequestResponse(
-                        "No flow is bound for %s gear and %s at this station".formatted(ownerKind, purpose)));
+                .findBoundFlow(stationId, inventoryId, ownerKind, purpose, party)
+                .orElseThrow(() -> new BadRequestResponse("No flow is bound for %s gear, %s and %s at this station"
+                        .formatted(ownerKind, purpose, party)));
     }
 
     /**
@@ -332,6 +473,12 @@ public class MovementFlowService {
      * instance has no row to find; a cluster that is here but does not keep its gear here has nobody to
      * press its buttons, and a chain stopping on a step nobody will ever answer is worse than no chain of
      * the owner's at all.
+     *
+     * <p>This is what the association's settings screen is for, and until the gear said which body
+     * owned it nothing ever reached this at all: a station recording a piece as somebody else's could
+     * not say whose, so every such piece looked like one belonging to a body outside Ember and every
+     * station walked its own chain. The station's own chains name the owner's steps too, and are what
+     * a station falls back to when the body above it is not here to press them.
      *
      * @param clusterId the owning cluster
      * @param purpose   what the movement is for
@@ -467,10 +614,72 @@ public class MovementFlowService {
         MovementFlowStep step =
                 flowRepository.findStepById(stepId).orElseThrow(() -> new BadRequestResponse("No such step"));
         requireNoOpenMovement(step.flowId());
+        if (flowRepository.isBound(step.flowId())) {
+            var remaining = flowRepository.findActiveSteps(step.flowId()).stream()
+                    .filter(other -> other.id() != stepId)
+                    .toList();
+            MovementFlowValidation.requireWalkable(purposeOf(step.flowId()), remaining);
+        }
         return flowRepository.archiveStep(stepId);
     }
 
-    public void bind(int stationId, Integer inventoryId, ItemOwner ownerKind, MovementPurpose purpose, int flowId) {
+    /**
+     * Puts the steps of a chain in the order given, in one write.
+     *
+     * <p>Order is the whole of what a chain says: the same four steps in another order are another
+     * journey. Until now a step went to the end and stayed there, so a forgotten one in the middle
+     * meant writing everything after it again.
+     *
+     * @param flowId  the chain
+     * @param stepIds every active step of the chain, in the order they are to be walked
+     * @throws BadRequestResponse when the list is not exactly the chain's active steps, or when a
+     *                            movement is walking it right now
+     */
+    public void reorderSteps(int flowId, List<Integer> stepIds) {
+        requireNoOpenMovement(flowId);
+        var active = flowRepository.findActiveSteps(flowId);
+        var wanted = Set.copyOf(stepIds);
+        if (stepIds.size() != wanted.size() || wanted.size() != active.size()) {
+            throw new BadRequestResponse("Naming an order means naming every step of the chain exactly once");
+        }
+        var known = active.stream().map(MovementFlowStep::id).collect(Collectors.toSet());
+        if (!known.equals(wanted)) {
+            throw new BadRequestResponse("Naming an order means naming every step of the chain exactly once");
+        }
+
+        var byId = active.stream().collect(Collectors.toMap(MovementFlowStep::id, step -> step));
+        var reordered = stepIds.stream().map(byId::get).toList();
+        if (flowRepository.isBound(flowId)) {
+            MovementFlowValidation.requireWalkable(purposeOf(flowId), reordered);
+        }
+        var positions = active.stream().map(MovementFlowStep::position).sorted().toList();
+        flowRepository.applyStepOrder(flowId, stepIds, positions);
+    }
+
+    /**
+     * What stops this chain from being walked, for the editor to show while it is being written.
+     *
+     * @param flowId the chain
+     * @return the problem, or empty when it can be walked
+     */
+    public Optional<String> problemOf(int flowId) {
+        return MovementFlowValidation.problemOf(purposeOf(flowId), flowRepository.findActiveSteps(flowId));
+    }
+
+    private MovementPurpose purposeOf(int flowId) {
+        return flowRepository
+                .findFlowById(flowId)
+                .map(MovementFlow::purpose)
+                .orElseThrow(() -> new BadRequestResponse("No such flow"));
+    }
+
+    public void bind(
+            int stationId,
+            Integer inventoryId,
+            ItemOwner ownerKind,
+            MovementPurpose purpose,
+            MovementParty party,
+            int flowId) {
         MovementFlow flow =
                 flowRepository.findFlowById(flowId).orElseThrow(() -> new BadRequestResponse("No such flow"));
         if (flow.stationId() == null || flow.stationId() != stationId) {
@@ -479,7 +688,8 @@ public class MovementFlowService {
         if (flow.purpose() != purpose) {
             throw new BadRequestResponse("That flow is for %s, not %s".formatted(flow.purpose(), purpose));
         }
-        flowRepository.bind(stationId, inventoryId, ownerKind, purpose, flowId);
+        MovementFlowValidation.requireWalkable(purpose, flowRepository.findActiveSteps(flowId));
+        flowRepository.bind(stationId, inventoryId, ownerKind, purpose, party, flowId);
     }
 
     private void requireNoOpenMovement(int flowId) {
@@ -512,8 +722,24 @@ public class MovementFlowService {
         if (taken) throw new BadRequestResponse("Another step of this flow already names the replacement");
     }
 
-    private record Preset(String name, MovementPurpose purpose, ItemOwner ownerKind, List<PresetStep> steps) {}
+    private record Preset(
+            String name, MovementPurpose purpose, ItemOwner ownerKind, MovementParty party, List<PresetStep> steps) {
+
+        /** A chain of the association's own, where the other end is always its store. */
+        Preset(String name, MovementPurpose purpose, ItemOwner ownerKind, List<PresetStep> steps) {
+            this(name, purpose, ownerKind, MovementParty.STORE, steps);
+        }
+    }
 
     private record PresetStep(
-            String label, StepActor actor, StepSubject subject, ItemCustody custodyAfter, boolean picksItem) {}
+            String label, StepActor actor, StepSubject subject, ItemCustody custodyAfter, boolean picksItem) {
+
+        static PresetStep of(String label, StepActor actor, StepSubject subject, ItemCustody custodyAfter) {
+            return new PresetStep(label, actor, subject, custodyAfter, false);
+        }
+
+        static PresetStep naming(String label, StepActor actor, StepSubject subject, ItemCustody custodyAfter) {
+            return new PresetStep(label, actor, subject, custodyAfter, true);
+        }
+    }
 }

@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.ItemMovementLog;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
+import dev.chojo.ember.feature.inventory.entity.MovementParty;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.MovementState;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
@@ -35,6 +36,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -145,6 +147,9 @@ public class ItemMovementService {
      * Starts a movement and acknowledges its first step, because starting one is that step: a member
      * announcing an exchange has announced it, and a station starting a return has decided on it.
      *
+     * <p>Naming a member is what makes this a movement to or from a person rather than to or from a
+     * shelf, and those are two different chains with two different sets of steps.
+     *
      * @param stationId    the station running the movement
      * @param purpose      what the movement is for
      * @param memberId     the member it concerns, or {@code null} for one with no member at either end
@@ -221,6 +226,43 @@ public class ItemMovementService {
     }
 
     /**
+     * Asks a member for everything they hold back, each piece on the chain that fits it.
+     *
+     * <p>One movement per piece rather than one for the lot, because the pieces go different ways:
+     * what the station owns goes back on its shelf and what the body above it owns goes into the
+     * post. A single movement would have to be in two places at the end.
+     *
+     * @param stationId  the station asking
+     * @param memberId   the member holding the gear
+     * @param memberName their name, for what the member is told
+     * @param actor      who is asking
+     * @return the movements that were started, one per piece
+     */
+    public List<ItemMovement> requestEverythingBack(int stationId, int memberId, String memberName, Actor actor) {
+        var held = inventoryRepository.findItemsByMember(memberId).stream()
+                .filter(item -> item.custody() == ItemCustody.WITH_MEMBER)
+                .toList();
+
+        var started = new ArrayList<ItemMovement>();
+        for (InventoryItem item : held) {
+            started.add(create(
+                    stationId,
+                    MovementPurpose.RETURN,
+                    memberId,
+                    memberName,
+                    item.id(),
+                    item.inventoryId(),
+                    item.sizeId(),
+                    null,
+                    "",
+                    actor,
+                    null));
+        }
+        log.info("Station {} asked member {} for {} piece(s) back", stationId, memberId, started.size());
+        return started;
+    }
+
+    /**
      * Starts a movement carrying more than the one piece it names.
      *
      * <p>The rest of the load is recorded before the first step is walked, because that step moves the whole
@@ -246,7 +288,8 @@ public class ItemMovementService {
             List<Integer> carriedIncoming) {
         ItemOwner ownerKind = resolveOwner(outgoingItemId, inventoryId);
         Integer ownerClusterId = resolveOwnerId(outgoingItemId, stationId);
-        int flowId = flowService.resolveFlow(stationId, inventoryId, ownerKind, ownerClusterId, purpose);
+        MovementParty party = memberId != null ? MovementParty.MEMBER : MovementParty.STORE;
+        int flowId = flowService.resolveFlow(stationId, inventoryId, ownerKind, ownerClusterId, purpose, party);
         List<MovementFlowStep> steps = walkable(flowService.findActiveSteps(flowId), lostReport);
         if (steps.isEmpty()) throw new BadRequestResponse("That flow has no steps to walk");
 
@@ -425,7 +468,9 @@ public class ItemMovementService {
 
         MovementFlowStep next = nextStepAfter(movement, step.position());
         if (next == null) {
-            settleInTransit(movementRepository.findById(movementId).orElseThrow());
+            ItemMovement finished = movementRepository.findById(movementId).orElseThrow();
+            settleInTransit(finished);
+            dropGearGoneForGood(finished);
             movementRepository.close(movementId, MovementState.DONE, null);
             log.info("Movement {} reached the end of its flow", movementId);
         } else {
@@ -543,6 +588,36 @@ public class ItemMovementService {
      *
      * @param movement the movement as it stands at the moment it ends
      */
+    /**
+     * Removes the piece that has gone back to a body Ember cannot see.
+     *
+     * <p>Gear that left for an owner on this instance stays on the books: the owner still has a row
+     * for it and may send it here again. Gear that went back to a body outside Ember is gone in
+     * every sense that matters here. Nobody can identify it again, nothing will name it, and it
+     * will not come back. Keeping the row would fill the inventory with pieces that concern nobody,
+     * and every list, count and check would have to learn to ignore them.
+     *
+     * <p>Only the piece that left, and only where something arrived to replace it. A return leaves
+     * the row alone, because a return is the whole point of the movement and the station may want to
+     * read afterwards what it sent away.
+     */
+    private void dropGearGoneForGood(ItemMovement movement) {
+        if (movement.purpose() != MovementPurpose.EXCHANGE) return;
+        Integer gone = movement.outgoingItemId();
+        if (gone == null || owningCluster(movement) != null) return;
+
+        inventoryRepository
+                .findItemById(gone)
+                .filter(item -> item.ownerKind() == ItemOwner.CLUSTER)
+                .ifPresent(item -> {
+                    inventoryRepository.deleteItem(item.id());
+                    log.info(
+                            "Item {} left movement {} for an owner outside Ember and was removed from the inventory",
+                            item.id(),
+                            movement.id());
+                });
+    }
+
     private void settleInTransit(ItemMovement movement) {
         for (StepSubject subject : StepSubject.values()) {
             Integer itemId = movement.itemFor(subject);
@@ -656,10 +731,55 @@ public class ItemMovementService {
     public boolean mayAct(ItemMovement movement, MovementFlowStep step, Actor actor) {
         return switch (step.actor()) {
             case MEMBER ->
-                movement.memberId() != null && (movement.memberId() == actor.memberId() || actor.stationRights());
+                movement.memberId() != null
+                        && (movement.memberId() == actor.memberId() || (actor.stationRights() && opensTheChain(step)));
             case STATION -> actor.stationRights();
             case OWNER -> actor.ownerRights() || (actor.stationRights() && owningCluster(movement) == null);
         };
+    }
+
+    /**
+     * Whether this is the step a chain opens with.
+     *
+     * <p>What it decides is the one thing a station may do in a member's name. Raising the movement is
+     * routine and often literal: somebody says at the station that their jacket no longer fits, and
+     * the manager writes it down. Saying that they have received something is not that. It is the
+     * confirmation the whole chain exists to collect, and a station ticking it for them turns a
+     * receipt into a claim.
+     *
+     * <p>A member who will not answer does not freeze the chain: the step can be forced, with a note,
+     * and the record then says forced rather than confirmed.
+     */
+    private boolean opensTheChain(MovementFlowStep step) {
+        return flowService.findActiveSteps(step.flowId()).stream()
+                .findFirst()
+                .filter(first -> first.id() == step.id())
+                .isPresent();
+    }
+
+    /**
+     * Whether the body that owns this movement's gear can answer for itself here.
+     *
+     * <p>What it decides is who names an arriving piece. An owner on this instance names what it
+     * sends, and a second row written by the station for the same piece would be one thing with two
+     * records. An owner outside Ember names nothing, so the station writes down what turned up.
+     *
+     * @param movement the movement
+     * @return whether the owner is reachable on this instance
+     */
+    public boolean ownerAnswersHere(ItemMovement movement) {
+        return owningCluster(movement) != null;
+    }
+
+    /**
+     * Who owns the gear this movement is about, for a replacement that has to belong to the same
+     * body as the piece it replaces.
+     *
+     * @param movement the movement
+     * @return the owner of its gear
+     */
+    public ItemOwner ownerOf(ItemMovement movement) {
+        return resolveOwner(movement.outgoingItemId(), movement.inventoryId());
     }
 
     /**
@@ -679,14 +799,18 @@ public class ItemMovementService {
     }
 
     /**
-     * The cluster a movement's gear belongs to, when a cluster on this instance owns it.
+     * The cluster a movement's gear belongs to, when that cluster is in a position to answer for it.
      *
-     * <p>Read off the item rather than off the movement, because ownership lives on the item. A movement
-     * whose gear belongs to a body that does not run here answers {@code null}, which is what makes the
-     * station stand in for that body rather than the cluster screens waiting for somebody who is not there.
+     * <p>Read off the item rather than off the movement, because ownership lives on the item.
+     *
+     * <p>Two things have to hold, and leaving either out strands the movement. A body that does not run
+     * on this instance has nobody to press its steps, which has always been true. A body that runs here
+     * but keeps no gear here has nobody either: it has no store, no queue and no reason to look. In both
+     * cases the station stands in and the record says asserted. Answering with the cluster whenever one
+     * merely exists locks the station out of a step that will then never be pressed by anybody.
      *
      * @param movement the movement
-     * @return the owning cluster, or {@code null} when no cluster here owns the gear
+     * @return the owning cluster, or {@code null} when nobody on its side can answer here
      */
     private Integer owningCluster(ItemMovement movement) {
         if (movement.outgoingItemId() == null) return null;
@@ -694,6 +818,9 @@ public class ItemMovementService {
                 .findItemById(movement.outgoingItemId())
                 .filter(item -> item.ownerKind() == ItemOwner.CLUSTER)
                 .map(InventoryItem::ownerClusterId)
+                .flatMap(clusterRepository::findById)
+                .filter(Cluster::usesInventory)
+                .map(Cluster::id)
                 .orElse(null);
     }
 

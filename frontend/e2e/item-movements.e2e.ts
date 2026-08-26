@@ -110,7 +110,7 @@ test.describe('Item movements', () => {
      * No owner leg, because there is no owner to wait for: the station has the replacement on its own
      * shelf. This is what the old five-status exchange became.
      */
-    test('an exchange of the station\'s own gear is three steps', async ({managerPage: page}) => {
+    test('an exchange of the station\'s own gear is four steps', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
         const {inventoryId, item} = await gear(page, headers, 'EX3')
         const spare = await addTo(page, headers, inventoryId, 'EX3S')
@@ -126,10 +126,15 @@ test.describe('Item movements', () => {
         })
         expect(started.ok()).toBeTruthy()
         const opened = await started.json()
-        expect(opened.steps.length, 'three steps and no owner leg').toBe(3)
+        expect(opened.steps.length, 'four steps, and the member confirms the last of them').toBe(4)
         expect(opened.steps.some((s: {actor: string}) => s.actor === 'OWNER')).toBeFalsy()
 
-        const done = await walk(page, headers, opened.movement.id, async () => spare.id)
+        const walked = await walk(page, headers, opened.movement.id, async () => spare.id)
+        const waiting = walked.steps.find((step: {current: boolean}) => step.current)
+        expect(waiting.actor, 'the last word is the member\'s, so the station stops here').toBe('MEMBER')
+        expect((await page.request.post(`/api/v1/movements/${opened.movement.id}/force`,
+            {headers, data: {stepId: waiting.id, note: 'Übergabe an der Wache'}})).ok()).toBeTruthy()
+        const done = await detail(page, headers, opened.movement.id)
         expect(done.movement.state).toBe('DONE')
 
         const old = await page.request
@@ -325,7 +330,7 @@ test.describe('Item movements', () => {
         }
         expect((await page.request.put('/api/v1/movement-flow-bindings', {
             headers,
-            data: {inventoryId, ownerKind: 'CLUSTER', purpose: 'RETURN', flowId},
+            data: {inventoryId, ownerKind: 'CLUSTER', purpose: 'RETURN', party: 'MEMBER', flowId},
         })).ok()).toBeTruthy()
 
         await page.request.put(`/api/v1/inventory-items/${item.id}/assign`,
@@ -358,7 +363,8 @@ test.describe('Item movements', () => {
      * ITM-21 - A finished movement keeps the words it was walked under.
      *
      * Renaming a step changes what the next movement says, never what a finished one said. The record is
-     * of what happened, not of what the flow is called today.
+     * of what happened, not of what the flow is called today. A chain asks and then confirms, so the step
+     * being renamed needs a receipt behind it before the chain is usable at all.
      */
     test('renaming a step leaves a finished movement reading as it was walked', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
@@ -374,6 +380,11 @@ test.describe('Item movements', () => {
         })
         expect(step.ok()).toBeTruthy()
         const stepId = (await step.json()).id
+        expect((await page.request.post(`/api/v1/movement-flows/${flowId}/steps`, {
+            headers,
+            data: {label: 'Träger bestätigt', actor: 'OWNER', subject: 'OUTGOING',
+                custodyAfter: 'WITH_OWNER', picksItem: false},
+        })).ok()).toBeTruthy()
         expect((await page.request.put('/api/v1/movement-flow-bindings', {
             headers,
             data: {inventoryId, ownerKind: 'CLUSTER', purpose: 'RETURN', flowId},

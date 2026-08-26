@@ -9,6 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import DragList from '@/components/input/DragList.vue'
 import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
 import {formatSize} from '@/util/format'
 import type {StationFile} from '@/api/media'
@@ -23,7 +24,7 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'add', file: StationFile): void
   (e: 'remove', index: number): void
-  (e: 'move', index: number, delta: number): void
+  (e: 'reorder', fromIndex: number, toIndex: number): void
 }>()
 
 const {t} = useI18n()
@@ -47,33 +48,23 @@ const {t} = useI18n()
       {{ t('news.attachmentsEmpty') }}
     </p>
 
-    <ul v-else class="space-y-2">
-      <li
-          v-for="(attachment, index) in attachments"
-          :key="attachment.fileId"
-          class="flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border border-(--border) p-2"
-      >
-        <div class="flex-1 min-w-0">
-          <p class="text-sm truncate">{{ attachment.fileName }}</p>
-          <p class="text-xs text-(--text-muted)">{{ formatSize(attachment.fileSize) }}</p>
-        </div>
-        <TextInput
-            v-model="attachment.label"
-            :placeholder="t('news.attachmentLabelPlaceholder')"
-            class="sm:w-64 !text-sm"
-        />
-        <div class="flex items-center gap-1">
-          <IconButton
-              :icon="['fas', 'arrow-up']"
-              :label="t('common.moveUp')"
-              :disabled="index === 0"
-              @click="emit('move', index, -1)"
-          />
-          <IconButton
-              :icon="['fas', 'arrow-down']"
-              :label="t('common.moveDown')"
-              :disabled="index === attachments.length - 1"
-              @click="emit('move', index, 1)"
+    <DragList
+        v-else
+        :items="attachments"
+        :key-fn="(attachment) => attachment.fileId"
+        class="space-y-2"
+        @reorder="(from, to) => emit('reorder', from, to)"
+    >
+      <template #default="{item: attachment, index}">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border border-(--border) p-2">
+          <div class="flex-1 min-w-0">
+            <p class="text-sm truncate">{{ attachment.fileName }}</p>
+            <p class="text-xs text-(--text-muted)">{{ formatSize(attachment.fileSize) }}</p>
+          </div>
+          <TextInput
+              v-model="attachment.label"
+              :placeholder="t('news.attachmentLabelPlaceholder')"
+              class="sm:w-64 !text-sm"
           />
           <IconButton
               :icon="['fas', 'trash']"
@@ -81,7 +72,7 @@ const {t} = useI18n()
               @click="emit('remove', index)"
           />
         </div>
-      </li>
-    </ul>
+      </template>
+    </DragList>
   </NeutralContainer>
 </template>

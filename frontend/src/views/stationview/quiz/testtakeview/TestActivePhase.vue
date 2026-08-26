@@ -41,7 +41,6 @@ const emit = defineEmits<{
   setImageTextAnswer: [text: string]
   setTrueFalse: [value: boolean]
   reorderItems: [fromIndex: number, toIndex: number]
-  moveOrderItem: [index: number, direction: -1 | 1]
 }>()
 
 const { t } = useI18n()
@@ -90,7 +89,6 @@ const { t } = useI18n()
     @set-image-text-answer="(v) => emit('setImageTextAnswer', v)"
     @set-true-false="(v) => emit('setTrueFalse', v)"
     @reorder-items="(f, t2) => emit('reorderItems', f, t2)"
-    @move-order-item="(i, d) => emit('moveOrderItem', i, d)"
   />
 
   <div class="flex items-center justify-between">

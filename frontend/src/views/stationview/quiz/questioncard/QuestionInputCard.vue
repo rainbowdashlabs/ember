@@ -40,7 +40,6 @@ const emit = defineEmits<{
   toggleMcOption: [idx: number]
   setFillGap: [gapIndex: number, value: string]
   reorderItems: [fromIndex: number, toIndex: number]
-  moveOrderItem: [index: number, direction: -1 | 1]
   setConnectPair: [leftIndex: number, rightValue: string]
 }>()
 
@@ -106,7 +105,6 @@ const { t } = useI18n()
         :disabled="disabled"
         :order-items="orderItems"
         @reorder-items="(from, to) => emit('reorderItems', from, to)"
-        @move-order-item="(idx, dir) => emit('moveOrderItem', idx, dir)"
       />
     </template>
 

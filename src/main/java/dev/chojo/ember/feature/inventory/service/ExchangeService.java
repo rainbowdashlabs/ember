@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.MovementState;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
@@ -91,16 +92,22 @@ public class ExchangeService {
         return movementService.findById(id).filter(this::isExchange).map(this::toRequest);
     }
 
+    /**
+     * Every movement the station has, not only the exchanges.
+     *
+     * <p>A station now raises returns and issues on chains of their own, and asking a member for
+     * everything back raises one per piece. Listing only exchanges left all of those with nowhere to
+     * be seen. Each row says which of the three it is, so the list reads as what it is: the gear that
+     * is on the move.
+     */
     public List<ExchangeRequest> findByStation(int stationId) {
         return movementService.findByStation(stationId).stream()
-                .filter(this::isExchange)
                 .map(this::toRequest)
                 .toList();
     }
 
     public List<ExchangeRequest> findByMember(int memberId) {
         return movementService.findByMember(memberId).stream()
-                .filter(this::isExchange)
                 .map(this::toRequest)
                 .toList();
     }
@@ -129,6 +136,7 @@ public class ExchangeService {
         var actor = new ItemMovementService.Actor(changedBy, true);
 
         int guard = movementService.stepsOf(movement).size() + 1;
+        int walked = 0;
         while (guard-- > 0
                 && movement.state() == MovementState.OPEN
                 && movement.currentStepId() != null
@@ -136,7 +144,9 @@ public class ExchangeService {
                 && canWalkPast(movement, exchangedItemId)) {
             movement =
                     movementService.acknowledge(movement.id(), movement.currentStepId(), actor, note, exchangedItemId);
+            walked++;
         }
+        requireItWentSomewhere(movement, newStatus, exchangedItemId, walked);
 
         // Notifying is the movement service's job, since that is where every step actually happens
         log.info("Exchange {} walked to {} by member {}", id, newStatus, changedBy);
@@ -165,6 +175,25 @@ public class ExchangeService {
 
     public int countPendingByStation(int stationId) {
         return movementService.countOpenByStation(stationId);
+    }
+
+    /**
+     * Refuses a request that moved nothing, rather than answering as though it had.
+     *
+     * <p>The walk stops of its own accord at a step that names the arriving piece when nobody named
+     * one, which is right. Reporting that as success is not: the screen redrew unchanged and the row
+     * sat where it was, with nothing anywhere saying why. That is what "it cannot be moved on" looked
+     * like from the outside.
+     *
+     * @throws BadRequestResponse when the chain did not move and the step it is standing on is the one
+     *                            asking which piece arrived
+     */
+    private void requireItWentSomewhere(
+            ItemMovement movement, ExchangeStatus wanted, Integer exchangedItemId, int walked) {
+        if (walked > 0 || movement.state() != MovementState.OPEN) return;
+        if (reached(deriveStatus(movement), wanted)) return;
+        if (canWalkPast(movement, exchangedItemId)) return;
+        throw new BadRequestResponse("This step names the piece that arrived, so name it before going on");
     }
 
     /**
@@ -200,6 +229,16 @@ public class ExchangeService {
      * to its flow: a chain with the owner's leg collapsed into one step still reports the same
      * status at the same point as the seven-step one.
      */
+    /**
+     * How far along an exchange is, read off where the two pieces are.
+     *
+     * <p>"With the owner" means two different things and has to be told apart, which is what this got
+     * wrong: for the station's own gear it is the station's shelf, so the piece has come back and the
+     * exchange is at received. For the body above the station it is that body's store, so the piece
+     * has left for good and the exchange is past shipped. Reading both the same way made an exchange
+     * of somebody else's gear jump backwards from shipped to received the moment the owner confirmed
+     * it had arrived, and there was no way forward from there.
+     */
     private ExchangeStatus deriveStatus(ItemMovement movement) {
         if (movement.state() != MovementState.OPEN) return ExchangeStatus.DONE;
         ItemCustody incoming = custodyOf(movement.incomingItemId());
@@ -209,10 +248,22 @@ public class ExchangeService {
         if (incoming == ItemCustody.IN_TRANSIT || outgoing == ItemCustody.IN_TRANSIT) {
             return ExchangeStatus.SHIPPED;
         }
+        if (outgoing == ItemCustody.WITH_OWNER && !ownedByTheStation(movement.outgoingItemId())) {
+            return ExchangeStatus.SHIPPED;
+        }
         if (outgoing == ItemCustody.AT_STATION || outgoing == ItemCustody.WITH_OWNER) {
             return ExchangeStatus.RECEIVED;
         }
         return ExchangeStatus.ANNOUNCED;
+    }
+
+    /** Whether the station itself owns this piece, which is what makes "with the owner" its own shelf. */
+    private boolean ownedByTheStation(Integer itemId) {
+        if (itemId == null) return true;
+        return inventoryRepository
+                .findItemById(itemId)
+                .map(item -> item.ownerKind() == ItemOwner.STATION)
+                .orElse(true);
     }
 
     private ItemCustody custodyOf(Integer itemId) {
@@ -227,6 +278,7 @@ public class ExchangeService {
         return new ExchangeRequest(
                 movement.id(),
                 movement.stationId(),
+                movement.purpose(),
                 movement.memberId() != null ? movement.memberId() : 0,
                 movement.outgoingItemId(),
                 movement.inventoryId() != null ? movement.inventoryId() : 0,

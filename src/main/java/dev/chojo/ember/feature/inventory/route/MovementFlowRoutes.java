@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementFlow;
 import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
+import dev.chojo.ember.feature.inventory.entity.MovementParty;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
@@ -58,6 +59,7 @@ public class MovementFlowRoutes implements Routes {
         routes.put(prefix + "/movement-flows/{id}", this::renameFlow, StationPermission.INVENTORY_MANAGER);
         routes.delete(prefix + "/movement-flows/{id}", this::archiveFlow, StationPermission.INVENTORY_MANAGER);
         routes.post(prefix + "/movement-flows/{id}/steps", this::addStep, StationPermission.INVENTORY_MANAGER);
+        routes.put(prefix + "/movement-flows/{id}/step-order", this::reorderSteps, StationPermission.INVENTORY_MANAGER);
         routes.put(prefix + "/movement-flow-steps/{id}", this::updateStep, StationPermission.INVENTORY_MANAGER);
         routes.delete(prefix + "/movement-flow-steps/{id}", this::archiveStep, StationPermission.INVENTORY_MANAGER);
         routes.get(prefix + "/movement-flow-bindings", this::listBindings, StationPermission.INVENTORY_MANAGER);
@@ -198,7 +200,7 @@ public class MovementFlowRoutes implements Routes {
     private void listBindings(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(flowService.findBindings(session.stationId()).stream()
-                .map(b -> new BindingResponse(b.inventoryId(), b.ownerKind(), b.purpose(), b.flowId()))
+                .map(b -> new BindingResponse(b.inventoryId(), b.ownerKind(), b.purpose(), b.party(), b.flowId()))
                 .toList());
     }
 
@@ -216,7 +218,40 @@ public class MovementFlowRoutes implements Routes {
             throw new BadRequestResponse("ownerKind and purpose are required");
         }
         flowService.bind(
-                session.stationId(), request.inventoryId(), request.ownerKind(), request.purpose(), request.flowId());
+                session.stationId(),
+                request.inventoryId(),
+                request.ownerKind(),
+                request.purpose(),
+                request.party() != null ? request.party() : MovementParty.STORE,
+                request.flowId());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Puts the steps of a chain in the order they are to be walked.
+     *
+     * <p>The whole order in one call rather than a move per step: two calls in flight would leave
+     * the chain reading as something nobody wrote.
+     */
+    @OpenApi(
+            path = "/api/v1/movement-flows/{id}/step-order",
+            methods = HttpMethod.PUT,
+            summary = "Put the steps of a flow in the order they are walked",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = StepOrderRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void reorderSteps(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int flowId = requireOwnFlow(pathInt(ctx, "id"), session);
+        var request = ctx.bodyAsClass(StepOrderRequest.class);
+        if (request.stepIds() == null || request.stepIds().isEmpty()) {
+            throw new BadRequestResponse("Name the steps in the order they are to be walked");
+        }
+        flowService.reorderSteps(flowId, request.stepIds());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -250,6 +285,7 @@ public class MovementFlowRoutes implements Routes {
                 flow.purpose(),
                 flow.archived(),
                 flow.clusterId() != null,
+                flowService.problemOf(flow.id()).orElse(null),
                 flowService.findAllSteps(flow.id()).stream().map(this::toStep).toList());
     }
 
@@ -270,11 +306,21 @@ public class MovementFlowRoutes implements Routes {
     public record StepRequest(
             String label, StepActor actor, StepSubject subject, ItemCustody custodyAfter, boolean picksItem) {}
 
-    public record BindingRequest(Integer inventoryId, ItemOwner ownerKind, MovementPurpose purpose, int flowId) {}
+    public record BindingRequest(
+            Integer inventoryId, ItemOwner ownerKind, MovementPurpose purpose, MovementParty party, int flowId) {}
+
+    /**
+     * @param stepIds every active step of the chain, in the order they are to be walked
+     */
+    public record StepOrderRequest(List<Integer> stepIds) {}
 
     /**
      * @param ownedByCluster whether the flow belongs to the body above the station rather than to
      *                       the station, in which case it is shown and named but not edited here
+     */
+    /**
+     * @param problem what stops this chain from being walked, or null when nothing does. A chain
+     *                under construction says so here rather than only when somebody tries to use it
      */
     public record FlowResponse(
             int id,
@@ -282,6 +328,7 @@ public class MovementFlowRoutes implements Routes {
             MovementPurpose purpose,
             boolean archived,
             boolean ownedByCluster,
+            String problem,
             List<StepResponse> steps) {}
 
     public record StepResponse(
@@ -294,5 +341,6 @@ public class MovementFlowRoutes implements Routes {
             boolean picksItem,
             boolean archived) {}
 
-    public record BindingResponse(Integer inventoryId, ItemOwner ownerKind, MovementPurpose purpose, int flowId) {}
+    public record BindingResponse(
+            Integer inventoryId, ItemOwner ownerKind, MovementPurpose purpose, MovementParty party, int flowId) {}
 }

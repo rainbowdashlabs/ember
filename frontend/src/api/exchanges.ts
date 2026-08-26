@@ -5,6 +5,8 @@
  */
 import client from './client'
 import { createCrudResource } from './crud'
+import type { ItemOwnerName } from './inventory'
+import type { MovementPurposeName } from './movements'
 import type { MemberIdentity } from './types'
 
 export const ExchangeStatus = {
@@ -29,6 +31,10 @@ export interface ExchangeRequestEntry {
     newSizeId?: number | null
     newSizeLabel?: string | null
     inventoryType: string
+    /** Who owns the piece itself, which is what a mixed inventory cannot say for a row. */
+    ownerKind?: ItemOwnerName | null
+    /** Whether this is an issue, a return or an exchange. */
+    purpose?: MovementPurposeName | null
     status: ExchangeStatusName
     reason: string
     createdAt: string

@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {AxiosError} from 'axios'
+import {configOf, spanForWidth} from '@/components/profilefields/fieldLayout'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
 import EventFieldValue from '../eventshared/EventFieldValue.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -128,24 +129,24 @@ async function toggle(field: EventField) {
 </script>
 
 <template>
-  <div class="grid gap-4 sm:grid-cols-2">
-    <div>
+  <div class="grid grid-cols-6 gap-4">
+    <div class="col-span-6 sm:col-span-3">
       <DetailLabel>{{ t('events.category') }}</DetailLabel>
       <p class="text-sm">{{ categoryName }}</p>
     </div>
-    <div>
+    <div class="col-span-6 sm:col-span-3">
       <DetailLabel>{{ t('events.startTime') }}</DetailLabel>
       <p class="text-sm">{{ startFormatted }}</p>
     </div>
-    <div>
+    <div class="col-span-6 sm:col-span-3">
       <DetailLabel>{{ t('events.endTime') }}</DetailLabel>
       <p class="text-sm">{{ endFormatted }}</p>
     </div>
-    <div v-if="canManageEvents">
+    <div v-if="canManageEvents" class="col-span-6 sm:col-span-3">
       <DetailLabel>{{ t('events.template') }}</DetailLabel>
       <p class="text-sm">{{ templateName }}</p>
     </div>
-    <div v-for="field in fields" :key="field.id">
+    <div v-for="field in fields" :key="field.id" :class="spanForWidth(configOf(field.config).width)">
       <DetailLabel>{{ field.name }}</DetailLabel>
       <p v-if="isMemberField(field)" class="text-sm">{{ memberNamesOf(field) }}</p>
       <p v-else class="text-sm">

@@ -11,10 +11,10 @@
  * Tailwind reads these files as text and never sees a class that was built at runtime.
  */
 export const FIELD_GRID
-    = 'grid grid-cols-[2rem_1fr_6rem_3rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem_5rem]'
+    = 'grid grid-cols-[1fr_6rem_3rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem_5rem]'
 
 export const FIELD_GRID_WRITABILITY
-    = 'grid grid-cols-[2rem_1fr_6rem_3rem_2.5rem_7.5rem_2.5rem_2.5rem_2.5rem_5rem]'
+    = 'grid grid-cols-[1fr_6rem_3rem_2.5rem_7.5rem_2.5rem_2.5rem_2.5rem_5rem]'
 
 export function fieldGrid(writability: boolean): string {
     return writability ? FIELD_GRID_WRITABILITY : FIELD_GRID

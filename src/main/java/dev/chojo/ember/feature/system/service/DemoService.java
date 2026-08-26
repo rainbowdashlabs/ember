@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import com.zaxxer.hikari.HikariDataSource;
 import de.chojo.sadu.postgresql.databases.PostgreSql;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
@@ -147,9 +148,28 @@ public class DemoService {
     public void resetAndSeed() {
         log.info("Demo: Wiping and re-seeding database...");
         wipeDatabase();
+        discardPooledPlans();
         invalidateCachesOfTheDiscardedData();
         seedData();
         log.info("Demo: Database seeded successfully");
+    }
+
+    /**
+     * Retires the pooled connections, because the statements they remember describe tables that no
+     * longer exist.
+     *
+     * <p>A connection caches the plan for a statement it has run before, and the plan carries the
+     * shape of the result. Dropping the schema and migrating it back gives the same statement a new
+     * table to answer from, and the next call on an old connection fails with "cached plan must not
+     * change result type". It is not deterministic, because it depends on which connection the pool
+     * hands out, which is why it read as an occasional unexplained failure rather than as a bug.
+     *
+     * <p>Retiring is gentle: a connection in use is left to finish and dropped afterwards.
+     */
+    private void discardPooledPlans() {
+        if (dataSource instanceof HikariDataSource pool) {
+            pool.getHikariPoolMXBean().softEvictConnections();
+        }
     }
 
     /**

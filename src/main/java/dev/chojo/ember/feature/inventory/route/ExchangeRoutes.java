@@ -17,8 +17,11 @@ import dev.chojo.ember.feature.inventory.entity.ExchangeLog;
 import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeExportService;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
@@ -295,17 +298,35 @@ public class ExchangeRoutes implements Routes {
                 .orElse(null);
     }
 
+    /**
+     * One row of the list, as the screens read it.
+     *
+     * <p>Who owns the piece is read off the piece rather than off the inventory: the inventory only
+     * says which owners it may hold, and in a mixed one that is "both", which answers nothing about
+     * the row in front of you.
+     *
+     * <p>A movement between the store and the body above the station concerns nobody in particular,
+     * so there is no member to name and none is asked for.
+     */
     private ExchangeResponse toResponse(ExchangeRequest exchange) {
         String memberName = stationMemberRepository
                 .findById(exchange.memberId())
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
-        MemberIdentity memberIdentity = memberIdentityFactory.local(exchange.stationId(), exchange.memberId());
+        MemberIdentity memberIdentity =
+                exchange.memberId() > 0 ? memberIdentityFactory.local(exchange.stationId(), exchange.memberId()) : null;
         Inventory inventory =
                 inventoryRepository.findById(exchange.inventoryId()).orElse(null);
         String inventoryName = inventory != null ? inventory.name() : "";
         InventoryType inventoryType = inventory != null ? inventory.inventoryType() : null;
+        ItemOwner ownerKind = exchange.itemId() == null
+                ? null
+                : inventoryRepository
+                        .findItemById(exchange.itemId())
+                        .map(InventoryItem::ownerKind)
+                        .orElse(null);
+
         return new ExchangeResponse(
                 exchange.id(),
                 exchange.memberId(),
@@ -319,6 +340,8 @@ public class ExchangeRoutes implements Routes {
                 exchange.newSizeId(),
                 resolveSizeLabel(exchange.newSizeId(), exchange.inventoryId()),
                 inventoryType,
+                ownerKind,
+                exchange.purpose(),
                 exchange.status(),
                 exchange.reason(),
                 exchange.createdAt(),
@@ -351,6 +374,10 @@ public class ExchangeRoutes implements Routes {
             Integer newSizeId,
             String newSizeLabel,
             InventoryType inventoryType,
+            /** Who owns the piece itself, which is the interesting half in an inventory holding both. */
+            ItemOwner ownerKind,
+            /** Whether this is an issue, a return or an exchange. */
+            MovementPurpose purpose,
             ExchangeStatus status,
             String reason,
             Instant createdAt,

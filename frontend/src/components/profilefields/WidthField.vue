@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {FieldWidths} from '@/components/profilefields/fieldLayout'
+import {FieldWidths} from './fieldLayout'
 
 /** How much of a row the field takes, which is what lets short fields stand beside each other. */
 const width = defineModel<string>({required: true})
@@ -19,11 +19,11 @@ const {t} = useI18n()
 <template>
   <div class="space-y-1">
     <FieldLabel>{{ t('membersConfig.fieldWidth') }}</FieldLabel>
-    <SelectInput v-model="width">
+    <SelectInput v-model="width" class="w-full" data-testid="field-width">
       <option :value="FieldWidths.FULL">{{ t('membersConfig.widthFull') }}</option>
       <option :value="FieldWidths.HALF">{{ t('membersConfig.widthHalf') }}</option>
       <option :value="FieldWidths.THIRD">{{ t('membersConfig.widthThird') }}</option>
     </SelectInput>
-    <MutedText size="sm">{{ t('membersConfig.fieldWidthHint') }}</MutedText>
+    <MutedText size="sm" tag="p">{{ t('membersConfig.fieldWidthHint') }}</MutedText>
   </div>
 </template>

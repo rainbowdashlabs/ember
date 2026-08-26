@@ -25,7 +25,6 @@ const emit = defineEmits<{
   setImageTextAnswer: [text: string]
   setTrueFalse: [value: boolean]
   reorderItems: [fromIndex: number, toIndex: number]
-  moveOrderItem: [index: number, direction: -1 | 1]
 }>()
 
 const mcSelections = computed<Set<number>>(() => {
@@ -103,7 +102,6 @@ function handleFreeAnswer(text: string) {
     @update:free-answer="handleFreeAnswer"
     @set-fill-gap="(gi: number, v: string) => emit('setFillBlankGap', gi, v)"
     @reorder-items="(from: number, to: number) => emit('reorderItems', from, to)"
-    @move-order-item="(i: number, d: -1 | 1) => emit('moveOrderItem', i, d)"
     @set-connect-pair="(li: number, rv: string) => emit('setConnectPair', li, rv)"
   />
 </template>

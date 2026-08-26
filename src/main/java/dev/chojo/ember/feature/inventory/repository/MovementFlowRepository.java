@@ -5,11 +5,13 @@
  */
 package dev.chojo.ember.feature.inventory.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementFlow;
 import dev.chojo.ember.feature.inventory.entity.MovementFlowBinding;
 import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
+import dev.chojo.ember.feature.inventory.entity.MovementParty;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
@@ -30,7 +32,7 @@ public class MovementFlowRepository {
     private static final String FLOW_COLUMNS = "id, station_id, cluster_id, name, purpose, archived";
     private static final String STEP_COLUMNS =
             "id, flow_id, position, label, actor, subject, custody_after, picks_item, archived";
-    private static final String BINDING_COLUMNS = "station_id, inventory_id, owner_kind, purpose, flow_id";
+    private static final String BINDING_COLUMNS = "station_id, inventory_id, owner_kind, purpose, party, flow_id";
 
     // -- Flows --
 
@@ -190,21 +192,69 @@ public class MovementFlowRepository {
      * @return the bound flow, or empty when the station has none for that pair
      */
     public Optional<Integer> findBoundFlow(
-            int stationId, Integer inventoryId, ItemOwner ownerKind, MovementPurpose purpose) {
+            int stationId, Integer inventoryId, ItemOwner ownerKind, MovementPurpose purpose, MovementParty party) {
         return query("""
                 SELECT flow_id FROM movement_flow_binding
                 WHERE station_id = :station_id
                   AND owner_kind = :owner_kind
                   AND purpose = :purpose
+                  AND party = :party
                   AND (inventory_id = :inventory_id OR inventory_id IS NULL)
                 ORDER BY inventory_id NULLS LAST
                 LIMIT 1;""")
                 .single(call().bind("station_id", stationId)
                         .bind("inventory_id", inventoryId)
                         .bind("owner_kind", ownerKind)
-                        .bind("purpose", purpose))
+                        .bind("purpose", purpose)
+                        .bind("party", party))
                 .map(row -> row.getInt("flow_id"))
                 .first();
+    }
+
+    /** Whether any binding points at this chain, which is what makes it one somebody could walk. */
+    public boolean isBound(int flowId) {
+        return query("SELECT 1 FROM movement_flow_binding WHERE flow_id = :flow_id LIMIT 1;")
+                .single(call().bind("flow_id", flowId))
+                .map(row -> true)
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * How far positions are lifted out of the way while a chain is being reordered. Above any step
+     * count a chain will ever have, so the parked positions cannot collide with the final ones.
+     */
+    private static final int PARKING_OFFSET = 1000;
+
+    /**
+     * Writes the order of a chain's steps.
+     *
+     * <p>Two statements rather than one, because a position is unique per chain and a single update
+     * would put two steps on the same one halfway through. The first lifts every step clear by a
+     * fixed offset, the second sets the order. Lifting keeps the steps in the order they were in, so
+     * a chain caught between the two still reads as the chain it was rather than as a reversed one.
+     *
+     * <p>The live steps take the positions they already occupied between them, so a retired step
+     * keeps the place it holds and does not sort to the end of a chain it was once in the middle of.
+     *
+     * @param flowId    the chain
+     * @param stepIds   its live steps, in the order they are to be walked
+     * @param positions the positions those steps hold today, ascending
+     */
+    public void applyStepOrder(int flowId, List<Integer> stepIds, List<Integer> positions) {
+        query("UPDATE movement_flow_step SET position = position + :offset WHERE flow_id = :flow_id AND NOT archived;")
+                .single(call().bind("offset", PARKING_OFFSET).bind("flow_id", flowId))
+                .update();
+        query("""
+                UPDATE movement_flow_step
+                SET position = ordered.position
+                FROM unnest(CAST(:step_ids AS INT[]), CAST(:positions AS INT[])) AS ordered(step_id, position)
+                WHERE movement_flow_step.id = ordered.step_id
+                  AND movement_flow_step.flow_id = :flow_id;""")
+                .single(call().bind("flow_id", flowId)
+                        .bind("step_ids", List.copyOf(stepIds), PostgreSqlTypes.INTEGER)
+                        .bind("positions", List.copyOf(positions), PostgreSqlTypes.INTEGER))
+                .update();
     }
 
     /**
@@ -267,7 +317,7 @@ public class MovementFlowRepository {
         return query("""
                 SELECT %s FROM movement_flow_binding
                 WHERE station_id = :station_id
-                ORDER BY inventory_id NULLS FIRST, owner_kind, purpose;""", BINDING_COLUMNS)
+                ORDER BY inventory_id NULLS FIRST, owner_kind, purpose, party;""", BINDING_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(MovementFlowBinding.map())
                 .all();
@@ -276,25 +326,34 @@ public class MovementFlowRepository {
     /**
      * Points a binding at a flow, replacing whatever it pointed at before.
      */
-    public void bind(int stationId, Integer inventoryId, ItemOwner ownerKind, MovementPurpose purpose, int flowId) {
+    public void bind(
+            int stationId,
+            Integer inventoryId,
+            ItemOwner ownerKind,
+            MovementPurpose purpose,
+            MovementParty party,
+            int flowId) {
         query("""
                 DELETE FROM movement_flow_binding
                 WHERE station_id = :station_id
                   AND owner_kind = :owner_kind
                   AND purpose = :purpose
+                  AND party = :party
                   AND inventory_id IS NOT DISTINCT FROM :inventory_id;""")
                 .single(call().bind("station_id", stationId)
                         .bind("inventory_id", inventoryId)
                         .bind("owner_kind", ownerKind)
-                        .bind("purpose", purpose))
+                        .bind("purpose", purpose)
+                        .bind("party", party))
                 .delete();
         query("""
-                INSERT INTO movement_flow_binding(station_id, inventory_id, owner_kind, purpose, flow_id)
-                VALUES (:station_id, :inventory_id, :owner_kind, :purpose, :flow_id);""")
+                INSERT INTO movement_flow_binding(station_id, inventory_id, owner_kind, purpose, party, flow_id)
+                VALUES (:station_id, :inventory_id, :owner_kind, :purpose, :party, :flow_id);""")
                 .single(call().bind("station_id", stationId)
                         .bind("inventory_id", inventoryId)
                         .bind("owner_kind", ownerKind)
                         .bind("purpose", purpose)
+                        .bind("party", party)
                         .bind("flow_id", flowId))
                 .insert();
     }

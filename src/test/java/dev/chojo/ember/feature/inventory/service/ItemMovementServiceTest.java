@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
+import dev.chojo.ember.feature.inventory.entity.MovementParty;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.MovementState;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
@@ -87,6 +89,23 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 null);
     }
 
+    /** The step a movement is standing on. */
+    private MovementFlowStep stepStoodOn(ItemMovement movement) {
+        int stepId = movement.currentStepId();
+        return itemMovementService.stepsOf(movement).stream()
+                .filter(step -> step.id() == stepId)
+                .findFirst()
+                .orElseThrow();
+    }
+
+    /** Whether the step a movement is standing on is the one that says which piece arrived. */
+    private boolean namesTheArrival(ItemMovement movement) {
+        int stepId = movement.currentStepId();
+        return itemMovementService.stepsOf(movement).stream()
+                .filter(step -> step.id() == stepId)
+                .anyMatch(MovementFlowStep::picksItem);
+    }
+
     /** Acknowledges whatever step the movement stands on until it closes or runs out of patience. */
     private ItemMovement walkToEnd(ItemMovement movement, Integer replacementId) {
         int guard = 10;
@@ -98,12 +117,15 @@ class ItemMovementServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void stationOwnedGearWalksThreeStepsAndNeverLeavesTheStation() {
+    void stationOwnedGearWalksFourStepsAndNeverLeavesTheStation() {
         int old = itemWithMember(ItemOwner.STATION);
         int replacement = item(ItemOwner.STATION);
 
         ItemMovement movement = announceExchange(old);
-        assertEquals(3, itemMovementService.stepsOf(movement).size(), "no owner leg for the station's own gear");
+        assertEquals(
+                4,
+                itemMovementService.stepsOf(movement).size(),
+                "no owner leg for the station's own gear, and the member confirms they have the replacement");
         assertEquals(ItemCustody.WITH_MEMBER, custodyOf(old), "announcing changes nothing about who has it");
 
         movement = walkToEnd(movement, replacement);
@@ -121,7 +143,10 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         int replacement = item(ItemOwner.CLUSTER);
 
         ItemMovement movement = announceExchange(old);
-        assertEquals(5, itemMovementService.stepsOf(movement).size(), "no step the station would have to invent");
+        assertEquals(
+                8,
+                itemMovementService.stepsOf(movement).size(),
+                "the owner's two steps are in the chain, walked by the station where the owner is not here");
 
         // Step 2 takes it back to the station, which does not own it
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
@@ -139,30 +164,31 @@ class ItemMovementServiceTest extends RepositoryTestBase {
 
         movement = walkToEnd(movement, replacement);
         assertEquals(MovementState.DONE, movement.state());
-        assertEquals(
-                ItemCustody.WITH_OWNER,
-                custodyOf(old),
-                "posted away and never seen again, so it settles with the body above rather than in the post");
-        assertNull(inventoryRepo.findItemById(old).orElseThrow().custodyMovementId());
+        assertTrue(
+                inventoryRepo.findItemById(old).isEmpty(),
+                "posted to a body Ember cannot see, so the row goes with it rather than sitting there forever");
         assertEquals(ItemCustody.WITH_MEMBER, custodyOf(replacement));
     }
 
+    /**
+     * The chain names the owner's steps, and a station with nobody above it on Ember walks them in its
+     * place. What it saw itself reads as confirmed, what it walked for somebody else as asserted, and
+     * the difference survives being read later.
+     */
     @Test
-    void everyStepOfThePresetsIsOneTheStationActuallySaw() {
+    void whatTheStationSawItselfIsToldApartFromWhatItWalkedForTheOwner() {
         int old = itemWithMember(ItemOwner.CLUSTER);
         ItemMovement movement = walkToEnd(announceExchange(old), item(ItemOwner.CLUSTER));
 
         var entries = itemMovementService.findLogs(movement.id());
         var steps = itemMovementService.stepsOf(movement);
+        assertTrue(
+                steps.stream().anyMatch(step -> step.actor() == StepActor.OWNER),
+                "the owner's part of the journey is in the chain");
         for (int i = 0; i < steps.size(); i++) {
-            assertNotEquals(
-                    StepActor.OWNER,
-                    steps.get(i).actor(),
-                    "a station with nobody above it on Ember is never asked to invent a step");
+            AckKind expected = steps.get(i).actor() == StepActor.OWNER ? AckKind.ASSERTED : AckKind.CONFIRMED;
             assertEquals(
-                    AckKind.CONFIRMED,
-                    entries.get(i).ackKind(),
-                    "step " + steps.get(i).label());
+                    expected, entries.get(i).ackKind(), "step " + steps.get(i).label());
             assertEquals(steps.get(i).label(), entries.get(i).stepLabel());
         }
     }
@@ -183,7 +209,8 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 StepSubject.OUTGOING,
                 ItemCustody.WITH_OWNER,
                 false);
-        movementFlowService.bind(station.id(), null, ItemOwner.CLUSTER, MovementPurpose.RETURN, flow.id());
+        movementFlowService.bind(
+                station.id(), null, ItemOwner.CLUSTER, MovementPurpose.RETURN, MovementParty.STORE, flow.id());
 
         int gear = item(ItemOwner.CLUSTER);
         ItemMovement movement = walkToEnd(
@@ -217,9 +244,12 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 "Vom Träger verschickt",
                 StepActor.OWNER,
                 StepSubject.INCOMING,
-                ItemCustody.AT_STATION,
+                ItemCustody.IN_TRANSIT,
                 true);
-        movementFlowService.bind(station.id(), null, ItemOwner.CLUSTER, MovementPurpose.ISSUE, flow.id());
+        movementFlowService.addStep(
+                flow.id(), "Erhalten", StepActor.STATION, StepSubject.INCOMING, ItemCustody.AT_STATION, false);
+        movementFlowService.bind(
+                station.id(), null, ItemOwner.CLUSTER, MovementPurpose.ISSUE, MovementParty.STORE, flow.id());
 
         // A real cluster, because the item's owning cluster is a foreign key now
         var home = stationRepo.create("Träger " + CODES.incrementAndGet());
@@ -266,7 +296,8 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 flow.id(), "Träger verschickt", StepActor.OWNER, StepSubject.OUTGOING, ItemCustody.IN_TRANSIT, false);
         movementFlowService.addStep(
                 flow.id(), "Wache nimmt an", StepActor.STATION, StepSubject.OUTGOING, ItemCustody.AT_STATION, false);
-        movementFlowService.bind(station.id(), null, ItemOwner.CLUSTER, MovementPurpose.ISSUE, flow.id());
+        movementFlowService.bind(
+                station.id(), null, ItemOwner.CLUSTER, MovementPurpose.ISSUE, MovementParty.STORE, flow.id());
 
         var home = stationRepo.create("Träger " + CODES.incrementAndGet());
         int clusterId = clusterRepo.create("Kreisverband", null, home.id()).id();
@@ -317,11 +348,13 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 flow.id(), "Wache schickt", StepActor.STATION, StepSubject.OUTGOING, ItemCustody.IN_TRANSIT, false);
         movementFlowService.addStep(
                 flow.id(), "Träger nimmt an", StepActor.OWNER, StepSubject.OUTGOING, ItemCustody.WITH_OWNER, false);
-        movementFlowService.bind(station.id(), null, ItemOwner.CLUSTER, MovementPurpose.RETURN, flow.id());
+        movementFlowService.bind(
+                station.id(), null, ItemOwner.CLUSTER, MovementPurpose.RETURN, MovementParty.STORE, flow.id());
 
         var home = stationRepo.create("Träger Antwort " + CODES.incrementAndGet());
         int clusterId =
                 clusterRepo.create("Kreisverband Antwort", null, home.id()).id();
+        clusterRepo.setUsesInventory(clusterId, true);
         int gear = inventoryRepo
                 .createItem(
                         mixedInventoryId,
@@ -421,7 +454,9 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         assertNotNull(entry.movementStep());
         assertEquals(ItemCustody.IN_TRANSIT, entry.item().custody());
 
-        // And once the replacement is named it appears too, marked as the one on its way to them
+        while (!namesTheArrival(movement)) {
+            movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
+        }
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", replacement);
         var incoming = inventoryRepo.findMemberEntries(member.id()).stream()
                 .filter(e -> e.item().id() == replacement)
@@ -556,21 +591,148 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         // Its own station, because the tests above bind flows of their own to the shared one
         var pristine = stationRepo.create("MovementPresetStation");
         var flows = movementFlowService.findFlows(pristine.id());
-        assertEquals(4, flows.size());
+        assertEquals(10, flows.size(), "one chain per combination of purpose, owner and other end");
         assertTrue(flows.stream().anyMatch(f -> f.purpose() == MovementPurpose.ISSUE));
         assertTrue(flows.stream().anyMatch(f -> f.purpose() == MovementPurpose.RETURN));
-        assertEquals(4, movementFlowService.findBindings(pristine.id()).size());
+        assertTrue(flows.stream().anyMatch(f -> f.purpose() == MovementPurpose.REQUEST));
+        assertEquals(10, movementFlowService.findBindings(pristine.id()).size());
 
         var issue = flows.stream()
                 .filter(f -> f.purpose() == MovementPurpose.ISSUE)
                 .findFirst()
                 .orElseThrow();
         var steps = movementFlowService.findActiveSteps(issue.id());
-        assertEquals(1, steps.size(), "the station records what arrived; the sending is not its to witness");
-        assertEquals(StepActor.STATION, steps.getFirst().actor());
+        assertTrue(steps.size() >= 3, "ordered, sent and received, at the very least");
+        assertEquals(StepActor.STATION, steps.getFirst().actor(), "the station is the one that orders");
         assertEquals(StepSubject.INCOMING, steps.getFirst().subject());
-        assertTrue(steps.getFirst().picksItem());
+        assertEquals("Erhalten", steps.getLast().label(), "and every chain ends with somebody saying they have it");
+        assertEquals(
+                1,
+                steps.stream().filter(MovementFlowStep::picksItem).count(),
+                "exactly one step says which piece arrived");
 
         stationRepo.delete(pristine.id());
+    }
+
+    /**
+     * Asking a member for everything raises one chain per piece, and each piece takes the chain that
+     * fits it: what the station owns goes back to its shelf, what the body above it owns into the post.
+     * One movement for the lot would have to end in two places.
+     *
+     * <p>On a member of its own, because the shared one is wearing whatever the tests above left there.
+     */
+    @Test
+    void everythingAMemberHoldsIsAskedForOnItsOwnChain() {
+        var account = accountRepo.create("sammel" + CODES.incrementAndGet() + "@test.com", "Sam", "Mel");
+        var holder = stationMemberRepo.create(station.id(), account.id());
+        int own = item(ItemOwner.STATION);
+        int foreign = item(ItemOwner.CLUSTER);
+        itemCustodyService.assignToMember(own, holder.id(), "Sam Mel");
+        itemCustodyService.assignToMember(foreign, holder.id(), "Sam Mel");
+
+        var started = itemMovementService.requestEverythingBack(station.id(), holder.id(), "Sam Mel", team);
+
+        assertEquals(2, started.size(), "one chain per piece");
+        assertTrue(
+                started.stream().allMatch(movement -> movement.purpose() == MovementPurpose.RETURN),
+                "and every one of them is a return");
+        var carried = started.stream().map(ItemMovement::outgoingItemId).toList();
+        assertTrue(carried.contains(own) && carried.contains(foreign));
+        assertNotEquals(
+                started.get(0).flowId(),
+                started.get(1).flowId(),
+                "the station's own goes back to the shelf and the owner's into the post");
+
+        accountRepo.delete(account.id());
+    }
+
+    /** Nothing held means nothing asked for, rather than an empty chain standing about. */
+    @Test
+    void askingAMemberWhoHoldsNothingStartsNothing() {
+        var lonely = accountRepo.create("leer" + CODES.incrementAndGet() + "@test.com", "Leer", "Hand");
+        var without = stationMemberRepo.create(station.id(), lonely.id());
+
+        assertTrue(itemMovementService
+                .requestEverythingBack(station.id(), without.id(), "Leer Hand", team)
+                .isEmpty());
+
+        accountRepo.delete(lonely.id());
+    }
+
+    /**
+     * Who names the piece that arrives, asked of the movement rather than guessed at the screen.
+     */
+    @Test
+    void aMovementSaysWhetherItsOwnerCanAnswerHere() {
+        int foreign = itemWithMember(ItemOwner.CLUSTER);
+        ItemMovement outside = announceExchange(foreign);
+        assertFalse(itemMovementService.ownerAnswersHere(outside), "no body above this station on Ember");
+        assertEquals(ItemOwner.CLUSTER, itemMovementService.ownerOf(outside));
+
+        int mine = itemWithMember(ItemOwner.STATION);
+        assertEquals(ItemOwner.STATION, itemMovementService.ownerOf(announceExchange(mine)));
+    }
+
+    /**
+     * The station raises a movement in a member's name, and that is the only step of theirs it may
+     * press. The receipt at the end is the member's own word, and forcing is what covers a member who
+     * never gives it.
+     *
+     * <p>On a station of its own, because the tests above bind chains of their own to the shared one.
+     */
+    @Test
+    void theStationOpensAChainForAMemberButDoesNotConfirmReceiptForThem() {
+        var own = stationRepo.create("EigeneKette" + CODES.incrementAndGet());
+        var account = accountRepo.create("kette" + CODES.incrementAndGet() + "@test.com", "Ket", "Te");
+        var holder = stationMemberRepo.create(own.id(), account.id());
+        int inventoryId = inventoryRepo
+                .create(own.id(), "Kleiderkammer", InventoryType.MIXED, false)
+                .id();
+        int old = inventoryRepo
+                .createItem(inventoryId, "K-" + CODES.incrementAndGet(), "Jacke", null, null, ItemOwner.STATION, null)
+                .id();
+        int replacement = inventoryRepo
+                .createItem(inventoryId, "K-" + CODES.incrementAndGet(), "Jacke", null, null, ItemOwner.STATION, null)
+                .id();
+        itemCustodyService.assignToMember(old, holder.id(), "Ket Te");
+        var mine = new ItemMovementService.Actor(holder.id(), true);
+        var anotherStationsHand = new ItemMovementService.Actor(0, true);
+        ItemMovement movement = itemMovementService.create(
+                own.id(),
+                MovementPurpose.EXCHANGE,
+                holder.id(),
+                "Ket Te",
+                old,
+                inventoryId,
+                null,
+                null,
+                "Zu klein",
+                mine,
+                null);
+
+        int guard = 6;
+        while (guard-- > 0 && movement.state() == MovementState.OPEN) {
+            MovementFlowStep current = stepStoodOn(movement);
+            if (!itemMovementService.mayAct(movement, current, anotherStationsHand)) break;
+            movement =
+                    itemMovementService.acknowledge(movement.id(), current.id(), anotherStationsHand, "", replacement);
+        }
+
+        assertEquals(MovementState.OPEN, movement.state(), "the chain waits for the member");
+        MovementFlowStep waiting = stepStoodOn(movement);
+        int movementId = movement.id();
+        int waitingId = waiting.id();
+        assertEquals(StepActor.MEMBER, waiting.actor());
+        var acting = anotherStationsHand;
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> itemMovementService.acknowledge(movementId, waitingId, acting, "", null),
+                "the station cannot say for somebody else that they have it");
+
+        var forced = itemMovementService.force(movementId, waitingId, acting, "An der Wache übergeben", null);
+        assertEquals(MovementState.DONE, forced.state());
+
+        stationRepo.delete(own.id());
+        accountRepo.delete(account.id());
     }
 }

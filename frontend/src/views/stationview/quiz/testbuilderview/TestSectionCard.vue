@@ -8,7 +8,6 @@ import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionLabel from '@/components/typography/SectionLabel.vue'
@@ -32,14 +31,12 @@ interface SectionDraft {
 const props = defineProps<{
   section: SectionDraft
   index: number
-  total: number
   catalogs: QuizCatalog[]
   getCategoriesForCatalog: (catalogId: number | null) => QuizCategory[]
   onCatalogChange: (source: SourceDraft, value: string | undefined) => void
 }>()
 
 const emit = defineEmits<{
-  move: [direction: -1 | 1]
   remove: []
   addSource: []
   removeSource: [sourceIndex: number]
@@ -55,13 +52,7 @@ const { t } = useI18n()
         <SectionLabel>
           {{ t('quiz.sections.sectionNumber', { n: props.index + 1 }) }}
         </SectionLabel>
-        <div class="flex gap-1">
-          <MutedIconButton :icon="['fas', 'chevron-up']" :label="t('common.moveUp')" :disabled="props.index === 0"
-                      @click="emit('move', -1)" />
-          <MutedIconButton :icon="['fas', 'chevron-down']" :label="t('common.moveDown')" :disabled="props.index === props.total - 1"
-                      @click="emit('move', 1)" />
-          <DeleteButton @click="emit('remove')" />
-        </div>
+        <DeleteButton @click="emit('remove')" />
       </div>
 
       <TextInput v-model="props.section.title" :placeholder="t('quiz.sections.titlePlaceholder')" />

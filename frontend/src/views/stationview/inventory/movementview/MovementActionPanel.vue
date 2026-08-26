@@ -10,51 +10,124 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {InventoryItem} from '@/api/inventory'
-import type {MovementStep} from '@/api/movements'
+import type {InventorySize} from '@/api/inventory'
+import type {MovementStep, NewItemRequest} from '@/api/movements'
 
 const {t} = useI18n()
 
 const props = defineProps<{
   step: MovementStep
-  /** Free stock to choose from, offered only by the step that names the arriving item. */
-  candidates: InventoryItem[]
   /** Whether the viewer may override a party that has not answered. */
   canForce: boolean
+  /**
+   * Whether the piece that arrives may be written down here. True where the owner is a body outside
+   * Ember: it names nothing, so there is nothing to pick and the chain would stop on this step.
+   */
+  mayRecord: boolean
+  /** The sizes the movement's inventory keeps, for the piece being written down. */
+  sizes: InventorySize[]
+  /** The size the exchange asked for, which the piece written down starts out as. */
+  wantedSizeId?: number | null
   busy: boolean
 }>()
 
 const emit = defineEmits<{
-  acknowledge: [payload: {note: string; pickedItemId: number | null}]
-  force: [payload: {note: string; pickedItemId: number | null}]
+  acknowledge: [payload: AcknowledgePayload]
+  force: [payload: AcknowledgePayload]
   decline: [reason: string]
   cancel: [reason: string]
 }>()
 
+/** What the step is answered with: a piece already known, or one written down on the spot. */
+export interface AcknowledgePayload {
+  note: string
+  pickedItemId: number | null
+  newItem: NewItemRequest | null
+}
+
 const note = ref('')
-const pickedItemId = ref('')
+const searched = ref<number | null>(null)
+const recording = ref(false)
+const newName = ref('')
+const newInternalId = ref('')
+const newSizeId = ref(String(props.wantedSizeId ?? ''))
 
-const picked = computed(() => (pickedItemId.value ? Number(pickedItemId.value) : null))
+const picked = computed(() => (recording.value ? null : searched.value))
 
-/** The step that names the replacement cannot be walked past without one. */
-const missingItem = computed(() => props.step.picksItem && picked.value === null)
+/**
+ * Recording and picking are the two answers to the same step, so choosing one drops the other.
+ *
+ * <p>Opening the form fills the size in from what the exchange asked for and leaves it editable: what
+ * an association sends is not always what was asked for, and the record has to be able to say so.
+ */
+function toggleRecording() {
+  recording.value = !recording.value
+  if (!recording.value) return
+  searched.value = null
+  newSizeId.value = String(props.wantedSizeId ?? '')
+}
 
-function payload() {
-  return {note: note.value, pickedItemId: picked.value}
+/** The step that names the arriving piece cannot be walked past without one. */
+const missingItem = computed(() => {
+  if (!props.step.picksItem) return false
+  if (recording.value) return !newName.value.trim()
+  return picked.value == null
+})
+
+function payload(): AcknowledgePayload {
+  return {
+    note: note.value,
+    pickedItemId: picked.value,
+    newItem: recording.value
+        ? {
+          name: newName.value.trim(),
+          internalId: newInternalId.value.trim() || undefined,
+          sizeId: newSizeId.value ? Number(newSizeId.value) : null,
+        }
+        : null,
+  }
 }
 </script>
 
 <template>
   <div class="mt-2 space-y-2">
-    <div v-if="props.step.picksItem" class="space-y-1">
+    <div v-if="props.step.picksItem" class="space-y-2">
       <FieldLabel>{{ t('movements.pickItem') }}</FieldLabel>
-      <SelectInput v-model="pickedItemId">
-        <option value="">{{ t('movements.pickItemPlaceholder') }}</option>
-        <option v-for="candidate in props.candidates" :key="candidate.id" :value="String(candidate.id)">
-          {{ candidate.name }}<template v-if="candidate.internalId"> ({{ candidate.internalId }})</template>
-        </option>
-      </SelectInput>
+
+      <ItemSearchPicker
+          v-if="!recording"
+          v-model="searched"
+          :disabled="props.busy"
+          exclude-lost
+          :placeholder="t('movements.pickItemPlaceholder')"
+      />
+
+      <div v-if="props.mayRecord" class="flex items-center gap-2">
+        <SecondaryButton :disabled="props.busy" data-testid="movement-record-arrival" @click="toggleRecording">
+          {{ recording ? t('common.cancel') : t('movements.recordArrival') }}
+        </SecondaryButton>
+      </div>
+    </div>
+
+    <div v-if="recording" class="space-y-2 rounded-md border border-(--border) p-2">
+      <p class="text-xs text-(--text-muted)">{{ t('movements.recordArrivalHint') }}</p>
+      <div class="space-y-1">
+        <FieldLabel>{{ t('movements.arrivalName') }}</FieldLabel>
+        <TextInput v-model="newName" data-testid="movement-new-name"/>
+      </div>
+      <div class="space-y-1">
+        <FieldLabel hint>{{ t('movements.arrivalInternalId') }}</FieldLabel>
+        <TextInput v-model="newInternalId" data-testid="movement-new-internal-id"/>
+      </div>
+      <div v-if="props.sizes.length > 0" class="space-y-1">
+        <FieldLabel hint>{{ t('movements.arrivalSize') }}</FieldLabel>
+        <SelectInput v-model="newSizeId" data-testid="movement-new-size">
+          <option value="">{{ t('movements.arrivalNoSize') }}</option>
+          <option v-for="size in props.sizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
+        </SelectInput>
+      </div>
     </div>
 
     <div class="space-y-1">
@@ -66,6 +139,7 @@ function payload() {
       <PrimaryButton
           v-if="props.step.actionable"
           :disabled="props.busy || missingItem"
+          data-testid="movement-acknowledge"
           @click="emit('acknowledge', payload())"
       >
         {{ t('movements.acknowledge') }}

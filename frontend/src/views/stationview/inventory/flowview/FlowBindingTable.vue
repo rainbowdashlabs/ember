@@ -33,22 +33,25 @@ function ownerLabel(ownerKind: string): string {
 <template>
   <div class="space-y-2">
     <MutedText size="sm" tag="p">{{ t('flows.bindingHint') }}</MutedText>
-    <div
-        v-for="binding in props.bindings"
-        :key="`${binding.ownerKind}-${binding.purpose}-${binding.inventoryId ?? 'all'}`"
-        class="flex items-center justify-between gap-2 text-sm"
-    >
-      <span>
-        {{ ownerLabel(binding.ownerKind) }} · {{ t(`movements.purpose.${binding.purpose}`) }}
-      </span>
-      <SelectInput
-          class="max-w-xs"
-          :disabled="props.busy"
-          :model-value="String(binding.flowId)"
-          @update:model-value="v => emit('rebind', binding, Number(v))"
+
+    <div class="grid items-center gap-x-4 gap-y-2 text-sm sm:grid-cols-[max-content_minmax(0,24rem)]">
+      <template
+          v-for="binding in props.bindings"
+          :key="`${binding.ownerKind}-${binding.purpose}-${binding.party}-${binding.inventoryId ?? 'all'}`"
       >
-        <option v-for="flow in choicesFor(binding)" :key="flow.id" :value="String(flow.id)">{{ flow.name }}</option>
-      </SelectInput>
+        <span>
+          {{ ownerLabel(binding.ownerKind) }} · {{ t(`movements.purpose.${binding.purpose}`) }} ·
+          {{ t(`flows.party.${binding.party}`) }}
+        </span>
+        <SelectInput
+            class="w-full"
+            :disabled="props.busy"
+            :model-value="String(binding.flowId)"
+            @update:model-value="v => emit('rebind', binding, Number(v))"
+        >
+          <option v-for="flow in choicesFor(binding)" :key="flow.id" :value="String(flow.id)">{{ flow.name }}</option>
+        </SelectInput>
+      </template>
     </div>
   </div>
 </template>

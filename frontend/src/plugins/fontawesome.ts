@@ -33,7 +33,7 @@ import {
     faPlug, faTag, faUmbrellaBeach, faUserShield, faUserTie, faListCheck, faCircleHalfStroke,
     faSquare, faSquareCheck, faGraduationCap, faBrain, faFileLines, faFilePdf, faFileImport,
     faFlask, faPlay, faBookOpen, faFolder, faFolderOpen, faFile, faMagnifyingGlass, faCompass,
-    faFileCsv, faReply, faShieldHalved, faAt, faPaste, faClone, faHourglassHalf, faArrowUp,
+    faDiagramProject, faFileCsv, faReply, faShieldHalved, faAt, faPaste, faClone, faHourglassHalf, faArrowUp,
     faSatelliteDish, faMapLocationDot, faUserClock, faFloppyDisk, faBoxArchive,
     faFilePowerpoint, faDisplay, faKey, faArrowsUpDown, faLightbulb, faBroom, faTowerBroadcast,
     faEllipsisVertical, faWarehouse, faBox, faSuitcase, faCube,
@@ -44,7 +44,7 @@ import {
 } from '@fortawesome/free-brands-svg-icons'
 
 library.add(
-    faSun, faMoon, faCheck, faAngleDown, faAngleUp, faAnglesDown, faAnglesUp, faEllipsis,
+    faDiagramProject, faSun, faMoon, faCheck, faAngleDown, faAngleUp, faAnglesDown, faAnglesUp, faEllipsis,
     faEquals, faXmark, faXmarkCircle, faSpinner, faCircleInfo, faCircleCheck, faCircle,
     faCircleDot, faTriangleExclamation, faDownload, faUpload, faTrash, faPen, faLock,
     faRightFromBracket, faRightToBracket, faBars, faGauge, faChevronDown, faChevronRight,

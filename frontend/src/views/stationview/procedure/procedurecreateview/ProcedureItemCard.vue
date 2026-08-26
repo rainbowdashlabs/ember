@@ -24,13 +24,10 @@ const props = defineProps<{
     userAssigned: boolean
     dependsOn: number[]
   }
-  index: number
-  totalItems: number
   allItems: { tempId: number; title: string }[]
 }>()
 
 const emit = defineEmits<{
-  move: [direction: -1 | 1]
   remove: []
 }>()
 
@@ -55,8 +52,6 @@ function removeDependency(depId: number) {
         <TextAreaInput v-model="item.description" :placeholder="t('procedures.itemDescription')" :rows="2"/>
       </div>
       <div class="flex items-center gap-1 shrink-0">
-        <IconButton :icon="['fas', 'chevron-up']" :label="t('common.moveUp')" :disabled="index === 0" @click="emit('move', -1)"/>
-        <IconButton :icon="['fas', 'chevron-down']" :label="t('common.moveDown')" :disabled="index === totalItems - 1" @click="emit('move', 1)"/>
         <DeleteButton @click="emit('remove')"/>
       </div>
     </div>

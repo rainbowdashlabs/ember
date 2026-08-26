@@ -10,6 +10,7 @@ import type { ProcedureTemplate, TemplateDetail } from '@/api/procedures'
 import type { MemberCompletion } from '@/api/stationMembers'
 import type { EditableItem } from '@/views/stationview/procedure/procedurecreateview/types'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { moveWithin } from '@/util/reorder'
 
 /**
  * The editable form behind creating and editing a procedure, including its checklist items and
@@ -171,16 +172,8 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       .map(item => ({...item, dependsOn: item.dependsOn.filter(d => d !== removed.tempId)}))
   }
 
-  function moveItem(index: number, direction: -1 | 1) {
-    const target = index + direction
-    if (target < 0 || target >= items.value.length) return
-    const arr = [...items.value]
-    const from = arr[index]
-    const to = arr[target]
-    if (!from || !to) return
-    arr[index] = to
-    arr[target] = from
-    items.value = arr
+  function reorderItems(fromIndex: number, toIndex: number) {
+    items.value = moveWithin(items.value, fromIndex, toIndex)
   }
 
   function itemPayload(item: EditableItem, position: number) {
@@ -289,7 +282,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     removeAssignee,
     addItem,
     removeItem,
-    moveItem,
+    reorderItems,
     submit,
   }
 }

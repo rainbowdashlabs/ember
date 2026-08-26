@@ -18,7 +18,12 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param flowId      the flow to walk
  */
 public record MovementFlowBinding(
-        int stationId, Integer inventoryId, ItemOwner ownerKind, MovementPurpose purpose, int flowId) {
+        int stationId,
+        Integer inventoryId,
+        ItemOwner ownerKind,
+        MovementPurpose purpose,
+        MovementParty party,
+        int flowId) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -28,6 +33,7 @@ public record MovementFlowBinding(
                 row.getObject("inventory_id", Integer.class),
                 row.getEnum("owner_kind", ItemOwner.class),
                 row.getEnum("purpose", MovementPurpose.class),
+                row.getEnum("party", MovementParty.class),
                 row.getInt("flow_id"));
     }
 }

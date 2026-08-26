@@ -57,7 +57,7 @@ const federationPartnerIds = ref<number[]>([])
 const partners = ref<PartnerResponse[]>([])
 
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
-const {attachments, load: loadAttachments, add: addAttachment, remove: removeAttachment, move: moveAttachment, persist: persistAttachments} = useNewsAttachments()
+const {attachments, load: loadAttachments, add: addAttachment, remove: removeAttachment, reorder: reorderAttachments, persist: persistAttachments} = useNewsAttachments()
 
 /**
  * The saved shape of a block tree turned into the shape the editor works on. Ids of zero mark rows
@@ -243,7 +243,7 @@ watch(loaded, (isLoaded) => {
             :station-uid="stationUid"
             @add="addAttachment"
             @remove="removeAttachment"
-            @move="moveAttachment"
+            @reorder="reorderAttachments"
         />
         <AudiencePanels
             v-model:public-blog="publicBlog"

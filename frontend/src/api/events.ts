@@ -180,7 +180,8 @@ export interface EventTemplateField {
     templateId: number
     name: string
     fieldType: string
-    config: string
+    /** The field's settings as the server sends them, which is an object rather than the text it is stored as. */
+    config: Record<string, unknown>
     position: number
     overview: boolean
     isPublic: boolean

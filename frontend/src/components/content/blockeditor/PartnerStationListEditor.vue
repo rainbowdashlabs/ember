@@ -7,8 +7,10 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
+import DragList from '@/components/input/DragList.vue'
 import PartnerStationSearchPicker from '@/components/input/search/PartnerStationSearchPicker.vue'
 import {resolvePartnerStations, type PublicPartnerSummary} from '@/api/publicPages'
+import {moveWithin} from '@/util/reorder'
 
 const modelValue = defineModel<string[]>({required: true})
 
@@ -19,8 +21,6 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const nameCache = ref<Record<string, string>>({})
-const dragIndex = ref<number | null>(null)
-const dragOverIndex = ref<number | null>(null)
 
 const uids = computed(() => modelValue.value ?? [])
 
@@ -44,12 +44,7 @@ function displayName(uid: string): string {
 }
 
 function move(from: number, to: number) {
-    if (from === to || from < 0 || to < 0 || from >= uids.value.length || to >= uids.value.length) return
-    const next = [...uids.value]
-    const [item] = next.splice(from, 1)
-    if (item === undefined) return
-    next.splice(to, 0, item)
-    modelValue.value = next
+    modelValue.value = moveWithin(uids.value, from, to)
 }
 
 function remove(index: number) {
@@ -61,72 +56,24 @@ function add(stationUid: string) {
     modelValue.value = [...uids.value, stationUid]
 }
 
-function onDragStart(event: DragEvent, index: number) {
-    dragIndex.value = index
-    if (event.dataTransfer) {
-        event.dataTransfer.effectAllowed = 'move'
-        event.dataTransfer.setData('text/plain', String(index))
-    }
-}
-
-function onDragOver(event: DragEvent, index: number) {
-    if (dragIndex.value === null) return
-    event.preventDefault()
-    dragOverIndex.value = index
-}
-
-function onDrop(event: DragEvent, index: number) {
-    event.preventDefault()
-    if (dragIndex.value !== null) move(dragIndex.value, index)
-    dragIndex.value = null
-    dragOverIndex.value = null
-}
-
-function onDragEnd() {
-    dragIndex.value = null
-    dragOverIndex.value = null
-}
 </script>
 
 <template>
-    <ul class="space-y-1 mb-2 text-sm">
-        <li
-            v-for="(uid, i) in uids"
-            :key="uid"
-            draggable="true"
-            class="flex items-center gap-2 px-2 py-1 rounded-theme border border-(--border) cursor-move transition-colors"
-            :class="dragOverIndex === i && dragIndex !== i ? 'border-primary bg-primary/5' : ''"
-            @dragstart="onDragStart($event, i)"
-            @dragover="onDragOver($event, i)"
-            @drop="onDrop($event, i)"
-            @dragend="onDragEnd"
-        >
-            <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) shrink-0"/>
-            <font-awesome-icon :icon="['fas', 'handshake']" class="text-primary shrink-0"/>
-            <span class="flex-1 truncate" :title="uid">{{ displayName(uid) }}</span>
-            <MutedIconButton
-                :icon="['fas', 'arrow-up']"
-                :label="t('stationPages.editor.partnerStationMoveUp')"
-                :disabled="i === 0"
-                class="!p-1"
-                @click="move(i, i - 1)"
-            />
-            <MutedIconButton
-                :icon="['fas', 'arrow-down']"
-                :label="t('stationPages.editor.partnerStationMoveDown')"
-                :disabled="i === uids.length - 1"
-                class="!p-1"
-                @click="move(i, i + 1)"
-            />
-            <MutedIconButton
-                :icon="['fas', 'xmark']"
-                :label="t('stationPages.editor.removePartnerStation')"
-                hover="error"
-                class="!p-1"
-                @click="remove(i)"
-            />
-        </li>
-    </ul>
+    <DragList :items="uids" :key-fn="(uid) => uid" class="mb-2 space-y-1 text-sm" @reorder="move">
+        <template #default="{item: uid, index}">
+            <div class="flex items-center gap-2 px-2 py-1 rounded-theme border border-(--border)">
+                <font-awesome-icon :icon="['fas', 'handshake']" class="text-primary shrink-0"/>
+                <span class="flex-1 truncate" :title="uid">{{ displayName(uid) }}</span>
+                <MutedIconButton
+                    :icon="['fas', 'xmark']"
+                    :label="t('stationPages.editor.removePartnerStation')"
+                    hover="error"
+                    class="!p-1"
+                    @click="remove(index)"
+                />
+            </div>
+        </template>
+    </DragList>
     <PartnerStationSearchPicker
         :model-value="null"
         :exclude-uids="uids"

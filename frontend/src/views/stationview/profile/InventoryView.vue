@@ -7,6 +7,7 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
+import MyMovementsPanel from './inventoryview/MyMovementsPanel.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {inventory, managedMembers, exchanges} from '@/api'
@@ -278,6 +279,8 @@ const {
   >
     <div class="space-y-6">
       <MemberTabSelector :tabs="tabs" :selected-id="selectedMemberId" @select="selectedMemberId = $event"/>
+
+      <MyMovementsPanel/>
 
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>

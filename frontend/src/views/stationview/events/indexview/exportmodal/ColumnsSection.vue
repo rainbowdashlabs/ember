@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import DragList from '@/components/input/DragList.vue'
 import SelectedColumnRow from './SelectedColumnRow.vue'
 
 /**
@@ -31,8 +32,7 @@ const emit = defineEmits<{
   add: [col: ExportColumn]
   addField: [name: string]
   remove: [index: number]
-  moveUp: [index: number]
-  moveDown: [index: number]
+  reorder: [fromIndex: number, toIndex: number]
 }>()
 </script>
 
@@ -43,18 +43,16 @@ const emit = defineEmits<{
     <MutedText tag="div" size="sm" class="py-2 text-center" v-if="selectedColumns.length === 0">
       {{ t('events.exportNoColumns') }}
     </MutedText>
-    <div class="space-y-1">
-      <SelectedColumnRow
-          v-for="(col, index) in selectedColumns"
-          :key="col.key"
-          :label="col.label"
-          :index="index"
-          :total="selectedColumns.length"
-          @up="emit('moveUp', index)"
-          @down="emit('moveDown', index)"
-          @remove="emit('remove', index)"
-      />
-    </div>
+    <DragList
+        :items="selectedColumns"
+        :key-fn="(col) => col.key"
+        class="space-y-1"
+        @reorder="(from, to) => emit('reorder', from, to)"
+    >
+      <template #default="{item: col, index}">
+        <SelectedColumnRow :label="col.label" :index="index" @remove="emit('remove', index)"/>
+      </template>
+    </DragList>
 
     <div v-if="availableColumns.length > 0" class="flex flex-wrap gap-2">
       <SecondaryButton

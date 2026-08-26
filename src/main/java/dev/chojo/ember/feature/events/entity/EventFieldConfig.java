@@ -24,13 +24,20 @@ import static org.slf4j.LoggerFactory.getLogger;
  * @param tagId            referenced user tag for {@code *_OF_TAG} fields
  * @param selfRegistration when {@code true}, station members can add or remove themselves
  *                         on a {@code MEMBER_*} field without the edit-event permission
+ * @param width            how much of a row the field takes when the form is drawn, which is the
+ *                         station's own layout choice and means nothing to the server
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record EventFieldConfig(
-        List<String> options, Integer groupId, StationUserType userType, Integer tagId, boolean selfRegistration) {
+        List<String> options,
+        Integer groupId,
+        StationUserType userType,
+        Integer tagId,
+        boolean selfRegistration,
+        String width) {
     private static final Logger log = getLogger(EventFieldConfig.class);
     private static final ObjectMapper MAPPER = Json.EMPTY_TOLERANT_CONFIG_MAPPER;
-    private static final EventFieldConfig EMPTY = new EventFieldConfig(null, null, null, null, false);
+    private static final EventFieldConfig EMPTY = new EventFieldConfig(null, null, null, null, false, null);
 
     public static EventFieldConfig empty() {
         return EMPTY;

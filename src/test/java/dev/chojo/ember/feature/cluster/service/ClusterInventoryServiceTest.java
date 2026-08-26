@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MovementParty;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
@@ -292,23 +293,52 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
         clusterService.delete(cluster.id());
     }
 
+    /**
+     * The association's gear walks the association's chains, wherever it is and whoever raised the
+     * movement. Until the gear said which body owned it, nothing ever reached this: a station
+     * recording a piece as somebody else's could not say whose, so every such piece looked like one
+     * belonging to a body outside Ember and the association's settings screen governed nothing.
+     */
     @Test
-    void aClustersOwnChainIsWalkedOnlyWhenItKeepsItsGearHere() {
+    void theAssociationsChainsGovernItsOwnGear() {
         var cluster = freshCluster();
         var station = stationOf(cluster);
-        var clusterFlow = clusterInventoryService.createFlow(cluster.id(), "Verbandstausch", MovementPurpose.EXCHANGE);
+        var issueFlow = clusterInventoryService.createFlow(cluster.id(), "Verbandsausgabe", MovementPurpose.ISSUE);
+        var exchangeFlow = clusterInventoryService.createFlow(cluster.id(), "Verbandstausch", MovementPurpose.EXCHANGE);
 
         // The cluster is here but does not keep its gear here, so its stations behave as if it were not
-        int stationFlow = movementFlowService.resolveFlow(
-                station.id(), null, ItemOwner.CLUSTER, cluster.id(), MovementPurpose.EXCHANGE);
-        assertNotEquals(clusterFlow.id(), stationFlow, "an owner that cannot answer sets no terms");
+        assertNotEquals(
+                issueFlow.id(),
+                movementFlowService.resolveFlow(
+                        station.id(),
+                        null,
+                        ItemOwner.CLUSTER,
+                        cluster.id(),
+                        MovementPurpose.ISSUE,
+                        MovementParty.STORE),
+                "an owner that cannot answer sets no terms");
 
         clusterInventoryService.setUsesInventory(cluster.id(), true);
         assertEquals(
-                clusterFlow.id(),
+                issueFlow.id(),
                 movementFlowService.resolveFlow(
-                        station.id(), null, ItemOwner.CLUSTER, cluster.id(), MovementPurpose.EXCHANGE),
-                "an owner that is present sets its own terms");
+                        station.id(),
+                        null,
+                        ItemOwner.CLUSTER,
+                        cluster.id(),
+                        MovementPurpose.ISSUE,
+                        MovementParty.STORE),
+                "what the association sends out walks the chain the association wrote");
+        assertEquals(
+                exchangeFlow.id(),
+                movementFlowService.resolveFlow(
+                        station.id(),
+                        null,
+                        ItemOwner.CLUSTER,
+                        cluster.id(),
+                        MovementPurpose.EXCHANGE,
+                        MovementParty.MEMBER),
+                "and so does an exchange of its gear, whoever raised it");
 
         clusterService.releaseStation(cluster.id(), station.id());
         stationRepo.delete(station.id());
@@ -323,7 +353,7 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
 
         // Station-owned gear is the station's business whatever the cluster keeps
         int flow = movementFlowService.resolveFlow(
-                station.id(), null, ItemOwner.STATION, cluster.id(), MovementPurpose.EXCHANGE);
+                station.id(), null, ItemOwner.STATION, cluster.id(), MovementPurpose.EXCHANGE, MovementParty.MEMBER);
         assertNotEquals(
                 clusterInventoryService.findFlows(cluster.id()).getFirst().id(), flow);
 

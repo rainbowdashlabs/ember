@@ -33,7 +33,6 @@ const entry = defineModel<MailProvider>({required: true})
 const props = defineProps<{
   position: number
   isFirst: boolean
-  isLast: boolean
   /** Whether this list is a station's, which also shows the provider to its members. */
   showDisplayFields?: boolean
   /** The address the test field starts with, usually the one of whoever is looking. */
@@ -48,7 +47,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   remove: []
-  move: [direction: number]
   test: [recipient: string]
 }>()
 
@@ -91,13 +89,7 @@ const user = computed({
         <span class="font-medium">{{ t('mailChain.position', {position: props.position}) }}</span>
         <PrimaryBadge v-if="props.isFirst">{{ t('mailChain.firstBadge') }}</PrimaryBadge>
       </div>
-      <div class="flex gap-1">
-        <IconButton :icon="['fas', 'arrow-up']" :label="t('common.moveUp')" :disabled="props.isFirst"
-                    @click="emit('move', -1)"/>
-        <IconButton :icon="['fas', 'arrow-down']" :label="t('common.moveDown')" :disabled="props.isLast"
-                    @click="emit('move', 1)"/>
-        <IconButton :icon="['fas', 'trash']" :label="t('common.delete')" @click="emit('remove')"/>
-      </div>
+      <IconButton :icon="['fas', 'trash']" :label="t('common.delete')" @click="emit('remove')"/>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">

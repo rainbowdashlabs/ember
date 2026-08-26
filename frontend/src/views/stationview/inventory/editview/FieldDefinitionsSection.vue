@@ -21,15 +21,14 @@ import type {DraftField} from './fielddefinitionssection/types'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
-import {useBreakpoint} from '@/composables/useBreakpoint'
 import {apiErrorMessage} from '@/util/apiError'
+import {moveWithin} from '@/util/reorder'
 
 const props = defineProps<{
   inventoryId: number
 }>()
 
 const {t} = useI18n()
-const {isMobile} = useBreakpoint()
 
 const {config: fields, loading, error, reload: load} = useConfigPanel<InventoryFieldDefinition[]>({
   initial: [],
@@ -134,11 +133,7 @@ async function persistOrder(ordered: InventoryFieldDefinition[]) {
 }
 
 function moveField(fromIndex: number, toIndex: number) {
-  const ordered = [...sortedFields.value]
-  const [moved] = ordered.splice(fromIndex, 1)
-  if (!moved) return
-  ordered.splice(toIndex, 0, moved)
-  persistOrder(ordered)
+  persistOrder(moveWithin(sortedFields.value, fromIndex, toIndex))
 }
 
 watch(() => props.inventoryId, load)
@@ -169,23 +164,9 @@ watch(() => props.inventoryId, load)
       <p class="text-sm text-(--text-muted)">{{ t('common.loading') }}</p>
     </div>
     <EmptyState v-else-if="sortedFields.length === 0" :message="t('inventory.fields.empty')" />
-    <ul v-else-if="isMobile" class="list-none">
-      <li v-for="(f, i) in sortedFields" :key="f.id">
-        <FieldRow
-            :field="f"
-            mode="arrows"
-            :can-move-up="i > 0"
-            :can-move-down="i < sortedFields.length - 1"
-            @move-up="moveField(i, i - 1)"
-            @move-down="moveField(i, i + 1)"
-            @edit="startEdit(f)"
-            @delete="requestDelete(f)"
-        />
-      </li>
-    </ul>
     <DragList v-else :items="sortedFields" :key-fn="(f) => f.id" @reorder="moveField">
       <template #default="{ item: f }">
-        <FieldRow :field="f" mode="drag" @edit="startEdit(f)" @delete="requestDelete(f)"/>
+        <FieldRow :field="f" @edit="startEdit(f)" @delete="requestDelete(f)"/>
       </template>
     </DragList>
 

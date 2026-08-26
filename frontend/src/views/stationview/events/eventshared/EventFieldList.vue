@@ -10,6 +10,10 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFieldEditor from './EventFieldEditor.vue'
+import DragList from '@/components/input/DragList.vue'
+import FieldLayoutPreview from '@/components/profilefields/FieldLayoutPreview.vue'
+import {configOf} from '@/components/profilefields/fieldLayout'
+import {moveWithin} from '@/util/reorder'
 import type {AttendanceTemplateField} from '@/api/attendance'
 import type {EventFieldEntry} from '@/api/events'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
@@ -57,6 +61,15 @@ function updateField(index: number, field: EventFieldEntry) {
   updated[index] = field
   fields.value = updated
 }
+
+/**
+ * Puts a question in a different place in the order it is asked in.
+ *
+ * <p>A forgotten question used to mean deleting everything after it and typing it in again.
+ */
+function moveField(fromIndex: number, toIndex: number) {
+  fields.value = moveWithin(fields.value, fromIndex, toIndex)
+}
 </script>
 
 <template>
@@ -80,18 +93,23 @@ function updateField(index: number, field: EventFieldEntry) {
   <MutedText v-if="fields.length === 0" tag="div" size="sm" class="py-2">
     {{ t('events.noFields') }}
   </MutedText>
-  <EventFieldEditor
-      v-for="(field, index) in fields"
-      :key="index"
-      :model-value="field"
-      :attendance-fields="attendanceFields"
-      :show-value="showValue"
-      :all-members="allMembers"
-      :groups="groups"
-      :group-members="groupMembers"
-      :tags="tags"
-      :tag-members="tagMembers"
-      @update:model-value="updateField(index, $event)"
-      @remove="removeField(index)"
-  />
+
+  <DragList :items="fields" :key-fn="(_, index) => index" @reorder="moveField">
+    <template #default="{index}">
+      <EventFieldEditor
+          :model-value="fields[index]!"
+          :attendance-fields="attendanceFields"
+          :show-value="showValue"
+          :all-members="allMembers"
+          :groups="groups"
+          :group-members="groupMembers"
+          :tags="tags"
+          :tag-members="tagMembers"
+          @update:model-value="updateField(index, $event)"
+          @remove="removeField(index)"
+      />
+    </template>
+  </DragList>
+
+  <FieldLayoutPreview :fields="fields.map(field => ({name: field.name, width: configOf(field.config).width}))"/>
 </template>

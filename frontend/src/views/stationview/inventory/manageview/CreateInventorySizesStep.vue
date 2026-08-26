@@ -10,6 +10,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
+import SizeQuickPick from './SizeQuickPick.vue'
 
 const sizes = defineModel<string[]>('sizes', {required: true})
 
@@ -25,6 +26,17 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const newSizeLabel = ref('')
+const showQuickPick = ref(false)
+
+/**
+ * Adds a run of sizes at once, keeping the order the field showed them in and skipping any the
+ * inventory already has.
+ */
+function addMany(labels: string[]) {
+  const known = new Set(sizes.value)
+  sizes.value = [...sizes.value, ...labels.filter(label => !known.has(label))]
+  showQuickPick.value = false
+}
 
 function addSize() {
   if (!newSizeLabel.value.trim()) return
@@ -40,11 +52,18 @@ function removeSize(index: number) {
 <template>
   <p class="text-sm text-(--text-muted)">{{ t('inventory.manage.sizesHint') }}</p>
 
-  <div class="flex items-center gap-2">
+  <div class="relative flex items-center gap-2" @mouseleave="showQuickPick = false">
     <TextInput v-model="newSizeLabel" :placeholder="t('inventory.manage.sizeLabel')" class="flex-1" @keyup.enter="addSize" />
     <SecondaryButton :disabled="!newSizeLabel.trim()" @click="addSize">
       <font-awesome-icon :icon="['fas', 'plus']" />
     </SecondaryButton>
+    <SecondaryButton data-testid="size-quick-open" @mouseenter="showQuickPick = true" @click="showQuickPick = true">
+      {{ t('inventory.manage.quickSizes') }}
+    </SecondaryButton>
+
+    <div v-if="showQuickPick" class="absolute top-full right-0 z-20 mt-1 w-max max-w-full">
+      <SizeQuickPick @add="addMany" @close="showQuickPick = false"/>
+    </div>
   </div>
 
   <div v-if="sizes.length > 0" class="space-y-1">

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, stationPeers} from './fixtures/auth'
+import {test, expect, apiHeaders, stationPeers} from './fixtures/auth'
 
 test.describe('Inventory', () => {
     test('the inventory list shows the inventories of the station', async ({managerPage: page}) => {
@@ -266,5 +266,41 @@ test.describe('Inventory', () => {
 
         await page.reload()
         await expect(page.getByText(container).first()).toBeVisible()
+    })
+
+    /**
+     * A check that finds something raises the exchange there and then.
+     *
+     * Whoever walks a check has the member in front of them and the piece in their hands. Sending them
+     * to another screen to type in what they are looking at is how a finding ends up recorded nowhere.
+     * The two offered are the two that come up: it does not fit, and it is damaged.
+     *
+     * The size exchange is offered only where the piece has a size, so the walk looks for one that has
+     * rather than assuming the first piece does.
+     */
+    test('a check raises an exchange for a piece that does not fit', async ({managerPage: page}) => {
+        await page.goto('/station/inventory/checks/member')
+        await page.getByRole('button', {name: 'Prüfung starten'}).first().click()
+        await page.waitForURL(/\/station\/inventory\/checks\/(\d+)/)
+
+        await page.getByRole('button', {name: 'Schnellprüfung'}).click()
+
+        const sizeExchange = page.getByTestId('rapid-exchange-size').first()
+        const damaged = page.getByTestId('rapid-exchange-damaged').first()
+        await expect(damaged).toBeVisible({timeout: 15000})
+
+        const offered = await sizeExchange.count()
+        await (offered > 0 ? sizeExchange : damaged).click()
+
+        await expect(page.getByTestId('rapid-exchange-reason')).toBeVisible()
+        await expect(page.getByTestId('rapid-exchange-reason'), 'the reason is filled in already')
+            .not.toHaveValue('')
+        await page.getByTestId('rapid-exchange-confirm').click()
+
+        await expect(page.getByTestId('rapid-exchange-confirm')).toBeHidden({timeout: 15000})
+
+        const raised = await page.request.get('/api/v1/exchanges', {headers: await apiHeaders(page)})
+            .then(r => r.json())
+        expect(raised.length, 'the exchange is on the station\'s list').toBeGreaterThan(0)
     })
 })

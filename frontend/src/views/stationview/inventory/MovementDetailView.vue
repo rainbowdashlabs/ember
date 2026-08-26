@@ -14,25 +14,23 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import {inventory, movements} from '@/api'
-import {isAvailable, type InventoryItem} from '@/api/inventory'
+import type {InventorySize} from '@/api/inventory'
 import {MovementState, type MovementDetail} from '@/api/movements'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
-import {useActsForOwner} from '@/composables/useActsForOwner'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {apiErrorMessage} from '@/util/apiError'
 import MovementStep from './movementview/MovementStep.vue'
-import MovementActionPanel from './movementview/MovementActionPanel.vue'
+import MovementActionPanel, {type AcknowledgePayload} from './movementview/MovementActionPanel.vue'
 import LossReportPanel from './movementview/LossReportPanel.vue'
 
 const {t} = useI18n()
 const route = useRoute()
 const {hasPermission} = useSession()
-const actsForOwner = useActsForOwner()
 
 const movementId = computed(() => Number(route.params.id))
 const detail = ref<MovementDetail | null>(null)
-const candidates = ref<InventoryItem[]>([])
+const sizes = ref<InventorySize[]>([])
 const busy = ref(false)
 const actionError = ref('')
 
@@ -44,31 +42,37 @@ const currentStep = computed(() => detail.value?.steps.find(s => s.current) ?? n
 const visibleSteps = computed(() =>
     (detail.value?.steps ?? []).filter(step => !step.archived || step.ackKind || step.current))
 
+/**
+ * Whether the piece that arrives may be written down here rather than picked.
+ *
+ * <p>Only where the owner is a body outside Ember. One that keeps its gear here names what it sends,
+ * and a second row written by the station for the same piece would be one thing with two records.
+ */
+const mayRecord = computed(() => detail.value?.movement.ownerAnswersHere === false)
+
 const {loading, error, reload} = useAsyncLoader(async () => {
   detail.value = await movements.getMovement(movementId.value)
-  candidates.value = detail.value.steps.some(s => s.current && s.picksItem) ? await pickable() : []
+  const naming = detail.value.steps.some(s => s.current && s.picksItem)
+  sizes.value = naming ? await sizesOfInventory() : []
 })
 
 /**
- * What the current step can name, which depends on whose step it is.
+ * The sizes of the inventory a written-down piece lands in, so it is recorded like any other.
  *
- * <p>A station hands over something it is holding, so it picks out of the inventory the movement is about.
- * An association sending a replacement sends one out of its own store, which is a different station's
- * inventory entirely: asking for the movement's one would be asking for somebody else's, and the server is
- * right to refuse. Either way a list that cannot be fetched leaves the chain readable rather than blanking
- * the page, because reading what happened never depended on it.
+ * <p>Fetched whenever the current step names a piece, rather than only where writing one down is
+ * allowed. Which of the two applies depends on the movement's owner, and reading that first made the
+ * sizes arrive a moment too late for the form that needs them.
  */
-async function pickable(): Promise<InventoryItem[]> {
+async function sizesOfInventory(): Promise<InventorySize[]> {
   const inventoryId = detail.value?.movement.inventoryId
+  if (!inventoryId) return []
   try {
-    const items = actsForOwner.value
-        ? await inventory.listAllItems()
-        : inventoryId ? await inventory.listItems(inventoryId) : []
-    return items.filter(item => isAvailable(item.custody))
+    return await inventory.listSizes(inventoryId)
   } catch {
     return []
   }
 }
+
 
 async function run(action: () => Promise<MovementDetail>) {
   busy.value = true
@@ -83,13 +87,13 @@ async function run(action: () => Promise<MovementDetail>) {
   }
 }
 
-function acknowledge(payload: {note: string; pickedItemId: number | null}) {
+function acknowledge(payload: AcknowledgePayload) {
   const stepId = currentStep.value?.id
   if (!stepId) return
   void run(() => movements.acknowledgeStep(movementId.value, {stepId, ...payload}))
 }
 
-function force(payload: {note: string; pickedItemId: number | null}) {
+function force(payload: AcknowledgePayload) {
   const stepId = currentStep.value?.id
   if (!stepId) return
   void run(() => movements.forceStep(movementId.value, {stepId, ...payload}))
@@ -139,7 +143,9 @@ function force(payload: {note: string; pickedItemId: number | null}) {
                 v-if="step.current && open"
                 :busy="busy"
                 :can-force="canForce"
-                :candidates="candidates"
+                :may-record="mayRecord"
+                :sizes="sizes"
+                :wanted-size-id="detail.movement.newSizeId ?? detail.movement.oldSizeId"
                 :step="step"
                 @acknowledge="acknowledge"
                 @force="force"

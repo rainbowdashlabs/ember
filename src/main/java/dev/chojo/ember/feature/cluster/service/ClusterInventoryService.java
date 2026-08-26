@@ -180,6 +180,15 @@ public class ClusterInventoryService {
      * @param clusterId the cluster
      * @return its queue, oldest first
      */
+    /** The size a station asked for, in the words its inventory uses for it. */
+    private String sizeLabel(Integer sizeId) {
+        if (sizeId == null) return null;
+        return inventoryRepository.findSizesByIds(List.of(sizeId)).stream()
+                .findFirst()
+                .map(InventorySize::label)
+                .orElse(null);
+    }
+
     public List<QueueEntry> findQueue(int clusterId) {
         List<QueueEntry> queue = new ArrayList<>();
         for (ItemMovement movement : movementRepository.findWaitingForCluster(clusterId)) {
@@ -203,6 +212,8 @@ public class ClusterInventoryService {
                     station.map(s -> s.name()).orElse(null),
                     stepLabel,
                     itemName,
+                    sizeLabel(movement.newSizeId()),
+                    movement.reason(),
                     movement.createdAt()));
         }
         return queue;
@@ -331,6 +342,18 @@ public class ClusterInventoryService {
         flowService.archiveStep(stepId);
     }
 
+    /**
+     * Puts the steps of one of the association's chains in the order they are to be walked.
+     *
+     * @param clusterId the association
+     * @param flowId    its chain
+     * @param stepIds   every active step of the chain, in the order it is to be walked
+     */
+    public void reorderSteps(int clusterId, int flowId, List<Integer> stepIds) {
+        requireOwnFlow(clusterId, flowId);
+        flowService.reorderSteps(flowId, stepIds);
+    }
+
     /** A chain of another association, or of a station, is not this one's to change. */
     private void requireOwnFlow(int clusterId, int flowId) {
         MovementFlow flow = flowService.findFlow(flowId).orElseThrow(() -> new NotFoundResponse("No such flow"));
@@ -439,6 +462,11 @@ public class ClusterInventoryService {
     /**
      * @param stepLabel what the cluster is being asked to confirm
      */
+    /**
+     * @param wantedSize what the station asked for, where it asked for a size. An association that
+     *                   cannot see this is being asked to send something without being told what
+     * @param reason     why they asked, in their own words
+     */
     public record QueueEntry(
             int movementId,
             MovementPurpose purpose,
@@ -446,5 +474,7 @@ public class ClusterInventoryService {
             String stationName,
             String stepLabel,
             String itemName,
+            String wantedSize,
+            String reason,
             Instant createdAt) {}
 }

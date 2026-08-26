@@ -22,6 +22,7 @@ import {useFlashMessage} from '@/composables/useFlashMessage'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 import MemberInventoryHeader from './memberinventoryview/MemberInventoryHeader.vue'
+import ReturnEverythingBar from './memberinventoryview/ReturnEverythingBar.vue'
 import MemberInventoryScanPanel from './memberinventoryview/MemberInventoryScanPanel.vue'
 import MemberInventoryGroups from './memberinventoryview/MemberInventoryGroups.vue'
 import RequestExchangeModal from './memberinventoryview/RequestExchangeModal.vue'
@@ -89,6 +90,10 @@ async function onUnknownScanCreated(item: InventoryItem) {
 }
 
 const memberId = computed(() => Number(route.params.memberId))
+
+
+const canManage = computed(() => hasPermission(StationPermission.INVENTORY_MANAGER))
+
 const member = ref<StationMember | null>(null)
 const items = ref<MyInventoryItem[]>([])
 const activeExchanges = ref<ExchangeRequestEntry[]>([])
@@ -187,6 +192,7 @@ watch(memberId, loadData)
       <MemberInventoryHeader :member="member" @back="goBack" />
 
       <Alert v-if="error || exchangeError" variant="error">{{ error || exchangeError }}</Alert>
+      <ReturnEverythingBar v-if="canManage && items.length > 0" :member-id="memberId" @done="loadData"/>
 
       <AsyncSection :loading="loading">
         <MemberInventoryScanPanel

@@ -130,6 +130,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceConfigEdit.autoAttendText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.attendanceConfigEdit.widthTitle')">
+      <p>{{ t('helpCenter.attendanceConfigEdit.widthText') }}</p>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.attendanceConfigEdit.tip') }}</HelpTip>
   </HelpArticle>
 </template>

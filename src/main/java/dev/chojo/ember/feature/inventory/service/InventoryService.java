@@ -301,9 +301,11 @@ public class InventoryService {
             ItemOwner ownerKind,
             Integer ownerClusterId) {
         requireOwnerFits(inventoryId, ownerKind);
-        requireOwningCluster(inventoryId, ownerClusterId);
-        InventoryItem item = inventoryRepository.createItem(
-                inventoryId, internalId, name, sizeId, metadata, ownerKind, ownerClusterId);
+        Integer owner =
+                ownerKind == ItemOwner.CLUSTER && ownerClusterId == null ? clusterAbove(inventoryId) : ownerClusterId;
+        requireOwningCluster(inventoryId, owner);
+        InventoryItem item =
+                inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata, ownerKind, owner);
         log.info(
                 "Created item {} (name='{}', internalId='{}', sizeId={}, owner={}, ownerClusterId={}) in inventory {}",
                 item.id(),
@@ -311,9 +313,28 @@ public class InventoryService {
                 internalId,
                 sizeId,
                 ownerKind,
-                ownerClusterId,
+                owner,
                 inventoryId);
         return item;
+    }
+
+    /**
+     * The body above the station that keeps this inventory, when there is one.
+     *
+     * <p>A station recording gear it does not own means the one body above it: there is no second
+     * candidate to choose between, so nothing asks. Without this the row says "somebody above us owns
+     * this" and cannot say who, the association's own chains never reach it, and the station ends up
+     * standing in for a body that is right there and could have answered for itself.
+     *
+     * @param inventoryId the inventory the gear goes into
+     * @return the owning body, or {@code null} at a station that answers to nobody
+     */
+    private Integer clusterAbove(int inventoryId) {
+        return inventoryRepository
+                .findById(inventoryId)
+                .flatMap(inv -> clusterRepository.findByStation(inv.stationId()))
+                .map(Cluster::id)
+                .orElse(null);
     }
 
     /**

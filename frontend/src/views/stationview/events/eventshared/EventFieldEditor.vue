@@ -9,6 +9,8 @@ import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import WidthField from '@/components/profilefields/WidthField.vue'
+import {FieldWidths} from '@/components/profilefields/fieldLayout'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
@@ -56,41 +58,42 @@ const fieldTypeOptions = [
   {value: EventFieldTypes.MEMBER_LIST_OF_TAG, label: t('eventFields.typeMemberListOfTag')},
 ]
 
-const name = ref(modelValue.value.name ?? '')
-const fieldType = ref(modelValue.value.fieldType ?? 'STRING')
-const fieldValue = ref(modelValue.value.value ?? '')
-const overview = ref(modelValue.value.overview ?? false)
-const isPublic = ref(modelValue.value.isPublic ?? false)
-const attendanceFieldId = ref<number | null>(modelValue.value.attendanceFieldId ?? null)
+const name = ref('')
+const fieldType = ref('STRING')
+const fieldValue = ref('')
+const overview = ref(false)
+const isPublic = ref(false)
+const attendanceFieldId = ref<number | null>(null)
 const enumOptions = ref('')
 const groupId = ref<string>('')
+const width = ref<string>(FieldWidths.FULL)
 const userType = ref<string>('')
 const tagId = ref<string>('')
 const selfRegistration = ref(false)
 
-function parseConfig(): Record<string, unknown> {
-  return modelValue.value.config ?? {}
+/** Takes the form apart into the fields that edit it. */
+function seed(entry: EventFieldEntry) {
+  name.value = entry.name ?? ''
+  fieldType.value = entry.fieldType ?? 'STRING'
+  fieldValue.value = entry.value ?? ''
+  overview.value = entry.overview ?? false
+  isPublic.value = entry.isPublic ?? false
+  attendanceFieldId.value = entry.attendanceFieldId ?? null
+
+  const cfg = entry.config ?? {}
+  enumOptions.value = Array.isArray(cfg.options) ? (cfg.options as string[]).join('\n') : ''
+  width.value = cfg.width ? String(cfg.width) : FieldWidths.FULL
+  groupId.value = cfg.groupId ? String(cfg.groupId) : ''
+  userType.value = cfg.userType ? String(cfg.userType) : ''
+  tagId.value = cfg.tagId ? String(cfg.tagId) : ''
+  selfRegistration.value = Boolean(cfg.selfRegistration)
 }
 
-const cfg = parseConfig()
-if (cfg.options && Array.isArray(cfg.options)) {
-  enumOptions.value = (cfg.options as string[]).join('\n')
-}
-if (cfg.groupId) {
-  groupId.value = String(cfg.groupId)
-}
-if (cfg.userType) {
-  userType.value = String(cfg.userType)
-}
-if (cfg.tagId) {
-  tagId.value = String(cfg.tagId)
-}
-if (cfg.selfRegistration) {
-  selfRegistration.value = true
-}
+seed(modelValue.value)
 
 function buildConfig(): Record<string, unknown> {
   const c: Record<string, unknown> = {}
+  if (width.value && width.value !== FieldWidths.FULL) c.width = width.value
   const constraint = fieldConstraint(fieldType.value)
   if (fieldType.value === 'ENUM' && enumOptions.value.trim()) {
     c.options = enumOptions.value.split('\n').map(o => o.trim()).filter(o => o)
@@ -126,7 +129,25 @@ const entry = computed<EventFieldEntry>(() => ({
   attendanceFieldId: attendanceFieldId.value,
 }))
 
-watch(entry, val => { modelValue.value = val }, {deep: true})
+let handedOver: EventFieldEntry | null = null
+
+watch(entry, val => {
+  handedOver = val
+  modelValue.value = val
+}, {deep: true})
+
+/**
+ * Takes over a field that was put here from outside.
+ *
+ * <p>The rows are the questions in the order they are asked, and moving one hands this editor its
+ * neighbour's question while the neighbour takes this one. Without reading the new one in, the form
+ * would keep showing what it had and write it straight back, which is how moving a question appeared
+ * to do nothing at all.
+ */
+watch(modelValue, incoming => {
+  if (incoming === handedOver) return
+  seed(incoming)
+})
 </script>
 
 <template>
@@ -134,12 +155,12 @@ watch(entry, val => { modelValue.value = val }, {deep: true})
     <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
       <div class="space-y-1">
         <FieldLabel>{{ t('eventFields.name') }}</FieldLabel>
-        <TextInput v-model="name" :placeholder="t('eventFields.namePlaceholder')"/>
+        <TextInput v-model="name" :placeholder="t('eventFields.namePlaceholder')" data-testid="event-field-name"/>
       </div>
 
       <div class="space-y-1">
         <FieldLabel>{{ t('eventFields.type') }}</FieldLabel>
-        <SelectInput v-model="fieldType" class="w-full sm:w-auto">
+        <SelectInput v-model="fieldType" class="w-full sm:w-auto" data-testid="event-field-type">
           <option v-for="ft in fieldTypeOptions" :key="ft.value" :value="ft.value">{{ ft.label }}</option>
         </SelectInput>
       </div>
@@ -156,12 +177,12 @@ watch(entry, val => { modelValue.value = val }, {deep: true})
         :tags="tags"
     />
 
-    <div class="flex items-center gap-4">
-      <label class="flex items-center gap-2 text-sm">
+    <div class="flex flex-wrap items-end gap-x-4 gap-y-2">
+      <label class="flex items-center gap-2 pb-2 text-sm">
         <ToggleInput v-model="overview"/>
         {{ t('eventFields.overview') }}
       </label>
-      <label class="flex items-center gap-2 text-sm">
+      <label class="flex items-center gap-2 pb-2 text-sm">
         <ToggleInput v-model="isPublic"/>
         {{ t('eventFields.public') }}
       </label>
@@ -175,7 +196,13 @@ watch(entry, val => { modelValue.value = val }, {deep: true})
         </SelectInput>
       </div>
 
-      <DeleteButton :label="t('common.delete')" @click="emit('remove')"/>
+      <div class="w-40">
+        <WidthField v-model="width"/>
+      </div>
+
+      <div class="ms-auto flex items-center gap-1 pb-1">
+        <DeleteButton :label="t('common.delete')" @click="emit('remove')"/>
+      </div>
     </div>
 
     <div v-if="showValue && name.trim()" class="space-y-1">

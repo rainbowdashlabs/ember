@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {statSync} from 'node:fs'
-import {test, expect} from './fixtures/auth'
+import {test, expect, type Page} from './fixtures/auth'
 
 test.describe('Attendance', () => {
     /**
@@ -115,5 +115,47 @@ test.describe('Attendance', () => {
         await page.goto('/station/attendance/new')
 
         await expect(page.getByRole('button', {name: /Speichern|Starten/})).toHaveCount(0)
+    })
+
+    /**
+     * What the sheet a station configures will look like when it is filled in.
+     *
+     * <p>The questions are configured as a column of rows whatever width they are given, so the
+     * choice is unanswerable without seeing it drawn, and a sheet of thirty short questions was
+     * thirty lines long.
+     */
+    test.describe('Configuration', () => {
+        /** Opens the first configured sheet for editing, which is where its questions live. */
+        async function openConfig(page: Page) {
+            await page.goto('/station/attendance/config')
+            await page.getByLabel('Bearbeiten').first().click()
+            await page.waitForURL(/\/station\/attendance\/config\/edit\/\d+/)
+            await page.getByTestId('attendance-field-row').first().waitFor()
+        }
+
+        test('the questions are drawn as they will be asked', async ({managerPage: page}) => {
+            await openConfig(page)
+
+            await expect(page.getByTestId('field-layout-preview')).toBeVisible()
+        })
+
+        test('a question set to half a row keeps that width', async ({managerPage: page}) => {
+            await openConfig(page)
+
+            const row = page.getByTestId('attendance-field-row').first()
+            const name = (await row.locator('span.font-medium').innerText()).trim()
+
+            await row.getByLabel('Bearbeiten').click()
+            const modal = page.getByTestId('modal')
+            await modal.getByTestId('field-width').selectOption('half')
+            await modal.getByRole('button', {name: 'Speichern'}).click()
+
+            await page.reload()
+            await page.getByTestId('attendance-field-row').first().waitFor()
+            await page.getByTestId('attendance-field-row').filter({hasText: name}).first()
+                .getByLabel('Bearbeiten').click()
+
+            await expect(page.getByTestId('modal').getByTestId('field-width')).toHaveValue('half')
+        })
     })
 })

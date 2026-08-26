@@ -11,6 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
+import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -50,10 +51,15 @@ const TEMPLATES = [
           </div>
           <div class="flex items-center gap-2">
             <EditButton/>
+            <MutedIconButton :icon="['fas', 'clone']" :label="t('eventTemplates.duplicate')"/>
             <DeleteButton/>
           </div>
         </NeutralContainer>
       </div>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventTemplates.duplicateTitle')">
+      <p>{{ t('helpCenter.eventTemplates.duplicateText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventTemplates.createTitle')">

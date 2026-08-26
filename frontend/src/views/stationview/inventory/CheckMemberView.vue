@@ -14,10 +14,12 @@ import Alert from '@/components/feedback/Alert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import type { CheckItemResult, CheckResult, MemberCheckState } from '@/api/inventoryCheck'
-import { inventoryCheck } from '@/api'
+import { exchanges, inventoryCheck } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useAsyncAction } from '@/composables/useAsyncAction'
-import { useMemberCheck } from '@/composables/useMemberCheck'
+import { useMemberCheck, type CheckEntry } from '@/composables/useMemberCheck'
+import { apiErrorMessage } from '@/util/apiError'
+import RapidExchangeModal, {type RapidExchangeKind} from './checkmemberview/RapidExchangeModal.vue'
 import CheckMemberBody from './checkmemberview/CheckMemberBody.vue'
 import { apiErrorStatus } from '@/util/apiError'
 import { reportCaughtError } from '@/util/devErrorReporter'
@@ -42,6 +44,12 @@ const check = useMemberCheck(memberId, state, error)
 
 const checkMode = ref(false)
 
+const showExchange = ref(false)
+const exchangeKind = ref<RapidExchangeKind>('size')
+const exchangeEntry = ref<CheckEntry | null>(null)
+const exchangeBusy = ref(false)
+const exchangeError = ref('')
+
 function startCheckMode() {
   checkMode.value = true
 }
@@ -54,6 +62,42 @@ function onRapidSetResult(result: CheckResult) {
   const entry = currentRapidEntry()
   if (entry?.type !== 'item') return
   check.setResult(entry.item.id, result)
+}
+
+/**
+ * The exchange a check raises about the piece in front of whoever is walking it.
+ *
+ * <p>The form is opened rather than the exchange written straight away: the size one up is a guess,
+ * and the reason is the check's words rather than the member's. Both want a look before they stand.
+ */
+function onRapidExchange(kind: RapidExchangeKind, entry: CheckEntry) {
+  if (entry.type !== 'item') return
+  exchangeEntry.value = entry
+  exchangeKind.value = kind
+  exchangeError.value = ''
+  showExchange.value = true
+}
+
+async function createRapidExchange(payload: {newSizeId: number | null; reason: string}) {
+  const entry = exchangeEntry.value
+  if (entry?.type !== 'item') return
+  exchangeBusy.value = true
+  exchangeError.value = ''
+  try {
+    await exchanges.createExchange({
+      memberId: memberId.value,
+      itemId: entry.item.id,
+      inventoryId: entry.req.inventoryId,
+      oldSizeId: entry.item.sizeId ?? undefined,
+      newSizeId: payload.newSizeId ?? undefined,
+      reason: payload.reason,
+    })
+    showExchange.value = false
+  } catch (e) {
+    exchangeError.value = apiErrorMessage(e) ?? t('common.error')
+  } finally {
+    exchangeBusy.value = false
+  }
 }
 
 function onRapidMarkNotInPossession() {
@@ -163,6 +207,7 @@ async function cancel() {
         @cancel="cancel"
         @submit="submit"
         @rapid-set-result="onRapidSetResult"
+        @rapid-exchange="onRapidExchange"
         @rapid-mark-not-in-possession="onRapidMarkNotInPossession"
         @rapid-assign="onRapidAssign"
         @rapid-create-and-assign="onRapidCreateAndAssign"
@@ -183,6 +228,17 @@ async function cancel() {
       v-model="unassign.show.value"
       :message="t('inventory.check.unassignConfirm')"
       @confirm="unassign.confirm"
+    />
+
+    <RapidExchangeModal
+        v-model="showExchange"
+        :busy="exchangeBusy"
+        :current-size-id="exchangeEntry?.type === 'item' ? exchangeEntry.item.sizeId : null"
+        :error="exchangeError"
+        :item-name="exchangeEntry?.type === 'item' ? exchangeEntry.item.name : ''"
+        :kind="exchangeKind"
+        :sizes="exchangeEntry?.type === 'item' ? exchangeEntry.req.sizes : []"
+        @confirm="createRapidExchange"
     />
   </ViewContent>
 </template>

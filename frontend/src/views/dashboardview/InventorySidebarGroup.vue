@@ -60,6 +60,9 @@ function close() {
       <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_CREATE)" :icon="['fas', 'box-open']" name="inventory-manage" to="/station/inventory/manage" @navigate="close">
         {{ t('sidebar.inventoryManage') }}
       </SidebarLink>
+      <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_MANAGER)" :icon="['fas', 'diagram-project']" name="inventory-flows" to="/station/inventory/flows" @navigate="close">
+        {{ t('sidebar.inventoryFlows') }}
+      </SidebarLink>
       <SidebarLink :badge="counts.pendingExchanges" :icon="['fas', 'rotate']" name="inventory-exchanges" to="/station/inventory/exchanges" @navigate="close">
         {{ t('sidebar.inventoryExchanges') }}
       </SidebarLink>

@@ -153,6 +153,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-inventory-detail', path: '/helpcenter/station/inventory/detail', i18nPrefix: 'helpCenter.inventoryDetail'},
     {route: 'help-inventory-edit', path: '/helpcenter/station/inventory/edit', i18nPrefix: ['helpCenter.inventoryEdit', 'helpCenter.scanShared']},
     {route: 'help-inventory-exchanges', path: '/helpcenter/station/inventory/exchanges', i18nPrefix: 'helpCenter.inventoryExchanges'},
+    {route: 'help-inventory-flows', path: '/helpcenter/station/inventory/flows', i18nPrefix: 'helpCenter.inventoryFlows'},
     {route: 'help-inventory-item-detail', path: '/helpcenter/station/inventory/item/0', i18nPrefix: 'helpCenter.itemDetail'},
     {route: 'help-inventory-lending', path: '/helpcenter/station/inventory/lending', i18nPrefix: 'helpCenter.inventoryLending'},
     {route: 'help-inventory-lending-blocks', path: '/helpcenter/station/inventory/lending/blocks', i18nPrefix: 'helpCenter.inventoryLendingBlocks'},

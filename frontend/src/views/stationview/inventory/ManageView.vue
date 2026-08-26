@@ -21,7 +21,6 @@ import {useConfigPanel} from '@/composables/useConfigPanel'
 import ScannerPanel from './manageview/ScannerPanel.vue'
 import InventorySummaryCard from './manageview/InventorySummaryCard.vue'
 import CreateInventoryModal from './manageview/CreateInventoryModal.vue'
-import MovementFlowPanel from './manageview/MovementFlowPanel.vue'
 import LossSettingsPanel from './manageview/LossSettingsPanel.vue'
 
 const routes = useInventoryRoutes()
@@ -101,8 +100,6 @@ function onError() {
 
         <template v-if="!routes.settings">
           <LossSettingsPanel />
-
-          <MovementFlowPanel />
         </template>
       </template>
 

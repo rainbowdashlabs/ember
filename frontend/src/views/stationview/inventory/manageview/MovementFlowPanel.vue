@@ -95,19 +95,22 @@ function createFlow() {
             @add-step="(flowId: number, step: StepRequest) => run(() => movements.addStep(flowId, step))"
             @archive-step="(stepId: number) => run(() => movements.archiveStep(stepId))"
             @archive-flow="(flowId: number) => run(() => movements.archiveFlow(flowId))"
+            @save-step="(stepId: number, step: StepRequest) => run(() => movements.updateStep(stepId, step))"
+            @reorder="(flowId: number, stepIds: number[]) => run(() => movements.reorderSteps(flowId, stepIds))"
         />
       </div>
 
       <div class="flex flex-wrap items-end gap-2">
-        <div class="space-y-1">
+        <div class="w-full space-y-1 sm:w-64">
           <FieldLabel>{{ t('flows.newFlow') }}</FieldLabel>
-          <TextInput v-model="newName" :placeholder="t('flows.newFlowPlaceholder')"/>
+          <TextInput v-model="newName" :placeholder="t('flows.newFlowPlaceholder')" class="w-full"/>
         </div>
-        <div class="space-y-1">
+        <div class="w-full space-y-1 sm:w-64">
           <FieldLabel>{{ t('flows.purpose') }}</FieldLabel>
-          <SelectInput v-model="newPurpose">
+          <SelectInput v-model="newPurpose" class="w-full">
             <option
-                v-for="value in [MovementPurpose.EXCHANGE, MovementPurpose.RETURN, MovementPurpose.ISSUE]"
+                v-for="value in [MovementPurpose.EXCHANGE, MovementPurpose.RETURN,
+                                 MovementPurpose.ISSUE, MovementPurpose.REQUEST]"
                 :key="value"
                 :value="value"
             >

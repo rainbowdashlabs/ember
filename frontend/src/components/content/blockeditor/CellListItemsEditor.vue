@@ -11,6 +11,8 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import MarkdownFieldInput from '@/components/input/text/MarkdownFieldInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import DragList from '@/components/input/DragList.vue'
+import {moveWithin} from '@/util/reorder'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
@@ -50,14 +52,8 @@ function removeItem(index: number) {
     items.value = safeItems.value.filter((_, i) => i !== index)
 }
 
-function moveItem(index: number, delta: number) {
-    const next = [...safeItems.value]
-    const target = index + delta
-    if (target < 0 || target >= next.length) return
-    const [moved] = next.splice(index, 1)
-    if (moved === undefined) return
-    next.splice(target, 0, moved)
-    items.value = next
+function moveItem(fromIndex: number, toIndex: number) {
+    items.value = moveWithin(safeItems.value, fromIndex, toIndex)
 }
 
 const gridClass = computed(() => `grid-cols-1 sm:grid-cols-${props.gridCols}`)
@@ -65,14 +61,12 @@ const gridClass = computed(() => `grid-cols-1 sm:grid-cols-${props.gridCols}`)
 
 <template>
     <div class="space-y-3">
-        <div v-for="(item, i) in safeItems" :key="i" class="rounded-theme border border-(--border) p-3 space-y-2">
+        <DragList :items="safeItems" :key-fn="(_, index) => index" class="space-y-3" @reorder="moveItem">
+        <template #default="{item, index: i}">
+        <div class="rounded-theme border border-(--border) p-3 space-y-2">
             <div class="flex items-center justify-between">
                 <span class="text-xs text-(--text-muted)">#{{ i + 1 }}</span>
-                <div class="flex items-center gap-1">
-                    <IconButton :icon="['fas', 'angle-up']" :label="t('common.moveUp')" :class="{'opacity-30 pointer-events-none': i === 0}" @click="moveItem(i, -1)"/>
-                    <IconButton :icon="['fas', 'angle-down']" :label="t('common.moveDown')" :class="{'opacity-30 pointer-events-none': i === safeItems.length - 1}" @click="moveItem(i, 1)"/>
-                    <IconButton :icon="['fas', 'trash']" :label="t('common.delete')" class="text-error" @click="removeItem(i)"/>
-                </div>
+                <IconButton :icon="['fas', 'trash']" :label="t('common.delete')" class="text-error" @click="removeItem(i)"/>
             </div>
             <div :class="['grid gap-2', gridClass]">
                 <div v-for="f in fields" :key="f.key" :class="f.span ? `sm:col-span-${f.span}` : ''">
@@ -105,6 +99,8 @@ const gridClass = computed(() => `grid-cols-1 sm:grid-cols-${props.gridCols}`)
                 </div>
             </div>
         </div>
+        </template>
+        </DragList>
         <SecondaryButton :icon="['fas', 'plus']" @click="addItem">
             {{ addLabel ?? t('common.add') }}
         </SecondaryButton>

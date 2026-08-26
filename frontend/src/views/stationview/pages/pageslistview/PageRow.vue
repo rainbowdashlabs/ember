@@ -38,10 +38,6 @@ const {t} = useI18n()
       class="flex items-center gap-3 my-1"
       :style="{marginLeft: `${props.depth * 1.5}rem`}"
   >
-    <div class="cursor-grab active:cursor-grabbing text-[var(--text-muted)] shrink-0">
-      <font-awesome-icon :icon="['fas', 'grip-vertical']" class="h-4 w-4"/>
-    </div>
-
     <div class="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
       <span class="font-medium truncate">{{ props.page.title }}</span>
       <span class="text-xs text-[var(--text-muted)]">/{{ props.page.slug }}</span>

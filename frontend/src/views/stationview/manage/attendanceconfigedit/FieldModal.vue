@@ -14,6 +14,8 @@ import EnumOptionsField from './fieldmodal/EnumOptionsField.vue'
 import FieldDefaultValueSection from '@/components/input/FieldDefaultValueSection.vue'
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import PositionField from './fieldmodal/PositionField.vue'
+import WidthField from '@/components/profilefields/WidthField.vue'
+import {FieldWidths} from '@/components/profilefields/fieldLayout'
 import ModalActions from './fieldmodal/ModalActions.vue'
 import type {AttendanceTemplateField} from '@/api/attendance'
 import type {MemberGroup} from '@/api/types'
@@ -46,6 +48,7 @@ const fieldDefaultBool = ref(false)
 const fieldDefaultToday = ref(false)
 const fieldDefaultNumber = ref(0)
 const fieldPosition = ref(0)
+const fieldWidth = ref<string>(FieldWidths.FULL)
 
 const isEditing = computed(() => props.field !== null)
 
@@ -68,6 +71,7 @@ function parseConfig(config?: Record<string, unknown>): Record<string, unknown> 
 function buildConfig(): Record<string, unknown> {
   const cfg: Record<string, unknown> = {}
   if (fieldConfigRequired.value) cfg.required = true
+  if (fieldWidth.value && fieldWidth.value !== FieldWidths.FULL) cfg.width = fieldWidth.value
   if (fieldTypeNeedsGroup(fieldType.value) && fieldConfigGroupId.value) {
     cfg.groupId = Number(fieldConfigGroupId.value)
   }
@@ -98,6 +102,7 @@ watch([open, () => props.field], () => {
     fieldType.value = props.field.fieldType ?? 'STRING'
     const cfg = parseConfig(props.field.config)
     fieldConfigGroupId.value = cfg.groupId ? String(cfg.groupId) : ''
+    fieldWidth.value = cfg.width ? String(cfg.width) : FieldWidths.FULL
     fieldConfigRequired.value = !!cfg.required
     fieldConfigAutoAttend.value = !!cfg.autoAttend
     fieldEnumOptions.value = ((cfg.options as string[]) ?? []).join('\n')
@@ -165,6 +170,8 @@ function handleSave() {
         v-model:auto-attend="fieldConfigAutoAttend"
         :show-auto-attend="fieldTypeCanAutoAttend(fieldType)"
       />
+      <WidthField v-model="fieldWidth"/>
+
       <PositionField v-model="fieldPosition"/>
       <ModalActions :saving="saving" :disabled="!fieldName" @cancel="open = false" @submit="handleSave"/>
     </div>

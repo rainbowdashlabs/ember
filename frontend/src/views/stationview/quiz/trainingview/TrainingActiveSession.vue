@@ -33,7 +33,6 @@ defineProps<{
 defineEmits<{
   toggleMcOption: [idx: number]
   reorderItems: [fromIndex: number, toIndex: number]
-  moveOrderItem: [index: number, direction: -1 | 1]
   setConnectPair: [leftIndex: number, rightValue: string]
   setFillGap: [gapIndex: number, value: string]
   revealAndNext: []
@@ -68,7 +67,6 @@ const showReport = ref(false)
     :connect-right-order="connectRightOrder"
     @toggle-mc-option="(idx: number) => $emit('toggleMcOption', idx)"
     @reorder-items="(from: number, to: number) => $emit('reorderItems', from, to)"
-    @move-order-item="(idx: number, dir: -1 | 1) => $emit('moveOrderItem', idx, dir)"
     @set-connect-pair="(left: number, right: string) => $emit('setConnectPair', left, right)"
     @set-fill-gap="(gap: number, value: string) => $emit('setFillGap', gap, value)"
   />

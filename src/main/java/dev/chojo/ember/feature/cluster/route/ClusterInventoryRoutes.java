@@ -84,6 +84,10 @@ public class ClusterInventoryRoutes implements Routes {
                 this::addStep,
                 ClusterPermission.CLUSTER_INVENTORY_MANAGER);
         routes.put(
+                prefix + "/cluster/inventory/flows/{flowId}/step-order",
+                this::reorderSteps,
+                ClusterPermission.CLUSTER_INVENTORY_MANAGER);
+        routes.put(
                 prefix + "/cluster/inventory/flow-steps/{stepId}",
                 this::updateStep,
                 ClusterPermission.CLUSTER_INVENTORY_MANAGER);
@@ -267,6 +271,24 @@ public class ClusterInventoryRoutes implements Routes {
                 request.custodyAfter(),
                 request.picksItem());
         ctx.status(HttpStatus.CREATED).json(toStep(step));
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/inventory/flows/{flowId}/step-order",
+            methods = HttpMethod.PUT,
+            summary = "Put the steps of one of the association's chains in the order they are walked",
+            tags = {"Cluster"},
+            pathParams = @OpenApiParam(name = "flowId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ClusterStepOrderRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void reorderSteps(Context ctx) {
+        Cluster cluster = requireActive(ctx);
+        var request = ctx.bodyAsClass(ClusterStepOrderRequest.class);
+        if (request.stepIds() == null || request.stepIds().isEmpty()) {
+            throw new BadRequestResponse("Name the steps in the order they are to be walked");
+        }
+        inventoryService.reorderSteps(cluster.id(), pathInt(ctx, "flowId"), request.stepIds());
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     @OpenApi(
@@ -514,6 +536,11 @@ public class ClusterInventoryRoutes implements Routes {
 
     public record ClusterStepRequest(
             String label, StepActor actor, StepSubject subject, ItemCustody custodyAfter, boolean picksItem) {}
+
+    /**
+     * @param stepIds every active step of the chain, in the order they are to be walked
+     */
+    public record ClusterStepOrderRequest(List<Integer> stepIds) {}
 
     public record ClusterStepResponse(
             int id,

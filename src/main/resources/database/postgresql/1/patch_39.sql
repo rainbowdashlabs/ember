@@ -43,6 +43,7 @@ COMMENT ON COLUMN ember_schema.inventory_item.owner_kind
 COMMENT ON COLUMN ember_schema.inventory_item.owner_cluster_id
     IS 'The owning body when it runs on this instance, null when it owns the item without using Ember. Only ever set for CLUSTER.';
 
+
 ALTER TABLE ember_schema.inventory_item
     DROP COLUMN IF EXISTS item_source;
 
@@ -261,22 +262,24 @@ CREATE TABLE IF NOT EXISTS ember_schema.movement_flow_binding
     inventory_id INTEGER REFERENCES ember_schema.inventory (id) ON DELETE CASCADE,
     owner_kind   TEXT    NOT NULL,
     purpose      TEXT    NOT NULL,
+    party        TEXT    NOT NULL DEFAULT 'STORE',
     flow_id      INTEGER NOT NULL REFERENCES ember_schema.movement_flow (id) ON DELETE CASCADE
 );
 
 -- Partial indexes rather than one plain UNIQUE, because a plain one treats nulls as distinct and
 -- would happily accept two station-wide bindings for the same pair.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_movement_flow_binding_station
-    ON ember_schema.movement_flow_binding (station_id, owner_kind, purpose) WHERE inventory_id IS NULL;
+    ON ember_schema.movement_flow_binding (station_id, owner_kind, purpose, party) WHERE inventory_id IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_movement_flow_binding_inventory
-    ON ember_schema.movement_flow_binding (inventory_id, owner_kind, purpose) WHERE inventory_id IS NOT NULL;
+    ON ember_schema.movement_flow_binding (inventory_id, owner_kind, purpose, party) WHERE inventory_id IS NOT NULL;
 
 COMMENT ON TABLE ember_schema.movement_flow_binding
     IS 'Which flow a station uses for a given owner and purpose, per inventory when one is set and station-wide otherwise.';
 COMMENT ON COLUMN ember_schema.movement_flow_binding.station_id IS 'The station the binding belongs to.';
 COMMENT ON COLUMN ember_schema.movement_flow_binding.inventory_id IS 'The inventory this binding is for, or null for the station-wide one.';
 COMMENT ON COLUMN ember_schema.movement_flow_binding.owner_kind IS 'Which owner the binding applies to: STATION or CLUSTER.';
-COMMENT ON COLUMN ember_schema.movement_flow_binding.purpose IS 'Which purpose the binding applies to: ISSUE, RETURN or EXCHANGE.';
+COMMENT ON COLUMN ember_schema.movement_flow_binding.purpose IS 'Which purpose the binding applies to: ISSUE, RETURN, EXCHANGE or REQUEST.';
+COMMENT ON COLUMN ember_schema.movement_flow_binding.party IS 'Which end the chain runs to: STORE for the station shelf, MEMBER for somebody wearing it. An issue that fills a shelf and one that dresses a member are different chains.';
 COMMENT ON COLUMN ember_schema.movement_flow_binding.flow_id IS 'The flow to walk.';
 
 -- The custody column has been waiting for this table since the patch that added it.
@@ -498,6 +501,21 @@ COMMENT ON COLUMN ember_schema.station.cluster_id
     IS 'The cluster this station belongs to, or null when it answers to nobody.';
 
 CREATE INDEX IF NOT EXISTS idx_station_cluster ON ember_schema.station (cluster_id) WHERE cluster_id IS NOT NULL;
+
+-- A station that answers to an association and holds gear it does not own holds that association's
+-- gear: there is no second body above it. Every such row said "somebody above us owns this" without
+-- being able to say who, because nothing ever asked. Naming it is what lets the association's chains
+-- reach the gear its stations hold, and what lets it answer for its own steps instead of the station
+-- standing in for a body that is right there.
+UPDATE ember_schema.inventory_item item
+SET owner_cluster_id = station.cluster_id
+FROM ember_schema.inventory inv,
+     ember_schema.station station
+WHERE item.inventory_id = inv.id
+  AND inv.station_id = station.id
+  AND item.owner_kind = 'CLUSTER'
+  AND item.owner_cluster_id IS NULL
+  AND station.cluster_id IS NOT NULL;
 
 -- Cluster members are account-level, with no former semantics: revoking a membership deletes the row.
 CREATE TABLE IF NOT EXISTS ember_schema.cluster_member

@@ -4,17 +4,18 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import {ExchangeStatus, type ExchangeRequestEntry, type ExchangeStatusName} from '@/api/exchanges'
-import {InventoryTypes, ItemOwner, type InventoryItem} from '@/api/inventory'
+import {InventoryTypes, ItemOwner, type InventoryItem, type InventorySize} from '@/api/inventory'
 import { exchanges, inventory, procurement } from '@/api'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import NewItemFields from './exchangestatusupdatepanel/NewItemFields.vue'
 
 const { t } = useI18n()
 
@@ -35,19 +36,47 @@ const updateNote = ref('')
 const updateExchangedItemId = ref<string>('')
 const createNewItemForExchange = ref(false)
 const newItemName = ref(props.request.inventoryName)
+const newItemInternalId = ref('')
+const newItemSizeId = ref<string>(String(props.request.newSizeId ?? props.request.oldSizeId ?? ''))
+const sizes = ref<InventorySize[]>([])
 const procurementCreatedForExchange = ref(false)
+
+/**
+ * The sizes the inventory keeps, for the piece being written down.
+ *
+ * <p>The size asked for is filled in, because that is what the exchange was raised about, and it stays
+ * editable: what an association actually sends is not always what was asked for, and a station writing
+ * down the wrong size to get past the step would be worse than no size at all.
+ */
+onMounted(async () => {
+  try {
+    sizes.value = await inventory.listSizes(props.request.inventoryId)
+  } catch {
+    sizes.value = []
+  }
+})
 
 function statusLabel(status: ExchangeStatusName): string {
   return t(`exchanges.status.${status}`)
 }
+
+/**
+ * Whether getting to the chosen status walks past the step that says which piece arrived.
+ *
+ * <p>Both of them do. Which step asks depends on the chain: for the station's own gear it is the one
+ * that hands the replacement over, and for the body above it the one where that body sends it. Asking
+ * only at the last status left the walk to stop halfway with nothing said, and the row looked stuck.
+ */
+const namesTheArrival = computed(() =>
+    updateTargetStatus.value === ExchangeStatus.DONE || updateTargetStatus.value === ExchangeStatus.ARRIVED)
 
 const {running: updateSaving, run: runStatusUpdate} = useAsyncAction(async () => {
   let exchangedItemId: number | undefined = updateExchangedItemId.value ? Number(updateExchangedItemId.value) : undefined
   if (createNewItemForExchange.value && newItemName.value.trim()) {
     const newItem = await inventory.createItem(props.request.inventoryId, {
       name: newItemName.value.trim(),
-      internalId: '',
-      sizeId: props.request.newSizeId ?? props.request.oldSizeId ?? undefined,
+      internalId: newItemInternalId.value.trim(),
+      sizeId: newItemSizeId.value ? Number(newItemSizeId.value) : undefined,
       ownerKind: ItemOwner.CLUSTER,
     })
     exchangedItemId = newItem.id
@@ -95,7 +124,7 @@ async function createProcurementFromExchange() {
           <option v-for="s in nextStatuses" :key="s" :value="s">{{ statusLabel(s) }}</option>
         </SelectInput>
       </div>
-      <div v-if="updateTargetStatus === ExchangeStatus.DONE" class="space-y-1 sm:col-span-2">
+      <div v-if="namesTheArrival" class="space-y-1 sm:col-span-2">
         <FieldLabel hint>{{ t('exchanges.exchangedItem') }}</FieldLabel>
         <template v-if="!createNewItemForExchange">
           <SelectInput v-model="updateExchangedItemId">
@@ -120,7 +149,12 @@ async function createProcurementFromExchange() {
           </div>
         </template>
         <template v-else>
-          <TextInput v-model="newItemName" :placeholder="t('exchanges.newItemName')" />
+          <NewItemFields
+              v-model:internal-id="newItemInternalId"
+              v-model:name="newItemName"
+              v-model:size-id="newItemSizeId"
+              :sizes="sizes"
+          />
           <SecondaryButton class="text-xs mt-1" @click="createNewItemForExchange = false">
             {{ t('exchanges.selectExisting') }}
           </SecondaryButton>

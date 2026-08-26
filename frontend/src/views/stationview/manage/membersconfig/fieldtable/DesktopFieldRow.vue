@@ -37,10 +37,7 @@ const emit = defineEmits<{
 <template>
   <div
       :class="gridClass"
-      class="gap-0 items-center border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 text-sm px-1 py-2 cursor-grab active:cursor-grabbing">
-    <div class="flex justify-center">
-      <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) h-3.5 w-3.5"/>
-    </div>
+      class="gap-0 items-center border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 text-sm px-1 py-2">
     <div class="font-medium px-2 truncate">{{ field.name }}</div>
     <div class="text-(--text-muted) px-2 truncate text-xs">{{ typeLabel }}</div>
     <div class="text-(--text-muted) px-2 text-xs">{{ isSection(field) ? '' : widthLabel(t, widthOf(field)) }}</div>

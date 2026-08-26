@@ -22,6 +22,7 @@ import RequirementAddModal from './requirementsview/RequirementAddModal.vue'
 import { userTypeFriendlyNames, type RequirementGroup } from './requirementsview/types'
 import { clusterStationGroups } from '@/api'
 import type { StationGroup } from '@/api/clusterStationGroups'
+import { moveWithin } from '@/util/reorder'
 
 const { t } = useI18n()
 const routes = useInventoryRoutes()
@@ -151,10 +152,7 @@ async function removeRequirement(req: InventoryRequirement) {
 }
 
 async function onReorder(group: RequirementGroup, fromIndex: number, toIndex: number) {
-  const items = [...group.items]
-  const [moved] = items.splice(fromIndex, 1)
-  if (!moved) return
-  items.splice(toIndex, 0, moved)
+  const items = moveWithin(group.items, fromIndex, toIndex)
   try {
     for (const [i, item] of items.entries()) {
       await inventory.updateRequirementPosition(item.id, i)

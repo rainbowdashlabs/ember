@@ -76,8 +76,7 @@ function nameOf(req: InventoryRequirement): string {
 
     <DragList :items="own" :key-fn="(r) => r.id" @reorder="(from, to) => emit('reorder', props.group, from, to)">
       <template #default="{ item: req }">
-        <div class="grid grid-cols-[auto_1fr_6rem_2.5rem] gap-2 items-center px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 cursor-grab active:cursor-grabbing">
-          <MutedIcon size="md" :icon="['fas', 'grip-vertical']" />
+        <div class="grid grid-cols-[1fr_6rem_2.5rem] gap-2 items-center px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
           <div class="flex items-center gap-2 min-w-0">
             <span class="text-sm truncate">{{ nameOf(req) }}</span>
             <SecondaryBadge v-if="stationGroupName(req)" data-testid="requirement-station-group">

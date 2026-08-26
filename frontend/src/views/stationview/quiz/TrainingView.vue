@@ -15,6 +15,7 @@ import TrainingFinished from './trainingview/TrainingFinished.vue'
 import {QuizQuestionTypes, type QuizCatalog, type QuizQuestion} from '@/api/quiz'
 import { quiz } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
+import { moveWithin } from '@/util/reorder'
 
 const { t } = useI18n()
 
@@ -91,22 +92,7 @@ function resetUserInput() {
 }
 
 function reorderItems(fromIndex: number, toIndex: number) {
-  const order = [...userOrderItems.value]
-  const [moved] = order.splice(fromIndex, 1)
-  if (moved === undefined) return
-  order.splice(toIndex, 0, moved)
-  userOrderItems.value = order
-}
-
-function moveOrderItem(index: number, direction: -1 | 1) {
-  const order = [...userOrderItems.value]
-  const newIdx = index + direction
-  const current = order[index]
-  const target = order[newIdx]
-  if (current === undefined || target === undefined) return
-  order[index] = target
-  order[newIdx] = current
-  userOrderItems.value = order
+  userOrderItems.value = moveWithin(userOrderItems.value, fromIndex, toIndex)
 }
 
 function setConnectPair(leftIndex: number, rightValue: string) {
@@ -211,7 +197,6 @@ function restart() {
         :connect-right-order="connectRightOrder"
         @toggle-mc-option="toggleMcOption"
         @reorder-items="reorderItems"
-        @move-order-item="moveOrderItem"
         @set-connect-pair="setConnectPair"
         @set-fill-gap="setFillGap"
         @reveal-and-next="revealAndNext"

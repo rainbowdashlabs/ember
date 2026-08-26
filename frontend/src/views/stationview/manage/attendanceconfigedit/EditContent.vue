@@ -28,8 +28,7 @@ const emit = defineEmits<{
   (e: 'update:name', value: string): void
   (e: 'add-group', groupId: number): void
   (e: 'remove-group', groupId: number): void
-  (e: 'move-group-up', index: number): void
-  (e: 'move-group-down', index: number): void
+  (e: 'reorder-groups', fromIndex: number, toIndex: number): void
   (e: 'add-field'): void
   (e: 'edit-field', field: AttendanceTemplateField): void
   (e: 'delete-field', field: AttendanceTemplateField): void
@@ -64,8 +63,7 @@ const {t} = useI18n()
         :groups="props.templateGroups"
         @add="(id: number) => emit('add-group', id)"
         @remove="(id: number) => emit('remove-group', id)"
-        @move-up="(i: number) => emit('move-group-up', i)"
-        @move-down="(i: number) => emit('move-group-down', i)"
+        @reorder="(from: number, to: number) => emit('reorder-groups', from, to)"
     />
 
     <FieldsList

@@ -35,6 +35,42 @@ const SPANS: Record<FieldWidthName, string> = {
     [FieldWidths.THIRD]: 'col-span-6 sm:col-span-2',
 }
 
+/**
+ * A field's settings, whether they arrive as an object or as the text they are stored as.
+ *
+ * <p>Which of the two turns up depends on the screen: a field just typed carries its settings as an
+ * object, while one read back from the server carries the text. Both say the same thing, and a width
+ * that only applies to one of them is a width that appears to be ignored every other time.
+ *
+ * @param config what the field carries, in either shape
+ * @return the settings, empty where there are none or where they cannot be read
+ */
+export function configOf(config?: string | Record<string, unknown> | null): Record<string, unknown> {
+    if (!config) return {}
+    if (typeof config === 'object') return config
+    try {
+        return JSON.parse(config) as Record<string, unknown>
+    } catch {
+        return {}
+    }
+}
+
+/**
+ * The grid class for a width on its own, for fields whose settings are a plain object.
+ *
+ * <p>An event's questions and an attendance sheet's are configured elsewhere and stored differently,
+ * but a row is a row: they are laid out on the same six columns so that a station setting a width in
+ * one place gets the same result in the other.
+ *
+ * @param width what was configured, or nothing
+ * @return the grid class, a whole row where nothing was said
+ */
+export function spanForWidth(width?: unknown): string {
+    return width === FieldWidths.HALF || width === FieldWidths.THIRD
+        ? SPANS[width as FieldWidthName]
+        : SPANS[FieldWidths.FULL]
+}
+
 /** A field that says nothing about its width takes the whole row, which is how it always was. */
 export function widthOf(field: LayoutField): FieldWidthName {
     const width = parseFieldConfig(field.config).width

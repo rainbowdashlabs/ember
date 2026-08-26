@@ -17,6 +17,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import TimeRangeSection from './exportmodal/TimeRangeSection.vue'
 import CategoriesSection from './exportmodal/CategoriesSection.vue'
 import ColumnsSection, {type ExportColumn} from './exportmodal/ColumnsSection.vue'
+import {moveWithin} from '@/util/reorder'
 
 const {t} = useI18n()
 
@@ -68,24 +69,8 @@ function removeColumn(index: number) {
   selectedColumns.value = selectedColumns.value.filter((_, i) => i !== index)
 }
 
-function swapColumns(first: number, second: number) {
-  const cols = [...selectedColumns.value]
-  const a = cols[first]
-  const b = cols[second]
-  if (a === undefined || b === undefined) return
-  cols[first] = b
-  cols[second] = a
-  selectedColumns.value = cols
-}
-
-function moveColumnUp(index: number) {
-  if (index <= 0) return
-  swapColumns(index - 1, index)
-}
-
-function moveColumnDown(index: number) {
-  if (index >= selectedColumns.value.length - 1) return
-  swapColumns(index, index + 1)
+function reorderColumns(fromIndex: number, toIndex: number) {
+  selectedColumns.value = moveWithin(selectedColumns.value, fromIndex, toIndex)
 }
 
 function addFieldColumn(name: string) {
@@ -167,8 +152,7 @@ const {running: exporting, run: doExport} = useAsyncAction(async () => {
           @add="addColumn"
           @add-field="addFieldColumn"
           @remove="removeColumn"
-          @move-up="moveColumnUp"
-          @move-down="moveColumnDown"
+          @reorder="reorderColumns"
       />
 
       <div class="flex justify-end gap-2 pt-2">

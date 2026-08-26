@@ -15,7 +15,8 @@ import ExchangeStatusBadge from './ExchangeStatusBadge.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
 import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
-import { inventoryTypeBadge, inventoryTypeLabel as toInventoryTypeLabel } from '@/util/inventoryType'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import { itemOwnerBadge, itemOwnerLabel as toItemOwnerLabel } from '@/util/inventoryType'
 import { formatDate } from '@/util/format'
 
 const routes = useInventoryRoutes()
@@ -38,8 +39,9 @@ const emit = defineEmits<{
   (e: 'delete'): void
 }>()
 
-function inventoryTypeLabel(type?: string | null): string {
-  return toInventoryTypeLabel(t, type)
+/** Who owns the piece this row is about, which a mixed inventory cannot answer for the inventory. */
+function ownerLabel(ownerKind?: string | null): string {
+  return toItemOwnerLabel(t, ownerKind)
 }
 </script>
 
@@ -58,7 +60,10 @@ function inventoryTypeLabel(type?: string | null): string {
     </Td>
     <Td class="font-medium">{{ request.inventoryName }}</Td>
     <Td v-if="canManageExchanges">
-      <component :is="inventoryTypeBadge(request.inventoryType)">{{ inventoryTypeLabel(request.inventoryType) }}</component>
+      <component :is="itemOwnerBadge(request.ownerKind)">{{ ownerLabel(request.ownerKind) }}</component>
+      <SecondaryBadge v-if="request.purpose" class="ml-1">
+        {{ t(`movements.purpose.${request.purpose}`) }}
+      </SecondaryBadge>
     </Td>
     <Td>{{ request.oldSizeLabel ?? t('common.unisize') }}</Td>
     <Td>{{ request.newSizeLabel ?? t('common.unisize') }}</Td>

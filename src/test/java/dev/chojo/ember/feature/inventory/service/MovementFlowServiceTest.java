@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementFlow;
+import dev.chojo.ember.feature.inventory.entity.MovementParty;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
@@ -211,6 +212,13 @@ class MovementFlowServiceTest extends RepositoryTestBase {
         MovementFlow special = freshFlow(MovementPurpose.EXCHANGE);
         movementFlowService.addStep(
                 special.id(),
+                "Sofort angefordert",
+                StepActor.MEMBER,
+                StepSubject.OUTGOING,
+                ItemCustody.WITH_MEMBER,
+                false);
+        movementFlowService.addStep(
+                special.id(),
                 "Sofort getauscht",
                 StepActor.STATION,
                 StepSubject.INCOMING,
@@ -218,25 +226,48 @@ class MovementFlowServiceTest extends RepositoryTestBase {
                 true);
 
         int stationWide = movementFlowService.resolveFlow(
-                station.id(), inventoryId, ItemOwner.STATION, null, MovementPurpose.EXCHANGE);
-        movementFlowService.bind(station.id(), inventoryId, ItemOwner.STATION, MovementPurpose.EXCHANGE, special.id());
+                station.id(), inventoryId, ItemOwner.STATION, null, MovementPurpose.EXCHANGE, MovementParty.MEMBER);
+        movementFlowService.bind(
+                station.id(),
+                inventoryId,
+                ItemOwner.STATION,
+                MovementPurpose.EXCHANGE,
+                MovementParty.MEMBER,
+                special.id());
 
         assertEquals(
                 special.id(),
                 movementFlowService.resolveFlow(
-                        station.id(), inventoryId, ItemOwner.STATION, null, MovementPurpose.EXCHANGE));
+                        station.id(),
+                        inventoryId,
+                        ItemOwner.STATION,
+                        null,
+                        MovementPurpose.EXCHANGE,
+                        MovementParty.MEMBER));
         assertEquals(
                 stationWide,
-                movementFlowService.resolveFlow(station.id(), null, ItemOwner.STATION, null, MovementPurpose.EXCHANGE),
+                movementFlowService.resolveFlow(
+                        station.id(), null, ItemOwner.STATION, null, MovementPurpose.EXCHANGE, MovementParty.MEMBER),
                 "the station-wide binding is untouched by one made for a single inventory");
         assertNotEquals(
                 special.id(),
                 movementFlowService.resolveFlow(
-                        station.id(), inventoryId, ItemOwner.CLUSTER, null, MovementPurpose.EXCHANGE),
+                        station.id(),
+                        inventoryId,
+                        ItemOwner.CLUSTER,
+                        null,
+                        MovementPurpose.EXCHANGE,
+                        MovementParty.MEMBER),
                 "and it changes only the owner it was bound for");
 
         // Put it back so the other tests find the presets where they left them
-        movementFlowService.bind(station.id(), inventoryId, ItemOwner.STATION, MovementPurpose.EXCHANGE, stationWide);
+        movementFlowService.bind(
+                station.id(),
+                inventoryId,
+                ItemOwner.STATION,
+                MovementPurpose.EXCHANGE,
+                MovementParty.MEMBER,
+                stationWide);
     }
 
     @Test
@@ -245,39 +276,54 @@ class MovementFlowServiceTest extends RepositoryTestBase {
         assertThrows(
                 BadRequestResponse.class,
                 () -> movementFlowService.bind(
-                        station.id(), null, ItemOwner.CLUSTER, MovementPurpose.EXCHANGE, returnFlow.id()));
+                        station.id(),
+                        null,
+                        ItemOwner.CLUSTER,
+                        MovementPurpose.EXCHANGE,
+                        MovementParty.MEMBER,
+                        returnFlow.id()));
         assertThrows(
                 BadRequestResponse.class,
-                () -> movementFlowService.bind(station.id(), null, ItemOwner.CLUSTER, MovementPurpose.RETURN, 999_999));
+                () -> movementFlowService.bind(
+                        station.id(), null, ItemOwner.CLUSTER, MovementPurpose.RETURN, MovementParty.MEMBER, 999_999));
 
         var other = stationRepo.create("FlowOtherStation");
         assertThrows(
                 BadRequestResponse.class,
                 () -> movementFlowService.bind(
-                        other.id(), null, ItemOwner.CLUSTER, MovementPurpose.RETURN, returnFlow.id()));
+                        other.id(),
+                        null,
+                        ItemOwner.CLUSTER,
+                        MovementPurpose.RETURN,
+                        MovementParty.MEMBER,
+                        returnFlow.id()));
         stationRepo.delete(other.id());
     }
 
+    /**
+     * A combination nothing covers says so rather than guessing at a chain that means something else.
+     * Issuing the station's own gear onto the station's own shelf is not a movement between parties,
+     * so no preset covers it and none should be invented.
+     */
     @Test
     void aStationWithNothingBoundForAPairSaysSoRatherThanGuessing() {
         var bare = stationRepo.create("FlowBareStation");
         movementFlowService.ensurePresets(bare.id());
-        // Gear the station owns has no return leg: there is nobody above it to hand anything back to
         assertThrows(
                 BadRequestResponse.class,
                 () -> movementFlowService.resolveFlow(
-                        bare.id(), null, ItemOwner.STATION, null, MovementPurpose.RETURN));
+                        bare.id(), null, ItemOwner.STATION, null, MovementPurpose.ISSUE, MovementParty.STORE));
         stationRepo.delete(bare.id());
     }
 
     @Test
     void presetsAreSeededOnceAndNotAgainOverAnEditedFlowSet() {
         var seeded = stationRepo.create("FlowSeedStation");
-        assertEquals(4, movementFlowService.findFlows(seeded.id()).size());
+        assertEquals(10, movementFlowService.findFlows(seeded.id()).size(), "one chain per combination");
 
         movementFlowService.createFlow(seeded.id(), "Eigener Ablauf", MovementPurpose.RETURN);
         movementFlowService.ensurePresets(seeded.id());
-        assertEquals(5, movementFlowService.findFlows(seeded.id()).size(), "seeding does not run twice");
+        assertEquals(11, movementFlowService.findFlows(seeded.id()).size(), "seeding does not run twice");
 
         stationRepo.delete(seeded.id());
     }
