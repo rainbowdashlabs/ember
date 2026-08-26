@@ -292,6 +292,56 @@ test.describe('Members', () => {
     })
 
     /**
+     * A row struck out in the preview stays out, and reading the same list again adds nobody.
+     *
+     * <p>Both are what a station does with a list it exports afresh every year: one line belongs to
+     * somebody who left, and everybody else is already here. Without either, the second reading left
+     * the station with two of everybody.
+     *
+     * <p>The second walk takes the whole file, struck-out row included: the one already here is
+     * passed over and the other joins, which is what the reading is for.
+     */
+    test('a struck out row is left behind and a second reading adds nobody', async ({managerPage: page}) => {
+        const stays = unique('Bleibt')
+        const struck = unique('Gestrichen')
+        const csv = `Vorname;Nachname\nTestperson;${stays}\nTestperson;${struck}\n`
+
+        async function walkTheWizard() {
+            await page.goto('/station/members/import')
+            await page.setInputFiles('input[type="file"]',
+                {name: 'mitglieder.csv', mimeType: 'text/csv', buffer: Buffer.from(csv, 'utf-8')})
+            await page.getByRole('button', {name: 'Weiter'}).click()
+            await page.locator('select:has(option:text-is("Vorname"))').first().selectOption({label: 'Vorname'})
+            await page.locator('select:has(option:text-is("Nachname"))').last().selectOption({label: 'Nachname'})
+            await page.getByRole('button', {name: 'Vorschau'}).click()
+            await expect(page.getByTestId('preview-row')).toHaveCount(2)
+        }
+
+        await walkTheWizard()
+        await page.getByTestId('preview-row').filter({hasText: struck}).getByTestId('toggle-row').click()
+        await expect(page.getByTestId('preview-row').filter({hasText: struck})).toHaveClass(/line-through/)
+
+        await page.getByRole('button', {name: 'Importieren'}).click()
+        await expect(page.getByText('Import abgeschlossen')).toBeVisible()
+
+        await page.goto('/station/members/list')
+        await page.getByPlaceholder(/Suche/).first().fill(stays)
+        await expect(page.getByTestId('member-row')).toHaveCount(1)
+        await page.getByPlaceholder(/Suche/).first().fill(struck)
+        await expect(page.getByTestId('member-row'), 'the struck out row was never imported').toHaveCount(0)
+
+        await walkTheWizard()
+        await page.getByRole('button', {name: 'Importieren'}).click()
+        await expect(page.getByText('Import abgeschlossen')).toBeVisible()
+
+        await page.goto('/station/members/list')
+        await page.getByPlaceholder(/Suche/).first().fill(stays)
+        await expect(page.getByTestId('member-row'), 'nobody was doubled').toHaveCount(1)
+        await page.getByPlaceholder(/Suche/).first().fill(struck)
+        await expect(page.getByTestId('member-row')).toHaveCount(1)
+    })
+
+    /**
      * A station that has to hand a list of its members to somebody else exports one. The story
      * walks the whole picking - export mode, a member, the columns - and takes the file, because a
      * file with nothing in it looks like a success until it is opened.

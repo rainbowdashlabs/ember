@@ -1,5 +1,18 @@
 # Changelog
 
+## v26.13.1
+
+### Improvements
+
+- **The member import translates a column into the answers that exist.** Saying what a value in the file becomes now offers the answers the question allows, the options of a choice, yes or no, or the groups the station keeps, instead of asking for them to be typed. Group columns can be translated at all now, so a file calling a group something else no longer creates a second one beside it.
+- **Single rows of an import can be left out.** Each row of the preview can be struck out and put back, which beats editing the file when one line belongs to somebody who has left.
+
+### Fixes
+
+- **A member import that filled in profile questions ended in an error.** Mapping a column onto a question the station asks, a telephone number or a shoe size, stopped the whole import with a general failure and imported nobody. Those columns now arrive, with dates read as dates, numbers as numbers and yes or no as the answer it is.
+- **Mapped questions never reached the imported members.** Even where the import ran through, the answers from those columns were dropped on the way in, so the people arrived with empty profiles.
+- **Reading the same member list a second time made a second copy of everybody.** A row is matched on its address, and where it carries none, on the name within the station, so importing an updated list adds the new people and passes over the ones already there. The result says how many were passed over and who they were.
+
 ## v26.13.0
 
 ### New Features

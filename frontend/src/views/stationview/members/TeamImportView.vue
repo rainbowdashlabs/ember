@@ -16,7 +16,7 @@ import type { TeamImportResult } from './teamimportview/DoneStep.vue'
 
 const { t } = useI18n()
 
-const { importer, targetOptions, fieldScopeGroups, needsValueMap } = useMemberCsvImport<TeamImportResult>({
+const { importer, targetOptions, fieldScopeGroups, needsValueMap, valuesForTarget, toggleRow, fieldLabel } = useMemberCsvImport<TeamImportResult>({
   previewPath: '/members/import-team/preview',
   importPath: '/members/import-team',
   defaultScope: 'TEAM',
@@ -45,6 +45,7 @@ const { mapping, headers, sampleRows, preview, result } = importer
               :primary-group-label="t('teamImport.groupTeam')"
               :manager-count="0"
               :needs-value-map-fn="needsValueMap"
+              :values-for-target="valuesForTarget"
           />
         </template>
 
@@ -53,6 +54,8 @@ const { mapping, headers, sampleRows, preview, result } = importer
               v-if="preview"
               :preview="preview"
               :title="t('teamImport.previewTitle', { count: preview.members.length })"
+          :field-label="fieldLabel"
+              @toggle-row="toggleRow"
           />
         </template>
 

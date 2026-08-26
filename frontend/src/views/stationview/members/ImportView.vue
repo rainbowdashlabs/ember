@@ -25,7 +25,7 @@ const route = useRoute()
 
 const managerCount = ref(2)
 
-const { importer, targetOptions, fieldScopeGroups, needsValueMap } = useMemberCsvImport<ImportResult>({
+const { importer, targetOptions, fieldScopeGroups, needsValueMap, valuesForTarget, toggleRow, fieldLabel } = useMemberCsvImport<ImportResult>({
   previewPath: '/members/import/preview',
   importPath: '/members/import',
   defaultScope: 'MEMBER',
@@ -66,6 +66,7 @@ function leaveImport() {
               :primary-group-label="t('memberImport.groupMember')"
               :manager-count="managerCount"
               :needs-value-map-fn="needsValueMap"
+              :values-for-target="valuesForTarget"
           />
         </template>
 
@@ -75,7 +76,9 @@ function leaveImport() {
               :preview="preview"
               :title="t('memberImport.previewTitle', { count: preview.members.length })"
               show-contacts
-          />
+          :field-label="fieldLabel"
+              @toggle-row="toggleRow"
+              />
         </template>
 
         <template #done>

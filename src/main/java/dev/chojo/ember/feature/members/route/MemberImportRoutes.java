@@ -92,7 +92,8 @@ public class MemberImportRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(ImportRequest.class);
         validateCsv(request.csv());
-        ctx.json(importService.preview(session.stationId(), request.csv(), request.separator(), request.mappings()));
+        ctx.json(importService.preview(
+                session.stationId(), request.csv(), request.separator(), request.mappings(), request.ignoredRows()));
     }
 
     @OpenApi(
@@ -113,7 +114,11 @@ public class MemberImportRoutes implements Routes {
         validateCsv(request.csv());
         ctx.status(HttpStatus.CREATED)
                 .json(importService.importMembers(
-                        session.stationId(), request.csv(), request.separator(), request.mappings()));
+                        session.stationId(),
+                        request.csv(),
+                        request.separator(),
+                        request.mappings(),
+                        request.ignoredRows()));
     }
 
     @OpenApi(
@@ -132,7 +137,8 @@ public class MemberImportRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(ImportRequest.class);
         validateCsv(request.csv());
-        ctx.json(importService.preview(session.stationId(), request.csv(), request.separator(), request.mappings()));
+        ctx.json(importService.preview(
+                session.stationId(), request.csv(), request.separator(), request.mappings(), request.ignoredRows()));
     }
 
     @OpenApi(
@@ -153,10 +159,19 @@ public class MemberImportRoutes implements Routes {
         validateCsv(request.csv());
         ctx.status(HttpStatus.CREATED)
                 .json(importService.importTeamMembers(
-                        session.stationId(), request.csv(), request.separator(), request.mappings()));
+                        session.stationId(),
+                        request.csv(),
+                        request.separator(),
+                        request.mappings(),
+                        request.ignoredRows()));
     }
 
     public record CsvRequest(String csv, String separator) {}
 
-    public record ImportRequest(String csv, String separator, List<ColumnMapping> mappings) {}
+    /**
+     * @param ignoredRows the rows struck out in the preview, by their place in the file, counted from
+     *                    the first row after the heading. Absent where nothing was struck out.
+     */
+    public record ImportRequest(
+            String csv, String separator, List<ColumnMapping> mappings, List<Integer> ignoredRows) {}
 }

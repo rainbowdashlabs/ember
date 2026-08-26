@@ -21,7 +21,9 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.node.StringNode;
 
+import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -32,6 +34,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -107,11 +111,14 @@ public class MemberImportService {
      * @param csv       the CSV content
      * @param separator the column separator
      * @param mappings  the column-to-field mappings
+     * @param ignored   the rows the reader has struck out, by their place in the file
      * @return the preview with member entries and warnings
      */
-    public PreviewResult preview(int stationId, String csv, String separator, List<ColumnMapping> mappings) {
+    public PreviewResult preview(
+            int stationId, String csv, String separator, List<ColumnMapping> mappings, List<Integer> ignored) {
         var parsed = parseCsv(csv, separator);
         var profileFields = valueFields(stationId);
+        var struckOut = struckOut(ignored);
         var warnings = new ArrayList<String>();
         var members = new ArrayList<MemberPreview>();
 
@@ -122,10 +129,20 @@ public class MemberImportService {
                 warnings.add("Zeile " + (i + 2) + ": Kein Name, übersprungen");
                 continue;
             }
-            members.add(mapped);
+            members.add(mapped.at(i, struckOut.contains(i)));
         }
 
         return new PreviewResult(members, warnings);
+    }
+
+    /**
+     * The rows the reader struck out, as a set to ask.
+     *
+     * <p>A list nobody sent is nobody struck out, which is the ordinary case and must not be read as
+     * "every row" or as an error.
+     */
+    private Set<Integer> struckOut(List<Integer> ignored) {
+        return ignored == null ? Set.of() : Set.copyOf(ignored);
     }
 
     /**
@@ -136,10 +153,13 @@ public class MemberImportService {
      * @param csv       the CSV content
      * @param separator the column separator
      * @param mappings  the column-to-field mappings
+     * @param ignored   the rows the reader struck out in the preview, by their place in the file
      * @return the import result with counts and warnings
      */
-    public ImportResult importMembers(int stationId, String csv, String separator, List<ColumnMapping> mappings) {
+    public ImportResult importMembers(
+            int stationId, String csv, String separator, List<ColumnMapping> mappings, List<Integer> ignored) {
         var parsed = parseCsv(csv, separator);
+        var struckOut = struckOut(ignored);
         var profileFields = valueFields(stationId);
         var groups = new ArrayList<>(memberGroupRepository.findByStation(stationId));
         var loginRole = stationMemberRepository
@@ -156,17 +176,20 @@ public class MemberImportService {
         int membersCreated = 0, managersCreated = 0, managersLinked = 0, groupsAssigned = 0, profileFieldsSet = 0;
 
         for (int i = 0; i < parsed.rows().size(); i++) {
+            if (struckOut.contains(i)) continue;
             var row = mapRow(parsed.headers(), parsed.rows().get(i));
             var mapped = applyMappings(row, mappings, profileFields);
             if (mapped.firstName().isEmpty() && mapped.lastName().isEmpty()) continue;
 
-            String email =
-                    mapped.email().isBlank() ? generateEmail(mapped.firstName(), mapped.lastName()) : mapped.email();
-
-            if (accountRepository.findByEmail(email).isPresent()) {
-                warnings.add("Zeile " + (i + 2) + ": " + email + " existiert bereits, übersprungen");
+            var already = whoIsAlreadyHere(stationId, mapped);
+            if (already.isPresent()) {
+                warnings.add("Zeile " + (i + 2) + ": " + already.get() + " ist bereits an der Wache, übersprungen");
                 continue;
             }
+
+            String email = mapped.email().isBlank()
+                    ? generateEmail(mapped.firstName(), mapped.lastName())
+                    : mapped.email().trim();
 
             var account = accountRepository.create(email, mapped.firstName(), mapped.lastName(), true, stationId);
             accountRepository.createCredential(account.id(), passwordHasher.hash(generatePassword()));
@@ -190,7 +213,7 @@ public class MemberImportService {
                         .findFirst();
                 if (field.isPresent() && !entry.getValue().isBlank()) {
                     String value =
-                            maybeConvertDate(entry.getValue(), field.get().fieldType());
+                            toStoredJson(entry.getValue().trim(), field.get().fieldType());
                     profileFieldRepository.setValue(member.id(), field.get().id(), value);
                     profileFieldsSet++;
                 }
@@ -215,13 +238,20 @@ public class MemberImportService {
                 if (manager == null) {
                     String mgrFirst = contact.firstName().isBlank() ? contact.name() : contact.firstName();
                     String mgrLast = contact.lastName().isBlank() ? mapped.lastName() : contact.lastName();
-                    String mgrEmail = contact.email().isBlank() ? generateEmail(mgrFirst, mgrLast) : contact.email();
+                    String mgrEmail = contact.email().isBlank()
+                            ? generateEmail(mgrFirst, mgrLast)
+                            : contact.email().trim();
 
                     var mgrExisting = accountRepository.findByEmail(mgrEmail);
                     if (mgrExisting.isPresent()) {
                         var mgrMember = stationMemberRepository.findByStationAndAccount(
                                 stationId, mgrExisting.get().id());
                         if (mgrMember.isPresent()) manager = mgrMember.get();
+                    }
+                    if (manager == null) {
+                        manager = stationMemberRepository
+                                .findByStationAndName(stationId, mgrFirst, mgrLast)
+                                .orElse(null);
                     }
 
                     if (manager == null) {
@@ -274,9 +304,10 @@ public class MemberImportService {
      * @return the team import result with counts and warnings
      */
     public TeamImportResult importTeamMembers(
-            int stationId, String csv, String separator, List<ColumnMapping> mappings) {
+            int stationId, String csv, String separator, List<ColumnMapping> mappings, List<Integer> ignored) {
         var parsed = parseCsv(csv, separator);
         var profileFields = valueFields(stationId);
+        var struckOut = struckOut(ignored);
         var groups = new ArrayList<>(memberGroupRepository.findByStation(stationId));
         var loginRole = stationMemberRepository
                 .findPermissionByName(StationPermission.LOGIN)
@@ -285,17 +316,20 @@ public class MemberImportService {
         int membersCreated = 0, groupsAssigned = 0, profileFieldsSet = 0;
 
         for (int i = 0; i < parsed.rows().size(); i++) {
+            if (struckOut.contains(i)) continue;
             var row = mapRow(parsed.headers(), parsed.rows().get(i));
             var mapped = applyMappings(row, mappings, profileFields);
             if (mapped.firstName().isEmpty() && mapped.lastName().isEmpty()) continue;
 
-            String email =
-                    mapped.email().isBlank() ? generateEmail(mapped.firstName(), mapped.lastName()) : mapped.email();
-
-            if (accountRepository.findByEmail(email).isPresent()) {
-                warnings.add("Zeile " + (i + 2) + ": " + email + " existiert bereits, übersprungen");
+            var already = whoIsAlreadyHere(stationId, mapped);
+            if (already.isPresent()) {
+                warnings.add("Zeile " + (i + 2) + ": " + already.get() + " ist bereits an der Wache, übersprungen");
                 continue;
             }
+
+            String email = mapped.email().isBlank()
+                    ? generateEmail(mapped.firstName(), mapped.lastName())
+                    : mapped.email().trim();
 
             var account = accountRepository.create(email, mapped.firstName(), mapped.lastName(), true, stationId);
             accountRepository.createCredential(account.id(), passwordHasher.hash(generatePassword()));
@@ -318,7 +352,7 @@ public class MemberImportService {
                         .findFirst();
                 if (field.isPresent() && !entry.getValue().isBlank()) {
                     String value =
-                            maybeConvertDate(entry.getValue(), field.get().fieldType());
+                            toStoredJson(entry.getValue().trim(), field.get().fieldType());
                     profileFieldRepository.setValue(member.id(), field.get().id(), value);
                     profileFieldsSet++;
                 }
@@ -381,16 +415,6 @@ public class MemberImportService {
             }
         }
 
-        // Resolve profile field names for preview
-        var namedFields = new LinkedHashMap<String, String>();
-        for (var entry : profileFieldValues.entrySet()) {
-            var field = fields.stream()
-                    .filter(f -> String.valueOf(f.id()).equals(entry.getKey()))
-                    .findFirst();
-            String name = field.map(ProfileField::name).orElse("Feld #" + entry.getKey());
-            namedFields.put(name, entry.getValue());
-        }
-
         // Build contacts - skip if no name or no email (managers need email to log in)
         var contacts = new ArrayList<ContactPreview>();
         managerData.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
@@ -404,7 +428,7 @@ public class MemberImportService {
             }
         });
 
-        return new MemberPreview(firstName, lastName, email, group, namedFields, contacts);
+        return new MemberPreview(firstName, lastName, email, group, profileFieldValues, contacts);
     }
 
     private String buildMergedValue(Map<String, String> row, List<ColumnMapping> mappingsForTarget) {
@@ -476,19 +500,98 @@ public class MemberImportService {
 
     // -- Preview with mapping --
 
-    private String maybeConvertDate(String value, ProfileFieldType fieldType) {
-        if (fieldType != ProfileFieldType.DATE) return value;
+    /**
+     * Whether this row is about somebody the station already has, and what to call them if so.
+     *
+     * <p>The address decides where the row carries one, because that is the one thing about a person
+     * that is theirs alone. Where it carries none, the name decides, and only within this station:
+     * two people of that name here cannot be told apart by anything in the row, and the same list
+     * imported twice should leave one of each rather than a second copy of everybody.
+     *
+     * <p>Trimmed and without regard to case on both sides, so a stray space in a spreadsheet does not
+     * read as a different person.
+     *
+     * <p>Contact persons are matched the same way, for the same reason: one with no address of their
+     * own is the one of that name here, or a list read twice leaves two of them.
+     *
+     * @param stationId the station being imported into
+     * @param mapped    the row as the mappings read it
+     * @return what to call the person already here, or empty where this row is new
+     */
+    private Optional<String> whoIsAlreadyHere(int stationId, MemberPreview mapped) {
+        if (!mapped.email().isBlank()) {
+            String email = mapped.email().trim();
+            var account = accountRepository.findByEmail(email);
+            if (account.isPresent()) return Optional.of(email);
+        }
+        return stationMemberRepository
+                .findByStationAndName(stationId, mapped.firstName(), mapped.lastName())
+                .map(member -> (mapped.firstName() + " " + mapped.lastName()).trim());
+    }
+
+    /**
+     * Turns a cell into the JSON document a profile answer is stored as.
+     *
+     * <p>The column holds JSON, so a bare cell cannot go in as it stands: a telephone number written
+     * as 01700000000 is not a JSON value, and neither is a surname. Every import that mapped a
+     * column onto a question therefore ended in an error from the database rather than in an imported
+     * member. What a cell means follows the kind of question it answers, and anything else becomes a
+     * string, which is what a spreadsheet cell is.
+     *
+     * @param value     the cell, already trimmed
+     * @param fieldType the kind of question it answers
+     * @return the answer as JSON text
+     */
+    private String toStoredJson(String value, ProfileFieldType fieldType) {
+        return switch (fieldType) {
+            case DATE, BIRTH_DATE -> jsonText(asIsoDate(value));
+            case NUMBER, AGE -> asNumber(value);
+            case BOOLEAN -> asBoolean(value);
+            default -> jsonText(value);
+        };
+    }
+
+    /** A cell as a JSON string, with everything in it that JSON insists on escaping. */
+    private String jsonText(String value) {
+        return StringNode.valueOf(value).toString();
+    }
+
+    /**
+     * A German date as an ISO one, or the cell unchanged where it is neither.
+     *
+     * <p>Unchanged rather than refused: the answer is kept as it was written and can be corrected on
+     * the member, which is better than losing the row over a date somebody typed by hand.
+     */
+    private String asIsoDate(String value) {
         try {
             return LocalDate.parse(value, DE_DATE).toString();
-        } catch (Exception e) {
+        } catch (Exception notGerman) {
             try {
                 LocalDate.parse(value);
                 return value;
-            } catch (Exception iso) {
-                log.debug("A date cell matched neither the German nor the ISO format and was kept as written", iso);
+            } catch (Exception notIso) {
+                log.debug("A date cell matched neither the German nor the ISO format and was kept as written", notIso);
+                return value;
             }
-            return value;
         }
+    }
+
+    /** A number where the cell is one, and otherwise the cell as text, so nothing is thrown away. */
+    private String asNumber(String value) {
+        try {
+            return new BigDecimal(value.replace(',', '.')).toPlainString();
+        } catch (NumberFormatException notANumber) {
+            log.debug("A number cell did not read as a number and was kept as text", notANumber);
+            return jsonText(value);
+        }
+    }
+
+    /** The words a spreadsheet says yes and no with, in both languages a station is likely to use. */
+    private String asBoolean(String value) {
+        String said = value.toLowerCase();
+        if (Set.of("ja", "yes", "true", "wahr", "x", "1").contains(said)) return "true";
+        if (Set.of("nein", "no", "false", "falsch", "0", "").contains(said)) return "false";
+        return jsonText(value);
     }
 
     // -- Import with mapping --
@@ -550,8 +653,32 @@ public class MemberImportService {
             String lastName,
             String email,
             String group,
+            /**
+             * The answers this row carries, by the identifier of the question they answer. By
+             * identifier and not by name, because the import writes them and looks the question up by
+             * that: keyed by name, every mapped column was quietly dropped on the way in.
+             */
             Map<String, String> profileFields,
-            List<ContactPreview> contacts) {}
+            List<ContactPreview> contacts,
+            /** Where this came from in the file, so a reader can strike out that one row. */
+            int row,
+            /** Whether the reader has struck it out, in which case the import walks past it. */
+            boolean ignored) {
+        public MemberPreview(
+                String firstName,
+                String lastName,
+                String email,
+                String group,
+                Map<String, String> profileFields,
+                List<ContactPreview> contacts) {
+            this(firstName, lastName, email, group, profileFields, contacts, -1, false);
+        }
+
+        /** The same row, told where it came from and whether it was struck out. */
+        public MemberPreview at(int row, boolean ignored) {
+            return new MemberPreview(firstName, lastName, email, group, profileFields, contacts, row, ignored);
+        }
+    }
 
     /**
      * Preview of a guardian/contact extracted from the CSV row.
