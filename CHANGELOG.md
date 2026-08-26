@@ -1,5 +1,18 @@
 # Changelog
 
+## v26.13.1
+
+### Improvements
+
+- **The member import translates a column into the answers that exist.** Saying what a value in the file becomes now offers the answers the question allows, the options of a choice, yes or no, or the groups the station keeps, instead of asking for them to be typed. Group columns can be translated at all now, so a file calling a group something else no longer creates a second one beside it.
+- **Single rows of an import can be left out.** Each row of the preview can be struck out and put back, which beats editing the file when one line belongs to somebody who has left.
+
+### Fixes
+
+- **A member import that filled in profile questions ended in an error.** Mapping a column onto a question the station asks, a telephone number or a shoe size, stopped the whole import with a general failure and imported nobody. Those columns now arrive, with dates read as dates, numbers as numbers and yes or no as the answer it is.
+- **Mapped questions never reached the imported members.** Even where the import ran through, the answers from those columns were dropped on the way in, so the people arrived with empty profiles.
+- **Reading the same member list a second time made a second copy of everybody.** A row is matched on its address, and where it carries none, on the name within the station, so importing an updated list adds the new people and passes over the ones already there. The result says how many were passed over and who they were.
+
 ## v26.13.0
 
 ### New Features
@@ -29,8 +42,6 @@
 
 ### Improvements
 
-- **The member import translates a column into the answers that exist.** Saying what a value in the file becomes now offers the answers the question allows, the options of a choice, yes or no, or the groups the station keeps, instead of asking for them to be typed. Group columns can be translated at all now, so a file calling a group something else no longer creates a second one beside it.
-- **Single rows of an import can be left out.** Each row of the preview can be struck out and put back, which beats editing the file when one line belongs to somebody who has left.
 - **Date and time fields open their picker by themselves.** Reaching such a field opens the calendar or the clock the browser provides, instead of leaving the small icon at the field's edge to be found first.
 - **A guardian sets the password of a child without an address of their own.** Under Profile → Managed profiles the password now stands beside the username, so there is no waiting for an invitation that lands in the guardian's own postbox either way. A member who does have an address of their own keeps setting it themselves.
 - **The wiki of an association can go on the public web.** A switch above the wiki puts it there, with the same three states a station has, and the address it answers at stands beside the switch. Until now an association had no way to publish anything at all: the setting existed but nothing could reach it.
@@ -124,9 +135,6 @@
 
 ### Fixes
 
-- **A member import that filled in profile questions ended in an error.** Mapping a column onto a question the station asks, a telephone number or a shoe size, stopped the whole import with a general failure and imported nobody. Those columns now arrive, with dates read as dates, numbers as numbers and yes or no as the answer it is.
-- **Mapped questions never reached the imported members.** Even where the import ran through, the answers from those columns were dropped on the way in, so the people arrived with empty profiles.
-- **Reading the same member list a second time made a second copy of everybody.** A row is matched on its address, and where it carries none, on the name within the station, so importing an updated list adds the new people and passes over the ones already there. The result says how many were passed over and who they were.
 - **Importing a question catalog from a file never worked.** Any file that actually held questions was turned away with a general error, so a catalog exported at one station could not be brought into another at all. Importing works, and a file that really is faulty now names every place something is wrong with it and creates nothing until they are sorted out.
 - **The fairness ranking stayed empty for an event in no category.** Deciding who gets a place shows how often each member was registered, accepted and turned away, and for an event that belongs to no category that list could not be fetched at all. It now covers everything the station has done, which is the only sensible comparison when the event names no category to compare within.
 - **Partnerships did not follow a station that moved.** When a station was transferred to another instance, the partnerships other stations kept with it were meant to point at its new home, and the step that does that failed outright. They now follow the station, so a partnership keeps working without anyone touching it.
