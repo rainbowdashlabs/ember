@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -38,6 +39,8 @@ const emit = defineEmits<{
   createAndAssignToSlot: [req: RequiredInventoryItem, slotIndex: number]
   updateSelection: [key: string, value: string]
 }>()
+
+const {t} = useI18n()
 </script>
 
 <template>
@@ -46,6 +49,9 @@ const emit = defineEmits<{
       <SubHeader>{{ req.inventoryName }}</SubHeader>
       <MutedText size="sm" class="shrink-0">
         {{ req.assignedQuantity }} / {{ req.requiredQuantity }}
+        <span v-if="req.inExchangeQuantity > 0" data-testid="in-exchange">
+          {{ t('inventory.check.inExchange', {count: req.inExchangeQuantity}) }}
+        </span>
         <span v-if="req.assignedQuantity < req.requiredQuantity" class="text-error">
           ({{ req.requiredQuantity - req.assignedQuantity }} fehlt)
         </span>

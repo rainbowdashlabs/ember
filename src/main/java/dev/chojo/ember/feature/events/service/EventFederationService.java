@@ -207,7 +207,7 @@ public class EventFederationService {
                     result.addAll(remoteRegs);
                 }
             } catch (Exception e) {
-                // Remote partner unavailable - skip silently
+                log.debug("Partner {} did not answer for its registrations, skipping it", partner.id(), e);
             }
         }
 
@@ -389,6 +389,7 @@ public class EventFederationService {
         var author = new MemberIdentity(partner.partnerStationId(), remoteMemberUid);
         var comment = commentRepository.create(eventId, parentId, author, content, eventDate);
         federationRepository.cacheName(partner.id(), remoteMemberUid, displayName);
+        log.info("Comment {} created on event {} (partner {})", comment.id(), eventId, partner.id());
         return toCommentResponse(comment);
     }
 
@@ -399,6 +400,7 @@ public class EventFederationService {
             FederationPartner partner, int commentId, UUID remoteMemberUid, String content) {
         requireCommentAuthor(commentId, partner, remoteMemberUid, "edit");
         commentRepository.update(commentId, content);
+        log.info("Comment {} on an event edited (partner {})", commentId, partner.id());
         var updated = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         return toCommentResponse(updated);
     }
@@ -408,7 +410,10 @@ public class EventFederationService {
      */
     public boolean deleteRemoteComment(FederationPartner partner, int commentId, UUID remoteMemberUid) {
         requireCommentAuthor(commentId, partner, remoteMemberUid, "delete");
-        return commentService.delete(commentId);
+        boolean deleted = commentService.delete(commentId);
+        if (deleted) log.info("Comment {} on an event deleted (partner {})", commentId, partner.id());
+        else log.warn("Delete for event comment {} affected zero rows", commentId);
+        return deleted;
     }
 
     /**
@@ -461,13 +466,15 @@ public class EventFederationService {
                     station.id(),
                     station.federationPrivateKey(),
                     CommentResponse.class);
-            if (result == null) throw new IllegalStateException("Failed to create comment on partner");
+            if (result == null) {
+                log.warn("Partner {} refused a comment on its event {}", partner.id(), eventId);
+                throw new IllegalStateException("Failed to create comment on partner");
+            }
+            log.info("Station {} commented on event {} at partner {}", stationId, eventId, partner.id());
             return FederatedCommentResult.ofSingle(result);
         }
-        var author = new MemberIdentity(partner.partnerStationId(), memberUid);
-        var comment = commentRepository.create(eventId, parentId, author, content, eventDate);
-        federationRepository.cacheName(partner.id(), memberUid, displayName);
-        return FederatedCommentResult.ofSingle(toCommentResponse(comment));
+        return FederatedCommentResult.ofSingle(
+                createRemoteComment(partner, eventId, memberUid, displayName, parentId, content, eventDate));
     }
 
     /**
@@ -487,13 +494,14 @@ public class EventFederationService {
                     station.id(),
                     station.federationPrivateKey(),
                     CommentResponse.class);
-            if (result == null) throw new IllegalStateException("Failed to update comment on partner");
+            if (result == null) {
+                log.warn("Partner {} refused an edit of its comment {}", partner.id(), commentId);
+                throw new IllegalStateException("Failed to update comment on partner");
+            }
+            log.info("Station {} edited its comment {} at partner {}", stationId, commentId, partner.id());
             return FederatedCommentResult.ofSingle(result);
         }
-        requireCommentAuthor(commentId, partner, memberUid, "edit");
-        commentRepository.update(commentId, content);
-        var updated = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
-        return FederatedCommentResult.ofSingle(toCommentResponse(updated));
+        return FederatedCommentResult.ofSingle(updateRemoteComment(partner, commentId, memberUid, content));
     }
 
     // -- Comment support --
@@ -511,11 +519,14 @@ public class EventFederationService {
                     partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey());
-            if (!success) throw new IllegalStateException("Failed to delete comment on partner");
+            if (!success) {
+                log.warn("Partner {} refused a deletion of its comment {}", partner.id(), commentId);
+                throw new IllegalStateException("Failed to delete comment on partner");
+            }
+            log.info("Station {} deleted its comment {} at partner {}", stationId, commentId, partner.id());
             return true;
         }
-        requireCommentAuthor(commentId, partner, memberUid, "delete");
-        return commentService.delete(commentId);
+        return deleteRemoteComment(partner, commentId, memberUid);
     }
 
     /**
@@ -549,13 +560,17 @@ public class EventFederationService {
             String eventDate,
             int localStationId,
             String localPrivateKeyBase64) {
-        return httpClient.post(
+        boolean registered = httpClient.post(
                 remoteHost,
                 RemoteEventRoutes.REGISTER.at(eventId),
                 new FederatedRegBody(remoteMemberId, eventDate),
                 partnerStationUid,
                 localStationId,
                 localPrivateKeyBase64);
+        if (registered)
+            log.info("Station {} registered a member for event {} at {}", localStationId, eventId, remoteHost);
+        else log.warn("Registration for event {} at {} was refused", eventId, remoteHost);
+        return registered;
     }
 
     public boolean withdrawFederatedRegistration(
@@ -566,13 +581,17 @@ public class EventFederationService {
             String eventDate,
             int localStationId,
             String localPrivateKeyBase64) {
-        return httpClient.delete(
+        boolean withdrawn = httpClient.delete(
                 remoteHost,
                 RemoteEventRoutes.WITHDRAW.at(eventId),
                 new FederatedRegBody(remoteMemberId, eventDate),
                 partnerStationUid,
                 localStationId,
                 localPrivateKeyBase64);
+        if (withdrawn)
+            log.info("Station {} withdrew a registration for event {} at {}", localStationId, eventId, remoteHost);
+        else log.warn("Withdrawal for event {} at {} was refused", eventId, remoteHost);
+        return withdrawn;
     }
 
     private List<FederatedEventItem> browseEventsDirect(FederationPartner partner) {

@@ -97,7 +97,10 @@ public class StationService {
     }
 
     public boolean updatePublicKbMode(int stationId, PublicKbMode mode) {
-        return stationRepository.updatePublicKbMode(stationId, mode);
+        boolean updated = stationRepository.updatePublicKbMode(stationId, mode);
+        if (updated) log.info("Station {} set its public knowledge base to {}", stationId, mode);
+        else log.warn("Public knowledge base mode of station {} affected zero rows", stationId);
+        return updated;
     }
 
     /**
@@ -157,8 +160,10 @@ public class StationService {
      */
     public Optional<Station> updateTimezone(int id, String timezone) {
         if (stationRepository.updateTimezone(id, timezone)) {
+            log.info("Station {} now keeps time in {}", id, timezone);
             return stationRepository.findById(id);
         }
+        log.warn("Timezone update for station {} affected zero rows", id);
         return Optional.empty();
     }
 
@@ -171,8 +176,10 @@ public class StationService {
      */
     public Optional<Station> updateLocale(int id, String locale) {
         if (stationRepository.updateLocale(id, locale)) {
+            log.info("Station {} now speaks {}", id, locale);
             return stationRepository.findById(id);
         }
+        log.warn("Locale update for station {} affected zero rows", id);
         return Optional.empty();
     }
 
@@ -195,6 +202,12 @@ public class StationService {
                 locks.colors() ? current.customThemeColors() : customThemeColors,
                 locks.feel() ? current.defaultFeel() : defaultFeel,
                 allowUserFeel);
+        log.info(
+                "Station {} changed its look, with theme={}, colors={} and feel={} locked by its cluster",
+                id,
+                locks.theme(),
+                locks.colors(),
+                locks.feel());
     }
 
     /**
@@ -392,18 +405,22 @@ public class StationService {
      */
     public void updatePublicCalendarEnabled(int stationId, boolean enabled) {
         stationRepository.updatePublicCalendarEnabled(stationId, enabled);
+        log.info("Station {} turned its public calendar {}", stationId, enabled ? "on" : "off");
     }
 
     public void updatePublicPagesEnabled(int stationId, boolean enabled) {
         stationRepository.updatePublicPagesEnabled(stationId, enabled);
+        log.info("Station {} turned its public pages {}", stationId, enabled ? "on" : "off");
     }
 
     public void updatePublicWaitlistEnabled(int stationId, boolean enabled) {
         stationRepository.updatePublicWaitlistEnabled(stationId, enabled);
+        log.info("Station {} turned its public waiting list {}", stationId, enabled ? "on" : "off");
     }
 
     public void updatePublicBlogEnabled(int stationId, boolean enabled) {
         stationRepository.updatePublicBlogEnabled(stationId, enabled);
+        log.info("Station {} turned its public blog {}", stationId, enabled ? "on" : "off");
     }
 
     public void updatePublicSlug(int stationId, String slug) {
@@ -414,11 +431,17 @@ public class StationService {
             }
         }
         stationRepository.updatePublicSlug(stationId, slug);
+        log.info("Station {} is reached at the slug '{}'", stationId, slug);
     }
 
     public void updateDiscoverySettings(
             int stationId, DiscoveryVisibility visibility, String description, boolean showKb) {
         stationRepository.updateDiscoverySettings(stationId, visibility, description, showKb);
+        log.info(
+                "Station {} is discoverable as {} and {} its knowledge base",
+                stationId,
+                visibility,
+                showKb ? "shows" : "hides");
     }
 
     /**

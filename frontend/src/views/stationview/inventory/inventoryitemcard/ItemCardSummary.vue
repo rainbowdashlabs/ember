@@ -38,12 +38,7 @@ const {t} = useI18n()
       {{ props.item.lostNote }}
       <span v-if="props.item.lostNoteBy?.name">({{ props.item.lostNoteBy.name }})</span>
     </div>
-    <template v-if="props.item.movementStep">
-      <InfoBadge class="mt-1">{{ props.item.movementStep }}</InfoBadge>
-      <div class="text-xs text-(--text-muted)">
-        {{ props.item.movementIncoming ? t('profile.movementIncoming') : t('profile.movementOutgoing') }}
-      </div>
-    </template>
+    <InfoBadge v-if="props.item.movementStep" class="mt-1">{{ props.item.movementStep }}</InfoBadge>
     <InfoBadge v-else-if="props.exchange" class="mt-1">
       {{ t('exchanges.status.' + props.exchange.status) }}
     </InfoBadge>

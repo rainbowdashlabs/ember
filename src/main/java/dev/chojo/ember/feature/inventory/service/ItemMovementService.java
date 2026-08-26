@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterItemIssued;
 import dev.chojo.ember.event.events.MovementAdvanced;
+import dev.chojo.ember.event.events.MovementCancelled;
 import dev.chojo.ember.event.events.MovementDeclined;
 import dev.chojo.ember.event.events.MovementStarted;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
@@ -518,14 +519,83 @@ public class ItemMovementService {
 
     /**
      * Calls off a movement that is still on the caller's side of the chain.
+     *
+     * <p>Whoever is at the wheel may call it off, and so may a member who is still holding the piece
+     * the movement is about. Somebody who asks for a bigger jacket and finds the next morning that it
+     * fits after all should be able to take that back themselves rather than ask the station to do it
+     * for them. The line is the handover: what is in the member's hands is their business, and from
+     * the moment the station has taken it, it is the station's.
+     *
+     * @param movementId the movement
+     * @param actor      who is calling it off
+     * @param reason     what to record, for whoever reads it later
+     * @return the closed movement
      */
     public ItemMovement cancel(int movementId, Actor actor, String reason) {
         ItemMovement movement = requireOpen(movementId);
         MovementFlowStep step = currentStep(movement);
-        if (step != null && !mayAct(movement, step, actor)) {
+        if (step != null && !mayAct(movement, step, actor) && !stillHoldsIt(movement, actor)) {
             throw new ForbiddenResponse("This movement is not on your side any more");
         }
-        return close(movement, MovementState.CANCELLED, reason);
+        String itemName = itemName(movement.outgoingItemId());
+        boolean away = hasLeftTheStation(movement.outgoingItemId());
+        ItemMovement cancelled = close(movement, MovementState.CANCELLED, reason, false);
+        eventBus.publish(new MovementCancelled(
+                cancelled.stationId(),
+                cancelled.id(),
+                cancelled.memberId(),
+                cancelled.inventoryId(),
+                inventoryName(cancelled.inventoryId()),
+                itemName,
+                reason,
+                away,
+                actor.memberId()));
+        return cancelled;
+    }
+
+    /**
+     * Whether the piece a movement is about is still on the member it concerns.
+     *
+     * <p>Which is what decides whether they may call it off themselves, and therefore whether their
+     * own pages offer them the button.
+     *
+     * @param movement the movement
+     * @return true while the member holds it
+     */
+    public boolean stillHeldBy(ItemMovement movement) {
+        return movement.memberId() != null && stillHoldsIt(movement, new Actor(movement.memberId(), false));
+    }
+
+    /**
+     * Whether the member calling this off is the one the movement is for and still has the piece.
+     *
+     * <p>Read off the item rather than off the step: the member walked their own step when they asked
+     * for the exchange, so by the letter of the chain it is no longer their turn, while the jacket is
+     * demonstrably still on them.
+     */
+    private boolean stillHoldsIt(ItemMovement movement, Actor actor) {
+        if (movement.memberId() == null || movement.memberId() != actor.memberId()) return false;
+        Integer itemId = movement.outgoingItemId();
+        if (itemId == null) return false;
+        return inventoryRepository
+                .findItemById(itemId)
+                .filter(item -> item.custody() == ItemCustody.WITH_MEMBER)
+                .filter(item -> item.assignedTo() != null && item.assignedTo() == actor.memberId())
+                .isPresent();
+    }
+
+    /** Whether the piece is past the station, which is what decides that calling off cannot fetch it back. */
+    private boolean hasLeftTheStation(Integer itemId) {
+        if (itemId == null) return false;
+        return inventoryRepository
+                .findItemById(itemId)
+                .filter(item -> item.custody() == ItemCustody.IN_TRANSIT || item.custody() == ItemCustody.WITH_OWNER)
+                .isPresent();
+    }
+
+    private String itemName(Integer itemId) {
+        if (itemId == null) return "";
+        return inventoryRepository.findItemById(itemId).map(InventoryItem::name).orElse("");
     }
 
     /**
@@ -547,11 +617,30 @@ public class ItemMovementService {
      * Deletes a movement outright, which is what the old exchange list called cancelling.
      */
     public boolean delete(int movementId) {
-        return movementRepository.delete(movementId);
+        boolean deleted = movementRepository.delete(movementId);
+        if (deleted) log.info("Deleted movement {}", movementId);
+        else log.warn("Delete for movement {} affected zero rows", movementId);
+        return deleted;
     }
 
     private ItemMovement close(ItemMovement movement, MovementState state, String reason) {
-        restoreOutgoingItem(movement);
+        return close(movement, state, reason, true);
+    }
+
+    /**
+     * @param fetchBack whether the piece that set out is to be put back with whoever sent it even if it
+     *                  has already left the station. A refusal comes from the far end and settles the
+     *                  whole journey, so it does. Calling off does not: it ends the plan, not the post.
+     */
+    private ItemMovement close(ItemMovement movement, MovementState state, String reason, boolean fetchBack) {
+        if (fetchBack || !hasLeftTheStation(movement.outgoingItemId())) {
+            restoreOutgoingItem(movement);
+        } else {
+            log.info(
+                    "Movement {} was called off while item {} was already away, so it stays with its owner",
+                    movement.id(),
+                    movement.outgoingItemId());
+        }
         settleInTransit(movementRepository.findById(movement.id()).orElseThrow());
         movementRepository.close(movement.id(), state, reason);
         log.info("Movement {} closed as {} ({})", movement.id(), state, reason);
@@ -567,6 +656,7 @@ public class ItemMovementService {
      *
      * <p>A report that the item is gone has nowhere to put it back: it was missing before the report and it
      * is missing after, whether the owner sent a replacement or refused one. The loss is recorded either way.
+     *
      */
     private void restoreOutgoingItem(ItemMovement movement) {
         if (movement.outgoingItemId() == null || movement.lostReport()) return;

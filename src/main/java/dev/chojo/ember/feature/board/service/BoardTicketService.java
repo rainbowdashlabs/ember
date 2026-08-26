@@ -273,6 +273,7 @@ public class BoardTicketService {
 
     public void reorderTickets(int laneId, List<Integer> orderedIds) {
         ticketRepository.reorderTickets(laneId, orderedIds);
+        log.debug("Lane {} reordered to {} ticket(s)", laneId, orderedIds.size());
     }
 
     public List<BoardTicketLink> findLinks(int ticketId) {
@@ -370,6 +371,7 @@ public class BoardTicketService {
 
     public void reorderChecklistItems(int ticketId, List<Integer> orderedIds) {
         ticketRepository.reorderChecklistItems(ticketId, orderedIds);
+        log.debug("Checklist of ticket {} reordered to {} item(s)", ticketId, orderedIds.size());
     }
 
     public List<BoardComment> findComments(int ticketId) {
@@ -519,10 +521,13 @@ public class BoardTicketService {
 
     public void addWatcher(int ticketId, MemberIdentity identity) {
         ticketRepository.addWatcher(ticketId, identity);
+        log.debug("Ticket {} is now watched by {}", ticketId, identity);
     }
 
     public boolean removeWatcher(int ticketId, MemberIdentity identity) {
-        return ticketRepository.removeWatcher(ticketId, identity);
+        boolean removed = ticketRepository.removeWatcher(ticketId, identity);
+        if (removed) log.debug("Ticket {} is no longer watched by {}", ticketId, identity);
+        return removed;
     }
 
     public boolean unwatchTicket(int ticketId, int memberId) {
@@ -539,12 +544,16 @@ public class BoardTicketService {
 
     public void setFieldValue(int ticketId, int fieldId, BoardFieldValue value) {
         ticketRepository.setFieldValue(ticketId, fieldId, value);
+        log.info("Field {} of ticket {} was filled in", fieldId, ticketId);
     }
 
     // -- Field values --
 
     public boolean deleteFieldValue(int ticketId, int fieldId) {
-        return ticketRepository.deleteFieldValue(ticketId, fieldId);
+        boolean deleted = ticketRepository.deleteFieldValue(ticketId, fieldId);
+        if (deleted) log.info("Field {} of ticket {} was cleared", fieldId, ticketId);
+        else log.warn("Clear of field {} on ticket {} affected zero rows", fieldId, ticketId);
+        return deleted;
     }
 
     public List<BoardTicketKbLink> findKbLinks(int ticketId) {
@@ -552,13 +561,16 @@ public class BoardTicketService {
     }
 
     public BoardTicketKbLink addKbLink(int ticketId, int kbFileId) {
-        return ticketRepository.addKbLink(ticketId, kbFileId);
+        BoardTicketKbLink link = ticketRepository.addKbLink(ticketId, kbFileId);
+        log.info("Ticket {} now points at knowledge file {}", ticketId, kbFileId);
+        return link;
     }
 
     // -- KB Links --
 
     public void removeKbLink(int id) {
         ticketRepository.removeKbLink(id);
+        log.info("Removed knowledge link {} from its ticket", id);
     }
 
     public void logHistory(int ticketId, BoardTicketHistoryAction action, String detail, MemberIdentity actor) {

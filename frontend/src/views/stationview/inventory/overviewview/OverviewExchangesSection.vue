@@ -14,6 +14,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
@@ -56,7 +57,7 @@ function exchangeStatusBadge(status: string) {
     <div v-if="isMobile" class="space-y-2">
       <NeutralContainer v-for="ex in exchanges" :key="ex.id" class="space-y-1 cursor-pointer" @click="router.push({ name: routes.exchanges })">
         <div class="flex items-center justify-between">
-          <span class="text-sm font-medium">{{ ex.inventoryName }}</span>
+          <span class="text-sm font-medium">{{ ex.itemName || ex.inventoryName }}</span>
           <component :is="exchangeStatusBadge(ex.status)">{{ t(`exchanges.status.${ex.status}`) }}</component>
         </div>
         <div class="flex flex-wrap items-center gap-1">
@@ -83,7 +84,8 @@ function exchangeStatusBadge(status: string) {
           class="cursor-pointer hover:bg-(--bg-accent)"
           @click="router.push({ name: routes.exchanges })">
         <Td>
-          {{ ex.inventoryName }}
+          {{ ex.itemName || ex.inventoryName }}
+          <MutedText v-if="ex.itemName" size="sm" class="ml-1">{{ ex.inventoryName }}</MutedText>
           <SizeBadge>{{ ex.oldSizeLabel ?? t('common.unisize') }} &rarr; {{ ex.newSizeLabel ?? t('common.unisize') }}</SizeBadge>
         </Td>
         <Td>

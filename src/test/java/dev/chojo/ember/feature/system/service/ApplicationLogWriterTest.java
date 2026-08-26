@@ -69,6 +69,13 @@ class ApplicationLogWriterTest extends RepositoryTestBase {
         appender.start();
     }
 
+    /**
+     * A line written to the appender turns up in the database.
+     *
+     * <p>What is asserted is that line rather than the size of the table. The appender takes whatever
+     * else the process logs while this runs, so counting every row would make the test a report on how
+     * chatty the rest of the suite happens to be that day.
+     */
     @Test
     void aLineTravelsFromTheAppenderIntoTheDatabase() throws Exception {
         log("dev.chojo.ember.Something", Level.INFO, "it happened");
@@ -81,9 +88,10 @@ class ApplicationLogWriterTest extends RepositoryTestBase {
             writer.stop();
         }
 
-        var stored = repository.search(List.of(), null, null, null, null, 10);
-        assertEquals(1, stored.size());
-        assertEquals("it happened", stored.getFirst().message());
+        var stored = repository.search(List.of(), null, null, null, null, 50);
+        assertTrue(
+                stored.stream().anyMatch(line -> "it happened".equals(line.message())),
+                "the line the test wrote went through the appender into the database");
     }
 
     /**

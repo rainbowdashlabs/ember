@@ -61,6 +61,7 @@ import dev.chojo.ember.event.handlers.LendingStatusChangedHandler;
 import dev.chojo.ember.event.handlers.MembersAddedToGroupHandler;
 import dev.chojo.ember.event.handlers.MentionedInCommentHandler;
 import dev.chojo.ember.event.handlers.MovementAdvancedHandler;
+import dev.chojo.ember.event.handlers.MovementCancelledHandler;
 import dev.chojo.ember.event.handlers.MovementDeclinedHandler;
 import dev.chojo.ember.event.handlers.MovementStartedHandler;
 import dev.chojo.ember.event.handlers.NewsCreatedHandler;
@@ -450,6 +451,7 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(MovementStartedHandler.class);
         eventBinder.addBinding().to(MovementAdvancedHandler.class);
         eventBinder.addBinding().to(MovementDeclinedHandler.class);
+        eventBinder.addBinding().to(MovementCancelledHandler.class);
         eventBinder.addBinding().to(ClusterApplicationSubmittedHandler.class);
         eventBinder.addBinding().to(ClusterApplicationWithdrawnHandler.class);
         eventBinder.addBinding().to(ClusterApplicationResolvedHandler.class);

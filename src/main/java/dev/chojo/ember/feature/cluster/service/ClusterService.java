@@ -115,7 +115,10 @@ public class ClusterService {
         Cluster cluster =
                 clusterRepository.findById(clusterId).orElseThrow(() -> new BadRequestResponse("No such cluster"));
         stationRepository.update(cluster.homeStationId(), name.trim());
-        return clusterRepository.rename(clusterId, name.trim(), description);
+        boolean renamed = clusterRepository.rename(clusterId, name.trim(), description);
+        if (renamed) log.info("Cluster {} is now called '{}'", clusterId, name.trim());
+        else log.warn("Rename of cluster {} affected zero rows", clusterId);
+        return renamed;
     }
 
     /**
@@ -316,7 +319,10 @@ public class ClusterService {
     }
 
     public boolean removeMember(int memberId) {
-        return clusterRepository.removeMember(memberId);
+        boolean removed = clusterRepository.removeMember(memberId);
+        if (removed) log.info("Removed cluster member {}", memberId);
+        else log.warn("Remove of cluster member {} affected zero rows", memberId);
+        return removed;
     }
 
     /**
@@ -362,13 +368,17 @@ public class ClusterService {
                 .findPermissionId(permission)
                 .orElseThrow(() -> new BadRequestResponse("No such permission: " + permission));
         clusterRepository.grantPermission(memberId, permissionId);
+        log.info("Cluster member {} was granted {}", memberId, permission);
     }
 
     public boolean revoke(int memberId, ClusterPermission permission) {
-        return clusterRepository
+        boolean revoked = clusterRepository
                 .findPermissionId(permission)
                 .map(id -> clusterRepository.revokePermission(memberId, id))
                 .orElse(false);
+        if (revoked) log.info("Cluster member {} lost {}", memberId, permission);
+        else log.warn("Revoke of {} from cluster member {} affected zero rows", permission, memberId);
+        return revoked;
     }
 
     private Cluster requireCluster(int clusterId) {

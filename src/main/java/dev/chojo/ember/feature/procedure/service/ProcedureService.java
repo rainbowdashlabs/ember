@@ -115,6 +115,7 @@ public class ProcedureService {
 
     public void setTemplateItemDependencies(int templateId, List<int[]> dependencies) {
         repository.setTemplateItemDependencies(templateId, dependencies);
+        log.info("Procedure template {} now carries {} item dependency(s)", templateId, dependencies.size());
     }
 
     // ── Procedures ──
@@ -366,6 +367,7 @@ public class ProcedureService {
 
     public void setItemDependencies(int procedureId, List<int[]> dependencies) {
         repository.setItemDependencies(procedureId, dependencies);
+        log.info("Procedure {} now carries {} item dependency(s)", procedureId, dependencies.size());
     }
 
     public int countOpenByAssigneeWithAvailableItems(int stationId, int memberId) {

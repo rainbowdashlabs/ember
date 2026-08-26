@@ -136,6 +136,12 @@ public class StationMemberInviteService {
                 }
             }
         }
+        log.info(
+                "Batch invite for station {}: {} of {} request(s) took, {} entry(s) refused",
+                stationId,
+                provisioned.size(),
+                requests.size(),
+                failed.size());
         return new BatchResult(provisioned, failed);
     }
 

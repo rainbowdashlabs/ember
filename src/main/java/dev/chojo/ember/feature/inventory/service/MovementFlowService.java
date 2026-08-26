@@ -553,12 +553,18 @@ public class MovementFlowService {
 
     public boolean renameFlow(int flowId, String name) {
         if (name == null || name.isBlank()) throw new BadRequestResponse("A flow needs a name");
-        return flowRepository.renameFlow(flowId, name);
+        boolean renamed = flowRepository.renameFlow(flowId, name);
+        if (renamed) log.info("Movement flow {} is now called '{}'", flowId, name);
+        else log.warn("Rename for movement flow {} affected zero rows", flowId);
+        return renamed;
     }
 
     public boolean archiveFlow(int flowId) {
         requireNoOpenMovement(flowId);
-        return flowRepository.archiveFlow(flowId);
+        boolean archived = flowRepository.archiveFlow(flowId);
+        if (archived) log.info("Retired movement flow {}", flowId);
+        else log.warn("Archive for movement flow {} affected zero rows", flowId);
+        return archived;
     }
 
     /**
@@ -578,8 +584,17 @@ public class MovementFlowService {
         requireLabel(label);
         requireStepCustody(custodyAfter);
         if (picksItem) requirePicksItemFree(flowId, subject, null);
-        return flowRepository.createStep(
+        MovementFlowStep step = flowRepository.createStep(
                 flowId, flowRepository.nextStepPosition(flowId), label, actor, subject, custodyAfter, picksItem);
+        log.info(
+                "Added step {} ('{}', {} on {} leaving it {}) to movement flow {}",
+                step.id(),
+                label,
+                actor,
+                subject,
+                custodyAfter,
+                flowId);
+        return step;
     }
 
     /**
@@ -603,7 +618,20 @@ public class MovementFlowService {
                 || step.picksItem() != picksItem;
         if (behaviourChanges) requireNoOpenMovement(step.flowId());
         if (picksItem) requirePicksItemFree(step.flowId(), subject, stepId);
-        return flowRepository.updateStep(stepId, label, actor, subject, custodyAfter, picksItem);
+        boolean updated = flowRepository.updateStep(stepId, label, actor, subject, custodyAfter, picksItem);
+        if (updated) {
+            log.info(
+                    "Movement flow step {} now reads '{}' ({} on {} leaving it {}){}",
+                    stepId,
+                    label,
+                    actor,
+                    subject,
+                    custodyAfter,
+                    behaviourChanges ? ", which changes how the flow is walked" : "");
+        } else {
+            log.warn("Update for movement flow step {} affected zero rows", stepId);
+        }
+        return updated;
     }
 
     /**
@@ -620,7 +648,10 @@ public class MovementFlowService {
                     .toList();
             MovementFlowValidation.requireWalkable(purposeOf(step.flowId()), remaining);
         }
-        return flowRepository.archiveStep(stepId);
+        boolean archived = flowRepository.archiveStep(stepId);
+        if (archived) log.info("Retired step {} of movement flow {}", stepId, step.flowId());
+        else log.warn("Archive for movement flow step {} affected zero rows", stepId);
+        return archived;
     }
 
     /**
@@ -654,6 +685,7 @@ public class MovementFlowService {
         }
         var positions = active.stream().map(MovementFlowStep::position).sorted().toList();
         flowRepository.applyStepOrder(flowId, stepIds, positions);
+        log.info("Movement flow {} is now walked in the order {}", flowId, stepIds);
     }
 
     /**

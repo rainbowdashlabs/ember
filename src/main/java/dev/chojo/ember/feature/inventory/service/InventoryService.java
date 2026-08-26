@@ -243,6 +243,16 @@ public class InventoryService {
     }
 
     /**
+     * What an inventory actually holds, which leaves out whatever is in the post.
+     *
+     * @param inventoryId the inventory ID
+     * @return the items that are here
+     */
+    public List<InventoryItem> findStock(int inventoryId) {
+        return inventoryRepository.findStock(inventoryId);
+    }
+
+    /**
      * Finds an inventory item by its ID.
      *
      * @param id the item ID

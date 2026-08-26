@@ -134,6 +134,7 @@ public class ClusterApplicationService {
         }
 
         applicationRepository.resolve(applicationId, ClusterApplicationStatus.APPROVED, null, resolvingMemberId);
+        log.info("Cluster {} took on station {}, decided by member {}", clusterId, station.id(), resolvingMemberId);
         clusterService.joinStation(clusterId, station.id());
     }
 

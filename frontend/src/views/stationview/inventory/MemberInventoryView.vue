@@ -25,6 +25,7 @@ import MemberInventoryHeader from './memberinventoryview/MemberInventoryHeader.v
 import ReturnEverythingBar from './memberinventoryview/ReturnEverythingBar.vue'
 import MemberInventoryScanPanel from './memberinventoryview/MemberInventoryScanPanel.vue'
 import MemberInventoryGroups from './memberinventoryview/MemberInventoryGroups.vue'
+import MovementsPanel from '@/components/inventory/MovementsPanel.vue'
 import RequestExchangeModal from './memberinventoryview/RequestExchangeModal.vue'
 import {apiErrorMessage} from '@/util/apiError'
 
@@ -212,6 +213,8 @@ watch(memberId, loadData)
             :show-exchange-button="canManageInventory()"
             @request-exchange="openExchangeModal"
         />
+
+        <MovementsPanel :member-id="memberId" @changed="loadData"/>
       </AsyncSection>
 
       <UnknownScanModal

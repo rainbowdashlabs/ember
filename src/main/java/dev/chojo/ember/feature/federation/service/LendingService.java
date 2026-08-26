@@ -108,7 +108,9 @@ public class LendingService {
     // -- Requests --
 
     public LendingRequestItem addRequestItem(int requestId, Integer inventoryId, Integer itemId, int quantity) {
-        return repository.addRequestItem(requestId, inventoryId, itemId, quantity);
+        LendingRequestItem added = repository.addRequestItem(requestId, inventoryId, itemId, quantity);
+        log.info("Lending request {} now asks for {} piece(s) more", requestId, quantity);
+        return added;
     }
 
     public List<LendingRequestItem> findRequestItems(int requestId) {
@@ -117,7 +119,10 @@ public class LendingService {
 
     public boolean assignItem(int requestItemId, int assignedItemId) {
         requireLendable(assignedItemId);
-        return repository.assignItem(requestItemId, assignedItemId);
+        boolean assigned = repository.assignItem(requestItemId, assignedItemId);
+        if (assigned) log.info("Item {} was set aside for lending request item {}", assignedItemId, requestItemId);
+        else log.warn("Assign of item {} to lending request item {} affected zero rows", assignedItemId, requestItemId);
+        return assigned;
     }
 
     /**

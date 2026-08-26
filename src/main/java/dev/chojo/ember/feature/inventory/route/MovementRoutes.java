@@ -443,7 +443,15 @@ public class MovementRoutes implements Routes {
                 movement.createdAt(),
                 movement.closedAt(),
                 movement.closeReason(),
-                movementService.ownerAnswersHere(movement));
+                movementService.ownerAnswersHere(movement),
+                itemName(movement.outgoingItemId()),
+                movementService.stillHeldBy(movement));
+    }
+
+    /** What the piece that set out is called, which is how a list of movements says which jacket this is. */
+    private String itemName(Integer itemId) {
+        if (itemId == null) return null;
+        return inventoryService.findItemById(itemId).map(InventoryItem::name).orElse(null);
     }
 
     /**
@@ -581,7 +589,18 @@ public class MovementRoutes implements Routes {
              * Whether the body that owns the gear can answer for itself here. Where it cannot, the
              * station both walks its steps and writes down what arrived, because nobody else will.
              */
-            boolean ownerAnswersHere) {}
+            boolean ownerAnswersHere,
+            /**
+             * What the piece that set out is called. A member reading their movements has one question
+             * first, which is which of their things this is about, and their inventory no longer answers
+             * it once they have handed the piece in.
+             */
+            String itemName,
+            /**
+             * Whether the member still has the piece, which is what lets them call the movement off
+             * themselves. Once the station has taken it, calling off is the station's to do.
+             */
+            boolean itemStillWithMember) {}
 
     public record MovementStepResponse(
             int id,

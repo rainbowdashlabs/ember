@@ -122,8 +122,12 @@ public class KbCommentService {
      */
     public boolean deleteComment(int stationId, int commentId) {
         var comment = commentRepository.findById(commentId).orElse(null);
-        if (comment == null || !commentRepository.delete(commentId)) return false;
+        if (comment == null || !commentRepository.delete(commentId)) {
+            log.warn("Delete for knowledge comment {} skipped: not found", commentId);
+            return false;
+        }
         eventBus.publish(new CommentDeleted(stationId, commentId, preview(comment.content())));
+        log.info("Deleted knowledge comment {} on station {}", commentId, stationId);
         return true;
     }
 

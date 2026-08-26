@@ -145,6 +145,7 @@ public class WebAuthnService {
         try {
             browserJson = options.toCredentialsCreateJson();
         } catch (Exception e) {
+            log.warn("WebAuthn registration options fell back to the stored shape for account {}", accountId, e);
             browserJson = persistJson;
         }
         String token = persistChallenge(accountId, TokenType.TWO_FACTOR_WEBAUTHN_REG, persistJson);
@@ -164,7 +165,10 @@ public class WebAuthnService {
             String country) {
         Optional<AccountToken> tokenOpt =
                 consumeChallenge(challengeToken, TokenType.TWO_FACTOR_WEBAUTHN_REG, accountId);
-        if (tokenOpt.isEmpty()) return Optional.empty();
+        if (tokenOpt.isEmpty()) {
+            log.info("WebAuthn registration failed for account {}: challenge unknown or expired", accountId);
+            return Optional.empty();
+        }
 
         PublicKeyCredentialCreationOptions options;
         try {
@@ -232,6 +236,7 @@ public class WebAuthnService {
         try {
             browserJson = request.toCredentialsGetJson();
         } catch (Exception e) {
+            log.warn("WebAuthn assertion request fell back to the stored shape for account {}", accountId, e);
             browserJson = persistJson;
         }
         String token = persistChallenge(accountId, TokenType.TWO_FACTOR_WEBAUTHN_ASSERT, persistJson);
@@ -243,7 +248,10 @@ public class WebAuthnService {
     public boolean finishAssertion(int accountId, String challengeToken, String credentialJson) {
         Optional<AccountToken> tokenOpt =
                 consumeChallenge(challengeToken, TokenType.TWO_FACTOR_WEBAUTHN_ASSERT, accountId);
-        if (tokenOpt.isEmpty()) return false;
+        if (tokenOpt.isEmpty()) {
+            log.info("WebAuthn assertion failed for account {}: challenge unknown or expired", accountId);
+            return false;
+        }
 
         AssertionRequest request;
         try {
@@ -272,11 +280,17 @@ public class WebAuthnService {
             return false;
         }
 
-        if (!result.isSuccess()) return false;
+        if (!result.isSuccess()) {
+            log.info("WebAuthn assertion failed for account {}: the authenticator was not accepted", accountId);
+            return false;
+        }
 
         Optional<WebAuthnCredential> credential = repository.findWebAuthnByCredentialId(
                 result.getCredential().getCredentialId().getBytes());
-        if (credential.isEmpty()) return false;
+        if (credential.isEmpty()) {
+            log.warn("WebAuthn assertion failed for account {}: the accepted credential is not on file", accountId);
+            return false;
+        }
         repository.updateWebAuthnSignatureCounter(credential.get().factorId(), result.getSignatureCount());
         repository.touchFactorUsed(credential.get().factorId());
         return true;

@@ -16,7 +16,8 @@ import java.util.List;
  * @param hasSizes         whether the inventory supports sizes
  * @param sizes            the available sizes if applicable
  * @param requiredQuantity the total required quantity
- * @param assignedQuantity the currently assigned quantity
+ * @param assignedQuantity what the member has towards it, counting what is away in an exchange
+ * @param inExchangeQuantity how many of those are away in an exchange rather than in their hands
  */
 public record RequiredInventoryItem(
         int inventoryId,
@@ -25,4 +26,5 @@ public record RequiredInventoryItem(
         boolean hasSizes,
         List<InventorySize> sizes,
         int requiredQuantity,
-        int assignedQuantity) {}
+        int assignedQuantity,
+        int inExchangeQuantity) {}

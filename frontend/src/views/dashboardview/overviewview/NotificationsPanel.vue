@@ -71,6 +71,14 @@ const typeIcons: Record<string, string> = {
   PROCEDURE_ITEM_CHECKED: 'square-check',
 }
 
+/**
+ * The sentence for one notification.
+ *
+ * <p>Most of it is the message the type carries, with the enums in its parameters routed through
+ * their locale namespace so they read in German. A movement called off is the exception with two
+ * sentences rather than one: whether the piece came home cannot be said in a word, and it is the
+ * half the reader cannot guess.
+ */
 function renderMessage(n: NotificationEntry): string {
   const params = {...n.params}
   // Status fields arrive as raw enum names from the backend (PENDING, DONE, …);
@@ -85,6 +93,10 @@ function renderMessage(n: NotificationEntry): string {
   }
   if (n.type === 'LENDING_STATUS_CHANGE' && params.status) {
     params.status = t(`dashboard.lendingStatus.${params.status}`)
+  }
+  if (n.type === 'MOVEMENT_CANCELLED') {
+    const key = params.itemStayedAway === 'true' ? 'movementCancelledAway' : 'movementCancelled'
+    return t(`notification.${key}`, params)
   }
   return t(n.localeKey, params)
 }

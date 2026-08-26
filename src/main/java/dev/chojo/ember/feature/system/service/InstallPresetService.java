@@ -9,6 +9,8 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.chojo.ember.util.LeakyBucket;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.SecureRandom;
 import java.time.Clock;
@@ -29,6 +31,7 @@ import java.util.Set;
  */
 @Singleton
 public class InstallPresetService {
+    private static final Logger log = LoggerFactory.getLogger(InstallPresetService.class);
 
     /** Long enough that guessing is pointless, short enough to type from a phone screen. */
     private static final int CODE_LENGTH = 6;
@@ -106,6 +109,7 @@ public class InstallPresetService {
         }
         String code = generateCode();
         presets.put(code, Map.copyOf(kept));
+        log.info("Install preset stored with {} of {} answer(s), good for {}", kept.size(), answers.size(), TTL);
         return code;
     }
 
@@ -123,7 +127,9 @@ public class InstallPresetService {
      */
     public Optional<Map<String, String>> find(String code) {
         if (code == null) return Optional.empty();
-        return Optional.ofNullable(presets.getIfPresent(normalize(code)));
+        var preset = Optional.ofNullable(presets.getIfPresent(normalize(code)));
+        if (preset.isEmpty()) log.info("Install preset asked for under a code that has expired or never existed");
+        return preset;
     }
 
     /** How long a code lasts, so the page can say it rather than leave somebody guessing. */

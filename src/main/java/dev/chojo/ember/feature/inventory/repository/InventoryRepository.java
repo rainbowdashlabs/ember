@@ -82,6 +82,7 @@ public class InventoryRepository {
                            count(*) AS item_count,
                            count(*) FILTER (WHERE lost_at IS NOT NULL) AS lost_count
                     FROM inventory_item
+                    WHERE custody <> 'IN_TRANSIT'
                     GROUP BY inventory_id
                 ) counts ON counts.inventory_id = i.id
                 LEFT JOIN (
@@ -288,7 +289,11 @@ public class InventoryRepository {
     }
 
     /**
-     * Finds all items in an inventory.
+     * Every row of an inventory, whatever state it is in.
+     *
+     * <p>For readers that answer "what is recorded here": the export, which is read to prove what a
+     * station is responsible for. The list a station reads to see its stock is {@link #findStock(int)}
+     * and leaves out what is in the post.
      *
      * @param inventoryId the inventory ID
      * @return list of items
@@ -296,6 +301,25 @@ public class InventoryRepository {
     public List<InventoryItem> findItems(int inventoryId) {
         return query("""
                 SELECT %s FROM inventory_item WHERE inventory_id = :inventory_id;""", INVENTORY_ITEM_COLUMNS)
+                .single(call().bind("inventory_id", inventoryId))
+                .map(InventoryItem.map())
+                .all();
+    }
+
+    /**
+     * The stock of an inventory: everything except what is in the post.
+     *
+     * <p>A piece on its way to its owner is at neither end. Counting it as stock says the station has
+     * something it cannot lay a hand on, and every figure drawn from the list inherits that. Where it
+     * is instead is the movement carrying it, which the overview lists.
+     *
+     * @param inventoryId the inventory ID
+     * @return the items that are actually here
+     */
+    public List<InventoryItem> findStock(int inventoryId) {
+        return query("""
+                SELECT %s FROM inventory_item
+                WHERE inventory_id = :inventory_id AND custody <> 'IN_TRANSIT';""", INVENTORY_ITEM_COLUMNS)
                 .single(call().bind("inventory_id", inventoryId))
                 .map(InventoryItem.map())
                 .all();
@@ -483,6 +507,32 @@ public class InventoryRepository {
                 .all();
     }
 
+    /**
+     * The pieces a member has handed in for an exchange and not got back yet.
+     *
+     * <p>They are nobody's while the exchange runs, so nothing that reads the assignment finds them,
+     * and a check would report the member short of gear that is merely in the post. For the question
+     * "is this member equipped" they still count: a jacket being exchanged is a jacket they have.
+     *
+     * <p>Only an exchange. A return is meant to end with the member not having it, and gear on its way
+     * to them counts when it arrives and not before.
+     *
+     * @param memberId the member
+     * @return the pieces away in an open exchange of theirs
+     */
+    public List<InventoryItem> findItemsAwayInExchange(int memberId) {
+        return query("""
+                SELECT %s FROM inventory_item ii
+                JOIN item_movement m ON m.outgoing_item_id = ii.id
+                WHERE m.state = 'OPEN'
+                  AND m.purpose = 'EXCHANGE'
+                  AND m.member_id = :member_id
+                  AND (ii.assigned_to IS NULL OR ii.assigned_to <> :member_id);""", SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS))
+                .single(call().bind("member_id", memberId))
+                .map(InventoryItem.map())
+                .all();
+    }
+
     public List<InventoryItem> findItemsByMember(int memberId) {
         return query("""
                 SELECT %s FROM inventory_item WHERE assigned_to = :member_id;""", INVENTORY_ITEM_COLUMNS)
@@ -492,12 +542,16 @@ public class InventoryRepository {
     }
 
     /**
-     * A member's own inventory: what they hold, plus whatever is on its way to or from them.
+     * A member's own inventory: what they hold, and nothing else.
      *
-     * <p>An item taken back for an exchange is nobody's until the replacement is handed over, so
-     * reading the assignment alone makes a member's jacket disappear for exactly the stretch they
-     * most want to watch. The open movement puts it back on the list with the step it is standing
-     * on, and the distinct keeps an item that somehow reached two movements to one line.
+     * <p>The assignment alone decides. A piece handed in for an exchange leaves the list at that
+     * moment and a replacement joins it when it is handed over, which is what the member experiences
+     * and therefore what the list should say. What is between the two is a movement, and the
+     * movements of a member are read as movements.
+     *
+     * <p>The join is for a piece they are still holding while something runs on it: it carries the
+     * step, so the row can say why the exchange button is missing. The distinct keeps an item that
+     * somehow reached two movements to one line.
      *
      * @param memberId the member
      * @return their items, each with the movement it is on when there is one
@@ -507,15 +561,14 @@ public class InventoryRepository {
                 SELECT DISTINCT ON (ii.id)
                     %s,
                     m.id AS movement_id,
-                    s.label AS movement_step,
-                    coalesce(m.incoming_item_id = ii.id, FALSE) AS movement_incoming
+                    s.label AS movement_step
                 FROM inventory_item ii
                 LEFT JOIN item_movement m
                        ON m.state = 'OPEN'
                       AND m.member_id = :member_id
-                      AND (m.outgoing_item_id = ii.id OR m.incoming_item_id = ii.id)
+                      AND m.outgoing_item_id = ii.id
                 LEFT JOIN movement_flow_step s ON s.id = m.current_step_id
-                WHERE ii.assigned_to = :member_id OR m.id IS NOT NULL
+                WHERE ii.assigned_to = :member_id
                 ORDER BY ii.id, m.id;""", SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS))
                 .single(call().bind("member_id", memberId))
                 .map(MemberInventoryEntry.map())

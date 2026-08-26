@@ -67,6 +67,10 @@ export interface Movement {
     currentStepActor?: StepActorName | null
     /** Whether the owner of the gear can answer for itself here, which decides who names arrivals. */
     ownerAnswersHere?: boolean
+    /** What the piece that set out is called, so a list of movements says which of my things this is. */
+    itemName?: string | null
+    /** Whether the member still holds it, which is what lets them call the movement off themselves. */
+    itemStillWithMember?: boolean
     /** The size being replaced, and the one asked for, which a piece written down starts out as. */
     oldSizeId?: number | null
     newSizeId?: number | null

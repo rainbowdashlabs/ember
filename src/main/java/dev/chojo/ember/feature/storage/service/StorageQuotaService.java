@@ -73,6 +73,13 @@ public class StorageQuotaService {
         long categoryUsed = usageRepository.categoryBytes(stationId, category);
         long categoryLimit = categoryQuota(quota, category);
         if (categoryUsed + incomingBytes > categoryLimit) {
+            log.info(
+                    "Station {} is out of room for {}: {} of {} bytes used, {} more offered",
+                    stationId,
+                    category,
+                    categoryUsed,
+                    categoryLimit,
+                    incomingBytes);
             throw new StorageQuotaExceededException(
                     category,
                     categoryUsed,
@@ -84,6 +91,12 @@ public class StorageQuotaService {
         long totalUsed = usageRepository.totalEnforcedBytes(stationId);
         long totalLimit = quota.total().bytes();
         if (totalUsed + incomingBytes > totalLimit) {
+            log.info(
+                    "Station {} is out of room altogether: {} of {} bytes used, {} more offered",
+                    stationId,
+                    totalUsed,
+                    totalLimit,
+                    incomingBytes);
             throw new StorageQuotaExceededException(category, categoryUsed, categoryLimit, totalUsed, totalLimit);
         }
     }
@@ -96,6 +109,7 @@ public class StorageQuotaService {
     public void checkFileSize(int stationId, long fileBytes) {
         long limit = resolveQuotas(stationId).perFile().bytes();
         if (fileBytes > limit) {
+            log.info("Station {} offered a {} byte file, over its {} byte limit", stationId, fileBytes, limit);
             throw new StorageQuotaExceededException(
                     "File size %d exceeds per-file limit %d".formatted(fileBytes, limit));
         }
@@ -109,6 +123,7 @@ public class StorageQuotaService {
     public void checkImageSize(int stationId, long imageBytes) {
         long limit = resolveQuotas(stationId).perImage().bytes();
         if (imageBytes > limit) {
+            log.info("Station {} offered a {} byte image, over its {} byte limit", stationId, imageBytes, limit);
             throw new StorageQuotaExceededException(
                     "Image size %d exceeds per-image limit %d".formatted(imageBytes, limit));
         }
@@ -120,6 +135,12 @@ public class StorageQuotaService {
     public void trackDelta(int stationId, StorageCategory category, long bytesDelta, int fileCountDelta) {
         usageRepository.applyDelta(stationId, category, bytesDelta, fileCountDelta);
         checkWarningThreshold(stationId);
+        log.debug(
+                "Storage of station {} moved by {} bytes and {} file(s) in {}",
+                stationId,
+                bytesDelta,
+                fileCountDelta,
+                category);
     }
 
     /**

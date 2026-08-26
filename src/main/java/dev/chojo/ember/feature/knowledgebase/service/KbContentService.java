@@ -233,6 +233,7 @@ public class KbContentService {
      */
     public void deleteBlocks(KbFile file) {
         blocks.delete(file.containerId());
+        log.info("Dropped the blocks of knowledge file {}", file.id());
     }
 
     /**

@@ -188,7 +188,8 @@ public class KbFileStorageService {
             }
             try {
                 Files.deleteIfExists(legacyRoot);
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                log.debug("Legacy KB-files root {} stays behind, empty", legacyRoot, e);
             }
         } catch (IOException e) {
             log.warn("KB-files legacy migration failed; some files may not be reachable", e);

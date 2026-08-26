@@ -342,7 +342,10 @@ public class FederationService {
     public void createClusterFederation(
             int homeStationId, int stationId, List<Integer> siblingIds, boolean autoFederate) {
         pairUp(homeStationId, stationId, true);
-        if (!autoFederate) return;
+        if (!autoFederate) {
+            log.info("Station {} is paired with its cluster home only, the mesh is switched off", stationId);
+            return;
+        }
         for (int siblingId : siblingIds) {
             if (siblingId == stationId) continue;
             pairUp(siblingId, stationId, false);
@@ -388,10 +391,17 @@ public class FederationService {
     private void pairUp(int firstStationId, int secondStationId, boolean clusterHome) {
         UUID firstUid = resolveStationUid(firstStationId);
         UUID secondUid = resolveStationUid(secondStationId);
-        if (firstUid == null || secondUid == null) return;
+        if (firstUid == null || secondUid == null) {
+            log.warn(
+                    "Cluster pairing of station {} and station {} skipped: one has no uid",
+                    firstStationId,
+                    secondStationId);
+            return;
+        }
 
         repository.createClusterPartner(firstStationId, secondUid, clusterHome).ifPresent(this::enableEveryCapability);
         repository.createClusterPartner(secondStationId, firstUid, clusterHome).ifPresent(this::enableEveryCapability);
+        log.info("Paired station {} with station {} through their cluster", firstStationId, secondStationId);
     }
 
     /**

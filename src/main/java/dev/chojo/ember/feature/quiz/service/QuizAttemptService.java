@@ -100,6 +100,7 @@ public class QuizAttemptService {
                 .findQuestion(questionId)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown quiz question " + questionId));
         testRepository.saveAnswer(attemptId, questionId, QuizAnswerValue.parse(question.quizQuestionType(), answer));
+        log.debug("Attempt {} answered question {}", attemptId, questionId);
     }
 
     /**

@@ -351,6 +351,7 @@ public class KnowledgeBaseService {
      */
     public void setSourceReference(int fileId, int sourceFileId, int sourceStationId) {
         repository.setSourceReference(fileId, sourceFileId, sourceStationId);
+        log.info("KB file {} is recorded as a copy of file {} at station {}", fileId, sourceFileId, sourceStationId);
     }
 
     /**
@@ -392,6 +393,7 @@ public class KnowledgeBaseService {
      */
     public void setRelatedFiles(int fileId, List<Integer> targetFileIds) {
         repository.setRelatedFiles(fileId, targetFileIds);
+        log.info("KB file {} now points at {} related file(s)", fileId, targetFileIds.size());
     }
 
     /**
@@ -402,6 +404,7 @@ public class KnowledgeBaseService {
      */
     public void addFavourite(int memberId, int fileId) {
         repository.addFavourite(memberId, fileId);
+        log.debug("Member {} marked KB file {} as a favourite", memberId, fileId);
     }
 
     /**
@@ -412,7 +415,9 @@ public class KnowledgeBaseService {
      * @return {@code true} when the file was a favourite
      */
     public boolean removeFavourite(int memberId, int fileId) {
-        return repository.removeFavourite(memberId, fileId);
+        boolean removed = repository.removeFavourite(memberId, fileId);
+        if (removed) log.debug("Member {} unmarked KB file {}", memberId, fileId);
+        return removed;
     }
 
     /**

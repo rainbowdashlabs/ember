@@ -81,12 +81,15 @@ public class InventoryContainerService {
      * @return all kinds defined for the station after seeding
      */
     public List<InventoryContainerKind> seedDefaultKinds(int stationId) {
+        int added = 0;
         for (DefaultKind defaults : DEFAULT_KINDS) {
             if (kindRepository.findByKey(stationId, defaults.key()).isEmpty()) {
                 kindRepository.create(
                         stationId, defaults.key(), defaults.label(), defaults.icon(), defaults.sortOrder(), true);
+                added++;
             }
         }
+        if (added > 0) log.info("Seeded {} default container kind(s) for station {}", added, stationId);
         return kindRepository.findByStation(stationId);
     }
 

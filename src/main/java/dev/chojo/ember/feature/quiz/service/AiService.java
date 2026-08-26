@@ -218,12 +218,14 @@ public class AiService {
             Path path = PROMPTS_DIR.resolve(locale).resolve(name + ".txt");
             try {
                 if (Files.exists(path)) return Files.readString(path);
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                log.warn("Prompt template {} could not be read, falling back to German", path, e);
             }
             Path fallback = PROMPTS_DIR.resolve("de").resolve(name + ".txt");
             try {
                 if (Files.exists(fallback)) return Files.readString(fallback);
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                log.warn("German fallback prompt template {} could not be read either", fallback, e);
             }
             log.warn("Prompt template not found: {}", path);
             return "";

@@ -338,6 +338,12 @@ public class InventoryCheckService {
      * Calculates the inventory items required for a member based on their roles and groups.
      * Aggregates requirement quantities per inventory and compares against currently assigned items.
      *
+     * <p>A piece handed in for an exchange counts towards what the member has. The question here is
+     * whether they are equipped, not what is in their hands this minute, and an exchange over the body
+     * above the station takes weeks: counting the assignment alone would report a gap for all of it and
+     * send whoever walks the check off to order a jacket that is already in the post. The row says how
+     * many of them are away that way, so nobody is left wondering at a number that does not add up.
+     *
      * @param stationId the station ID
      * @param memberId  the member ID
      * @return list of required inventory items with quantities and assignment counts
@@ -370,6 +376,12 @@ public class InventoryCheckService {
             assignedByInventory.merge(item.inventoryId(), 1, Integer::sum);
         }
 
+        Map<Integer, Integer> inExchangeByInventory = new HashMap<>();
+        for (InventoryItem item : inventoryRepository.findItemsAwayInExchange(memberId)) {
+            inExchangeByInventory.merge(item.inventoryId(), 1, Integer::sum);
+            assignedByInventory.merge(item.inventoryId(), 1, Integer::sum);
+        }
+
         // Build result
         List<RequiredInventoryItem> result = new ArrayList<>();
         for (var entry : requiredByInventory.entrySet()) {
@@ -382,7 +394,14 @@ public class InventoryCheckService {
             boolean hasSizes = inv != null && inv.hasSizes();
             List<InventorySize> sizes = hasSizes ? inventoryRepository.findSizes(inventoryId) : List.of();
             result.add(new RequiredInventoryItem(
-                    inventoryId, invName, invType, hasSizes, sizes, requiredQty, assignedQty));
+                    inventoryId,
+                    invName,
+                    invType,
+                    hasSizes,
+                    sizes,
+                    requiredQty,
+                    assignedQty,
+                    inExchangeByInventory.getOrDefault(inventoryId, 0)));
         }
         return result;
     }

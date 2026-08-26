@@ -29,6 +29,8 @@ interface Setup {
     inventoryId: number
     /** A session that can press the owner's steps, where a body above the station can press them. */
     owner?: {page: Page; headers: Record<string, string>}
+    /** Whether a body above the station keeps its gear on this instance, which decides where it goes back to. */
+    ownerKeepsGearHere: boolean
     close: () => Promise<void>
 }
 
@@ -64,6 +66,7 @@ async function withoutCluster(page: Page): Promise<Setup> {
         headers,
         memberId: await ownMemberId(page, headers),
         inventoryId: await inventoryWithGear(page, headers, 'FREI'),
+        ownerKeepsGearHere: false,
         close: async () => {},
     }
 }
@@ -95,6 +98,7 @@ async function underCluster(
         memberId: await ownMemberId(cluster.stationPage, headers),
         inventoryId: await inventoryWithGear(cluster.stationPage, headers, managesGear ? 'GEF' : 'UNG'),
         owner: managesGear ? {page: admin, headers: cluster.headers} : undefined,
+        ownerKeepsGearHere: managesGear,
         close: async () => {
             await cluster.stationPage.context().close()
         },
@@ -178,13 +182,115 @@ async function walkBothExchanges(setup: Setup) {
             .then(r => r.json())
         expect(replacement.custody, `${setup.label}, ${ownerKind} gear: the member is wearing the replacement`)
             .toBe('WITH_MEMBER')
+
+        await expectStockAfterwards(setup, ownerKind, old.id, spare.id)
     }
+}
+
+/**
+ * What the inventory holds once the exchange has ended, which is the whole point of walking one.
+ *
+ * <p>Three answers, and which one applies is the same question the chain itself turned on. A piece
+ * the station owns comes back to its store and is free again. A piece belonging to a body that keeps
+ * its gear here goes back to that body and stays on the books, held by nobody at this station. A
+ * piece belonging to a body outside Ember cannot be sent anywhere: it is with its owner, unidentifiable
+ * from here and never coming back, so the row goes.
+ *
+ * <p>In all three the replacement is in the inventory the exchange ran in, held by the member. An
+ * exchange that ends without it would have taken a piece off somebody and given nothing back.
+ */
+async function expectStockAfterwards(setup: Setup, ownerKind: string, oldId: number, spareId: number) {
+    const where = `${setup.label}, ${ownerKind} gear`
+    const stock = await setup.page.request
+        .get(`/api/v1/inventories/${setup.inventoryId}/items`, {headers: setup.headers})
+        .then(r => r.json())
+    const listed = (id: number) => stock.some((row: {id: number}) => row.id === id)
+
+    expect(listed(spareId), `${where}: the replacement is in the inventory`).toBeTruthy()
+
+    const goneForGood = ownerKind === 'CLUSTER' && !setup.ownerKeepsGearHere
+    const answer = await setup.page.request.get(`/api/v1/inventory-items/${oldId}`, {headers: setup.headers})
+
+    if (goneForGood) {
+        expect(answer.status(), `${where}: the piece that went to an owner we cannot reach is off the books`)
+            .toBe(404)
+        expect(listed(oldId), `${where}: and it is out of the inventory listing`).toBeFalsy()
+        return
+    }
+
+    expect(answer.ok(), `${where}: the piece that was handed in is still recorded`).toBeTruthy()
+    const handedIn = await answer.json()
+    expect(handedIn.custody, `${where}: and it is back with its owner rather than still on the member`)
+        .toBe('WITH_OWNER')
+    expect(handedIn.assignedMemberId ?? null, `${where}: nobody is wearing it any more`).toBeNull()
+}
+
+/**
+ * The exchange where nothing can be picked, because the replacement was never here before.
+ *
+ * <p>Where the owner is a body outside Ember, or one that keeps no gear on this instance, there is
+ * nothing in the station's stock that is the piece which came back: the station writes it down as it
+ * arrives. That is the half of an exchange that adds a row, and the piece that left is the half that
+ * loses one. Both are checked here, because an exchange that did neither would look finished and
+ * leave the inventory exactly as wrong as before it ran.
+ *
+ * <p>Where the owner does keep its gear here it names the replacement itself, and recording one is
+ * refused rather than quietly giving one piece two rows.
+ */
+async function walkRecordedArrival(setup: Setup) {
+    const where = `${setup.label}, a recorded arrival`
+    const old = await piece(setup.page, setup.headers, setup.inventoryId, 'CLUSTER')
+    await setup.page.request.put(`/api/v1/inventory-items/${old.id}/assign`,
+        {headers: setup.headers, data: {memberId: setup.memberId, memberName: null}})
+
+    const started = await setup.page.request.post('/api/v1/movements', {
+        headers: setup.headers,
+        data: {purpose: 'EXCHANGE', memberId: setup.memberId, outgoingItemId: old.id,
+            inventoryId: setup.inventoryId, reason: 'Beschädigt'},
+    })
+    expect(started.ok(), `${where}: starting answered ${await started.text()}`).toBeTruthy()
+    const opened = await started.json()
+    const id = opened.movement.id
+    const name = `Nachgetragen ${Date.now()}`
+    const arriving = {name, internalId: null, sizeId: null}
+
+    if (setup.ownerKeepsGearHere) {
+        const step = opened.steps.find((one: {current: boolean}) => one.current)
+        const refused = await setup.page.request.post(`/api/v1/movements/${id}/acknowledge`,
+            {headers: setup.headers, data: {stepId: step.id, note: '', newItem: arriving}})
+        expect(refused.status(), `${where}: the station does not write down what the owner already named`)
+            .toBe(400)
+        return
+    }
+
+    const walked = await walkTogether(setup, id, async () => ({newItem: arriving}))
+
+    if (walked.movement.state === 'OPEN') {
+        const waiting = walked.steps.find((step: {current: boolean}) => step.current)
+        const forced = await setup.page.request.post(`/api/v1/movements/${id}/force`,
+            {headers: setup.headers, data: {stepId: waiting.id, note: 'An der Wache übergeben'}})
+        expect(forced.ok(), `${where}: forcing answered ${await forced.text()}`).toBeTruthy()
+    }
+    expect((await detail(setup.page, setup.headers, id)).movement.state, `${where}: the chain finishes`).toBe('DONE')
+
+    const stock = await setup.page.request
+        .get(`/api/v1/inventories/${setup.inventoryId}/items`, {headers: setup.headers})
+        .then(r => r.json())
+    const recorded = stock.find((row: {name: string}) => row.name === name)
+    expect(recorded, `${where}: what arrived was written into the inventory`).toBeTruthy()
+    expect(recorded.custody, `${where}: and the member is wearing it`).toBe('WITH_MEMBER')
+
+    const answer = await setup.page.request.get(`/api/v1/inventory-items/${old.id}`, {headers: setup.headers})
+    expect(answer.status(), `${where}: the piece that left is off the books`).toBe(404)
+    expect(stock.some((row: {id: number}) => row.id === old.id),
+        `${where}: and out of the inventory listing`).toBeFalsy()
 }
 
 test.describe('Movement chains in every station shape', () => {
     test('a station with no association walks both exchanges', async ({managerPage: page}) => {
         const setup = await withoutCluster(page)
         await walkBothExchanges(setup)
+        await walkRecordedArrival(setup)
         await setup.close()
     })
 
@@ -192,6 +298,7 @@ test.describe('Movement chains in every station shape', () => {
         async ({adminPage, browser, request}) => {
             const setup = await underCluster(adminPage, browser, request, false)
             await walkBothExchanges(setup)
+            await walkRecordedArrival(setup)
             await setup.close()
         })
 
@@ -199,6 +306,7 @@ test.describe('Movement chains in every station shape', () => {
         async ({adminPage, browser, request}) => {
             const setup = await underCluster(adminPage, browser, request, true)
             await walkBothExchanges(setup)
+            await walkRecordedArrival(setup)
             await setup.close()
         })
 })

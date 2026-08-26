@@ -190,12 +190,10 @@ export interface MyInventoryItem {
     sizeName?: string | null
     lostAt?: string | null
     custody?: ItemCustodyName | null
-    /** The open movement this item is on, when it is on its way to or from the member. */
+    /** The open movement running on this item, which the member is still holding. */
     movementId?: number | null
     /** The step that movement is standing on, in the words the flow gives it. */
     movementStep?: string | null
-    /** Whether it is the item coming to the member rather than the one leaving them. */
-    movementIncoming?: boolean
     /** Who owns it, which a member is entitled to know about what they are looking after. */
     ownerKind?: ItemOwnerName | null
     ownerClusterId?: string | null

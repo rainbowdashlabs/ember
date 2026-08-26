@@ -14,6 +14,8 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepositor
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
  */
 @Singleton
 public class EventRegistrationFieldService {
+    private static final Logger log = LoggerFactory.getLogger(EventRegistrationFieldService.class);
 
     private final EventRegistrationFieldRepository repository;
 
@@ -43,6 +46,7 @@ public class EventRegistrationFieldService {
 
     public void replaceFields(int eventId, List<FieldEntry> fields) {
         repository.replaceFields(eventId, fields);
+        log.info("Event {} now asks {} question(s)", eventId, fields.size());
     }
 
     public List<EventTemplateRegistrationField> findByTemplate(int templateId) {
@@ -51,6 +55,7 @@ public class EventRegistrationFieldService {
 
     public void replaceTemplateFields(int templateId, List<FieldEntry> fields) {
         repository.replaceTemplateFields(templateId, fields);
+        log.info("Event template {} now asks {} question(s)", templateId, fields.size());
     }
 
     /**
@@ -66,6 +71,7 @@ public class EventRegistrationFieldService {
                 .toList();
         if (fields.isEmpty()) return;
         repository.replaceFields(eventId, fields);
+        log.info("Event {} took {} question(s) from template {}", eventId, fields.size(), templateId);
     }
 
     public List<RegistrationFieldValue> findValues(int registrationId) {
@@ -177,6 +183,12 @@ public class EventRegistrationFieldService {
             repository.deleteValue(registrationId, value.fieldId());
         }
         persistAnswers(registrationId, resolved);
+        log.debug(
+                "Registration {} for event {} now carries {} answer(s), {} question(s) stayed hidden",
+                registrationId,
+                eventId,
+                resolved.size(),
+                hidden.size());
     }
 
     /**

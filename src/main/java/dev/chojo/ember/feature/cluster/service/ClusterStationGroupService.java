@@ -77,6 +77,7 @@ public class ClusterStationGroupService {
         String trimmed = requireName(name);
         requireNameFree(clusterId, trimmed, groupId);
         groupRepository.rename(groupId, trimmed);
+        log.info("Cluster {} renamed station group {} to '{}'", clusterId, groupId, trimmed);
     }
 
     /**

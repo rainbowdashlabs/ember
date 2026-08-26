@@ -511,6 +511,13 @@ public class KnowledgeBaseFederationService {
         for (var share : existing) {
             federationRepository.deleteKbShare(share.id(), stationId);
         }
+        log.info(
+                "Station {} shares knowledge {} {} with {}, dropping {} earlier share(s)",
+                stationId,
+                fileId != null ? "file" : "folder",
+                fileId != null ? fileId : folderId,
+                shared ? scope + " (" + partnerIds.size() + " partner(s))" : "nobody",
+                existing.size());
     }
 
     /**
@@ -845,6 +852,7 @@ public class KnowledgeBaseFederationService {
             var author = new MemberIdentity(partner.partnerStationId(), memberUid);
             var comment = commentRepository.create(fileId, parentId, author, content);
             eventFederationRepository.cacheName(partner.id(), memberUid, displayName);
+            log.info("Comment {} created on knowledge file {} (partner {})", comment.id(), fileId, partner.id());
             return toCommentResponse(comment);
         }
         var station = requireStation(stationId);
@@ -856,7 +864,11 @@ public class KnowledgeBaseFederationService {
                 station.id(),
                 station.federationPrivateKey(),
                 CommentResponse.class);
-        if (result == null) throw new InternalServerErrorResponse("Failed to create comment on partner");
+        if (result == null) {
+            log.warn("Partner {} refused a comment on its knowledge file {}", partner.id(), fileId);
+            throw new InternalServerErrorResponse("Failed to create comment on partner");
+        }
+        log.info("Station {} commented on knowledge file {} at partner {}", stationId, fileId, partner.id());
         return result;
     }
 
@@ -869,6 +881,7 @@ public class KnowledgeBaseFederationService {
         if (!partner.isRemote()) {
             requireOwnComment(commentId, memberUid, "edit");
             commentRepository.update(commentId, content);
+            log.info("Comment {} on a knowledge file edited (partner {})", commentId, partner.id());
             return toCommentResponse(requireComment(commentId));
         }
         var station = requireStation(stationId);
@@ -880,7 +893,11 @@ public class KnowledgeBaseFederationService {
                 station.id(),
                 station.federationPrivateKey(),
                 CommentResponse.class);
-        if (result == null) throw new InternalServerErrorResponse("Failed to update comment on partner");
+        if (result == null) {
+            log.warn("Partner {} refused an edit of its comment {}", partner.id(), commentId);
+            throw new InternalServerErrorResponse("Failed to update comment on partner");
+        }
+        log.info("Station {} edited its comment {} at partner {}", stationId, commentId, partner.id());
         return result;
     }
 
@@ -893,7 +910,10 @@ public class KnowledgeBaseFederationService {
         var partner = resolvePartner(stationId, partnerStationUid);
         if (!partner.isRemote()) {
             requireOwnComment(commentId, memberUid, "delete");
-            return commentRepository.delete(commentId);
+            boolean deleted = commentRepository.delete(commentId);
+            if (deleted) log.info("Comment {} on a knowledge file deleted (partner {})", commentId, partner.id());
+            else log.warn("Delete for knowledge comment {} affected zero rows", commentId);
+            return deleted;
         }
         var station = requireStation(stationId);
         boolean success = httpClient.delete(
@@ -903,7 +923,11 @@ public class KnowledgeBaseFederationService {
                 partner.partnerStationId(),
                 station.id(),
                 station.federationPrivateKey());
-        if (!success) throw new InternalServerErrorResponse("Failed to delete comment on partner");
+        if (!success) {
+            log.warn("Partner {} refused a deletion of its comment {}", partner.id(), commentId);
+            throw new InternalServerErrorResponse("Failed to delete comment on partner");
+        }
+        log.info("Station {} deleted its comment {} at partner {}", stationId, commentId, partner.id());
         return true;
     }
 
@@ -932,6 +956,7 @@ public class KnowledgeBaseFederationService {
             FederationPartner partner, int commentId, UUID remoteMemberUid, String content) {
         requireRemoteCommentAuthor(partner, commentId, remoteMemberUid, "edit");
         commentRepository.update(commentId, content);
+        log.info("KB remote comment {} edited from partner {}", commentId, partner.id());
         return requireComment(commentId);
     }
 

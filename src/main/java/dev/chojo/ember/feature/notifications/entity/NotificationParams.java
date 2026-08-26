@@ -49,6 +49,14 @@ public sealed interface NotificationParams {
     record MovementDeclined(String inventoryName, String reason) implements NotificationParams {}
 
     /**
+     * Somebody called a movement off. Where the piece ended up cannot be worked out from that fact
+     * alone, so it is carried: called off before the handover it is back with whoever sent it, called
+     * off while it was in the post it stayed where it had got to.
+     */
+    record MovementCancelled(String inventoryName, String itemName, String reason, boolean itemStayedAway)
+            implements NotificationParams {}
+
+    /**
      * A station has asked to join a cluster. Named by station, because the cluster reading it knows which
      * cluster it is.
      */

@@ -15,7 +15,7 @@ import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import dev.chojo.ember.util.TypstCompiler;
@@ -30,7 +30,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -315,7 +314,7 @@ public class AttendanceReportService {
 
         try {
             var logo = stationRepository.findLogo(stationId);
-            String locale = resolveLocalePrefix(station);
+            String locale = StationFormat.languageOf(station);
             String templateName =
                     locale + "/" + (isYearReport ? "attendance-report-year.typ" : "attendance-report-period.typ");
             return Optional.of(renderPdf(data, templateName, logo.orElse(null)));
@@ -385,33 +384,14 @@ public class AttendanceReportService {
         });
     }
 
-    private String resolveLocalePrefix(Station station) {
-        if (station != null && station.locale() != null && station.locale().startsWith("de")) return "de";
-        return "en";
-    }
-
     // -- PDF Export --
 
     private Locale resolveLocale(int stationId) {
-        var station = stationRepository.findById(stationId);
-        if (station.isPresent() && station.get().locale() != null) {
-            try {
-                return Locale.forLanguageTag(station.get().locale());
-            } catch (Exception ignored) {
-            }
-        }
-        return Locale.GERMAN;
+        return StationFormat.localeOf(stationRepository.findById(stationId).orElse(null));
     }
 
     private ZoneId resolveTimezone(int stationId) {
-        var station = stationRepository.findById(stationId);
-        if (station.isPresent() && station.get().timezone() != null) {
-            try {
-                return ZoneId.of(station.get().timezone());
-            } catch (Exception ignored) {
-            }
-        }
-        return ZoneOffset.UTC;
+        return StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
     }
 
     private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)

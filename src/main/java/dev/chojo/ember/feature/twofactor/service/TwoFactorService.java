@@ -244,14 +244,28 @@ public class TwoFactorService {
 
     public boolean verifyTotp(int accountId, String code) {
         var factor = repository.findActiveFactor(accountId, TwoFactorKind.TOTP);
-        if (factor.isEmpty()) return false;
+        if (factor.isEmpty()) {
+            log.info("TOTP verification failed for account {}: no active factor", accountId);
+            return false;
+        }
 
         var totp = repository.findTotp(factor.get().id());
-        if (totp.isEmpty()) return false;
+        if (totp.isEmpty()) {
+            log.warn(
+                    "TOTP verification failed for account {}: factor {} has no secret",
+                    accountId,
+                    factor.get().id());
+            return false;
+        }
 
         String secret = totpService.decryptSecret(totp.get().secretEncrypted());
         var step = totpService.matchStep(secret, code);
-        if (step.isEmpty() || step.getAsLong() <= totp.get().lastUsedStep()) {
+        if (step.isEmpty()) {
+            log.info("TOTP verification failed for account {}: code does not match", accountId);
+            return false;
+        }
+        if (step.getAsLong() <= totp.get().lastUsedStep()) {
+            log.warn("TOTP verification failed for account {}: code was already used", accountId);
             return false;
         }
 
@@ -262,7 +276,10 @@ public class TwoFactorService {
 
     public VerifyBackupCodeResult verifyBackupCode(int accountId, String code, String ip) {
         var factor = repository.findActiveFactor(accountId, TwoFactorKind.BACKUP_CODES);
-        if (factor.isEmpty()) return new VerifyBackupCodeResult(false, 0);
+        if (factor.isEmpty()) {
+            log.info("Backup code verification failed for account {}: no active factor", accountId);
+            return new VerifyBackupCodeResult(false, 0);
+        }
 
         List<BackupCode> unused = repository.findUnusedBackupCodes(factor.get().id());
         for (BackupCode bc : unused) {
@@ -270,9 +287,14 @@ public class TwoFactorService {
                 repository.markBackupCodeUsed(bc.id(), ip);
                 repository.touchFactorUsed(factor.get().id());
                 int remaining = unused.size() - 1;
+                log.info("Backup code used by account {}, {} left", accountId, remaining);
                 return new VerifyBackupCodeResult(true, remaining);
             }
         }
+        log.info(
+                "Backup code verification failed for account {}: no match among {} unused code(s)",
+                accountId,
+                unused.size());
         return new VerifyBackupCodeResult(false, unused.size());
     }
 

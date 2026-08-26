@@ -33,6 +33,8 @@ export interface ExchangeRequestEntry {
     inventoryType: string
     /** Who owns the piece itself, which is what a mixed inventory cannot say for a row. */
     ownerKind?: ItemOwnerName | null
+    /** What the piece is called, which is the only place a piece in the post is still named. */
+    itemName?: string | null
     /** Whether this is an issue, a return or an exchange. */
     purpose?: MovementPurposeName | null
     status: ExchangeStatusName

@@ -35,6 +35,8 @@ import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -56,6 +58,7 @@ import java.util.Set;
  */
 @Singleton
 public class OnboardingService {
+    private static final Logger log = LoggerFactory.getLogger(OnboardingService.class);
 
     private final OnboardingTaskRepository markRepository;
     private final StationMemberRepository memberRepository;
@@ -210,6 +213,7 @@ public class OnboardingService {
                 else markRepository.markForInstance(taskId, stored, accountId);
             }
         }
+        log.debug("Onboarding task {} at {} level set to {} by member {}", taskId, level, state, memberId);
     }
 
     private OnboardingTaskView view(

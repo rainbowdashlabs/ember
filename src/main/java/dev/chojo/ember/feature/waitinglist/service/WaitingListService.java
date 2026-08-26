@@ -765,7 +765,8 @@ public class WaitingListService {
                 try {
                     var birthDate = LocalDate.parse(dateValue);
                     age = ChronoUnit.YEARS.between(birthDate, LocalDate.now());
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    log.warn("Field '{}' does not hold a date, its age counts as 0 in the score", fieldName, e);
                 }
             }
             matcher.appendReplacement(sb, String.valueOf(age));

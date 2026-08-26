@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import dev.chojo.ember.util.TypstCompiler;
@@ -78,18 +79,7 @@ public class EventExportService {
             LocalDate to,
             String generatedBy) {
         var station = stationRepository.findById(stationId).orElse(null);
-        ZoneId zone;
-        if (station != null && station.timezone() != null) {
-            ZoneId parsed;
-            try {
-                parsed = ZoneId.of(station.timezone());
-            } catch (Exception ignored) {
-                parsed = ZoneOffset.UTC;
-            }
-            zone = parsed;
-        } else {
-            zone = ZoneOffset.UTC;
-        }
+        ZoneId zone = StationFormat.timezoneOf(station);
 
         var allEvents = eventRepository.findByStation(stationId);
         var eventCategories = categoryRepository.findByStation(stationId);

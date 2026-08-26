@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
 import dev.chojo.ember.feature.inventory.entity.MovementParty;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -72,6 +74,13 @@ class ItemMovementServiceTest extends RepositoryTestBase {
 
     private ItemCustody custodyOf(int itemId) {
         return inventoryRepo.findItemById(itemId).orElseThrow().custody();
+    }
+
+    /** The line for this piece in the member's own inventory, which is there only while they hold it. */
+    private Optional<MemberInventoryEntry> entryFor(int itemId) {
+        return inventoryRepo.findMemberEntries(member.id()).stream()
+                .filter(entry -> entry.item().id() == itemId)
+                .findFirst();
     }
 
     private ItemMovement announceExchange(int itemId) {
@@ -430,41 +439,108 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         assertEquals(ItemCustody.WITH_MEMBER, custodyOf(old), "the member has their own item again");
     }
 
+    /**
+     * A member's inventory says what they hold, and stops saying it the moment they hand it over.
+     *
+     * <p>Before the handover the row stays and carries the step, because the jacket is still on them
+     * and the exchange is merely asked for. After it, neither piece is theirs: the old one is in the
+     * post and the replacement is not theirs until it is handed to them. What runs in between is read
+     * as a movement, not as a possession.
+     */
     @Test
-    void aMemberKeepsSeeingTheirGearWhileItIsBeingExchanged() {
+    void aMemberSeesTheirGearUntilTheyHandItOver() {
         int old = itemWithMember(ItemOwner.CLUSTER);
         int replacement = item(ItemOwner.CLUSTER);
         ItemMovement movement = announceExchange(old);
 
+        var asked = entryFor(old).orElseThrow(() -> new AssertionError("it is still on the member"));
+        assertEquals(movement.id(), asked.movementId(), "and it says an exchange is running");
+        assertNotNull(asked.movementStep());
+        assertEquals(ItemCustody.WITH_MEMBER, asked.item().custody());
+
         // Taken back, then put in the post: the member holds nothing at all any more
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
-        movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
-        assertFalse(
-                inventoryRepo.findItemsByMember(member.id()).stream().anyMatch(i -> i.id() == old),
-                "it is nobody's while it is in the post");
-        assertEquals(ItemCustody.IN_TRANSIT, custodyOf(old));
+        assertTrue(entryFor(old).isEmpty(), "handed in means off the member's list");
 
-        // Their own list still shows it, saying which step it is standing on
-        var entry = inventoryRepo.findMemberEntries(member.id()).stream()
-                .filter(e -> e.item().id() == old)
-                .findFirst()
-                .orElseThrow(() -> new AssertionError("gear on the way should stay on the member's list"));
-        assertEquals(movement.id(), entry.movementId());
-        assertFalse(entry.movementIncoming());
-        assertNotNull(entry.movementStep());
-        assertEquals(ItemCustody.IN_TRANSIT, entry.item().custody());
+        movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
+        assertEquals(ItemCustody.IN_TRANSIT, custodyOf(old));
+        assertTrue(entryFor(old).isEmpty(), "and it stays off it while it is in the post");
 
         while (!namesTheArrival(movement)) {
             movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
         }
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", replacement);
-        var incoming = inventoryRepo.findMemberEntries(member.id()).stream()
-                .filter(e -> e.item().id() == replacement)
-                .findFirst()
-                .orElseThrow(() -> new AssertionError("the replacement should be visible on its way"));
-        assertTrue(incoming.movementIncoming());
+        assertTrue(entryFor(replacement).isEmpty(), "the replacement is not theirs before it is handed over");
 
         walkToEnd(movement, replacement);
+        assertTrue(entryFor(replacement).isPresent(), "once handed over it is");
+    }
+
+    /**
+     * The stock of an inventory leaves out what is in the post, while the row itself stays on the books
+     * for the owner and for anything asking what is recorded here.
+     */
+    @Test
+    void gearInThePostIsNoLongerStock() {
+        int old = itemWithMember(ItemOwner.CLUSTER);
+        ItemMovement movement = announceExchange(old);
+        movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
+        assertTrue(
+                inventoryRepo.findStock(mixedInventoryId).stream().anyMatch(i -> i.id() == old),
+                "at the station it is still stock");
+
+        itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
+
+        assertEquals(ItemCustody.IN_TRANSIT, custodyOf(old));
+        assertFalse(
+                inventoryRepo.findStock(mixedInventoryId).stream().anyMatch(i -> i.id() == old),
+                "in the post it is not");
+        assertTrue(
+                inventoryRepo.findItems(mixedInventoryId).stream().anyMatch(i -> i.id() == old),
+                "but the row is still recorded, which is what an export reads");
+    }
+
+    /** A member takes their own exchange back while the piece is still on them. */
+    @Test
+    void aMemberCallsOffTheirOwnExchangeWhileTheyStillHaveIt() {
+        int old = itemWithMember(ItemOwner.CLUSTER);
+        ItemMovement movement = announceExchange(old);
+
+        ItemMovement cancelled = itemMovementService.cancel(movement.id(), kid, "Passt doch");
+
+        assertEquals(MovementState.CANCELLED, cancelled.state());
+        assertEquals(ItemCustody.WITH_MEMBER, custodyOf(old), "nothing moved, so nothing changed");
+        assertTrue(entryFor(old).isPresent(), "and it is still in their inventory");
+    }
+
+    /** Once the station has it, calling it off is the station's to do and not the member's. */
+    @Test
+    void aMemberCannotCallOffWhatTheyHaveAlreadyHandedOver() {
+        int old = itemWithMember(ItemOwner.CLUSTER);
+        ItemMovement movement = announceExchange(old);
+        itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
+
+        assertThrows(ForbiddenResponse.class, () -> itemMovementService.cancel(movement.id(), kid, "Doch nicht"));
+    }
+
+    /**
+     * Calling off while the piece is in the post leaves it where it got to.
+     *
+     * <p>Ending a movement is not a way of fetching gear back out of the post, and a row claiming the
+     * member wears something lying in another town is worse than no row at all.
+     */
+    @Test
+    void callingOffDuringThePostLeavesTheItemWhereItIs() {
+        int old = itemWithMember(ItemOwner.CLUSTER);
+        ItemMovement movement = announceExchange(old);
+        movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
+        movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
+        assertEquals(ItemCustody.IN_TRANSIT, custodyOf(old));
+
+        itemMovementService.cancel(movement.id(), team, "Träger meldet sich nicht");
+
+        assertNotEquals(ItemCustody.WITH_MEMBER, custodyOf(old), "it did not come back by being written off");
+        assertTrue(entryFor(old).isEmpty(), "and it is not on the member's list either");
     }
 
     @Test

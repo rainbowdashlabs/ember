@@ -156,7 +156,8 @@ public class StorageService {
         if (stream.isPresent() && category.isAccessTimeLru()) {
             try {
                 backend.touch(fullKey);
-            } catch (UnsupportedOperationException ignored) {
+            } catch (UnsupportedOperationException _) {
+                log.debug("Backend of {} cannot record access times, {} keeps its old one", category, fullKey);
             }
         }
         return stream;
@@ -220,11 +221,14 @@ public class StorageService {
         }
         if (backend instanceof LocalStorageBackend local) {
             local.deletePrefix(fullPrefix);
+            log.info("Deleted everything under {}", fullPrefix);
             return;
         }
-        for (String key : backend.listByPrefix(fullPrefix)) {
+        List<String> keys = backend.listByPrefix(fullPrefix);
+        for (String key : keys) {
             backend.delete(key);
         }
+        log.info("Deleted {} object(s) under {}", keys.size(), fullPrefix);
     }
 
     /**

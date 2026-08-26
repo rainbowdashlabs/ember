@@ -312,6 +312,7 @@ public class StationExportService {
                 """)
                 .single(call().bind("token", token).bind("url", targetInstanceUrl.trim()))
                 .update();
+        log.info("Transfer token is being pulled by {}", targetInstanceUrl.trim());
     }
 
     /**
@@ -394,7 +395,7 @@ public class StationExportService {
                 return new String(is.readAllBytes(), StandardCharsets.UTF_8).strip();
             }
         } catch (IOException e) {
-            // ignore
+            log.warn("Version resource could not be read, the export says 'unknown'", e);
         }
         return "unknown";
     }

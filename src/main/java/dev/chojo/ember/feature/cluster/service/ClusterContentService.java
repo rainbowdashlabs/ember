@@ -184,6 +184,7 @@ public class ClusterContentService {
         KbFile file = knowledgeBaseService.findFile(fileId).orElseThrow(() -> new NotFoundResponse("No such article"));
         if (file.stationId() != homeStationId) throw new NotFoundResponse("No such article");
         knowledgeBaseService.deleteFile(fileId);
+        log.info("Cluster {} withdrew knowledge article {}", clusterId, fileId);
     }
 
     private Cluster requireCluster(int clusterId) {

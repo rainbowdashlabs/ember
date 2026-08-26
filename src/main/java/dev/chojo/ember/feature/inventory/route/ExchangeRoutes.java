@@ -46,6 +46,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -320,12 +321,9 @@ public class ExchangeRoutes implements Routes {
                 inventoryRepository.findById(exchange.inventoryId()).orElse(null);
         String inventoryName = inventory != null ? inventory.name() : "";
         InventoryType inventoryType = inventory != null ? inventory.inventoryType() : null;
-        ItemOwner ownerKind = exchange.itemId() == null
-                ? null
-                : inventoryRepository
-                        .findItemById(exchange.itemId())
-                        .map(InventoryItem::ownerKind)
-                        .orElse(null);
+        Optional<InventoryItem> item =
+                exchange.itemId() == null ? Optional.empty() : inventoryRepository.findItemById(exchange.itemId());
+        ItemOwner ownerKind = item.map(InventoryItem::ownerKind).orElse(null);
 
         return new ExchangeResponse(
                 exchange.id(),
@@ -341,6 +339,7 @@ public class ExchangeRoutes implements Routes {
                 resolveSizeLabel(exchange.newSizeId(), exchange.inventoryId()),
                 inventoryType,
                 ownerKind,
+                item.map(InventoryItem::name).orElse(null),
                 exchange.purpose(),
                 exchange.status(),
                 exchange.reason(),
@@ -376,6 +375,11 @@ public class ExchangeRoutes implements Routes {
             InventoryType inventoryType,
             /** Who owns the piece itself, which is the interesting half in an inventory holding both. */
             ItemOwner ownerKind,
+            /**
+             * What the piece is called. The overview is the only place a piece in the post still appears,
+             * so naming the inventory it came from is not enough to know which one is meant.
+             */
+            String itemName,
             /** Whether this is an issue, a return or an exchange. */
             MovementPurpose purpose,
             ExchangeStatus status,

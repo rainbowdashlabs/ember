@@ -109,6 +109,11 @@ public class FederationContractRefreshService {
     public void refreshAsync(int localStationId, UUID partnerStationUid) {
         repository
                 .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
-                .ifPresent(this::refreshAsync);
+                .ifPresentOrElse(
+                        this::refreshAsync,
+                        () -> log.warn(
+                                "Contract refresh skipped: station {} has no partner {}",
+                                localStationId,
+                                partnerStationUid));
     }
 }

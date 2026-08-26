@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheckScope;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -211,6 +212,45 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         assertTrue(required.stream().anyMatch(r -> r.inventoryId() == inventoryId && r.requiredQuantity() == 2));
 
         inventoryRepo.deleteRequirement(req.id());
+    }
+
+    /**
+     * A piece handed in for an exchange still counts as equipment the member has.
+     *
+     * <p>The check asks whether they are equipped, not what is in their hands this minute. Counting
+     * only the assignment would report a gap for the whole run of an exchange, which over the body
+     * above the station is weeks, and whoever walks the check would order a jacket that is in the post.
+     */
+    @Test
+    @Order(60)
+    void gearAwayInAnExchangeStillCounts() {
+        var requirement = inventoryRepo.createRequirement(inventoryId, StationUserType.MEMBER, 0, null, 1);
+        var movement = itemMovementService.create(
+                station.id(),
+                MovementPurpose.EXCHANGE,
+                target.id(),
+                "Target Member",
+                itemId,
+                inventoryId,
+                null,
+                null,
+                "Zu klein",
+                new ItemMovementService.Actor(target.id(), true),
+                null);
+        itemMovementService.acknowledge(
+                movement.id(), movement.currentStepId(), new ItemMovementService.Actor(target.id(), true), "", null);
+
+        var required = service.getRequiredItems(station.id(), target.id()).stream()
+                .filter(row -> row.inventoryId() == inventoryId)
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(1, required.assignedQuantity(), "handed in is not the same as missing");
+        assertEquals(1, required.inExchangeQuantity(), "and the row says why it is not in their hands");
+
+        itemMovementRepo.delete(movement.id());
+        itemCustodyService.assignToMember(itemId, target.id(), "");
+        inventoryRepo.deleteRequirement(requirement.id());
     }
 
     @Test

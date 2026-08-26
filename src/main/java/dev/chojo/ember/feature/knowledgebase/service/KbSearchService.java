@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.sql.FullTextSearch;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -26,6 +28,7 @@ import java.util.List;
  */
 @Singleton
 public class KbSearchService {
+    private static final Logger log = LoggerFactory.getLogger(KbSearchService.class);
 
     private final KnowledgeBaseRepository repository;
     private final StationRepository stationRepository;
@@ -80,7 +83,10 @@ public class KbSearchService {
      */
     public void reindex(int fileId, String text) {
         var file = repository.findFileById(fileId).orElse(null);
-        if (file == null) return;
+        if (file == null) {
+            log.warn("Reindex skipped: knowledge file {} not found", fileId);
+            return;
+        }
 
         var combined = new StringBuilder();
         combined.append(file.name()).append(' ');
@@ -92,8 +98,12 @@ public class KbSearchService {
         }
 
         String indexed = combined.toString().trim();
-        if (indexed.isBlank()) return;
+        if (indexed.isBlank()) {
+            log.warn("Reindex skipped: knowledge file {} has no text to index", fileId);
+            return;
+        }
         repository.updateSearchIndex(fileId, indexed, textSearchConfig(file.stationId()));
+        log.debug("Reindexed knowledge file {} with {} character(s)", fileId, indexed.length());
     }
 
     /**

@@ -297,7 +297,6 @@ public class InventoryRoutes implements Routes {
                 item.custody(),
                 entry.movementId(),
                 entry.movementStep(),
-                entry.movementIncoming(),
                 item.ownerKind(),
                 item.ownerClusterId(),
                 item.lostNote(),
@@ -548,7 +547,7 @@ public class InventoryRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int inventoryId = pathInt(ctx, "inventoryId");
         requireOwnedInventory(inventoryId, session);
-        ctx.json(inventoryService.findItems(inventoryId));
+        ctx.json(inventoryService.findStock(inventoryId));
     }
 
     @OpenApi(
@@ -1110,7 +1109,6 @@ public class InventoryRoutes implements Routes {
             ItemCustody custody,
             Integer movementId,
             String movementStep,
-            boolean movementIncoming,
             /** Who owns it, which a member is entitled to know about what they are looking after. */
             ItemOwner ownerKind,
             Integer ownerClusterId,

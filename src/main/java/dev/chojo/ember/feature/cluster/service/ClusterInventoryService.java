@@ -290,7 +290,6 @@ public class ClusterInventoryService {
     public void archiveFlow(int clusterId, int flowId) {
         requireOwnFlow(clusterId, flowId);
         flowService.archiveFlow(flowId);
-        log.info("Cluster {} retired movement flow {}", clusterId, flowId);
     }
 
     /**

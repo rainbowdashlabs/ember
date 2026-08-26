@@ -9,6 +9,8 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The account behind an address somebody was just named at, created when Ember has never seen it.
@@ -24,6 +26,8 @@ import jakarta.inject.Singleton;
  */
 @Singleton
 public class AccountInviteService {
+    private static final Logger log = LoggerFactory.getLogger(AccountInviteService.class);
+
     /**
      * What an address ends in when it was made up for somebody who is not meant to sign in.
      *
@@ -57,10 +61,14 @@ public class AccountInviteService {
         boolean synthetic = address.endsWith(SYNTHETIC_EMAIL_SUFFIX);
 
         Account existing = accountRepository.findByEmail(address).orElse(null);
-        if (existing != null && synthetic) throw new EmailInUseException(address);
+        if (existing != null && synthetic) {
+            log.warn("Made-up address {} is already taken, station {} cannot use it", address, stationId);
+            throw new EmailInUseException(address);
+        }
 
         boolean created = existing == null;
         Account account = created ? accountRepository.create(address, firstName, lastName, true, stationId) : existing;
+        if (created) log.info("Account {} created by invitation from station {}", account.id(), stationId);
 
         if (!synthetic && needsSetup(account)) {
             authService.sendPasswordSetup(account.id());

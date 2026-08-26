@@ -491,6 +491,7 @@ public class NotificationService {
      */
     public void deleteByTypeContaining(NotificationType type, NotificationData partialData) {
         notificationRepository.deleteByTypeContaining(type, partialData);
+        log.debug("Withdrew the {} notifications matching a data fragment", type);
     }
 
     /**
@@ -498,6 +499,7 @@ public class NotificationService {
      */
     public void cleanupOld() {
         notificationRepository.deleteOldAcknowledged();
+        log.info("Notification cleanup removed the acknowledged entries older than 30 days");
     }
 
     /**

@@ -174,6 +174,7 @@ public class ClusterStorageQuotaService {
         requireFreeName(clusterId, trimmed, presetId);
         requirePositive(total, kb, board, images, pages, perFile, perImage);
         quotaRepository.updatePreset(presetId, trimmed, total, kb, board, images, pages, perFile, perImage);
+        log.info("Cluster {} reshaped the storage tier '{}' to {} bytes in total", clusterId, trimmed, total);
     }
 
     /**

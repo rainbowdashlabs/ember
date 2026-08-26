@@ -13,7 +13,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.media.service.ImageVariantService.ImageData;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.TypstCompiler;
@@ -23,8 +23,6 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -114,7 +112,7 @@ public class ExchangeExportService {
             inventorySizes.put(invId, sizeMap);
         }
 
-        String locale = resolveLocalePrefix(station);
+        String locale = StationFormat.languageOf(station);
 
         // Resolve extra profile field names
         var extraFieldNames = new ArrayList<String>();
@@ -188,7 +186,8 @@ public class ExchangeExportService {
                 .thenComparing(r -> (String) r.get("firstName")));
 
         // Build data map
-        var zone = resolveTimezone(stationId);
+        var zone =
+                StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
         var data = new LinkedHashMap<String, Object>();
         data.put("stationName", station.name());
         data.put("generatedBy", generatedBy);
@@ -218,22 +217,6 @@ public class ExchangeExportService {
             val = val.substring(1, val.length() - 1);
         }
         return val;
-    }
-
-    private String resolveLocalePrefix(Station station) {
-        if (station != null && station.locale() != null && station.locale().startsWith("de")) return "de";
-        return "en";
-    }
-
-    private ZoneId resolveTimezone(int stationId) {
-        var station = stationRepository.findById(stationId);
-        if (station.isPresent() && station.get().timezone() != null) {
-            try {
-                return ZoneId.of(station.get().timezone());
-            } catch (Exception ignored) {
-            }
-        }
-        return ZoneOffset.UTC;
     }
 
     private byte[] renderPdf(Map<String, Object> data, String templateName, ImageData logo)

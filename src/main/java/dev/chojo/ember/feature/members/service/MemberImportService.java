@@ -481,11 +481,11 @@ public class MemberImportService {
         try {
             return LocalDate.parse(value, DE_DATE).toString();
         } catch (Exception e) {
-            // Try ISO format already
             try {
                 LocalDate.parse(value);
                 return value;
-            } catch (Exception ignored) {
+            } catch (Exception iso) {
+                log.debug("A date cell matched neither the German nor the ISO format and was kept as written", iso);
             }
             return value;
         }

@@ -167,14 +167,31 @@ public class FederatedBoardService {
 
     public void setLocalViewOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
         repository.setLocalViewOverride(partnerId, remoteBoardUid, access);
-        log.info("Updated local view override for partner {} (remote board {})", partnerId, remoteBoardUid);
+        log.info(
+                "Updated local view override for partner {} (remote board {}) to {}",
+                partnerId,
+                remoteBoardUid,
+                describe(access));
     }
 
     // -- Local Overrides --
 
     public void setLocalEditOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
         repository.setLocalEditOverride(partnerId, remoteBoardUid, access);
-        log.info("Updated local edit override for partner {} (remote board {})", partnerId, remoteBoardUid);
+        log.info(
+                "Updated local edit override for partner {} (remote board {}) to {}",
+                partnerId,
+                remoteBoardUid,
+                describe(access));
+    }
+
+    private String describe(AccessData access) {
+        if (access == null) return "no requirement";
+        return "%d user type(s), %d group(s), %d tag(s)"
+                .formatted(
+                        access.userTypes().size(),
+                        access.groupIds().size(),
+                        access.tagIds().size());
     }
 
     public AccessData getLocalViewOverride(int partnerId, UUID remoteBoardUid) {

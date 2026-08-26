@@ -9,6 +9,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.PandocConverter;
@@ -20,8 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -137,7 +136,7 @@ public class KbPdfExportService {
         var data = new LinkedHashMap<String, Object>();
         data.put("stationName", stationName == null ? "" : stationName);
         data.put("generatedBy", generatedBy);
-        data.put("generatedAt", PDF_DATE_TIME_FMT.format(Instant.now().atZone(resolveTimezone(station))));
+        data.put("generatedAt", PDF_DATE_TIME_FMT.format(Instant.now().atZone(StationFormat.timezoneOf(station))));
         data.put("baseUrl", apiConfig.baseUrl());
         data.put("hasLogo", false);
         data.put("fileName", source.fileName());
@@ -153,25 +152,11 @@ public class KbPdfExportService {
         var logo = logoStationId != null ? logoService.original(logoStationId).orElse(null) : null;
         byte[] pdf = TypstCompiler.compileTemplate(
                 data,
-                resolveLocalePrefix(station) + (source.markdown() ? "/kb-markdown-export.typ" : "/kb-text-export.typ"),
+                StationFormat.languageOf(station)
+                        + (source.markdown() ? "/kb-markdown-export.typ" : "/kb-text-export.typ"),
                 logo != null ? new TypstCompiler.StationLogo(logo.data(), logo.contentType()) : null,
                 resources);
         log.info("Rendered '{}' as PDF ({} bytes)", source.fileName(), pdf.length);
         return pdf;
-    }
-
-    private static String resolveLocalePrefix(Station station) {
-        if (station != null && station.locale() != null && station.locale().startsWith("de")) return "de";
-        return "en";
-    }
-
-    private static ZoneId resolveTimezone(Station station) {
-        if (station != null && station.timezone() != null) {
-            try {
-                return ZoneId.of(station.timezone());
-            } catch (Exception ignored) {
-            }
-        }
-        return ZoneOffset.UTC;
     }
 }

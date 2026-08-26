@@ -156,7 +156,8 @@ public class BoardAttachmentService {
             try {
                 Files.deleteIfExists(legacyRoot);
                 Files.deleteIfExists(legacyRoot.getParent());
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                log.debug("Legacy board-attachment root {} stays behind, empty", legacyRoot, e);
             }
         } catch (IOException e) {
             log.warn("Board-attachment legacy migration failed; some uploads may not be reachable", e);

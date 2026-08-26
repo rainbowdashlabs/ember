@@ -78,7 +78,11 @@ function ownerLabel(ownerKind?: string | null): string {
         <SecondaryButton @click="emit('open-log')">
           <font-awesome-icon :icon="['fas', 'clock-rotate-left']" />
         </SecondaryButton>
-        <SecondaryButton v-if="canManageExchanges && request.status !== ExchangeStatus.DONE" @click="emit('start-update')">
+        <SecondaryButton
+            v-if="canManageExchanges && request.status !== ExchangeStatus.DONE"
+            data-testid="exchange-advance"
+            @click="emit('start-update')"
+        >
           <font-awesome-icon :icon="['fas', 'arrow-right']" />
         </SecondaryButton>
         <DeleteButton v-if="canManageExchanges" @click="emit('delete')" />

@@ -339,9 +339,11 @@ public class AuthService {
     public SetPasswordOutcome setPasswordFor(Account account, String password) {
         PasswordPolicy.Result policy = validateNewPassword(password);
         if (policy == PasswordPolicy.Result.TOO_SHORT) {
+            log.info("[set-password-for] rejected for account {}: password too short", account.id());
             return SetPasswordOutcome.PASSWORD_TOO_SHORT;
         }
         if (policy == PasswordPolicy.Result.BREACHED) {
+            log.info("[set-password-for] rejected for account {}: password found in breach corpus", account.id());
             return SetPasswordOutcome.PASSWORD_BREACHED;
         }
 
@@ -353,6 +355,7 @@ public class AuthService {
         }
         invalidateAfterPasswordRotation(account.id(), null);
         notifyPasswordSetOnBehalf(account);
+        log.info("Password set on behalf of account {}", account.id());
         return SetPasswordOutcome.OK;
     }
 
@@ -446,6 +449,7 @@ public class AuthService {
     public boolean resendVerification(String email) {
         Optional<Account> accountOpt = accountRepository.findByEmail(email);
         if (accountOpt.isEmpty() || accountOpt.get().emailVerified()) {
+            log.info("Verification mail not resent for '{}': unknown address or already verified", email);
             return false;
         }
 
@@ -459,6 +463,7 @@ public class AuthService {
                 Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
         emailService.sendVerificationEmail(
                 account.email(), account.firstName(), token, mailLocaleService.forAccount(account.id()));
+        log.info("Verification mail resent for account {}", account.id());
         return true;
     }
 

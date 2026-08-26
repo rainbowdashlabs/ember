@@ -145,11 +145,13 @@ public class ClusterProfileFieldService {
                 stationReadonly,
                 keepOnArchive,
                 stationGroupId);
+        log.info("Cluster {} changed field {} to '{}' ({}, {})", clusterId, fieldId, name.trim(), fieldType, scope);
     }
 
     public void delete(int clusterId, int fieldId) {
         requireField(clusterId, fieldId);
         fieldRepository.delete(fieldId);
+        log.info("Cluster {} withdrew field {}", clusterId, fieldId);
     }
 
     /**

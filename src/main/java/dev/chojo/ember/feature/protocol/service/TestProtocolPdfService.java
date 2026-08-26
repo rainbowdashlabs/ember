@@ -426,7 +426,8 @@ public class TestProtocolPdfService {
         }
         try (var stream = getClass().getClassLoader().getResourceAsStream("logo/IconBG.png")) {
             if (stream != null) return new LogoResource("logo.png", stream.readAllBytes());
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("Fallback logo could not be read, the protocol is built without one", e);
         }
         return null;
     }

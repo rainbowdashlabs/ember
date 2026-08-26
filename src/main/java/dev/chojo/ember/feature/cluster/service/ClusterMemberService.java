@@ -184,18 +184,22 @@ public class ClusterMemberService {
     public ClusterMemberGroup createGroup(int clusterId, String name) {
         requireCluster(clusterId);
         if (name == null || name.isBlank()) throw new BadRequestResponse("A group needs a name");
-        return clusterRepository.createGroup(clusterId, name.trim());
+        ClusterMemberGroup group = clusterRepository.createGroup(clusterId, name.trim());
+        log.info("Cluster {} opened the group '{}' ({})", clusterId, group.name(), group.id());
+        return group;
     }
 
     public void renameGroup(int clusterId, int groupId, String name) {
         requireGroup(clusterId, groupId);
         if (name == null || name.isBlank()) throw new BadRequestResponse("A group needs a name");
         clusterRepository.renameGroup(groupId, name.trim());
+        log.info("Cluster {} renamed group {} to '{}'", clusterId, groupId, name.trim());
     }
 
     public void deleteGroup(int clusterId, int groupId) {
         requireGroup(clusterId, groupId);
         clusterRepository.deleteGroup(groupId);
+        log.info("Cluster {} closed group {}", clusterId, groupId);
     }
 
     /**
@@ -222,6 +226,12 @@ public class ClusterMemberService {
             clusterRepository.addToGroup(groupId, memberId);
             eventBus.publish(new ClusterMemberRoleChanged(memberId, cluster.name()));
         }
+        log.info(
+                "Cluster {} put {} member(s) in group {}, {} were there before",
+                clusterId,
+                memberIds.size(),
+                groupId,
+                before.size());
     }
 
     /**
@@ -251,6 +261,7 @@ public class ClusterMemberService {
             clusterRepository.addToGroup(groupId, memberId);
         }
         eventBus.publish(new ClusterMemberRoleChanged(memberId, cluster.name()));
+        log.info("Cluster {} moved member {} from groups {} to {}", clusterId, memberId, before, groupIds);
     }
 
     /**
@@ -282,6 +293,7 @@ public class ClusterMemberService {
         for (int memberId : clusterRepository.findGroupMemberIds(groupId)) {
             eventBus.publish(new ClusterMemberRoleChanged(memberId, cluster.name()));
         }
+        log.info("Cluster {} changed what group {} carries from {} to {}", clusterId, groupId, before, permissions);
     }
 
     private Cluster requireCluster(int clusterId) {

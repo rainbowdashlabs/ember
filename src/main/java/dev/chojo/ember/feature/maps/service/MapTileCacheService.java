@@ -163,7 +163,8 @@ public class MapTileCacheService {
                 if (path.equals(ROOT)) return;
                 try {
                     Files.deleteIfExists(path);
-                } catch (IOException ignored) {
+                } catch (IOException e) {
+                    log.debug("Tile {} survived the purge", path, e);
                 }
             });
             Files.createDirectories(ROOT);
@@ -237,7 +238,8 @@ public class MapTileCacheService {
                 Files.deleteIfExists(p);
                 cachedBytes.addAndGet(-size);
                 cachedTiles.decrementAndGet();
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                log.debug("Tile {} could not be evicted, the cache stays over budget", p, e);
             }
         }
     }
@@ -256,7 +258,8 @@ public class MapTileCacheService {
                 try {
                     bytes += Files.size(p);
                     count++;
-                } catch (IOException ignored) {
+                } catch (IOException e) {
+                    log.debug("Tile {} could not be measured and is missing from the count", p, e);
                 }
             }
         } catch (IOException e) {

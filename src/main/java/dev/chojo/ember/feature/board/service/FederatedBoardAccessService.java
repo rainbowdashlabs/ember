@@ -173,7 +173,7 @@ public class FederatedBoardAccessService {
      * @param access         the access requirement
      */
     public void setLocalViewOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
-        federatedBoardRepository.setLocalViewOverride(partnerId, remoteBoardUid, access);
+        federatedBoardService.setLocalViewOverride(partnerId, remoteBoardUid, access);
     }
 
     /**
@@ -184,7 +184,7 @@ public class FederatedBoardAccessService {
      * @param access         the access requirement
      */
     public void setLocalEditOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
-        federatedBoardRepository.setLocalEditOverride(partnerId, remoteBoardUid, access);
+        federatedBoardService.setLocalEditOverride(partnerId, remoteBoardUid, access);
     }
 
     /**
