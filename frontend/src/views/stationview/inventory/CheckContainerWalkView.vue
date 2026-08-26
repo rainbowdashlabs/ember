@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
@@ -29,6 +30,8 @@ import {countWalkResults, toCheckItems} from './checkcontainerwalkview/walkResul
 import type {ExpectedRow, ExtraRow} from './checkcontainerwalkview/types'
 import {apiErrorMessage} from '@/util/apiError'
 import {reportCaughtError} from '@/util/devErrorReporter'
+
+const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const route = useRoute()
@@ -167,7 +170,7 @@ const {running: submitting, error: finishError, run: finishCheck} = useAsyncActi
 const displayError = computed(() => scanError.value || finishError.value || error.value)
 
 function backToOverview() {
-  router.push({name: 'inventory-check-container-overview'})
+  router.push({name: routes.checkContainerOverview})
 }
 
 const isLast = computed(() => walkIdx.value >= walkOrder.value.length - 1)

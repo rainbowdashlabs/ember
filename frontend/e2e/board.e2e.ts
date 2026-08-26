@@ -109,7 +109,9 @@ test.describe('Boards', () => {
         const candidates = page.locator('.absolute button').filter({hasNotText: 'Nicht zugewiesen'})
         const candidate = candidates.first()
         await expect(candidate).toBeVisible()
-        const name = (await candidate.innerText()).trim()
+        // The last line of the entry: somebody without a picture is drawn with their initials above
+        // their name, and the initials are not what the card carries afterwards.
+        const name = (await candidate.innerText()).trim().split('\n').pop()!.trim()
         await candidate.click()
 
         await page.reload()

@@ -4,10 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -18,20 +16,31 @@ import GroupSelect from './membersconfig/GroupSelect.vue'
 import FieldsPanel from './membersconfig/FieldsPanel.vue'
 import UnassignedGroupFields from './membersconfig/UnassignedGroupFields.vue'
 import FieldsPreview from './membersconfig/FieldsPreview.vue'
-import type {FieldTemplate} from './membersconfig/fieldTemplates'
-import {
-    DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
-    type ProfileField, type ProfileFieldConfig, type ProfileFieldRequest,
-} from '@/api/profileFields'
-import type {MemberGroup} from '@/api/types'
+import {FieldTypes} from '@/api/profileFields'
 import {memberGroups, profileFields} from '@/api'
+import {useFieldsConfig, type FieldsPort} from '@/composables/useFieldsConfig'
 
 const {t} = useI18n()
 
-const allFields = ref<ProfileField[]>([])
-const availableGroups = ref<MemberGroup[]>([])
-const activeTab = ref('MEMBER')
-const selectedGroupId = ref('')
+/** A station declares every scope and every type, and has nobody above it to lock a field from. */
+const port: FieldsPort = {
+  list: () => profileFields.listFields(),
+  create: (field) => profileFields.createField(field),
+  update: (id, field) => profileFields.updateField(id, field),
+  reorder: (fieldIds) => profileFields.reorderFields(fieldIds),
+  remove: (id) => profileFields.deleteField(id),
+  scopes: ['MEMBER', 'GUARDIAN', 'TEAM', 'MANAGER', 'GROUP'],
+  types: Object.values(FieldTypes),
+  listGroups: () => memberGroups.listGroups(),
+  stationReadonly: false,
+}
+
+const {
+  availableGroups, activeTab, selectedGroupId, currentFields, unassignedGroupFields,
+  dateFields, birthDateField, showFieldModal, editingField, loading, error,
+  openAddField, openEditField, saveField, toggleFieldConfig, toggleKeepOnArchive, setWritability,
+  showDeleteModal, deleteTarget, requestDelete, confirmDelete, onReorder, applyTemplate,
+} = useFieldsConfig(port)
 
 const tabs = computed(() => [
   {key: 'MEMBER', label: t('membersConfig.tabMember')},
@@ -40,172 +49,6 @@ const tabs = computed(() => [
   {key: 'MANAGER', label: t('membersConfig.tabStationManager')},
   {key: 'GROUP', label: t('membersConfig.tabGroup')},
 ])
-
-const currentFields = computed(() => {
-  if (activeTab.value === 'MEMBER') return allFields.value.filter(f => f.scope === 'MEMBER')
-  if (activeTab.value === 'GUARDIAN') return allFields.value.filter(f => f.scope === 'GUARDIAN')
-  if (activeTab.value === 'TEAM') return allFields.value.filter(f => f.scope === 'TEAM')
-  if (activeTab.value === 'MANAGER') return allFields.value.filter(f => f.scope === 'MANAGER')
-  if (!selectedGroupId.value) return []
-  return allFields.value.filter(f => {
-    if (f.scope !== 'GROUP') return false
-    const cfg = parseFieldConfig(f.config)
-    return cfg.groupId === Number(selectedGroupId.value)
-  })
-})
-
-/**
- * Group fields that name no group. A field of this scope is only ever shown at its group, so one
- * without belongs nowhere and would stay out of reach. Opening it and saving puts it in the group
- * chosen above.
- */
-const unassignedGroupFields = computed(() => allFields.value.filter(
-    f => f.scope === 'GROUP' && !parseFieldConfig(f.config).groupId))
-
-const dateFields = computed(() => currentFields.value.filter(f => DATE_FIELD_TYPES.includes(f.fieldType ?? '')))
-
-/** One per station, not per scope - a member has one date of birth however the tabs are arranged. */
-const birthDateField = computed(() =>
-    allFields.value.find(f => f.fieldType === FieldTypes.BIRTH_DATE) ?? null)
-
-const showFieldModal = ref(false)
-const editingField = ref<ProfileField | null>(null)
-
-const {loading, error, reload} = useAsyncLoader(async () => {
-  const [fields, groups] = await Promise.all([
-    profileFields.listFields(),
-    memberGroups.listGroups(),
-  ])
-  allFields.value = fields
-  availableGroups.value = groups
-})
-
-function openAddField() {
-  editingField.value = null
-  showFieldModal.value = true
-}
-
-function openEditField(field: ProfileField) {
-  editingField.value = field
-  showFieldModal.value = true
-}
-
-async function saveField(data: ProfileFieldRequest & { scope: string }) {
-  error.value = ''
-  try {
-    if (editingField.value) {
-      await profileFields.updateField(editingField.value.id, data)
-    } else {
-      await profileFields.createField({...data, position: currentFields.value.length})
-    }
-    showFieldModal.value = false
-    await reload()
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-function updateFieldLocally(fieldId: number, patch: Partial<ProfileField>) {
-  allFields.value = allFields.value.map(f => f.id === fieldId ? { ...f, ...patch } : f)
-}
-
-async function toggleFieldConfig(field: ProfileField, key: string, value: boolean) {
-  const cfg = {...parseFieldConfig(field.config)}
-  if (value) {
-    cfg[key] = true
-  } else {
-    delete cfg[key]
-  }
-  updateFieldLocally(field.id, { config: cfg })
-  try {
-    await profileFields.updateField(field.id, {
-      name: field.name ?? '',
-      fieldType: field.fieldType ?? '',
-      config: cfg,
-      position: field.position,
-      keepOnArchive: field.keepOnArchive,
-    })
-  } catch {
-    error.value = t('common.error')
-    await reload()
-  }
-}
-
-async function toggleKeepOnArchive(field: ProfileField, value: boolean) {
-  updateFieldLocally(field.id, { keepOnArchive: value })
-  try {
-    await profileFields.updateField(field.id, {
-      name: field.name ?? '',
-      fieldType: field.fieldType ?? '',
-      config: parseFieldConfig(field.config),
-      position: field.position,
-      keepOnArchive: value,
-    })
-  } catch {
-    error.value = t('common.error')
-    await reload()
-  }
-}
-
-const {
-  show: showDeleteModal,
-  target: deleteTarget,
-  requestDelete,
-  confirm: confirmDelete,
-} = useConfirmDelete<ProfileField>({
-  onDelete: (field) => profileFields.deleteField(field.id),
-  onSuccess: () => reload(),
-  error,
-})
-
-async function onReorder(fromIndex: number, toIndex: number) {
-  const arr = [...currentFields.value]
-  const [moved] = arr.splice(fromIndex, 1)
-  if (!moved) return
-  arr.splice(toIndex, 0, moved)
-  try {
-    for (const [i, field] of arr.entries()) {
-      await profileFields.updateField(field.id, {
-        name: field.name ?? '',
-        fieldType: field.fieldType ?? '',
-        config: parseFieldConfig(field.config),
-        position: i,
-      })
-    }
-    await reload()
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-/**
- * A field of group scope belongs to the group being configured. A template carries settings that
- * hold for every scope and cannot know which group that is, so it is told here.
- */
-function withSelectedGroup(config: ProfileFieldConfig): ProfileFieldConfig {
-  if (activeTab.value !== 'GROUP' || !selectedGroupId.value) return config
-  return {...config, groupId: Number(selectedGroupId.value)}
-}
-
-async function applyTemplate(template: FieldTemplate) {
-  error.value = ''
-  try {
-    const startPosition = currentFields.value.length
-    for (const [i, f] of template.fields.entries()) {
-      await profileFields.createField({
-        name: f.name,
-        fieldType: f.fieldType,
-        config: withSelectedGroup(f.config),
-        position: startPosition + i,
-        scope: activeTab.value,
-      })
-    }
-    await reload()
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
 </script>
 
 <template>
@@ -238,6 +81,7 @@ async function applyTemplate(template: FieldTemplate) {
             @reorder="onReorder"
             @toggle-config="toggleFieldConfig"
             @toggle-keep-on-archive="toggleKeepOnArchive"
+            @set-writability="setWritability"
             @apply-template="applyTemplate"
         />
 

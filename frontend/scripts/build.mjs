@@ -15,6 +15,7 @@ const lintScripts = [
   'lint-icons.mjs',
   'lint-conventions.mjs',
   'lint-helpcenter.mjs',
+  'lint-help-index.mjs',
   'lint-helpcenter-i18n.mjs',
   'lint-locales.mjs',
   'lint-imports.mjs',

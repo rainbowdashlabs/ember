@@ -15,11 +15,19 @@ import dev.chojo.ember.api.auth.StationUserType;
  * @param inventoryId the inventory this requirement applies to
  * @param userType    the user type this requirement targets, or null if not user-type-based
  * @param groupId     the group this requirement targets, or 0 if not group-based
+ * @param stationGroupId the group of stations it counts at, or null for every station reading it. Only
+ *                       an association's own requirement ever names one.
  * @param quantity    the number of items required
  * @param position    the sort position for display ordering
  */
 public record InventoryRequirement(
-        int id, int inventoryId, StationUserType userType, int groupId, int quantity, int position) {
+        int id,
+        int inventoryId,
+        StationUserType userType,
+        int groupId,
+        Integer stationGroupId,
+        int quantity,
+        int position) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -29,6 +37,7 @@ public record InventoryRequirement(
                 row.getInt("inventory_id"),
                 row.getEnum("user_type", StationUserType.class),
                 row.getInt("group_id"),
+                row.getObject("station_group_id", Integer.class),
                 row.getInt("quantity"),
                 row.getInt("position"));
     }

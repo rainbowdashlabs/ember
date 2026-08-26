@@ -14,7 +14,8 @@ import ExchangeStatusBadge from './ExchangeStatusBadge.vue'
 import ExchangeStatusUpdatePanel from './ExchangeStatusUpdatePanel.vue'
 import {ExchangeStatus, type ExchangeRequestEntry, type ExchangeStatusName} from '@/api/exchanges'
 import type { InventoryItem } from '@/api/inventory'
-import { inventoryTypeBadge, inventoryTypeLabel as toInventoryTypeLabel } from '@/util/inventoryType'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import { itemOwnerBadge, itemOwnerLabel as toItemOwnerLabel } from '@/util/inventoryType'
 import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
@@ -40,8 +41,9 @@ const emit = defineEmits<{
   (e: 'status-error', msg: string): void
 }>()
 
-function inventoryTypeLabel(type?: string | null): string {
-  return toInventoryTypeLabel(t, type)
+/** Who owns the piece this row is about, which a mixed inventory cannot answer for the inventory. */
+function ownerLabel(ownerKind?: string | null): string {
+  return toItemOwnerLabel(t, ownerKind)
 }
 </script>
 
@@ -52,7 +54,10 @@ function inventoryTypeLabel(type?: string | null): string {
       <ExchangeStatusBadge :status="request.status" />
     </div>
     <div v-if="canManageExchanges">
-      <component :is="inventoryTypeBadge(request.inventoryType)">{{ inventoryTypeLabel(request.inventoryType) }}</component>
+      <component :is="itemOwnerBadge(request.ownerKind)">{{ ownerLabel(request.ownerKind) }}</component>
+      <SecondaryBadge v-if="request.purpose" class="ml-1">
+        {{ t(`movements.purpose.${request.purpose}`) }}
+      </SecondaryBadge>
     </div>
     <div class="space-y-1">
       <div v-if="showMemberColumn" class="text-xs text-(--text-muted)"><MemberName :identity="request.memberIdentity ?? null"/></div>

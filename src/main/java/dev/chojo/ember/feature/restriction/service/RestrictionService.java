@@ -20,6 +20,8 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.repository.RestrictionRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.List;
@@ -35,6 +37,7 @@ import java.util.stream.Collectors;
  */
 @Singleton
 public class RestrictionService {
+    private static final Logger log = LoggerFactory.getLogger(RestrictionService.class);
 
     private final RestrictionRepository restrictionRepository;
     private final StationMemberRepository stationMemberRepository;
@@ -65,6 +68,15 @@ public class RestrictionService {
      */
     public void setRestrictions(RestrictionType type, int entityId, RestrictionSelection selection) {
         restrictionRepository.setRestrictions(type, entityId, selection);
+        log.info(
+                "Restrictions of {} {} replaced: {} user type(s), {} group(s), {} tag(s), {} member(s), mode {}",
+                type,
+                entityId,
+                selection.userTypes().size(),
+                selection.groupIds().size(),
+                selection.tagIds().size(),
+                selection.memberIds().size(),
+                selection.mode());
     }
 
     /**

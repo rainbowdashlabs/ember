@@ -29,7 +29,7 @@ import java.util.Random;
 import java.util.UUID;
 
 @Singleton
-public class DemoBoardSeeder implements DemoSeeder {
+public class DemoBoardSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoBoardSeeder.class);
 
     private final BoardRepository boardRepo;
@@ -62,20 +62,20 @@ public class DemoBoardSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        var members = context.members();
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        var members = station.members();
         seed(
-                context.stationId(),
-                context.adminMember(),
+                station.stationId(),
+                station.adminMember(),
                 members.betreuer(),
                 StationUserType.TEAM,
                 StationUserType.MEMBER,
                 new Random(42_004));
         log.info("Demo: Created board data");
         seedSharedBoard(
-                context.stationId(),
-                context.federation().partnerStationId(),
-                context.adminMember(),
+                station.stationId(),
+                run.federation().partnerStationId(),
+                station.adminMember(),
                 members.betreuer(),
                 StationUserType.TEAM,
                 StationUserType.MEMBER,

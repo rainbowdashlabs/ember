@@ -84,7 +84,7 @@ watch(loaded, (isLoaded) => {
       <template v-if="!loading">
         <div class="flex items-center justify-between">
           <div/>
-          <SecondaryButton :icon="['fas', 'plus']" @click="showAddAbsence = true">
+          <SecondaryButton data-onboarding="absences.add" :icon="['fas', 'plus']" @click="showAddAbsence = true">
             {{ t('profile.absenceAdd') }}
           </SecondaryButton>
         </div>

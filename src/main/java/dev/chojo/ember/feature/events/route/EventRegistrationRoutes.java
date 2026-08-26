@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -68,6 +69,7 @@ public class EventRegistrationRoutes implements Routes {
     private final EventCrudService crudService;
     private final EventRegistrationService registrationService;
     private final EventRestrictionService restrictionService;
+    private final MemberNameResolver memberNameResolver;
     private final StationMemberService stationMemberService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
@@ -80,6 +82,7 @@ public class EventRegistrationRoutes implements Routes {
             EventCrudService crudService,
             EventRegistrationService registrationService,
             EventRestrictionService restrictionService,
+            MemberNameResolver memberNameResolver,
             StationMemberService stationMemberService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
@@ -89,6 +92,7 @@ public class EventRegistrationRoutes implements Routes {
         this.crudService = crudService;
         this.registrationService = registrationService;
         this.restrictionService = restrictionService;
+        this.memberNameResolver = memberNameResolver;
         this.stationMemberService = stationMemberService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
@@ -105,11 +109,13 @@ public class EventRegistrationRoutes implements Routes {
                 this::listPendingRegistrations,
                 StationPermission.EVENT_REGISTRATION);
         routes.get(prefix + "/events/registrations/counts", this::listRegistrationCounts, StationPermission.USER);
+        routes.get(prefix + "/events/registrations/awaiting", this::listAwaitingAnswer, StationPermission.USER);
         routes.put(
                 prefix + "/events/registrations/{id}/status",
                 this::updateRegistrationStatus,
                 StationPermission.EVENT_REGISTRATION);
         routes.delete(prefix + "/events/registrations/{id}", this::withdrawRegistration, StationPermission.USER);
+        routes.put(prefix + "/events/registrations/{id}/answer", this::changeAnswer, StationPermission.USER);
 
         routes.get(
                 prefix + "/events/{eventId}/registration-stats",
@@ -191,7 +197,8 @@ public class EventRegistrationRoutes implements Routes {
                 r.status(),
                 r.createdAt(),
                 createdByName,
-                fields);
+                fields,
+                crudService.findById(r.eventId()).map(StationEvent::name).orElse(null));
     }
 
     /**
@@ -246,6 +253,51 @@ public class EventRegistrationRoutes implements Routes {
             summary = "List my registrations",
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRegistration[].class)))
+    @OpenApi(
+            path = "/api/v1/events/registrations/awaiting",
+            methods = HttpMethod.GET,
+            summary = "Events still waiting on an answer from the reader or anyone they answer for",
+            tags = {"Events"},
+            description = "One entry per event, naming everyone in the household who still owes an "
+                    + "answer, soonest deadline first. Only events open to that person are listed, and "
+                    + "only while their registration is still open.",
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AwaitingAnswer[].class)))
+    private void listAwaitingAnswer(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        if (session.member() == null) {
+            ctx.json(Collections.emptyList());
+            return;
+        }
+
+        var household = new ArrayList<Integer>();
+        household.add(session.member().id());
+        if (session.hasPermission(StationPermission.MEMBER_GUARDIAN)) {
+            for (var managed : stationMemberService.findManaged(session.member().id())) {
+                household.add(managed.id());
+            }
+        }
+
+        var byEvent = new LinkedHashMap<Integer, AwaitingAnswer>();
+        for (var row : registrationService.findAwaitingAnswer(household)) {
+            if (!restrictionService.isMemberEligible(row.eventId(), row.memberId(), session.permissions())) {
+                continue;
+            }
+            var entry = byEvent.computeIfAbsent(
+                    row.eventId(),
+                    id -> new AwaitingAnswer(
+                            id, row.name(), row.startTime(), row.registrationDeadline(), new ArrayList<>()));
+            entry.members().add(new AwaitingMember(row.memberId(), memberNameResolver.resolveLocal(row.memberId())));
+        }
+        ctx.json(List.copyOf(byEvent.values()));
+    }
+
+    /** An event still waiting on an answer, and everyone in the household who owes one. */
+    public record AwaitingAnswer(
+            int eventId, String name, Instant startTime, Instant registrationDeadline, List<AwaitingMember> members) {}
+
+    /** Somebody who still owes an answer, named so a guardian can tell their children apart. */
+    public record AwaitingMember(int memberId, String name) {}
+
     private void listMyRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) {
@@ -558,6 +610,63 @@ public class EventRegistrationRoutes implements Routes {
                 @OpenApiResponse(status = "204"),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
+    @OpenApi(
+            path = "/api/v1/events/registrations/{id}/answer",
+            methods = HttpMethod.PUT,
+            summary = "Change whether somebody is coming",
+            description = "While registration is open a member changes their own answer, and so does "
+                    + "whoever looks after them. Once it has closed only the people who run the event can, "
+                    + "because the list has been counted on by then. Coming back after declining is a "
+                    + "fresh answer rather than the old place restored: an event that confirms its list "
+                    + "confirms this one too, so nobody keeps a place they gave up.",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AnswerRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void changeAnswer(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        var req = ctx.bodyAsClass(AnswerRequest.class);
+        var registration = registrationService.findById(id).orElseThrow(NotFoundResponse::new);
+        var event = requireOwnedEvent(crudService, registration.eventId(), session);
+
+        boolean manages = answersFor(session, registration.memberId());
+        boolean runsTheEvent = session.hasPermission(StationPermission.EVENT_MANAGER)
+                || session.hasPermission(StationPermission.EVENT_REGISTRATION);
+        if (!manages && !runsTheEvent) {
+            throw new ForbiddenResponse("You cannot answer for this member");
+        }
+
+        boolean closed = event.registrationDeadline() != null && Instant.now().isAfter(event.registrationDeadline());
+        if (closed && !runsTheEvent) {
+            throw new BadRequestResponse("Registration has closed; ask whoever runs the event");
+        }
+
+        var status = req.attending()
+                ? (event.requiresConfirmation() ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED)
+                : RegistrationStatus.DECLINED;
+        if (!registrationService.updateStatus(id, status)) {
+            throw new NotFoundResponse();
+        }
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /** Whether this session answers for that member: their own answer, or one they look after. */
+    private boolean answersFor(UserSession session, int memberId) {
+        if (session.member() == null) return false;
+        if (session.member().id() == memberId) return true;
+        return session.hasPermission(StationPermission.MEMBER_GUARDIAN)
+                && stationMemberService.findManaged(session.member().id()).stream()
+                        .anyMatch(m -> m.id() == memberId);
+    }
+
+    /** Whether somebody is coming. */
+    public record AnswerRequest(boolean attending) {}
+
     private void withdrawRegistration(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -637,7 +746,14 @@ public class EventRegistrationRoutes implements Routes {
             RegistrationStatus status,
             Instant createdAt,
             String createdByName,
-            List<FieldValueEntry> fields) {}
+            List<FieldValueEntry> fields,
+            /**
+             * What the appointment is called. Carried on the registration because the reader cannot always
+             * look it up: an appointment made by the association above the station lives on the
+             * association's own station, so a station-side list matching the id against its own events
+             * finds nothing and shows somebody a registration for something it cannot name.
+             */
+            String eventName) {}
 
     @OpenApiName("EventRegisterRequest")
     public record RegisterRequest(String eventDate, Integer memberId, List<FieldValueEntry> fields) {}

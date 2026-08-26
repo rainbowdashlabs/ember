@@ -19,7 +19,7 @@ import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.Templa
 import dev.chojo.ember.feature.events.entity.MemberFieldValue;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import dev.chojo.ember.util.TypstCompiler;
@@ -30,7 +30,6 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -89,13 +88,7 @@ public class AttendanceExportService {
         var template = attendanceRepository.findTemplateById(session.get().templateId());
         int stationId = template.map(AttendanceTemplate::stationId).orElse(0);
         var station = stationRepository.findById(stationId).orElse(null);
-        ZoneId zone = ZoneOffset.UTC;
-        if (station != null && station.timezone() != null) {
-            try {
-                zone = ZoneId.of(station.timezone());
-            } catch (Exception ignored) {
-            }
-        }
+        ZoneId zone = StationFormat.timezoneOf(station);
 
         var data = buildExportData(session.get(), entries, sessionFields, templateFields, templateGroups, zone);
         data.put("stationName", station != null ? station.name() : "");
@@ -106,7 +99,7 @@ public class AttendanceExportService {
 
         try {
             var logo = stationRepository.findLogo(stationId);
-            String locale = resolveLocalePrefix(station);
+            String locale = StationFormat.languageOf(station);
             return Optional.of(renderPdf(data, locale + "/attendance.typ", logo.orElse(null)));
         } catch (Exception e) {
             log.error("Failed to export attendance PDF for session {}", sessionId, e);
@@ -237,11 +230,6 @@ public class AttendanceExportService {
             val = val.substring(1, val.length() - 1);
         }
         return val;
-    }
-
-    private String resolveLocalePrefix(Station station) {
-        if (station != null && station.locale() != null && station.locale().startsWith("de")) return "de";
-        return "en";
     }
 
     private String formatTime(Instant instant, ZoneId zone) {

@@ -72,7 +72,7 @@ const groups = [
     title: t('helpCenter.basics.configuration.envGroupAuth'),
     defaultOpen: true,
     vars: [
-      {name: 'AUTH_SESSIONMINUTES', default: '30', configKey: 'auth.sessionMinutes', desc: t('helpCenter.basics.configuration.env.authSessionMinutes')},
+      {name: 'AUTH_SESSIONMINUTES', default: '43200', configKey: 'auth.sessionMinutes', desc: t('helpCenter.basics.configuration.env.authSessionMinutes')},
       {name: 'AUTH_VERIFYTOKENHOURS', default: '24', configKey: 'auth.verifyTokenHours', desc: t('helpCenter.basics.configuration.env.authVerifyTokenHours')},
       {name: 'AUTH_PASSWORDTOKENHOURS', default: '72', configKey: 'auth.passwordTokenHours', desc: t('helpCenter.basics.configuration.env.authPasswordTokenHours')},
       {name: 'AUTH_TOKENBYTES', default: '32', configKey: 'auth.tokenBytes', desc: t('helpCenter.basics.configuration.env.authTokenBytes')},

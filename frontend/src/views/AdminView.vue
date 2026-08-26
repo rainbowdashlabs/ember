@@ -11,10 +11,13 @@ import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
 import SmartStationButton from '@/components/layout/SmartStationButton.vue'
+import ClusterPanelButton from '@/components/layout/ClusterPanelButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import {useSession} from '@/composables/useSession'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
+import OnboardingGuide from '@/components/onboarding/OnboardingGuide.vue'
+import OnboardingResumeButton from '@/components/onboarding/OnboardingResumeButton.vue'
 import QuickSearchTrigger from '@/components/quicksearch/QuickSearchTrigger.vue'
 import {useQuickSearchShortcut} from '@/composables/useQuickSearchShortcut'
 import {usePageHeader} from '@/composables/usePageHeader'
@@ -40,7 +43,7 @@ onMounted(() => {
 <template>
   <SidebarLayout :subtitle="pageSubtitle" :title="pageTitle">
     <template #sidebar="{ close }">
-      <SidebarGroup :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/admin/dashboard">
+      <SidebarGroup :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')">
         <SidebarLink :icon="['fas', 'house']" name="admin-overview" to="/admin/dashboard/overview" @navigate="close">
           {{ t('sidebar.overview') }}
         </SidebarLink>
@@ -50,8 +53,8 @@ onMounted(() => {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'building']" :label="t('sidebar.stations')" prefix="/admin/stations">
-        <SidebarLink :icon="['fas', 'building']" name="admin-stations" to="/admin/stations" @navigate="close">
+      <SidebarGroup :icon="['fas', 'building']" :label="t('sidebar.stations')">
+        <SidebarLink data-onboarding="nav.admin.stations" :icon="['fas', 'building']" name="admin-stations" to="/admin/stations" @navigate="close">
           {{ t('sidebar.manageStations') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'clipboard-list']" name="admin-station-applications"
@@ -63,15 +66,20 @@ onMounted(() => {
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'gear']" :label="t('sidebar.settings')" prefix="/admin/settings">
-        <SidebarLink :icon="['fas', 'sliders']" name="admin-settings" to="/admin/settings" @navigate="close">
+      <SidebarGroup :icon="['fas', 'sitemap']" :label="t('sidebar.clusters')">
+        <SidebarLink :icon="['fas', 'sitemap']" name="admin-clusters" to="/admin/clusters" @navigate="close">
+          {{ t('sidebar.manageClusters') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'gear']" :label="t('sidebar.settings')">
+        <SidebarLink data-onboarding="nav.admin.settings" :icon="['fas', 'sliders']" name="admin-settings" to="/admin/settings" @navigate="close">
           {{ t('sidebar.general') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'envelope']" name="admin-mailing" to="/admin/settings/mailing" @navigate="close">
+        <SidebarLink data-onboarding="nav.admin.mailing" :icon="['fas', 'envelope']" name="admin-mailing" to="/admin/settings/mailing" @navigate="close">
           {{ t('sidebar.mailing') }}
         </SidebarLink>
-        <SidebarGroup :icon="['fas', 'shield']" :label="t('sidebar.security')"
-                      prefix="/admin/settings/security" to="/admin/settings/security" name="admin-security"
+        <SidebarGroup data-onboarding="nav.admin.security" :icon="['fas', 'shield']" :label="t('sidebar.security')" to="/admin/settings/security" name="admin-security"
                       @navigate="close">
           <SidebarLink :icon="['fas', 'key']" name="admin-security-tokens"
                        to="/admin/settings/security/tokens" @navigate="close">
@@ -86,18 +94,18 @@ onMounted(() => {
             {{ t('sidebar.securityTwoFactor') }}
           </SidebarLink>
         </SidebarGroup>
-        <SidebarLink :icon="['fas', 'scale-balanced']" name="admin-legal" to="/admin/settings/legal" @navigate="close">
+        <SidebarLink data-onboarding="nav.admin.legal" :icon="['fas', 'scale-balanced']" name="admin-legal" to="/admin/settings/legal" @navigate="close">
           {{ t('sidebar.legal') }}
         </SidebarLink>
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'mobile-screen']" :label="t('sidebar.twoFactor')" prefix="/admin/2fa"
+      <SidebarGroup :icon="['fas', 'mobile-screen']" :label="t('sidebar.twoFactor')"
                     to="/admin/2fa" name="admin-two-factor"
                     @navigate="close">
       </SidebarGroup>
 
-      <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" prefix="/admin/monitoring" group-key="monitoring">
-        <SidebarLink :icon="['fas', 'hard-drive']" name="admin-storage" to="/admin/monitoring/storage" @navigate="close">
+      <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" group-key="monitoring">
+        <SidebarLink data-onboarding="nav.admin.storage" :icon="['fas', 'hard-drive']" name="admin-storage" to="/admin/monitoring/storage" @navigate="close">
           {{ t('sidebar.storageDashboard') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'envelope']" name="admin-mail-log" to="/admin/monitoring/mail-log" @navigate="close">
@@ -124,7 +132,7 @@ onMounted(() => {
         <SidebarLink :icon="['fas', 'compass']" name="admin-discovery" to="/admin/monitoring/discovery" @navigate="close">
           {{ t('sidebar.adminDiscovery') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'map-location-dot']" name="admin-maps" to="/admin/monitoring/maps" @navigate="close">
+        <SidebarLink data-onboarding="nav.admin.maps" :icon="['fas', 'map-location-dot']" name="admin-maps" to="/admin/monitoring/maps" @navigate="close">
           {{ t('sidebar.maps') }}
         </SidebarLink>
       </SidebarGroup>
@@ -133,7 +141,6 @@ onMounted(() => {
           v-if="isDev"
           :icon="['fas', 'code']"
           :label="t('sidebar.devTools')"
-          prefix="/admin/dev"
           group-key="dev"
       >
         <SidebarLink
@@ -150,11 +157,14 @@ onMounted(() => {
     <template #header>
       <QuickSearchTrigger scope="admin" @open="openQuickSearch"/>
       <HelpCenterLink/>
+      <ClusterPanelButton/>
       <SmartStationButton/>
       <AccountMenuButton/>
     </template>
 
     <slot><RouterView/></slot>
+    <OnboardingGuide/>
+    <OnboardingResumeButton level="INSTANCE"/>
     <QuickSearchPalette/>
   </SidebarLayout>
 </template>

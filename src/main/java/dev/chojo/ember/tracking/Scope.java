@@ -22,5 +22,11 @@ public enum Scope {
     /**
      * Per-user data tied to an account or member rather than a station.
      */
-    USER
+    USER,
+
+    /**
+     * Belongs to a cluster rather than to any one station. Excluded from station export and import,
+     * where a cluster has no meaning, and included in the GDPR export wherever it names an account.
+     */
+    CLUSTER
 }

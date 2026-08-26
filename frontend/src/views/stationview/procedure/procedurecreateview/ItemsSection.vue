@@ -9,6 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import DragList from '@/components/input/DragList.vue'
 import ProcedureItemCard from '@/views/stationview/procedure/procedurecreateview/ProcedureItemCard.vue'
 import type {EditableItem} from '@/views/stationview/procedure/procedurecreateview/types'
 
@@ -20,7 +21,7 @@ defineProps<{
 
 const emit = defineEmits<{
   add: []
-  move: [index: number, direction: -1 | 1]
+  reorder: [fromIndex: number, toIndex: number]
   remove: [index: number]
 }>()
 </script>
@@ -36,10 +37,15 @@ const emit = defineEmits<{
 
     <MutedText v-if="items.length === 0" size="sm">{{ t('procedures.noItems') }}</MutedText>
 
-    <ProcedureItemCard
-        v-for="(item, index) in items" :key="item.tempId"
-        :item="item" :index="index" :total-items="items.length" :all-items="items"
-        @move="emit('move', index, $event)" @remove="emit('remove', index)"
-    />
+    <DragList
+        :items="items"
+        :key-fn="(item) => item.tempId"
+        class="space-y-2"
+        @reorder="(from, to) => emit('reorder', from, to)"
+    >
+      <template #default="{item, index}">
+        <ProcedureItemCard :item="item" :all-items="items" @remove="emit('remove', index)"/>
+      </template>
+    </DragList>
   </NeutralContainer>
 </template>

@@ -30,6 +30,8 @@ const {t} = useI18n()
 
 const loading = ref(true)
 const disabledModules = ref<Set<string>>(new Set())
+const clusterDenied = ref<Set<string>>(new Set())
+const clusterName = ref<string | null>(null)
 
 const allModules = [
   {key: 'INVENTORY', label: 'moduleInventory'},
@@ -47,7 +49,12 @@ const allModules = [
 ]
 
 function isModuleEnabled(key: string): boolean {
-  return !disabledModules.value.has(key)
+  return !disabledModules.value.has(key) && !clusterDenied.value.has(key)
+}
+
+/** A module the cluster switched off is shown as locked rather than simply off, and says who locked it. */
+function isLockedByCluster(key: string): boolean {
+  return clusterDenied.value.has(key)
 }
 
 const {running: modulesSaving, error, run: toggleModule} = useAsyncAction(async (key: string) => {
@@ -55,14 +62,19 @@ const {running: modulesSaving, error, run: toggleModule} = useAsyncAction(async 
   if (next.has(key)) next.delete(key)
   else next.add(key)
   const res = await stationManage.setDisabledModules([...next])
-  disabledModules.value = new Set(res.disabledModules)
+  apply(res)
   reloadSession()
 })
 
+function apply(res: stationManage.ModulesResponse) {
+  disabledModules.value = new Set(res.disabledModules)
+  clusterDenied.value = new Set(res.clusterDeniedModules ?? [])
+  clusterName.value = res.clusterName ?? null
+}
+
 onMounted(async () => {
   try {
-    const res = await stationManage.getDisabledModules()
-    disabledModules.value = new Set(res.disabledModules)
+    apply(await stationManage.getDisabledModules())
   } catch {
     loading.value = false
     return
@@ -86,8 +98,14 @@ onMounted(async () => {
         <div class="space-y-3">
           <div v-for="mod in allModules" :key="mod.key" data-testid="module-toggle" :data-module="mod.key"
                class="flex items-center gap-3">
-            <ToggleInput :model-value="isModuleEnabled(mod.key)" :disabled="modulesSaving" @update:model-value="toggleModule(mod.key)"/>
+            <ToggleInput :model-value="isModuleEnabled(mod.key)"
+                         :disabled="modulesSaving || isLockedByCluster(mod.key)"
+                         @update:model-value="toggleModule(mod.key)"/>
             <span class="text-sm font-medium">{{ t(`stationManage.${mod.label}`) }}</span>
+            <span v-if="isLockedByCluster(mod.key)" class="text-xs text-(--text-muted)">
+              <font-awesome-icon :icon="['fas', 'lock']" class="mr-1 h-3 w-3"/>
+              {{ t('stationManage.moduleClusterLocked', {cluster: clusterName ?? ''}) }}
+            </span>
           </div>
         </div>
       </NeutralContainer>

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.quiz.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizAnswerValue;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
@@ -39,7 +40,7 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
         member = stationMemberRepo.create(station.id(), account.id());
 
         catalogId = quizCatalogRepo
-                .create(station.id(), "TestRepoCatalog", "", false)
+                .create(station.id(), "TestRepoCatalog", "", false, CatalogMetadata.none())
                 .id();
         questionId = quizCatalogRepo
                 .createQuestion(

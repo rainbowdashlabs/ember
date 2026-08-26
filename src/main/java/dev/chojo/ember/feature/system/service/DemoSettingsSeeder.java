@@ -17,7 +17,7 @@ import jakarta.inject.Singleton;
  * administrator, an open public knowledge base, and closed station self-registration.
  */
 @Singleton
-public class DemoSettingsSeeder implements DemoSeeder {
+public class DemoSettingsSeeder implements DemoPerStationSeeder {
     private final FeedTokenService feedTokenService;
     private final StationRepository stationRepository;
     private final ApplicationSettingRepository applicationSettingRepository;
@@ -38,9 +38,11 @@ public class DemoSettingsSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        feedTokenService.getOrCreate(context.adminMember().id());
-        stationRepository.updatePublicKbMode(context.stationId(), PublicKbMode.ALLOW_ALL);
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        feedTokenService.getOrCreate(station.adminMember().id());
+        stationRepository.updatePublicKbMode(station.stationId(), PublicKbMode.ALLOW_ALL);
+        // The instance's own setting rather than the station's, written the same way for every station
+        // because the value is the same one
         applicationSettingRepository.setBoolean("station_registration_enabled", false);
     }
 }

@@ -80,6 +80,7 @@ public class NewsAttachmentService {
 
     public void reorder(int newsId, List<Integer> attachmentIds) {
         repository.reorder(newsId, attachmentIds);
+        log.debug("News {} reordered to {} attachment(s)", newsId, attachmentIds.size());
     }
 
     public boolean detach(int attachmentId) {

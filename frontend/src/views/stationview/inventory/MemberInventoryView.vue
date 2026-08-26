@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
@@ -21,10 +22,14 @@ import {useFlashMessage} from '@/composables/useFlashMessage'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 import MemberInventoryHeader from './memberinventoryview/MemberInventoryHeader.vue'
+import ReturnEverythingBar from './memberinventoryview/ReturnEverythingBar.vue'
 import MemberInventoryScanPanel from './memberinventoryview/MemberInventoryScanPanel.vue'
 import MemberInventoryGroups from './memberinventoryview/MemberInventoryGroups.vue'
+import MovementsPanel from '@/components/inventory/MovementsPanel.vue'
 import RequestExchangeModal from './memberinventoryview/RequestExchangeModal.vue'
 import {apiErrorMessage} from '@/util/apiError'
+
+const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const route = useRoute()
@@ -86,6 +91,10 @@ async function onUnknownScanCreated(item: InventoryItem) {
 }
 
 const memberId = computed(() => Number(route.params.memberId))
+
+
+const canManage = computed(() => hasPermission(StationPermission.INVENTORY_MANAGER))
+
 const member = ref<StationMember | null>(null)
 const items = ref<MyInventoryItem[]>([])
 const activeExchanges = ref<ExchangeRequestEntry[]>([])
@@ -133,7 +142,7 @@ function itemExchange(itemId: number): ExchangeRequestEntry | undefined {
 }
 
 function goBack() {
-  router.push({name: 'inventory-exchanges'})
+  router.push({name: routes.exchanges})
 }
 
 const showExchangeModal = ref(false)
@@ -184,6 +193,7 @@ watch(memberId, loadData)
       <MemberInventoryHeader :member="member" @back="goBack" />
 
       <Alert v-if="error || exchangeError" variant="error">{{ error || exchangeError }}</Alert>
+      <ReturnEverythingBar v-if="canManage && items.length > 0" :member-id="memberId" @done="loadData"/>
 
       <AsyncSection :loading="loading">
         <MemberInventoryScanPanel
@@ -203,6 +213,8 @@ watch(memberId, loadData)
             :show-exchange-button="canManageInventory()"
             @request-exchange="openExchangeModal"
         />
+
+        <MovementsPanel :member-id="memberId" @changed="loadData"/>
       </AsyncSection>
 
       <UnknownScanModal

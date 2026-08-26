@@ -5,21 +5,52 @@
  */
 <script generic="T" lang="ts" setup>
 import {ref} from 'vue'
+import DragListRow from './draglist/DragListRow.vue'
+import {useFinePointer} from '@/composables/useFinePointer'
 
-defineProps<{
+/**
+ * A list whose rows can be put in a different order, the one way that is done anywhere in Ember.
+ *
+ * <p>Every row carries the same two arrows, because they are the only thing that works with a finger.
+ * Where there is a mouse, the grip between them picks the row up as well, which is faster over a long
+ * list. Dragging hangs off the grip rather than the row itself, so a row holding a text field can still
+ * be typed in and its text selected.
+ */
+const props = defineProps<{
   items: T[]
   keyFn: (item: T, index: number) => string | number
+  /**
+   * Set where the order is not the reader's to choose: a list sorted by name orders itself, and
+   * offering to move a row would promise something the next sort undoes.
+   */
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
   reorder: [fromIndex: number, toIndex: number]
 }>()
 
+const {finePointer} = useFinePointer()
+
 const dragIndex = ref<number | null>(null)
 const dropIndicator = ref<number | null>(null)
 
+function move(index: number, direction: -1 | 1) {
+  const to = index + direction
+  if (to < 0 || to >= props.items.length) return
+  emit('reorder', index, to)
+}
+
+/**
+ * Picks the row up by its grip, while dragging the whole row rather than the little icon that was
+ * grabbed: what is being moved is the row, and a cursor towing one icon says otherwise.
+ */
 function onDragStart(index: number, event: DragEvent) {
   dragIndex.value = index
+  const row = (event.currentTarget as HTMLElement).closest('[data-drag-row]')
+  if (row && event.dataTransfer) {
+    event.dataTransfer.setDragImage(row, 12, 12)
+  }
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move'
   }
@@ -33,11 +64,7 @@ function onDragOver(index: number, event: DragEvent) {
   const rect = target.getBoundingClientRect()
   const midY = rect.top + rect.height / 2
 
-  if (event.clientY < midY) {
-    dropIndicator.value = index
-  } else {
-    dropIndicator.value = index + 1
-  }
+  dropIndicator.value = event.clientY < midY ? index : index + 1
 }
 
 function onDragLeave(event: DragEvent) {
@@ -74,25 +101,27 @@ function onContainerDragOver(event: DragEvent) {
 <template>
   <div @dragover="onContainerDragOver" @drop="onDrop">
     <template v-for="(item, index) in items" :key="keyFn(item, index)">
-      <!-- Drop indicator line before item -->
       <div
           v-if="dropIndicator === index && dragIndex !== index && dragIndex !== index - 1"
           class="h-0.5 bg-primary rounded-full mx-2 my-1"
       />
 
-      <div
-          :class="{ 'opacity-40': dragIndex === index }"
-          draggable="true"
+      <DragListRow
+          :disabled="disabled"
+          :dragging="dragIndex === index"
+          :fine-pointer="finePointer"
+          :index="index"
+          :total="items.length"
           @dragend="onDragEnd"
           @dragleave="onDragLeave($event)"
           @dragover="onDragOver(index, $event)"
-          @dragstart="onDragStart(index, $event)"
+          @grab="onDragStart"
+          @move="move"
       >
         <slot :dragging="dragIndex === index" :index="index" :item="item"/>
-      </div>
+      </DragListRow>
     </template>
 
-    <!-- Drop indicator at the end -->
     <div
         v-if="dropIndicator === items.length && dragIndex !== items.length - 1"
         class="h-0.5 bg-primary rounded-full mx-2 my-1"

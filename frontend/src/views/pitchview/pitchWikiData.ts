@@ -32,7 +32,16 @@ export const WIKI_ITEMS: KbItem[] = [
 ]
 
 function catalog(id: number, name: string, description: string): QuizCatalog {
-    return {id, stationId: 'wache', name, description, trainingEnabled: true, createdAt: '', updatedAt: ''}
+    return {
+        id,
+        stationId: 'wache',
+        name,
+        description,
+        trainingEnabled: true,
+        metadata: {language: null, source: null, author: null, license: null},
+        createdAt: '',
+        updatedAt: '',
+    }
 }
 
 export const TRAINING_CATALOGS: QuizCatalog[] = [

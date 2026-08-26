@@ -12,6 +12,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TrainingQuestionCard from '@/views/stationview/quiz/trainingview/TrainingQuestionCard.vue'
 import * as publicQuiz from '@/api/publicQuiz'
 import {QuizQuestionTypes, type QuizQuestion, type QuizQuestionTypeName} from '@/api/quiz'
+import {moveWithin} from '@/util/reorder'
 
 /**
  * Public {@code QUIZ_TEASER} renderer. Mirrors the in-app training experience: the visitor
@@ -131,20 +132,7 @@ function toggleMcOption(idx: number) {
     userMcSelections.value = next
 }
 function reorderItems(from: number, to: number) {
-    const order = [...userOrderItems.value]
-    const [moved] = order.splice(from, 1)
-    if (moved === undefined) return
-    order.splice(to, 0, moved)
-    userOrderItems.value = order
-}
-function moveOrderItem(index: number, direction: -1 | 1) {
-    const order = [...userOrderItems.value]
-    const newIdx = index + direction
-    if (newIdx < 0 || newIdx >= order.length) return
-    const tmp = order[index]!
-    order[index] = order[newIdx]!
-    order[newIdx] = tmp
-    userOrderItems.value = order
+    userOrderItems.value = moveWithin(userOrderItems.value, from, to)
 }
 function setConnectPair(leftIndex: number, rightValue: string) {
     userConnectPairs.value = {...userConnectPairs.value, [String(leftIndex)]: rightValue}
@@ -186,7 +174,6 @@ function setFillGap(gapIndex: number, value: string) {
                 @update:user-tf-answer="(v: boolean | null) => userTfAnswer = v"
                 @update:user-answer="(v: string) => userAnswer = v"
                 @reorder-items="reorderItems"
-                @move-order-item="moveOrderItem"
                 @set-connect-pair="setConnectPair"
                 @set-fill-gap="setFillGap"
             />

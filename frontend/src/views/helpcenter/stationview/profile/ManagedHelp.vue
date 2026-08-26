@@ -14,6 +14,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
@@ -33,7 +34,9 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.managed.accessTitle')">
       <p>{{ t('helpCenter.managed.accessText') }}</p>
+      <p>{{ t('helpCenter.managed.accessUsernameText') }}</p>
       <p>{{ t('helpCenter.managed.accessLoginText') }}</p>
+      <p>{{ t('helpCenter.managed.accessPasswordText') }}</p>
     </HelpSection>
 
     <!-- Dummy: Member selector -->
@@ -47,6 +50,35 @@ const {t} = useI18n()
           <option value="2">Tim Mustermann</option>
         </SelectInput>
       </div>
+    </NeutralContainer>
+
+    <!-- Dummy: Access panel for the selected member -->
+    <NeutralContainer class="space-y-4">
+      <SectionHeader>{{ t('profileManaged.access.title') }}</SectionHeader>
+      <MutedText tag="p" size="sm">{{ t('profileManaged.access.hint') }}</MutedText>
+      <div class="space-y-1">
+        <FieldLabel>{{ t('profileManaged.access.email') }}</FieldLabel>
+        <TextInput model-value="lena@beispiel.de"/>
+        <MutedText tag="p" size="sm">{{ t('profileManaged.access.emailHint') }}</MutedText>
+      </div>
+      <div class="space-y-1 border-t border-(--border) pt-4">
+        <FieldLabel>{{ t('profileManaged.access.username') }}</FieldLabel>
+        <TextInput model-value="lena.mustermann"/>
+        <MutedText tag="p" size="sm">{{ t('profileManaged.access.usernameHint') }}</MutedText>
+      </div>
+      <div class="flex items-start justify-between gap-4 border-t border-(--border) pt-4">
+        <div>
+          <FieldLabel>{{ t('profileManaged.access.login') }}</FieldLabel>
+          <MutedText tag="p" size="sm">{{ t('profileManaged.access.loginHint') }}</MutedText>
+        </div>
+        <ToggleInput :model-value="true" :aria-label="t('profileManaged.access.login')"/>
+      </div>
+      <div class="space-y-1 border-t border-(--border) pt-4">
+        <FieldLabel>{{ t('profileManaged.access.password') }}</FieldLabel>
+        <TextInput type="password" model-value="geheim"/>
+        <MutedText tag="p" size="sm">{{ t('profileManaged.access.passwordHint') }}</MutedText>
+      </div>
+      <PrimaryButton>{{ t('profile.save') }}</PrimaryButton>
     </NeutralContainer>
 
     <!-- Dummy: Profile fields for selected member -->

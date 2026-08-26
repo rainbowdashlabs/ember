@@ -362,6 +362,87 @@ public class EventRegistrationRepository {
     }
 
     /**
+     * The members of a station who have said nothing about an event.
+     *
+     * <p>Saying nothing means having no answer on record, or having taken one back: a withdrawn
+     * registration leaves the event without an answer again, which is exactly the state a reminder is for.
+     * Being turned down is an answer, and so is declining, so neither is asked again.
+     *
+     * <p>Eligibility is not decided here. It depends on the reader's rights as well as the event's
+     * restrictions, so the caller filters what this returns.
+     *
+     * @param eventId   the event
+     * @param stationId the station whose members are candidates
+     * @return the member ids still owing an answer
+     */
+    public List<Integer> findUnansweredMemberIds(int eventId, int stationId) {
+        return query("""
+                SELECT sm.id AS member_id
+                FROM station_member sm
+                WHERE sm.station_id = :station_id
+                  AND sm.former = FALSE
+                  AND NOT EXISTS (SELECT 1
+                                  FROM event_registration er
+                                  WHERE er.event_id = :event_id
+                                    AND er.member_id = sm.id
+                                    AND er.status <> 'WITHDRAWN');""")
+                .single(call().bind("event_id", eventId).bind("station_id", stationId))
+                .map(row -> row.getInt("member_id"))
+                .all();
+    }
+
+    /**
+     * The events still waiting on an answer from any of the given members.
+     *
+     * <p>One row per event and member, because a household can owe several answers to one event and the
+     * screen groups them back together. Only events whose registration is still open are listed: once the
+     * deadline has passed the answer is no longer the member's to give.
+     *
+     * <p>Eligibility is not decided here, for the same reason it is not decided in
+     * {@link #findUnansweredMemberIds}: it depends on more than this table knows. The caller filters.
+     *
+     * @param memberIds the reader and everyone they answer for
+     * @return one entry per event and member still owing an answer, soonest deadline first
+     */
+    public List<AwaitingAnswer> findAwaitingAnswer(List<Integer> memberIds) {
+        if (memberIds.isEmpty()) return List.of();
+        return query("""
+                SELECT
+                    e.id AS event_id,
+                    e.name,
+                    e.start_time,
+                    e.registration_deadline,
+                    sm.id AS member_id
+                FROM station_member sm
+                    JOIN station_event e ON e.station_id = sm.station_id
+                WHERE sm.id = ANY (:member_ids)
+                  AND sm.former = FALSE
+                  AND e.requires_registration
+                  AND e.event_type = 'ONE_TIME'
+                  AND e.cancelled = FALSE
+                  AND e.registration_deadline IS NOT NULL
+                  AND e.registration_deadline > now()
+                  AND NOT EXISTS (SELECT 1
+                                  FROM event_registration er
+                                  WHERE er.event_id = e.id
+                                    AND er.member_id = sm.id
+                                    AND er.status <> 'WITHDRAWN')
+                ORDER BY e.registration_deadline, e.id;""")
+                .single(call().bind("member_ids", memberIds, PostgreSqlTypes.INTEGER))
+                .map(row -> new AwaitingAnswer(
+                        row.getInt("event_id"),
+                        row.getString("name"),
+                        row.get("start_time", INSTANT_TIMESTAMP),
+                        row.get("registration_deadline", INSTANT_TIMESTAMP),
+                        row.getInt("member_id")))
+                .all();
+    }
+
+    /** One event still waiting on one member's answer. */
+    public record AwaitingAnswer(
+            int eventId, String name, Instant startTime, Instant registrationDeadline, int memberId) {}
+
+    /**
      * Counts the pending registrations across a station's events.
      *
      * @param stationId the station ID

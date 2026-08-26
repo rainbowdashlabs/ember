@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
+import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.RegistrationCode;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
@@ -49,8 +50,17 @@ public class AuthService {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private static final SecureRandom RANDOM = new SecureRandom();
 
+    /**
+     * How long the token handed out in place of a session lasts when a login has to change its
+     * password first. It sets a password without knowing the old one, so it is a short-lived
+     * credential and deliberately does not follow the session length: how long somebody stays
+     * signed in on their own machine has nothing to say about how long that may lie around.
+     */
+    private static final int FORCE_PASSWORD_CHANGE_MINUTES = 30;
+
     private final AccountRepository accountRepository;
     private final MailLocaleService mailLocaleService;
+    private final MailRecipientService mailRecipientService;
     private final RegistrationCodeRepository registrationCodeRepository;
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
@@ -75,6 +85,7 @@ public class AuthService {
     public AuthService(
             AccountRepository accountRepository,
             MailLocaleService mailLocaleService,
+            MailRecipientService mailRecipientService,
             RegistrationCodeRepository registrationCodeRepository,
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
@@ -88,6 +99,7 @@ public class AuthService {
             TrustedDeviceService trustedDeviceService) {
         this.accountRepository = accountRepository;
         this.mailLocaleService = mailLocaleService;
+        this.mailRecipientService = mailRecipientService;
         this.registrationCodeRepository = registrationCodeRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
@@ -174,14 +186,30 @@ public class AuthService {
     }
 
     /**
-     * Sends a password setup email to an existing account that has no credentials yet.
-     * Creates a SET_PASSWORD token and sends the setup email.
+     * The account behind what somebody typed at the login screen: an address when it holds an at
+     * sign, and the name an account signs in with when it does not.
+     */
+    private Optional<Account> findByLoginName(String identifier) {
+        if (identifier == null || identifier.isBlank()) return Optional.empty();
+        String trimmed = identifier.trim();
+        return LoginNameService.looksLikeEmail(trimmed)
+                ? accountRepository.findByEmail(trimmed)
+                : accountRepository.findByUsername(trimmed);
+    }
+
+    /**
+     * Sends the password-setup mail for an account that has no password yet, to whoever can be
+     * reached for it: the account itself, or the guardians of a member who has no address of their
+     * own. Sends nothing when nobody can be reached, and creates no token in that case either.
      *
      * @param accountId the account identifier
-     * @param email     the email address
-     * @param firstName the first name for the email greeting
      */
-    public void sendPasswordSetup(int accountId, String email, String firstName) {
+    public void sendPasswordSetup(int accountId) {
+        var recipients = mailRecipientService.forAccount(accountId);
+        if (recipients.isEmpty()) {
+            log.info("No password-setup mail for account {}: nobody can be written to about it", accountId);
+            return;
+        }
         accountRepository.deleteTokensByAccountAndType(accountId, TokenType.SET_PASSWORD);
         String token = generateToken();
         accountRepository.createToken(
@@ -189,7 +217,10 @@ public class AuthService {
                 token,
                 TokenType.SET_PASSWORD,
                 Instant.now().plus(authConfig.passwordTokenHours(), ChronoUnit.HOURS));
-        emailService.sendPasswordSetupEmail(email, firstName, token, mailLocaleService.forAccount(accountId));
+        String locale = mailLocaleService.forAccount(accountId);
+        for (var recipient : recipients) {
+            emailService.sendPasswordSetupEmail(recipient.email(), recipient.name(), token, locale);
+        }
     }
 
     /**
@@ -295,18 +326,68 @@ public class AuthService {
     }
 
     /**
+     * Sets the password of an account on behalf of somebody entitled to do so, without the detour
+     * over an invitation link. Whether they are entitled is the caller's to establish; the rotation
+     * itself is held to the same standard as the account holder's own, and everybody the account is
+     * written to is told, which for a member without an address of their own is their guardians.
+     *
+     * @param account  the account whose password is being set, already resolved by the caller
+     * @param password the new plaintext password
+     * @return {@link SetPasswordOutcome#OK}, or why the password was refused. Never
+     *         {@link SetPasswordOutcome#TOKEN_INVALID}, because no token is involved.
+     */
+    public SetPasswordOutcome setPasswordFor(Account account, String password) {
+        PasswordPolicy.Result policy = validateNewPassword(password);
+        if (policy == PasswordPolicy.Result.TOO_SHORT) {
+            log.info("[set-password-for] rejected for account {}: password too short", account.id());
+            return SetPasswordOutcome.PASSWORD_TOO_SHORT;
+        }
+        if (policy == PasswordPolicy.Result.BREACHED) {
+            log.info("[set-password-for] rejected for account {}: password found in breach corpus", account.id());
+            return SetPasswordOutcome.PASSWORD_BREACHED;
+        }
+
+        String hash = passwordHasher.hash(password);
+        if (accountRepository.findCredential(account.id()).isPresent()) {
+            accountRepository.updateCredential(account.id(), hash);
+        } else {
+            accountRepository.createCredential(account.id(), hash);
+        }
+        invalidateAfterPasswordRotation(account.id(), null);
+        notifyPasswordSetOnBehalf(account);
+        log.info("Password set on behalf of account {}", account.id());
+        return SetPasswordOutcome.OK;
+    }
+
+    private void notifyPasswordSetOnBehalf(Account account) {
+        try {
+            String locale = mailLocaleService.forAccount(account.id());
+            for (var recipient : mailRecipientService.forAccount(account.id())) {
+                emailService.sendPasswordChangedNotice(recipient.email(), recipient.name(), locale);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to enqueue password-changed notice for account {}", account.id(), e);
+        }
+    }
+
+    /**
      * Initiates a password reset by sending a reset email. Silently does nothing if the email is not found,
      * to prevent email enumeration.
      *
-     * @param email the email address to send the reset link to
+     * @param identifier the email address or username naming the account to write to
      */
-    public void requestPasswordReset(String email) {
-        Optional<Account> accountOpt = accountRepository.findByEmail(email);
+    public void requestPasswordReset(String identifier) {
+        Optional<Account> accountOpt = findByLoginName(identifier);
         if (accountOpt.isEmpty()) {
             return;
         }
 
         Account account = accountOpt.get();
+        var recipients = mailRecipientService.forAccount(account.id());
+        if (recipients.isEmpty()) {
+            log.info("No password-reset mail for account {}: nobody can be written to about it", account.id());
+            return;
+        }
         String token = generateToken();
         accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.RESET_PASSWORD);
         accountRepository.createToken(
@@ -314,9 +395,11 @@ public class AuthService {
                 token,
                 TokenType.RESET_PASSWORD,
                 Instant.now().plus(authConfig.resetTokenHours(), ChronoUnit.HOURS));
-        emailService.sendPasswordResetEmail(
-                account.email(), account.firstName(), token, mailLocaleService.forAccount(account.id()));
-        log.info("Password reset requested for account {} ({})", account.id(), email);
+        String locale = mailLocaleService.forAccount(account.id());
+        for (var recipient : recipients) {
+            emailService.sendPasswordResetEmail(recipient.email(), recipient.name(), token, locale);
+        }
+        log.info("Password reset requested for account {} ({})", account.id(), identifier);
     }
 
     /**
@@ -366,6 +449,7 @@ public class AuthService {
     public boolean resendVerification(String email) {
         Optional<Account> accountOpt = accountRepository.findByEmail(email);
         if (accountOpt.isEmpty() || accountOpt.get().emailVerified()) {
+            log.info("Verification mail not resent for '{}': unknown address or already verified", email);
             return false;
         }
 
@@ -379,6 +463,7 @@ public class AuthService {
                 Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
         emailService.sendVerificationEmail(
                 account.email(), account.firstName(), token, mailLocaleService.forAccount(account.id()));
+        log.info("Verification mail resent for account {}", account.id());
         return true;
     }
 
@@ -439,26 +524,26 @@ public class AuthService {
      * the long duration rather than the short one.
      */
     public LoginResult login(
-            String email,
+            String identifier,
             String password,
             String userAgent,
             String location,
             String trustedDeviceCookie,
             boolean trustedDevice) {
-        Optional<Account> accountOpt = accountRepository.findByEmail(email);
+        Optional<Account> accountOpt = findByLoginName(identifier);
         Optional<AccountCredential> credOpt = accountOpt.flatMap(a -> accountRepository.findCredential(a.id()));
 
         String storedHash = credOpt.map(AccountCredential::passwordHash).orElseGet(this::dummyPasswordHash);
         boolean passwordValid = passwordHasher.verify(password, storedHash);
 
         if (accountOpt.isEmpty() || credOpt.isEmpty() || !passwordValid) {
-            log.info("Login failed for '{}': invalid credentials", email);
+            log.info("Login failed for '{}': invalid credentials", identifier);
             return LoginResult.failure("Invalid email or password");
         }
 
         Account account = accountOpt.get();
-        if (!account.emailVerified()) {
-            log.info("Login failed for account {} ({}): email not verified", account.id(), email);
+        if (account.hasRealEmail() && !account.emailVerified()) {
+            log.info("Login failed for account {} ({}): email not verified", account.id(), identifier);
             return LoginResult.failure("Email not verified");
         }
 
@@ -477,16 +562,12 @@ public class AuthService {
             log.info(
                     "Login for account {} ({}) requires password change - issuing password-change token",
                     account.id(),
-                    email);
+                    identifier);
             String token = generateToken();
             accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.FORCE_PASSWORD_CHANGE);
-            accountRepository.createToken(
-                    account.id(),
-                    token,
-                    TokenType.FORCE_PASSWORD_CHANGE,
-                    Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES));
-            return LoginResult.passwordChangeRequired(
-                    token, Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES));
+            Instant expiresAt = Instant.now().plus(FORCE_PASSWORD_CHANGE_MINUTES, ChronoUnit.MINUTES);
+            accountRepository.createToken(account.id(), token, TokenType.FORCE_PASSWORD_CHANGE, expiresAt);
+            return LoginResult.passwordChangeRequired(token, expiresAt);
         }
 
         // Two-factor authentication - issue a pre-auth token if enrolled
@@ -501,7 +582,7 @@ public class AuthService {
                     log.info(
                             "Login for account {} ({}) bypassing 2FA via trusted device {}",
                             account.id(),
-                            email,
+                            identifier,
                             trusted.get().id());
                     return createSession(
                             account.id(),
@@ -512,7 +593,7 @@ public class AuthService {
                             trustedDevice);
                 }
             }
-            log.info("Login for account {} ({}) requires 2FA verification", account.id(), email);
+            log.info("Login for account {} ({}) requires 2FA verification", account.id(), identifier);
             String token = generateToken();
             accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.TWO_FACTOR_PENDING);
             Instant expiresAt = Instant.now().plus(5, ChronoUnit.MINUTES);
@@ -524,7 +605,13 @@ public class AuthService {
     }
 
     /**
-     * Refreshes a session by invalidating the old token and creating a new session.
+     * Refreshes a session by handing it a new token and pushing back its expiry.
+     *
+     * <p>The session row is rotated rather than replaced. A refresh is the same sign-in continuing, so
+     * everything the row remembers about it has to outlive the token swap: when the second factor was
+     * last verified, which trusted device vouched for it, and when it began. Deleting the row and
+     * writing a new one lost all three, which ended the step-up window and forgot the trusted device
+     * every half hour, in the middle of whatever the person was doing.
      *
      * @param token     the current session token
      * @param userAgent the client's user agent string
@@ -545,9 +632,21 @@ public class AuthService {
             return LoginResult.failure("Session expired");
         }
 
-        accountRepository.deleteSession(token);
+        // In dev/demo mode the token is derived from the account so sessions survive a restart. Keeping
+        // it is what makes that work, and rotating the row onto the same token still moves the expiry.
+        boolean stableToken = demo.dev() || demo.enabled();
+        String newToken = stableToken ? token : generateToken();
+        Instant expiresAt = stableToken
+                ? Instant.now().plus(365, ChronoUnit.DAYS)
+                : Instant.now().plus(authConfig.sessionMinutes(session.trustedDevice()), ChronoUnit.MINUTES);
+
+        if (!accountRepository.rotateSessionToken(token, newToken, expiresAt)) {
+            log.debug("Session refresh failed: session vanished mid-refresh");
+            return LoginResult.failure("Invalid session");
+        }
+        accountRepository.touchSession(newToken, userAgent, location);
         log.debug("Session refreshed for account {}", session.accountId());
-        return createSession(session.accountId(), userAgent, location, session.trustedDevice());
+        return LoginResult.success(newToken, expiresAt);
     }
 
     /**
@@ -761,17 +860,11 @@ public class AuthService {
 
     /**
      * Creates a session that is already marked as 2FA-verified and (optionally) linked to a
-     * trusted-device row. Used by the {@code /auth/2fa} verify path so the freshly-minted
+     * trusted-device row. Used by the {@code /auth/2fa} verify paths so the freshly-minted
      * session passes step-up freshness checks without a second prompt.
-     */
-    public LoginResult createVerifiedSessionForAccount(
-            int accountId, String userAgent, String location, Integer deviceTrustId) {
-        return createVerifiedSessionForAccount(accountId, userAgent, location, deviceTrustId, false);
-    }
-
-    /**
-     * The same, carrying the box from the login screen through the second factor. Without this a
-     * person with two-factor enabled would tick it and still get the short session.
+     *
+     * <p>{@code trustedDevice} carries the box from the login screen through the second factor.
+     * Without it somebody with two-factor enabled would tick it and still get the short session.
      */
     public LoginResult createVerifiedSessionForAccount(
             int accountId, String userAgent, String location, Integer deviceTrustId, boolean trustedDevice) {
@@ -893,7 +986,15 @@ public class AuthService {
             String stableToken =
                     accountRepository.findById(accountId).map(Account::email).orElseGet(this::generateToken);
             Instant stableExpiry = Instant.now().plus(365, ChronoUnit.DAYS);
-            accountRepository.createOrReplaceSession(accountId, stableToken, stableExpiry, userAgent, location);
+            accountRepository.createOrReplaceSession(
+                    accountId,
+                    stableToken,
+                    stableExpiry,
+                    userAgent,
+                    location,
+                    twoFactorVerifiedAt,
+                    deviceTrustId,
+                    trustedDevice);
             accountRepository.markSetupCompleted(accountId);
             log.info("Session created for account {}", accountId);
             return LoginResult.success(stableToken, stableExpiry);

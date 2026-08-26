@@ -11,6 +11,7 @@ import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
+import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -26,6 +27,8 @@ import java.util.Optional;
  *   <li>{@link StorageScope.Station} with an override row in {@code station_storage_config} →
  *       that backend. The override is per-station, not per-category - it applies across every
  *       station-scoped movable category.</li>
+ *   <li>A row in {@code cluster_station_storage} → the version of its cluster's storage the station's
+ *       bytes were actually carried to. What the cluster decided is not read here at all.</li>
  *   <li>Instance default from {@code conf.yml}, built by {@link StorageBackendFactory}.</li>
  * </ol>
  *
@@ -39,10 +42,15 @@ public class StorageBackendResolver {
 
     private final StorageBackendFactory factory;
     private final StationStorageConfigRepository overrideRepository;
+    private final ClusterStationStorageRepository placementRepository;
     private final Cache<Integer, Optional<StorageBackend>> overrideCache;
 
     @Inject
-    public StorageBackendResolver(StorageBackendFactory factory, StationStorageConfigRepository overrideRepository) {
+    public StorageBackendResolver(
+            StorageBackendFactory factory,
+            StationStorageConfigRepository overrideRepository,
+            ClusterStationStorageRepository placementRepository) {
+        this.placementRepository = placementRepository;
         this.factory = factory;
         this.overrideRepository = overrideRepository;
         this.overrideCache =
@@ -57,6 +65,7 @@ public class StorageBackendResolver {
     public StorageBackendResolver(LocalStorageBackend localBackend) {
         this.factory = new StorageBackendFactory(new Storage(), localBackend, null);
         this.overrideRepository = null;
+        this.placementRepository = null;
         this.overrideCache =
                 Caffeine.newBuilder().maximumSize(MAX_CACHED_OVERRIDES).build();
     }
@@ -97,14 +106,41 @@ public class StorageBackendResolver {
     }
 
     /**
+     * Drops the cached override for several stations at once, which is what a change at their cluster needs.
+     *
+     * @param stationIds the stations whose resolved backend may have moved
+     */
+    public void invalidateStations(Iterable<Integer> stationIds) {
+        for (int stationId : stationIds) {
+            overrideCache.invalidate(stationId);
+        }
+    }
+
+    /**
      * Flushes the entire station-override cache.
      */
     public void invalidateAll() {
         overrideCache.invalidateAll();
     }
 
+    /**
+     * What a station's bytes go to: its own override, then the cluster storage they were carried to, then the
+     * instance default.
+     *
+     * <p>Read from where the bytes are and never from what a cluster decided. A decision takes effect the
+     * moment it is written and a copy does not, so resolving from policy points a station at storage its
+     * files are not on, which is the whole reason placement exists.
+     *
+     * <p>Cached under the station's id, so editing the credentials of a version several stations stand on has
+     * to invalidate every one of them: that is what {@code invalidateStations} is for.
+     */
     private Optional<StorageBackend> stationOverride(int stationId) {
-        return overrideCache.get(
-                stationId, id -> overrideRepository.findOne(id).map(row -> factory.buildForStation(row.config())));
+        return overrideCache.get(stationId, id -> {
+            Optional<StorageBackend> own =
+                    overrideRepository.findOne(id).map(row -> factory.buildForStation(row.config()));
+            if (own.isPresent()) return own;
+            if (placementRepository == null) return Optional.empty();
+            return placementRepository.findConfigForStation(id).map(factory::buildForStation);
+        });
     }
 }

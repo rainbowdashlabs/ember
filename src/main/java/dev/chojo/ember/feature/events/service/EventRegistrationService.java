@@ -133,6 +133,16 @@ public class EventRegistrationService {
     }
 
     /**
+     * The events still waiting on an answer from any of the given members.
+     *
+     * @param memberIds the reader and everyone they answer for
+     * @return one entry per event and member still owing an answer
+     */
+    public List<EventRegistrationRepository.AwaitingAnswer> findAwaitingAnswer(List<Integer> memberIds) {
+        return registrationRepository.findAwaitingAnswer(memberIds);
+    }
+
+    /**
      * Finds a registration by its ID.
      *
      * @param id the registration ID

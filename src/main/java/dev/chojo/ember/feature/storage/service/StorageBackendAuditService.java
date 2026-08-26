@@ -13,6 +13,8 @@ import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -28,6 +30,7 @@ import java.util.Optional;
  */
 @Singleton
 public class StorageBackendAuditService {
+    private static final Logger log = LoggerFactory.getLogger(StorageBackendAuditService.class);
 
     /**
      * Probe rows for the same actor/station/outcome inside this window are dropped.
@@ -51,7 +54,7 @@ public class StorageBackendAuditService {
             StorageAuditAction action,
             StationStorageBackendConfig oldConfig,
             StationStorageBackendConfig newConfig) {
-        repository.insert(new StorageBackendAuditRepository.NewEntry(
+        insert(new StorageBackendAuditRepository.NewEntry(
                 actor.accountId(),
                 actor.memberId(),
                 actor.systemActor(),
@@ -69,7 +72,7 @@ public class StorageBackendAuditService {
      */
     public void recordRejected(
             Actor actor, int stationId, Optional<StationStorageBackendConfig> attempted, String error) {
-        repository.insert(new StorageBackendAuditRepository.NewEntry(
+        insert(new StorageBackendAuditRepository.NewEntry(
                 actor.accountId(),
                 actor.memberId(),
                 actor.systemActor(),
@@ -92,7 +95,7 @@ public class StorageBackendAuditService {
         Optional<StorageAuditEntry> recent = repository.findRecentMatching(
                 actor.accountId(), actor.systemActor(), Optional.of(stationId), action, outcome, cutoff);
         if (recent.isPresent()) return;
-        repository.insert(new StorageBackendAuditRepository.NewEntry(
+        insert(new StorageBackendAuditRepository.NewEntry(
                 actor.accountId(),
                 actor.memberId(),
                 actor.systemActor(),
@@ -119,7 +122,7 @@ public class StorageBackendAuditService {
             String errorOrNull) {
         StorageAuditOutcome outcome =
                 action == StorageAuditAction.MIGRATION_FAILED ? StorageAuditOutcome.FAILED : StorageAuditOutcome.OK;
-        repository.insert(new StorageBackendAuditRepository.NewEntry(
+        insert(new StorageBackendAuditRepository.NewEntry(
                 actor.accountId(),
                 actor.memberId(),
                 actor.systemActor(),
@@ -138,7 +141,7 @@ public class StorageBackendAuditService {
      * a generic redactor here would couple the audit service to it unnecessarily).
      */
     public void recordInstanceConfigUpdate(Actor actor, String oldRedactedJson, String newRedactedJson) {
-        repository.insert(new StorageBackendAuditRepository.NewEntry(
+        insert(new StorageBackendAuditRepository.NewEntry(
                 actor.accountId(),
                 actor.memberId(),
                 actor.systemActor(),
@@ -165,7 +168,7 @@ public class StorageBackendAuditService {
         StorageAuditOutcome outcome = action == StorageAuditAction.INSTANCE_MIGRATION_FAILED
                 ? StorageAuditOutcome.FAILED
                 : StorageAuditOutcome.OK;
-        repository.insert(new StorageBackendAuditRepository.NewEntry(
+        insert(new StorageBackendAuditRepository.NewEntry(
                 actor.accountId(),
                 actor.memberId(),
                 actor.systemActor(),
@@ -175,6 +178,23 @@ public class StorageBackendAuditService {
                 Optional.ofNullable(newRedactedJson),
                 outcome,
                 Optional.ofNullable(errorOrNull)));
+    }
+
+    /**
+     * Writes one audit row and mirrors it into the log, so an operator reading the log stream sees
+     * the same history the admin panel shows without having to query for it.
+     */
+    private void insert(StorageBackendAuditRepository.NewEntry entry) {
+        repository.insert(entry);
+        log.info(
+                "Storage backend audit: {}, action={}, outcome={}, actor={}{}",
+                entry.stationId().map(id -> "station " + id).orElse("instance"),
+                entry.action(),
+                entry.outcome(),
+                entry.systemActor().orElseGet(() -> entry.actorAccountId()
+                        .map(id -> "account " + id)
+                        .orElse("nobody")),
+                entry.error().map(error -> ", error=" + error).orElse(""));
     }
 
     /**

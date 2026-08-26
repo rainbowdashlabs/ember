@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
@@ -19,13 +20,17 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 class EventReminderCheckerTest {
@@ -34,6 +39,8 @@ class EventReminderCheckerTest {
     private EventRegistrationRepository registrationRepository;
     private StationMemberRepository stationMemberRepository;
     private NotificationService notificationService;
+    private MemberNameResolver memberNameResolver;
+    private EventRestrictionService restrictionService;
     private StationReadOnlyGuard readOnlyGuard;
 
     private static final int STATION_ID = 1;
@@ -45,6 +52,9 @@ class EventReminderCheckerTest {
         registrationRepository = mock(EventRegistrationRepository.class);
         stationMemberRepository = mock(StationMemberRepository.class);
         notificationService = mock(NotificationService.class);
+        memberNameResolver = mock(MemberNameResolver.class);
+        restrictionService = mock(EventRestrictionService.class);
+        when(restrictionService.isMemberEligible(anyInt(), anyInt(), any())).thenReturn(true);
         readOnlyGuard = mock(StationReadOnlyGuard.class);
         when(readOnlyGuard.isWritable(anyInt())).thenReturn(true);
     }
@@ -138,6 +148,41 @@ class EventReminderCheckerTest {
                 id, STATION_ID, UUID.randomUUID(), id, false, null, "Member " + id, StationUserType.MEMBER, null);
     }
 
+    /**
+     * Three days out and one day out, to the member and to whoever answers for them, once each. The sweep
+     * runs every half hour, so warning again on the next pass would be the obvious way to get this wrong.
+     */
+    @Test
+    void aClosingRegistrationWarnsWhoeverStillOwesAnAnswer() {
+        var closing = new EventRepository.ClosingEvent(7, STATION_ID, "Übung", Instant.now(), 3);
+        when(eventRepository.findEventsClosingIn(3)).thenReturn(List.of(closing));
+        when(eventRepository.findEventsClosingIn(1)).thenReturn(List.of());
+        when(eventRepository.findEventsWithReminders()).thenReturn(List.of());
+        when(readOnlyGuard.isWritable(STATION_ID)).thenReturn(true);
+        when(registrationRepository.findUnansweredMemberIds(7, STATION_ID)).thenReturn(List.of(10));
+        when(stationMemberRepository.findById(10)).thenReturn(Optional.of(member(10)));
+        when(stationMemberRepository.findManagers(10)).thenReturn(List.of(member(11)));
+        when(memberNameResolver.resolveLocal(10)).thenReturn("Kind");
+
+        invokeCheck();
+
+        var audience = ArgumentCaptor.forClass(Collection.class);
+        verify(notificationService).notifyMembers(audience.capture(), eq(NotificationType.REGISTRATION_CLOSING), any());
+        assertTrue(audience.getValue().containsAll(List.of(10, 11)), "the member and their guardian both hear");
+        verify(reminderRepository).markDeadlineWarningSent(7, 3);
+    }
+
+    /** An event whose warning already went out is passed over rather than warned about again. */
+    @Test
+    void aWarningAlreadySentIsNotSentAgain() {
+        when(eventRepository.findEventsClosingIn(anyInt())).thenReturn(List.of());
+        when(eventRepository.findEventsWithReminders()).thenReturn(List.of());
+
+        invokeCheck();
+
+        verify(notificationService, never()).notifyMembers(any(), eq(NotificationType.REGISTRATION_CLOSING), any());
+    }
+
     @Test
     void checkSendsReminderForOneTimeEvent() {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
@@ -151,13 +196,7 @@ class EventReminderCheckerTest {
         when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10), member(11)));
         when(registrationRepository.findDeclinedMemberIds(42, eventDate)).thenReturn(List.of());
 
-        new EventReminderChecker(
-                eventRepository,
-                reminderRepository,
-                registrationRepository,
-                stationMemberRepository,
-                notificationService,
-                readOnlyGuard);
+        createCheckerWithoutScheduler();
 
         // The check runs after 5 minutes delay via scheduler, so we invoke it indirectly via constructor.
         // Instead, we test the logic by calling the method reflectively.
@@ -395,6 +434,8 @@ class EventReminderCheckerTest {
                     registrationRepository,
                     stationMemberRepository,
                     notificationService,
+                    memberNameResolver,
+                    restrictionService,
                     readOnlyGuard);
         } catch (Exception e) {
             throw new RuntimeException(e);

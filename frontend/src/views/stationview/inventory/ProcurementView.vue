@@ -15,10 +15,12 @@ import {StationPermission, type StationMember} from '@/api/types'
 import { procurement, inventory, stationMembers } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
 import ProcurementEntryRow from './procurementview/ProcurementEntryRow.vue'
 import ProcurementCreateModal from './procurementview/ProcurementCreateModal.vue'
 
 const { t } = useI18n()
+const routes = useInventoryRoutes()
 const { hasPermission } = useSession()
 const canManageProcurement = computed(() => hasPermission(StationPermission.INVENTORY_PROCUREMENT))
 
@@ -29,10 +31,12 @@ const members = ref<StationMember[]>([])
 const showCreateModal = ref(false)
 
 const {loading, error} = useAsyncLoader(async () => {
+  // An entry can name the person it is for, and an association orders for a station rather than for
+  // anybody, so it neither offers the choice nor is allowed to ask who there is
   const [e, inv, m] = await Promise.all([
     procurement.listProcurement(),
     inventory.listInventories(),
-    stationMembers.listMembers(),
+    routes.member ? stationMembers.listMembers().catch(() => []) : Promise.resolve([]),
   ])
   entries.value = e
   inventories.value = inv
@@ -81,9 +85,16 @@ function onCreateError() {
       :title="t('pages.inventory-procurement.title')"
       :subtitle="t('pages.inventory-procurement.subtitle')"
   >
+    <slot name="before"/>
+
     <div class="space-y-6">
       <div class="flex items-center justify-end">
-        <PrimaryButton v-if="canManageProcurement" :icon="['fas', 'plus']" @click="showCreateModal = true">
+        <PrimaryButton
+            v-if="canManageProcurement"
+            :icon="['fas', 'plus']"
+            data-testid="procurement-create"
+            @click="showCreateModal = true"
+        >
           {{ t('procurement.create') }}
         </PrimaryButton>
       </div>

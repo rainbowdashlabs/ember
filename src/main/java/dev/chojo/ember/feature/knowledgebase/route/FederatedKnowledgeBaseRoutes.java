@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.knowledgebase.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseCommentRoutes.CreateKbCommentRequest;
 import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseCommentRoutes.UpdateKbCommentRequest;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.FileContentResponse;
@@ -50,6 +51,7 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/federated/kb", this::browseKb, StationPermission.USER);
+        routes.get(prefix + "/federated/{stationuid}/kb/folders/{id}", this::browseKbFolder, StationPermission.USER);
         routes.get(prefix + "/federated/{stationuid}/kb/files/{id}", this::getFile, StationPermission.USER);
         routes.get(
                 prefix + "/federated/{stationuid}/kb/files/{id}/content", this::getFileContent, StationPermission.USER);
@@ -78,9 +80,24 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
                 StationPermission.LOGIN);
     }
 
+    /**
+     * The user type the reader holds at their own station, which is what an audience travelling with a
+     * share is matched against. A session with rights but no member row of its own matches nothing named.
+     */
+    private static StationUserType readerUserType(UserSession session) {
+        var member = session.member();
+        return member != null ? member.userType() : null;
+    }
+
     private void browseKb(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(federationService.browseFederatedKb(session.stationId()));
+        ctx.json(federationService.browseFederatedKb(session.stationId(), readerUserType(session)));
+    }
+
+    private void browseKbFolder(Context ctx) {
+        var session = UserSession.from(ctx);
+        ctx.json(federationService.browseFederatedKbFolder(
+                session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "id"), readerUserType(session)));
     }
 
     private void getFile(Context ctx) {

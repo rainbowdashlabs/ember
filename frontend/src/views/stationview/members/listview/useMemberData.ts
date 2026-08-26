@@ -7,6 +7,7 @@ import { ref, computed } from 'vue'
 import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
 import type { StationMember, MemberGroup, UserTag, PermissionGrant } from '@/api/types'
 import { profileFields, stationMembers } from '@/api'
+import type { RichMember } from '@/api/stationMembers'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 
 export function computeAge(dateStr: string, mode: string): string {
@@ -20,7 +21,11 @@ export function computeAge(dateStr: string, mode: string): string {
   return String(age)
 }
 
-export function memberDisplayName(m: StationMember): string {
+/**
+ * What to call somebody in a list. Takes the little of a person this needs rather than a station
+ * member, so the same ordering serves an association's own people, who belong to no station.
+ */
+export function memberDisplayName(m: {id: number; name?: string | null; email?: string | null}): string {
   return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
 }
 
@@ -34,7 +39,33 @@ export function getMemberLastName(m: StationMember): string {
   return name.split(' ').slice(1).join(' ') ?? ''
 }
 
-export function useMemberData() {
+/**
+ * Where a member list gets its people, its questions and its grants.
+ *
+ * <p>A station reads its own roll. An association reads across the stations it governs, through its
+ * own endpoints and a page at a time. Both hand back the same three things, so the screen above does
+ * not know which it is looking at.
+ */
+export interface MemberDataSource {
+  load(): Promise<{members: RichMember[]; fields: ProfileField[]; roles: PermissionGrant[]}>
+  /** Who manages this person, fetched when a row is opened. Absent where nobody does. */
+  loadManagers?(memberId: number): Promise<StationMember[]>
+}
+
+/** The station's own roll, which is what this screen has always shown. */
+export const STATION_MEMBER_SOURCE: MemberDataSource = {
+  load: async () => {
+    const [members, fields, roles] = await Promise.all([
+      stationMembers.listRichMembers(),
+      profileFields.listFields(),
+      stationMembers.listAllPermissions(),
+    ])
+    return {members, fields, roles}
+  },
+  loadManagers: (memberId) => stationMembers.getManagers(memberId),
+}
+
+export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) {
   const members = ref<StationMember[]>([])
   const fields = ref<ProfileField[]>([])
   const allGroups = ref<MemberGroup[]>([])
@@ -98,11 +129,7 @@ export function useMemberData() {
   }
 
   const {loading, error, reload} = useAsyncLoader(async () => {
-    const [richMembers, allFields, roles] = await Promise.all([
-      stationMembers.listRichMembers(),
-      profileFields.listFields(),
-      stationMembers.listAllPermissions(),
-    ])
+    const {members: richMembers, fields: allFields, roles} = await source.load()
     fields.value = allFields
     allRoles.value = roles
 
@@ -161,9 +188,9 @@ export function useMemberData() {
   async function toggleExpand(member: StationMember) {
     if (expandedId.value === member.id) { expandedId.value = null; return }
     expandedId.value = member.id
-    if (!memberManagers.value.has(member.id)) {
+    if (source.loadManagers && !memberManagers.value.has(member.id)) {
       try {
-        const managers = await stationMembers.getManagers(member.id)
+        const managers = await source.loadManagers(member.id)
         memberManagers.value = new Map([...memberManagers.value, [member.id, managers]])
       } catch { /* ignore */ }
     }

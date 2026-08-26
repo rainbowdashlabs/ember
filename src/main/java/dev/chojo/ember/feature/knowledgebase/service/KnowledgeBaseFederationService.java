@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -14,16 +15,19 @@ import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.knowledgebase.entity.KbAccessGrant;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.RemoteKbFile;
@@ -44,6 +48,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -72,6 +77,7 @@ public class KnowledgeBaseFederationService {
     private final FederationFanout fanout;
     private final FederationEntityResolver entityResolver;
     private final KbPdfExportService pdfExportService;
+    private final KbAccessService accessService;
 
     @Inject
     public KnowledgeBaseFederationService(
@@ -87,7 +93,8 @@ public class KnowledgeBaseFederationService {
             MemberNameResolver memberNameResolver,
             FederationFanout fanout,
             FederationEntityResolver entityResolver,
-            KbPdfExportService pdfExportService) {
+            KbPdfExportService pdfExportService,
+            KbAccessService accessService) {
         this.knowledgeBaseService = knowledgeBaseService;
         this.contentService = contentService;
         this.searchService = searchService;
@@ -101,6 +108,7 @@ public class KnowledgeBaseFederationService {
         this.fanout = fanout;
         this.entityResolver = entityResolver;
         this.pdfExportService = pdfExportService;
+        this.accessService = accessService;
     }
 
     /**
@@ -111,8 +119,106 @@ public class KnowledgeBaseFederationService {
      * @param stationId the browsing station ID
      * @return the shared files of all partners that answered
      */
-    public List<FederatedKbItem> browseFederatedKb(int stationId) {
-        return browseSharedKb(stationId).stream()
+    public FederatedKbBrowse browseFederatedKb(int stationId, StationUserType readerUserType) {
+        var gathered = browseSharedKb(stationId);
+        return new FederatedKbBrowse(
+                named(gathered.folders()).stream()
+                        .filter(folder -> mayRead(folder.userTypes(), readerUserType))
+                        .toList(),
+                namedFiles(gathered.files()).stream()
+                        .filter(file -> mayRead(file.userTypes(), readerUserType))
+                        .toList(),
+                List.of());
+    }
+
+    /**
+     * Whether a reader's own user type is one an entry names.
+     *
+     * <p>An entry that names none is for everybody. One that names some is for the readers of those types
+     * at the stations it reached, which is the whole of what a user type means across a share: the type is
+     * the reader's, held at their own station.
+     */
+    private static boolean mayRead(List<String> userTypes, StationUserType readerUserType) {
+        if (userTypes == null || userTypes.isEmpty()) return true;
+        return readerUserType != null && userTypes.contains(readerUserType.name());
+    }
+
+    /**
+     * What is inside one folder a partner shares.
+     *
+     * @param stationId         the reading station
+     * @param partnerStationUid the partner serving the folder
+     * @param folderId          the folder being opened
+     */
+    public FederatedKbBrowse browseFederatedKbFolder(
+            int stationId, UUID partnerStationUid, int folderId, StationUserType readerUserType) {
+        var level = entityResolver.resolve(
+                stationId,
+                partnerStationUid,
+                RemoteKnowledgeBaseRoutes.BROWSE_KB_FOLDER.at(folderId),
+                RemoteKbBrowse.class,
+                "folder",
+                partner -> folderLevel(partnerStationId(partner), folderId, servingSideId(partner)));
+        var partner = federationRepository
+                .findPartnerByStationAndRemoteUid(stationId, partnerStationUid)
+                .orElseThrow(NotFoundResponse::new);
+        String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
+        String uid = partnerStationUid.toString();
+        return new FederatedKbBrowse(
+                level.folders().stream()
+                        .filter(folder -> mayRead(folder.userTypes(), readerUserType))
+                        .map(folder -> new FederatedKbFolder(
+                                folder.id(),
+                                folder.name(),
+                                folder.description(),
+                                stationName,
+                                uid,
+                                partner.id(),
+                                folder.userTypes()))
+                        .toList(),
+                level.files().stream()
+                        .filter(file -> mayRead(file.userTypes(), readerUserType))
+                        .map(file -> new FederatedKbItem(
+                                file.id(),
+                                file.name(),
+                                file.description(),
+                                stationName,
+                                uid,
+                                partner.id(),
+                                file.userTypes()))
+                        .toList(),
+                level.trail().stream()
+                        .map(step -> new FederatedKbFolder(
+                                step.id(),
+                                step.name(),
+                                step.description(),
+                                stationName,
+                                uid,
+                                partner.id(),
+                                step.userTypes()))
+                        .toList());
+    }
+
+    private List<FederatedKbFolder> named(List<SharedKbFolder> folders) {
+        return folders.stream()
+                .map(folder -> {
+                    var partner = federationRepository
+                            .findPartnerById(folder.partnerId())
+                            .orElse(null);
+                    return new FederatedKbFolder(
+                            folder.id(),
+                            folder.name(),
+                            folder.description(),
+                            FederationDisplayNames.partnerName(stationRepository, partner, "Unknown"),
+                            partner != null ? partner.partnerStationId().toString() : null,
+                            folder.partnerId(),
+                            folder.userTypes());
+                })
+                .toList();
+    }
+
+    private List<FederatedKbItem> namedFiles(List<SharedKbItem> items) {
+        return items.stream()
                 .map(item -> {
                     var partner = federationRepository
                             .findPartnerById(item.partnerId())
@@ -124,7 +230,8 @@ public class KnowledgeBaseFederationService {
                             item.file().description() != null ? item.file().description() : "",
                             stationName,
                             partner != null ? partner.partnerStationId().toString() : null,
-                            item.partnerId());
+                            item.partnerId(),
+                            item.userTypes());
                 })
                 .toList();
     }
@@ -135,11 +242,14 @@ public class KnowledgeBaseFederationService {
      * @param stationId the browsing station ID
      * @return the shared files with their owning station and partnership
      */
-    public List<SharedKbItem> browseSharedKb(int stationId) {
-        return fanout.fanOut(
+    public SharedKbLevel browseSharedKb(int stationId) {
+        var levels = fanout.fanOut(
                 sharedKbPartners(stationId),
-                partner -> browseSharedKbDirect(partnerStationId(partner), partner),
-                partner -> browseSharedKbViaHttp(stationId, partner, partnerStationId(partner)));
+                partner -> List.of(browseSharedKbDirect(partnerStationId(partner), partner)),
+                partner -> List.of(browseSharedKbViaHttp(stationId, partner, partnerStationId(partner))));
+        return new SharedKbLevel(
+                levels.stream().flatMap(level -> level.folders().stream()).toList(),
+                levels.stream().flatMap(level -> level.files().stream()).toList());
     }
 
     /**
@@ -279,17 +389,327 @@ public class KnowledgeBaseFederationService {
      * @param partner the verified requesting partner
      * @return the shared files in their list representation
      */
-    public List<RemoteKbFileSummary> browseForPartner(FederationPartner partner) {
-        return federationRepository.findKbShares(partner.stationId()).stream()
-                .filter(share -> share.fileId() != null)
-                .flatMap(share -> knowledgeBaseService.findFile(share.fileId()).stream())
-                .filter(file -> file.stationId() == partner.stationId())
-                .map(file -> new RemoteKbFileSummary(
-                        file.id(),
-                        file.name(),
-                        file.description() != null ? file.description() : "",
-                        file.fileType().name(),
-                        file.updatedAt().toString()))
+    public RemoteKbBrowse browseForPartner(FederationPartner partner) {
+        return servedLevel(partner.stationId(), partner.id());
+    }
+
+    /**
+     * Shares a knowledge folder or article, with everybody or with named stations.
+     *
+     * <p>Naming stations on a folder names them for everything under it, and an entry inside may narrow
+     * that set but not widen it: a folder for two stations holding an article for a third is a
+     * contradiction, and the answer to it is a refusal rather than a guess about which one wins.
+     *
+     * @param stationId  the station sharing
+     * @param fileId     the article, or {@code null} when sharing a folder
+     * @param folderId   the folder, or {@code null} when sharing an article
+     * @param scope      everybody, or the named stations
+     * @param partnerIds the partnerships it is for, read only when the scope names stations
+     */
+    public FederationShare shareEntry(
+            int stationId, Integer fileId, Integer folderId, ShareScope scope, List<Integer> partnerIds) {
+        Integer parent = fileId != null
+                ? knowledgeBaseService.findFile(fileId).map(KbFile::folderId).orElse(null)
+                : knowledgeBaseService
+                        .findFolder(folderId)
+                        .map(KbFolder::parentId)
+                        .orElse(null);
+        var reachable = inheritedAim(stationId, parent);
+        if (reachable != null) {
+            if (scope != ShareScope.SPECIFIC) {
+                throw new BadRequestResponse("The folder above this is shared with named stations only");
+            }
+            var widened =
+                    partnerIds.stream().filter(id -> !reachable.contains(id)).toList();
+            if (!widened.isEmpty()) {
+                throw new BadRequestResponse("The folder above this does not reach every station named");
+            }
+        }
+        return federationService.createKbShare(stationId, fileId, folderId, scope, partnerIds);
+    }
+
+    /**
+     * The stations the nearest shared folder above reaches, or {@code null} when nothing above narrows
+     * anything: either no folder above is shared, or one is shared with everybody.
+     */
+    private Set<Integer> inheritedAim(int stationId, Integer folderId) {
+        var shares = federationRepository.findKbShares(stationId);
+        for (Integer id = folderId; id != null; ) {
+            for (var share : shares) {
+                if (!Objects.equals(share.folderId(), id)) continue;
+                if (share.shareScope() != ShareScope.SPECIFIC) return null;
+                return Set.copyOf(federationRepository.findKbShareTargets(share.id()));
+            }
+            var folder = knowledgeBaseService.findFolder(id).orElse(null);
+            if (folder == null) return null;
+            id = folder.parentId();
+        }
+        return null;
+    }
+
+    /**
+     * Which stations each entry of one station's wiki is for.
+     *
+     * @param stationId the station whose shares these are
+     * @return one entry per share, with the stations it names
+     */
+    public List<EntryAudience> findAudiences(int stationId) {
+        return federationRepository.findKbShares(stationId).stream()
+                .map(share -> new EntryAudience(
+                        share.id(),
+                        share.fileId(),
+                        share.folderId(),
+                        share.shareScope(),
+                        federationRepository.findKbShareTargets(share.id())))
+                .toList();
+    }
+
+    /**
+     * Says which stations one entry is for, replacing whatever it said before.
+     *
+     * <p>The old share goes only once the new one exists. A refusal in between, which the folder rule can
+     * raise, would otherwise leave the entry shared with nobody: not what anybody asked for, and invisible
+     * until somebody at a station notices an article has gone.
+     *
+     * @param stationId  the station sharing
+     * @param fileId     the article, or {@code null} when it is a folder
+     * @param folderId   the folder, or {@code null} when it is an article
+     * @param scope      everybody, or the stations named
+     * @param partnerIds the stations named, as the partnerships that address them
+     */
+    public void setAudience(
+            int stationId, Integer fileId, Integer folderId, ShareScope scope, List<Integer> partnerIds) {
+        setAudience(stationId, fileId, folderId, true, scope, partnerIds);
+    }
+
+    /**
+     * Says who one entry is for, replacing whatever it said before, including saying nobody.
+     *
+     * <p>Not being shared at all is a state of its own and the one most entries of a station are in. It is
+     * not the same as being shared with an empty list of stations, and a screen that could only choose
+     * between everybody and a chosen few would quietly share everything it saved.
+     *
+     * @param shared whether the entry leaves this station at all
+     */
+    public void setAudience(
+            int stationId,
+            Integer fileId,
+            Integer folderId,
+            boolean shared,
+            ShareScope scope,
+            List<Integer> partnerIds) {
+        if ((fileId == null) == (folderId == null)) {
+            throw new BadRequestResponse("Name either an article or a folder");
+        }
+        var existing = federationRepository.findKbShares(stationId).stream()
+                .filter(share -> fileId != null
+                        ? Objects.equals(share.fileId(), fileId)
+                        : Objects.equals(share.folderId(), folderId))
+                .toList();
+
+        if (shared) shareEntry(stationId, fileId, folderId, scope, partnerIds);
+        for (var share : existing) {
+            federationRepository.deleteKbShare(share.id(), stationId);
+        }
+        log.info(
+                "Station {} shares knowledge {} {} with {}, dropping {} earlier share(s)",
+                stationId,
+                fileId != null ? "file" : "folder",
+                fileId != null ? fileId : folderId,
+                shared ? scope + " (" + partnerIds.size() + " partner(s))" : "nobody",
+                existing.size());
+    }
+
+    /**
+     * The entries this station shares with named stations rather than with every partner.
+     *
+     * <p>An entry shared with everybody reaches past this station but says nothing about who: it is
+     * simply out there, which is not the same thing as being aimed. Only an aimed one is marked.
+     *
+     * @param stationId the station whose shares these are
+     * @param folders   whether to answer about folders rather than articles
+     */
+    public Set<Integer> narrowlyShared(int stationId, boolean folders) {
+        return sharedIds(stationId, folders, true);
+    }
+
+    /**
+     * The entries this station shares with every one of its partners.
+     *
+     * <p>Distinct from sharing with a chosen few, and distinct again from keeping something to this
+     * station. Without it the two ends of that look the same on a tile: an entry the whole federation
+     * reads carried no mark at all, exactly like one nobody outside can see.
+     *
+     * @param stationId the station whose shares these are
+     * @param folders   whether to answer about folders rather than articles
+     */
+    public Set<Integer> broadlyShared(int stationId, boolean folders) {
+        return sharedIds(stationId, folders, false);
+    }
+
+    private Set<Integer> sharedIds(int stationId, boolean folders, boolean aimed) {
+        return federationRepository.findKbShares(stationId).stream()
+                .filter(share -> (share.shareScope() == ShareScope.SPECIFIC) == aimed)
+                .map(share -> folders ? share.folderId() : share.fileId())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
+    /** One share of a wiki entry, with the stations it names. */
+    public record EntryAudience(int id, Integer fileId, Integer folderId, ShareScope scope, List<Integer> partnerIds) {}
+
+    /**
+     * The shares of one station that reach one reader.
+     *
+     * <p>A share for everybody reaches every partner. A share naming stations reaches the ones named, which
+     * is how an association says an entry is for some of its stations and not the rest.
+     *
+     * @param servingStationId  the station whose shares these are
+     * @param readingPartnerId  the partnership the reader arrives on, or {@code null} to ignore the aim
+     */
+    private List<FederationShare> sharesReaching(int servingStationId, Integer readingPartnerId) {
+        return federationRepository.findKbShares(servingStationId).stream()
+                .filter(share -> reaches(share, readingPartnerId))
+                .toList();
+    }
+
+    private boolean reaches(FederationShare share, Integer readingPartnerId) {
+        if (share.shareScope() != ShareScope.SPECIFIC) return true;
+        if (readingPartnerId == null) return true;
+        return federationRepository.findKbShareTargets(share.id()).contains(readingPartnerId);
+    }
+
+    /**
+     * The top of what one station shares: its shared folders, and the articles shared in their own right.
+     *
+     * <p>Keyed by the serving station rather than by a partnership, because a partnership row means the
+     * opposite thing on each side of it: serving a partner, {@code stationId} is this station, and reading
+     * a partner it is the one doing the reading.
+     */
+    private RemoteKbBrowse servedLevel(int servingStationId, Integer readingPartnerId) {
+        var shares = sharesReaching(servingStationId, readingPartnerId);
+        var sharedFolders = sharedFolderIds(servingStationId, readingPartnerId);
+
+        // A folder inside a shared folder is reached by opening the one above it, not by standing on its own
+        // at the top. Only the outermost shared folders belong here.
+        var folders = shares.stream()
+                .map(FederationShare::folderId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .flatMap(id -> knowledgeBaseService.findFolder(id).stream())
+                .filter(folder -> folder.stationId() == servingStationId)
+                .filter(folder -> !isInsideAnyOf(folder.parentId(), sharedFolders))
+                .map(this::summary)
+                .toList();
+
+        // An article whose folder is shared arrives inside that folder, so offering it here as well would
+        // show it twice, once loose and once where it belongs.
+        var files = shares.stream()
+                .map(FederationShare::fileId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .flatMap(id -> knowledgeBaseService.findFile(id).stream())
+                .filter(file -> file.stationId() == servingStationId)
+                .filter(file -> !isInsideAnyOf(file.folderId(), sharedFolders))
+                .map(this::summary)
+                .toList();
+
+        return new RemoteKbBrowse(folders, files, List.of());
+    }
+
+    /**
+     * What is inside one shared folder, for a partner that may open it.
+     *
+     * @param partner  the requesting partner
+     * @param folderId the folder being opened
+     * @return its subfolders and its articles
+     */
+    public RemoteKbBrowse folderForPartner(FederationPartner partner, int folderId) {
+        return folderLevel(partner.stationId(), folderId, partner.id());
+    }
+
+    /** What is inside one shared folder of a serving station, refused unless a share reaching the reader covers it. */
+    private RemoteKbBrowse folderLevel(int servingStationId, int folderId, Integer readingPartnerId) {
+        var folder = knowledgeBaseService.findFolder(folderId).orElseThrow(NotFoundResponse::new);
+        if (folder.stationId() != servingStationId || !isFolderShared(servingStationId, folderId, readingPartnerId)) {
+            throw new NotFoundResponse();
+        }
+        return new RemoteKbBrowse(
+                knowledgeBaseService.findFolders(servingStationId, folderId).stream()
+                        .map(this::summary)
+                        .toList(),
+                knowledgeBaseService.findFiles(servingStationId, folderId).stream()
+                        .map(this::summary)
+                        .toList(),
+                trailTo(servingStationId, folder, readingPartnerId));
+    }
+
+    /**
+     * The way back out of a shared folder: the outermost folder the reader was given, down to the one they
+     * are standing in.
+     *
+     * <p>It stops at the outermost share rather than at the owning station's root. What lies above that is
+     * not shared, and naming it in a trail would say more about the other station's wiki than it agreed to.
+     */
+    private List<RemoteKbFolderSummary> trailTo(int servingStationId, KbFolder folder, Integer readingPartnerId) {
+        var trail = new ArrayList<RemoteKbFolderSummary>();
+        for (KbFolder step = folder; step != null; ) {
+            trail.addFirst(summary(step));
+            Integer parentId = step.parentId();
+            if (parentId == null || !isFolderShared(servingStationId, parentId, readingPartnerId)) break;
+            step = knowledgeBaseService.findFolder(parentId).orElse(null);
+        }
+        return trail;
+    }
+
+    /** Whether a folder, or anything above it, is one of the given folders. */
+    private boolean isInsideAnyOf(Integer folderId, Set<Integer> folders) {
+        if (folders.isEmpty()) return false;
+        for (Integer id = folderId; id != null; ) {
+            if (folders.contains(id)) return true;
+            var folder = knowledgeBaseService.findFolder(id).orElse(null);
+            if (folder == null) return false;
+            id = folder.parentId();
+        }
+        return false;
+    }
+
+    private RemoteKbFolderSummary summary(KbFolder folder) {
+        return new RemoteKbFolderSummary(
+                folder.id(),
+                folder.name(),
+                folder.description() != null ? folder.description() : "",
+                travellingUserTypes(folder.id(), null));
+    }
+
+    private RemoteKbFileSummary summary(KbFile file) {
+        return new RemoteKbFileSummary(
+                file.id(),
+                file.name(),
+                file.description() != null ? file.description() : "",
+                file.fileType().name(),
+                file.updatedAt().toString(),
+                travellingUserTypes(null, file.id()));
+    }
+
+    /**
+     * The user types an entry is restricted to, which travel with it to the station reading it.
+     *
+     * <p>The station serving an entry never learns who is reading it: it is handed a partnership, which is
+     * a station, and the person behind the request does not cross the boundary. So the audience goes over
+     * and the receiving station, where the reader is known, drops what does not match.
+     *
+     * <p>Only user types travel. A member group and a user tag are one station's own rows with no
+     * counterpart at the next, so the receiving station could not apply them.
+     *
+     * @return the user types named, or empty when the entry names none and is therefore for everybody
+     */
+    private List<String> travellingUserTypes(Integer folderId, Integer fileId) {
+        return accessService.findRestrictions(folderId, fileId).stream()
+                .map(KbAccessGrant::userType)
+                .filter(Objects::nonNull)
+                .map(Enum::name)
+                .distinct()
                 .toList();
     }
 
@@ -339,11 +759,36 @@ public class KnowledgeBaseFederationService {
      * the folder it sits in.
      */
     public boolean isSharedWithPartner(FederationPartner partner, KbFile file) {
-        for (var share : federationRepository.findKbShares(partner.stationId())) {
+        for (var share : sharesReaching(partner.stationId(), partner.id())) {
             if (share.fileId() != null && share.fileId() == file.id()) return true;
-            if (share.folderId() != null && share.folderId().equals(file.folderId())) return true;
         }
-        return false;
+        return isFolderSharedWithPartner(partner, file.folderId());
+    }
+
+    /**
+     * Whether a folder is shared with this partner, itself or through a folder above it.
+     *
+     * <p>Sharing a folder shares what is under it, to the bottom. The check used to match a direct parent
+     * only, so an article one level deeper was refused, which is not what sharing a folder means to
+     * anybody and disagrees with public visibility, which walks the whole ancestry.
+     *
+     * @param partner  the requesting partner
+     * @param folderId the folder to ask about, or {@code null} for the root, which is never shared
+     */
+    public boolean isFolderSharedWithPartner(FederationPartner partner, Integer folderId) {
+        return isFolderShared(partner.stationId(), folderId, partner.id());
+    }
+
+    private boolean isFolderShared(int servingStationId, Integer folderId, Integer readingPartnerId) {
+        return isInsideAnyOf(folderId, sharedFolderIds(servingStationId, readingPartnerId));
+    }
+
+    /** The folders one station shares that reach one reader, by id. */
+    private Set<Integer> sharedFolderIds(int servingStationId, Integer readingPartnerId) {
+        return sharesReaching(servingStationId, readingPartnerId).stream()
+                .map(FederationShare::folderId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -407,6 +852,7 @@ public class KnowledgeBaseFederationService {
             var author = new MemberIdentity(partner.partnerStationId(), memberUid);
             var comment = commentRepository.create(fileId, parentId, author, content);
             eventFederationRepository.cacheName(partner.id(), memberUid, displayName);
+            log.info("Comment {} created on knowledge file {} (partner {})", comment.id(), fileId, partner.id());
             return toCommentResponse(comment);
         }
         var station = requireStation(stationId);
@@ -418,7 +864,11 @@ public class KnowledgeBaseFederationService {
                 station.id(),
                 station.federationPrivateKey(),
                 CommentResponse.class);
-        if (result == null) throw new InternalServerErrorResponse("Failed to create comment on partner");
+        if (result == null) {
+            log.warn("Partner {} refused a comment on its knowledge file {}", partner.id(), fileId);
+            throw new InternalServerErrorResponse("Failed to create comment on partner");
+        }
+        log.info("Station {} commented on knowledge file {} at partner {}", stationId, fileId, partner.id());
         return result;
     }
 
@@ -431,6 +881,7 @@ public class KnowledgeBaseFederationService {
         if (!partner.isRemote()) {
             requireOwnComment(commentId, memberUid, "edit");
             commentRepository.update(commentId, content);
+            log.info("Comment {} on a knowledge file edited (partner {})", commentId, partner.id());
             return toCommentResponse(requireComment(commentId));
         }
         var station = requireStation(stationId);
@@ -442,7 +893,11 @@ public class KnowledgeBaseFederationService {
                 station.id(),
                 station.federationPrivateKey(),
                 CommentResponse.class);
-        if (result == null) throw new InternalServerErrorResponse("Failed to update comment on partner");
+        if (result == null) {
+            log.warn("Partner {} refused an edit of its comment {}", partner.id(), commentId);
+            throw new InternalServerErrorResponse("Failed to update comment on partner");
+        }
+        log.info("Station {} edited its comment {} at partner {}", stationId, commentId, partner.id());
         return result;
     }
 
@@ -455,7 +910,10 @@ public class KnowledgeBaseFederationService {
         var partner = resolvePartner(stationId, partnerStationUid);
         if (!partner.isRemote()) {
             requireOwnComment(commentId, memberUid, "delete");
-            return commentRepository.delete(commentId);
+            boolean deleted = commentRepository.delete(commentId);
+            if (deleted) log.info("Comment {} on a knowledge file deleted (partner {})", commentId, partner.id());
+            else log.warn("Delete for knowledge comment {} affected zero rows", commentId);
+            return deleted;
         }
         var station = requireStation(stationId);
         boolean success = httpClient.delete(
@@ -465,7 +923,11 @@ public class KnowledgeBaseFederationService {
                 partner.partnerStationId(),
                 station.id(),
                 station.federationPrivateKey());
-        if (!success) throw new InternalServerErrorResponse("Failed to delete comment on partner");
+        if (!success) {
+            log.warn("Partner {} refused a deletion of its comment {}", partner.id(), commentId);
+            throw new InternalServerErrorResponse("Failed to delete comment on partner");
+        }
+        log.info("Station {} deleted its comment {} at partner {}", stationId, commentId, partner.id());
         return true;
     }
 
@@ -494,6 +956,7 @@ public class KnowledgeBaseFederationService {
             FederationPartner partner, int commentId, UUID remoteMemberUid, String content) {
         requireRemoteCommentAuthor(partner, commentId, remoteMemberUid, "edit");
         commentRepository.update(commentId, content);
+        log.info("KB remote comment {} edited from partner {}", commentId, partner.id());
         return requireComment(commentId);
     }
 
@@ -513,32 +976,40 @@ public class KnowledgeBaseFederationService {
         return comment;
     }
 
-    private List<SharedKbItem> browseSharedKbDirect(int remoteStationId, FederationPartner partner) {
-        var result = new ArrayList<SharedKbItem>();
-        for (var share : federationRepository.findKbShares(remoteStationId)) {
-            if (share.fileId() != null) {
-                knowledgeBaseService.findFile(share.fileId()).ifPresent(file -> {
-                    result.add(new SharedKbItem(KbFileSummary.of(file), remoteStationId, partner.id()));
-                    federationRepository.upsertMetadataCache(
-                            partner.id(), ContentType.KB, file.id(), file.name(), file.description());
-                });
-            } else if (share.folderId() != null) {
-                for (var file : knowledgeBaseService.findFiles(remoteStationId, share.folderId())) {
-                    result.add(new SharedKbItem(KbFileSummary.of(file), remoteStationId, partner.id()));
-                    federationRepository.upsertMetadataCache(
-                            partner.id(), ContentType.KB, file.id(), file.name(), file.description());
-                }
-            }
+    /**
+     * What one partner on this instance offers at the top of its shared wiki.
+     *
+     * <p>A shared folder arrives as a folder, and what is in it stays in it: the reader opens it the way
+     * they open any other. An article whose folder is already shared is therefore not offered loose as
+     * well, or it would stand twice, once at the top and once where it belongs.
+     */
+    private SharedKbLevel browseSharedKbDirect(int remoteStationId, FederationPartner partner) {
+        var served = servedLevel(remoteStationId, servingSideId(partner));
+        var folders = served.folders().stream()
+                .map(folder -> new SharedKbFolder(
+                        folder.id(),
+                        folder.name(),
+                        folder.description(),
+                        remoteStationId,
+                        partner.id(),
+                        folder.userTypes()))
+                .toList();
+        var files = new ArrayList<SharedKbItem>();
+        for (var summary : served.files()) {
+            knowledgeBaseService.findFile(summary.id()).ifPresent(file -> {
+                files.add(new SharedKbItem(KbFileSummary.of(file), remoteStationId, partner.id(), summary.userTypes()));
+                federationRepository.upsertMetadataCache(
+                        partner.id(), ContentType.KB, file.id(), file.name(), file.description());
+            });
         }
-        return result;
+        return new SharedKbLevel(folders, files);
     }
 
-    private List<SharedKbItem> browseSharedKbViaHttp(
-            int localStationId, FederationPartner partner, int remoteStationId) {
+    private SharedKbLevel browseSharedKbViaHttp(int localStationId, FederationPartner partner, int remoteStationId) {
         var result = new ArrayList<SharedKbItem>();
-        var files = fetchSharedKbFiles(
+        var served = fetchSharedKb(
                 partner.remoteHost(), partner.partnerStationId(), localStationId, privateKey(localStationId));
-        for (var remoteFile : files) {
+        for (var remoteFile : served.files()) {
             var summary = new KbFileSummary(
                     remoteFile.id(),
                     remoteStationId,
@@ -548,11 +1019,20 @@ public class KnowledgeBaseFederationService {
                     KbFileType.valueOf(remoteFile.fileType() != null ? remoteFile.fileType() : "MARKDOWN"),
                     Instant.now(),
                     false);
-            result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
+            result.add(new SharedKbItem(summary, remoteStationId, partner.id(), remoteFile.userTypes()));
             federationRepository.upsertMetadataCache(
                     partner.id(), ContentType.KB, remoteFile.id(), remoteFile.name(), remoteFile.description());
         }
-        return result;
+        var folders = served.folders().stream()
+                .map(folder -> new SharedKbFolder(
+                        folder.id(),
+                        folder.name(),
+                        folder.description(),
+                        remoteStationId,
+                        partner.id(),
+                        folder.userTypes()))
+                .toList();
+        return new SharedKbLevel(folders, result);
     }
 
     private List<FederatedSearchResult> searchKbDirect(FederationPartner partner, String query) {
@@ -588,15 +1068,15 @@ public class KnowledgeBaseFederationService {
                 .toList();
     }
 
-    private List<RemoteKbFileSummary> fetchSharedKbFiles(
+    private RemoteKbBrowse fetchSharedKb(
             String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
-        return httpClient.getList(
+        return httpClient.get(
                 remoteHost,
                 RemoteKnowledgeBaseRoutes.BROWSE_KB.at(),
                 partnerStationUid,
                 localStationId,
                 localPrivateKeyBase64,
-                RemoteKbFileSummary.class);
+                RemoteKbBrowse.class);
     }
 
     private List<RemoteKbSearchResultItem> searchKb(
@@ -670,6 +1150,25 @@ public class KnowledgeBaseFederationService {
                 .orElse(null);
     }
 
+    /**
+     * The id of the partnership row the serving station holds, seen from the reader's own row.
+     *
+     * <p>A share aimed at named stations names them by the partnerships the serving station keeps, and the
+     * reader arrives holding the mirror image of one. Both sides exist for the same pairing, and they have
+     * different ids, so reading the aim means crossing over to the serving station's row.
+     *
+     * @param partner the reader's own partnership row
+     * @return the serving station's row id, or {@code null} when the pairing has no other side recorded
+     */
+    private Integer servingSideId(FederationPartner partner) {
+        var readerStation = stationRepository.findById(partner.stationId()).orElse(null);
+        if (readerStation == null) return null;
+        return federationRepository
+                .findPartnerByStationAndRemoteUid(partnerStationId(partner), readerStation.uid())
+                .map(FederationPartner::id)
+                .orElse(null);
+    }
+
     private int partnerStationId(FederationPartner partner) {
         return stationRepository
                 .findByUid(partner.partnerStationId())
@@ -691,7 +1190,7 @@ public class KnowledgeBaseFederationService {
      * A file shared by a partner, carrying the station that owns it and the partnership it came
      * through.
      */
-    public record SharedKbItem(KbFileSummary file, int sourceStationId, int partnerId) {}
+    public record SharedKbItem(KbFileSummary file, int sourceStationId, int partnerId, List<String> userTypes) {}
 
     /**
      * A search match from a partner, carrying the name and UUID of the serving station.
@@ -704,12 +1203,59 @@ public class KnowledgeBaseFederationService {
      * can no longer be resolved.
      */
     public record FederatedKbItem(
-            int remoteId, String title, String description, String stationName, String stationUid, int partnerId) {}
+            int remoteId,
+            String title,
+            String description,
+            String stationName,
+            String stationUid,
+            int partnerId,
+            List<String> userTypes) {}
+
+    /**
+     * A folder a partner shares, as offered to the station reading it.
+     */
+    public record FederatedKbFolder(
+            int remoteId,
+            String title,
+            String description,
+            String stationName,
+            String stationUid,
+            int partnerId,
+            List<String> userTypes) {}
+
+    /**
+     * One level of what the partners share: their folders and the articles standing beside them.
+     */
+    public record FederatedKbBrowse(
+            List<FederatedKbFolder> folders, List<FederatedKbItem> files, List<FederatedKbFolder> trail) {}
+
+    /**
+     * A folder a partner shares, as gathered before the partner's name is resolved.
+     */
+    public record SharedKbFolder(
+            int id, String name, String description, int sourceStationId, int partnerId, List<String> userTypes) {}
+
+    /**
+     * One level of a partner's shared wiki, as gathered.
+     */
+    public record SharedKbLevel(List<SharedKbFolder> folders, List<SharedKbItem> files) {}
 
     /**
      * A shared file as served to a requesting partner.
      */
-    public record RemoteKbFileSummary(int id, String name, String description, String fileType, String updatedAt) {}
+    public record RemoteKbFileSummary(
+            int id, String name, String description, String fileType, String updatedAt, List<String> userTypes) {}
+
+    /**
+     * A shared folder as served to a requesting partner.
+     */
+    public record RemoteKbFolderSummary(int id, String name, String description, List<String> userTypes) {}
+
+    /**
+     * One level of a partner's shared wiki: the folders it offers and the articles standing beside them.
+     */
+    public record RemoteKbBrowse(
+            List<RemoteKbFolderSummary> folders, List<RemoteKbFileSummary> files, List<RemoteKbFolderSummary> trail) {}
 
     /**
      * A search match as served to a requesting partner.

@@ -13,8 +13,10 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
+import DragList from '@/components/input/DragList.vue'
 import MailProviderRow from '@/components/mail/MailProviderRow.vue'
 import {emptyMailProvider, type MailProvider} from '@/api/mailProviders'
+import {moveWithin} from '@/util/reorder'
 
 /**
  * The order mail is tried through, for whoever owns the list.
@@ -62,14 +64,8 @@ function remove(index: number) {
   providers.value = providers.value.filter((_, i) => i !== index)
 }
 
-function move(index: number, direction: number) {
-  const target = index + direction
-  if (target < 0 || target >= providers.value.length) return
-  const next = [...providers.value]
-  const [moved] = next.splice(index, 1)
-  if (!moved) return
-  next.splice(target, 0, moved)
-  providers.value = next
+function move(fromIndex: number, toIndex: number) {
+  providers.value = moveWithin(providers.value, fromIndex, toIndex)
 }
 </script>
 
@@ -81,30 +77,30 @@ function move(index: number, direction: number) {
     <Spinner v-if="props.ready === false" size="md"/>
     <EmptyHint v-else-if="providers.length === 0">{{ t('mailChain.empty') }}</EmptyHint>
 
-    <MailProviderRow
-        v-for="(entry, index) in providers"
-        :key="index"
-        :model-value="entry"
-        @update:model-value="(value: MailProvider) => replaceAt(index, value)"
-        :position="index + 1"
-        :is-first="index === 0"
-        :is-last="index === providers.length - 1"
-        :show-display-fields="props.showDisplayFields"
-        :default-recipient="props.defaultRecipient"
-        :testing="props.testingPosition === index"
-        :test-result="props.testResults?.[index] ?? null"
-        @remove="remove(index)"
-        @move="(direction: number) => move(index, direction)"
-        @test="(recipient: string) => emit('test', index, recipient)"
-    >
-      <template #webhook="{provider}">
-        <slot name="webhook" :provider="provider" :position="index"/>
+    <DragList :items="providers" :key-fn="(_, index) => index" @reorder="move">
+      <template #default="{index}">
+        <MailProviderRow
+            :model-value="providers[index]!"
+            @update:model-value="(value: MailProvider) => replaceAt(index, value)"
+            :position="index + 1"
+            :is-first="index === 0"
+            :show-display-fields="props.showDisplayFields"
+            :default-recipient="props.defaultRecipient"
+            :testing="props.testingPosition === index"
+            :test-result="props.testResults?.[index] ?? null"
+            @remove="remove(index)"
+            @test="(recipient: string) => emit('test', index, recipient)"
+        >
+          <template #webhook="{provider}">
+            <slot name="webhook" :provider="provider" :position="index"/>
+          </template>
+        </MailProviderRow>
       </template>
-    </MailProviderRow>
+    </DragList>
 
     <div class="flex justify-between gap-2 flex-wrap border-t border-(--border) pt-4">
       <div class="flex gap-2">
-        <SecondaryButton :icon="['fas', 'plus']" :disabled="props.ready === false" @click="add">
+        <SecondaryButton data-onboarding="mailing.add-provider" :icon="['fas', 'plus']" :disabled="props.ready === false" @click="add">
           {{ t('mailChain.add') }}
         </SecondaryButton>
         <ErrorButton

@@ -45,7 +45,7 @@ const isMemberField = computed(() => isMemberFieldType(props.fieldType))
 
   <div v-if="constraint === 'group' && groups && groups.length > 0" class="space-y-1">
     <FieldLabel>{{ t('eventFields.group') }}</FieldLabel>
-    <SelectInput v-model="groupId" class="w-full sm:w-auto">
+    <SelectInput v-model="groupId" class="w-full sm:w-auto" data-testid="event-field-group">
       <option value="">{{ t('eventFields.selectGroup') }}</option>
       <option v-for="g in groups" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
     </SelectInput>

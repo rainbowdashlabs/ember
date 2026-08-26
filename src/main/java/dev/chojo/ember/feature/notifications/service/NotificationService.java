@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.notifications.entity.Notification;
@@ -85,6 +86,7 @@ public class NotificationService {
     private final StationRepository stationRepository;
     private final StationLogoService logoService;
     private final EmailService emailService;
+    private final MailRecipientService mailRecipientService;
 
     @Inject
     public NotificationService(
@@ -96,6 +98,7 @@ public class NotificationService {
             StationRepository stationRepository,
             StationLogoService logoService,
             EmailService emailService,
+            MailRecipientService mailRecipientService,
             Mailing mailing) {
         this.notificationRepository = notificationRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -105,6 +108,7 @@ public class NotificationService {
         this.stationRepository = stationRepository;
         this.logoService = logoService;
         this.emailService = emailService;
+        this.mailRecipientService = mailRecipientService;
 
         int intervalMinutes = mailing.notificationDigestIntervalMinutes();
         if (intervalMinutes > 0) {
@@ -337,6 +341,85 @@ public class NotificationService {
         }
     }
 
+    // -- Cluster members --
+    //
+    // The per-type settings screen is a station member's, so a cluster member has no rows in it and these
+    // do not consult it. What a cluster member hears about is decided by what they may see, which is their
+    // cluster permissions, and that is checked where the notification is raised.
+
+    /**
+     * Sends a notification to cluster members, skipping any that already have the same one waiting.
+     *
+     * @param clusterMemberIds       the cluster members to tell
+     * @param type                   the notification category
+     * @param data                   localized message data
+     * @param excludeClusterMemberId the cluster member who caused it, so they are not told about their own
+     *                               doing, or {@code null} when nobody should be skipped
+     */
+    public void notifyClusterMembersIfAbsent(
+            Collection<Integer> clusterMemberIds,
+            NotificationType type,
+            NotificationData data,
+            Integer excludeClusterMemberId) {
+        requireLink(type, data);
+        for (int clusterMemberId : clusterMemberIds) {
+            if (excludeClusterMemberId != null && clusterMemberId == excludeClusterMemberId) continue;
+            if (!notificationRepository.existsForClusterMember(clusterMemberId, type, data)) {
+                notificationRepository.createForClusterMember(clusterMemberId, type, data);
+            }
+        }
+    }
+
+    /**
+     * The unread notifications of a cluster member.
+     *
+     * @param clusterMemberId the cluster member
+     * @return what is waiting for them
+     */
+    public List<Notification> findUnacknowledgedForClusterMember(int clusterMemberId) {
+        return notificationRepository.findUnacknowledgedForClusterMember(clusterMemberId);
+    }
+
+    /**
+     * The recent notifications of a cluster member, read or not.
+     *
+     * @param clusterMemberId the cluster member
+     * @return their feed
+     */
+    public List<Notification> findAllForClusterMember(int clusterMemberId) {
+        return notificationRepository.findAllForClusterMember(clusterMemberId);
+    }
+
+    /**
+     * How much a cluster member has not read.
+     *
+     * @param clusterMemberId the cluster member
+     * @return the count
+     */
+    public int countUnacknowledgedForClusterMember(int clusterMemberId) {
+        return notificationRepository.countUnacknowledgedForClusterMember(clusterMemberId);
+    }
+
+    /**
+     * Marks one of a cluster member's notifications read.
+     *
+     * @param id              the notification
+     * @param clusterMemberId the cluster member it must belong to
+     */
+    public void acknowledgeForClusterMember(int id, int clusterMemberId) {
+        notificationRepository.acknowledgeForClusterMember(id, clusterMemberId);
+    }
+
+    /**
+     * Marks everything a cluster member has waiting as read.
+     *
+     * @param clusterMemberId the cluster member
+     * @return how many were marked
+     */
+    public int acknowledgeAllForClusterMember(int clusterMemberId) {
+        return notificationRepository.acknowledgeAllForClusterMember(clusterMemberId);
+    }
+
     /**
      * Retrieves all unacknowledged notifications for a member.
      *
@@ -408,6 +491,7 @@ public class NotificationService {
      */
     public void deleteByTypeContaining(NotificationType type, NotificationData partialData) {
         notificationRepository.deleteByTypeContaining(type, partialData);
+        log.debug("Withdrew the {} notifications matching a data fragment", type);
     }
 
     /**
@@ -415,6 +499,7 @@ public class NotificationService {
      */
     public void cleanupOld() {
         notificationRepository.deleteOldAcknowledged();
+        log.info("Notification cleanup removed the acknowledged entries older than 30 days");
     }
 
     /**
@@ -552,7 +637,7 @@ public class NotificationService {
             case NEW_NEWS -> params instanceof NotificationParams.NewNews p ? p.preview() : null;
             case NEWS_COMMENT -> params instanceof NotificationParams.NewsComment p ? p.preview() : null;
             case EXCHANGE_STATUS_CHANGE ->
-                params instanceof NotificationParams.ExchangeStatusChange p ? p.reason() : null;
+                params instanceof NotificationParams.ExchangeStatusChange p ? p.stepLabel() : null;
             case EXCHANGE_NEW_REQUEST -> params instanceof NotificationParams.ExchangeNewRequest p ? p.reason() : null;
             case EVENT_REGISTRATION_STATUS ->
                 params instanceof NotificationParams.EventRegistrationStatus p ? p.eventDescription() : null;
@@ -608,11 +693,6 @@ public class NotificationService {
             }
             case EXCHANGE_NEW_REQUEST -> {
                 if (params instanceof NotificationParams.ExchangeNewRequest p && notBlank(p.reason())) {
-                    lines.add(feedKv(locale, "reason", p.reason()));
-                }
-            }
-            case EXCHANGE_STATUS_CHANGE -> {
-                if (params instanceof NotificationParams.ExchangeStatusChange p && notBlank(p.reason())) {
                     lines.add(feedKv(locale, "reason", p.reason()));
                 }
             }
@@ -773,7 +853,9 @@ public class NotificationService {
         if (member == null) return false;
 
         var account = accountRepository.findById(member.accountId()).orElse(null);
-        if (account == null || account.email() == null || account.email().isBlank()) return false;
+        if (account == null) return false;
+        var recipients = mailRecipientService.forAccount(account.id());
+        if (recipients.isEmpty()) return false;
 
         int stationId = member.stationId();
         if (!emailService.canStationSend(stationId)) return false;
@@ -794,7 +876,7 @@ public class NotificationService {
                 : null;
 
         String name = (account.firstName() + " " + account.lastName()).trim();
-        if (name.isEmpty()) name = account.email();
+        if (name.isEmpty()) name = account.loginName();
 
         // Build notification items HTML
         String baseUrl = emailService.getBaseUrl();
@@ -851,7 +933,9 @@ public class NotificationService {
                 subjectKey,
                 Map.of("stationName", stationName, "count", String.valueOf(eligible.size())));
         String body = emailService.loadTemplate("notification-digest.html", locale, vars);
-        emailService.queueStationEmail(stationId, account.email(), subject, body);
+        for (var recipient : recipients) {
+            emailService.queueStationEmail(stationId, recipient.email(), subject, body);
+        }
         return true;
     }
 
@@ -863,8 +947,6 @@ public class NotificationService {
     private void augmentTitleParams(String locale, Notification n, Map<String, String> params) {
         var orig = n.data().params();
         if (orig instanceof NotificationParams.EventRegistrationStatus p) {
-            params.put("statusLabel", resolveStatusWithSymbol(locale, p.status().name()));
-        } else if (orig instanceof NotificationParams.ExchangeStatusChange p) {
             params.put("statusLabel", resolveStatusWithSymbol(locale, p.status().name()));
         } else if (orig instanceof NotificationParams.LendingStatusChange p) {
             params.put("statusLabel", resolveStatusWithSymbol(locale, p.status().name()));

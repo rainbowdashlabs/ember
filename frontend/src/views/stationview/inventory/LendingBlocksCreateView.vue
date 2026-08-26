@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
@@ -15,9 +16,11 @@ import BlockFormBody from './lendingblockscreateview/BlockFormBody.vue'
 import type {BlockEntry} from './lendingblockscreateview/types'
 import * as lending from '@/api/lending'
 import {inventory} from '@/api'
-import type {Inventory} from '@/api/inventory'
+import {isAvailable, type Inventory} from '@/api/inventory'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+
+const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const router = useRouter()
@@ -68,7 +71,8 @@ async function addEntry() {
 
   try {
     const items = await inventory.listItems(invId)
-    const available = items.filter(item => !item.assignedTo && !item.lostAt)
+    // Custody, not the assignment: gear in transit or already with a partner is not free either
+    const available = items.filter(item => isAvailable(item.custody))
     entry.items = available
   } catch {
     void 0
@@ -131,11 +135,11 @@ const {running: saving, run: handleCreate} = useAsyncAction(async () => {
       }
     }
   }
-  router.push({name: 'inventory-lending-blocks'})
+  router.push({name: routes.lendingBlocks})
 })
 
 function goBack() {
-  router.push({name: 'inventory-lending-blocks'})
+  router.push({name: routes.lendingBlocks})
 }
 </script>
 

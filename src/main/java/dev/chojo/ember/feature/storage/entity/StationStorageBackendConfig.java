@@ -44,6 +44,25 @@ public sealed interface StationStorageBackendConfig {
     StorageBackendType type();
 
     /**
+     * What this configuration names, with nothing about how it signs in.
+     *
+     * <p>Two configurations with the same key are the same place with a different secret, which is what makes
+     * rotating a credential a write rather than a copy of everything stored there. Anything that would send
+     * the bytes somewhere else belongs in it: the kind of backend, the host or endpoint, the bucket or share,
+     * and the path underneath.
+     *
+     * @return the destination, as a comparable string
+     */
+    default String destinationKey() {
+        return switch (this) {
+            case S3Variant v -> String.join("|", "S3", v.endpoint(), v.region(), v.bucket(), v.basePath());
+            case SmbVariant v ->
+                String.join("|", "SMB", v.host(), String.valueOf(v.port()), v.share(), v.domain(), v.basePath());
+            case SftpVariant v -> String.join("|", "SFTP", v.host(), String.valueOf(v.port()), v.basePath());
+        };
+    }
+
+    /**
      * Serializes this variant to JSON for storage in the JSONB column.
      */
     default String toJson() {

@@ -300,8 +300,14 @@ public class MediaLibraryService {
 
     public boolean updateFileMeta(int stationId, int fileId, String altText, String description) {
         var existing = fileRepository.findById(fileId).orElse(null);
-        if (existing == null || !Integer.valueOf(stationId).equals(existing.stationId())) return false;
-        return fileRepository.updateMeta(fileId, altText, description);
+        if (existing == null || !Integer.valueOf(stationId).equals(existing.stationId())) {
+            log.warn("Metadata update for media file {} skipped: not a file of station {}", fileId, stationId);
+            return false;
+        }
+        boolean updated = fileRepository.updateMeta(fileId, altText, description);
+        if (updated) log.info("Media file {} was given new alt text and description", fileId);
+        else log.warn("Metadata update for media file {} affected zero rows", fileId);
+        return updated;
     }
 
     public boolean moveFileToFolder(int stationId, int fileId, Integer folderId) {
@@ -383,13 +389,16 @@ public class MediaLibraryService {
         var tag = metaRepository.findTag(tagId).orElse(null);
         if (file == null || file.stationId() != stationId || tag == null || tag.stationId() != stationId) return false;
         metaRepository.assignTag(fileId, tagId);
+        log.info("Media file {} was tagged {}", fileId, tagId);
         return true;
     }
 
     public boolean unassignTag(int stationId, int fileId, int tagId) {
         var file = fileRepository.findById(fileId).orElse(null);
         if (file == null || file.stationId() != stationId) return false;
-        return metaRepository.unassignTag(fileId, tagId);
+        boolean unassigned = metaRepository.unassignTag(fileId, tagId);
+        if (unassigned) log.info("Media file {} lost the tag {}", fileId, tagId);
+        return unassigned;
     }
 
     private void recordUploader(int fileId, Integer memberId) {

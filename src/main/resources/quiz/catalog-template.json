@@ -1,0 +1,150 @@
+{
+  "formatVersion" : 1,
+  "catalog" : {
+    "name" : "Beispielkatalog",
+    "description" : "Je eine Frage pro Fragetyp, als Vorlage für eigene Kataloge.",
+    "trainingEnabled" : true,
+    "metadata" : {
+      "language" : "de",
+      "source" : "Vorlage aus Ember",
+      "author" : null,
+      "license" : null
+    }
+  },
+  "categories" : [ {
+    "key" : "brandlehre",
+    "name" : "Brandlehre",
+    "description" : "Verbrennung, Brandklassen und Löschmittel",
+    "position" : 0
+  }, {
+    "key" : "erste-hilfe",
+    "name" : "Erste Hilfe",
+    "description" : "Sofortmaßnahmen am Einsatzort",
+    "position" : 1
+  } ],
+  "questions" : [ {
+    "categoryKey" : "brandlehre",
+    "quizQuestionType" : "MULTIPLE_CHOICE",
+    "title" : "Welche Brandklasse gilt für Speisefette und Öle?",
+    "description" : "",
+    "imageUrl" : null,
+    "points" : 2,
+    "autoPoints" : true,
+    "position" : 0,
+    "config" : {
+      "options" : [ {
+        "text" : "Brandklasse F",
+        "correct" : true
+      }, {
+        "text" : "Brandklasse A",
+        "correct" : false
+      }, {
+        "text" : "Brandklasse B",
+        "correct" : false
+      } ],
+      "pointsPerCorrect" : 2
+    }
+  }, {
+    "categoryKey" : "brandlehre",
+    "quizQuestionType" : "TRUE_FALSE",
+    "title" : "Ein Fettbrand wird mit Wasser gelöscht.",
+    "description" : "Wasser führt zur Fettexplosion.",
+    "imageUrl" : null,
+    "points" : 1,
+    "autoPoints" : true,
+    "position" : 1,
+    "config" : {
+      "correctAnswer" : false
+    }
+  }, {
+    "categoryKey" : "brandlehre",
+    "quizQuestionType" : "ENUMERATION",
+    "title" : "Nenne die drei Bedingungen für ein Feuer.",
+    "description" : "",
+    "imageUrl" : null,
+    "points" : 3,
+    "autoPoints" : true,
+    "position" : 2,
+    "config" : {
+      "answers" : [ "Sauerstoff", "Wärme", "brennbarer Stoff" ],
+      "requiredCount" : 3,
+      "orderedRequired" : false,
+      "pointsPerCorrect" : 1
+    }
+  }, {
+    "categoryKey" : "erste-hilfe",
+    "quizQuestionType" : "ORDERING",
+    "title" : "Bringe die Rettungskette in die richtige Reihenfolge.",
+    "description" : "",
+    "imageUrl" : null,
+    "points" : 5,
+    "autoPoints" : true,
+    "position" : 3,
+    "config" : {
+      "items" : [ "Absichern", "Notruf", "Erste Hilfe", "Rettungsdienst", "Krankenhaus" ],
+      "pointsPerCorrect" : 1
+    }
+  }, {
+    "categoryKey" : "erste-hilfe",
+    "quizQuestionType" : "CONNECT",
+    "title" : "Ordne die Abkürzungen zu.",
+    "description" : "",
+    "imageUrl" : null,
+    "points" : 3,
+    "autoPoints" : true,
+    "position" : 4,
+    "config" : {
+      "pairs" : [ {
+        "left" : "RTW",
+        "right" : "Rettungstransportwagen"
+      }, {
+        "left" : "NEF",
+        "right" : "Notarzteinsatzfahrzeug"
+      } ],
+      "pointsPerCorrect" : 1
+    }
+  }, {
+    "categoryKey" : null,
+    "quizQuestionType" : "FILL_IN_THE_BLANK",
+    "title" : "Ein C-Schlauch ist ___ lang.",
+    "description" : "",
+    "imageUrl" : null,
+    "points" : 1,
+    "autoPoints" : true,
+    "position" : 5,
+    "config" : {
+      "text" : "Ein C-Schlauch ist ___ lang.",
+      "answers" : [ "15 Meter" ],
+      "distractors" : [ "20 Meter", "30 Meter" ],
+      "useDropdown" : true,
+      "pointsPerCorrect" : 1
+    }
+  }, {
+    "categoryKey" : null,
+    "quizQuestionType" : "FREE_ANSWER",
+    "title" : "Wofür steht UVV?",
+    "description" : "",
+    "imageUrl" : null,
+    "points" : 1,
+    "autoPoints" : true,
+    "position" : 6,
+    "config" : {
+      "answers" : [ "Unfallverhütungsvorschrift" ],
+      "lines" : 3,
+      "pointsPerCorrect" : 1
+    }
+  }, {
+    "categoryKey" : null,
+    "quizQuestionType" : "IMAGE_TEXT",
+    "title" : "Welches Gerät ist auf dem Bild zu sehen?",
+    "description" : "",
+    "imageUrl" : "https://example.invalid/verteiler.png",
+    "points" : 1,
+    "autoPoints" : false,
+    "position" : 7,
+    "config" : {
+      "imageUrl" : "https://example.invalid/verteiler.png",
+      "answer" : "Verteiler"
+    }
+  } ]
+}

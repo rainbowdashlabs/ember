@@ -132,7 +132,7 @@ public class QuizFederationService {
     public QuizCatalog copyQuizCatalog(int catalogId, int targetStationId) {
         var source = catalogService.findCatalog(catalogId).orElseThrow();
         var newCatalog = catalogService.createCatalog(
-                targetStationId, source.name(), source.description(), source.trainingEnabled());
+                targetStationId, source.name(), source.description(), source.trainingEnabled(), source.metadata());
 
         var questions = questionService.findQuestions(source.id());
         var referenced = questions.stream()

@@ -19,6 +19,7 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import TestMetadataForm from './testbuilderview/TestMetadataForm.vue'
 import TestRestrictionsForm from './testbuilderview/TestRestrictionsForm.vue'
 import TestSectionsEditor from './testbuilderview/TestSectionsEditor.vue'
+import {moveWithin} from '@/util/reorder'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -80,13 +81,8 @@ function removeSection(index: number) {
   sections.value.splice(index, 1)
 }
 
-function moveSection(index: number, direction: -1 | 1) {
-  const newIndex = index + direction
-  const current = sections.value[index]
-  const target = sections.value[newIndex]
-  if (!current || !target) return
-  sections.value[index] = target
-  sections.value[newIndex] = current
+function reorderSections(fromIndex: number, toIndex: number) {
+  sections.value = moveWithin(sections.value, fromIndex, toIndex)
 }
 
 function addSource(section: SectionDraft) {
@@ -259,7 +255,7 @@ async function save() {
             :get-categories-for-catalog="getCategoriesForCatalog"
             :on-catalog-change="onCatalogChange"
             @add-section="addSection"
-            @move-section="moveSection"
+            @reorder-sections="reorderSections"
             @remove-section="removeSection"
             @add-source="addSource"
             @remove-source="removeSource"

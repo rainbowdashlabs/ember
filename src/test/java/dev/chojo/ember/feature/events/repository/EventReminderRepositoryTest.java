@@ -54,6 +54,24 @@ class EventReminderRepositoryTest extends RepositoryTestBase {
                 null);
     }
 
+    /** The run-out warning is recorded per lead time, so a sweep every half hour warns once. */
+    @Test
+    void aDeadlineWarningIsRecordedOncePerLeadTime() {
+        var created = event("Closing Event", Instant.parse("2028-04-01T09:00:00Z"));
+        try {
+            assertFalse(eventReminderRepo.isDeadlineWarningSent(created.id(), 3));
+
+            eventReminderRepo.markDeadlineWarningSent(created.id(), 3);
+            assertTrue(eventReminderRepo.isDeadlineWarningSent(created.id(), 3));
+            assertFalse(eventReminderRepo.isDeadlineWarningSent(created.id(), 1), "the other lead time is its own");
+
+            eventReminderRepo.markDeadlineWarningSent(created.id(), 3);
+            assertTrue(eventReminderRepo.isDeadlineWarningSent(created.id(), 3), "marking twice is not an error");
+        } finally {
+            eventRepo.delete(created.id());
+        }
+    }
+
     @Test
     void replaceAndFindReminderDays() {
         var created = event("Reminder Event", Instant.parse("2028-03-15T09:00:00Z"));

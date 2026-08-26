@@ -98,6 +98,11 @@ const { t } = useI18n()
       </div>
     </SuccessContainer>
 
+    <HelpSection :title="t('helpCenter.quiz.trainingReport')">
+      <p>{{ t('helpCenter.quiz.trainingReportText') }}</p>
+      <p>{{ t('helpCenter.quiz.trainingReportWhere') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.quiz.trainingFinish')">
       <p>{{ t('helpCenter.quiz.trainingFinishText') }}</p>
     </HelpSection>

@@ -7,6 +7,7 @@ import {ref} from 'vue'
 import {news} from '@/api'
 import type {NewsAttachment} from '@/api/news'
 import type {StationFile} from '@/api/media'
+import {moveWithin} from '@/util/reorder'
 
 /**
  * One attachment as the editor holds it. `id` is null while the author has picked a file but the
@@ -70,14 +71,8 @@ export function useNewsAttachments() {
         attachments.value = attachments.value.filter((_, i) => i !== index)
     }
 
-    function move(index: number, delta: number) {
-        const target = index + delta
-        if (target < 0 || target >= attachments.value.length) return
-        const next = [...attachments.value]
-        const [moved] = next.splice(index, 1)
-        if (!moved) return
-        next.splice(target, 0, moved)
-        attachments.value = next
+    function reorder(fromIndex: number, toIndex: number) {
+        attachments.value = moveWithin(attachments.value, fromIndex, toIndex)
     }
 
     async function persist(newsId: number) {
@@ -115,5 +110,5 @@ export function useNewsAttachments() {
         }))
     }
 
-    return {attachments, load, add, remove, move, persist}
+    return {attachments, load, add, remove, reorder, persist}
 }

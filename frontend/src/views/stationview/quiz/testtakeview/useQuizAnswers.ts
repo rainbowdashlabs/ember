@@ -7,6 +7,7 @@ import { computed, onUnmounted, ref, watch, type Ref } from 'vue'
 import type { QuizAttemptDetail, QuizQuestion } from '@/api/quiz'
 import { quiz } from '@/api'
 import { defaultAnswerFor } from './quizAnswerDefaults'
+import { moveWithin } from '@/util/reorder'
 
 /**
  * Owns the answers of the running attempt: the payload of every question, the
@@ -116,22 +117,10 @@ export function useQuizAnswers(
 
   function reorderItems(fromIndex: number, toIndex: number) {
     const parsed = currentAnswerParsed.value
-    const order: number[] = Array.isArray(parsed.order) ? [...parsed.order] : []
-    const [moved] = order.splice(fromIndex, 1)
-    order.splice(toIndex, 0, moved as number)
-    currentAnswer.value = JSON.stringify({ order })
+    const current: number[] = Array.isArray(parsed.order) ? parsed.order : []
+    currentAnswer.value = JSON.stringify({ order: moveWithin(current, fromIndex, toIndex) })
   }
 
-  function moveOrderItem(index: number, direction: -1 | 1) {
-    const parsed = currentAnswerParsed.value
-    const order: number[] = Array.isArray(parsed.order) ? [...parsed.order] : []
-    const newIdx = index + direction
-    if (newIdx < 0 || newIdx >= order.length) return
-    const temp = order[index] as number
-    order[index] = order[newIdx] as number
-    order[newIdx] = temp
-    currentAnswer.value = JSON.stringify({ order })
-  }
 
   watch(currentAnswer, () => {
     autoSaveCurrentAnswer()
@@ -154,6 +143,5 @@ export function useQuizAnswers(
     setImageTextAnswer,
     setTrueFalse,
     reorderItems,
-    moveOrderItem,
   }
 }

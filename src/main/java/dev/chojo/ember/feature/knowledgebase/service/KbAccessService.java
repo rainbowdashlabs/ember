@@ -21,6 +21,8 @@ import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,6 +40,8 @@ import java.util.Optional;
  */
 @Singleton
 public class KbAccessService {
+    private static final Logger log = LoggerFactory.getLogger(KbAccessService.class);
+
     private final KnowledgeBaseRepository repository;
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
@@ -114,6 +118,11 @@ public class KbAccessService {
                     grant.memberId(),
                     grant.level());
         }
+        log.info("Knowledge {} now carries {} grant(s)", subject(folderId, fileId), grants.size());
+    }
+
+    private String subject(Integer folderId, Integer fileId) {
+        return folderId != null ? "folder " + folderId : "file " + fileId;
     }
 
     /**
@@ -247,6 +256,7 @@ public class KbAccessService {
      */
     public void setPublicVisibility(Integer folderId, Integer fileId, boolean visible) {
         repository.setPublicVisibility(folderId, fileId, visible);
+        log.info("Knowledge {} is now {} to the public", subject(folderId, fileId), visible ? "open" : "closed");
     }
 
     /**
@@ -258,6 +268,7 @@ public class KbAccessService {
      */
     public void removePublicVisibility(Integer folderId, Integer fileId) {
         repository.removePublicVisibility(folderId, fileId);
+        log.info("Knowledge {} follows its folder and station again", subject(folderId, fileId));
     }
 
     /**

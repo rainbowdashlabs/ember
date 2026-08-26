@@ -70,7 +70,7 @@ async function changePassword() {
         </SaveButton>
       </NeutralContainer>
 
-      <TwoFactorSection/>
+      <TwoFactorSection data-onboarding="account.two-factor"/>
     </div>
   </ViewContent>
 </template>

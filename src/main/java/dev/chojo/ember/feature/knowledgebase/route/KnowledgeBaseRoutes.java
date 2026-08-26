@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
@@ -29,6 +30,8 @@ import dev.chojo.ember.feature.knowledgebase.service.KbPresentationService;
 import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.PandocConverter;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
@@ -52,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireLevel;
@@ -79,6 +83,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private final KbIconService iconService;
     private final KbImageService imageService;
     private final KbPdfExportService pdfExportService;
+    private final StationRepository stationRepository;
 
     @Inject
     public KnowledgeBaseRoutes(
@@ -91,7 +96,8 @@ public class KnowledgeBaseRoutes implements Routes {
             KnowledgeBaseFederationService federationService,
             KbIconService iconService,
             KbImageService imageService,
-            KbPdfExportService pdfExportService) {
+            KbPdfExportService pdfExportService,
+            StationRepository stationRepository) {
         this.service = service;
         this.contentService = contentService;
         this.searchService = searchService;
@@ -102,6 +108,7 @@ public class KnowledgeBaseRoutes implements Routes {
         this.iconService = iconService;
         this.imageService = imageService;
         this.pdfExportService = pdfExportService;
+        this.stationRepository = stationRepository;
     }
 
     private static String detectPandocFormat(String filename, String mimeType) {
@@ -675,13 +682,50 @@ public class KnowledgeBaseRoutes implements Routes {
                         .map(file -> new KbAccessService.ChildNode(file.id(), file.restrictionMode()))
                         .toList());
 
+        var mode = stationRepository
+                .findById(session.stationId())
+                .map(Station::publicKbMode)
+                .orElse(PublicKbMode.OFF);
+        var narrowedFolders = federationService.narrowlyShared(session.stationId(), true);
+        var narrowedFiles = federationService.narrowlyShared(session.stationId(), false);
+        var openFolders = federationService.broadlyShared(session.stationId(), true);
+        var openFiles = federationService.broadlyShared(session.stationId(), false);
+
         ctx.json(new BrowseResponse(
                 currentFolder,
                 folders,
                 files.stream().map(KbFileSummary::of).toList(),
                 accessService.effectiveLevel(access, folderId, null),
                 levels.folders(),
-                levels.files()));
+                levels.files(),
+                reachOf(folders.stream().map(KbFolder::id).toList(), mode, true, narrowedFolders, openFolders),
+                reachOf(files.stream().map(KbFile::id).toList(), mode, false, narrowedFiles, openFiles)));
+    }
+
+    /**
+     * How far each entry of one level reaches: onto the public web, out to every partner station, or out
+     * to some of them only.
+     *
+     * <p>An entry restricted to certain readers here counts as the narrow case even when it is shared with
+     * every partner, because the sharper thing to know about it is that not everyone who meets it may open
+     * it.
+     */
+    private Reach reachOf(
+            List<Integer> ids, PublicKbMode mode, boolean folders, Set<Integer> narrowed, Set<Integer> opened) {
+        var publicly = ids.stream()
+                .filter(id -> accessService.isPubliclyVisible(mode, folders ? id : null, folders ? null : id))
+                .collect(Collectors.toSet());
+        var narrowly = ids.stream()
+                .filter(id -> narrowed.contains(id)
+                        || !accessService
+                                .findRestrictions(folders ? id : null, folders ? null : id)
+                                .isEmpty())
+                .collect(Collectors.toSet());
+        var federated = ids.stream()
+                .filter(opened::contains)
+                .filter(id -> !narrowly.contains(id))
+                .collect(Collectors.toSet());
+        return new Reach(publicly, federated, narrowly);
     }
 
     private void getFolderIcon(Context ctx) {
@@ -838,7 +882,22 @@ public class KnowledgeBaseRoutes implements Routes {
             List<KbFileSummary> files,
             KbAccessLevel currentLevel,
             Map<Integer, KbAccessLevel> folderLevels,
-            Map<Integer, KbAccessLevel> fileLevels) {}
+            Map<Integer, KbAccessLevel> fileLevels,
+            Reach folderReach,
+            Reach fileReach) {}
+
+    /**
+     * How far each entry of one level reaches, so the screen can mark it.
+     *
+     * <p>Two facts per entry, and only two: whether it stands on the public wiki, and whether it is shared
+     * beyond this station without being open to everyone here. Resolved once for the level rather than
+     * once per drawn tile.
+     *
+     * @param publicly  the ids that are on the public wiki
+     * @param federated the ids every partner station reads, which is not the same as nobody outside
+     * @param narrowly  the ids shared with named stations, or restricted to some of this station's readers
+     */
+    public record Reach(Set<Integer> publicly, Set<Integer> federated, Set<Integer> narrowly) {}
 
     /**
      * A file with what the reader may do with it and, when a folder decided that, which one - so

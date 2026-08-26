@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {onMounted, ref, computed, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
@@ -22,6 +23,8 @@ import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+
+const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const route = useRoute()
@@ -68,7 +71,7 @@ const {running: submitting, error: submitError, run: handleSubmit} = useAsyncAct
     dateTo: dateTo.value || null,
     items: [{inventoryId, quantity: quantity.value}],
   })
-  await router.push({name: 'inventory-lending-request', params: {id: result.request.id}})
+  await router.push({name: routes.lendingRequest, params: {id: result.request.id}})
 }, {formatError: () => t('lending.createError')})
 
 onMounted(() => {
@@ -85,7 +88,7 @@ watch(loaded, (v) => {
       :title="t('pages.inventory-lending-create.title')"
       :subtitle="t('pages.inventory-lending-create.subtitle')"
   >
-    <SecondaryButton :icon="['fas', 'chevron-left']" class="mb-4" @click="router.push({name: 'inventory-lending'})">
+    <SecondaryButton :icon="['fas', 'chevron-left']" class="mb-4" @click="router.push({name: routes.lending})">
       {{ t('lending.backToList') }}
     </SecondaryButton>
 
@@ -135,7 +138,7 @@ watch(loaded, (v) => {
 
         <!-- Submit -->
         <div class="flex justify-end gap-2 mt-2">
-          <SecondaryButton @click="router.push({name: 'inventory-lending'})">
+          <SecondaryButton @click="router.push({name: routes.lending})">
             {{ t('common.cancel') }}
           </SecondaryButton>
           <PrimaryButton :icon="['fas', 'paper-plane']" :disabled="submitting || !dateFrom" @click="handleSubmit">

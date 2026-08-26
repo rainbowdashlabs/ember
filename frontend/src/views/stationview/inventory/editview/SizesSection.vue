@@ -18,9 +18,9 @@ import DragList from '@/components/input/DragList.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import MutedIcon from '@/components/display/MutedIcon.vue'
 import type {InventorySize} from '@/api/inventory'
 import {inventory} from '@/api'
+import {moveWithin} from '@/util/reorder'
 
 const {t} = useI18n()
 
@@ -86,10 +86,7 @@ async function deleteSize(size: InventorySize) {
 }
 
 async function onSizeReorder(fromIndex: number, toIndex: number) {
-  const sizes = [...props.sizes]
-  const [moved] = sizes.splice(fromIndex, 1)
-  if (!moved) return
-  sizes.splice(toIndex, 0, moved)
+  const sizes = moveWithin(props.sizes, fromIndex, toIndex)
   try {
     for (const [i, size] of sizes.entries()) {
       await inventory.updateSize(props.inventoryId, size.id, {
@@ -117,13 +114,10 @@ async function onSizeReorder(fromIndex: number, toIndex: number) {
     <DragList :items="sizes" :key-fn="(s) => s.id" @reorder="onSizeReorder">
       <template #default="{ item: size }">
         <div
-            class="flex items-center justify-between px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50 cursor-grab active:cursor-grabbing">
-          <div class="flex items-center gap-2">
-            <MutedIcon size="md" :icon="['fas', 'grip-vertical']"/>
-            <div>
-              <span class="text-sm font-medium">{{ size.label }}</span>
-              <MutedText class="ml-2" v-if="size.note">{{ size.note }}</MutedText>
-            </div>
+            class="flex items-center justify-between px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
+          <div>
+            <span class="text-sm font-medium">{{ size.label }}</span>
+            <MutedText class="ml-2" v-if="size.note">{{ size.note }}</MutedText>
           </div>
           <div class="flex items-center gap-1">
             <EditButton @click="openEditSize(size)"/>

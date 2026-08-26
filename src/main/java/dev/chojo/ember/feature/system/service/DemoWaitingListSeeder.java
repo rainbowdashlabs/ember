@@ -31,7 +31,7 @@ import java.util.UUID;
  * Seeder for demo waiting list data with sample entries and invite codes.
  */
 @Singleton
-public class DemoWaitingListSeeder implements DemoSeeder {
+public class DemoWaitingListSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoWaitingListSeeder.class);
     private final WaitingListRepository waitingListRepository;
     private final MemberGroupRepository memberGroupRepository;
@@ -59,12 +59,20 @@ public class DemoWaitingListSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        seedWaitingList(context.stationId(), context.members().groupAnfaenger().id());
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        seedWaitingList(
+                station.stationId(),
+                station.members().groupAnfaenger().id(),
+                station.profile().addressSuffix());
         log.info("Demo: Created Waiting list");
     }
 
-    public void seedWaitingList(int stationId, int joinGroupId) {
+    /**
+     * @param codeSuffix distinguishes this station's invite codes, which are one instance's namespace rather
+     *                   than one station's: two stations handing out {@code demo-invite-active} would be one
+     *                   code, and the second station could not be seeded at all
+     */
+    public void seedWaitingList(int stationId, int joinGroupId, String codeSuffix) {
         // Create the "Gäste" group for testing-phase members
         var gaesteGroup = memberGroupRepository.create(stationId, "Gäste");
 
@@ -122,7 +130,7 @@ public class DemoWaitingListSeeder implements DemoSeeder {
                 1,
                 true,
                 true);
-        waitingListRepository.createInvite(kinderList.id(), "demo-kinder-invite", 10, null);
+        waitingListRepository.createInvite(kinderList.id(), "demo-kinder-invite" + codeSuffix, 10, null);
 
         // --- Schnupperstunde: a list that asks for nothing beyond a name and an address ---
         // Both other lists insist on answers of their own - a date of birth, an experience level -
@@ -142,8 +150,8 @@ public class DemoWaitingListSeeder implements DemoSeeder {
                 null);
 
         // Create invite codes
-        waitingListRepository.createInvite(list.id(), "demo-invite-active", 5, null);
-        var usedInvite = waitingListRepository.createInvite(list.id(), "demo-invite-used", 1, null);
+        waitingListRepository.createInvite(list.id(), "demo-invite-active" + codeSuffix, 5, null);
+        var usedInvite = waitingListRepository.createInvite(list.id(), "demo-invite-used" + codeSuffix, 1, null);
         waitingListRepository.incrementInviteUses(usedInvite.id());
 
         // Create sample entries

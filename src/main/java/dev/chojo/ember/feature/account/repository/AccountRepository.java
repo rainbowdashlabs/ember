@@ -40,7 +40,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
 public class AccountRepository {
 
     private static final String ACCOUNT_COLUMNS =
-            "id, uid, email, first_name, last_name, email_verified, instance_user_type, full_name, creating_station_id, setup_completed_at";
+            "id, uid, email, username, first_name, last_name, email_verified, instance_user_type, full_name, creating_station_id, setup_completed_at";
     private static final String CONSENT_COLUMNS =
             "id, account_id, consent_version, privacy_version, tos_version, ip_address, country, user_agent, consented_at";
     private static final String EXTERNAL_AUTH_COLUMNS = "id, account_id, provider, external_id";
@@ -104,6 +104,49 @@ public class AccountRepository {
                 .single(call().bind("email", email))
                 .map(Account.map())
                 .first();
+    }
+
+    /**
+     * Finds an account by the name it signs in with, ignoring case.
+     *
+     * @param username the name, as typed
+     * @return the account, or empty if no account carries that name
+     */
+    public Optional<Account> findByUsername(String username) {
+        return query("SELECT %s FROM account WHERE lower(username) = lower(:username);", ACCOUNT_COLUMNS)
+                .single(call().bind("username", username))
+                .map(Account.map())
+                .first();
+    }
+
+    /**
+     * Whether the name is already somebody else's.
+     *
+     * @param username         the name, as typed
+     * @param exceptAccountId  the account the name may already belong to, or null to ask about anybody
+     */
+    public boolean usernameTaken(String username, Integer exceptAccountId) {
+        return query("""
+                SELECT 1
+                FROM account
+                WHERE lower(username) = lower(:username)
+                  AND (:except::INT IS NULL OR id <> :except);""")
+                .single(call().bind("username", username).bind("except", exceptAccountId))
+                .map(row -> row.getInt(1))
+                .first()
+                .isPresent();
+    }
+
+    /**
+     * Sets or clears the name an account signs in with.
+     *
+     * @param username the name, or null to leave the address as the only way in
+     */
+    public boolean updateUsername(int accountId, String username) {
+        return query("UPDATE account SET username = :username WHERE id = :id;")
+                .single(call().bind("id", accountId).bind("username", username))
+                .update()
+                .changed();
     }
 
     /**
@@ -805,28 +848,47 @@ public class AccountRepository {
      * written - and a refused login reads as the account being broken. Production tokens are random
      * and keep the plain insert, where a collision must be heard rather than absorbed.
      *
+     * <p>A sign-in taking the row over replaces what the previous one left on it, second factor
+     * included. Carrying the old values forward would let a session count as verified on the
+     * strength of a challenge answered by whoever signed in before it.
+     *
      * @param token the session token, hashed before it is stored as everywhere else
      */
     public InsertionResult createOrReplaceSession(
-            int accountId, String token, Instant expiresAt, String userAgent, String location) {
+            int accountId,
+            String token,
+            Instant expiresAt,
+            String userAgent,
+            String location,
+            Instant twoFactorVerifiedAt,
+            Integer deviceTrustId,
+            boolean trustedDevice) {
         return query("""
                 INSERT
                 INTO
-                    account_session(account_id, token_hash, expires_at, user_agent, location)
+                    account_session(account_id, token_hash, expires_at, user_agent, location,
+                                    two_factor_verified_at, device_trust_id, trusted_device)
                 VALUES
-                    (:account_id, :token_hash, :expires_at, :user_agent, :location)
+                    (:account_id, :token_hash, :expires_at, :user_agent, :location,
+                     :two_factor_verified_at, :device_trust_id, :trusted_device)
                 ON CONFLICT (token_hash) DO UPDATE
                 SET
-                    account_id   = excluded.account_id,
-                    expires_at   = excluded.expires_at,
-                    user_agent   = excluded.user_agent,
-                    location     = excluded.location,
-                    last_used_at = now();""")
+                    account_id             = excluded.account_id,
+                    expires_at             = excluded.expires_at,
+                    user_agent             = excluded.user_agent,
+                    location               = excluded.location,
+                    two_factor_verified_at = excluded.two_factor_verified_at,
+                    device_trust_id        = excluded.device_trust_id,
+                    trusted_device         = excluded.trusted_device,
+                    last_used_at           = now();""")
                 .single(call().bind("account_id", accountId)
                         .bind("token_hash", tokenHasher.hash(token))
                         .bind("expires_at", expiresAt, INSTANT_TIMESTAMP)
                         .bind("user_agent", userAgent)
-                        .bind("location", location))
+                        .bind("location", location)
+                        .bind("two_factor_verified_at", twoFactorVerifiedAt, INSTANT_TIMESTAMP)
+                        .bind("device_trust_id", deviceTrustId)
+                        .bind("trusted_device", trustedDevice))
                 .insert();
     }
 

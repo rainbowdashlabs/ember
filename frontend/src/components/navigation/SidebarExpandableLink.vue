@@ -4,9 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {Comment as VComment, computed, ref, useSlots, watch, type VNode} from 'vue'
+import {computed, ref, useSlots, watch} from 'vue'
 import {useRoute} from 'vue-router'
 import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
+import {collectSidebarPaths, sidebarEntryVNodes} from '@/util/sidebarEntries'
 
 const {collapsed} = useSidebarCollapse()
 
@@ -22,35 +23,25 @@ defineEmits<{
 }>()
 
 const route = useRoute()
+const slots = useSlots()
 const isLinkActive = computed(() => route.name === props.name)
+
 const prefixes = computed(() => {
-  const p = props.prefix ?? props.to
-  return Array.isArray(p) ? p : [p]
+  const written = Array.isArray(props.prefix) ? props.prefix : props.prefix ? [props.prefix] : [props.to]
+  const slotFn = slots.default
+  return [...written, ...(slotFn ? collectSidebarPaths(slotFn()) : [])]
 })
+
 const isChildActive = computed(() => {
   if (isLinkActive.value) return false
   return prefixes.value.some(p => (route.path + '/').startsWith(p + '/') || route.path === p)
 })
 const isInPath = computed(() => isLinkActive.value || isChildActive.value)
-const slots = useSlots()
-
-function countVisibleVNodes(vnodes: VNode[]): number {
-  let count = 0
-  for (const vnode of vnodes) {
-    if (vnode.type === VComment) continue
-    if (typeof vnode.type === 'symbol' && Array.isArray(vnode.children)) {
-      count += countVisibleVNodes(vnode.children as VNode[])
-    } else {
-      count++
-    }
-  }
-  return count
-}
 
 const hasVisibleChildren = computed(() => {
   const slotFn = slots.default
   if (!slotFn) return false
-  return countVisibleVNodes(slotFn()) > 0
+  return sidebarEntryVNodes(slotFn()).length > 0
 })
 
 const expanded = ref(isInPath.value)

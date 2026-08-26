@@ -4,17 +4,28 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {Comment as VComment, computed, ref, useSlots, watch, type VNode} from 'vue'
+import {computed, onUnmounted, ref, useSlots, watch} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
 import {useSidebarInFlyout} from '@/composables/useSidebarFlyoutContext'
 import {useFlyoutHover} from '@/composables/useFlyoutHover'
 import SidebarFlyoutMenu from '@/components/navigation/SidebarFlyoutMenu.vue'
+import {collectSidebarPaths, sidebarEntryVNodes} from '@/util/sidebarEntries'
+import {
+  bestSidebarMatch,
+  claimSidebarGroup,
+  releaseSidebarGroup,
+  reportSidebarMatch,
+} from '@/util/sidebarGroupState'
 
 const props = defineProps<{
   icon?: string[]
   label: string
-  prefix: string | string[]
+  /**
+   * Pages this group covers that are not entries in it: a board's own page, a wizard step, anything
+   * reached from a screen rather than from the sidebar. What its entries lead to is read off them.
+   */
+  prefix?: string | string[]
   to?: string
   name?: string
   badge?: number
@@ -30,30 +41,67 @@ const emit = defineEmits<{
 const route = useRoute()
 const router = useRouter()
 const slots = useSlots()
-const prefixes = computed(() => Array.isArray(props.prefix) ? props.prefix : [props.prefix])
-const isActive = computed(() => prefixes.value.some(p => (route.path + '/').startsWith(p + '/') || route.path === p))
+/**
+ * Every address this group covers: where its own entries lead, plus anything written on it by hand.
+ *
+ * <p>The written {@code prefix} is for the pages a group covers that are not entries in it, a board's own
+ * page or a wizard step, and for a destination the markup works out at runtime, which is not a path
+ * anything here can read.
+ */
+const prefixes = computed(() => {
+  const written = Array.isArray(props.prefix) ? props.prefix : props.prefix ? [props.prefix] : []
+  const slotFn = slots.default
+  return [...written, ...(props.to ? [props.to] : []), ...(slotFn ? collectSidebarPaths(slotFn()) : [])]
+      .filter(Boolean)
+})
 
-function countVisibleVNodes(vnodes: VNode[]): number {
-  let count = 0
-  for (const vnode of vnodes) {
-    if (vnode.type === VComment) continue
-    if (typeof vnode.type === 'symbol' && Array.isArray(vnode.children)) {
-      count += countVisibleVNodes(vnode.children as VNode[])
-    } else {
-      count++
+/** How well this group matches the page being shown: the length of its longest matching prefix. */
+const matchLength = computed(() => {
+  let best = 0
+  for (const prefix of prefixes.value) {
+    if ((route.path + '/').startsWith(prefix + '/') || route.path === prefix) {
+      best = Math.max(best, prefix.length)
     }
   }
-  return count
-}
+  return best
+})
+
+const groupId = claimSidebarGroup()
+watch(matchLength, length => reportSidebarMatch(groupId, length), {immediate: true})
+onUnmounted(() => releaseSidebarGroup(groupId))
+
+/**
+ * Lit only when nothing matches the page better. Without that the group declared `/cluster` would be
+ * highlighted on every page of the association, which is the one group that says nothing about where
+ * you are.
+ *
+ * <p>A best of zero means nobody has reported yet, which on a server render is every time, and matching
+ * at all is then the best answer available.
+ */
+const isActive = computed(() => {
+  if (matchLength.value === 0) return false
+  const best = bestSidebarMatch.value
+  return best === 0 || matchLength.value === best
+})
 
 const hasVisibleChildren = computed(() => {
   const slotFn = slots.default
   if (!slotFn) return false
-  return countVisibleVNodes(slotFn()) > 0
+  return sidebarEntryVNodes(slotFn()).length > 0
 })
 
 const localExpanded = ref(isActive.value)
-const key = computed(() => props.groupKey ?? (Array.isArray(props.prefix) ? props.prefix[0] ?? '' : props.prefix))
+
+/**
+ * What the accordion calls this group. Written things only: a derived key would move when a permission
+ * arrives and changes which entry comes first, and a group whose name changes under the accordion loses
+ * whether it was open.
+ */
+const key = computed(() => {
+  if (props.groupKey) return props.groupKey
+  const written = Array.isArray(props.prefix) ? props.prefix[0] : props.prefix
+  return written ?? props.to ?? props.label
+})
 const accordionMode = computed(() => props.openGroup !== undefined)
 
 const expanded = computed(() => {
@@ -150,6 +198,7 @@ watch(() => collapsed.value, (value) => {
           :to="to"
           :ref="setAnchor"
           :title="collapsed ? label : undefined"
+          :data-active="isActive ? 'true' : undefined"
           :class="[
             isActive ? '!text-primary' : '!text-[var(--text)] hover:bg-primary/5',
             collapsed ? 'lg:justify-center lg:px-2 px-3' : 'px-3',

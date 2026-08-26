@@ -4,139 +4,34 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import ListViewBody from './listview/ListViewBody.vue'
+import MemberListPanel from './listview/MemberListPanel.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {StationPermission, StationUserType, type StationMember} from '@/api/types'
-import { parseFieldConfig } from '@/api/profileFields'
-import { useMemberData, memberDisplayName, getMemberFirstName, getMemberLastName } from './listview/useMemberData'
-import { useSavedFilters, type MemberSortKey } from './listview/useSavedFilters'
-import { useMemberListTabs } from './listview/useMemberListTabs'
-import { useExport, type ExportColumn } from '@/composables/useExport'
+import {StationPermission, type StationMember} from '@/api/types'
+import { STATION_MEMBER_SOURCE } from './listview/useMemberData'
 import { useAsyncAction } from '@/composables/useAsyncAction'
-import { byValue, useSortable, type SortDirection } from '@/composables/useSortable'
-import { useMemberFilter } from '@/composables/useMemberFilter'
 import { useSession } from '@/composables/useSession'
+import { useMemberListConfig, type MemberListPort } from './listview/useMemberListConfig'
 import { stationMembers } from '@/api'
 
 const { t } = useI18n()
-const router = useRouter()
 const { hasPermission } = useSession()
-const canExport = computed(() => hasPermission(StationPermission.MEMBER_EXPORT))
-const canEdit = computed(() => hasPermission(StationPermission.MEMBER_EDIT))
 
-const {
-  members, fields, allGroups, allTags,
-  memberRolesMap, memberGroupsMap, memberTagsMap, memberManagers,
-  loading, error, expandedId, overviewFields,
-  getFieldValue, getFieldValueAsString, getMemberType, getMemberGroups, getColumnValues,
-  toggleExpand,
-} = useMemberData()
-
-const {
-  activeTab, tabStates, tabs,
-  filterText, columnMultiFilters, columnEmptyFilters, sortKey, sortDirection,
-  extraColumnIds, hiddenColumnIds,
-  tabScopedFields, tabOverviewFields, tabNonOverviewFields, visibleColumns, toggleColumn,
-  applyColumnFilter,
-} = useMemberListTabs(fields)
-
-const { savedFilters, loadSavedFilters, saveCurrentFilter, applyFilter, deleteFilter, clearFilters } =
-  useSavedFilters(tabStates, activeTab)
-
-const {
-  onFilter: onMemberFilter,
-  applyFilter: applyMemberFilter,
-} = useMemberFilter(
-    () => members.value,
-    () => memberGroupsMap.value,
-    () => memberTagsMap.value,
-    () => allGroups.value,
-    () => allTags.value,
-)
-
-const filteredMembers = computed(() => {
-  let list = activeTab.value === 'ALL' ? members.value : members.value.filter(m => getMemberType(m.id) === activeTab.value)
-  list = applyMemberFilter(list)
-
-  const q = filterText.value.toLowerCase().trim()
-  if (q) {
-    list = list.filter(m => {
-      if (memberDisplayName(m).toLowerCase().includes(q)) return true
-      if ((m.email ?? '').toLowerCase().includes(q)) return true
-      for (const f of overviewFields.value) {
-        if (getFieldValueAsString(m.id, f.id).toLowerCase().includes(q)) return true
-      }
-      return false
-    })
-  }
-  for (const [key, selectedValues] of columnMultiFilters.value) {
-    if (selectedValues.size === 0) continue
-    const includeEmpty = columnEmptyFilters.value.has(key)
-    list = list.filter(m => {
-      const values = getColumnValues(m, key)
-      if (values.length === 0 || values.every(v => !v)) return includeEmpty
-      return values.some(v => selectedValues.has(v))
-    })
-  }
-  for (const key of columnEmptyFilters.value) {
-    if (columnMultiFilters.value.has(key) && (columnMultiFilters.value.get(key)?.size ?? 0) > 0) continue
-    list = list.filter(m => {
-      const values = getColumnValues(m, key)
-      return values.length === 0 || values.every(v => !v)
-    })
-  }
-  return list
-})
-
-const {sorted: sortedMembers, toggle: toggleSort} = useSortable<StationMember, MemberSortKey>({
-  items: filteredMembers,
-  initialKey: 'name',
-  state: {key: sortKey, direction: sortDirection},
-  comparators: key => key === 'name'
-      ? byValue(memberDisplayName)
-      : byValue(member => getFieldValueAsString(member.id, key)),
-})
-
-const exportColumns = computed((): ExportColumn<StationMember>[] => [
-  {key: 'firstName', label: t('membersList.export.colFirstName'), value: getMemberFirstName},
-  {key: 'lastName', label: t('membersList.export.colLastName'), value: getMemberLastName},
-  {key: 'email', label: t('membersList.export.colEmail'), value: m => m.email ?? ''},
-  {key: 'groups', label: t('membersList.export.colGroups'), value: m => getMemberGroups(m.id).join(', ')},
-  ...tabScopedFields.value.map(f => ({
-    key: `field:${f.id}`,
-    label: f.name ?? '',
-    value: (m: StationMember) => getFieldValueAsString(m.id, f.id),
-  })),
-])
-
-const {
-  exportMode, selectedIds, showExportModal, selectedColumns, columnOptions,
-  toggleExportMode, toggleRow, toggleAllRows, toggleColumn: toggleExportColumn,
-  selectColumns, openExportModal, performExport,
-} = useExport({
-  rows: () => sortedMembers.value,
-  rowId: m => m.id,
-  columns: () => exportColumns.value,
-  fileName: 'mitglieder',
-  defaultColumns: ['firstName', 'lastName', 'email'],
-})
-
-function navigateToDetail(member: StationMember, event: Event) {
-  event.stopPropagation()
-  router.push({ name: 'members-detail', params: { id: member.id } })
+/** A station lists its own roll and reaches its own member screens. */
+const port: MemberListPort = {
+  source: STATION_MEMBER_SOURCE,
+  routes: {detail: 'members-detail', edit: 'members-edit'},
+  canExport: computed(() => hasPermission(StationPermission.MEMBER_EXPORT)),
+  canEdit: computed(() => hasPermission(StationPermission.MEMBER_EDIT)),
+  exportFileName: 'mitglieder',
 }
 
-function navigateToEdit(member: StationMember, event: Event) {
-  event.stopPropagation()
-  router.push({ name: 'members-edit', params: { id: member.id } })
-}
+const config = useMemberListConfig(port)
 
 const resendTarget = ref<StationMember | null>(null)
 const resendSuccess = ref('')
@@ -163,10 +58,6 @@ function openResendSetup(member: StationMember, event: Event) {
   resendTarget.value = member
   clearResendError()
 }
-
-onMounted(() => {
-  loadSavedFilters()
-})
 </script>
 
 <template>
@@ -174,60 +65,7 @@ onMounted(() => {
       :title="t('pages.members-list.title')"
       :subtitle="t('pages.members-list.subtitle')"
   >
-    <ListViewBody
-      v-model:active-tab="activeTab"
-      v-model:filter-text="filterText"
-      v-model:show-export-modal="showExportModal"
-      :loading="loading"
-      :error="error"
-      :tabs="tabs"
-      :saved-filters="savedFilters"
-      :tab-overview-fields="tabOverviewFields"
-      :tab-non-overview-fields="tabNonOverviewFields"
-      :export-columns="columnOptions"
-      :selected-export-columns="selectedColumns"
-      :extra-column-ids="extraColumnIds"
-      :hidden-column-ids="hiddenColumnIds"
-      :export-mode="exportMode"
-      :selected-ids="selectedIds"
-      :can-export="canExport"
-      :can-edit="canEdit"
-      :groups="allGroups"
-      :tags="allTags"
-      :members="sortedMembers"
-      :visible-columns="visibleColumns"
-      :expanded-id="expandedId"
-      :sort-key="sortKey"
-      :sort-direction="sortDirection"
-      :column-multi-filters="columnMultiFilters"
-      :column-empty-filters="columnEmptyFilters"
-      :member-groups-map="memberGroupsMap"
-      :member-tags-map="memberTagsMap"
-      :member-roles-map="memberRolesMap"
-      :member-managers="memberManagers"
-      :all-members="members"
-      :overview-fields="overviewFields"
-      :get-field-value="getFieldValue"
-      @clear-filters="clearFilters"
-      @apply-filter="applyFilter"
-      @delete-filter="deleteFilter"
-      @save-filter="saveCurrentFilter"
-      @toggle-column="toggleColumn"
-      @toggle-export="toggleExportMode"
-      @export-continue="openExportModal"
-      @filter="onMemberFilter"
-      @toggle-sort="toggleSort"
-      @apply-column-filter="applyColumnFilter"
-      @toggle-expand="toggleExpand"
-      @navigate-detail="navigateToDetail"
-      @navigate-edit="navigateToEdit"
-      @resend-setup="openResendSetup"
-      @toggle-select="toggleRow"
-      @toggle-select-all="toggleAllRows"
-      @toggle-export-column="toggleExportColumn"
-      @select-export-columns="selectColumns"
-      @export="performExport"
-    />
+    <MemberListPanel :config="config" @resend-setup="openResendSetup"/>
 
     <Modal v-if="resendTarget" model-value @update:model-value="(v) => { if (!v) resendTarget = null }">
       <div class="space-y-4">

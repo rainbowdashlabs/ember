@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -19,6 +20,8 @@ import { useConfigPanel } from '@/composables/useConfigPanel'
 import { formatDateTime } from '@/util/format'
 import CheckResultItemCard from '@/views/stationview/inventory/checkresultview/CheckResultItemCard.vue'
 
+const routes = useInventoryRoutes()
+
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
@@ -31,7 +34,7 @@ const {config: detail, loading, error} = useConfigPanel<CheckDetail | null>({
 })
 
 function goBack() {
-  router.push({ name: 'inventory-checks' })
+  router.push({ name: routes.checks })
 }
 </script>
 

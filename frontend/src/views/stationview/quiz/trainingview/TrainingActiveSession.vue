@@ -4,9 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TrainingQuestionCard from './TrainingQuestionCard.vue'
+import ReportQuestionModal from './ReportQuestionModal.vue'
 import type { QuizQuestion } from '@/api/quiz'
 
 const userTfAnswer = defineModel<boolean | null>('userTfAnswer', {required: true})
@@ -30,13 +33,14 @@ defineProps<{
 defineEmits<{
   toggleMcOption: [idx: number]
   reorderItems: [fromIndex: number, toIndex: number]
-  moveOrderItem: [index: number, direction: -1 | 1]
   setConnectPair: [leftIndex: number, rightValue: string]
   setFillGap: [gapIndex: number, value: string]
   revealAndNext: []
 }>()
 
 const { t } = useI18n()
+
+const showReport = ref(false)
 </script>
 
 <template>
@@ -63,12 +67,14 @@ const { t } = useI18n()
     :connect-right-order="connectRightOrder"
     @toggle-mc-option="(idx: number) => $emit('toggleMcOption', idx)"
     @reorder-items="(from: number, to: number) => $emit('reorderItems', from, to)"
-    @move-order-item="(idx: number, dir: -1 | 1) => $emit('moveOrderItem', idx, dir)"
     @set-connect-pair="(left: number, right: string) => $emit('setConnectPair', left, right)"
     @set-fill-gap="(gap: number, value: string) => $emit('setFillGap', gap, value)"
   />
 
-  <div class="flex justify-end">
+  <div class="flex justify-between gap-3">
+    <SecondaryButton :icon="['fas', 'flag']" @click="showReport = true">
+      {{ t('quiz.report.action') }}
+    </SecondaryButton>
     <PrimaryButton @click="$emit('revealAndNext')">
       <template v-if="!showAnswer">
         <font-awesome-icon :icon="['fas', 'eye']" class="mr-1" />
@@ -84,4 +90,10 @@ const { t } = useI18n()
       </template>
     </PrimaryButton>
   </div>
+
+  <ReportQuestionModal
+      v-model="showReport"
+      :question-id="currentQuestion.id"
+      :question-title="currentQuestion.title"
+  />
 </template>

@@ -59,15 +59,18 @@ public class InventoryContainerService {
     private final InventoryContainerRepository containerRepository;
     private final InventoryContainerKindRepository kindRepository;
     private final InventoryRepository inventoryRepository;
+    private final ItemCustodyService custodyService;
 
     @Inject
     public InventoryContainerService(
             InventoryContainerRepository containerRepository,
             InventoryContainerKindRepository kindRepository,
-            InventoryRepository inventoryRepository) {
+            InventoryRepository inventoryRepository,
+            ItemCustodyService custodyService) {
         this.containerRepository = containerRepository;
         this.kindRepository = kindRepository;
         this.inventoryRepository = inventoryRepository;
+        this.custodyService = custodyService;
     }
 
     /**
@@ -78,12 +81,15 @@ public class InventoryContainerService {
      * @return all kinds defined for the station after seeding
      */
     public List<InventoryContainerKind> seedDefaultKinds(int stationId) {
+        int added = 0;
         for (DefaultKind defaults : DEFAULT_KINDS) {
             if (kindRepository.findByKey(stationId, defaults.key()).isEmpty()) {
                 kindRepository.create(
                         stationId, defaults.key(), defaults.label(), defaults.icon(), defaults.sortOrder(), true);
+                added++;
             }
         }
+        if (added > 0) log.info("Seeded {} default container kind(s) for station {}", added, stationId);
         return kindRepository.findByStation(stationId);
     }
 
@@ -351,9 +357,10 @@ public class InventoryContainerService {
     /**
      * Places an item into a container, or clears its location with a
      * {@code null} container id. Validates that the item and the container
-     * belong to the same station. An item placed in a container is
-     * implicitly returned from any member it was assigned to - the two
-     * states are mutually exclusive.
+     * belong to the same station. A container says where in the store an item
+     * is rather than who has it, so this leaves the custody alone unless a
+     * member was holding the item, in which case putting it on a shelf is
+     * handing it back at the same time.
      */
     public boolean setItemContainer(int itemId, Integer containerId) {
         Optional<InventoryItem> itemOpt = inventoryRepository.findItemById(itemId);
@@ -376,10 +383,7 @@ public class InventoryContainerService {
                 throw new IllegalArgumentException("Item and container belong to different stations");
             }
         }
-        if (containerId != null && item.assignedTo() != null) {
-            inventoryRepository.returnHistory(itemId, item.assignedTo());
-        }
-        boolean updated = inventoryRepository.setItemContainer(itemId, containerId);
+        boolean updated = custodyService.placeInContainer(itemId, containerId).isPresent();
         if (updated) log.info("Moved item {} to container {}", itemId, containerId);
         else log.warn("setItemContainer of item {} to container {} did not change any row", itemId, containerId);
         return updated;

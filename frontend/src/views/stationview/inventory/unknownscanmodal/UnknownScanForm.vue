@@ -11,7 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import CustomFieldsSection from '@/views/stationview/inventory/detailview/CustomFieldsSection.vue'
 import NewInventoryFields from '@/views/stationview/inventory/unknownscanmodal/NewInventoryFields.vue'
 import ItemBasicsFields from '@/views/stationview/inventory/unknownscanmodal/ItemBasicsFields.vue'
-import type {Inventory} from '@/api/inventory'
+import type {Inventory, ItemOwnerName} from '@/api/inventory'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 
 const targetInventoryId = defineModel<number | 'new'>('targetInventoryId', {required: true})
@@ -21,7 +21,7 @@ const newInventoryHasSizes = defineModel<boolean>('newInventoryHasSizes', {requi
 const newInventorySizes = defineModel<string[]>('newInventorySizes', {required: true})
 const itemName = defineModel<string>('itemName', {required: true})
 const pickedSizeLabel = defineModel<string>('pickedSizeLabel', {required: true})
-const itemSource = defineModel<'INTERNAL' | 'EXTERNAL'>('itemSource', {required: true})
+const ownerKind = defineModel<ItemOwnerName>('ownerKind', {required: true})
 const fieldValues = defineModel<Record<string, unknown>>('fieldValues', {required: true})
 
 defineProps<{
@@ -29,7 +29,7 @@ defineProps<{
   isCreatingInventory: boolean
   effectiveHasSizes: boolean
   sizeOptionLabels: string[]
-  showSourcePicker: boolean
+  showOwnerPicker: boolean
   fieldDefs: InventoryFieldDefinition[]
 }>()
 
@@ -67,10 +67,10 @@ const {t} = useI18n()
     <ItemBasicsFields
         v-model:item-name="itemName"
         v-model:picked-size="pickedSizeLabel"
-        v-model:item-source="itemSource"
+        v-model:owner-kind="ownerKind"
         :show-size-picker="effectiveHasSizes"
         :size-labels="sizeOptionLabels"
-        :show-source-picker="showSourcePicker"
+        :show-owner-picker="showOwnerPicker"
     />
 
     <template v-if="fieldDefs.length > 0">

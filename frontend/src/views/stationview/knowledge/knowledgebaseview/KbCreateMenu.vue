@@ -52,7 +52,7 @@ function doImportDocument() { closeDropdown(); emit('importDocument') }
 <template>
     <div class="flex flex-wrap gap-2 mb-4">
         <div class="relative create-dropdown-container">
-            <PrimaryButton @click="showDropdown = !showDropdown">
+            <PrimaryButton data-onboarding="knowledge.create" @click="showDropdown = !showDropdown">
                 <font-awesome-icon :icon="['fas', 'plus']"/>
                 {{ t('kb.newEntry') }}
                 <font-awesome-icon :icon="['fas', 'chevron-down']" class="text-xs ml-1"/>

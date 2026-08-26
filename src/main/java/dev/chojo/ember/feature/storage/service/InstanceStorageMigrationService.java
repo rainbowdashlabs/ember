@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.feature.storage.migration.MigrationLockRegistry;
+import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -29,6 +30,7 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
@@ -58,6 +60,7 @@ public class InstanceStorageMigrationService {
     private final StationRepository stationRepository;
     private final AccountRepository accountRepository;
     private final StationStorageConfigRepository configRepository;
+    private final ClusterStationStorageRepository placementRepository;
     private final StorageBackendFactory factory;
     private final MigrationLockRegistry locks;
     private final InstanceStorageReadOnlyState readOnly;
@@ -67,12 +70,14 @@ public class InstanceStorageMigrationService {
             StationRepository stationRepository,
             AccountRepository accountRepository,
             StationStorageConfigRepository configRepository,
+            ClusterStationStorageRepository placementRepository,
             StorageBackendFactory factory,
             MigrationLockRegistry locks,
             InstanceStorageReadOnlyState readOnly) {
         this.stationRepository = stationRepository;
         this.accountRepository = accountRepository;
         this.configRepository = configRepository;
+        this.placementRepository = placementRepository;
         this.factory = factory;
         this.locks = locks;
         this.readOnly = readOnly;
@@ -132,9 +137,12 @@ public class InstanceStorageMigrationService {
         var allKeys = new ArrayList<String>();
         var perScopeKeys = new ArrayList<ScopeKeys>();
 
-        Set<Integer> stationsWithOverride = configRepository.findAllStationIds();
+        // Anybody whose bytes are not on the disk being swapped, for either of the two reasons they can
+        // have for that: a backend of their own, or their cluster's
+        Set<Integer> elsewhere = new HashSet<>(configRepository.findAllStationIds());
+        elsewhere.addAll(placementRepository.findAllStationIds());
         for (Station station : stationRepository.findAll()) {
-            if (stationsWithOverride.contains(station.id())) continue;
+            if (elsewhere.contains(station.id())) continue;
             var scope = new StorageScope.Station(station.id(), station.uid());
             for (StorageCategory category : StorageCategory.values()) {
                 if (!isInstanceDefaultStationCategory(category)) continue;

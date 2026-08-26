@@ -7,6 +7,7 @@
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
+import {useEventRoutes} from '@/composables/useEventRoutes'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -30,6 +31,7 @@ import {useEventEditDeps} from '@/composables/useEventEditDeps'
 
 const {t} = useI18n()
 const router = useRouter()
+const eventRoutes = useEventRoutes()
 const {loaded} = useSession()
 
 const step = ref(1)
@@ -118,7 +120,7 @@ const {running: saving, error: createError, run: createBatch} = useAsyncAction(a
     restriction: restriction.value,
   })
   success.value = t('batchCreate.success', {count: created.length})
-  setTimeout(() => router.push({name: 'events'}), 1500)
+  setTimeout(() => router.push({name: eventRoutes.index}), 1500)
 }, {formatError: () => t('common.error')})
 </script>
 

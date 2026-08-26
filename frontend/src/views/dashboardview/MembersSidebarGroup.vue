@@ -39,10 +39,10 @@ function close() {
 <template>
   <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :badge="counts.pendingChanges + counts.waitingListEntries" :icon="['fas', 'users']"
                 :label="t('sidebar.members')" prefix="/station/members" :to="membersDefaultRoute" name="members-list" @navigate="close">
-    <SidebarLink v-if="hasPermission(StationPermission.MEMBER_EDIT)" :icon="['fas', 'user-plus']" name="members-create" to="/station/members/create" @navigate="close">
+    <SidebarLink v-if="hasPermission(StationPermission.MEMBER_EDIT)" data-onboarding="nav.members.create" :icon="['fas', 'user-plus']" name="members-create" to="/station/members/create" @navigate="close">
       {{ t('sidebar.create') }}
     </SidebarLink>
-    <SidebarLink v-if="hasPermission(StationPermission.MEMBER_MANAGE_GROUP)" :icon="['fas', 'layer-group']" name="members-groups" to="/station/members/groups"
+    <SidebarLink v-if="hasPermission(StationPermission.MEMBER_MANAGE_GROUP)" data-onboarding="nav.members.groups" :icon="['fas', 'layer-group']" name="members-groups" to="/station/members/groups"
                  @navigate="close">
       {{ t('sidebar.groups') }}
     </SidebarLink>
@@ -54,7 +54,7 @@ function close() {
                  @navigate="close">
       {{ t('sidebar.documents') }}
     </SidebarLink>
-    <SidebarLink v-if="canManageMembers()" :icon="['fas', 'shield']" name="members-type-permissions" to="/station/members/type-permissions"
+    <SidebarLink v-if="canManageMembers()" data-onboarding="nav.members.type-permissions" :icon="['fas', 'shield']" name="members-type-permissions" to="/station/members/type-permissions"
                  @navigate="close">
       {{ t('sidebar.typePermissions') }}
     </SidebarLink>

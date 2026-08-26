@@ -142,6 +142,8 @@ export interface AccountInfo {
     id: number
     uid?: string
     email?: string
+    /** The name this account signs in with, absent when its address is the only way in. */
+    username?: string
     firstName?: string
     lastName?: string
 }
@@ -180,6 +182,16 @@ export interface SessionInfo {
     publicKbMode?: string
     /** ISO timestamp at which the station setup wizard was finished, or null while it still applies. */
     setupCompletedAt?: string | null
+    /** The cluster this request is acting for, when the header named one. */
+    clusterId?: string | null
+    clusterUserType?: string | null
+    /** What the caller may do at that cluster, which is a separate set from the station's. */
+    clusterPermissions?: string[]
+    /**
+     * What the caller may do at the station their association owns, where its knowledge base, news and
+     * calendar are kept. Those screens are the station's own, so they ask the station's own question.
+     */
+    ownStationPermissions?: string[]
 }
 
 export interface ThemeSessionInfo {
@@ -231,6 +243,8 @@ export interface StationMember {
     accountId: number
     name?: string
     email?: string
+    /** The name this member signs in with, absent when their address is the only way in. */
+    username?: string | null
     userType?: string
     profileComplete?: boolean
     formerAt?: string | null
@@ -248,7 +262,8 @@ export interface PermissionGrant {
 
 export interface MemberGroup {
     id: number
-    stationId: string
+    /** Absent on a group an association keeps, which gathers people at no single station. */
+    stationId?: string
     name?: string
     color?: string | null
     position?: number

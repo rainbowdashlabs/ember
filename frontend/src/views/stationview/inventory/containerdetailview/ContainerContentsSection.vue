@@ -42,7 +42,8 @@ const {t} = useI18n()
     </div>
 
     <div class="flex gap-2 mb-2">
-      <PrimaryButton full-width class="flex-1" :icon="['fas', 'plus']" @click="emit('addItems')">
+      <PrimaryButton full-width class="flex-1" :icon="['fas', 'plus']" data-testid="container-add-items"
+                     @click="emit('addItems')">
         {{ t('inventory.storage.addItems.button') }}
       </PrimaryButton>
       <PrimaryButton full-width class="flex-1" :icon="['fas', 'plus']" @click="emit('addChild')">
@@ -84,6 +85,7 @@ const {t} = useI18n()
                   v-for="i in props.contents.items"
                   :key="i.id"
                   class="py-2 flex items-center gap-3 cursor-pointer hover:bg-(--bg-accent) rounded-theme px-2"
+                  data-testid="container-item"
                   @click="emit('openItem', i.id)"
               >
                 <font-awesome-icon :icon="['fas', 'cube']" class="w-4 text-(--text-muted)" />

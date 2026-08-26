@@ -13,45 +13,20 @@ import {mediaFileUrl, type StationFile} from '@/api/media'
 
 defineProps<{
     item: GalleryItem
-    index: number
-    isFirst: boolean
-    isLast: boolean
     stationUid: string
 }>()
 
 defineEmits<{
-    'move-up': []
-    'move-down': []
     'remove': []
     'update-field': [field: 'altText' | 'subtext', value: string]
     'swap-image': [payload: {file: StationFile}]
-    'drag-start': [ev: DragEvent]
-    'drag-over': [ev: DragEvent]
-    'drop': []
 }>()
 
 const {t} = useI18n()
 </script>
 
 <template>
-    <div
-        draggable="true"
-        class="flex items-stretch gap-2 rounded-theme border border-(--border) p-2 bg-bg-light dark:bg-bg-dark"
-        @dragstart="$emit('drag-start', $event)"
-        @dragover="$emit('drag-over', $event)"
-        @drop="$emit('drop')"
-    >
-        <div class="flex flex-col items-center justify-center gap-1 shrink-0">
-            <IconButton
-                :icon="['fas', 'angle-up']" :label="t('common.moveUp')"
-                :disabled="isFirst" @click="$emit('move-up')"
-            />
-            <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) cursor-move"/>
-            <IconButton
-                :icon="['fas', 'angle-down']" :label="t('common.moveDown')"
-                :disabled="isLast" @click="$emit('move-down')"
-            />
-        </div>
+    <div class="flex items-stretch gap-2 rounded-theme border border-(--border) p-2 bg-bg-light dark:bg-bg-dark">
         <img :src="mediaFileUrl(stationUid, item.imageHash)" alt=""
              class="w-24 h-24 object-cover rounded shrink-0"/>
         <div class="flex-1 flex flex-col gap-1 min-w-0">

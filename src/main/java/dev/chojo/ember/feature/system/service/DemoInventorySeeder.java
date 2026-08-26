@@ -18,12 +18,13 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
-import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
+import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import jakarta.inject.Inject;
@@ -48,7 +49,7 @@ import java.util.function.Function;
  * one assigned.
  */
 @Singleton
-public class DemoInventorySeeder implements DemoSeeder {
+public class DemoInventorySeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoInventorySeeder.class);
     private static final List<String> EXCHANGE_REASONS = List.of(
             "Zu klein geworden",
@@ -71,8 +72,8 @@ public class DemoInventorySeeder implements DemoSeeder {
     private final InventoryContainerService containerService;
     private final InventoryFieldDefinitionService fieldDefinitionService;
     private final ExchangeService exchangeService;
-    private final ExchangeRepository exchangeRepository;
     private final ProcurementService procurementService;
+    private final ItemCustodyService custodyService;
 
     @Inject
     public DemoInventorySeeder(
@@ -82,16 +83,16 @@ public class DemoInventorySeeder implements DemoSeeder {
             InventoryContainerService containerService,
             InventoryFieldDefinitionService fieldDefinitionService,
             ExchangeService exchangeService,
-            ExchangeRepository exchangeRepository,
-            ProcurementService procurementService) {
+            ProcurementService procurementService,
+            ItemCustodyService custodyService) {
         this.inventoryRepository = inventoryRepository;
         this.inventoryCheckRepository = inventoryCheckRepository;
         this.accountRepository = accountRepository;
         this.containerService = containerService;
         this.fieldDefinitionService = fieldDefinitionService;
         this.exchangeService = exchangeService;
-        this.exchangeRepository = exchangeRepository;
         this.procurementService = procurementService;
+        this.custodyService = custodyService;
     }
 
     @Override
@@ -100,20 +101,20 @@ public class DemoInventorySeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        var members = context.members();
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        var members = station.members();
         var rng = new Random(42_002);
         seedInventory(
-                context.stationId(),
+                station.stationId(),
                 rng,
                 members.anfaenger(),
                 members.fortgeschritten(),
                 members.groupAnfaenger().id(),
                 members.groupFortgeschritten().id());
         seedInventoryChecks(
-                context.stationId(), rng, members.betreuer(), members.anfaenger(), members.fortgeschritten());
-        seedExchanges(context.stationId(), rng, members.anfaenger(), members.fortgeschritten(), members.betreuer());
-        seedProcurements(context.stationId(), members.anfaenger(), members.fortgeschritten());
+                station.stationId(), rng, members.betreuer(), members.anfaenger(), members.fortgeschritten());
+        seedExchanges(station.stationId(), rng, members.anfaenger(), members.fortgeschritten(), members.betreuer());
+        seedProcurements(station.stationId(), members.anfaenger(), members.fortgeschritten());
     }
 
     /**
@@ -183,10 +184,8 @@ public class DemoInventorySeeder implements DemoSeeder {
                     null);
             var targetStatus = EXCHANGE_STATUSES.get(rng.nextInt(EXCHANGE_STATUSES.size()));
             if (targetStatus != ExchangeStatus.ANNOUNCED) {
-                exchangeRepository.updateStatus(exchange.id(), ExchangeStatus.RECEIVED);
-                exchangeRepository.createLog(
+                exchangeService.updateStatus(
                         exchange.id(),
-                        ExchangeStatus.ANNOUNCED,
                         ExchangeStatus.RECEIVED,
                         betreuerMembers.get(rng.nextInt(betreuerMembers.size())).id(),
                         "In Bearbeitung");
@@ -278,16 +277,22 @@ public class DemoInventorySeeder implements DemoSeeder {
         for (int i = 0; i < tshirtSizes.size(); i++)
             inventoryRepository.createSize(tshirt.id(), tshirtSizes.get(i), i, "");
 
+        // Gear whose owner is not on this instance: the same ownership with nobody behind it, which is what
+        // makes the asserted half of the model visible. Every station keeps some, association or not
+        var gemeindematerial = inventoryRepository.create(stationId, "Gemeindematerial", InventoryType.EXTERNAL, false);
+        inventoryRepository.createItem(
+                gemeindematerial.id(), "GM-0001", "Funkgerät der Gemeinde", null, null, ItemOwner.CLUSTER, null);
+
         // Requirements: Anfänger and Fortgeschritten members each need 1 of each (2 T-shirts)
         for (int groupId : List.of(anfaengerGroupId, fortgeschrittenGroupId)) {
-            inventoryRepository.createRequirement(helm.id(), null, groupId, 1);
-            inventoryRepository.createRequirement(blouson.id(), null, groupId, 1);
-            inventoryRepository.createRequirement(parka.id(), null, groupId, 1);
-            inventoryRepository.createRequirement(latzhose.id(), null, groupId, 1);
-            inventoryRepository.createRequirement(handschuhe.id(), null, groupId, 1);
-            inventoryRepository.createRequirement(stiefel.id(), null, groupId, 1);
-            inventoryRepository.createRequirement(sporttasche.id(), null, groupId, 1);
-            inventoryRepository.createRequirement(tshirt.id(), null, groupId, 2);
+            inventoryRepository.createRequirement(helm.id(), null, groupId, null, 1);
+            inventoryRepository.createRequirement(blouson.id(), null, groupId, null, 1);
+            inventoryRepository.createRequirement(parka.id(), null, groupId, null, 1);
+            inventoryRepository.createRequirement(latzhose.id(), null, groupId, null, 1);
+            inventoryRepository.createRequirement(handschuhe.id(), null, groupId, null, 1);
+            inventoryRepository.createRequirement(stiefel.id(), null, groupId, null, 1);
+            inventoryRepository.createRequirement(sporttasche.id(), null, groupId, null, 1);
+            inventoryRepository.createRequirement(tshirt.id(), null, groupId, null, 2);
         }
 
         // Create items and assign to members
@@ -305,67 +310,73 @@ public class DemoInventorySeeder implements DemoSeeder {
         for (var member : allKids) {
             int idx = allKids.indexOf(member);
 
-            // Helm (MIXED, no size) - station-provided = INTERNAL
+            // Helm (mixed inventory, no size) - provided by the station itself
             var helmItem = inventoryRepository.createItem(
                     helm.id(),
                     "H-" + String.format("%03d", itemCounter++),
                     "Helm",
                     null,
                     null,
-                    InventoryItem.ItemSource.INTERNAL);
-            inventoryRepository.assignItem(helmItem.id(), member.id());
+                    ItemOwner.STATION,
+                    null);
+            custodyService.assignToMember(helmItem.id(), member.id(), "");
 
-            // Blouson (EXTERNAL)
+            // Blouson (provided by the body above the station)
             var blousonItem = inventoryRepository.createItem(
                     blouson.id(),
                     "BL-" + String.format("%03d", itemCounter++),
                     "Blouson",
                     blousonSizeList.get(idx % blousonSizeList.size()).id(),
                     null,
-                    InventoryItem.ItemSource.EXTERNAL);
-            inventoryRepository.assignItem(blousonItem.id(), member.id());
+                    ItemOwner.CLUSTER,
+                    null);
+            custodyService.assignToMember(blousonItem.id(), member.id(), "");
 
-            // Parka (EXTERNAL)
+            // Parka (provided by the body above the station)
             var parkaItem = inventoryRepository.createItem(
                     parka.id(),
                     "PA-" + String.format("%03d", itemCounter++),
                     "Parka",
                     parkaSizeList.get(idx % parkaSizeList.size()).id(),
                     null,
-                    InventoryItem.ItemSource.EXTERNAL);
-            inventoryRepository.assignItem(parkaItem.id(), member.id());
+                    ItemOwner.CLUSTER,
+                    null);
+            custodyService.assignToMember(parkaItem.id(), member.id(), "");
 
-            // Latzhose (EXTERNAL)
+            // Latzhose (provided by the body above the station)
             var latzItem = inventoryRepository.createItem(
                     latzhose.id(),
                     "LH-" + String.format("%03d", itemCounter++),
                     "Latzhose",
                     latzhoseSizeList.get(idx % latzhoseSizeList.size()).id(),
                     null,
-                    InventoryItem.ItemSource.EXTERNAL);
-            inventoryRepository.assignItem(latzItem.id(), member.id());
+                    ItemOwner.CLUSTER,
+                    null);
+            custodyService.assignToMember(latzItem.id(), member.id(), "");
 
-            // Handschuhe (MIXED) - station-provided = INTERNAL
+            // Handschuhe (mixed inventory) - provided by the station itself
             var handschuhItem = inventoryRepository.createItem(
                     handschuhe.id(),
                     "HS-" + String.format("%03d", itemCounter++),
                     "Handschuhe",
                     handschuheSizeList.get(idx % handschuheSizeList.size()).id(),
                     null,
-                    InventoryItem.ItemSource.INTERNAL);
-            inventoryRepository.assignItem(handschuhItem.id(), member.id());
+                    ItemOwner.STATION,
+                    null);
+            custodyService.assignToMember(handschuhItem.id(), member.id(), "");
 
-            // Stiefel (INTERNAL)
+            // Stiefel (station-owned)
             var stiefelItem = inventoryRepository.createItem(
                     stiefel.id(),
                     "ST-" + String.format("%03d", itemCounter++),
                     "Stiefel",
                     stiefelSizeList.get(idx % stiefelSizeList.size()).id(),
                     null,
-                    InventoryItem.ItemSource.INTERNAL);
-            inventoryRepository.assignItem(stiefelItem.id(), member.id());
+                    ItemOwner.STATION,
+                    null);
+            custodyService.assignToMember(stiefelItem.id(), member.id(), "");
 
-            // T-Shirt (INTERNAL, 2 per member)
+            // T-Shirt (station-owned, 2 per member)
             for (int t = 0; t < 2; t++) {
                 var tshirtItem = inventoryRepository.createItem(
                         tshirt.id(),
@@ -373,11 +384,12 @@ public class DemoInventorySeeder implements DemoSeeder {
                         "T-Shirt",
                         tshirtSizeList.get(idx % tshirtSizeList.size()).id(),
                         null,
-                        InventoryItem.ItemSource.INTERNAL);
-                inventoryRepository.assignItem(tshirtItem.id(), member.id());
+                        ItemOwner.STATION,
+                        null);
+                custodyService.assignToMember(tshirtItem.id(), member.id(), "");
             }
 
-            // Sporttasche (INTERNAL, ~70% get one, rest need procurement)
+            // Sporttasche (station-owned, ~70% get one, rest need procurement)
             if (rng.nextInt(10) < 7) {
                 var tasche = inventoryRepository.createItem(
                         sporttasche.id(),
@@ -385,12 +397,13 @@ public class DemoInventorySeeder implements DemoSeeder {
                         "Sporttasche",
                         null,
                         null,
-                        InventoryItem.ItemSource.INTERNAL);
-                inventoryRepository.assignItem(tasche.id(), member.id());
+                        ItemOwner.STATION,
+                        null);
+                custodyService.assignToMember(tasche.id(), member.id(), "");
             }
         }
 
-        // Add some unassigned spare items (INTERNAL)
+        // Add some unassigned spare items, all station-owned
         for (int i = 0; i < 5; i++) {
             inventoryRepository.createItem(
                     helm.id(),
@@ -398,7 +411,8 @@ public class DemoInventorySeeder implements DemoSeeder {
                     "Helm Ersatz",
                     null,
                     null,
-                    InventoryItem.ItemSource.INTERNAL);
+                    ItemOwner.STATION,
+                    null);
         }
         for (int i = 0; i < 3; i++) {
             inventoryRepository.createItem(
@@ -407,21 +421,23 @@ public class DemoInventorySeeder implements DemoSeeder {
                     "Sporttasche Ersatz",
                     null,
                     null,
-                    InventoryItem.ItemSource.INTERNAL);
+                    ItemOwner.STATION,
+                    null);
         }
 
-        // Add one personally owned Handschuh per size (MIXED → EXTERNAL = personally owned)
+        // One glove per size provided by the body above the station, in the same mixed inventory
         var handschuhSizeListOwned = inventoryRepository.findSizes(handschuhe.id());
         for (var size : handschuhSizeListOwned) {
             var kid = allKids.get(rng.nextInt(allKids.size()));
             var ownedGlove = inventoryRepository.createItem(
                     handschuhe.id(),
                     "HS-" + String.format("%03d", itemCounter++),
-                    "Handschuhe (eigen) " + size.label(),
+                    "Handschuhe (Kreisverband) " + size.label(),
                     size.id(),
-                    new InventoryItemMetadata(true),
-                    InventoryItem.ItemSource.EXTERNAL);
-            inventoryRepository.assignItem(ownedGlove.id(), kid.id());
+                    null,
+                    ItemOwner.CLUSTER,
+                    null);
+            custodyService.assignToMember(ownedGlove.id(), kid.id(), "");
         }
 
         // Generate item assignment history for internal items
@@ -579,7 +595,7 @@ public class DemoInventorySeeder implements DemoSeeder {
         for (var item : items) {
             if (placed >= count) break;
             if (item.containerId() != null) continue;
-            inventoryRepository.setItemContainer(item.id(), containerId);
+            custodyService.placeInContainer(item.id(), containerId);
             placed++;
         }
     }
@@ -639,7 +655,7 @@ public class DemoInventorySeeder implements DemoSeeder {
                     item.internalId(),
                     item.name(),
                     item.sizeId(),
-                    new InventoryItemMetadata(false, new ItemFieldValues(values)));
+                    new InventoryItemMetadata(new ItemFieldValues(values)));
             idx++;
         }
         log.info("Demo: Seeded custom fields and storage containers for inventories {} and {}", stiefelId, helmId);
@@ -676,7 +692,7 @@ public class DemoInventorySeeder implements DemoSeeder {
                 String note = result == CheckResult.LOST ? "Seit letzter Übung vermisst" : "";
                 inventoryCheckRepository.createCheckItem(check.id(), item.id(), item.inventoryId(), result, note);
                 if (result == CheckResult.LOST) {
-                    inventoryRepository.markLost(item.id());
+                    custodyService.markLost(item.id(), note, null);
                 }
             }
             checkedCount++;

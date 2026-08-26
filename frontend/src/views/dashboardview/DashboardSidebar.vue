@@ -79,7 +79,6 @@ function canBrowseMedia() {
                 @update:open-group="v => emit('update:openGroup', v)"
                 :icon="['fas', 'map-location-dot']"
                 :label="t('sidebar.stationMoved')"
-                prefix="/station/moved"
                 to="/station/moved"
                 name="station-moved"
                 @navigate="close"/>
@@ -89,7 +88,6 @@ function canBrowseMedia() {
                 @update:open-group="v => emit('update:openGroup', v)"
                 :icon="['fas', 'trash']"
                 :label="t('pages.station-moved.tabDelete')"
-                prefix="/station/moved/delete"
                 to="/station/moved/delete"
                 name="station-moved-delete"
                 @navigate="close"/>
@@ -101,9 +99,9 @@ function canBrowseMedia() {
 
     <DashboardSidebarGroup v-bind="groupBindings"/>
 
-    <SidebarGroup v-if="counts.requirements > 0" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :badge="counts.requirements" :icon="['fas', 'clipboard-check']" :label="t('sidebar.requirements')" prefix="/station/requirements" to="/station/requirements" name="station-requirements" @navigate="close"/>
+    <SidebarGroup v-if="counts.requirements > 0" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :badge="counts.requirements" :icon="['fas', 'clipboard-check']" :label="t('sidebar.requirements')" to="/station/requirements" name="station-requirements" @navigate="close"/>
 
-    <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="isModuleEnabled(StationModules.NEWS)" :icon="['fas', 'newspaper']" :label="t('sidebar.news')" prefix="/station/news" to="/station/news" name="news-list" @navigate="close"/>
+    <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="isModuleEnabled(StationModules.NEWS)" :icon="['fas', 'newspaper']" :label="t('sidebar.news')" to="/station/news" name="news-list" @navigate="close"/>
 
     <ProfileSidebarGroup v-bind="groupBindings"/>
 
@@ -117,7 +115,7 @@ function canBrowseMedia() {
 
     <FormsSidebarGroup v-if="isModuleEnabled(StationModules.FORMS)" v-bind="groupBindings"/>
 
-    <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="isModuleEnabled(StationModules.LOST_AND_FOUND)" :badge="counts.lostAndFoundPending" :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')" prefix="/station/lost-and-found" to="/station/lost-and-found" name="lost-and-found" @navigate="close"/>
+    <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="isModuleEnabled(StationModules.LOST_AND_FOUND)" :badge="counts.lostAndFoundPending" :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')" to="/station/lost-and-found" name="lost-and-found" @navigate="close"/>
 
     <QuizSidebarGroup v-if="isModuleEnabled(StationModules.QUIZ) || isModuleEnabled(StationModules.TEST_PROTOCOL)" v-bind="groupBindings"/>
 
@@ -125,11 +123,11 @@ function canBrowseMedia() {
 
     <ProceduresSidebarGroup v-if="isModuleEnabled(StationModules.PROCEDURES) && (hasPermission(StationPermission.PROCEDURE_READ) || counts.procedureCount > 0)" v-bind="groupBindings"/>
 
-    <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="hasPermission(StationPermission.CHECKLIST_READ)" :icon="['fas', 'list-check']" :label="t('sidebar.checklists')" prefix="/station/checklist" to="/station/checklist" name="checklist-list" @navigate="close"/>
+    <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="hasPermission(StationPermission.CHECKLIST_READ)" :icon="['fas', 'list-check']" :label="t('sidebar.checklists')" to="/station/checklist" name="checklist-list" @navigate="close"/>
 
-    <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="isModuleEnabled(StationModules.KNOWLEDGE_BASE)" :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" prefix="/station/knowledge" to="/station/knowledge" name="kb-browse" @navigate="close"/>
+    <SidebarGroup data-onboarding="nav.knowledge" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="isModuleEnabled(StationModules.KNOWLEDGE_BASE)" :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" to="/station/knowledge" name="kb-browse" @navigate="close"/>
 
-    <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="canBrowseMedia()" :icon="['fas', 'folder-open']" :label="t('sidebar.media')" prefix="/station/media" to="/station/media" name="station-media" @navigate="close"/>
+    <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="canBrowseMedia()" :icon="['fas', 'folder-open']" :label="t('sidebar.media')" to="/station/media" name="station-media" @navigate="close"/>
 
     <PagesSidebarGroup v-if="hasPermission(StationPermission.PAGE_EDIT)" v-bind="groupBindings"/>
 

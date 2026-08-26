@@ -20,7 +20,14 @@ import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 
 const { t } = useI18n()
+defineProps<{
+  /** The heading, when the station's own wording is not the right one. */
+  title?: string
+  subtitle?: string
+}>()
+
 const router = useRouter()
+const newsRoutes = useNewsRoutes()
 import { StationPermission } from '@/api/types'
 const { hasPermission } = useSession()
 const canEditNews = computed(() => hasPermission(StationPermission.NEWS_EDIT))
@@ -167,7 +174,7 @@ function openItem(item: UnifiedNewsItem) {
   if (item.kind === 'federated') {
     router.push({name: 'federated-news-detail', params: {stationUid: item.stationUid, newsId: item.id}})
   } else {
-    router.push({name: 'news-detail', params: {id: item.id}})
+    router.push({name: newsRoutes.detail, params: {id: item.id}})
   }
 }
 
@@ -226,12 +233,12 @@ watch(() => entries.value.length, async () => {
 
 <template>
   <ViewContent
-      :title="t('pages.news-list.title')"
-      :subtitle="t('pages.news-list.subtitle')"
+      :title="title ?? t('pages.news-list.title')"
+      :subtitle="subtitle ?? t('pages.news-list.subtitle')"
   >
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <PrimaryButton :icon="['fas', 'plus']" v-if="canEditNews" @click="router.push({ name: 'news-create' })">
+        <PrimaryButton :icon="['fas', 'plus']" v-if="canEditNews" @click="router.push({ name: newsRoutes.create })">
           {{ t('news.create') }}
         </PrimaryButton>
       </div>

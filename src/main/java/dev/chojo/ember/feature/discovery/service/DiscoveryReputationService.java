@@ -37,10 +37,12 @@ public class DiscoveryReputationService {
 
     public void recordSuccessfulCallback(String publicKey) {
         repository.addReputation(publicKey, DELTA_SUCCESSFUL_CALLBACK);
+        log.debug("Discovery peer {} answered a callback: applied delta {}", publicKey, DELTA_SUCCESSFUL_CALLBACK);
     }
 
     public void recordSuccessfulFetch(String publicKey) {
         repository.addReputation(publicKey, DELTA_SUCCESSFUL_FETCH);
+        log.debug("Discovery peer {} answered a fetch: applied delta {}", publicKey, DELTA_SUCCESSFUL_FETCH);
     }
 
     public void recordSignatureFailure(String publicKey) {
@@ -53,6 +55,7 @@ public class DiscoveryReputationService {
 
     public void recordTimeout(String publicKey) {
         repository.addReputation(publicKey, DELTA_TIMEOUT);
+        log.warn("Discovery peer {} timed out: applied delta {}", publicKey, DELTA_TIMEOUT);
     }
 
     public void recordInvalidAnnouncement(String publicKey) {

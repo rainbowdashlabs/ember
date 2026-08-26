@@ -72,6 +72,11 @@ services:
       # so a developer who switched their own instance to it would watch this suite fail for
       # reasons that have nothing to do with their change.
       DEMO_ENABLED: "false"
+      # A fixed key for this throwaway container, because SecretsInitializer deliberately generates
+      # nothing on a dev instance: it would rewrite the committed config file. Without a key every
+      # storage-backend apply answers with a cipher error, and the cause is nowhere near the symptom.
+      # What it encrypts here are the credentials of three containers on a private network.
+      STORAGE_CREDENTIALENCRYPTIONKEY: "ZTJlLXN0YWNrLW9ubHkta2V5LW5vdC1hLXNlY3JldCE="
       API_BASEURL: http://localhost:3010
     volumes:
       - ..:/home/gradle/project
@@ -107,6 +112,7 @@ services:
     profiles:
       - storage
       - full
+      - e2e
 
   # Creates the "ember" bucket on the rustfs instance, then exits. Polls until rustfs
   # answers; the mb call is idempotent so re-running compose-up is safe.
@@ -116,6 +122,7 @@ services:
     profiles:
       - storage
       - full
+      - e2e
     depends_on:
       - rustfs
     entrypoint: ["/bin/sh", "-c"]
@@ -149,6 +156,7 @@ services:
     profiles:
       - storage
       - full
+      - e2e
 
   # SMB / Samba share for testing the SMB backend variant.
   # Reach the share from the host on smb://localhost/ember (user: ember, password: ember).
@@ -172,6 +180,7 @@ services:
     profiles:
       - storage
       - full
+      - e2e
 
   # Dev backend: bind-mounts the project so source edits land in the container
   # straight away, with named volumes for the Gradle home and the project's

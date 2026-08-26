@@ -55,7 +55,7 @@ function handleSetPassword() {
 
 <template>
   <div class="flex min-h-screen items-center justify-center px-4">
-    <div class="w-full max-w-sm space-y-6">
+    <div class="w-full max-w-xs space-y-6">
       <div class="text-center">
         <PageHeroIcon :icon="['fas', 'lock']"/>
         <PageHeader class="text-2xl font-bold">{{ t('setPassword.title') }}</PageHeader>

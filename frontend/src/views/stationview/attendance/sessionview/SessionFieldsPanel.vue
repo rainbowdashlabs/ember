@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
+import {configOf, spanForWidth} from '@/components/profilefields/fieldLayout'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -77,8 +78,8 @@ function getMemberOptions(field: AttendanceTemplateField): { value: string; labe
 <template>
   <NeutralContainer v-if="templateFields.length > 0" class="space-y-4">
     <SectionHeader>{{ t('attendanceSession.fields') }}</SectionHeader>
-    <div class="space-y-3">
-      <div v-for="field in templateFields" :key="field.id" class="space-y-1">
+    <div class="grid grid-cols-6 gap-3">
+      <div v-for="field in templateFields" :key="field.id" :class="['space-y-1', spanForWidth(configOf(field.config).width)]">
         <FieldLabel>{{ field.name }}</FieldLabel>
         <template v-if="!readonly">
           <!-- Member list fields -->

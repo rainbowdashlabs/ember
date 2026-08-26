@@ -39,7 +39,7 @@ function onSelect(event: Event) {
 <template>
   <div class="flex items-center gap-2 flex-wrap pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
     <template v-for="m in eligibleMembers" :key="`reg-${eventKey}-${m.uid}`">
-      <div v-if="getRegistration(m.uid)" class="flex items-center gap-1">
+      <div v-if="getRegistration(m.uid)" class="flex items-center gap-1" data-testid="federated-event-registration">
         <span v-if="eligibleMembers.length > 1" class="text-xs text-(--text-muted)">{{ m.name }}:</span>
         <SuccessBadge v-if="getRegistration(m.uid)!.status === 'ACCEPTED'">{{ t('eventsUpcoming.statusAccepted') }}</SuccessBadge>
         <InfoBadge v-else-if="getRegistration(m.uid)!.status === 'PENDING'">{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
@@ -66,6 +66,7 @@ function onSelect(event: Event) {
           :disabled="registering || !selectedUid"
           compact
           class="text-sm"
+          data-testid="federated-event-register"
           @click.stop="emit('register')"
       >
         <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>

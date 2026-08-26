@@ -1,0 +1,7 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hallo {{ name }},</h2>
+      <p>Du kannst dich ab sofort selbst bei <strong>{{ stationName }}</strong> anmelden. Deine Aufsichtsperson hat es erlaubt.</p>
+      <p>Melde dich mit der E-Mail-Adresse an, an die diese Nachricht ging, und mit deinem Passwort.</p>
+      <div class="btn-wrap"><a class="btn" href="{{ loginUrl }}">Anmelden</a></div>
+{% endblock %}

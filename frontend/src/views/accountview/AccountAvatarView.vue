@@ -23,6 +23,7 @@ const error = ref('')
 const editFirstName = ref('')
 const editLastName = ref('')
 const editEmail = ref('')
+const editUsername = ref('')
 
 const displayName = computed(() => (editFirstName.value + ' ' + editLastName.value).trim())
 
@@ -36,6 +37,7 @@ async function saveAccount() {
   try {
     await members.updateAccount(account.id, {
       email: editEmail.value,
+      username: editUsername.value,
       firstName: editFirstName.value,
       lastName: editLastName.value,
     })
@@ -53,6 +55,7 @@ function applyAccount() {
   editFirstName.value = account.firstName ?? ''
   editLastName.value = account.lastName ?? ''
   editEmail.value = account.email ?? ''
+  editUsername.value = account.username ?? ''
   loading.value = false
 }
 
@@ -78,9 +81,11 @@ onMounted(() => {
         />
 
         <AccountDetailsSection
+            data-onboarding="account.email"
             v-model:first-name="editFirstName"
             v-model:last-name="editLastName"
             v-model:email="editEmail"
+            v-model:username="editUsername"
             :email-change-pending="emailChangePending"
             :action="saveAccount"
         />

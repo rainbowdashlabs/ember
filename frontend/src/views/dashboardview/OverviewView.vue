@@ -10,17 +10,19 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
-import {StationModules} from '@/api/types'
+import {StationModules, StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import NotificationsPanel from './overviewview/NotificationsPanel.vue'
 import ExchangesPanel from './overviewview/ExchangesPanel.vue'
+import AwaitingAnswerPanel from './overviewview/AwaitingAnswerPanel.vue'
 import RegistrationsPanel from './overviewview/RegistrationsPanel.vue'
 import UpcomingEventsPanel from './overviewview/UpcomingEventsPanel.vue'
 import SetupChecklist from './overviewview/SetupChecklist.vue'
+import OnboardingTaskCard from '@/components/onboarding/OnboardingTaskCard.vue'
 
 const {t} = useI18n()
 const router = useRouter()
-const {isModuleEnabled, sessionInfo} = useSession()
+const {isModuleEnabled, sessionInfo, hasPermission} = useSession()
 
 const profileIncomplete = computed(() => sessionInfo.value?.profileComplete === false)
 </script>
@@ -29,6 +31,8 @@ const profileIncomplete = computed(() => sessionInfo.value?.profileComplete === 
   <ViewContent :title="t('pages.dashboard-overview.title')" :subtitle="t('pages.dashboard-overview.subtitle')">
     <div class="space-y-6">
       <SetupChecklist/>
+      <OnboardingTaskCard v-if="hasPermission(StationPermission.STATION_ADMINISTRATOR)" level="STATION"/>
+      <OnboardingTaskCard level="MEMBER"/>
       <!-- Onboarding banner -->
       <ErrorContainer v-if="profileIncomplete" class="flex items-center justify-between gap-4">
         <div>
@@ -44,6 +48,7 @@ const profileIncomplete = computed(() => sessionInfo.value?.profileComplete === 
       <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
         <NotificationsPanel/>
         <ExchangesPanel v-if="isModuleEnabled(StationModules.INVENTORY)"/>
+        <AwaitingAnswerPanel v-if="isModuleEnabled(StationModules.EVENTS)"/>
         <RegistrationsPanel v-if="isModuleEnabled(StationModules.EVENTS)"/>
         <UpcomingEventsPanel v-if="isModuleEnabled(StationModules.EVENTS)"/>
       </div>

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
@@ -27,6 +28,8 @@ import LendingItemsTable from './lendingrequestview/LendingItemsTable.vue'
 import LendingActionsBar from './lendingrequestview/LendingActionsBar.vue'
 import LendingItemAssignment from './lendingrequestview/LendingItemAssignment.vue'
 import LendingChat from './lendingrequestview/LendingChat.vue'
+
+const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const route = useRoute()
@@ -154,7 +157,7 @@ async function handleClose() {
       :title="t('pages.inventory-lending-request.title')"
       :subtitle="t('pages.inventory-lending-request.subtitle')"
   >
-    <SecondaryButton :icon="['fas', 'chevron-left']" class="mb-4" @click="router.push({name: 'inventory-lending'})">
+    <SecondaryButton :icon="['fas', 'chevron-left']" class="mb-4" @click="router.push({name: routes.lending})">
       {{ t('lending.backToList') }}
     </SecondaryButton>
 

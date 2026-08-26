@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -72,7 +73,8 @@ class FederationRepositoryTest extends RepositoryTestBase {
         kbFileId = file.id();
 
         // Create quiz catalog for sharing tests
-        var catalog = quizCatalogRepo.create(stationA.id(), "FedCatalog", "Test catalog", false);
+        var catalog =
+                quizCatalogRepo.create(stationA.id(), "FedCatalog", "Test catalog", false, CatalogMetadata.none());
         quizCatalogId = catalog.id();
 
         // Create protocol for sharing tests

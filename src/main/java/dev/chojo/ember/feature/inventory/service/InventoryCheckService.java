@@ -62,6 +62,7 @@ public class InventoryCheckService {
     private final AccountRepository accountRepository;
     private final MemberIdentityFactory memberIdentityFactory;
     private final InventoryContainerService containerService;
+    private final ItemCustodyService custodyService;
 
     @Inject
     public InventoryCheckService(
@@ -71,7 +72,8 @@ public class InventoryCheckService {
             MemberGroupRepository memberGroupRepository,
             AccountRepository accountRepository,
             MemberIdentityFactory memberIdentityFactory,
-            InventoryContainerService containerService) {
+            InventoryContainerService containerService,
+            ItemCustodyService custodyService) {
         this.checkRepository = checkRepository;
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -79,6 +81,7 @@ public class InventoryCheckService {
         this.accountRepository = accountRepository;
         this.memberIdentityFactory = memberIdentityFactory;
         this.containerService = containerService;
+        this.custodyService = custodyService;
     }
 
     /**
@@ -160,7 +163,7 @@ public class InventoryCheckService {
                     check.id(), result.itemId(), result.inventoryId(), result.result(), result.note());
 
             if (result.result() == CheckResult.LOST && result.itemId() != null) {
-                inventoryRepository.markLost(result.itemId());
+                custodyService.markLost(result.itemId(), result.note(), checkedBy);
             }
         }
 
@@ -233,7 +236,7 @@ public class InventoryCheckService {
             checkRepository.createCheckItem(
                     check.id(), result.itemId(), result.inventoryId(), result.result(), result.note());
             if (result.result() == CheckResult.LOST && result.itemId() != null) {
-                inventoryRepository.markLost(result.itemId());
+                custodyService.markLost(result.itemId(), result.note(), checkedBy);
             }
         }
         log.info(
@@ -335,6 +338,12 @@ public class InventoryCheckService {
      * Calculates the inventory items required for a member based on their roles and groups.
      * Aggregates requirement quantities per inventory and compares against currently assigned items.
      *
+     * <p>A piece handed in for an exchange counts towards what the member has. The question here is
+     * whether they are equipped, not what is in their hands this minute, and an exchange over the body
+     * above the station takes weeks: counting the assignment alone would report a gap for all of it and
+     * send whoever walks the check off to order a jacket that is already in the post. The row says how
+     * many of them are away that way, so nobody is left wondering at a number that does not add up.
+     *
      * @param stationId the station ID
      * @param memberId  the member ID
      * @return list of required inventory items with quantities and assignment counts
@@ -343,7 +352,8 @@ public class InventoryCheckService {
         var member = stationMemberRepository.findById(memberId).orElse(null);
         StationUserType memberUserType = member != null ? member.userType() : null;
         List<MemberGroup> memberGroups = memberGroupRepository.findGroupsForMember(memberId);
-        List<InventoryRequirement> allRequirements = inventoryRepository.findAllRequirementsByStation(stationId);
+        // The cluster's requirements count here too: one definition, read at the station, never copied
+        List<InventoryRequirement> allRequirements = inventoryRepository.findRequirementsCountingAt(stationId);
 
         var memberGroupIds = memberGroups.stream().map(MemberGroup::id).toList();
 
@@ -366,6 +376,12 @@ public class InventoryCheckService {
             assignedByInventory.merge(item.inventoryId(), 1, Integer::sum);
         }
 
+        Map<Integer, Integer> inExchangeByInventory = new HashMap<>();
+        for (InventoryItem item : inventoryRepository.findItemsAwayInExchange(memberId)) {
+            inExchangeByInventory.merge(item.inventoryId(), 1, Integer::sum);
+            assignedByInventory.merge(item.inventoryId(), 1, Integer::sum);
+        }
+
         // Build result
         List<RequiredInventoryItem> result = new ArrayList<>();
         for (var entry : requiredByInventory.entrySet()) {
@@ -378,7 +394,14 @@ public class InventoryCheckService {
             boolean hasSizes = inv != null && inv.hasSizes();
             List<InventorySize> sizes = hasSizes ? inventoryRepository.findSizes(inventoryId) : List.of();
             result.add(new RequiredInventoryItem(
-                    inventoryId, invName, invType, hasSizes, sizes, requiredQty, assignedQty));
+                    inventoryId,
+                    invName,
+                    invType,
+                    hasSizes,
+                    sizes,
+                    requiredQty,
+                    assignedQty,
+                    inExchangeByInventory.getOrDefault(inventoryId, 0)));
         }
         return result;
     }

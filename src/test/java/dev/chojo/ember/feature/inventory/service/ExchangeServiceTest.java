@@ -5,10 +5,11 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -18,8 +19,6 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -35,8 +34,9 @@ class ExchangeServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var inventoryService = new InventoryService(inventoryRepo);
-        service = new ExchangeService(exchangeRepo, inventoryRepo, inventoryService, new DomainEventBus(Set.of()));
+        var inventoryService =
+                new InventoryService(inventoryRepo, itemCustodyService, clusterRepo, clusterStationGroupRepo);
+        service = new ExchangeService(itemMovementService, inventoryRepo);
         station = stationRepo.create("ExchStation");
         account = accountRepo.create("exch-svc@test.com", "Exch", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -48,7 +48,7 @@ class ExchangeServiceTest extends RepositoryTestBase {
                 sizes.stream().filter(s -> "M".equals(s.label())).findFirst().orElseThrow();
         var item = inventoryRepo.createItem(inv.id(), "B-001", "Blouson M", sizeM.id(), null);
         itemId = item.id();
-        inventoryRepo.assignItem(item.id(), member.id());
+        itemCustodyService.assignToMember(item.id(), member.id(), "");
     }
 
     @AfterAll
@@ -104,10 +104,12 @@ class ExchangeServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(10)
-    void updateStatus() {
+    void updateStatusWalksAsFarAsTheFlowGoes() {
+        // Gear the station owns has no shipping leg to reach: it is taken back and handed out again,
+        // so asking for a status the chain does not contain gets as far as the chain goes
         var updated = service.updateStatus(exchangeId, ExchangeStatus.SHIPPED, member.id(), null);
         assertNotNull(updated);
-        assertEquals(ExchangeStatus.SHIPPED, updated.status());
+        assertEquals(ExchangeStatus.RECEIVED, updated.status());
     }
 
     @Test
@@ -145,12 +147,55 @@ class ExchangeServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(21)
+    void completingAnExchangeOfOwnerOwnedGearDoesNotMakeItTheStations() {
+        var mixed = inventoryRepo.create(station.id(), "Handschuhe (Träger)", InventoryType.MIXED, false);
+        var ownerItem = inventoryRepo.createItem(mixed.id(), "HS-C", "Glove", null, null, ItemOwner.CLUSTER, null);
+        itemCustodyService.assignToMember(ownerItem.id(), member.id(), "");
+        var replacement = inventoryRepo.createItem(mixed.id(), "HS-C2", "Glove", null, null, ItemOwner.CLUSTER, null);
+
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", ownerItem.id(), mixed.id(), null, null, "Worn", null);
+        service.updateStatus(exchange.id(), ExchangeStatus.DONE, member.id(), "Completed", replacement.id());
+
+        // The old item goes back to the body above rather than turning up in the station's stock
+        assertEquals(
+                ItemCustody.WITH_OWNER,
+                inventoryRepo.findItemById(ownerItem.id()).orElseThrow().custody());
+        assertFalse(inventoryRepo.findUnassignedItems(mixed.id()).stream().anyMatch(i -> i.id() == ownerItem.id()));
+        assertFalse(inventoryRepo.findItemsByStation(station.id()).stream().anyMatch(i -> i.id() == ownerItem.id()));
+        assertEquals(
+                member.id(),
+                inventoryRepo.findItemById(replacement.id()).orElseThrow().assignedTo());
+
+        inventoryRepo.delete(mixed.id());
+    }
+
+    @Test
+    @Order(22)
+    void completingAnExchangeOfStationOwnedGearReturnsItToTheFreePool() {
+        var mixed = inventoryRepo.create(station.id(), "Handschuhe (Wache)", InventoryType.MIXED, false);
+        var ownItem = inventoryRepo.createItem(mixed.id(), "HS-S", "Glove", null, null, ItemOwner.STATION, null);
+        itemCustodyService.assignToMember(ownItem.id(), member.id(), "");
+        var replacement = inventoryRepo.createItem(mixed.id(), "HS-S2", "Glove", null, null, ItemOwner.STATION, null);
+
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", ownItem.id(), mixed.id(), null, null, "Worn", null);
+        service.updateStatus(exchange.id(), ExchangeStatus.DONE, member.id(), "Completed", replacement.id());
+
+        var old = inventoryRepo.findItemById(ownItem.id()).orElseThrow();
+        assertNull(old.assignedTo());
+        assertTrue(inventoryRepo.findUnassignedItems(mixed.id()).stream().anyMatch(i -> i.id() == ownItem.id()));
+
+        inventoryRepo.delete(mixed.id());
+    }
+
+    @Test
     @Order(25)
     void updateStatusWithNote() {
         var exchange = service.create(
                 station.id(), member.id(), "Exch Tester", null, inventoryId, null, null, "Note test", null);
-        var updated = service.updateStatus(exchange.id(), ExchangeStatus.SHIPPED, member.id(), "Shipped note");
-        assertEquals(ExchangeStatus.SHIPPED, updated.status());
+        service.updateStatus(exchange.id(), ExchangeStatus.RECEIVED, member.id(), "Shipped note");
         var logs = service.findLogs(exchange.id());
         assertTrue(logs.stream().anyMatch(l -> "Shipped note".equals(l.note())));
         service.delete(exchange.id());

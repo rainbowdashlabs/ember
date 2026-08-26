@@ -16,11 +16,29 @@ import type { MemberGroup } from '@/api/types'
 import { inventory, memberGroups } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
 import RequirementGroupCard from './requirementsview/RequirementGroupCard.vue'
 import RequirementAddModal from './requirementsview/RequirementAddModal.vue'
 import { userTypeFriendlyNames, type RequirementGroup } from './requirementsview/types'
+import { clusterStationGroups } from '@/api'
+import type { StationGroup } from '@/api/clusterStationGroups'
+import { moveWithin } from '@/util/reorder'
 
 const { t } = useI18n()
+const routes = useInventoryRoutes()
+
+/**
+ * Whether the screen is the association's rather than a station's.
+ *
+ * <p>An association writes one requirement for many stations, so it may point it at a group of them. A
+ * station writes for itself and has nothing to point at, which is why the picker is absent there rather
+ * than empty.
+ */
+const props = defineProps<{
+  stationScoped?: boolean
+}>()
+
+const stationGroups = ref<StationGroup[]>([])
 
 const inventories = ref<Inventory[]>([])
 const requirements = ref<InventoryRequirement[]>([])
@@ -31,6 +49,7 @@ const addTargetType = ref<'userType' | 'group'>('userType')
 const addUserType = ref('')
 const addGroupId = ref('')
 const addInventoryId = ref('')
+const addStationGroupId = ref('')
 const addQuantity = ref(1)
 
 function userTypeName(userType: string): string {
@@ -74,14 +93,16 @@ const grouped = computed((): RequirementGroup[] => {
 })
 
 const {loading, error} = useAsyncLoader(async () => {
+  // Groups are the station's own, so an association has none and asking is refused rather than empty
   const [invs, reqs, groups] = await Promise.all([
     inventory.listInventories(),
     inventory.listAllRequirements(),
-    memberGroups.listGroups(),
+    routes.memberGroups ? memberGroups.listGroups() : Promise.resolve([]),
   ])
   inventories.value = invs
   requirements.value = reqs
   allGroups.value = groups
+  stationGroups.value = props.stationScoped ? await clusterStationGroups.listGroups() : []
 })
 
 function openAdd(preselect?: { type: 'userType' | 'group'; key: string }) {
@@ -89,6 +110,7 @@ function openAdd(preselect?: { type: 'userType' | 'group'; key: string }) {
   addUserType.value = preselect?.type === 'userType' ? preselect.key : ''
   addGroupId.value = preselect?.type === 'group' ? preselect.key : ''
   addInventoryId.value = ''
+  addStationGroupId.value = ''
   addQuantity.value = 1
   showAddModal.value = true
 }
@@ -103,6 +125,7 @@ const {running: saving, error: addError, run: submitAdd} = useAsyncAction(async 
     inventoryId: Number(addInventoryId.value),
     userType: addTargetType.value === 'userType' ? addUserType.value : undefined,
     groupId: addTargetType.value === 'group' ? Number(addGroupId.value) : undefined,
+    stationGroupId: addStationGroupId.value ? Number(addStationGroupId.value) : undefined,
     quantity: addQuantity.value,
   })
   showAddModal.value = false
@@ -129,10 +152,7 @@ async function removeRequirement(req: InventoryRequirement) {
 }
 
 async function onReorder(group: RequirementGroup, fromIndex: number, toIndex: number) {
-  const items = [...group.items]
-  const [moved] = items.splice(fromIndex, 1)
-  if (!moved) return
-  items.splice(toIndex, 0, moved)
+  const items = moveWithin(group.items, fromIndex, toIndex)
   try {
     for (const [i, item] of items.entries()) {
       await inventory.updateRequirementPosition(item.id, i)
@@ -149,6 +169,8 @@ async function onReorder(group: RequirementGroup, fromIndex: number, toIndex: nu
       :title="t('pages.inventory-requirements.title')"
       :subtitle="t('pages.inventory-requirements.subtitle')"
   >
+    <slot name="before"/>
+
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error || addError" variant="error">{{ error || addError }}</Alert>
@@ -170,6 +192,7 @@ async function onReorder(group: RequirementGroup, fromIndex: number, toIndex: nu
             :key="`${group.type}-${group.key}`"
             :group="group"
             :inventory-name="inventoryName"
+          :station-groups="stationGroups"
             @add-item="openAdd"
             @update-quantity="updateQuantity"
             @remove="removeRequirement"
@@ -185,8 +208,10 @@ async function onReorder(group: RequirementGroup, fromIndex: number, toIndex: nu
         v-model:group-id="addGroupId"
         v-model:inventory-id="addInventoryId"
         v-model:quantity="addQuantity"
+        v-model:station-group-id="addStationGroupId"
         :inventories="inventories"
         :all-groups="allGroups"
+        :station-groups="stationGroups"
         :saving="saving"
         @submit="submitAdd"
       />

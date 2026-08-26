@@ -7,6 +7,7 @@ import {computed, readonly, ref} from 'vue'
 import {useRouter} from 'vue-router'
 import {useSession} from './useSession'
 import {StationPermission} from '@/api/types'
+import {handoverPending} from '@/util/onboardingState'
 
 const STORAGE_KEY = 'onboarding_tour_completed'
 
@@ -95,6 +96,7 @@ export function useOnboardingTour() {
     function finishTour() {
         isActive.value = false
         localStorage.setItem(STORAGE_KEY, 'true')
+        handoverPending.value = true
         router.push({name: 'dashboard-overview'}).catch(() => {})
     }
 

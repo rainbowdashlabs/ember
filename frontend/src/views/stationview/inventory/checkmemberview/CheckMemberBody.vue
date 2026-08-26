@@ -12,6 +12,7 @@ import type { CheckResult, MemberCheckState, RequiredInventoryItem } from '@/api
 import CheckMemberHeader from './CheckMemberHeader.vue'
 import CheckMemberSubmitBar from './CheckMemberSubmitBar.vue'
 import RapidCheckMode from './RapidCheckMode.vue'
+import type {RapidExchangeKind} from './RapidExchangeModal.vue'
 import type { CheckEntry } from '@/composables/useMemberCheck'
 import InventorySection from './InventorySection.vue'
 import { formatDateTime } from '@/util/format'
@@ -40,6 +41,7 @@ defineEmits<{
   cancel: []
   submit: []
   rapidSetResult: [result: CheckResult]
+  rapidExchange: [kind: RapidExchangeKind, entry: CheckEntry]
   rapidMarkNotInPossession: []
   rapidAssign: [itemIdStr: string]
   rapidCreateAndAssign: [sizeIdStr: string]
@@ -90,6 +92,7 @@ defineExpose({ getCurrentRapidEntry })
     :item-label="itemLabel"
     :size-label="sizeLabel"
     @set-result="(r) => $emit('rapidSetResult', r)"
+    @exchange="(kind, entry) => $emit('rapidExchange', kind, entry)"
     @mark-not-in-possession="$emit('rapidMarkNotInPossession')"
     @assign="(id) => $emit('rapidAssign', id)"
     @create-and-assign="(id) => $emit('rapidCreateAndAssign', id)"

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -13,6 +14,8 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import {formatDate} from '@/util/format'
 import {LendingStatus, type LendingRequestResponse, type LendingStatusName} from '@/api/lending'
+
+const routes = useInventoryRoutes()
 
 /**
  * Renders one lending request list. `direction` decides which side of the exchange is named on the
@@ -51,7 +54,7 @@ function statusBadge(status: LendingStatusName) {
         v-for="entry in entries"
         :key="entry.request.id"
         class="cursor-pointer hover:border-primary transition-colors"
-        @click="router.push({name: 'inventory-lending-request', params: {id: entry.request.id}})"
+        @click="router.push({name: routes.lendingRequest, params: {id: entry.request.id}})"
     >
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div class="flex flex-col gap-0.5">

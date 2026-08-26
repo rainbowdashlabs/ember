@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonRootName;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.page.service.PageService;
@@ -48,12 +49,18 @@ public class SitemapRoutes implements Routes {
     private final StationRepository stationRepository;
     private final PageService pageService;
     private final KnowledgeBaseService kbService;
+    private final Api apiConfig;
 
     @Inject
-    public SitemapRoutes(StationRepository stationRepository, PageService pageService, KnowledgeBaseService kbService) {
+    public SitemapRoutes(
+            StationRepository stationRepository,
+            PageService pageService,
+            KnowledgeBaseService kbService,
+            Api apiConfig) {
         this.stationRepository = stationRepository;
         this.pageService = pageService;
         this.kbService = kbService;
+        this.apiConfig = apiConfig;
     }
 
     private static String formatDate(Instant instant) {
@@ -69,7 +76,7 @@ public class SitemapRoutes implements Routes {
 
     private void sitemapIndex(Context ctx) {
         var xml = cache.get(INDEX_CACHE_KEY, _ -> {
-            var baseUrl = baseUrl(ctx);
+            var baseUrl = baseUrl();
             var sitemaps = new ArrayList<SitemapEntry>();
             sitemaps.add(new SitemapEntry(baseUrl + "/sitemap-static.xml", null));
 
@@ -92,7 +99,7 @@ public class SitemapRoutes implements Routes {
         if (!hasPublicContent(station)) throw new NotFoundResponse();
 
         var xml = cache.get(stationUid, _ -> {
-            var baseUrl = baseUrl(ctx);
+            var baseUrl = baseUrl();
             var slug = station.publicSlug() != null
                     ? station.publicSlug()
                     : station.uid().toString();
@@ -147,8 +154,11 @@ public class SitemapRoutes implements Routes {
         ctx.result(xml);
     }
 
+    /**
+     * A cluster's home station is left out: it is a shell nobody joins, with no public presence to point at.
+     */
     private List<Station> getPublicStations() {
-        return stationRepository.findAll().stream()
+        return stationRepository.findAllRegular().stream()
                 .filter(this::hasPublicContent)
                 .toList();
     }
@@ -161,8 +171,20 @@ public class SitemapRoutes implements Routes {
                 || station.publicBlogEnabled();
     }
 
-    private String baseUrl(Context ctx) {
-        return ctx.scheme() + "://" + ctx.host();
+    /**
+     * The address a crawler is meant to follow, taken from configuration rather than from the
+     * request.
+     *
+     * <p>The sitemap is fetched through the web server, which proxies it on rather than passing
+     * the reader's own request along, so the host the backend sees is the one container calling
+     * another. Reading it off the request published a sitemap pointing at an address that exists
+     * only inside the deployment, which no crawler can follow. The answer is cached for six hours
+     * under a key that does not name a host, so a single such request left it that way for
+     * everybody until it expired.
+     */
+    private String baseUrl() {
+        String configured = apiConfig.baseUrl();
+        return configured.endsWith("/") ? configured.substring(0, configured.length() - 1) : configured;
     }
 
     @JsonRootName(value = "sitemapindex", namespace = SITEMAP_NS)

@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -525,7 +526,7 @@ class FederationServiceTest extends RepositoryTestBase {
     @Order(104)
     void quizShareCreateAndDelete() {
         // Create a quiz catalog to reference
-        var catalog = quizCatalogRepo.create(stationA.id(), "Test Quiz Catalog", "desc", false);
+        var catalog = quizCatalogRepo.create(stationA.id(), "Test Quiz Catalog", "desc", false, CatalogMetadata.none());
         var share = service.createQuizShare(stationA.id(), catalog.id(), ShareScope.ALL_PARTNERS);
         assertNotNull(share);
         assertTrue(service.deleteQuizShare(share.id(), stationA.id()));

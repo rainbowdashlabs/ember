@@ -7,6 +7,7 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, type RouteLocationRaw} from 'vue-router'
+import {useEventRoutes} from '@/composables/useEventRoutes'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -19,6 +20,7 @@ import {formatTime} from '@/util/format'
 
 const {t} = useI18n()
 const router = useRouter()
+const eventRoutes = useEventRoutes()
 const {sessionInfo, loaded, isGuardian, canManageAttendance, canManageEvents} = useSession()
 
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
@@ -110,9 +112,9 @@ function getRegistrationSummary(eventId: number, date: string) {
  */
 function eventDetailRoute(ev: StationEvent, date: string): RouteLocationRaw {
   if (isRecurringEvent(ev.eventType)) {
-    return {name: 'event-detail-date', params: {id: ev.id, date}}
+    return {name: eventRoutes.detailOnDate, params: {id: ev.id, date}}
   }
-  return {name: 'event-detail', params: {id: ev.id}}
+  return {name: eventRoutes.detail, params: {id: ev.id}}
 }
 
 function todayDetailRoute(ev: StationEvent): RouteLocationRaw {
@@ -120,7 +122,7 @@ function todayDetailRoute(ev: StationEvent): RouteLocationRaw {
 }
 
 function openCreateEvent() {
-  router.push({name: 'event-new'})
+  router.push({name: eventRoutes.create})
 }
 
 function goToAttendance(ev: StationEvent) {

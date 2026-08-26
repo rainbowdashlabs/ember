@@ -15,6 +15,7 @@ import {
     type KbFolder,
     type SearchResult,
     type SharedFileEntry,
+    type SharedFolderEntry,
 } from '@/api/knowledgeBase'
 import {fileIcon} from '@/util/kbFileIcon'
 import {isPdfExportable} from '@/util/kbFileExport'
@@ -58,6 +59,11 @@ export interface KbItem {
     stationName?: string
     restricted: boolean
     favourite: boolean
+    /**
+     * How far this entry reaches beyond the reader: on the public wiki, or shared without being open to
+     * everyone here. Undefined when it is simply the station's own.
+     */
+    shared?: 'public' | 'federated' | 'narrow'
     /** Set when a grant holds the reader below what their station permission would allow. */
     levelLabel?: string
     /** A short line the grid shows under the title, used by the favourites folder. */
@@ -75,11 +81,14 @@ interface KbItemHandlers {
     openFederatedFile: (stationUid: string, fileId: number) => void
     openFavourites: () => void
     editFolder: (folder: KbFolder) => void
+    shareFolder: (folder: KbFolder) => void
     deleteFolder: (folder: KbFolder) => void
     editFile: (file: KbFile) => void
+    shareFile: (file: KbFile) => void
     deleteFile: (file: KbFile) => void
     exportFilePdf: (file: KbFile) => void
     copySharedFile: (id: number) => void
+    openSharedFolder: (stationUid: string, folderId: number) => void
     removeFavourite: (file: KbFile, event?: MouseEvent) => void
 }
 
@@ -87,6 +96,15 @@ interface KbItemSources {
     folders: Ref<KbFolder[]>
     files: Ref<KbFile[]>
     sharedFiles: Ref<SharedFileEntry[]>
+    sharedFolders: Ref<SharedFolderEntry[]>
+    /** The entries standing on the public wiki, keyed the way the browse keys them. */
+    publicIds: Ref<Set<number>>
+    /** The entries every partner station reads, which is not the same as nobody outside reading them. */
+    federatedIds: Ref<Set<number>>
+    /** The entries shared beyond this station without being open to everyone in it. */
+    narrowIds: Ref<Set<number>>
+    folderKey: (id: number) => number
+    fileKey: (id: number) => number
     favourites: Ref<KbFile[]>
     favouriteIds: Ref<Set<number>>
     currentFolder: Ref<KbFolder | null>
@@ -174,6 +192,13 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
                 iconClass: 'text-info-accent dark:text-info',
                 run: () => handlers.editFile(file),
             })
+            actions.push({
+                key: 'share',
+                icon: ['fas', 'eye'],
+                label: t('kb.share'),
+                onHover: true,
+                run: () => handlers.shareFile(file),
+            })
         }
         if (sources.canManage.value && levelCovers(level, KbAccessLevel.MANAGE)) {
             actions.push({
@@ -200,11 +225,44 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             updatedAt: file.updatedAt,
             restricted: file.restricted === true,
             favourite: sources.favouriteIds.value.has(file.id),
+            shared: reachOf(sources.fileKey(file.id)),
             levelLabel: sources.isFavouritesView.value
                 ? undefined
                 : levelLabel(sources.fileLevels.value[file.id]),
             open: () => handlers.openFile(file),
             actions: fileActions(file),
+        }
+    }
+
+    /**
+     * A folder a partner shares, drawn as any other folder and opened the same way. What is inside it
+     * belongs to the partner, so opening it addresses the partner's station along with the folder.
+     */
+    /**
+     * Which eye a tile carries, if any. Green wins where both would apply: an entry on the public wiki is
+     * public whatever else narrows it inside the station.
+     */
+    function reachOf(key: number): 'public' | 'federated' | 'narrow' | undefined {
+        if (sources.publicIds.value.has(key)) return 'public'
+        if (sources.narrowIds.value.has(key)) return 'narrow'
+        if (sources.federatedIds.value.has(key)) return 'federated'
+        return undefined
+    }
+
+    function toSharedFolderItem(shared: SharedFolderEntry): KbItem {
+        const stationUid = shared.sourceStationUid
+        return {
+            key: 'shared-folder-' + stationUid + '-' + shared.id,
+            icon: ['fas', 'folder'],
+            iconClass: 'text-[var(--accent)]',
+            title: shared.name,
+            description: shared.description || undefined,
+            typeLabel: t('kb.typeFolder'),
+            stationName: shared.stationName,
+            restricted: false,
+            favourite: false,
+            open: stationUid ? () => handlers.openSharedFolder(stationUid, shared.id) : undefined,
+            actions: [],
         }
     }
 
@@ -251,6 +309,13 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
                 iconClass: 'text-info-accent dark:text-info',
                 run: () => handlers.editFolder(folder),
             })
+            actions.push({
+                key: 'share',
+                icon: ['fas', 'eye'],
+                label: t('kb.share'),
+                onHover: true,
+                run: () => handlers.shareFolder(folder),
+            })
         }
         if (levelCovers(level, KbAccessLevel.MANAGE)) {
             actions.push({
@@ -275,6 +340,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             title: folder.name,
             description: folder.description || undefined,
             typeLabel: t('kb.typeFolder'),
+            shared: reachOf(sources.folderKey(folder.id)),
             updatedAt: folder.updatedAt,
             restricted: folder.restricted === true,
             favourite: false,
@@ -307,6 +373,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
         const result: KbItem[] = []
         if (favouritesItem.value) result.push(favouritesItem.value)
         result.push(...sources.folders.value.map(toFolderItem))
+        result.push(...sources.sharedFolders.value.map(toSharedFolderItem))
         result.push(...sources.files.value.map(toFileItem))
         result.push(...sources.sharedFiles.value.map(toSharedItem))
         return result

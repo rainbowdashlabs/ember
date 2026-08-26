@@ -480,7 +480,7 @@ public class TwoFactorRoutes implements Routes {
                 ctx.header("CF-IPCountry"));
         Integer deviceTrustId = issueTrustedDeviceIfRequested(ctx, accountId, request.rememberDeviceDays());
         LoginResult session = authService.createVerifiedSessionForAccount(
-                accountId, ctx.userAgent(), ctx.header("CF-IPCountry"), deviceTrustId);
+                accountId, ctx.userAgent(), ctx.header("CF-IPCountry"), deviceTrustId, request.trustedDevice());
         ctx.json(new LoginResultResponse(session.token(), session.expiresAt()));
     }
 
@@ -603,7 +603,11 @@ public class TwoFactorRoutes implements Routes {
     public record WebAuthnLoginBeginRequest(String preAuthToken) {}
 
     public record WebAuthnLoginFinishRequest(
-            String preAuthToken, String challengeToken, String credentialJson, Integer rememberDeviceDays) {}
+            String preAuthToken,
+            String challengeToken,
+            String credentialJson,
+            Integer rememberDeviceDays,
+            boolean trustedDevice) {}
 
     public record WebAuthnStepUpFinishRequest(String challengeToken, String credentialJson) {}
 

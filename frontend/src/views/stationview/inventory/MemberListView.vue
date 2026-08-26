@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -21,6 +22,8 @@ import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useInventoryMemberExport } from './memberlistview/useInventoryMemberExport'
 import { getItem, setItem } from '@/api/storage'
+
+const routes = useInventoryRoutes()
 
 const { t } = useI18n()
 const router = useRouter()
@@ -204,7 +207,7 @@ const {
 )
 
 function goToMember(memberId: number) {
-  router.push({ name: 'inventory-member', params: { memberId } })
+  router.push({ name: routes.member, params: { memberId } })
 }
 </script>
 

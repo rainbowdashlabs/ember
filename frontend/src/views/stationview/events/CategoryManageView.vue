@@ -16,6 +16,8 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import ColorInput from '@/components/input/ColorInput.vue'
+import DragList from '@/components/input/DragList.vue'
+import {moveWithin} from '@/util/reorder'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -97,26 +99,9 @@ async function saveCategory() {
   }
 }
 
-function withSwapped(ids: number[], first: number, second: number): number[] {
-  const a = ids[first]
-  const b = ids[second]
-  if (a === undefined || b === undefined) return ids
-  const next = [...ids]
-  next[first] = b
-  next[second] = a
-  return next
-}
-
-async function moveUp(index: number) {
-  if (index <= 0) return
-  const ids = categories.value.map(c => c.id)
-  categories.value = await events.reorderCategories(withSwapped(ids, index - 1, index))
-}
-
-async function moveDown(index: number) {
-  if (index >= categories.value.length - 1) return
-  const ids = categories.value.map(c => c.id)
-  categories.value = await events.reorderCategories(withSwapped(ids, index, index + 1))
+async function reorder(fromIndex: number, toIndex: number) {
+  const ids = moveWithin(categories.value.map(c => c.id), fromIndex, toIndex)
+  categories.value = await events.reorderCategories(ids)
 }
 </script>
 
@@ -138,12 +123,9 @@ async function moveDown(index: number) {
         :error="error"
         :loading="loading"
     >
-      <div class="space-y-2">
-        <NeutralContainer
-            v-for="(cat, index) in categories"
-            :key="cat.id"
-            class="flex items-center justify-between"
-        >
+      <DragList :items="categories" :key-fn="(cat) => cat.id" class="space-y-2" @reorder="reorder">
+        <template #default="{item: cat}">
+        <NeutralContainer class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <span
                 v-if="cat.color"
@@ -157,13 +139,12 @@ async function moveDown(index: number) {
             </MutedText>
           </div>
           <div class="flex items-center gap-1">
-            <IconButton :icon="['fas', 'chevron-up']" :label="t('common.moveUp')" :disabled="index === 0" @click="moveUp(index)"/>
-            <IconButton :icon="['fas', 'chevron-down']" :label="t('common.moveDown')" :disabled="index === categories.length - 1" @click="moveDown(index)"/>
             <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="openEdit(cat)"/>
             <DeleteButton :label="t('common.delete')" @click="requestDelete(cat)"/>
           </div>
         </NeutralContainer>
-      </div>
+        </template>
+      </DragList>
     </AsyncSection>
 
     <Modal v-model="editOpen">

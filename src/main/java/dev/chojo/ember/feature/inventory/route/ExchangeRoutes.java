@@ -12,12 +12,16 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.inventory.entity.AckKind;
 import dev.chojo.ember.feature.inventory.entity.ExchangeLog;
 import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeExportService;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
@@ -42,6 +46,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -294,17 +299,32 @@ public class ExchangeRoutes implements Routes {
                 .orElse(null);
     }
 
+    /**
+     * One row of the list, as the screens read it.
+     *
+     * <p>Who owns the piece is read off the piece rather than off the inventory: the inventory only
+     * says which owners it may hold, and in a mixed one that is "both", which answers nothing about
+     * the row in front of you.
+     *
+     * <p>A movement between the store and the body above the station concerns nobody in particular,
+     * so there is no member to name and none is asked for.
+     */
     private ExchangeResponse toResponse(ExchangeRequest exchange) {
         String memberName = stationMemberRepository
                 .findById(exchange.memberId())
                 .flatMap(m -> accountRepository.findById(m.accountId()))
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
-        MemberIdentity memberIdentity = memberIdentityFactory.local(exchange.stationId(), exchange.memberId());
+        MemberIdentity memberIdentity =
+                exchange.memberId() > 0 ? memberIdentityFactory.local(exchange.stationId(), exchange.memberId()) : null;
         Inventory inventory =
                 inventoryRepository.findById(exchange.inventoryId()).orElse(null);
         String inventoryName = inventory != null ? inventory.name() : "";
         InventoryType inventoryType = inventory != null ? inventory.inventoryType() : null;
+        Optional<InventoryItem> item =
+                exchange.itemId() == null ? Optional.empty() : inventoryRepository.findItemById(exchange.itemId());
+        ItemOwner ownerKind = item.map(InventoryItem::ownerKind).orElse(null);
+
         return new ExchangeResponse(
                 exchange.id(),
                 exchange.memberId(),
@@ -318,6 +338,9 @@ public class ExchangeRoutes implements Routes {
                 exchange.newSizeId(),
                 resolveSizeLabel(exchange.newSizeId(), exchange.inventoryId()),
                 inventoryType,
+                ownerKind,
+                item.map(InventoryItem::name).orElse(null),
+                exchange.purpose(),
                 exchange.status(),
                 exchange.reason(),
                 exchange.createdAt(),
@@ -332,13 +355,7 @@ public class ExchangeRoutes implements Routes {
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
         return new LogResponse(
-                log.id(),
-                log.oldStatus(),
-                log.newStatus(),
-                log.changedBy(),
-                changedByName,
-                log.changedAt(),
-                log.note());
+                log.id(), log.stepLabel(), log.ackKind(), log.changedBy(), changedByName, log.changedAt(), log.note());
     }
 
     public record ExportRequest(List<Integer> exchangeIds, List<Integer> extraFieldIds) {}
@@ -356,6 +373,15 @@ public class ExchangeRoutes implements Routes {
             Integer newSizeId,
             String newSizeLabel,
             InventoryType inventoryType,
+            /** Who owns the piece itself, which is the interesting half in an inventory holding both. */
+            ItemOwner ownerKind,
+            /**
+             * What the piece is called. The overview is the only place a piece in the post still appears,
+             * so naming the inventory it came from is not enough to know which one is meant.
+             */
+            String itemName,
+            /** Whether this is an issue, a return or an exchange. */
+            MovementPurpose purpose,
             ExchangeStatus status,
             String reason,
             Instant createdAt,
@@ -364,8 +390,8 @@ public class ExchangeRoutes implements Routes {
 
     public record LogResponse(
             int id,
-            ExchangeStatus oldStatus,
-            ExchangeStatus newStatus,
+            String stepLabel,
+            AckKind ackKind,
             int changedBy,
             String changedByName,
             Instant changedAt,

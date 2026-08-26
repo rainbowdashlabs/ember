@@ -64,7 +64,10 @@ export interface RequiredInventoryItem {
     hasSizes: boolean
     sizes: InventorySize[]
     requiredQuantity: number
+    /** What the member has towards it, counting pieces away in an exchange. */
     assignedQuantity: number
+    /** How many of those are away in an exchange rather than in their hands. */
+    inExchangeQuantity: number
 }
 
 export interface InventoryCheck {

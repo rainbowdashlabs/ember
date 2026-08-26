@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
+import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.RichMember;
@@ -68,6 +69,7 @@ public class StationMemberRoutes implements Routes {
     private final RestrictionService restrictionService;
     private final AvatarService avatarService;
     private final AuthService authService;
+    private final MailRecipientService mailRecipientService;
 
     @Inject
     public StationMemberRoutes(
@@ -80,7 +82,8 @@ public class StationMemberRoutes implements Routes {
             MemberIdentityFactory memberIdentityFactory,
             RestrictionService restrictionService,
             AvatarService avatarService,
-            AuthService authService) {
+            AuthService authService,
+            MailRecipientService mailRecipientService) {
         this.memberService = memberService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -91,6 +94,7 @@ public class StationMemberRoutes implements Routes {
         this.restrictionService = restrictionService;
         this.avatarService = avatarService;
         this.authService = authService;
+        this.mailRecipientService = mailRecipientService;
     }
 
     /**
@@ -555,10 +559,10 @@ public class StationMemberRoutes implements Routes {
         if (account.setupCompletedAt() != null) {
             throw new BadRequestResponse("Account is already set up");
         }
-        if (account.email() == null || account.email().isBlank()) {
-            throw new BadRequestResponse("Account has no email address");
+        if (!mailRecipientService.isReachable(account.id())) {
+            throw new BadRequestResponse("Nobody can be written to about this account");
         }
-        authService.sendPasswordSetup(account.id(), account.email(), account.firstName());
+        authService.sendPasswordSetup(account.id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.storage.route;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.entity.ClusterBackendReach;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
 import dev.chojo.ember.feature.storage.audit.StorageAuditEntry;
@@ -21,12 +21,16 @@ import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
-import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
-import dev.chojo.ember.feature.storage.credential.StoredCredentials;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
+import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
+import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
+import dev.chojo.ember.feature.storage.route.StorageBackendPayloads.BackendOverrideRequest;
+import dev.chojo.ember.feature.storage.route.StorageBackendPayloads.BackendOverrideSummary;
+import dev.chojo.ember.feature.storage.route.StorageBackendPayloads.MigrationResponse;
+import dev.chojo.ember.feature.storage.route.StorageBackendPayloads.ProbeResult;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService;
 import dev.chojo.ember.feature.storage.service.StorageBackendAuditService.Actor;
 import dev.chojo.ember.feature.storage.service.StorageMigrationService;
@@ -40,7 +44,6 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -72,7 +75,10 @@ public class StationStorageBackendRoutes implements Routes {
     private final StorageBackendAuditService auditService;
     private final StorageBackendAuditRepository auditRepository;
     private final StorageMigrationService migrationService;
-    private final RemoteUrlValidator urlValidator;
+    private final StorageBackendPayloads payloads;
+    private final ClusterRepository clusterRepository;
+    private final ClusterStorageConfigRepository clusterConfigRepository;
+    private final ClusterStationStorageRepository placementRepository;
 
     @Inject
     public StationStorageBackendRoutes(
@@ -84,7 +90,10 @@ public class StationStorageBackendRoutes implements Routes {
             StorageBackendAuditService auditService,
             StorageBackendAuditRepository auditRepository,
             StorageMigrationService migrationService,
-            RemoteUrlValidator urlValidator) {
+            StorageBackendPayloads payloads,
+            ClusterRepository clusterRepository,
+            ClusterStorageConfigRepository clusterConfigRepository,
+            ClusterStationStorageRepository placementRepository) {
         this.repository = repository;
         this.factory = factory;
         this.resolver = resolver;
@@ -93,7 +102,10 @@ public class StationStorageBackendRoutes implements Routes {
         this.auditService = auditService;
         this.auditRepository = auditRepository;
         this.migrationService = migrationService;
-        this.urlValidator = urlValidator;
+        this.payloads = payloads;
+        this.clusterRepository = clusterRepository;
+        this.clusterConfigRepository = clusterConfigRepository;
+        this.placementRepository = placementRepository;
     }
 
     static AuditEntryResponse toResponse(StorageAuditEntry entry) {
@@ -123,37 +135,65 @@ public class StationStorageBackendRoutes implements Routes {
         routes.get(prefix + "/station/storage/audit", this::listAudit, StationPermission.STATION_ADMINISTRATOR);
     }
 
+    /**
+     * Where this station's files are, who decided that, and whether the station may change it.
+     *
+     * <p>A station under an association may be standing on the association's storage, and may have been put
+     * there by somebody else. A station manager wondering why an upload failed should not have to ask who to
+     * ask, so the answer says what is behind the station, on whose word, and what is still theirs to do.
+     */
     private void get(Context ctx) {
         int stationId = sessionStationId(ctx);
         StorageBackendType instanceDefault = resolver.instanceDefault().type();
-        Optional<BackendOverrideSummary> override =
-                repository.findOne(stationId).map(row -> toSummary(row.config()));
-        ctx.json(new BackendOverrideResponse(instanceDefault, override.orElse(null)));
+        BackendOverrideSummary own = repository
+                .findOne(stationId)
+                .map(row -> StorageBackendPayloads.toSummary(row.config()))
+                .orElse(null);
+
+        Optional<Cluster> cluster = clusterRepository.findByStation(stationId);
+        BackendOverrideSummary onCluster = placementRepository
+                .findConfigForStation(stationId)
+                .map(StorageBackendPayloads::toSummary)
+                .orElse(null);
+        boolean clusterOffersStorage = cluster.filter(c -> c.storageBackendReach() == ClusterBackendReach.EVERY_STATION)
+                .flatMap(c -> clusterConfigRepository.findCurrent(c.id()))
+                .isPresent();
+        boolean locked = cluster.map(Cluster::storageBackendLocked).orElse(false);
+
+        ctx.json(new BackendOverrideResponse(
+                instanceDefault,
+                own,
+                onCluster,
+                cluster.map(Cluster::name).orElse(null),
+                clusterOffersStorage,
+                locked));
     }
 
     /**
      * Unified entry point for "save and apply": probes the target backend, migrates every
      * station-scoped movable category from the currently-resolved source backend onto it, and
      * atomically swaps the {@code station_storage_config} row when the migration succeeds. A
-     * {@link LocalRequest} target means "drop the override and move bytes back to the instance
-     * default". For an empty source the copy phase is a no-op, so this path is also the
+     * {@link StorageBackendPayloads.LocalRequest} target means "drop the override and move bytes back to the
+     * instance default", and a {@link StorageBackendPayloads.ClusterRequest} means "put me on my
+     * association's storage". For an empty source the copy phase is a no-op, so this path is also the
      * green-field setup flow - no separate save endpoint is needed.
      */
     private void apply(Context ctx) {
         Actor actor = actor(ctx);
         int stationId = sessionStationId(ctx);
         BackendOverrideRequest request = ctx.bodyAsClass(BackendOverrideRequest.class);
+        requireStationMayChooseItsOwn(stationId);
         Optional<StationStorageBackendConfig> existing =
                 repository.findOne(stationId).map(StationStorageConfigRepository.Row::config);
-        StationStorageBackendConfig target = request instanceof LocalRequest ? null : toEntity(request);
+        StorageMigrationService.Destination destination = destinationFor(stationId, request);
+        StationStorageBackendConfig target =
+                destination instanceof StorageMigrationService.Destination.Own own ? own.config() : null;
 
         auditService.recordMigration(
                 actor, stationId, StorageAuditAction.MIGRATION_STARTED, existing.orElse(null), target, null);
         StorageMigrationService.MigrationResult result;
         try {
-            result = target == null
-                    ? migrationService.migrateToInstanceDefault(stationId)
-                    : migrationService.migrate(stationId, target);
+            result = migrationService.moveStation(stationId, destination);
         } catch (MigrationException e) {
             auditService.recordMigration(
                     actor,
@@ -205,7 +245,7 @@ public class StationStorageBackendRoutes implements Routes {
     private void probeConfig(Context ctx) {
         int stationId = sessionStationId(ctx);
         BackendOverrideRequest request = ctx.bodyAsClass(BackendOverrideRequest.class);
-        StationStorageBackendConfig config = toEntity(request);
+        StationStorageBackendConfig config = payloads.toEntity(request);
         boolean healthy;
         String errorOrNull;
         Instant checkedAt;
@@ -257,125 +297,62 @@ public class StationStorageBackendRoutes implements Routes {
         return Actor.human(session.account().id(), memberId);
     }
 
-    private StationStorageBackendConfig toEntity(BackendOverrideRequest request) {
+    /**
+     * Where this station is asking to go.
+     *
+     * <p>Its association's storage is not something the station describes: it is looked up, so a station
+     * cannot type its way onto somewhere the association never named.
+     */
+    private StorageMigrationService.Destination destinationFor(int stationId, BackendOverrideRequest request) {
         return switch (request) {
-            case S3Request r -> {
-                requireAllowedHost(hostOf(r.endpoint()));
-                yield new StationStorageBackendConfig.S3Variant(
-                        r.endpoint(),
-                        r.region(),
-                        r.bucket(),
-                        r.pathStyle(),
-                        Optional.ofNullable(r.sseAlgorithm()).filter(s -> !s.isBlank()),
-                        r.basePath(),
-                        encryptS3(r));
+            case StorageBackendPayloads.LocalRequest ignored ->
+                new StorageMigrationService.Destination.InstanceDefault();
+            case StorageBackendPayloads.ClusterRequest ignored -> {
+                Cluster cluster = clusterRepository
+                        .findByStation(stationId)
+                        .orElseThrow(() -> new BadRequestResponse("This station answers to no association"));
+                if (cluster.storageBackendReach() != ClusterBackendReach.EVERY_STATION) {
+                    throw new BadRequestResponse("This association does not keep storage for its stations");
+                }
+                var current = clusterConfigRepository
+                        .findCurrent(cluster.id())
+                        .orElseThrow(() -> new BadRequestResponse("This association keeps no storage of its own"));
+                yield new StorageMigrationService.Destination.Cluster(cluster.id(), current.id(), current.config());
             }
-            case SmbRequest r -> {
-                requireAllowedHost(r.host());
-                yield new StationStorageBackendConfig.SmbVariant(
-                        r.host(), r.port(), r.share(), r.domain(), r.basePath(), r.seal(), r.dfs(), encryptSmb(r));
-            }
-            case SftpRequest r -> {
-                requireAllowedHost(r.host());
-                yield new StationStorageBackendConfig.SftpVariant(
-                        r.host(), r.port(), r.username(), r.knownHostsFingerprint(), r.basePath(), encryptSftp(r));
-            }
-            case LocalRequest ignored ->
-                throw new IllegalStateException("LOCAL has no entity; the apply handler must dispatch separately");
+            default -> new StorageMigrationService.Destination.Own(payloads.toEntity(request));
         };
     }
-
-    private static String hostOf(String endpoint) {
-        if (endpoint == null || endpoint.isBlank()) {
-            return null;
-        }
-        try {
-            String host = URI.create(endpoint.trim()).getHost();
-            return host != null ? host : endpoint.trim();
-        } catch (IllegalArgumentException e) {
-            return endpoint.trim();
-        }
-    }
-
-    private void requireAllowedHost(String host) {
-        if (!urlValidator.isHostAllowed(host)) {
-            throw new BadRequestResponse("Storage backend host is not a permitted address");
-        }
-    }
-
-    private EncryptedBlob encryptS3(S3Request r) {
-        if (r.accessKey() == null || r.secretKey() == null) {
-            throw new BadRequestResponse("S3 override requires accessKey and secretKey");
-        }
-        return credentialCipher.encrypt(new StoredCredentials.S3(r.accessKey(), r.secretKey()).toJson());
-    }
-
-    private EncryptedBlob encryptSmb(SmbRequest r) {
-        if (r.username() == null || r.password() == null) {
-            throw new BadRequestResponse("SMB override requires username and password");
-        }
-        return credentialCipher.encrypt(new StoredCredentials.Smb(r.username(), r.password()).toJson());
-    }
-
-    private EncryptedBlob encryptSftp(SftpRequest r) {
-        boolean hasPassword = r.password() != null && !r.password().isBlank();
-        boolean hasKey = r.privateKey() != null && !r.privateKey().isBlank();
-        if (hasPassword == hasKey) {
-            throw new BadRequestResponse("SFTP override requires exactly one of password or privateKey");
-        }
-        return credentialCipher.encrypt(new StoredCredentials.Sftp(
-                        r.username(),
-                        r.password() == null ? "" : r.password(),
-                        r.privateKey() == null ? "" : r.privateKey())
-                .toJson());
-    }
-
-    private BackendOverrideSummary toSummary(StationStorageBackendConfig config) {
-        return switch (config) {
-            case StationStorageBackendConfig.S3Variant v ->
-                new S3Summary(
-                        v.endpoint(),
-                        v.region(),
-                        v.bucket(),
-                        v.pathStyle(),
-                        v.sseAlgorithm().orElse(""),
-                        v.basePath());
-            case StationStorageBackendConfig.SmbVariant v ->
-                new SmbSummary(v.host(), v.port(), v.share(), v.domain(), v.basePath(), v.seal(), v.dfs());
-            case StationStorageBackendConfig.SftpVariant v ->
-                new SftpSummary(
-                        v.host(),
-                        v.port(),
-                        v.username(),
-                        !v.knownHostsFingerprint().isBlank(),
-                        v.basePath());
-        };
-    }
-
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes({
-        @JsonSubTypes.Type(value = S3Summary.class, name = "S3"),
-        @JsonSubTypes.Type(value = SmbSummary.class, name = "SMB"),
-        @JsonSubTypes.Type(value = SftpSummary.class, name = "SFTP")
-    })
-    public sealed interface BackendOverrideSummary {}
-
-    // -- Response shapes --
-
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes({
-        @JsonSubTypes.Type(value = LocalRequest.class, name = "LOCAL"),
-        @JsonSubTypes.Type(value = S3Request.class, name = "S3"),
-        @JsonSubTypes.Type(value = SmbRequest.class, name = "SMB"),
-        @JsonSubTypes.Type(value = SftpRequest.class, name = "SFTP")
-    })
-    public sealed interface BackendOverrideRequest {}
 
     /**
-     * Drops the override and migrates bytes back to the instance default. Has no fields -
-     * the {@code type} discriminator is enough to identify the intent.
+     * A locked association decides where its stations' files are, and a disabled button is not a permission.
      */
-    public record LocalRequest() implements BackendOverrideRequest {}
+    private void requireStationMayChooseItsOwn(int stationId) {
+        boolean locked = clusterRepository
+                .findByStation(stationId)
+                .map(Cluster::storageBackendLocked)
+                .orElse(false);
+        if (locked) {
+            throw new ForbiddenResponse("This station's association decides where its files are kept");
+        }
+    }
+
+    /**
+     * What is behind this station's files, on whose word, and what is still the station's to change.
+     *
+     * @param instanceDefault      the kind of backend the instance provides
+     * @param override             a backend the station brought itself, or {@code null}
+     * @param clusterBackend       the association's storage its files were carried to, or {@code null}
+     * @param clusterName          the association it answers to, or {@code null}
+     * @param clusterOffersStorage whether that association keeps storage its stations may move onto
+     * @param locked               whether the association decides, which makes this screen read-only
+     */
+    public record BackendOverrideResponse(
+            StorageBackendType instanceDefault,
+            BackendOverrideSummary override,
+            BackendOverrideSummary clusterBackend,
+            String clusterName,
+            boolean clusterOffersStorage,
+            boolean locked) {}
 
     public record AuditEntryResponse(
             long id,
@@ -389,56 +366,4 @@ public class StationStorageBackendRoutes implements Routes {
             String newConfig,
             StorageAuditOutcome outcome,
             String error) {}
-
-    public record BackendOverrideResponse(StorageBackendType instanceDefault, BackendOverrideSummary override) {}
-
-    public record S3Summary(
-            String endpoint, String region, String bucket, boolean pathStyle, String sseAlgorithm, String basePath)
-            implements BackendOverrideSummary {}
-
-    public record SmbSummary(
-            String host, int port, String share, String domain, String basePath, boolean seal, boolean dfs)
-            implements BackendOverrideSummary {}
-
-    public record SftpSummary(String host, int port, String username, boolean knownHostsPinned, String basePath)
-            implements BackendOverrideSummary {}
-
-    public record ProbeResult(boolean healthy, String error, String checkedAt) {}
-
-    // -- Request shapes (plaintext credentials in transit only; server encrypts before persisting) --
-
-    public record MigrationResponse(int totalKeys, int copied, int skipped, int deleted, long copiedBytes) {}
-
-    public record S3Request(
-            String endpoint,
-            String region,
-            String bucket,
-            boolean pathStyle,
-            String sseAlgorithm,
-            String basePath,
-            String accessKey,
-            String secretKey)
-            implements BackendOverrideRequest {}
-
-    public record SmbRequest(
-            String host,
-            int port,
-            String share,
-            String domain,
-            String basePath,
-            boolean seal,
-            boolean dfs,
-            String username,
-            String password)
-            implements BackendOverrideRequest {}
-
-    public record SftpRequest(
-            String host,
-            int port,
-            String username,
-            String knownHostsFingerprint,
-            String basePath,
-            String password,
-            String privateKey)
-            implements BackendOverrideRequest {}
 }

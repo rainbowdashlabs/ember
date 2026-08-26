@@ -8,13 +8,13 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import {roleLabel} from '@/composables/useDemoAccounts'
 import type {DemoAccount, RoleGroup} from '@/composables/useDemoAccounts'
 
 defineProps<{
   roleGroups: RoleGroup[]
   loading: boolean
   compact?: boolean
-  roleLabel: (a: DemoAccount) => string
 }>()
 
 const emit = defineEmits<{

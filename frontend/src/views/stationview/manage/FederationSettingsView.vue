@@ -11,7 +11,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import DiscoveryPanel from './federationsettingsview/DiscoveryPanel.vue'
-import PublicKbPanel from './federationsettingsview/PublicKbPanel.vue'
+import PublicKbPanel from '@/components/knowledge/PublicKbPanel.vue'
 import PublicCalendarPanel from './federationsettingsview/PublicCalendarPanel.vue'
 import PublicPagesPanel from './federationsettingsview/PublicPagesPanel.vue'
 import PublicWaitlistPanel from './federationsettingsview/PublicWaitlistPanel.vue'
@@ -148,7 +148,7 @@ watch(loaded, (v) => { if (v) loadSettings() })
 
     <template v-if="!loading">
       <div class="space-y-4 max-w-xl">
-        <DiscoveryPanel v-model:visibility="discoveryVisibility" v-model:description="discoveryDescription"/>
+        <DiscoveryPanel data-onboarding="federation.visibility" v-model:visibility="discoveryVisibility" v-model:description="discoveryDescription"/>
         <PublicKbPanel v-model:mode="publicKbMode" :public-url="publicKbUrl"/>
         <PublicCalendarPanel v-model:enabled="publicCalendarEnabled" :public-url="publicCalendarUrl"/>
         <PublicPagesPanel v-model:enabled="publicPagesEnabled" :public-url="publicPagesUrl"/>

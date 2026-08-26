@@ -15,14 +15,30 @@ import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
 import dev.chojo.ember.TestContainers;
 import dev.chojo.ember.auth.TokenHasher;
+import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
 import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
 import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterApplicationRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
+import dev.chojo.ember.feature.cluster.service.ClusterDispatchService;
+import dev.chojo.ember.feature.cluster.service.ClusterGovernanceService;
+import dev.chojo.ember.feature.cluster.service.ClusterInventoryService;
+import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
+import dev.chojo.ember.feature.cluster.service.ClusterProfileFieldService;
+import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.cluster.service.ClusterStationGroupService;
+import dev.chojo.ember.feature.cluster.service.ClusterStorageBackendService;
+import dev.chojo.ember.feature.cluster.service.ClusterStorageQuotaService;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
 import dev.chojo.ember.feature.content.repository.ContentContainerRepository;
@@ -47,17 +63,28 @@ import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.insights.repository.PageHitRepository;
-import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryContainerKindRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryContainerRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryFieldDefinitionRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.repository.ItemMovementDocumentRepository;
+import dev.chojo.ember.feature.inventory.repository.ItemMovementItemRepository;
+import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
+import dev.chojo.ember.feature.inventory.repository.MovementFlowRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
+import dev.chojo.ember.feature.inventory.service.ClusterItemHandoverService;
+import dev.chojo.ember.feature.inventory.service.ExchangeService;
+import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
+import dev.chojo.ember.feature.inventory.service.ItemMovementService;
+import dev.chojo.ember.feature.inventory.service.LossReportService;
+import dev.chojo.ember.feature.inventory.service.MovementFlowService;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
@@ -77,6 +104,7 @@ import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
@@ -87,14 +115,26 @@ import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
 import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
 import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
+import dev.chojo.ember.feature.quiz.repository.QuizQuestionReportRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
 import dev.chojo.ember.feature.restriction.repository.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.migration.MigrationLockRegistry;
+import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
+import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
+import dev.chojo.ember.feature.storage.repository.ClusterStorageQuotaRepository;
+import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
 import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
+import dev.chojo.ember.feature.storage.service.StorageMigrationService;
+import dev.chojo.ember.feature.storage.service.StorageQuotaService;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
@@ -139,6 +179,44 @@ public abstract class RepositoryTestBase {
     protected static StationMemberRepository stationMemberRepo;
     protected static AttendanceRepository attendanceRepo;
     protected static InventoryRepository inventoryRepo;
+    protected static ClusterRepository clusterRepo;
+
+    protected static ClusterApplicationRepository clusterApplicationRepo;
+
+    protected static ClusterProfileFieldRepository clusterProfileFieldRepo;
+
+    protected static ClusterProfileFieldService clusterProfileFieldService;
+
+    protected static ClusterInventoryService clusterInventoryService;
+    protected static ClusterDispatchService clusterDispatchService;
+
+    protected static InventoryService inventoryService;
+
+    protected static ProfileFieldService profileFieldService;
+
+    /** Shared, because its dependency list grows with every step and no test cares about it. */
+    protected static ClusterService clusterService;
+
+    protected static ClusterGovernanceService clusterGovernanceService;
+    protected static ClusterStationGroupRepository clusterStationGroupRepo;
+    protected static ClusterStationGroupService clusterStationGroupService;
+    protected static ClusterStorageBackendService clusterStorageBackendService;
+
+    protected static ClusterMemberService clusterMemberService;
+    protected static ClusterStorageQuotaService clusterStorageQuotaService;
+
+    protected static ItemCustodyService itemCustodyService;
+    protected static MovementFlowRepository movementFlowRepo;
+    protected static ItemMovementRepository itemMovementRepo;
+    protected static MovementFlowService movementFlowService;
+    protected static ItemMovementService itemMovementService;
+
+    protected static ItemMovementDocumentRepository itemMovementDocumentRepo;
+    protected static ItemMovementItemRepository itemMovementItemRepo;
+    protected static LossReportService lossReportService;
+
+    protected static ClusterItemHandoverService clusterItemHandoverService;
+    protected static ExchangeService exchangeService;
     protected static MemberGroupRepository memberGroupRepo;
     protected static ProfileFieldRepository profileFieldRepo;
     protected static MemberDocumentRepository memberDocumentRepo;
@@ -153,7 +231,6 @@ public abstract class RepositoryTestBase {
     protected static InventoryCheckRepository inventoryCheckRepo;
     protected static EventFieldRepository eventFieldRepo;
     protected static FormRepository formRepo;
-    protected static ExchangeRepository exchangeRepo;
     protected static ProcurementRepository procurementRepo;
     protected static InventoryContainerRepository containerRepo;
     protected static InventoryContainerKindRepository containerKindRepo;
@@ -175,6 +252,7 @@ public abstract class RepositoryTestBase {
     protected static FeedMetricsRepository feedMetricsRepo;
     protected static QuizCatalogRepository quizCatalogRepo;
     protected static QuizTestRepository quizTestRepo;
+    protected static QuizQuestionReportRepository quizQuestionReportRepo;
     protected static AiProviderRepository aiProviderRepo;
     protected static TestProtocolRepository testProtocolRepo;
     protected static KnowledgeBaseRepository knowledgeBaseRepo;
@@ -193,6 +271,7 @@ public abstract class RepositoryTestBase {
     protected static MediaMetaRepository mediaMetaRepo;
     protected static StorageUsageRepository storageUsageRepo;
     protected static StorageQuotaPresetRepository storagePresetRepo;
+    protected static ClusterStorageQuotaRepository clusterStorageQuotaRepo;
     protected static StorageBackendAuditRepository storageBackendAuditRepo;
     protected static DiscoveryPeerRepository discoveryPeerRepo;
     protected static DiscoveryPingRepository discoveryPingRepo;
@@ -262,6 +341,35 @@ public abstract class RepositoryTestBase {
         memberLookupService = new MemberLookupService(stationMemberRepo, stationRepo);
         attendanceRepo = new AttendanceRepository();
         inventoryRepo = new InventoryRepository();
+        clusterRepo = new ClusterRepository();
+        clusterApplicationRepo = new ClusterApplicationRepository();
+        clusterProfileFieldRepo = new ClusterProfileFieldRepository();
+        itemCustodyService = new ItemCustodyService(inventoryRepo);
+        movementFlowRepo = new MovementFlowRepository();
+        itemMovementRepo = new ItemMovementRepository();
+        movementFlowService = new MovementFlowService(movementFlowRepo, itemMovementRepo, clusterRepo);
+        itemMovementDocumentRepo = new ItemMovementDocumentRepository();
+        itemMovementItemRepo = new ItemMovementItemRepository();
+        itemMovementService = new ItemMovementService(
+                itemMovementRepo,
+                movementFlowService,
+                inventoryRepo,
+                itemCustodyService,
+                clusterRepo,
+                itemMovementItemRepo,
+                new DomainEventBus(Set.of()));
+        clusterItemHandoverService =
+                new ClusterItemHandoverService(inventoryRepo, itemCustodyService, itemMovementService);
+        var movementBackend = new LocalStorageBackend();
+        lossReportService = new LossReportService(
+                inventoryRepo,
+                itemMovementService,
+                itemMovementDocumentRepo,
+                clusterRepo,
+                stationRepo,
+                new StorageService(new StorageBackendResolver(movementBackend), movementBackend),
+                new DomainEventBus(Set.of()));
+        exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         memberGroupRepo = new MemberGroupRepository();
         profileFieldRepo = new ProfileFieldRepository();
         memberDocumentRepo = new MemberDocumentRepository();
@@ -276,7 +384,6 @@ public abstract class RepositoryTestBase {
         inventoryCheckRepo = new InventoryCheckRepository();
         eventFieldRepo = new EventFieldRepository();
         formRepo = new FormRepository();
-        exchangeRepo = new ExchangeRepository();
         procurementRepo = new ProcurementRepository();
         containerRepo = new InventoryContainerRepository();
         containerKindRepo = new InventoryContainerKindRepository();
@@ -284,6 +391,60 @@ public abstract class RepositoryTestBase {
         lostAndFoundRepo = new LostAndFoundRepository();
         emailQueueRepo = new EmailQueueRepository();
         profileFieldChangeRepo = new ProfileFieldChangeRepository();
+        profileFieldService = new ProfileFieldService(
+                profileFieldRepo,
+                profileFieldChangeRepo,
+                org.mockito.Mockito.mock(dev.chojo.ember.feature.notifications.service.NotificationService.class),
+                stationMemberRepo,
+                accountRepo,
+                clusterProfileFieldRepo);
+        clusterStationGroupRepo = new ClusterStationGroupRepository();
+        inventoryService =
+                new InventoryService(inventoryRepo, itemCustodyService, clusterRepo, clusterStationGroupRepo);
+        clusterStationGroupService = new ClusterStationGroupService(clusterStationGroupRepo, clusterRepo, stationRepo);
+        clusterProfileFieldService = new ClusterProfileFieldService(
+                clusterProfileFieldRepo,
+                clusterRepo,
+                clusterStationGroupRepo,
+                stationRepo,
+                stationMemberRepo,
+                profileFieldChangeRepo,
+                new DomainEventBus(Set.of()));
+        clusterStorageQuotaRepo = new ClusterStorageQuotaRepository();
+        clusterGovernanceService = new ClusterGovernanceService(
+                clusterRepo, clusterStationGroupRepo, stationRepo, new DomainEventBus(Set.of()));
+        var storageMigrationService = new StorageMigrationService(
+                stationRepo,
+                new StationStorageConfigRepository(),
+                new ClusterStationStorageRepository(),
+                new StorageBackendFactory(new Storage(), new LocalStorageBackend(), null),
+                new StorageBackendResolver(new LocalStorageBackend()),
+                new MigrationLockRegistry());
+        clusterStorageBackendService = new ClusterStorageBackendService(
+                clusterRepo,
+                stationRepo,
+                new ClusterStorageConfigRepository(),
+                new ClusterStationStorageRepository(),
+                new StationStorageConfigRepository(),
+                storageMigrationService,
+                new StorageBackendResolver(new LocalStorageBackend()));
+        clusterService = new ClusterService(
+                clusterRepo,
+                stationRepo,
+                clusterItemHandoverService,
+                new FederationService(new FederationRepository(), stationRepo, new Api()),
+                clusterGovernanceService,
+                clusterProfileFieldService,
+                clusterStorageQuotaRepo,
+                clusterStorageBackendService,
+                clusterStationGroupService,
+                new DomainEventBus(Set.of()));
+        clusterMemberService = new ClusterMemberService(
+                clusterRepo,
+                clusterService,
+                accountRepo,
+                new AccountInviteService(accountRepo, org.mockito.Mockito.mock(AuthService.class)),
+                new DomainEventBus(Set.of()));
         userSettingsRepo = new UserSettingsRepository();
         userTagRepo = new UserTagRepository();
         newsRepo = new NewsRepository();
@@ -298,6 +459,7 @@ public abstract class RepositoryTestBase {
         feedMetricsRepo = new FeedMetricsRepository();
         quizCatalogRepo = new QuizCatalogRepository();
         quizTestRepo = new QuizTestRepository();
+        quizQuestionReportRepo = new QuizQuestionReportRepository();
         aiProviderRepo = new AiProviderRepository();
         testProtocolRepo = new TestProtocolRepository();
         knowledgeBaseRepo = new KnowledgeBaseRepository();
@@ -317,6 +479,14 @@ public abstract class RepositoryTestBase {
         storageUsageRepo = new StorageUsageRepository();
         storagePresetRepo = new StorageQuotaPresetRepository();
         storageBackendAuditRepo = new StorageBackendAuditRepository();
+        // After the usage repository, because it reads what every station is keeping
+        clusterStorageQuotaService = new ClusterStorageQuotaService(
+                clusterRepo,
+                stationRepo,
+                clusterStorageQuotaRepo,
+                new StorageQuotaService(storageUsageRepo, new Storage(), new DomainEventBus(Set.of())),
+                storageUsageRepo,
+                new DomainEventBus(Set.of()));
         discoveryPeerRepo = new DiscoveryPeerRepository();
         discoveryPingRepo = new DiscoveryPingRepository();
         discoveryStationCacheRepo = new DiscoveryStationCacheRepository();
@@ -333,6 +503,18 @@ public abstract class RepositoryTestBase {
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
         memberIdentityFactory = new MemberIdentityFactory(stationRepo, memberLookupService, memberNameResolver);
+        // Built here rather than with the other services: it reads a holder's name, which needs the
+        // resolver that is only ready at this point.
+        clusterInventoryService = new ClusterInventoryService(
+                clusterRepo,
+                inventoryRepo,
+                itemMovementRepo,
+                movementFlowService,
+                stationRepo,
+                stationMemberRepo,
+                memberNameResolver);
+        clusterDispatchService = new ClusterDispatchService(
+                clusterRepo, stationRepo, inventoryRepo, itemMovementService, movementFlowService);
     }
 
     /**

@@ -71,7 +71,8 @@ const assignedMemberIdentity = computed(() => {
   <NeutralContainer class="space-y-3">
     <div class="flex items-center justify-between">
       <SubHeader>{{ props.item.name }}</SubHeader>
-      <SecondaryButton v-if="props.canEditItem && !editing" :icon="['fas', 'pen']" @click="startEdit">
+      <SecondaryButton v-if="props.canEditItem && !editing" data-testid="item-edit"
+                       :icon="['fas', 'pen']" @click="startEdit">
         {{ t('itemDetail.edit') }}
       </SecondaryButton>
     </div>

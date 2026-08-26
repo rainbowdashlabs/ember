@@ -11,6 +11,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type { Inventory } from '@/api/inventory'
 import type { MemberGroup } from '@/api/types'
+import type { StationGroup } from '@/api/clusterStationGroups'
 import RequirementAddForm from './RequirementAddForm.vue'
 
 const show = defineModel<boolean>('show', { default: false })
@@ -19,10 +20,13 @@ const userType = defineModel<string>('userType', { default: '' })
 const groupId = defineModel<string>('groupId', { default: '' })
 const inventoryId = defineModel<string>('inventoryId', { default: '' })
 const quantity = defineModel<number>('quantity', { default: 1 })
+const stationGroupId = defineModel<string>('stationGroupId', { default: '' })
 
 defineProps<{
   inventories: Inventory[]
   allGroups: MemberGroup[]
+  /** The association's ways of filing its stations, empty at a station. */
+  stationGroups?: StationGroup[]
   saving: boolean
 }>()
 
@@ -44,8 +48,10 @@ const { t } = useI18n()
         v-model:group-id="groupId"
         v-model:inventory-id="inventoryId"
         v-model:quantity="quantity"
+        v-model:station-group-id="stationGroupId"
         :inventories="inventories"
         :all-groups="allGroups"
+        :station-groups="stationGroups"
       />
 
       <div class="flex justify-end gap-3">

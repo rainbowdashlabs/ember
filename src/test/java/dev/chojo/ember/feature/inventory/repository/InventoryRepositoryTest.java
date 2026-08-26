@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItemHistory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -151,7 +152,7 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(23)
     void updateItem() {
-        assertTrue(inventoryRepo.updateItem(itemId, "H-002", "Blue Helmet", sizeId, new InventoryItemMetadata(true)));
+        assertTrue(inventoryRepo.updateItem(itemId, "H-002", "Blue Helmet", sizeId, InventoryItemMetadata.empty()));
         InventoryItem updated = inventoryRepo.findItemById(itemId).orElseThrow();
         assertEquals("H-002", updated.internalId());
         assertEquals("Blue Helmet", updated.name());
@@ -160,7 +161,7 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(24)
     void assignItem() {
-        assertTrue(inventoryRepo.assignItem(itemId, member.id()));
+        assertTrue(itemCustodyService.assignToMember(itemId, member.id(), "").isPresent());
         assertEquals(
                 member.id(), inventoryRepo.findItemById(itemId).orElseThrow().assignedTo());
 
@@ -168,7 +169,7 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         assertEquals(1, inventoryRepo.countItemsByMember(member.id()));
 
         // Unassign
-        assertTrue(inventoryRepo.assignItem(itemId, null));
+        assertTrue(itemCustodyService.takeBack(itemId).isPresent());
         assertNull(inventoryRepo.findItemById(itemId).orElseThrow().assignedTo());
         assertEquals(0, inventoryRepo.countItemsByMember(member.id()));
     }
@@ -226,7 +227,7 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void createRequirementByUserType() {
-        InventoryRequirement req = inventoryRepo.createRequirement(inventoryId, StationUserType.MEMBER, 0, 2);
+        InventoryRequirement req = inventoryRepo.createRequirement(inventoryId, StationUserType.MEMBER, 0, null, 2);
         assertNotNull(req);
         assertEquals(inventoryId, req.inventoryId());
         assertEquals(2, req.quantity());
@@ -260,7 +261,7 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Order(44)
     void createRequirementByGroup() {
         MemberGroup group = memberGroupRepo.create(station.id(), "Req Group");
-        InventoryRequirement req = inventoryRepo.createRequirement(inventoryId, null, group.id(), 3);
+        InventoryRequirement req = inventoryRepo.createRequirement(inventoryId, null, group.id(), null, 3);
         assertNotNull(req);
         assertEquals(group.id(), req.groupId());
         assertEquals(3, req.quantity());
@@ -305,24 +306,45 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Order(48)
     void markLostAndFound() {
         InventoryItem item = inventoryRepo.createItem(inventoryId, "LOST-001", "Lost Item", null, null);
-        assertTrue(inventoryRepo.markLost(item.id()));
+        assertTrue(itemCustodyService.markLost(item.id(), null, null).isPresent());
         assertNotNull(inventoryRepo.findItemById(item.id()).orElseThrow().lostAt());
 
-        assertTrue(inventoryRepo.markFound(item.id()));
+        assertTrue(itemCustodyService.markFound(item.id()).isPresent());
         assertNull(inventoryRepo.findItemById(item.id()).orElseThrow().lostAt());
 
         inventoryRepo.deleteItem(item.id());
     }
 
-    // -- createItem with ItemSource --
+    // -- createItem with an owner --
 
     @Test
     @Order(49)
-    void createItemWithItemSource() {
-        InventoryItem item = inventoryRepo.createItem(
-                inventoryId, "SRC-001", "Sourced Item", null, null, InventoryItem.ItemSource.EXTERNAL);
+    void createItemWithOwner() {
+        InventoryItem item =
+                inventoryRepo.createItem(inventoryId, "SRC-001", "Owned Item", null, null, ItemOwner.CLUSTER, null);
         assertNotNull(item);
-        assertEquals(InventoryItem.ItemSource.EXTERNAL, item.itemSource());
+        assertEquals(ItemOwner.CLUSTER, item.ownerKind());
+        assertNull(item.ownerClusterId());
+        assertFalse(item.ownedByStation());
+        inventoryRepo.deleteItem(item.id());
+    }
+
+    @Test
+    @Order(50)
+    void createItemDefaultsToTheStation() {
+        InventoryItem item = inventoryRepo.createItem(inventoryId, "SRC-002", "Station Item", null, null);
+        assertEquals(ItemOwner.STATION, item.ownerKind());
+        assertNull(item.ownerClusterId());
+        assertTrue(item.ownedByStation());
+        inventoryRepo.deleteItem(item.id());
+    }
+
+    @Test
+    @Order(51)
+    void stationOwnedItemNeverCarriesACluster() {
+        InventoryItem item =
+                inventoryRepo.createItem(inventoryId, "SRC-003", "Station Item", null, null, ItemOwner.STATION, 7);
+        assertNull(item.ownerClusterId());
         inventoryRepo.deleteItem(item.id());
     }
 
@@ -347,9 +369,42 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(43)
     void updateRequirementPosition() {
-        var req = inventoryRepo.createRequirement(inventoryId, StationUserType.TEAM, 0, 1);
+        var req = inventoryRepo.createRequirement(inventoryId, StationUserType.TEAM, 0, null, 1);
         assertTrue(inventoryRepo.updateRequirementPosition(req.id(), 5));
         inventoryRepo.deleteRequirement(req.id());
+    }
+
+    /**
+     * What an association owns, counted where the pieces are rather than fetched row by row. A piece the
+     * station bought itself is in nobody's count here, which is the point of asking by owner.
+     */
+    @Test
+    @Order(45)
+    void countItemsOwnedByCluster() {
+        var home = stationRepo.create("Träger Zählung");
+        var cluster = clusterRepo.create("Kreisverband Zählung", null, home.id());
+        var jackets = inventoryRepo.create(station.id(), "Jacken Zählung", InventoryType.EXTERNAL, true);
+        inventoryRepo.createSize(jackets.id(), "52", 0, null);
+        int size = inventoryRepo.findSizes(jackets.id()).getFirst().id();
+        inventoryRepo.createItem(jackets.id(), "JZ-1", "Jacke", size, null, ItemOwner.CLUSTER, cluster.id());
+        inventoryRepo.createItem(jackets.id(), "JZ-2", "Jacke", size, null, ItemOwner.CLUSTER, cluster.id());
+        inventoryRepo.createItem(jackets.id(), "JZ-3", "Jacke", size, null, ItemOwner.STATION, null);
+
+        var counts = inventoryRepo.countItemsOwnedByCluster(cluster.id());
+
+        assertEquals(1, counts.size(), "one row per kind and size");
+        var row = counts.getFirst();
+        assertEquals(jackets.id(), row.inventoryId());
+        assertEquals("Jacken Zählung", row.inventoryName());
+        assertEquals("52", row.sizeLabel());
+        assertEquals(2, row.total(), "the station's own jacket is not the association's to count");
+        assertEquals(2, row.atStation(), "gear a station recorded for the body above it is held at that station");
+        assertEquals(0, row.inStore());
+        assertEquals(0, row.lost());
+
+        inventoryRepo.delete(jackets.id());
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(home.id());
     }
 
     // -- Cleanup --

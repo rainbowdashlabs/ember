@@ -510,6 +510,36 @@ public class EmailService {
                 recipient, subject("email-changed", locale, null), loadTemplate("email-changed.html", locale, vars));
     }
 
+    /**
+     * Tells a member that the guardian who looks after them switched signing in on.
+     *
+     * <p>Sent only to somebody who already has a password, because an account still waiting to be
+     * claimed is sent the setup link instead. The station is named: a member may belong to more than
+     * one, and only one of them decided this.
+     */
+    public void sendManagedLoginGrantedNotice(String email, String name, String stationName, String locale) {
+        var vars = baseVars(name, null);
+        vars.put("stationName", stationName);
+        vars.put("loginUrl", api.baseUrl() + "/login");
+        enqueueGlobal(
+                email,
+                subject("managed-login-granted", locale, stationPlaceholders(stationName)),
+                loadTemplate("managed-login-granted.html", locale, vars));
+    }
+
+    /**
+     * Tells a member that the guardian who looks after them took signing in away again. There is
+     * nothing to act on, so the mail carries no link.
+     */
+    public void sendManagedLoginRevokedNotice(String email, String name, String stationName, String locale) {
+        var vars = baseVars(name, null);
+        vars.put("stationName", stationName);
+        enqueueGlobal(
+                email,
+                subject("managed-login-revoked", locale, stationPlaceholders(stationName)),
+                loadTemplate("managed-login-revoked.html", locale, vars));
+    }
+
     // -- Public send methods (system, via global provider queue) --
 
     public void sendPasswordResetEmail(String email, String name, String token, String locale) {
@@ -544,7 +574,7 @@ public class EmailService {
         vars.put("url", url);
         enqueueGlobal(
                 email,
-                subject("application-verify", locale, applicationPlaceholders(stationName)),
+                subject("application-verify", locale, stationPlaceholders(stationName)),
                 loadTemplate("application-verify.html", locale, vars));
     }
 
@@ -559,7 +589,7 @@ public class EmailService {
         }
         enqueueGlobal(
                 email,
-                subject("application-accepted", locale, applicationPlaceholders(stationName)),
+                subject("application-accepted", locale, stationPlaceholders(stationName)),
                 loadTemplate("application-accepted.html", locale, vars));
     }
 
@@ -570,7 +600,7 @@ public class EmailService {
         vars.put("reason", reason != null ? reason : "");
         enqueueGlobal(
                 email,
-                subject("application-denied", locale, applicationPlaceholders(stationName)),
+                subject("application-denied", locale, stationPlaceholders(stationName)),
                 loadTemplate("application-denied.html", locale, vars));
     }
 
@@ -580,7 +610,7 @@ public class EmailService {
         vars.put("stationName", stationName);
         enqueueGlobal(
                 email,
-                subject("application-received", locale, applicationPlaceholders(stationName)),
+                subject("application-received", locale, stationPlaceholders(stationName)),
                 loadTemplate("application-received.html", locale, vars));
     }
 
@@ -973,7 +1003,7 @@ public class EmailService {
         return vars;
     }
 
-    private static Map<String, String> applicationPlaceholders(String stationName) {
+    private static Map<String, String> stationPlaceholders(String stationName) {
         return Map.of("stationName", stationName != null ? stationName : "");
     }
 

@@ -38,7 +38,7 @@ import javax.imageio.ImageIO;
  * Seeds demo public pages with a landing page, about section, and join page.
  */
 @Singleton
-public class DemoPageSeeder implements DemoSeeder {
+public class DemoPageSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoPageSeeder.class);
     /**
      * What the demo station has in its media library. Plain colours rather than photographs: they
@@ -133,8 +133,8 @@ public class DemoPageSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        seed(context.stationId(), context.adminMember().id());
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        seed(station.stationId(), station.adminMember().id());
         log.info("Demo: Created Public Pages");
     }
 

@@ -1,0 +1,9 @@
+Frage,Antwort,Falsch,Kategorie,Typ,Punkte,Hinweis,Bild,ProAntwort,Anzahl,Geordnet
+Welche Brandklasse gilt für Speisefette und Öle?,Brandklasse F,Brandklasse A;Brandklasse B;Brandklasse D,Brandlehre,MC,2,,,1,,
+Ein Fettbrand wird mit Wasser gelöscht.,nein,,Brandlehre,TF,1,Wasser führt zur Fettexplosion.,,,,
+Wofür steht UVV?,Unfallverhütungsvorschrift,,Basics,Freitext,1,,,,,
+Ein C-Schlauch ist ___ lang.,15 Meter,20 Meter;30 Meter;5 Meter,Schlauchtraining,Lückentext,1,,,1,,
+Ordne die Abkürzungen zu.,LF=Löschgruppenfahrzeug;DLK=Drehleiter mit Korb;RTW=Rettungstransportwagen,,Fahrzeugkunde,Zuordnung,3,,,1,,
+Bringe die Rettungskette in die richtige Reihenfolge.,Absichern;Notruf;Erste Hilfe;Rettungsdienst;Krankenhaus,,Erste Hilfe,Reihenfolge,5,,,1,,
+Nenne die drei Bedingungen für ein Feuer.,Sauerstoff;Wärme;brennbarer Stoff,,Brandlehre,Aufzählung,3,Alle drei zusammen ergeben das Verbrennungsdreieck.,,1,3,ja
+Welches Gerät ist auf dem Bild zu sehen?,Verteiler,,Wasserführende Armaturen,IMAGE_TEXT,1,,https://example.invalid/verteiler.png,,,

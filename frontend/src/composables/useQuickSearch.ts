@@ -5,7 +5,7 @@
  */
 import {ref} from 'vue'
 
-export type QuickSearchScope = 'station' | 'admin'
+export type QuickSearchScope = 'station' | 'admin' | 'cluster'
 
 const isOpen = ref(false)
 const scope = ref<QuickSearchScope>('station')

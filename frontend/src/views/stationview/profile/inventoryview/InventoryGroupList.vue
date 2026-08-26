@@ -27,6 +27,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   requestExchange: [item: MyInventoryItem]
+  reportLost: [item: MyInventoryItem]
 }>()
 
 const {t} = useI18n()
@@ -62,7 +63,9 @@ function itemExchange(itemId: number): ExchangeRequestEntry | undefined {
             :item="item"
             :exchange="itemExchange(item.id) ?? null"
             :show-exchange-button="true"
+            :show-lost-button="true"
             @request-exchange="(i: MyInventoryItem) => emit('requestExchange', i)"
+            @report-lost="(i: MyInventoryItem) => emit('reportLost', i)"
         />
       </div>
     </div>

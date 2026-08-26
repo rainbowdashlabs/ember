@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
@@ -21,6 +22,8 @@ import CheckOverviewTabs from './checkoverviewview/CheckOverviewTabs.vue'
 import MemberCheckTable from './checkoverviewview/MemberCheckTable.vue'
 import MemberCheckCardList from './checkoverviewview/MemberCheckCardList.vue'
 import {memberName} from './checkoverviewview/memberHelpers'
+
+const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const router = useRouter()
@@ -54,11 +57,11 @@ const {sortKey: sortBy, sorted: sortedMembers} = useSortable<MemberCheckSummary,
 })
 
 function startCheck(memberId: number) {
-  router.push({name: 'inventory-check-member', params: {memberId}, query: {teamOnly: activeTab.value === 'team' ? 'true' : 'false'}})
+  router.push({name: routes.checkMember, params: {memberId}, query: {teamOnly: activeTab.value === 'team' ? 'true' : 'false'}})
 }
 
 function viewLastCheck(member: MemberCheckSummary) {
-  router.push({name: 'inventory-check-result', params: {memberId: member.memberId}, query: {name: memberName(member)}})
+  router.push({name: routes.checkResult, params: {memberId: member.memberId}, query: {name: memberName(member)}})
 }
 </script>
 

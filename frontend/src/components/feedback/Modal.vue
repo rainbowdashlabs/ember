@@ -47,6 +47,7 @@ const sizeClass = computed(() => {
         />
         <!-- Content -->
         <div
+            data-testid="modal"
             role="dialog"
             aria-modal="true"
             :class="[

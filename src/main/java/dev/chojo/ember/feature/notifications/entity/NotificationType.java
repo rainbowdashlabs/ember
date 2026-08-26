@@ -17,6 +17,8 @@ public enum NotificationType {
     EVENT_REGISTRATION_STATUS(NotificationParams.EventRegistrationStatus.class, "notification.eventRegistrationStatus"),
     EXCHANGE_STATUS_CHANGE(NotificationParams.ExchangeStatusChange.class, "notification.exchangeStatusChange"),
     EXCHANGE_NEW_REQUEST(NotificationParams.ExchangeNewRequest.class, "notification.exchangeNewRequest"),
+    MOVEMENT_DECLINED(NotificationParams.MovementDeclined.class, "notification.movementDeclined"),
+    MOVEMENT_CANCELLED(NotificationParams.MovementCancelled.class, "notification.movementCancelled"),
     NEW_EVENT(NotificationParams.NewEvent.class, "notification.newEvent"),
     NEW_EVENTS_BATCH(NotificationParams.NewEventsBatch.class, "notification.newEventsBatch"),
     MEMBER_ADDED_TO_GROUP(NotificationParams.MemberAddedToGroup.class, "notification.memberAddedToGroup"),
@@ -35,13 +37,31 @@ public enum NotificationType {
             NotificationParams.RegistrationDeadlineExpired.class, "notification.registrationDeadlineExpired"),
     EVENT_CANCELLED(NotificationParams.EventCancelled.class, "notification.eventCancelled"),
     EVENT_REMINDER(NotificationParams.EventReminder.class, "notification.eventReminder"),
+    REGISTRATION_CLOSING(NotificationParams.RegistrationClosing.class, "notification.registrationClosing"),
     PROCEDURE_ASSIGNED(NotificationParams.ProcedureAssigned.class, "notification.procedureAssigned"),
     PROCEDURE_RESOLVED(NotificationParams.ProcedureResolvedParams.class, "notification.procedureResolved"),
     PROCEDURE_REOPENED(NotificationParams.ProcedureReopenedParams.class, "notification.procedureReopened"),
     PROCEDURE_ITEM_CHECKED(NotificationParams.ProcedureItemCheckedParams.class, "notification.procedureItemChecked"),
     WAITLIST_PUBLIC_REGISTRATION(
             NotificationParams.WaitlistPublicRegistration.class, "notification.waitlistPublicRegistration"),
-    STORAGE_WARNING(NotificationParams.StorageWarning.class, "notification.storageWarning");
+    STORAGE_WARNING(NotificationParams.StorageWarning.class, "notification.storageWarning"),
+    CLUSTER_APPLICATION_SUBMITTED(
+            NotificationParams.ClusterApplicationSubmitted.class, "notification.clusterApplicationSubmitted"),
+    CLUSTER_APPLICATION_APPROVED(
+            NotificationParams.ClusterApplicationApproved.class, "notification.clusterApplicationApproved"),
+    CLUSTER_APPLICATION_DENIED(
+            NotificationParams.ClusterApplicationDenied.class, "notification.clusterApplicationDenied"),
+    CLUSTER_APPLICATION_WITHDRAWN(
+            NotificationParams.ClusterApplicationWithdrawn.class, "notification.clusterApplicationWithdrawn"),
+    CLUSTER_STATION_RELEASED(NotificationParams.ClusterStationReleased.class, "notification.clusterStationReleased"),
+    CLUSTER_MODULE_DENIED(NotificationParams.ClusterModuleDenied.class, "notification.clusterModuleDenied"),
+    CLUSTER_ITEM_ISSUED(NotificationParams.ClusterItemIssued.class, "notification.clusterItemIssued"),
+    CLUSTER_ITEM_LOST(NotificationParams.ClusterItemLost.class, "notification.clusterItemLost"),
+    CLUSTER_QUOTA_CHANGED(NotificationParams.ClusterQuotaChanged.class, "notification.clusterQuotaChanged"),
+    CLUSTER_MEMBER_ROLE_CHANGED(
+            NotificationParams.ClusterMemberRoleChanged.class, "notification.clusterMemberRoleChanged"),
+    CLUSTER_FIELD_VALUE_CHANGED(
+            NotificationParams.ClusterFieldValueChanged.class, "notification.clusterFieldValueChanged");
 
     private final Class<? extends NotificationParams> paramsType;
     private final String localeKey;

@@ -29,7 +29,7 @@ import java.util.Random;
  * Seeder for demo attendance session data spanning 14 months of history.
  */
 @Singleton
-public class DemoAttendanceSeeder implements DemoSeeder {
+public class DemoAttendanceSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoAttendanceSeeder.class);
 
     private final AttendanceRepository attendanceRepository;
@@ -45,9 +45,9 @@ public class DemoAttendanceSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        var members = context.members();
-        var events = context.events();
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        var members = station.members();
+        var events = station.events();
         seedAttendanceSessions(
                 new Random(42_001),
                 events.templateUebung(),

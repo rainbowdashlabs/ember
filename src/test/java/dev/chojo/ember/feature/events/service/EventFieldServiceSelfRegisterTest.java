@@ -86,7 +86,7 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
     }
 
     private EventFieldConfig selfRegConfig() {
-        return new EventFieldConfig(null, null, null, null, true);
+        return new EventFieldConfig(null, null, null, null, true, null);
     }
 
     @Test
@@ -124,7 +124,7 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
 
     @Test
     void groupConstraintHonored() {
-        var config = new EventFieldConfig(null, groupId, null, null, true);
+        var config = new EventFieldConfig(null, groupId, null, null, true, null);
         var field = createField(EventFieldType.MEMBER_OF_GROUP, config);
 
         var afterA = service.toggleSelfRegistration(eventId, field.id(), memberA);
@@ -142,7 +142,7 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
 
     @Test
     void userTypeConstraintHonored() {
-        var config = new EventFieldConfig(null, null, StationUserType.TEAM, null, true);
+        var config = new EventFieldConfig(null, null, StationUserType.TEAM, null, true, null);
         var field = createField(EventFieldType.MEMBER_OF_TYPE, config);
 
         service.toggleSelfRegistration(eventId, field.id(), memberA);
@@ -159,7 +159,7 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
 
     @Test
     void tagConstraintHonored() {
-        var config = new EventFieldConfig(null, null, null, tagId, true);
+        var config = new EventFieldConfig(null, null, null, tagId, true, null);
         var field = createField(EventFieldType.MEMBER_OF_TAG, config);
 
         service.toggleSelfRegistration(eventId, field.id(), memberA);
@@ -176,8 +176,8 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
 
     @Test
     void listOfGroupTagAndTypeWork() {
-        var listOfGroup =
-                createField(EventFieldType.MEMBER_LIST_OF_GROUP, new EventFieldConfig(null, groupId, null, null, true));
+        var listOfGroup = createField(
+                EventFieldType.MEMBER_LIST_OF_GROUP, new EventFieldConfig(null, groupId, null, null, true, null));
         service.toggleSelfRegistration(eventId, listOfGroup.id(), memberA);
         assertEquals(
                 List.of(memberA),
@@ -185,15 +185,16 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
                         eventFieldRepo.findById(listOfGroup.id()).orElseThrow().value()));
 
         var listOfType = createField(
-                EventFieldType.MEMBER_LIST_OF_TYPE, new EventFieldConfig(null, null, StationUserType.TEAM, null, true));
+                EventFieldType.MEMBER_LIST_OF_TYPE,
+                new EventFieldConfig(null, null, StationUserType.TEAM, null, true, null));
         service.toggleSelfRegistration(eventId, listOfType.id(), memberA);
         assertEquals(
                 List.of(memberA),
                 MemberFieldValue.parseIds(
                         eventFieldRepo.findById(listOfType.id()).orElseThrow().value()));
 
-        var listOfTag =
-                createField(EventFieldType.MEMBER_LIST_OF_TAG, new EventFieldConfig(null, null, null, tagId, true));
+        var listOfTag = createField(
+                EventFieldType.MEMBER_LIST_OF_TAG, new EventFieldConfig(null, null, null, tagId, true, null));
         service.toggleSelfRegistration(eventId, listOfTag.id(), memberA);
         assertEquals(
                 List.of(memberA),

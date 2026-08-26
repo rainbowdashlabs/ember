@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -158,6 +159,17 @@ public class StationImportService {
      * @param bundle          the whole bundle, keyed by table name
      */
     public void importStationInto(int targetStationId, Map<String, Object> bundle) {
+        // A cluster's home station holds what its cluster owns; merging a foreign station into it would hand
+        // that cluster content nobody gave it
+        stationRepository.findById(targetStationId).ifPresent(station -> {
+            if (station.stationKind() == StationKind.CLUSTER_HOME) {
+                throw new BadRequestResponse("A cluster's home station cannot be imported into");
+            }
+            if (station.clusterId() != null) {
+                throw new BadRequestResponse(
+                        "A station that belongs to a cluster cannot be overwritten from an archive.");
+            }
+        });
         Map<String, Object> stationData = asMap(bundle.get("station"));
         if (stationData != null) stationImporter.applyFields(targetStationId, stationData);
         var context = newContext(targetStationId, stationData);

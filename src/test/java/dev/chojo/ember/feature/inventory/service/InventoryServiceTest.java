@@ -7,18 +7,22 @@ package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -33,7 +37,7 @@ class InventoryServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new InventoryService(inventoryRepo);
+        service = new InventoryService(inventoryRepo, itemCustodyService, clusterRepo, clusterStationGroupRepo);
         station = stationRepo.create("InvSvcStation");
         account = accountRepo.create("inv-svc@test.com", "Inv", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -122,7 +126,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void markLostAndFound() {
-        var lostResult = service.markLost(itemId);
+        var lostResult = service.markLost(itemId, null, null);
         assertTrue(lostResult.isPresent());
         assertNotNull(lostResult.get().lostAt());
 
@@ -134,7 +138,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(50)
     void deleteItem() {
-        assertTrue(service.deleteItem(itemId));
+        assertTrue(service.deleteItem(itemId, null));
         assertTrue(service.findItemById(itemId).isEmpty());
     }
 
@@ -154,7 +158,8 @@ class InventoryServiceTest extends RepositoryTestBase {
     void updateItem() {
         var inv = service.create(station.id(), "UpdateItem Inv", InventoryType.INTERNAL, false);
         var item = service.createItem(inv.id(), "UI-001", "Original Name", null, null);
-        var updated = service.updateItem(item.id(), "UI-002", "Updated Name", null, new InventoryItemMetadata(true));
+        var updated =
+                service.updateItem(item.id(), "UI-002", "Updated Name", null, InventoryItemMetadata.empty(), null);
         assertTrue(updated.isPresent());
         assertEquals("Updated Name", updated.get().name());
         assertEquals("UI-002", updated.get().internalId());
@@ -164,7 +169,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(57)
     void updateItemNonExistent() {
-        assertTrue(service.updateItem(99999, "XX", "XX", null, null).isEmpty());
+        assertTrue(service.updateItem(99999, "XX", "XX", null, null, null).isEmpty());
     }
 
     @Test
@@ -257,7 +262,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(67)
     void markLostNonExistent() {
-        assertTrue(service.markLost(99999).isEmpty());
+        assertTrue(service.markLost(99999, null, null).isEmpty());
     }
 
     @Test
@@ -274,10 +279,15 @@ class InventoryServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(70)
-    void createItemWithSource() {
-        var inv = service.create(station.id(), "Source Inv", InventoryType.INTERNAL, false);
-        var item = service.createItem(inv.id(), "SI-001", "Source Item", null, null, InventoryItem.ItemSource.EXTERNAL);
+    void createItemWithOwner() {
+        var inv = service.create(station.id(), "Owner Inv", InventoryType.MIXED, false);
+        var item = service.createItem(inv.id(), "SI-001", "Owner Item", null, null, ItemOwner.CLUSTER, null);
         assertNotNull(item);
+        assertEquals(ItemOwner.CLUSTER, item.ownerKind());
+        assertFalse(item.ownedByStation());
+
+        var own = service.createItem(inv.id(), "SI-002", "Station Item", null, null, ItemOwner.STATION, null);
+        assertTrue(own.ownedByStation());
         service.delete(inv.id());
     }
 
@@ -286,7 +296,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     void requirementCrud() {
         var inv = service.create(station.id(), "Req Inv", InventoryType.INTERNAL, false);
         // Use MEMBER user type
-        var req = service.createRequirement(inv.id(), StationUserType.MEMBER, 0, 3);
+        var req = service.createRequirement(inv.id(), StationUserType.MEMBER, 0, null, 3);
         assertNotNull(req);
 
         assertTrue(service.updateRequirement(req.id(), 5));
@@ -295,6 +305,112 @@ class InventoryServiceTest extends RepositoryTestBase {
 
         var reqs = service.findAllRequirementsByStation(station.id());
         assertNotNull(reqs);
+        service.delete(inv.id());
+    }
+
+    /**
+     * A requirement of the association's may name a group of its stations, and then counts at the stations
+     * in that group and at no others. One naming no group counts everywhere, which is what every row wrote
+     * before the column existed.
+     */
+    @Test
+    @Order(73)
+    void anAssociationsRequirementCanBeAimedAtAGroupOfStations() {
+        var home = stationRepo.create("Träger Gruppen");
+        var cluster = clusterRepo.create("Kreisverband Gruppen", null, home.id());
+        clusterRepo.setUsesInventory(cluster.id(), true);
+        stationRepo.setCluster(station.id(), cluster.id());
+
+        var theirs = service.create(home.id(), "Bootsausrüstung", InventoryType.INTERNAL, false);
+        var group = clusterStationGroupRepo.create(cluster.id(), "Wasserwachen " + station.id());
+
+        service.createRequirement(theirs.id(), StationUserType.MEMBER, 0, group.id(), 1);
+        assertTrue(
+                service.findRequirementsVisibleAt(station.id()).stream().noneMatch(row -> row.fromCluster()),
+                "a station outside the group is asked for nothing");
+
+        clusterStationGroupRepo.setStations(group.id(), List.of(station.id()));
+        assertTrue(
+                service.findRequirementsVisibleAt(station.id()).stream().anyMatch(row -> row.fromCluster()),
+                "and inside it, the same requirement counts");
+        assertTrue(
+                service.findRequirementsVisibleAt(station.id()).stream().anyMatch(row -> Integer.valueOf(group.id())
+                        .equals(row.requirement().stationGroupId())),
+                "the row says which group it was written for");
+
+        var otherHome = stationRepo.create("Träger Fremd");
+        var otherCluster = clusterRepo.create("Kreisverband Fremd", null, otherHome.id());
+        var otherGroup = clusterStationGroupRepo.create(otherCluster.id(), "Fremde Gruppe");
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.createRequirement(theirs.id(), StationUserType.MEMBER, 0, otherGroup.id(), 1),
+                "and no association can aim a requirement with another's filing");
+
+        stationRepo.setCluster(station.id(), null);
+        service.delete(theirs.id());
+        clusterStationGroupRepo.delete(otherGroup.id());
+        clusterStationGroupRepo.setStations(group.id(), List.of());
+        clusterStationGroupRepo.delete(group.id());
+        clusterRepo.delete(otherCluster.id());
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(otherHome.id());
+        stationRepo.delete(home.id());
+    }
+
+    /**
+     * A station under a cluster reads what the cluster asks of its people beside what it asks itself, and
+     * the cluster's rows say whose they are so the screen can badge them and take the controls away.
+     */
+    @Test
+    @Order(72)
+    void requirementsVisibleAtAStationCarryTheClustersOwn() {
+        var home = stationRepo.create("Träger Vorgaben");
+        var cluster = clusterRepo.create("Kreisverband Vorgaben", null, home.id());
+        // A cluster keeps no gear here until it says so, and one that keeps none asks nothing either
+        clusterRepo.setUsesInventory(cluster.id(), true);
+        stationRepo.setCluster(station.id(), cluster.id());
+
+        var mine = service.create(station.id(), "Eigene Vorgabe", InventoryType.INTERNAL, false);
+        var theirs = service.create(home.id(), "Verbandsvorgabe", InventoryType.INTERNAL, false);
+        service.createRequirement(mine.id(), StationUserType.MEMBER, 0, null, 1);
+        service.createRequirement(theirs.id(), StationUserType.MEMBER, 0, null, 2);
+
+        var visible = service.findRequirementsVisibleAt(station.id());
+        var fromCluster = visible.stream()
+                .filter(InventoryRepository.VisibleRequirement::fromCluster)
+                .toList();
+        assertEquals(1, fromCluster.size(), "the cluster's one requirement, named as the cluster's");
+        assertEquals("Verbandsvorgabe", fromCluster.getFirst().inventoryName());
+        assertEquals(2, fromCluster.getFirst().requirement().quantity());
+
+        assertTrue(
+                visible.stream().anyMatch(row -> !row.fromCluster() && "Eigene Vorgabe".equals(row.inventoryName())),
+                "and the station's own beside it");
+
+        assertEquals("Kreisverband Vorgaben", service.ownerAbove(station.id()).orElse(null));
+
+        // A cluster that does not keep its gear here asks nothing of anybody
+        clusterRepo.setUsesInventory(cluster.id(), false);
+        assertTrue(service.findRequirementsVisibleAt(station.id()).stream().noneMatch(row -> row.fromCluster()));
+        assertTrue(service.ownerAbove(station.id()).isEmpty());
+
+        stationRepo.setCluster(station.id(), null);
+        service.delete(mine.id());
+        service.delete(theirs.id());
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(home.id());
+    }
+
+    /** A station under nobody reads only its own, and there is no name to put on them. */
+    @Test
+    @Order(73)
+    void requirementsVisibleAtAStationUnderNobodyAreItsOwn() {
+        var inv = service.create(station.id(), "Allein", InventoryType.INTERNAL, false);
+        service.createRequirement(inv.id(), StationUserType.MEMBER, 0, null, 1);
+
+        assertTrue(service.findRequirementsVisibleAt(station.id()).stream().noneMatch(row -> row.fromCluster()));
+        assertTrue(service.ownerAbove(station.id()).isEmpty());
+
         service.delete(inv.id());
     }
 }

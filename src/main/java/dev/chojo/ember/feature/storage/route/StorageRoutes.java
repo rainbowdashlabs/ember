@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
+import dev.chojo.ember.feature.storage.entity.QuotaOrigin;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageUsage;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
@@ -181,7 +182,9 @@ public class StorageRoutes implements Routes {
                 .filter(u -> u.category().enforcesQuota())
                 .mapToLong(StorageUsage::totalBytes)
                 .sum();
-        boolean usesOwnBackend = quotaService.hasOwnBackend(stationId);
+        // Somebody else's storage means nobody's quota: what is shown is that there is no limit rather than a
+        // limit of nothing
+        boolean usesOwnBackend = quotaService.isUnbounded(stationId);
         long quotaBytes = usesOwnBackend ? 0L : quotaService.getEffectiveTotalQuota(stationId);
         int quotaUsedPercent = quotaBytes > 0 ? (int) (totalBytes * 100 / quotaBytes) : 0;
 
@@ -226,8 +229,9 @@ public class StorageRoutes implements Routes {
                             .filter(u -> u.category().enforcesQuota())
                             .mapToLong(StorageUsage::totalBytes)
                             .sum();
-                    boolean usesOwnBackend = quotaService.hasOwnBackend(station.id());
-                    long quotaBytes = usesOwnBackend ? 0L : quotaService.getEffectiveTotalQuota(station.id());
+                    var quotas = quotaService.resolveQuotas(station.id());
+                    boolean usesOwnBackend = quotas.total().origin() == QuotaOrigin.UNLIMITED;
+                    long quotaBytes = usesOwnBackend ? 0L : quotas.total().bytes();
                     int quotaUsedPercent = quotaBytes > 0 ? (int) (totalBytes * 100 / quotaBytes) : 0;
                     var assignment = presetAssignments.get(station.id());
                     return new AdminStationUsage(
@@ -241,7 +245,8 @@ public class StorageRoutes implements Routes {
                                     .toList(),
                             assignment != null ? assignment.presetId() : null,
                             assignment != null ? assignment.presetName() : null,
-                            usesOwnBackend);
+                            usesOwnBackend,
+                            quotas.total().origin());
                 })
                 .toList();
 
@@ -748,6 +753,10 @@ public class StorageRoutes implements Routes {
 
     record CategoryUsage(String category, long totalBytes, int fileCount) {}
 
+    /**
+     * @param origin whose word the quota is on, so a station governed by a cluster reads as one rather than as
+     *               a station whose override an administrator can usefully change
+     */
     record AdminStationUsage(
             String stationId,
             String stationName,
@@ -757,7 +766,8 @@ public class StorageRoutes implements Routes {
             List<CategoryUsage> categories,
             Integer presetId,
             String presetName,
-            boolean usesOwnBackend) {}
+            boolean usesOwnBackend,
+            QuotaOrigin origin) {}
 
     record PresetRequest(
             String name, long total, long kb, long board, long images, long pages, long perFile, long perImage) {}

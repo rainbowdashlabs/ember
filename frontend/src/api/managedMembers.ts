@@ -52,9 +52,11 @@ export async function getMemberRequirements(memberId: number): Promise<MyRequire
 export interface ManagedAccess {
     /** The address the account is reached at, or null while it carries only a synthetic one. */
     email: string | null
+    /** The name the member signs in with, or null while they have none. */
+    username: string | null
     /** Whether the member may sign in. */
     loginEnabled: boolean
-    /** Whether signing in can be switched on at all, which needs a real address. */
+    /** Whether signing in can be switched on at all, which needs an address or a name. */
     canSignIn: boolean
 }
 
@@ -65,6 +67,20 @@ export async function getAccess(memberId: number): Promise<ManagedAccess> {
 
 export async function setEmail(memberId: number, email: string): Promise<ManagedAccess> {
     const res = await client.put<ManagedAccess>(`/managed-members/${memberId}/email`, {email})
+    return res.data
+}
+
+export async function setUsername(memberId: number, username: string): Promise<ManagedAccess> {
+    const res = await client.put<ManagedAccess>(`/managed-members/${memberId}/username`, {username})
+    return res.data
+}
+
+/**
+ * Sets the password of a member in the guardian's care. Only accepted for a member with no address
+ * of their own, whose invitation would land in the guardian's postbox anyway.
+ */
+export async function setPassword(memberId: number, password: string): Promise<ManagedAccess> {
+    const res = await client.put<ManagedAccess>(`/managed-members/${memberId}/password`, {password})
     return res.data
 }
 

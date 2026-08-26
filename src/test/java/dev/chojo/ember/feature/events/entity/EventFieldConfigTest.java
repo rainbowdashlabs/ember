@@ -35,7 +35,7 @@ class EventFieldConfigTest {
 
     @Test
     void roundTripGroupConfig() {
-        var cfg = new EventFieldConfig(null, 7, null, null, true);
+        var cfg = new EventFieldConfig(null, 7, null, null, true, null);
         var parsed = EventFieldConfig.parse(cfg.toJson());
         assertEquals(7, parsed.groupId());
         assertTrue(parsed.selfRegistration());
@@ -45,14 +45,14 @@ class EventFieldConfigTest {
 
     @Test
     void roundTripUserTypeConfig() {
-        var cfg = new EventFieldConfig(null, null, StationUserType.TEAM, null, true);
+        var cfg = new EventFieldConfig(null, null, StationUserType.TEAM, null, true, null);
         var parsed = EventFieldConfig.parse(cfg.toJson());
         assertEquals(StationUserType.TEAM, parsed.userType());
     }
 
     @Test
     void roundTripTagConfig() {
-        var cfg = new EventFieldConfig(null, null, null, 12, false);
+        var cfg = new EventFieldConfig(null, null, null, 12, false, null);
         var parsed = EventFieldConfig.parse(cfg.toJson());
         assertEquals(12, parsed.tagId());
         assertFalse(parsed.selfRegistration());
@@ -60,7 +60,7 @@ class EventFieldConfigTest {
 
     @Test
     void roundTripEnumOptions() {
-        var cfg = new EventFieldConfig(List.of("a", "b"), null, null, null, false);
+        var cfg = new EventFieldConfig(List.of("a", "b"), null, null, null, false, null);
         var parsed = EventFieldConfig.parse(cfg.toJson());
         assertEquals(List.of("a", "b"), parsed.options());
     }

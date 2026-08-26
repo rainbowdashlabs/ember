@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
  * nobody is holding here.
  */
 @Singleton
-public class DemoTwoFactorSeeder implements DemoSeeder {
+public class DemoTwoFactorSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoTwoFactorSeeder.class);
 
     private final TwoFactorRepository twoFactorRepository;
@@ -43,8 +43,8 @@ public class DemoTwoFactorSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        var members = context.members();
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        var members = station.members();
         if (members == null || members.betreuer().isEmpty()) return;
 
         var member = members.betreuer().getFirst();

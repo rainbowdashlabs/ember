@@ -61,7 +61,11 @@ public class FederationPartnerTransferFixupService {
 
     /**
      * Destination-side fixup. Runs once after the moved station's {@code federation_partner}
-     * rows have been imported. {@code sourceInstanceUrl} is the base URL the destination used
+     * rows have been imported.
+     *
+     * <p>Pairs a cluster made are left alone throughout. A station that belongs to a cluster cannot be
+     * transferred in the first place, so a cluster-managed row reaching here would be one that should not
+     * exist, and rewriting it would make a wrong row look right. {@code sourceInstanceUrl} is the base URL the destination used
      * to pull the bundle.
      */
     public void rewriteAfterImport(int stationId, String sourceInstanceUrl) {
@@ -79,6 +83,7 @@ public class FederationPartnerTransferFixupService {
                         UPDATE federation_partner
                         SET remote_host = NULL, webhook_url = NULL
                         WHERE station_id = :station_id
+                          AND NOT cluster_managed
                           AND EXISTS (
                               SELECT 1 FROM station s WHERE s.uid = federation_partner.partner_station_id
                           );
@@ -91,6 +96,7 @@ public class FederationPartnerTransferFixupService {
                             UPDATE federation_partner
                             SET remote_host = :url, webhook_url = :url
                             WHERE station_id = :station_id
+                              AND NOT cluster_managed
                               AND remote_host IS NULL
                               AND NOT EXISTS (
                                   SELECT 1 FROM station s WHERE s.uid = federation_partner.partner_station_id

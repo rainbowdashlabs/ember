@@ -34,7 +34,7 @@ class FormerMemberServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 accountRepo,
                 inventoryRepo,
-                exchangeRepo,
+                exchangeService,
                 memberGroupRepo,
                 userTagRepo,
                 attendanceRepo,
@@ -134,7 +134,7 @@ class FormerMemberServiceTest extends RepositoryTestBase {
 
         var inv = inventoryRepo.create(station.id(), "FormerTestInv", InventoryType.INTERNAL, false);
         var item = inventoryRepo.createItem(inv.id(), "FT-001", "Former Test Item", null, null);
-        inventoryRepo.assignItem(item.id(), mem.id());
+        itemCustodyService.assignToMember(item.id(), mem.id(), "");
 
         String result = service.canMarkFormer(mem.id());
         assertNotNull(result);

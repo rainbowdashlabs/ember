@@ -148,15 +148,20 @@ export async function webauthnLoginBegin(preAuthToken: string): Promise<WebAuthn
     return res.data
 }
 
+/**
+ * @param trustedDevice the box from the login screen, carried through so a security key does not
+ *                      hand back the short session to somebody who asked to stay signed in.
+ */
 export async function webauthnLoginFinish(
     preAuthToken: string,
     challengeToken: string,
     credentialJson: string,
     rememberDeviceDays?: number,
+    trustedDevice?: boolean,
 ): Promise<Verify2faResponse> {
     const res = await client.post<Verify2faResponse>(
         '/auth/2fa/webauthn/finish',
-        {preAuthToken, challengeToken, credentialJson, rememberDeviceDays},
+        {preAuthToken, challengeToken, credentialJson, rememberDeviceDays, trustedDevice},
     )
     return res.data
 }

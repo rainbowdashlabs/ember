@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
@@ -17,6 +18,8 @@ import ContainerTree from '@/views/stationview/inventory/storageview/ContainerTr
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 import {apiErrorMessage} from '@/util/apiError'
+
+const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const router = useRouter()
@@ -69,7 +72,7 @@ async function load() {
 }
 
 function startCheck(c: InventoryContainer) {
-  router.push({name: 'inventory-check-container-walk', params: {id: String(c.id)}})
+  router.push({name: routes.checkContainerWalk, params: {id: String(c.id)}})
 }
 
 onMounted(load)
@@ -80,6 +83,8 @@ onMounted(load)
       :title="t('pages.inventory-check-container-overview.title')"
       :subtitle="t('pages.inventory-check-container-overview.subtitle')"
   >
+    <slot name="before"/>
+
     <NeutralContainer class="mb-4">
       <SearchInput v-model="search" :placeholder="t('inventory.checkContainer.searchPlaceholder')" />
     </NeutralContainer>

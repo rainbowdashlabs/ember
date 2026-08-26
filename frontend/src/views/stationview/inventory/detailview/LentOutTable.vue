@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import { useI18n } from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -15,6 +16,8 @@ import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
 import type { LentOutItem } from '@/api/lending'
 import { formatDate } from '@/util/format'
+
+const routes = useInventoryRoutes()
 
 const props = defineProps<{
   lentOutItems: LentOutItem[]
@@ -49,7 +52,7 @@ const { t } = useI18n()
           <InfoBadge>{{ lent.status === 'LENT' ? t('inventory.detail.statusLent') : t('inventory.detail.statusApproved') }}</InfoBadge>
         </Td>
         <Td align="right">
-          <router-link :to="{ name: 'inventory-lending-request', params: { id: lent.requestId } }">
+          <router-link v-if="routes.lendingRequest" :to="{ name: routes.lendingRequest, params: { id: lent.requestId } }">
             <SecondaryButton :icon="['fas', 'eye']">
               {{ t('inventory.detail.viewRequest') }}
             </SecondaryButton>

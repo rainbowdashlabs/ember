@@ -23,6 +23,7 @@ public record MemberWithName(
         int accountId,
         String name,
         String email,
+        String username,
         StationUserType userType,
         boolean profileComplete,
         Instant formerAt,
@@ -30,7 +31,8 @@ public record MemberWithName(
         MemberIdentity identity) {
 
     /**
-     * Creates a MemberWithName from a StationMember entity, resolving name, email, and identity.
+     * Creates a MemberWithName from a StationMember entity, resolving name, email, the name it signs
+     * in with, and identity.
      */
     public static MemberWithName from(
             StationMember m, AccountRepository accountRepository, MemberIdentityFactory identityFactory) {
@@ -50,6 +52,7 @@ public record MemberWithName(
                     0,
                     m.displayName(),
                     "",
+                    null,
                     m.userType(),
                     profileComplete,
                     m.formerAt(),
@@ -59,12 +62,14 @@ public record MemberWithName(
         var account = accountRepository.findById(m.accountId()).orElse(null);
         String name = account != null ? (account.firstName() + " " + account.lastName()).trim() : "";
         String email = account != null ? account.email() : "";
+        String username = account != null ? account.username() : null;
         return new MemberWithName(
                 m.id(),
                 m.stationId(),
                 m.accountId(),
                 name,
                 email,
+                username,
                 m.userType(),
                 profileComplete,
                 m.formerAt(),

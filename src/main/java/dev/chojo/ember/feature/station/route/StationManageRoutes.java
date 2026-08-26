@@ -13,6 +13,8 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
@@ -91,6 +93,7 @@ public class StationManageRoutes implements Routes {
     private final StationLocationService locationService;
     private final StationRepository stationRepository;
     private final StationLogoService logoService;
+    private final ClusterService clusterService;
 
     @Inject
     public StationManageRoutes(
@@ -108,7 +111,8 @@ public class StationManageRoutes implements Routes {
             StationImportService importService,
             StationLocationService locationService,
             StationRepository stationRepository,
-            StationLogoService logoService) {
+            StationLogoService logoService,
+            ClusterService clusterService) {
         this.stationService = stationService;
         this.accountRepository = accountRepository;
         this.mailLocaleService = mailLocaleService;
@@ -124,6 +128,7 @@ public class StationManageRoutes implements Routes {
         this.locationService = locationService;
         this.stationRepository = stationRepository;
         this.logoService = logoService;
+        this.clusterService = clusterService;
     }
 
     @Override
@@ -222,6 +227,7 @@ public class StationManageRoutes implements Routes {
 
     private StationInfo buildStationInfo(Station station, UserSession session) {
         boolean hasLogo = logoService.exists(station.id());
+        var locks = stationService.lookAndFeelLocks(station.id());
         boolean isOwner = session.member() != null
                 && station.ownerMemberId() != null
                 && station.ownerMemberId() == session.member().id();
@@ -246,7 +252,12 @@ public class StationManageRoutes implements Routes {
                 station.publicPagesEnabled(),
                 station.publicSlug(),
                 station.publicWaitlistEnabled(),
-                station.publicBlogEnabled());
+                station.publicBlogEnabled(),
+                locks.theme(),
+                locks.colors(),
+                locks.feel(),
+                locks.logo(),
+                stationService.clusterNameOf(station.id()).orElse(null));
     }
 
     @OpenApi(
@@ -335,6 +346,9 @@ public class StationManageRoutes implements Routes {
             })
     private void uploadLogo(Context ctx) {
         UserSession session = UserSession.from(ctx);
+        if (stationService.lookAndFeelLocks(session.stationId()).logo()) {
+            throw new BadRequestResponse("The logo is set by the cluster this station belongs to");
+        }
         UploadedFile file = ctx.uploadedFile("logo");
         if (file == null) {
             throw new BadRequestResponse("No file uploaded");
@@ -623,7 +637,13 @@ public class StationManageRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ModulesResponse.class)))
     private void getDisabledModules(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(new ModulesResponse(stationService.findDisabledModules(session.stationId())));
+        ctx.json(new ModulesResponse(
+                stationService.findDisabledModules(session.stationId()),
+                stationService.findClusterDeniedModules(session.stationId()),
+                clusterService
+                        .findByStation(session.stationId())
+                        .map(Cluster::name)
+                        .orElse(null)));
     }
 
     @OpenApi(
@@ -637,7 +657,13 @@ public class StationManageRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var body = ctx.bodyAsClass(ModulesResponse.class);
         stationService.setDisabledModules(session.stationId(), body.disabledModules());
-        ctx.json(new ModulesResponse(stationService.findDisabledModules(session.stationId())));
+        ctx.json(new ModulesResponse(
+                stationService.findDisabledModules(session.stationId()),
+                stationService.findClusterDeniedModules(session.stationId()),
+                clusterService
+                        .findByStation(session.stationId())
+                        .map(Cluster::name)
+                        .orElse(null)));
     }
 
     @OpenApi(
@@ -833,7 +859,12 @@ public class StationManageRoutes implements Routes {
             boolean publicPagesEnabled,
             String publicSlug,
             boolean publicWaitlistEnabled,
-            boolean publicBlogEnabled) {}
+            boolean publicBlogEnabled,
+            boolean themeLocked,
+            boolean colorsLocked,
+            boolean feelLocked,
+            boolean logoLocked,
+            String clusterName) {}
 
     /**
      * Response containing the station's mail configuration and current usage statistics.
@@ -937,9 +968,17 @@ public class StationManageRoutes implements Routes {
     /**
      * Response and request body for the set of disabled modules.
      *
-     * @param disabledModules the names of disabled modules
+     * @param disabledModules      the modules the station switched off itself
+     * @param clusterDeniedModules the modules its cluster switched off, which it cannot turn back on
+     * @param clusterName          the cluster doing the denying, or {@code null} when it answers to nobody
      */
-    public record ModulesResponse(Set<StationModule> disabledModules) {}
+    public record ModulesResponse(
+            Set<StationModule> disabledModules, Set<StationModule> clusterDeniedModules, String clusterName) {
+        /** The shape a caller sends: only its own list matters on the way in. */
+        public ModulesResponse(Set<StationModule> disabledModules) {
+            this(disabledModules, Set.of(), null);
+        }
+    }
 
     /**
      * Request body for transferring station ownership.

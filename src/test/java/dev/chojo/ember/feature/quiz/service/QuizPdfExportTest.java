@@ -15,6 +15,7 @@ import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
 import dev.chojo.ember.TestContainers;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
@@ -118,7 +119,7 @@ class QuizPdfExportTest {
         var station = stationRepo.create("PDF Test Station");
 
         // Create catalog with one question per type
-        var catalog = catalogRepo.create(station.id(), "Showcase Catalog", "", false);
+        var catalog = catalogRepo.create(station.id(), "Showcase Catalog", "", false, CatalogMetadata.none());
         var category = catalogRepo.createCategory(station.id(), "Allgemein", "", 0);
 
         // MULTIPLE_CHOICE

@@ -19,7 +19,7 @@ import java.util.Random;
  * Seeds demo test protocol data modeled after the Jugendflamme Stufe 1 Prüfungsbogen.
  */
 @Singleton
-public class DemoProtocolSeeder implements DemoSeeder {
+public class DemoProtocolSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoProtocolSeeder.class);
     private static final double ONE = 1.0;
     private static final double HALF = 0.5;
@@ -37,9 +37,9 @@ public class DemoProtocolSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        var testees = context.members().anfaenger().stream().map(m -> m.id()).toList();
-        seed(context.stationId(), context.adminMember().id(), testees);
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        var testees = station.members().anfaenger().stream().map(m -> m.id()).toList();
+        seed(station.stationId(), station.adminMember().id(), testees);
         log.info("Demo: Created Test Protocol data");
     }
 

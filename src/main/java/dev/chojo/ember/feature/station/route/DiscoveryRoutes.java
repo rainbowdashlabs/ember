@@ -10,6 +10,8 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
@@ -27,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -38,13 +41,18 @@ public class DiscoveryRoutes implements Routes {
     private final StationService stationService;
     private final StationLogoService logoService;
     private final FederationService federationService;
+    private final ClusterRepository clusterRepository;
 
     @Inject
     public DiscoveryRoutes(
-            StationService stationService, StationLogoService logoService, FederationService federationService) {
+            StationService stationService,
+            StationLogoService logoService,
+            FederationService federationService,
+            ClusterRepository clusterRepository) {
         this.stationService = stationService;
         this.logoService = logoService;
         this.federationService = federationService;
+        this.clusterRepository = clusterRepository;
     }
 
     @Override
@@ -151,6 +159,8 @@ public class DiscoveryRoutes implements Routes {
     }
 
     private DiscoveryEntry toDiscoveryEntry(Station s, Set<UUID> partnerUids, boolean isOwnStation) {
+        // Carried so the page can group the cards. A station outside any cluster carries nothing.
+        Optional<Cluster> cluster = clusterRepository.findByStation(s.id());
         return new DiscoveryEntry(
                 s.uid(),
                 s.name(),
@@ -164,7 +174,9 @@ public class DiscoveryRoutes implements Routes {
                 s.city(),
                 s.country(),
                 s.latitude() != null ? s.latitude().doubleValue() : null,
-                s.longitude() != null ? s.longitude().doubleValue() : null);
+                s.longitude() != null ? s.longitude().doubleValue() : null,
+                cluster.map(c -> c.uid()).orElse(null),
+                cluster.map(Cluster::name).orElse(null));
     }
 
     public record DiscoveryEntry(
@@ -180,7 +192,9 @@ public class DiscoveryRoutes implements Routes {
             String city,
             String country,
             Double latitude,
-            Double longitude) {}
+            Double longitude,
+            UUID clusterUid,
+            String clusterName) {}
 
     public record FederationRequestBody(UUID stationUid) {}
 

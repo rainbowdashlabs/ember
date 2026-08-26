@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.account.service;
 
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.ClusterPermission;
+import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.File;
@@ -114,7 +116,7 @@ public class SessionInfoService {
         var managedInfos = managed.stream().map(this::toManagedMemberInfo).toList();
 
         var disabledModules = session.stationId() != null
-                ? stationService.findDisabledModules(session.stationId())
+                ? stationService.findEffectiveDisabledModules(session.stationId())
                 : Set.<StationModule>of();
 
         Station currentStation = session.stationId() != null
@@ -128,6 +130,7 @@ public class SessionInfoService {
                                 ? session.account().uid().toString()
                                 : null,
                         session.account().email(),
+                        session.account().username(),
                         session.account().firstName(),
                         session.account().lastName()),
                 session.stationUid() != null ? session.stationUid().toString() : null,
@@ -145,7 +148,14 @@ public class SessionInfoService {
                 disabledModules,
                 resolveTheme(session, currentStation),
                 currentStation != null ? currentStation.publicKbMode() : null,
-                currentStation != null ? currentStation.setupCompletedAt() : null);
+                currentStation != null ? currentStation.setupCompletedAt() : null,
+                session.clusterUid() != null ? session.clusterUid().toString() : null,
+                session.clusterUserType(),
+                session.clusterPermissions().stream().map(Enum::name).sorted().toList(),
+                ClusterPermission.atOwnStation(session.clusterPermissions()).stream()
+                        .map(Enum::name)
+                        .sorted()
+                        .toList());
     }
 
     private ManagedMemberInfo toManagedMemberInfo(StationMember member) {
@@ -220,6 +230,10 @@ public class SessionInfoService {
      * @param setupCompletedAt  timestamp at which the station setup wizard was finished, or
      *                          {@code null} while the wizard still applies. Drives the first-login
      *                          redirect to {@code /station/setup} for administrators
+     * @param ownStationPermissions what the caller may do at the station their association owns, where its
+     *                          knowledge base, news and calendar are kept. Those screens are the station's
+     *                          own, so they ask what the reader may do at a station, and while one of them
+     *                          is open on the association's side this is the answer
      */
     public record SessionInfo(
             AccountInfo account,
@@ -238,7 +252,11 @@ public class SessionInfoService {
             Set<StationModule> disabledModules,
             ThemeInfo theme,
             PublicKbMode publicKbMode,
-            Instant setupCompletedAt) {}
+            Instant setupCompletedAt,
+            String clusterId,
+            ClusterUserType clusterUserType,
+            List<String> clusterPermissions,
+            List<String> ownStationPermissions) {}
 
     public record ThemeInfo(
             String instanceDefaultTheme,
@@ -272,7 +290,10 @@ public class SessionInfoService {
      * @param firstName the first name
      * @param lastName  the last name
      */
-    public record AccountInfo(int id, String uid, String email, String firstName, String lastName) {}
+    /**
+     * @param username the name this account signs in with, or null when its address is the only way in
+     */
+    public record AccountInfo(int id, String uid, String email, String username, String firstName, String lastName) {}
 
     /**
      * Minimal member information for the current session.

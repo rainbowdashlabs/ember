@@ -12,6 +12,7 @@
 # which is how WebP variant generation ends up skipped in one run and exercised in the next.
 #
 # Usage: ./toolchain.sh <command> [args...]
+#        ./toolchain.sh <group> <command> [args...]
 #        ./toolchain.sh help
 
 set -euo pipefail
@@ -33,12 +34,17 @@ run() {
 usage() {
     cat <<'EOF'
 Usage: ./toolchain.sh <command> [args...]
+       ./toolchain.sh <group> <command> [args...]
+
+The first hyphen of a name also reads as a space, so `docker app` and `docker-app` are the same
+command. `./toolchain.sh docker` lists what is in a group.
 
 Frontend
   fe-build              Full verification: formatting, unit tests, all linters, vue-tsc, build
   fe-format             Apply license headers and whitespace rules to Vue/TypeScript/locales
   fe-typecheck          vue-tsc only (silent on success)
   fe-audit              All linters, non-gating; prints the warning backlog
+  fe-help-index         Rewrite the help centre's search index from the pages that exist
   fe-lint <name> [args] One linter, e.g. `fe-lint style` runs scripts/lint-style.mjs. Trailing
                         arguments reach the script, e.g. `fe-lint component-size --error=30`
   fe-dev                Dev server
@@ -76,6 +82,7 @@ Backend
   be-spotless           Apply Java formatting
   be-coverage           Coverage gate only (needs a prior test run)
   be-report             Generate the full JaCoCo report
+  be-javadoc            Build the javadoc, which is its own gate in CI and not part of be-verify
   be-federation-version Regenerate the federation contract version
   be-data-tracking      Refresh data_tracking.json from the live DB schema (testcontainer)
 
@@ -95,6 +102,12 @@ Docker
   docker-app-restart    Build and start the containers again, which is how a change is picked up:
                         the backend compiles on start. Name one to restart only that, e.g.
                         `docker-app-restart ember`
+  docker-e2e            Start the stack the stories run against, detached: its own database and a
+                        backend on 8899. The suite starts it itself when it is down, so this is for
+                        having it up in advance
+  docker-e2e-down       Stop it again. Add -v to throw the database away with it
+  docker-e2e-restart    Build and start it again, which is how a backend change reaches the stories:
+                        a stack that is already up keeps running the sources it started with
   docker-app-logs       Follow what the containers print, which is where the first start is
                         watched: `up -d` returns long before the backend has finished building
 
@@ -104,6 +117,38 @@ EOF
 }
 
 fe() { cd "$FRONTEND"; }
+
+# The command names are hyphenated, and the first hyphen also reads as a group: `docker app` is
+# accepted for `docker-app`, and both reach the same arm below. Naming the group alone lists what
+# is in it.
+COMMAND_GROUPS=(fe be docker)
+
+is_group() {
+    local candidate
+    for candidate in "${COMMAND_GROUPS[@]}"; do
+        [ "$1" = "$candidate" ] && return 0
+    done
+    return 1
+}
+
+# What is in a group, read back out of the case arms below so the listing cannot drift from what
+# actually runs.
+list_group() {
+    sed -n 's/^    \([a-z][a-z0-9|_-]*\)).*/\1/p' "$ROOT/toolchain.sh" |
+        tr '|' '\n' | sed -n "s/^$1-//p"
+}
+
+# `docker app` becomes `docker-app` before anything else looks at it, so the arms below only ever
+# see one spelling. A group on its own lists what is in it rather than failing as unknown.
+if is_group "${1:-}"; then
+    if [ $# -ge 2 ]; then
+        set -- "$1-$2" "${@:3}"
+    else
+        echo "Commands in '$1':" >&2
+        list_group "$1" | sed "s|^|  $1 |" >&2
+        exit 2
+    fi
+fi
 
 cmd="${1:-help}"
 shift || true
@@ -121,6 +166,9 @@ case "$cmd" in
     fe-format)     cd "$ROOT"; run ./gradlew formatFrontend "$@" ;;
     fe-typecheck)  fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi typecheck ;;
     fe-audit)      fe; NODE_OPTIONS="$NODE_HEAP" run npm run lint:audit ;;
+    fe-help-index)
+        fe; run node scripts/generate-help-index.mjs
+        ;;
     fe-lint)
         [ $# -ge 1 ] || { echo "fe-lint needs a linter name, e.g. style" >&2; exit 2; }
         linter="$1"; shift
@@ -207,6 +255,7 @@ case "$cmd" in
     be-spotless)   cd "$ROOT"; run ./gradlew spotlessJavaApply "$@" ;;
     be-coverage)   cd "$ROOT"; run ./gradlew jacocoCoverageCheck "$@" ;;
     be-report)     cd "$ROOT"; run ./gradlew jacocoFullReport "$@" ;;
+    be-javadoc)    cd "$ROOT"; run ./gradlew javadoc "$@" ;;
     be-federation-version) cd "$ROOT"; run ./gradlew generateFederationVersion "$@" ;;
     be-data-tracking)      cd "$ROOT"; run ./gradlew refreshDataTracking "$@" ;;
 
@@ -225,6 +274,21 @@ case "$cmd" in
         ;;
     docker-app-down)
         cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile full down "$@"
+        ;;
+    docker-e2e)
+        cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile e2e up -d --build "$@"
+        ;;
+    docker-e2e-down)
+        # Without -v the database volume outlives the stack. The stories do not need it thrown away,
+        # since each run drops the schema and migrates it back, but a stack that will not start is
+        # often quickest cured by taking the volume with it.
+        cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile e2e down "$@"
+        ;;
+    docker-e2e-restart)
+        # How a backend change reaches the stories: the suite reuses a stack that is already up, and
+        # that one is still running the sources as they were when it started.
+        cd "$ROOT/docker"
+        run docker compose -f compose.dev.yaml --profile e2e up -d --build --force-recreate "$@"
         ;;
     docker-app-restart)
         # An up rather than a restart, because `docker compose restart` takes no --build: it starts

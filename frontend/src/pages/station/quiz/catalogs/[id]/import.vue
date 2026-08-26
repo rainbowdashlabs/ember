@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CsvImportView from '~/views/stationview/quiz/CsvImportView.vue'
+import CatalogImportView from '~/views/stationview/quiz/CatalogImportView.vue'
 
 definePageMeta({
   layout: 'station',
@@ -13,5 +13,5 @@ definePageMeta({
 </script>
 
 <template>
-  <CsvImportView />
+  <CatalogImportView />
 </template>

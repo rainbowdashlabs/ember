@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, type Page} from './fixtures/auth'
+import {test, expect, apiHeaders, type Page} from './fixtures/auth'
 
 /**
  * Registering for an event, withdrawing again, and the organiser's view of who has signed up.
@@ -51,22 +51,90 @@ test.describe('Events', () => {
         await expect(page.getByText(/Meine Anmeldung|Anmeldungen/).first()).toBeVisible()
     })
 
-    /** Registering and withdrawing in one walk, which is how a member uses this in practice. */
+    /**
+     * Registering and withdrawing in one walk, which is how a member uses this in practice.
+     *
+     * <p>Both answers are always offered, so what changes is the state rather than which button is
+     * on screen: asserting on the buttons would pass whatever happened. The badge read is the one
+     * beside the member's own name, because the seeded event is answered by other stories at the
+     * same time and the word alone appears wherever any of them has just declined.
+     */
     test('a member registers for an event and withdraws again', async ({memberPage: page}) => {
         await openEventWithRegistration(page)
         await page.getByRole('button', {name: 'Anmeldungen'}).click()
 
-        const register = page.getByRole('button', {name: 'Anmelden'}).first()
-        const decline = page.getByRole('button', {name: 'Absagen'}).first()
+        const myAnswer = page.locator('[data-testid^="my-answer-"]').first()
 
-        if (await register.isVisible().catch(() => false)) {
-            await register.click()
-            await expect(decline).toBeVisible()
-        }
+        await page.getByTestId('answer-household').click()
+        await expect(myAnswer).toHaveText('Bestätigt', {timeout: 15000})
 
-        await decline.click()
-        await expect(page.getByRole('button', {name: 'Anmelden'}).first()).toBeVisible()
+        await page.getByTestId('decline-household').click()
+        await expect(myAnswer).toHaveText('Abgesagt', {timeout: 15000})
     })
+
+    /**
+     * An answer can be changed while registration is open and not afterwards, when the list has been
+     * counted on. After that it is the event's to change: whoever runs it still can, and the member
+     * cannot. The deadline is moved underneath a standing registration, because that is the only way to
+     * reach the closed state without waiting for a real one to pass.
+     */
+    test('an answer can be changed until registration closes, and only by the organiser after',
+        async ({managerPage, memberPage}) => {
+            const managerHeaders = await apiHeaders(managerPage)
+            const memberHeaders = await apiHeaders(memberPage)
+            const name = `Antwort ändern ${test.info().workerIndex}-${Date.now()}`
+
+            const created = await managerPage.request.post('/api/v1/events', {
+                headers: managerHeaders,
+                data: {
+                    name,
+                    description: 'Antwortprobe',
+                    eventType: 'ONE_TIME',
+                    startTime: new Date(Date.now() + 20 * 86400000).toISOString(),
+                    endTime: new Date(Date.now() + 20 * 86400000 + 3600000).toISOString(),
+                    requiresRegistration: true,
+                    registrationDeadline: new Date(Date.now() + 10 * 86400000).toISOString(),
+                },
+            })
+            expect(created.ok(), `the organiser made an event (${await created.text()})`).toBeTruthy()
+            const eventId = (await created.json()).id
+
+            const signedUp = await memberPage.request.post(`/api/v1/events/${eventId}/register`,
+                {headers: memberHeaders, data: {}})
+            expect(signedUp.ok(), `the member signed up (${await signedUp.text()})`).toBeTruthy()
+            const registrationId = (await signedUp.json()).id
+
+            const changed = await memberPage.request.put(
+                `/api/v1/events/registrations/${registrationId}/answer`,
+                {headers: memberHeaders, data: {attending: false}})
+            expect(changed.ok(), `and changed their mind while it was open (${await changed.text()})`).toBeTruthy()
+
+            const closed = await managerPage.request.put(`/api/v1/events/${eventId}`, {
+                headers: managerHeaders,
+                data: {
+                    name,
+                    description: 'Antwortprobe',
+                    eventType: 'ONE_TIME',
+                    startTime: new Date(Date.now() + 20 * 86400000).toISOString(),
+                    endTime: new Date(Date.now() + 20 * 86400000 + 3600000).toISOString(),
+                    requiresRegistration: true,
+                    registrationDeadline: new Date(Date.now() - 86400000).toISOString(),
+                },
+            })
+            expect(closed.ok(), `the organiser closed registration (${await closed.text()})`).toBeTruthy()
+
+            const refused = await memberPage.request.put(
+                `/api/v1/events/registrations/${registrationId}/answer`,
+                {headers: memberHeaders, data: {attending: true}})
+            expect(refused.status(), 'the member cannot answer once it has closed').toBe(400)
+
+            const byOrganiser = await managerPage.request.put(
+                `/api/v1/events/registrations/${registrationId}/answer`,
+                {headers: managerHeaders, data: {attending: true}})
+            expect(byOrganiser.ok(), `but the organiser still can (${await byOrganiser.text()})`).toBeTruthy()
+
+            await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})
+        })
 
     test('the registration overview lists across events', async ({managerPage: page}) => {
         await page.goto('/station/events/registrations')

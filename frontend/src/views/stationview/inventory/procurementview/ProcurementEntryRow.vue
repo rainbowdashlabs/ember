@@ -30,7 +30,7 @@ defineEmits<{
 </script>
 
 <template>
-  <NeutralContainer>
+  <NeutralContainer data-testid="procurement-entry">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <div class="space-y-1">
         <div class="flex items-center gap-2 flex-wrap">
@@ -39,8 +39,13 @@ defineEmits<{
           <SuccessBadge v-if="entry.fulfilledAt">{{ t('procurement.fulfilled') }}</SuccessBadge>
           <ErrorBadge v-else>{{ t('procurement.open') }}</ErrorBadge>
         </div>
-        <div class="text-sm text-(--text-muted)">
-          <MemberName :identity="entry.memberIdentity ?? null"/> &mdash; {{ formatDate(entry.requestedAt) }}
+        <div class="text-sm text-(--text-muted) flex items-center gap-1">
+          <!-- An association orders for its own store, so there is nobody to name and no dash to hang -->
+          <template v-if="entry.memberIdentity">
+            <MemberName :identity="entry.memberIdentity"/>
+            <span>,</span>
+          </template>
+          <span>{{ formatDate(entry.requestedAt) }}</span>
         </div>
         <div v-if="entry.fulfilledAt" class="text-xs text-(--text-muted)">
           {{ t('procurement.fulfilledAt') }}: {{ formatDate(entry.fulfilledAt) }}
@@ -49,7 +54,12 @@ defineEmits<{
       </div>
 
       <div v-if="canManageProcurement" class="flex items-center gap-2 shrink-0">
-        <PrimaryButton :icon="['fas', 'check']" v-if="!entry.fulfilledAt" @click="$emit('fulfill', entry.id)">
+        <PrimaryButton
+            v-if="!entry.fulfilledAt"
+            :icon="['fas', 'check']"
+            data-testid="procurement-fulfill"
+            @click="$emit('fulfill', entry.id)"
+        >
           {{ t('procurement.markFulfilled') }}
         </PrimaryButton>
         <DeleteButton @click="$emit('delete', entry.id)" />

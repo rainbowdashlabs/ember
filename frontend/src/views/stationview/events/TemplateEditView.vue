@@ -22,7 +22,8 @@ import EventReminderEditor from './eventshared/EventReminderEditor.vue'
 import EventDefaultsSection from './templateeditview/EventDefaultsSection.vue'
 import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
 import type {EventCategory, EventFieldEntry, EventTemplateDetail} from '@/api/events'
-import {attendance, events} from '@/api'
+import type {MemberGroup, UserTag} from '@/api/types'
+import {attendance, events, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
@@ -35,6 +36,8 @@ const templateId = computed(() => Number(route.params.id))
 const categories = ref<EventCategory[]>([])
 const attendanceTemplates = ref<AttendanceTemplate[]>([])
 const attendanceFields = ref<AttendanceTemplateField[]>([])
+const groups = ref<MemberGroup[]>([])
+const tags = ref<UserTag[]>([])
 const loading = ref(true)
 const error = ref('')
 
@@ -80,13 +83,17 @@ async function loadData() {
   loading.value = true
   error.value = ''
   try {
-    const [detail, cats, attTpls] = await Promise.all([
+    const [detail, cats, attTpls, memberGroups, userTags] = await Promise.all([
       events.getTemplate(templateId.value),
       events.listCategories(),
       attendance.listTemplates(),
+      memberGroupsApi.listGroups(),
+      userTagsApi.listTags(),
     ])
     categories.value = cats
     attendanceTemplates.value = attTpls
+    groups.value = memberGroups
+    tags.value = userTags
 
     const fieldResults = await Promise.all(attTpls.map(t => attendance.listTemplateFields(t.id)))
     attendanceFields.value = fieldResults.flat()
@@ -172,7 +179,12 @@ async function save() {
         </NeutralContainer>
 
         <NeutralContainer class="space-y-4">
-          <EventFieldList v-model:fields="fields" :attendance-fields="attendanceFields"/>
+          <EventFieldList
+              v-model:fields="fields"
+              :attendance-fields="attendanceFields"
+              :groups="groups"
+              :tags="tags"
+          />
         </NeutralContainer>
 
         <SaveButton :disabled="!name.trim()" :action="save"/>

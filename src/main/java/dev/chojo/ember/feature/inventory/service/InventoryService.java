@@ -6,6 +6,10 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.entity.ClusterStationGroup;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemHistory;
@@ -14,7 +18,11 @@ import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import io.javalin.http.BadRequestResponse;
+import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -31,10 +39,20 @@ import java.util.Optional;
 public class InventoryService {
     private static final Logger log = LoggerFactory.getLogger(InventoryService.class);
     private final InventoryRepository inventoryRepository;
+    private final ClusterRepository clusterRepository;
+    private final ClusterStationGroupRepository stationGroupRepository;
+    private final ItemCustodyService custodyService;
 
     @Inject
-    public InventoryService(InventoryRepository inventoryRepository) {
+    public InventoryService(
+            InventoryRepository inventoryRepository,
+            ItemCustodyService custodyService,
+            ClusterRepository clusterRepository,
+            ClusterStationGroupRepository stationGroupRepository) {
         this.inventoryRepository = inventoryRepository;
+        this.custodyService = custodyService;
+        this.clusterRepository = clusterRepository;
+        this.stationGroupRepository = stationGroupRepository;
     }
 
     // -- Inventories --
@@ -198,6 +216,18 @@ public class InventoryService {
         return inventoryRepository.findItemsByMember(memberId);
     }
 
+    /**
+     * A member's own inventory, which is what they hold plus whatever is on its way to or from them.
+     * Use this wherever a member reads their own list; {@link #findItemsByMember(int)} answers the
+     * narrower question of what is actually in their hands.
+     *
+     * @param memberId the member
+     * @return their items, each with the movement it is on when there is one
+     */
+    public List<MemberInventoryEntry> findMemberEntries(int memberId) {
+        return inventoryRepository.findMemberEntries(memberId);
+    }
+
     public int countItemsByMember(int memberId) {
         return inventoryRepository.countItemsByMember(memberId);
     }
@@ -210,6 +240,16 @@ public class InventoryService {
      */
     public List<InventoryItem> findItems(int inventoryId) {
         return inventoryRepository.findItems(inventoryId);
+    }
+
+    /**
+     * What an inventory actually holds, which leaves out whatever is in the post.
+     *
+     * @param inventoryId the inventory ID
+     * @return the items that are here
+     */
+    public List<InventoryItem> findStock(int inventoryId) {
+        return inventoryRepository.findStock(inventoryId);
     }
 
     /**
@@ -250,15 +290,17 @@ public class InventoryService {
     }
 
     /**
-     * Creates a new inventory item with a specified item source.
+     * Creates a new inventory item with a named owner.
      *
-     * @param inventoryId the inventory ID
-     * @param internalId  the internal identifier
-     * @param name        the item name
-     * @param sizeId      the size ID, or {@code null}
-     * @param metadata    JSON metadata
-     * @param itemSource  the item source
+     * @param inventoryId    the inventory ID
+     * @param internalId     the internal identifier
+     * @param name           the item name
+     * @param sizeId         the size ID, or {@code null}
+     * @param metadata       JSON metadata
+     * @param ownerKind      who owns the item
+     * @param ownerClusterId the owning body when it runs on this instance, or {@code null} when it does not
      * @return the created item
+     * @throws BadRequestResponse when the named body is not the one this station answers to
      */
     public InventoryItem createItem(
             int inventoryId,
@@ -266,32 +308,153 @@ public class InventoryService {
             String name,
             Integer sizeId,
             InventoryItemMetadata metadata,
-            InventoryItem.ItemSource itemSource) {
+            ItemOwner ownerKind,
+            Integer ownerClusterId) {
+        requireOwnerFits(inventoryId, ownerKind);
+        Integer owner =
+                ownerKind == ItemOwner.CLUSTER && ownerClusterId == null ? clusterAbove(inventoryId) : ownerClusterId;
+        requireOwningCluster(inventoryId, owner);
         InventoryItem item =
-                inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata, itemSource);
+                inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata, ownerKind, owner);
         log.info(
-                "Created item {} (name='{}', internalId='{}', sizeId={}, source={}) in inventory {}",
+                "Created item {} (name='{}', internalId='{}', sizeId={}, owner={}, ownerClusterId={}) in inventory {}",
                 item.id(),
                 name,
                 internalId,
                 sizeId,
-                itemSource,
+                ownerKind,
+                owner,
                 inventoryId);
         return item;
     }
 
     /**
+     * The body above the station that keeps this inventory, when there is one.
+     *
+     * <p>A station recording gear it does not own means the one body above it: there is no second
+     * candidate to choose between, so nothing asks. Without this the row says "somebody above us owns
+     * this" and cannot say who, the association's own chains never reach it, and the station ends up
+     * standing in for a body that is right there and could have answered for itself.
+     *
+     * @param inventoryId the inventory the gear goes into
+     * @return the owning body, or {@code null} at a station that answers to nobody
+     */
+    private Integer clusterAbove(int inventoryId) {
+        return inventoryRepository
+                .findById(inventoryId)
+                .flatMap(inv -> clusterRepository.findByStation(inv.stationId()))
+                .map(Cluster::id)
+                .orElse(null);
+    }
+
+    /**
+     * Refuses an owner the inventory was not made to hold.
+     *
+     * <p>This is the one job the inventory's type still has. It used to stand in for the owner of every
+     * item in it, which is where the mixed-inventory bug came from; now the item says who owns it and the
+     * type only says which owners may be written down here. An inventory of the station's own things holds
+     * nothing borrowed, one of borrowed things holds nothing of the station's own, and a mixed one is the
+     * only place both may stand.
+     *
+     * @param inventoryId the inventory the item is going into
+     * @param ownerKind   who would own it
+     * @throws BadRequestResponse when this inventory is not for gear of that owner
+     */
+    private void requireOwnerFits(int inventoryId, ItemOwner ownerKind) {
+        var type = inventoryRepository
+                .findById(inventoryId)
+                .map(Inventory::inventoryType)
+                .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
+        boolean fits =
+                switch (type) {
+                    case MIXED -> true;
+                    case INTERNAL -> ownerKind == ItemOwner.STATION;
+                    case EXTERNAL -> ownerKind == ItemOwner.CLUSTER;
+                };
+        if (!fits) {
+            throw new BadRequestResponse("This inventory does not hold gear owned by the "
+                    + ownerKind.name().toLowerCase());
+        }
+    }
+
+    /**
+     * Refuses gear recorded as belonging to a body this station has nothing to do with.
+     *
+     * <p>There is never more than one body above a station, so naming a second one is not a choice being made
+     * but a mistake or an attempt: gear pointed at somebody else's association would appear in that
+     * association's list of what it owns, and it would be able to recall it. A station keeping gear for an
+     * owner that does not run here names no body at all, which is what a null means and stays allowed.
+     *
+     * <p>A cluster's own station passes too, because that is where a cluster's store sits and it answers to
+     * itself rather than joining anything.
+     */
+    /**
+     * Refuses a group of stations that is not the association's whose inventory this is.
+     *
+     * <p>A requirement naming a group is an association saying where it applies, so the group has to be
+     * one the same association filed. A station writing its own requirement names none, and passes here
+     * without a query.
+     */
+    private void requireGroupOfTheOwningCluster(int inventoryId, Integer stationGroupId) {
+        if (stationGroupId == null) return;
+        int stationId = inventoryRepository
+                .findById(inventoryId)
+                .map(Inventory::stationId)
+                .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
+        int groupCluster = stationGroupRepository
+                .findById(stationGroupId)
+                .map(ClusterStationGroup::clusterId)
+                .orElseThrow(() -> new BadRequestResponse("That group of stations does not exist"));
+        boolean itsOwnStore = clusterRepository
+                .findById(groupCluster)
+                .map(cluster -> cluster.homeStationId() == stationId)
+                .orElse(false);
+        if (!itsOwnStore) {
+            throw new BadRequestResponse(
+                    "A requirement can only name a group of stations of the association that wrote it");
+        }
+    }
+
+    private void requireOwningCluster(int inventoryId, Integer ownerClusterId) {
+        if (ownerClusterId == null) return;
+        int stationId = inventoryRepository
+                .findById(inventoryId)
+                .map(Inventory::stationId)
+                .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
+
+        boolean answersToIt = clusterRepository
+                .findByStation(stationId)
+                .map(cluster -> cluster.id() == ownerClusterId)
+                .orElse(false);
+        boolean isItsOwnStore = clusterRepository
+                .findById(ownerClusterId)
+                .map(cluster -> cluster.homeStationId() == stationId)
+                .orElse(false);
+        if (!answersToIt && !isItsOwnStore) {
+            throw new BadRequestResponse(
+                    "Gear can only be recorded as belonging to the association this station answers to");
+        }
+    }
+
+    /**
      * Updates an inventory item.
      *
-     * @param id         the item ID
-     * @param internalId the new internal identifier
-     * @param name       the new name
-     * @param sizeId     the new size ID, or {@code null}
-     * @param metadata   the new JSON metadata
+     * @param id              the item ID
+     * @param internalId      the new internal identifier
+     * @param name            the new name
+     * @param sizeId          the new size ID, or {@code null}
+     * @param metadata        the new JSON metadata
+     * @param actingClusterId the body the caller answers for, or {@code null} when they act as the station
      * @return the updated item, or empty if not found
      */
     public Optional<InventoryItem> updateItem(
-            int id, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
+            int id,
+            String internalId,
+            String name,
+            Integer sizeId,
+            InventoryItemMetadata metadata,
+            Integer actingClusterId) {
+        requireOwned(id, "described", actingClusterId);
         if (inventoryRepository.updateItem(id, internalId, name, sizeId, metadata)) {
             log.info("Updated item {} (name='{}', internalId='{}', sizeId={})", id, name, internalId, sizeId);
             return inventoryRepository.findItemById(id);
@@ -311,43 +474,21 @@ public class InventoryService {
      * @return the updated item, or empty if the item was not found
      */
     public Optional<InventoryItem> assignItem(int itemId, Integer memberId, String memberName) {
-        var item = inventoryRepository.findItemById(itemId);
-        if (item.isEmpty()) {
-            log.warn("Assign skipped: item {} not found", itemId);
-            return Optional.empty();
-        }
-
-        var current = item.get();
-        if (current.assignedTo() != null) {
-            inventoryRepository.returnHistory(itemId, current.assignedTo());
-        }
-
-        if (inventoryRepository.assignItem(itemId, memberId)) {
-            if (memberId != null) {
-                inventoryRepository.createHistory(itemId, memberId, memberName != null ? memberName : "");
-                log.info("Assigned item {} to member {} ('{}')", itemId, memberId, memberName);
-            } else {
-                log.info("Unassigned item {} (was assigned to member {})", itemId, current.assignedTo());
-            }
-            return inventoryRepository.findItemById(itemId);
-        }
-        log.warn("Assign of item {} to member {} did not change any row", itemId, memberId);
-        return Optional.empty();
+        return memberId != null
+                ? custodyService.assignToMember(itemId, memberId, memberName)
+                : custodyService.takeBack(itemId);
     }
 
     /**
      * Marks an item as lost.
      *
-     * @param id the item ID
+     * @param id     the item ID
+     * @param note   what whoever reported it wrote, or {@code null}
+     * @param noteBy who wrote that note, or {@code null}
      * @return the updated item, or empty if not found
      */
-    public Optional<InventoryItem> markLost(int id) {
-        if (inventoryRepository.markLost(id)) {
-            log.info("Marked item {} as lost", id);
-            return inventoryRepository.findItemById(id);
-        }
-        log.warn("Mark-lost of item {} did not change any row", id);
-        return Optional.empty();
+    public Optional<InventoryItem> markLost(int id, String note, Integer noteBy) {
+        return custodyService.markLost(id, note, noteBy);
     }
 
     /**
@@ -357,25 +498,51 @@ public class InventoryService {
      * @return the updated item, or empty if not found
      */
     public Optional<InventoryItem> markFound(int id) {
-        if (inventoryRepository.markFound(id)) {
-            log.info("Marked item {} as found", id);
-            return inventoryRepository.findItemById(id);
-        }
-        log.warn("Mark-found of item {} did not change any row", id);
-        return Optional.empty();
+        return custodyService.markFound(id);
     }
 
     /**
      * Deletes an inventory item.
      *
-     * @param id the item ID
+     * @param id              the item ID
+     * @param actingClusterId the body the caller answers for, or {@code null} when they act as the station
      * @return {@code true} if deleted
      */
-    public boolean deleteItem(int id) {
+    public boolean deleteItem(int id, Integer actingClusterId) {
+        requireOwned(id, "deleted", actingClusterId);
         boolean deleted = inventoryRepository.deleteItem(id);
         if (deleted) log.info("Deleted item {}", id);
         else log.warn("Delete skipped: item {} not found", id);
         return deleted;
+    }
+
+    /**
+     * Refuses to let a station change gear it does not own.
+     *
+     * <p>Holding something is not owning it. A station may hand a cluster's jacket to a member, put it on a
+     * shelf, check it and report it missing, because all of those are facts about where it is. What it may
+     * not do is rename it, resize it or delete it, because those are the owner's account of what the thing
+     * is, and the same row is what the owner reads.
+     *
+     * <p>The owner itself arrives here as a station request, because an association's gear sits on the station
+     * it owns and its screens act there. So the question is not "is this a station" but "is this the body the
+     * gear belongs to", which is what {@code actingClusterId} answers.
+     *
+     * @param itemId          the item somebody wants to change
+     * @param verb            what they wanted to do, for the message
+     * @param actingClusterId the body the caller answers for, or {@code null} when they act as the station
+     * @throws ForbiddenResponse when the item belongs to a cluster that runs on this instance and is not this one
+     */
+    private void requireOwned(int itemId, String verb, Integer actingClusterId) {
+        inventoryRepository.findItemById(itemId).ifPresent(item -> {
+            // Only where the owner is actually here to do it themselves. Gear kept for a body that does not
+            // use Ember belongs to nobody who could ever correct a name, so refusing the station would leave
+            // the record wrong for good with no way to put it right.
+            if (item.ownerKind() != ItemOwner.CLUSTER || item.ownerClusterId() == null) return;
+            if (item.ownerClusterId().equals(actingClusterId)) return;
+            throw new ForbiddenResponse(
+                    "This gear belongs to the body above the station and can only be %s by them".formatted(verb));
+        });
     }
 
     // -- History --
@@ -403,23 +570,53 @@ public class InventoryService {
     }
 
     /**
+     * What a station has to show for its people: its own requirements and the cluster's, each saying which
+     * it is and what it asks for.
+     *
+     * @param stationId the station reading them
+     * @return its own and the cluster's, ordered by position
+     */
+    public List<InventoryRepository.VisibleRequirement> findRequirementsVisibleAt(int stationId) {
+        return inventoryRepository.findRequirementsVisibleAt(stationId);
+    }
+
+    /**
+     * The body above this station that keeps its gear in Ember, when there is one.
+     *
+     * <p>Two screens ask it: a requirement the station did not write is badged with the name, and the
+     * button asking that body for a piece appears only where there is somebody to ask.
+     *
+     * @param stationId the station asking
+     * @return the association above it, if it keeps its gear here
+     */
+    public Optional<String> ownerAbove(int stationId) {
+        return clusterRepository
+                .findByStation(stationId)
+                .filter(Cluster::usesInventory)
+                .map(Cluster::name);
+    }
+
+    /**
      * Creates a new inventory requirement.
      *
      * @param inventoryId the inventory ID
      * @param userType    the user type name, or {@code null} if not user-type-based
-     * @param groupId     the group ID (0 if not group-based)
-     * @param quantity    the required quantity
+     * @param groupId        the group ID (0 if not group-based)
+     * @param stationGroupId the group of stations it counts at, or null for every station reading it
+     * @param quantity       the required quantity
      * @return the created requirement
      */
     public InventoryRequirement createRequirement(
-            int inventoryId, StationUserType userType, int groupId, int quantity) {
+            int inventoryId, StationUserType userType, int groupId, Integer stationGroupId, int quantity) {
+        requireGroupOfTheOwningCluster(inventoryId, stationGroupId);
         InventoryRequirement requirement =
-                inventoryRepository.createRequirement(inventoryId, userType, groupId, quantity);
+                inventoryRepository.createRequirement(inventoryId, userType, groupId, stationGroupId, quantity);
         log.info(
-                "Created requirement {} (userType={}, groupId={}, quantity={}) for inventory {}",
+                "Created requirement {} (userType={}, groupId={}, stationGroupId={}, quantity={}) for inventory {}",
                 requirement.id(),
                 userType,
                 groupId,
+                stationGroupId,
                 quantity,
                 inventoryId);
         return requirement;

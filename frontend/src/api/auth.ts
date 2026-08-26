@@ -8,7 +8,8 @@ import {isStorageDenied, removeItem, setItem} from './storage'
 import type {MessageResponse} from './types'
 
 export interface LoginRequest {
-    email?: string
+    /** An email address or the name the account signs in with. */
+    identifier?: string
     password?: string
     /**
      * Whether the person signing in vouches for this machine. Ticked, the session lasts as long as
@@ -133,6 +134,7 @@ export async function logout(data: TokenRequest): Promise<MessageResponse> {
     removeItem('session_token')
     removeItem('session_expires_at')
     removeItem('station_id')
+    removeItem('cluster_id')
     return res.data
 }
 

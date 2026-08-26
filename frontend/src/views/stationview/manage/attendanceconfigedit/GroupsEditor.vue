@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
+import DragList from '@/components/input/DragList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -24,8 +24,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   add: [groupId: number]
   remove: [groupId: number]
-  moveUp: [index: number]
-  moveDown: [index: number]
+  reorder: [fromIndex: number, toIndex: number]
 }>()
 
 const {t} = useI18n()
@@ -47,21 +46,22 @@ const unselectedGroups = computed(() => {
 
     <EmptyState compact v-if="groups.length === 0">{{ t('attendanceConfig.noGroups') }}</EmptyState>
 
-    <div class="space-y-2">
-      <NeutralContainer v-for="(group, index) in groups" :key="group.groupId" class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-(--text-muted) w-6 text-center">{{ index + 1 }}</span>
-          <span class="font-medium">{{ groupName(group.groupId) }}</span>
-        </div>
-        <div class="flex items-center gap-1">
-          <IconButton :disabled="index === 0" :icon="['fas', 'chevron-up']"
-                     :label="t('common.moveUp')" @click="emit('moveUp', index)"/>
-          <IconButton :disabled="index === groups.length - 1" :icon="['fas', 'chevron-down']"
-                     :label="t('common.moveDown')" @click="emit('moveDown', index)"/>
+    <DragList
+        :items="groups"
+        :key-fn="(group) => group.groupId"
+        class="space-y-2"
+        @reorder="(from, to) => emit('reorder', from, to)"
+    >
+      <template #default="{item: group, index}">
+        <NeutralContainer class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-(--text-muted) w-6 text-center">{{ index + 1 }}</span>
+            <span class="font-medium">{{ groupName(group.groupId) }}</span>
+          </div>
           <DeleteButton @click="emit('remove', group.groupId)"/>
-        </div>
-      </NeutralContainer>
-    </div>
+        </NeutralContainer>
+      </template>
+    </DragList>
 
     <div v-if="unselectedGroups.length > 0" class="pt-2">
       <FieldLabel class="mb-1">{{ t('attendanceConfig.addGroup') }}</FieldLabel>

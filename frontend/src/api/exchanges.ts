@@ -5,6 +5,8 @@
  */
 import client from './client'
 import { createCrudResource } from './crud'
+import type { ItemOwnerName } from './inventory'
+import type { MovementPurposeName } from './movements'
 import type { MemberIdentity } from './types'
 
 export const ExchangeStatus = {
@@ -29,6 +31,12 @@ export interface ExchangeRequestEntry {
     newSizeId?: number | null
     newSizeLabel?: string | null
     inventoryType: string
+    /** Who owns the piece itself, which is what a mixed inventory cannot say for a row. */
+    ownerKind?: ItemOwnerName | null
+    /** What the piece is called, which is the only place a piece in the post is still named. */
+    itemName?: string | null
+    /** Whether this is an issue, a return or an exchange. */
+    purpose?: MovementPurposeName | null
     status: ExchangeStatusName
     reason: string
     createdAt: string
@@ -37,10 +45,19 @@ export interface ExchangeRequestEntry {
     memberIdentity?: MemberIdentity | null
 }
 
+/** How a step of a movement came to be acknowledged. */
+export const AckKind = {
+    CONFIRMED: 'CONFIRMED',
+    ASSERTED: 'ASSERTED',
+    FORCED: 'FORCED',
+} as const
+
+export type AckKindName = (typeof AckKind)[keyof typeof AckKind]
+
 export interface ExchangeLogEntry {
     id: number
-    oldStatus: string
-    newStatus: string
+    stepLabel: string
+    ackKind: AckKindName
     changedBy: number
     changedByName: string
     changedAt: string

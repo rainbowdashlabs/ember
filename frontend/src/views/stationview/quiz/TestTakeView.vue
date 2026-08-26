@@ -73,7 +73,6 @@ const {
   setImageTextAnswer,
   setTrueFalse,
   reorderItems,
-  moveOrderItem,
 } = useQuizAnswers(attemptId, currentQuestionId)
 
 const { timerDisplay, timerExpired, startTimer, stopTimer } = useQuizTimer(timeLimit, attemptStartedAt, doSubmit)
@@ -192,7 +191,6 @@ watch(loaded, (isLoaded) => {
         @set-image-text-answer="setImageTextAnswer"
         @set-true-false="setTrueFalse"
         @reorder-items="reorderItems"
-        @move-order-item="moveOrderItem"
       />
 
       <TestSubmitModal v-model="submitModalOpen" @confirm="doSubmit" />

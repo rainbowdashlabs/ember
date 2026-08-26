@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {MADE_BY_A_STORY} from './cluster'
 import {test as base, type APIRequestContext, type Browser, type Page} from '@playwright/test'
 
 /**
@@ -27,6 +28,8 @@ export interface DemoAccount {
     instanceAdministrator?: boolean
     /** The station the account belongs to, carried over from the group it was listed under. */
     stationId?: string
+    /** Everything the account may do for any cluster, expanded. Empty for somebody in no cluster. */
+    clusterPermissions?: string[]
 }
 
 /**
@@ -217,11 +220,278 @@ export async function otherStationManager(
     return match
 }
 
+/**
+ * The clusters an account may act for, asked as that account.
+ *
+ * A story that walks into the cluster area has to name which cluster it means, because the identity
+ * travels on the header and nothing guesses it. Read rather than hardcoded, for the same reason the
+ * demo accounts are: the seeder is free to rename what it builds.
+ */
+export async function clustersOf(page: Page): Promise<Cluster[]> {
+    const headers = await apiHeaders(page)
+    const response = await page.request.get('/api/v1/clusters', {headers})
+    if (!response.ok()) throw new Error(`The cluster list answered ${response.status()}`)
+    return response.json()
+}
+
+/**
+ * A cluster as a story needs to know it: what to name, and the station it keeps its own things on.
+ *
+ * A cluster writes its knowledge base, its news and its calendar with the ordinary station screens, over
+ * the station it owns. Writing them in a story therefore means naming that station the same way the
+ * application does, which is why the id is part of what a story is handed.
+ */
+export interface Cluster {
+    uid: string
+    name: string
+    homeStationId: string
+}
+
+/**
+ * The headers that write for a cluster: its identity, and the station its own things live on.
+ *
+ * @param page    a signed-in page
+ * @param cluster the cluster being written for
+ */
+export async function clusterHeaders(page: Page, cluster: Cluster): Promise<Record<string, string>> {
+    return {
+        ...await apiHeaders(page),
+        'X-Cluster-Id': cluster.uid,
+        'X-Station-Id': cluster.homeStationId,
+    }
+}
+
+/**
+ * A page already inside the cluster area, acting for the first cluster its account may act for.
+ *
+ * The application plants the same key when somebody uses the switcher; a story that is not about
+ * the switcher plants it directly rather than clicking through it every time.
+ */
+export async function enterCluster(page: Page): Promise<Cluster> {
+    const cluster = await theSeededCluster(page)
+    await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), cluster.uid)
+    return cluster
+}
+
+/**
+ * The cluster the demo is about, told apart from the ones the stories make.
+ *
+ * Several stories create a cluster of their own to govern, and the administrator is appointed to every one
+ * of them, so "the first cluster this account may act for" stops meaning anything the moment two stories
+ * run at once. The seeded one is the only one with stations under it, which is also what makes it the one
+ * worth telling a story about.
+ */
+export async function theSeededCluster(page: Page): Promise<Cluster> {
+    const clusters = await clustersOf(page)
+    if (!clusters.length) throw new Error('This account may act for no cluster')
+
+    // By name rather than by asking each one what it governs: reading a cluster's stations needs a right
+    // the narrower cluster roles do not hold, and telling them apart is not something a story should need
+    // a permission for.
+    const seeded = clusters.find(cluster => !cluster.name.startsWith(MADE_BY_A_STORY))
+    if (!seeded) throw new Error('Every cluster this account may act for was made by a story')
+    return seeded
+}
+
+/**
+ * A demo account holding a cluster right, so a story names the rights it needs rather than a person.
+ *
+ * The seeder gives the cluster an administrator, somebody who only looks after members and somebody who
+ * only looks after gear. A story asking for the narrowest of the three is what makes the permission part
+ * of the test instead of an accident.
+ */
+export async function clusterAccountWith(request: APIRequestContext, permission: string): Promise<DemoAccount> {
+    const accounts = await demoAccounts(request)
+    const match = accounts.find(account =>
+        !!account.email && (account.clusterPermissions ?? []).includes(permission))
+    if (!match) throw new Error(`No demo account may ${permission} for a cluster`)
+    return match
+}
+
+/**
+ * The narrowest cluster account that can do the thing, preferring one that is not the administrator.
+ *
+ * An administrator holds every right, so asking only for the right would keep finding them and the story
+ * would never prove the right does anything on its own.
+ */
+export async function clusterAccountOnlyWith(request: APIRequestContext, permission: string): Promise<DemoAccount> {
+    const accounts = await demoAccounts(request)
+    const holders = accounts.filter(account =>
+        !!account.email && (account.clusterPermissions ?? []).includes(permission))
+    if (!holders.length) throw new Error(`No demo account may ${permission} for a cluster`)
+    return holders.reduce((narrowest, account) =>
+        (account.clusterPermissions ?? []).length < (narrowest.clusterPermissions ?? []).length ? account : narrowest)
+}
+
+/**
+ * A page signed in as the given account, with the cluster area already entered.
+ *
+ * Its own context rather than one of the three shared ones, because the cluster roles are held by demo
+ * members the station stories are also acting as, and planting a cluster into a shared session would
+ * follow those stories around.
+ */
+export async function clusterPage(
+    browser: Browser,
+    request: APIRequestContext,
+    account: DemoAccount,
+): Promise<Page> {
+    const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
+    if (!login.ok()) throw new Error(`Demo login for ${account.email} answered ${login.status()}`)
+    const {token} = await login.json()
+
+    const context = await browser.newContext()
+    await context.addInitScript(([sessionToken, stationId]) => {
+        window.localStorage.setItem('session_token', sessionToken)
+        if (stationId) window.localStorage.setItem('station_id', stationId)
+        window.localStorage.setItem('storage_consent', 'accepted')
+    }, [token, account.stationId ?? ''])
+    const page = await context.newPage()
+    await enterCluster(page)
+    return page
+}
+
+/**
+ * The stations a cluster has, asked as somebody who may act for it.
+ *
+ * A story about what the cluster reaches needs to know which stations those are, and the names are the
+ * seeder's to change.
+ */
+export async function clusterStations(page: Page): Promise<{uid: string; name: string}[]> {
+    const headers = await apiHeaders(page)
+    const cluster = await enterCluster(page)
+    const response = await page.request.get('/api/v1/cluster/stations', {
+        headers: {...headers, 'X-Cluster-Id': cluster.uid},
+    })
+    if (!response.ok()) throw new Error(`The cluster station list answered ${response.status()}`)
+    return response.json()
+}
+
+/** A station the instance offers demo logins for, with everybody at it. */
+export interface DemoStationGroup {
+    stationId?: string
+    stationName?: string
+    accounts?: DemoAccount[]
+}
+
+/**
+ * The demo's stations, each with the accounts at it, in the order the instance lists them.
+ *
+ * Grouped rather than flattened, because a story looking for a station of a certain kind needs the
+ * station and not just the people: which station is which is the seeder's business, and every fixture
+ * below finds one by asking rather than by name.
+ */
+export async function demoStationGroups(request: APIRequestContext): Promise<DemoStationGroup[]> {
+    const response = await request.get('/api/v1/demo/accounts')
+    if (!response.ok()) throw new Error(`The demo accounts endpoint answered ${response.status()}`)
+    return (await response.json()).stationGroups ?? []
+}
+
+/** Whoever at this station may act for it. */
+function managersOf(group: DemoStationGroup): DemoAccount[] {
+    return (group.accounts ?? []).filter(account => !!account.email
+        && (account.permissions.includes('STATION_ADMINISTRATOR')
+            || account.permissions.includes('STATION_MANAGER')))
+}
+
+/**
+ * The cluster a station answers to, asked as one of its managers.
+ *
+ * @returns what the station says about its cluster, or null when this manager cannot ask
+ */
+async function clusterOf(
+    request: APIRequestContext,
+    group: DemoStationGroup,
+    account: DemoAccount,
+): Promise<{clusterUid?: string; clusterName?: string} | null> {
+    const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
+    if (!login.ok()) return null
+    const {token} = await login.json()
+    const cluster = await request.get('/api/v1/station/cluster', {
+        headers: {Authorization: `Bearer ${token}`, 'X-Station-Id': group.stationId ?? ''},
+    })
+    return cluster.ok() ? cluster.json() : null
+}
+
+/**
+ * A manager of a station that answers to a cluster.
+ *
+ * The station stories pick whichever station has both a manager and a member, and that is not
+ * necessarily one inside a cluster: the demo deliberately leaves two outside. A story about what a
+ * cluster does to a station has to be at one of the stations it actually governs.
+ */
+export async function clusterStationManager(request: APIRequestContext): Promise<DemoAccount> {
+    for (const group of await demoStationGroups(request)) {
+        for (const account of managersOf(group)) {
+            const cluster = await clusterOf(request, group, account)
+            // Not a station some other story built for itself: those come and go while this one reads
+            if (cluster?.clusterUid && !String(cluster.clusterName ?? '').startsWith(MADE_BY_A_STORY)) {
+                return {...account, stationId: group.stationId}
+            }
+        }
+    }
+    throw new Error('No station inside a cluster has a manager of its own to act as')
+}
+
+/**
+ * An ordinary member of the station that answers to a cluster.
+ *
+ * The counterpart of {@link clusterStationManager}: a story where somebody has a piece of the cluster's
+ * gear in their hands needs the two of them at the same station, and the shared member fixture is at the
+ * station standing outside every cluster.
+ */
+export async function clusterStationMember(request: APIRequestContext): Promise<DemoAccount> {
+    const manager = await clusterStationManager(request)
+    const accounts = await demoAccounts(request)
+    const member = accounts.find(account => !!account.email
+        && account.stationId === manager.stationId
+        && account.userType === 'MEMBER')
+    if (!member) throw new Error('The station inside a cluster has no ordinary member to act as')
+    return member
+}
+
+/**
+ * A manager of the full demo station that answers to nobody.
+ *
+ * The demo builds the same station twice, one inside an association and one outside it, so that every
+ * feature can be looked at both ways. This is the outside half, and it is the one the stories about
+ * standing alone act on. Of the stations in no cluster it is the one carrying the demo's whole cast,
+ * which the spare stations beside it come nowhere near.
+ */
+export async function standaloneStationManager(request: APIRequestContext): Promise<DemoAccount> {
+    const groups = [...await demoStationGroups(request)]
+        .sort((first, second) => (second.accounts?.length ?? 0) - (first.accounts?.length ?? 0))
+    for (const group of groups) {
+        for (const account of managersOf(group)) {
+            const cluster = await clusterOf(request, group, account)
+            if (cluster && !cluster.clusterUid) return {...account, stationId: group.stationId}
+        }
+    }
+    throw new Error('No full station stands outside every cluster')
+}
+
+/**
+ * A page signed in as the person who looks after the cluster's gear, acting for the cluster.
+ *
+ * Its own context because the account is also somebody at a station, and planting a cluster into the
+ * shared session would follow the station stories around. The station header travels too: the same person
+ * works a station queue and the cluster's, and which one they mean is the header's job to say.
+ */
+export async function clusterGearManagerPage(browser: Browser, request: APIRequestContext): Promise<Page> {
+    const account = await clusterAccountOnlyWith(request, 'CLUSTER_INVENTORY_EXCHANGE')
+    return clusterPage(browser, request, account)
+}
+
 interface Fixtures {
     managerPage: Page
     memberPage: Page
     adminPage: Page
     partnerManagerPage: Page
+    /** A manager of a station that answers to a cluster, which the shared manager is not. */
+    clusterStationManagerPage: Page
+    /** An ordinary member of that same station, for the stories that need both. */
+    clusterStationMemberPage: Page
+    /** A manager of the full station that answers to nobody, which is the other half of the demo. */
+    standaloneStationManagerPage: Page
 }
 
 export const test = base.extend<Fixtures>({
@@ -247,6 +517,24 @@ export const test = base.extend<Fixtures>({
         const {manager} = await stationPeers(request)
         const other = await otherStationManager(request, manager.stationId, manager.email)
         const page = await pageAsThrowaway(browser, request, [], other)
+        await use(page)
+        await page.context().close()
+    },
+
+    clusterStationManagerPage: async ({browser, request}, use) => {
+        const page = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
+        await use(page)
+        await page.context().close()
+    },
+
+    clusterStationMemberPage: async ({browser, request}, use) => {
+        const page = await pageAsThrowaway(browser, request, [], await clusterStationMember(request))
+        await use(page)
+        await page.context().close()
+    },
+
+    standaloneStationManagerPage: async ({browser, request}, use) => {
+        const page = await pageAsThrowaway(browser, request, [], await standaloneStationManager(request))
         await use(page)
         await page.context().close()
     },

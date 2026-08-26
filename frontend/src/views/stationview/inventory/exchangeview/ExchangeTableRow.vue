@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -14,8 +15,11 @@ import ExchangeStatusBadge from './ExchangeStatusBadge.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
 import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
-import { inventoryTypeBadge, inventoryTypeLabel as toInventoryTypeLabel } from '@/util/inventoryType'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import { itemOwnerBadge, itemOwnerLabel as toItemOwnerLabel } from '@/util/inventoryType'
 import { formatDate } from '@/util/format'
+
+const routes = useInventoryRoutes()
 
 const { t } = useI18n()
 const router = useRouter()
@@ -35,8 +39,9 @@ const emit = defineEmits<{
   (e: 'delete'): void
 }>()
 
-function inventoryTypeLabel(type?: string | null): string {
-  return toInventoryTypeLabel(t, type)
+/** Who owns the piece this row is about, which a mixed inventory cannot answer for the inventory. */
+function ownerLabel(ownerKind?: string | null): string {
+  return toItemOwnerLabel(t, ownerKind)
 }
 </script>
 
@@ -47,15 +52,18 @@ function inventoryTypeLabel(type?: string | null): string {
     </td>
     <Td v-if="showMemberColumn">
       <SecondaryButton
-        v-if="canManageExchanges"
+        v-if="canManageExchanges && routes.member"
         class="!bg-transparent !p-0 text-primary font-normal hover:underline cursor-pointer"
-        @click="router.push({ name: 'inventory-member', params: { memberId: request.memberId } })"
+        @click="routes.member && router.push({ name: routes.member, params: { memberId: request.memberId } })"
       ><MemberName :identity="request.memberIdentity ?? null"/></SecondaryButton>
       <MemberName v-else :identity="request.memberIdentity ?? null"/>
     </Td>
     <Td class="font-medium">{{ request.inventoryName }}</Td>
     <Td v-if="canManageExchanges">
-      <component :is="inventoryTypeBadge(request.inventoryType)">{{ inventoryTypeLabel(request.inventoryType) }}</component>
+      <component :is="itemOwnerBadge(request.ownerKind)">{{ ownerLabel(request.ownerKind) }}</component>
+      <SecondaryBadge v-if="request.purpose" class="ml-1">
+        {{ t(`movements.purpose.${request.purpose}`) }}
+      </SecondaryBadge>
     </Td>
     <Td>{{ request.oldSizeLabel ?? t('common.unisize') }}</Td>
     <Td>{{ request.newSizeLabel ?? t('common.unisize') }}</Td>
@@ -70,7 +78,11 @@ function inventoryTypeLabel(type?: string | null): string {
         <SecondaryButton @click="emit('open-log')">
           <font-awesome-icon :icon="['fas', 'clock-rotate-left']" />
         </SecondaryButton>
-        <SecondaryButton v-if="canManageExchanges && request.status !== ExchangeStatus.DONE" @click="emit('start-update')">
+        <SecondaryButton
+            v-if="canManageExchanges && request.status !== ExchangeStatus.DONE"
+            data-testid="exchange-advance"
+            @click="emit('start-update')"
+        >
           <font-awesome-icon :icon="['fas', 'arrow-right']" />
         </SecondaryButton>
         <DeleteButton v-if="canManageExchanges" @click="emit('delete')" />

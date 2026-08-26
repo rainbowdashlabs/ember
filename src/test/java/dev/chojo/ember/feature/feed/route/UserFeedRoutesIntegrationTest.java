@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.feed.route;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
@@ -144,7 +145,10 @@ class UserFeedRoutesIntegrationTest {
                 null,
                 null,
                 null,
-                null);
+                null,
+                StationKind.REGULAR,
+                null,
+                false);
 
         when(tokenService.findByToken(TOKEN_VALUE)).thenReturn(Optional.of(token));
         when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member));

@@ -31,8 +31,27 @@ public class Auth {
     @Overwrite(env = @Env)
     private int resetTokenHours = 1;
 
+    /**
+     * How long a mail waits after a guardian switched signing in on or off for a member in their
+     * care, before it is sent.
+     *
+     * <p>The switch itself takes effect at once; only the telling waits. A guardian who flicks it by
+     * accident and flicks it straight back inside this window sends the member nothing at all, which
+     * is the whole point of the delay. Zero sends with the next sweep, about a minute later.
+     */
     @Overwrite(env = @Env)
-    private int sessionMinutes = 30;
+    private int managedLoginNoticeMinutes = 5;
+
+    /**
+     * How long a session lasts on a device the person signing in vouched for.
+     *
+     * <p>This is the long duration, the one somebody asks for by ticking the box on their own
+     * machine, and thirty days is what that box is generally taken to mean. It has to be at least
+     * {@link #untrustedSessionMinutes}: a machine nobody vouched for keeping its session longer
+     * than one somebody did turns the box into a penalty, which is what the default used to do.
+     */
+    @Overwrite(env = @Env)
+    private int sessionMinutes = 43200;
 
     /**
      * How long a session lasts on a device the person signing in did not vouch for.
@@ -80,11 +99,24 @@ public class Auth {
     }
 
     public int sessionMinutes() {
-        return sessionMinutes;
+        return Math.max(5, sessionMinutes);
     }
 
+    /**
+     * How long the mail about a guardian's access change waits, never less than no wait at all.
+     */
+    public int managedLoginNoticeMinutes() {
+        return Math.max(0, managedLoginNoticeMinutes);
+    }
+
+    /**
+     * How long a session lasts on a machine nobody vouched for, never longer than one somebody did.
+     *
+     * <p>The settings screen refuses to save the two the wrong way round, but a config file written
+     * by hand can still say it, and the ordering has to hold whichever way the value arrived.
+     */
     public int untrustedSessionMinutes() {
-        return Math.max(5, untrustedSessionMinutes);
+        return Math.min(Math.max(5, untrustedSessionMinutes), sessionMinutes());
     }
 
     /**
@@ -93,7 +125,7 @@ public class Auth {
      * @param trustedDevice whether the person signing in vouched for the machine
      */
     public int sessionMinutes(boolean trustedDevice) {
-        return trustedDevice ? sessionMinutes : untrustedSessionMinutes();
+        return trustedDevice ? sessionMinutes() : untrustedSessionMinutes();
     }
 
     /**

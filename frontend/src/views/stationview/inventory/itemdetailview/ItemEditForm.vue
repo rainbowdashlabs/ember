@@ -32,7 +32,7 @@ const {t} = useI18n()
   <div class="grid gap-4 sm:grid-cols-3">
     <div class="space-y-1">
       <FieldLabel>{{ t('itemDetail.name') }}</FieldLabel>
-      <TextInput v-model="name"/>
+      <TextInput v-model="name" data-testid="item-edit-name"/>
     </div>
     <div class="space-y-1">
       <FieldLabel>{{ t('itemDetail.internalId') }}</FieldLabel>
@@ -47,7 +47,7 @@ const {t} = useI18n()
     </div>
   </div>
   <div class="flex gap-2">
-    <SaveButton :action="props.save"/>
+    <SaveButton :action="props.save" data-testid="item-edit-save"/>
     <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
   </div>
 </template>

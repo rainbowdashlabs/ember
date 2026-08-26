@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.station.repository;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -35,7 +36,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class StationRepository {
 
     private static final String STATION_COLUMNS =
-            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, default_feel, allow_user_feel, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled, landing_page_id, public_pages_enabled, public_slug, public_waitlist_enabled, public_blog_enabled, address_line, postal_code, city, country, latitude, longitude, setup_completed_at";
+            "id, uid, name, timezone, locale, owner_member_id, default_theme, allow_user_theme, custom_theme_colors, default_feel, allow_user_feel, public_kb_mode, federation_private_key, discovery_visibility, discovery_description, discovery_show_kb, public_calendar_enabled, landing_page_id, public_pages_enabled, public_slug, public_waitlist_enabled, public_blog_enabled, address_line, postal_code, city, country, latitude, longitude, setup_completed_at, station_kind, cluster_id, loss_note_required";
 
     private final Cache<Integer, UUID> uidCache = Caffeine.newBuilder()
             .expireAfterAccess(5, TimeUnit.MINUTES)
@@ -81,6 +82,19 @@ public class StationRepository {
     /**
      * Invalidates the UID cache for a station (on create/delete).
      */
+    /**
+     * Forgets every station identity this repository has cached.
+     *
+     * <p>For the one moment the whole table goes away underneath it: the demo wipe re-creates the schema
+     * and seeds it again, and the row that comes back with id 5 is a different station from the one that
+     * had it before. A cached identity outliving the wipe is not stale in the ordinary sense, it is wrong,
+     * and it is written into whatever is built during seeding.
+     */
+    public void invalidateIdentityCaches() {
+        uidCache.invalidateAll();
+        idCache.invalidateAll();
+    }
+
     public void invalidateUidCache(int stationId) {
         var uid = uidCache.getIfPresent(stationId);
         uidCache.invalidate(stationId);
@@ -163,6 +177,71 @@ public class StationRepository {
     }
 
     /**
+     * Marks a station as the shell a cluster owns. It stays a real station row: what changes is that nobody
+     * joins it and the user-facing listings leave it out.
+     *
+     * @param id the station ID
+     * @return {@code true} if a row was updated
+     */
+    public boolean markAsClusterHome(int id) {
+        return query("UPDATE station SET station_kind = :kind WHERE id = :id;")
+                .single(call().bind("kind", StationKind.CLUSTER_HOME).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Puts a station under a cluster, or takes it back out when the cluster is {@code null}.
+     *
+     * <p>The row is the whole record of membership: there is no join table, because a station answers to at
+     * most one cluster and the alternative would be a table whose only job is to enforce that.
+     *
+     * @param id        the station
+     * @param clusterId the cluster it now answers to, or {@code null} to release it
+     * @return {@code true} if a row was updated
+     */
+    public boolean setCluster(int id, Integer clusterId) {
+        return query("UPDATE station SET cluster_id = :cluster_id WHERE id = :id;")
+                .single(call().bind("cluster_id", clusterId).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * The member stations of a cluster, without its home station.
+     *
+     * @param clusterId the cluster
+     * @return the stations that answer to it
+     */
+    public List<Station> findByCluster(int clusterId) {
+        return query("""
+                SELECT %s FROM station
+                WHERE cluster_id = :cluster_id AND station_kind = :kind
+                ORDER BY name;""", STATION_COLUMNS)
+                .single(call().bind("cluster_id", clusterId).bind("kind", StationKind.REGULAR))
+                .map(Station.map())
+                .all();
+    }
+
+    /**
+     * The stations somebody can actually join, which is what every user-facing listing wants. {@code findAll}
+     * keeps its wider meaning for the storage jobs, whose files are real either way.
+     *
+     * <p>Ordered the way {@code findAll} is, because this replaced it in every user-facing caller and the
+     * order was load-bearing: sorting by name instead moved the station the demo is about out of first
+     * place, and everything that says "the first station with somebody who runs it" quietly went elsewhere.
+     *
+     * @return every station that is not a cluster's home
+     */
+    public List<Station> findAllRegular() {
+        return query("""
+                SELECT %s FROM station WHERE station_kind = :kind ORDER BY id;""", STATION_COLUMNS)
+                .single(call().bind("kind", StationKind.REGULAR))
+                .map(Station.map())
+                .all();
+    }
+
+    /**
      * Updates the name of a station.
      *
      * @param id   the station ID
@@ -207,6 +286,13 @@ public class StationRepository {
     public boolean updatePublicKbMode(int id, PublicKbMode mode) {
         return query("UPDATE station SET public_kb_mode = :mode WHERE id = :id;")
                 .single(call().bind("mode", mode).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    public boolean updateLossNoteRequired(int id, boolean required) {
+        return query("UPDATE station SET loss_note_required = :required WHERE id = :id;")
+                .single(call().bind("required", required).bind("id", id))
                 .update()
                 .changed();
     }
@@ -535,6 +621,10 @@ public class StationRepository {
                 .all();
     }
 
+    /**
+     * The stations that may appear as a card of their own in discovery. A cluster's home station is not one:
+     * it contributes its name to its member stations' cards instead of standing next to them.
+     */
     public List<Station> findDiscoverable(int excludeStationId, DiscoveryVisibility visA, DiscoveryVisibility visB) {
         return query("""
                 SELECT
@@ -543,6 +633,7 @@ public class StationRepository {
                     station
                 WHERE id != :exclude_id
                   AND discovery_visibility IN (:vis_a, :vis_b)
+                  AND station_kind = 'REGULAR'
                 ORDER BY name;""", STATION_COLUMNS)
                 .single(call().bind("exclude_id", excludeStationId)
                         .bind("vis_a", visA)

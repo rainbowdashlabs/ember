@@ -29,7 +29,7 @@ const { t } = useI18n()
     {{ t('quiz.training.noCatalogs') }}
   </MutedText>
 
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+  <div data-onboarding="quiz.catalogs" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
     <div
       v-for="catalog in catalogs"
       :key="catalog.id"
@@ -54,7 +54,7 @@ const { t } = useI18n()
   </div>
 
   <div class="flex justify-end">
-    <PrimaryButton :disabled="selectedCatalogIds.size === 0" @click="$emit('start')">
+    <PrimaryButton data-onboarding="quiz.start" :disabled="selectedCatalogIds.size === 0" @click="$emit('start')">
       {{ t('quiz.training.start') }}
     </PrimaryButton>
   </div>

@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -85,6 +86,27 @@ public class StationMemberService {
 
     public List<StationMember> findByAccount(int accountId) {
         return memberRepository.findByAccount(accountId);
+    }
+
+    /**
+     * The stations an account actually belongs to, as a person.
+     *
+     * <p>A cluster's own station is not one of them. Writing for a cluster gives the writer a member row
+     * there so an article can name its author, and that row carries no permission and means nobody joined
+     * anything: offering it as a station would put a shell nobody runs in the switcher, in the picker and
+     * on the cross-station page. Everything that asks "which stations are mine" wants this list; the export
+     * and the deletion want the other one, because a row is a row.
+     *
+     * @param accountId the account
+     * @return its memberships, minus any on a cluster's own station
+     */
+    public List<StationMember> findBelongingByAccount(int accountId) {
+        return memberRepository.findByAccount(accountId).stream()
+                .filter(member -> stationRepository
+                        .findById(member.stationId())
+                        .map(station -> station.stationKind() == StationKind.REGULAR)
+                        .orElse(false))
+                .toList();
     }
 
     public StationMember create(int stationId, int accountId) {
@@ -174,8 +196,7 @@ public class StationMemberService {
         if (addingLogin && authService != null && member != null && member.accountId() != null) {
             var credential = accountRepository.findCredential(member.accountId());
             if (credential.isEmpty()) {
-                var account = accountRepository.findById(member.accountId()).orElseThrow();
-                authService.sendPasswordSetup(member.accountId(), account.email(), account.firstName());
+                authService.sendPasswordSetup(member.accountId());
             }
         }
 

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
@@ -23,6 +24,8 @@ import type {Inventory, InventoryItem} from '@/api/inventory'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {formatDate} from '@/util/format'
+
+const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const router = useRouter()
@@ -147,10 +150,10 @@ function itemLabel(item: { id: number; name: string | null; internalId: string |
   >
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
       <div class="flex gap-2">
-        <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({name: 'inventory-lending'})">
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({name: routes.lending})">
           {{ t('lending.backToList') }}
         </SecondaryButton>
-        <PrimaryButton :icon="['fas', 'plus']" @click="router.push({name: 'inventory-lending-blocks-create'})">
+        <PrimaryButton :icon="['fas', 'plus']" @click="router.push({name: routes.lendingBlocksCreate})">
           {{ t('lending.addBlock') }}
         </PrimaryButton>
       </div>

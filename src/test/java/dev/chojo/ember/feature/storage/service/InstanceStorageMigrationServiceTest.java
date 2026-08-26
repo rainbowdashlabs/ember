@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.feature.storage.migration.MigrationLockRegistry;
+import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -83,13 +84,19 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
         setField(StorageBackendSettings.LocalSettings.class, storage.backend().local(), "root", sourceRoot.toString());
 
         factory = new SwappableFactory(storage, sourceBackend, cipher);
-        var resolver = new StorageBackendResolver(factory, storageConfigRepo);
+        var resolver = new StorageBackendResolver(factory, storageConfigRepo, new ClusterStationStorageRepository());
         storageService = new StorageService(resolver, sourceBackend);
 
         locks = new MigrationLockRegistry();
         readOnly = new InstanceStorageReadOnlyState();
         migrationService = new InstanceStorageMigrationService(
-                stationRepo, accountRepo, storageConfigRepo, factory, locks, readOnly);
+                stationRepo,
+                accountRepo,
+                storageConfigRepo,
+                new ClusterStationStorageRepository(),
+                factory,
+                locks,
+                readOnly);
     }
 
     /**
@@ -312,7 +319,13 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
         var cipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));
         var sameRootFactory = new SwappableFactory(sameRoot, sourceBackend, cipher);
         var service = new InstanceStorageMigrationService(
-                stationRepo, accountRepo, storageConfigRepo, sameRootFactory, locks, readOnly);
+                stationRepo,
+                accountRepo,
+                storageConfigRepo,
+                new ClusterStationStorageRepository(),
+                sameRootFactory,
+                locks,
+                readOnly);
 
         var error = assertThrows(MigrationException.class, () -> service.prepare(new StorageBackendSettings()));
 

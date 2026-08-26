@@ -20,6 +20,7 @@ import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import type { InventoryItem } from '@/api/inventory'
 import type { CheckResult, RequiredInventoryItem } from '@/api/inventoryCheck'
 import type { CheckEntry } from '@/composables/useMemberCheck'
+import type { RapidExchangeKind } from './RapidExchangeModal.vue'
 
 const props = defineProps<{
   uncheckedEntries: CheckEntry[]
@@ -30,6 +31,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   setResult: [result: CheckResult]
+  exchange: [kind: RapidExchangeKind, entry: CheckEntry]
   markNotInPossession: []
   assign: [itemId: string]
   createAndAssign: [sizeId: string]
@@ -146,6 +148,23 @@ defineExpose({ currentEntry })
       <ErrorButton :icon="['fas', 'xmark']" @click="handleSetResult('LOST')">
         {{ t('inventory.check.lost') }}
       </ErrorButton>
+    </div>
+    <div class="flex flex-wrap justify-center gap-2">
+      <InfoButton
+          v-if="currentEntry.item.sizeId"
+          :icon="['fas', 'arrow-up-wide-short']"
+          data-testid="rapid-exchange-size"
+          @click="emit('exchange', 'size', currentEntry)"
+      >
+        {{ t('inventory.check.exchangeSize') }}
+      </InfoButton>
+      <InfoButton
+          :icon="['fas', 'triangle-exclamation']"
+          data-testid="rapid-exchange-damaged"
+          @click="emit('exchange', 'damaged', currentEntry)"
+      >
+        {{ t('inventory.check.exchangeDamaged') }}
+      </InfoButton>
     </div>
     <div class="flex justify-center gap-2">
       <SecondaryButton @click="skip">

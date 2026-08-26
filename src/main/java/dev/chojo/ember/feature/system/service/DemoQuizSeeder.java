@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
@@ -30,7 +31,7 @@ import java.util.Map;
  * Seeder for demo quiz catalogs, questions, and tests.
  */
 @Singleton
-public class DemoQuizSeeder implements DemoSeeder {
+public class DemoQuizSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoQuizSeeder.class);
     private final QuizCatalogRepository quizCatalogRepository;
     private final QuizTestRepository quizTestRepository;
@@ -55,19 +56,23 @@ public class DemoQuizSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        var members = context.members();
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        var members = station.members();
         var testTakers = new ArrayList<Integer>();
         for (var m : members.anfaenger()) testTakers.add(m.id());
         for (var m : members.fortgeschritten()) testTakers.add(m.id());
-        seedQuiz(context.stationId(), context.adminMember().id(), testTakers);
+        seedQuiz(station.stationId(), station.adminMember().id(), testTakers);
         log.info("Demo: Created Quiz entries");
     }
 
     public void seedQuiz(int stationId, int createdBy, List<Integer> memberIds) {
         // -- Anfänger-Katalog (40+ questions) --
         var anfaengerCatalog = quizCatalogRepository.create(
-                stationId, "Anfänger-Wissen", "Grundlagenwissen für neue Mitglieder der Jugendfeuerwehr", true);
+                stationId,
+                "Anfänger-Wissen",
+                "Grundlagenwissen für neue Mitglieder der Jugendfeuerwehr",
+                true,
+                CatalogMetadata.none());
         quizCatalogRepository.setPublicRender(anfaengerCatalog.id(), true);
         var catGrundlagen =
                 quizCatalogRepository.createCategory(stationId, "Grundlagen", "Allgemeine Grundlagen der Feuerwehr", 0);
@@ -383,7 +388,8 @@ public class DemoQuizSeeder implements DemoSeeder {
                 stationId,
                 "Fortgeschrittenen-Wissen",
                 "Vertiefendes Wissen für erfahrene Jugendfeuerwehr-Mitglieder",
-                true);
+                true,
+                CatalogMetadata.none());
         var catBrandlehre = quizCatalogRepository.createCategory(
                 stationId, "Brandlehre", "Verbrennungsdreieck, Brandklassen und Löschmittel", 4);
         var catTaktik = quizCatalogRepository.createCategory(
@@ -612,7 +618,7 @@ public class DemoQuizSeeder implements DemoSeeder {
 
         // -- Test 3: Showcase test with every question type --
         var showcaseCatalog = quizCatalogRepository.create(
-                stationId, "Showcase-Katalog", "Ein Katalog mit je einer Frage pro Typ", true);
+                stationId, "Showcase-Katalog", "Ein Katalog mit je einer Frage pro Typ", true, CatalogMetadata.none());
         var catShowcase = quizCatalogRepository.createCategory(stationId, "Showcase", "Demo aller Fragetypen", 7);
 
         createMcQuestion(

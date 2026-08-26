@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
@@ -39,14 +40,16 @@ public class QuizCatalogService {
         return catalogRepository.findById(id);
     }
 
-    public QuizCatalog createCatalog(int stationId, String name, String description, boolean trainingEnabled) {
-        var catalog = catalogRepository.create(stationId, name, description, trainingEnabled);
+    public QuizCatalog createCatalog(
+            int stationId, String name, String description, boolean trainingEnabled, CatalogMetadata metadata) {
+        var catalog = catalogRepository.create(stationId, name, description, trainingEnabled, metadata);
         log.info("Created quiz catalog {} for station {}", catalog.id(), stationId);
         return catalog;
     }
 
-    public boolean updateCatalog(int id, String name, String description, boolean trainingEnabled) {
-        boolean updated = catalogRepository.update(id, name, description, trainingEnabled);
+    public boolean updateCatalog(
+            int id, String name, String description, boolean trainingEnabled, CatalogMetadata metadata) {
+        boolean updated = catalogRepository.update(id, name, description, trainingEnabled, metadata);
         if (updated) {
             log.info("Updated quiz catalog {}", id);
         } else {

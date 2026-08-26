@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.notifications.entity;
 
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
-import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
+import dev.chojo.ember.feature.inventory.entity.StepActor;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
@@ -78,13 +78,13 @@ class NotificationDataTest {
 
     @Test
     void paramsAsMapOmitsNullValues() {
-        var params = new NotificationParams.ExchangeStatusChange(ExchangeStatus.SHIPPED, "Helm", null);
+        var params = new NotificationParams.ExchangeStatusChange("An den Träger geschickt", "Helm", null);
         var data = NotificationData.of(params);
 
         Map<String, String> map = data.paramsAsMap();
-        assertEquals("SHIPPED", map.get("status"));
+        assertEquals("An den Träger geschickt", map.get("stepLabel"));
         assertEquals("Helm", map.get("inventoryName"));
-        assertFalse(map.containsKey("reason"));
+        assertFalse(map.containsKey("nextActor"), "a chain that has ended waits on nobody");
     }
 
     @Test
@@ -129,7 +129,7 @@ class NotificationDataTest {
                         new NotificationParams.EventRegistrationStatus("e", RegistrationStatus.ACCEPTED, "d"),
                 NotificationType.EXCHANGE_NEW_REQUEST, new NotificationParams.ExchangeNewRequest("m", "i", "r"),
                 NotificationType.EXCHANGE_STATUS_CHANGE,
-                        new NotificationParams.ExchangeStatusChange(ExchangeStatus.SHIPPED, "i", "r"),
+                        new NotificationParams.ExchangeStatusChange("An den Träger geschickt", "i", StepActor.STATION),
                 NotificationType.MEMBER_ADDED_TO_GROUP, new NotificationParams.MemberAddedToGroup("g", null),
                 NotificationType.PROFILE_FIELD_CHANGED, new NotificationParams.ProfileFieldChanged("m", "f"),
                 NotificationType.PROCUREMENT_REQUESTED, new NotificationParams.ProcurementRequested("i"),

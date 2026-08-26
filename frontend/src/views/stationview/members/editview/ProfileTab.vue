@@ -13,9 +13,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {ProfileField} from '@/api/profileFields'
-import ProfileFieldsLayout from '@/components/profilefields/ProfileFieldsLayout.vue'
+import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
 import {valueFields} from '@/components/profilefields/fieldLayout'
+import {profileKey, type MergedProfileField} from '@/util/profileFields'
 import type {StationMember} from '@/api/types'
 import {profileFields, members, stationMembers} from '@/api'
 
@@ -24,13 +24,14 @@ const {t} = useI18n()
 const props = defineProps<{
   member: StationMember
   memberId: number
-  fields: ProfileField[]
-  initialValues: Map<number, string>
+  fields: MergedProfileField[]
+  initialValues: Map<string, string>
 }>()
 
 const editFirstName = ref(props.member.name?.split(' ')[0] ?? '')
 const editLastName = ref(props.member.name?.split(' ').slice(1).join(' ') ?? '')
 const editEmail = ref(props.member.email ?? '')
+const editUsername = ref(props.member.username ?? '')
 const editValues = ref(new Map(props.initialValues))
 const editJoinDate = ref(props.member.joinDate ?? '')
 const error = ref('')
@@ -46,12 +47,13 @@ async function onJoinDateChange(value: string | undefined) {
   }
 }
 
-function getEditValue(fieldId: number): string {
-  return editValues.value.get(fieldId) ?? ''
+function getEditValue(field: LaidOutField): string {
+  return editValues.value.get(profileKey(field.id, field.origin ?? 'STATION')) ?? ''
 }
 
-function setEditValue(fieldId: number, val: string) {
-  editValues.value = new Map([...editValues.value, [fieldId, val]])
+function setEditValue(field: LaidOutField, val: string) {
+  const key = profileKey(field.id, field.origin ?? 'STATION')
+  editValues.value = new Map([...editValues.value, [key, val]])
 }
 
 async function save() {
@@ -59,10 +61,19 @@ async function save() {
   try {
     await members.updateAccount(props.member.accountId, {
       email: editEmail.value,
+      username: editUsername.value,
       firstName: editFirstName.value,
       lastName: editLastName.value,
     })
-    const entries = valueFields(props.fields).map(f => ({fieldId: f.id, value: JSON.stringify(getEditValue(f.id))}))
+    // A field the cluster keeps to itself has no control on this screen, so sending it back would send
+    // whatever was read rather than anything anybody typed
+    const entries = valueFields(props.fields)
+        .filter(f => !(f as MergedProfileField).readonlyAtStation)
+        .map(f => ({
+          fieldId: f.id,
+          value: JSON.stringify(getEditValue(f)),
+          origin: (f as MergedProfileField).origin,
+        }))
     await profileFields.setValues(props.memberId, {values: entries})
   } catch (e) {
     error.value = t('common.error')
@@ -91,6 +102,11 @@ async function save() {
           <FieldLabel hint>{{ t('memberEdit.email') }}</FieldLabel>
           <TextInput v-model="editEmail"/>
         </div>
+      </div>
+      <div class="space-y-1">
+        <FieldLabel hint>{{ t('memberEdit.username') }}</FieldLabel>
+        <TextInput v-model="editUsername" :placeholder="editEmail"/>
+        <p class="text-xs text-(--text-muted)">{{ t('memberEdit.usernameHint') }}</p>
       </div>
     </NeutralContainer>
 

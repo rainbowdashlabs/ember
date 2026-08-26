@@ -5,12 +5,16 @@
  */
 package dev.chojo.ember.feature.members.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -97,6 +101,35 @@ public class UserTagRepository {
                 .single(call().bind("tag_id", tagId))
                 .map(StationMember.map())
                 .all();
+    }
+
+    /**
+     * The tag each of these members wears beside their name, which is the highest placed visible one
+     * that carries a colour.
+     *
+     * <p>One query for a whole list, for the same reason the colours are fetched that way: a round trip
+     * a row is most of what a page of two hundred costs.
+     *
+     * @param memberIds the members
+     * @return member id to tag, holding only the members that wear one
+     */
+    public Map<Integer, UserTag> findDisplayTags(Collection<Integer> memberIds) {
+        if (memberIds == null || memberIds.isEmpty()) return Map.of();
+        Map<Integer, UserTag> tags = new HashMap<>();
+        for (var row : query("""
+                SELECT DISTINCT ON (ute.member_id) ute.member_id, %s
+                FROM user_tag_entry ute
+                JOIN user_tag ut ON ut.id = ute.tag_id
+                WHERE ute.member_id = ANY(:member_ids)
+                  AND ut.visible
+                  AND ut.color IS NOT NULL AND ut.color <> ''
+                ORDER BY ute.member_id, ut.position DESC;""", SqlSupport.alias("ut", USER_TAG_COLUMNS))
+                .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt("member_id"), UserTag.map().map(row)))
+                .all()) {
+            tags.put(row.getKey(), row.getValue());
+        }
+        return tags;
     }
 
     /**

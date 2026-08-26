@@ -7,6 +7,7 @@
 import {reactive} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
+import {useEventRoutes} from '@/composables/useEventRoutes'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
@@ -24,6 +25,7 @@ import {formatDate, formatTime} from '@/util/format'
 
 const {t} = useI18n()
 const router = useRouter()
+const eventRoutes = useEventRoutes()
 
 interface CategoryGroup {
   category: EventCategory | null
@@ -96,9 +98,9 @@ function detailRoute(ev: StationEvent) {
     const d = new Date()
     const pad = (n: number) => String(n).padStart(2, '0')
     const today = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-    return {name: 'event-detail-date', params: {id: ev.id, date: today}}
+    return {name: eventRoutes.detailOnDate, params: {id: ev.id, date: today}}
   }
-  return {name: 'event-detail', params: {id: ev.id}}
+  return {name: eventRoutes.detail, params: {id: ev.id}}
 }
 </script>
 
@@ -107,13 +109,13 @@ function detailRoute(ev: StationEvent) {
     <div class="flex items-center justify-between flex-wrap gap-2">
       <SectionHeader>{{ t('events.allEvents') }}</SectionHeader>
       <div class="flex items-center gap-2">
-        <SecondaryButton :icon="['fas', 'folder-plus']" @click="router.push({name: 'event-categories'})">
+        <SecondaryButton :icon="['fas', 'folder-plus']" @click="router.push({name: eventRoutes.categories})">
           {{ t('events.manageCategories') }}
         </SecondaryButton>
-<SecondaryButton :icon="['fas', 'calendar-plus']" @click="router.push({name: 'event-batch'})">
+<SecondaryButton :icon="['fas', 'calendar-plus']" @click="router.push({name: eventRoutes.batch})">
           {{ t('sidebar.eventBatch') }}
         </SecondaryButton>
-        <PrimaryButton :icon="['fas', 'plus']" @click="emit('addEvent')">
+        <PrimaryButton data-onboarding="events.create" :icon="['fas', 'plus']" @click="emit('addEvent')">
           {{ t('events.addEvent') }}
         </PrimaryButton>
       </div>

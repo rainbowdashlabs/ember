@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -39,6 +40,8 @@ public class EventReminderChecker {
     private final EventRegistrationRepository registrationRepository;
     private final StationMemberRepository stationMemberRepository;
     private final NotificationService notificationService;
+    private final MemberNameResolver memberNameResolver;
+    private final EventRestrictionService restrictionService;
     private final StationReadOnlyGuard readOnlyGuard;
 
     @Inject
@@ -48,12 +51,16 @@ public class EventReminderChecker {
             EventRegistrationRepository registrationRepository,
             StationMemberRepository stationMemberRepository,
             NotificationService notificationService,
+            MemberNameResolver memberNameResolver,
+            EventRestrictionService restrictionService,
             StationReadOnlyGuard readOnlyGuard) {
         this.eventRepository = eventRepository;
         this.reminderRepository = reminderRepository;
         this.registrationRepository = registrationRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.notificationService = notificationService;
+        this.memberNameResolver = memberNameResolver;
+        this.restrictionService = restrictionService;
         this.readOnlyGuard = readOnlyGuard;
         var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "event-reminder-checker");
@@ -63,8 +70,11 @@ public class EventReminderChecker {
         scheduler.scheduleWithFixedDelay(this::check, 5, 30, TimeUnit.MINUTES);
     }
 
+    private static final int[] CLOSING_WARNINGS = {3, 1};
+
     private void check() {
         try {
+            warnAboutClosingRegistrations();
             var events = eventRepository.findEventsWithReminders();
             LocalDate today = LocalDate.now(ZoneOffset.UTC);
 
@@ -134,6 +144,63 @@ public class EventReminderChecker {
             if (event.occursOn(date)) result.add(date);
         }
         return result;
+    }
+
+    /**
+     * Warns whoever still owes an answer that registration is about to close.
+     *
+     * <p>Three days out and one day out, each sent once per event: the sweep runs every half hour, and a
+     * warning that arrived every half hour would be worse than none.
+     *
+     * <p>Only people the event is actually open to are warned. Eligibility is asked without any
+     * permissions, so nobody is reminded merely because they could override the restriction: somebody the
+     * event is closed to has nothing to answer.
+     *
+     * <p>The warning goes to everyone who could answer, which is the member and whoever looks after them.
+     * A household where a guardian and two children are all still unanswered therefore hears three times,
+     * once about each person, because the guardian has to know which of them it is about.
+     */
+    private void warnAboutClosingRegistrations() {
+        for (int daysBefore : CLOSING_WARNINGS) {
+            for (var event : eventRepository.findEventsClosingIn(daysBefore)) {
+                if (!readOnlyGuard.isWritable(event.stationId())) continue;
+
+                int warned = 0;
+                for (int memberId :
+                        registrationRepository.findUnansweredMemberIds(event.eventId(), event.stationId())) {
+                    warned += warnAbout(event, memberId, daysBefore) ? 1 : 0;
+                }
+                reminderRepository.markDeadlineWarningSent(event.eventId(), daysBefore);
+                log.info(
+                        "Warned {} member(s) that registration for '{}' (id={}) closes in {} day(s)",
+                        warned,
+                        event.name(),
+                        event.eventId(),
+                        daysBefore);
+            }
+        }
+    }
+
+    /** Tells one member, and everyone who answers for them, that their answer is still missing. */
+    private boolean warnAbout(EventRepository.ClosingEvent event, int memberId, int daysBefore) {
+        var member = stationMemberRepository.findById(memberId).orElse(null);
+        if (member == null) return false;
+
+        var audience = new HashSet<Integer>();
+        audience.add(memberId);
+        for (StationMember manager : stationMemberRepository.findManagers(memberId)) {
+            audience.add(manager.id());
+        }
+
+        notificationService.notifyMembers(
+                audience,
+                NotificationType.REGISTRATION_CLOSING,
+                NotificationData.of(
+                        new NotificationParams.RegistrationClosing(
+                                event.name(), daysBefore, memberNameResolver.resolveLocal(member.id())),
+                        new NotificationData.NotificationLink(
+                                "event-detail", Map.of("id", String.valueOf(event.eventId())))));
+        return true;
     }
 
     private List<Integer> resolveTargetMembers(StationEvent event, LocalDate eventDate) {

@@ -29,6 +29,12 @@ export interface StationManageInfo {
     publicWaitlistEnabled?: boolean
     publicBlogEnabled?: boolean
     publicSlug?: string | null
+    /** What the cluster above the station has taken out of its hands, and who to name for it. */
+    themeLocked?: boolean
+    colorsLocked?: boolean
+    feelLocked?: boolean
+    logoLocked?: boolean
+    clusterName?: string | null
 }
 
 export interface UpdateStationNameRequest {
@@ -98,6 +104,10 @@ export async function sendTestMail(): Promise<void> {
 
 export interface ModulesResponse {
     disabledModules: string[]
+    /** Modules the station's cluster has switched off, which the station cannot turn back on. */
+    clusterDeniedModules?: string[]
+    /** The cluster doing the denying, so the screen can say who. */
+    clusterName?: string | null
 }
 
 export async function getDisabledModules(): Promise<ModulesResponse> {

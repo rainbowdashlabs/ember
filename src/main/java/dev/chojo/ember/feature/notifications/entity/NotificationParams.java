@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.notifications.entity;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
-import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
+import dev.chojo.ember.feature.inventory.entity.StepActor;
 
 import java.time.LocalDate;
 
@@ -38,8 +38,58 @@ public sealed interface NotificationParams {
 
     record ExchangeNewRequest(String memberName, String inventoryName, String reason) implements NotificationParams {}
 
-    record ExchangeStatusChange(ExchangeStatus status, String inventoryName, String reason)
+    /**
+     * A movement has moved on. The step label is the flow's own words rather than a fixed status,
+     * because the chain a station walks is its own to name, and the next actor says whose turn it
+     * is now: this notification is only ever sent to that party, so its presence is the signal.
+     */
+    record ExchangeStatusChange(String stepLabel, String inventoryName, StepActor nextActor)
             implements NotificationParams {}
+
+    record MovementDeclined(String inventoryName, String reason) implements NotificationParams {}
+
+    /**
+     * Somebody called a movement off. Where the piece ended up cannot be worked out from that fact
+     * alone, so it is carried: called off before the handover it is back with whoever sent it, called
+     * off while it was in the post it stayed where it had got to.
+     */
+    record MovementCancelled(String inventoryName, String itemName, String reason, boolean itemStayedAway)
+            implements NotificationParams {}
+
+    /**
+     * A station has asked to join a cluster. Named by station, because the cluster reading it knows which
+     * cluster it is.
+     */
+    record ClusterApplicationSubmitted(String stationName) implements NotificationParams {}
+
+    record ClusterApplicationApproved(String clusterName) implements NotificationParams {}
+
+    record ClusterApplicationDenied(String clusterName, String reason) implements NotificationParams {}
+
+    record ClusterApplicationWithdrawn(String stationName) implements NotificationParams {}
+
+    record ClusterStationReleased(String clusterName) implements NotificationParams {}
+
+    /** The module name travels as a string, because the reader sees a label rather than an enum. */
+    record ClusterModuleDenied(String clusterName, String module) implements NotificationParams {}
+
+    /** The quota is already formatted, because a byte count is not what somebody wants to read. */
+    record ClusterQuotaChanged(String clusterName, String quota) implements NotificationParams {}
+
+    /** What is coming and who sent it. The station has nothing to answer yet, so no step is named. */
+    record ClusterItemIssued(String clusterName, String itemName) implements NotificationParams {}
+
+    /** The station is named because the cluster's gear is spread over several of them. */
+    record ClusterItemLost(String itemName, String stationName) implements NotificationParams {}
+
+    /**
+     * Says only that something moved. Naming the permission would mean listing a set that may have changed in
+     * four ways at once, and the screen it links to shows the answer anyway.
+     */
+    record ClusterMemberRoleChanged(String clusterName) implements NotificationParams {}
+
+    /** The field names arrive already joined, because the reader wants a sentence and not a list. */
+    record ClusterFieldValueChanged(String clusterName, String fields) implements NotificationParams {}
 
     record MemberAddedToGroup(String groupName, String addedByName) implements NotificationParams {}
 
@@ -71,6 +121,14 @@ public sealed interface NotificationParams {
     record EventCancelled(String eventName, String reason) implements NotificationParams {}
 
     record EventReminder(String eventName, int daysBefore, LocalDate eventDate) implements NotificationParams {}
+
+    /**
+     * Registration for an event is about to close and this member has not said whether they are coming.
+     *
+     * @param memberName whose answer is missing, which is the reader themselves or somebody they look
+     *                   after; a guardian needs to know which of their children it is about
+     */
+    record RegistrationClosing(String eventName, int daysBefore, String memberName) implements NotificationParams {}
 
     record ProcedureAssigned(String procedureName, String assignedByName) implements NotificationParams {}
 

@@ -95,6 +95,9 @@ export function parseRoutes() {
         const metaBlock = content.match(/definePageMeta\(\{([\s\S]*?)\}\)/)
         const nameMatch = metaBlock && metaBlock[1].match(/name:\s*'([^']+)'/)
         if (!nameMatch) continue
+        // A page that only forwards to another address shows nobody anything, so there is nothing
+        // about it to document and it is not a gap when no help page names it.
+        if (/redirect:\s*'/.test(metaBlock[1])) continue
         const compMatch = content.match(/import\s+\w+\s+from\s+'[~@]\/(views\/[^']+)'/)
         routes.push({
             name: nameMatch[1],

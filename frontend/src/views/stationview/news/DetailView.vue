@@ -7,6 +7,7 @@
 import {computed, nextTick, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
+import {useNewsRoutes} from '@/composables/useNewsRoutes'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -36,6 +37,7 @@ import ProseContent from '@/components/display/ProseContent.vue'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
+const newsRoutes = useNewsRoutes()
 const {canManageNews, sessionInfo} = useSession()
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
@@ -74,7 +76,7 @@ const {
     await news.deleteNews(e.id)
   },
   onSuccess: async () => {
-    await router.push({name: 'news-list'})
+    await router.push({name: newsRoutes.list})
   },
   error,
 })
@@ -105,7 +107,7 @@ watch(loading, (isLoading) => {
       :subtitle="t('pages.news-detail.subtitle')"
   >
     <div class="space-y-4">
-      <SecondaryButton :icon="['fas', 'arrow-left']" compact @click="router.push({name: 'news-list'})">
+      <SecondaryButton :icon="['fas', 'arrow-left']" compact @click="router.push({name: newsRoutes.list})">
         {{ t('common.back') }}
       </SecondaryButton>
 
@@ -116,7 +118,7 @@ watch(loading, (isLoading) => {
         <NewsEntryHeader :entry="entry" :can-manage="canManageNews()">
           <template #actions>
             <NewsViewBadge ref="viewBadge" :news-id="entry.id" :initial-count="entry.viewCount ?? 0" :news-title="entry.title"/>
-            <EditButton @click="router.push({name: 'news-edit', params: {id: entry.id}})"/>
+            <EditButton @click="router.push({name: newsRoutes.edit, params: {id: entry.id}})"/>
             <DeleteButton @click="requestDelete(entry)"/>
           </template>
         </NewsEntryHeader>

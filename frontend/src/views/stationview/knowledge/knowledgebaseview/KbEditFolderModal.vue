@@ -13,14 +13,9 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {knowledgeBase} from '@/api'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {KbFolder} from '@/api/knowledgeBase'
-import {useSession} from '@/composables/useSession'
-import KbRestrictionsField from './KbRestrictionsField.vue'
-import KbPublicVisibilityField from './KbPublicVisibilityField.vue'
 import KbTagsEditor from './KbTagsEditor.vue'
 import KbFolderIconField from './KbFolderIconField.vue'
 import {useKbEntryEditor} from './useKbEntryEditor'
-
-const {isKbPublic} = useSession()
 
 const {t} = useI18n()
 
@@ -39,12 +34,7 @@ const iconFile = ref<File | null>(null)
 const {
     editName,
     editDescription,
-    restriction,
-    grantLevels,
     tags,
-    publicVisibility,
-    allGroups,
-    allTags,
     save,
 } = useKbEntryEditor(show, () => props.folder, {
     visibilityKind: 'folders',
@@ -73,13 +63,6 @@ async function handleSave() {
             <TextInput v-model="editName" :placeholder="t('kb.folderName')" required/>
             <TextAreaInput v-model="editDescription" :placeholder="t('kb.description')"/>
             <KbFolderIconField v-model="iconFile"/>
-            <KbRestrictionsField
-                :all-groups="allGroups"
-                :all-tags="allTags"
-                v-model="restriction"
-                v-model:levels="grantLevels"
-            />
-            <KbPublicVisibilityField v-if="isKbPublic()" v-model="publicVisibility"/>
             <KbTagsEditor v-model="tags"/>
             <PrimaryButton type="submit">{{ t('common.save') }}</PrimaryButton>
         </form>

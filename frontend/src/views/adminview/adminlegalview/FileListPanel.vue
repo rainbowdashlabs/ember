@@ -77,7 +77,7 @@ function updateContent(index: number, value: string) {
         {{ showPreview ? t('adminSettings.legal.edit') : t('adminSettings.legal.preview') }}
       </SecondaryButton>
       <div class="flex items-center gap-2">
-        <SecondaryButton :icon="['fas', 'file-import']" @click="emit('loadTemplate')">
+        <SecondaryButton data-onboarding="legal.template" :icon="['fas', 'file-import']" @click="emit('loadTemplate')">
           {{ t('adminSettings.legal.loadTemplate') }}
         </SecondaryButton>
         <SecondaryButton :icon="['fas', 'upload']" @click="emit('importDocument')">

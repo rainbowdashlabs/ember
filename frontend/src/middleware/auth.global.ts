@@ -6,6 +6,7 @@
 import {getItem} from '~/api/storage'
 import {useConsentGuard} from '~/composables/useConsentGuard'
 import {useSession} from '~/composables/useSession'
+import {useCluster} from '~/composables/useCluster'
 import {useStations} from '~/composables/useStations'
 
 /**
@@ -56,6 +57,15 @@ export default defineNuxtRouteMiddleware(async (to) => {
         const {loaded, load, isAdmin} = useSession()
         if (!loaded.value) await load()
         if (!isAdmin()) return navigateTo('/station/dashboard/overview')
+    }
+
+    // A cluster area belongs to whoever may act for a cluster, and nobody else has one to be shown.
+    // Without this the shell opens on an emptiness that explains itself, which reads as a page somebody
+    // is meant to be on.
+    if (to.path === '/cluster' || to.path.startsWith('/cluster/')) {
+        const {loaded: clustersLoaded, load: loadClusters, hasClusters} = useCluster()
+        if (!clustersLoaded.value) await loadClusters()
+        if (!hasClusters.value) return navigateTo('/station/dashboard/overview')
     }
 
     if (to.path === '/station' || to.path.startsWith('/station/')) {

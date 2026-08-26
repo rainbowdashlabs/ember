@@ -14,7 +14,6 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
-import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -48,11 +47,7 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
                 storage,
                 new MediaVariantService(storage, storageConfig),
                 new MediaReferenceRegistry(contentContainerRepo),
-                new StorageQuotaService(
-                        storageUsageRepo,
-                        new StationStorageConfigRepository(),
-                        storageConfig,
-                        new DomainEventBus(Set.of())));
+                new StorageQuotaService(storageUsageRepo, storageConfig, new DomainEventBus(Set.of())));
         station = stationRepo.create("MediaLibraryStation");
         account = accountRepo.create("media-lib@test.com", "Media", "Author");
         otherAccount = accountRepo.create("media-lib-2@test.com", "Media", "Second");

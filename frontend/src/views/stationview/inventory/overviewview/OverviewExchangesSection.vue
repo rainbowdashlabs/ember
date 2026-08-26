@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -13,6 +14,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
@@ -21,6 +23,8 @@ import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { inventoryTypeBadge, inventoryTypeLabel as toInventoryTypeLabel } from '@/util/inventoryType'
 import { formatDate } from '@/util/format'
+
+const routes = useInventoryRoutes()
 
 const { t } = useI18n()
 const router = useRouter()
@@ -51,9 +55,9 @@ function exchangeStatusBadge(status: string) {
       {{ t('inventory.overview.exchanges') }} ({{ exchanges.length }})
     </SubHeader>
     <div v-if="isMobile" class="space-y-2">
-      <NeutralContainer v-for="ex in exchanges" :key="ex.id" class="space-y-1 cursor-pointer" @click="router.push({ name: 'inventory-exchanges' })">
+      <NeutralContainer v-for="ex in exchanges" :key="ex.id" class="space-y-1 cursor-pointer" @click="router.push({ name: routes.exchanges })">
         <div class="flex items-center justify-between">
-          <span class="text-sm font-medium">{{ ex.inventoryName }}</span>
+          <span class="text-sm font-medium">{{ ex.itemName || ex.inventoryName }}</span>
           <component :is="exchangeStatusBadge(ex.status)">{{ t(`exchanges.status.${ex.status}`) }}</component>
         </div>
         <div class="flex flex-wrap items-center gap-1">
@@ -78,9 +82,10 @@ function exchangeStatusBadge(status: string) {
       </template>
       <TRow v-for="ex in exchanges" :key="ex.id"
           class="cursor-pointer hover:bg-(--bg-accent)"
-          @click="router.push({ name: 'inventory-exchanges' })">
+          @click="router.push({ name: routes.exchanges })">
         <Td>
-          {{ ex.inventoryName }}
+          {{ ex.itemName || ex.inventoryName }}
+          <MutedText v-if="ex.itemName" size="sm" class="ml-1">{{ ex.inventoryName }}</MutedText>
           <SizeBadge>{{ ex.oldSizeLabel ?? t('common.unisize') }} &rarr; {{ ex.newSizeLabel ?? t('common.unisize') }}</SizeBadge>
         </Td>
         <Td>

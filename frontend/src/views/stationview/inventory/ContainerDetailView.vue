@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
@@ -33,6 +34,8 @@ import type {
   InventoryContainerHistory,
   InventoryContainerKind,
 } from '@/api/inventoryContainers'
+
+const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const route = useRoute()
@@ -107,7 +110,7 @@ const {run: confirmDelete} = useAsyncAction(async () => {
   if (!detail.value) return
   try {
     await inventoryContainers.deleteContainer(detail.value.container.id)
-    router.push({name: 'inventory-storage'})
+    router.push({name: routes.storage})
   } catch (e) {
     error.value = mapContainerError(t, e, 'inventory.storage.errors.deleteFailed')
     showDeleteConfirm.value = false
@@ -115,11 +118,11 @@ const {run: confirmDelete} = useAsyncAction(async () => {
 })
 
 function navigateToContainer(id: number) {
-  router.push({name: 'inventory-container-detail', params: {id: String(id)}})
+  router.push({name: routes.container, params: {id: String(id)}})
 }
 
 function navigateToItem(itemId: number) {
-  router.push({name: 'inventory-item-detail', params: {id: String(itemId)}})
+  router.push({name: routes.item, params: {id: String(itemId)}})
 }
 
 async function onChildCreated() {

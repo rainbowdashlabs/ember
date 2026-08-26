@@ -4,18 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {StationPermission, type MemberGroup, type PermissionGrant, type StationMember} from '@/api/types'
+import {StationPermission, type MemberGroup} from '@/api/types'
 import {memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
-import {useConfirmDelete} from '@/composables/useConfirmDelete'
-import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {useAsyncAction} from '@/composables/useAsyncAction'
 import GroupListPanel from './groupsview/GroupListPanel.vue'
 import GroupDetailPanel from './groupsview/GroupDetailPanel.vue'
 import GroupFormModal from './groupsview/GroupFormModal.vue'
@@ -23,78 +20,47 @@ import GroupDeleteModal from './groupsview/GroupDeleteModal.vue'
 import GroupConvertModal from './groupsview/GroupConvertModal.vue'
 import {useMemberAssignment} from './useMemberAssignment'
 import {memberDisplayName} from './listview/useMemberData'
-import {apiErrorMessage} from '@/util/apiError'
+import {useGroupsConfig, type GroupsPort} from '@/composables/useGroupsConfig'
 
 const {t} = useI18n()
 const {canManageMembers, isManager, hasPermission} = useSession()
-const canConvertToTag = computed(() => hasPermission(StationPermission.MEMBER_MANAGE_TAGS))
-
-const groups = ref<MemberGroup[]>([])
-const allMembers = ref<StationMember[]>([])
-
-const selectedGroup = ref<MemberGroup | null>(null)
-const groupMembers = ref<StationMember[]>([])
-const groupRoles = ref<PermissionGrant[]>([])
-const allRoles = ref<PermissionGrant[]>([])
-const groupLoading = ref(false)
 
 const canEditRoles = computed(() => canManageMembers() || isManager())
 
-const groupRoleIds = computed({
-  get: () => new Set(groupRoles.value.map(r => r.id)),
-  set: (newIds: Set<number>) => syncGroupRoles(newIds),
-})
-
-const showGroupModal = ref(false)
-const editingGroup = ref<MemberGroup | null>(null)
-const groupName = ref('')
-const groupColor = ref('')
-const groupPosition = ref(0)
-
-const {loading, error} = useAsyncLoader(async () => {
-  const [g, m, r] = await Promise.all([
-    memberGroups.listGroups(),
-    stationMembers.listMembers(),
-    stationMembers.listAllPermissions(),
-  ])
-  groups.value = g
-  allMembers.value = m
-  allRoles.value = r
-})
+/** A station's groups gather its own members, carry a colour and an order, and can become tags. */
+const port: GroupsPort = {
+  listGroups: () => memberGroups.listGroups(),
+  listCandidates: () => stationMembers.listMembers(),
+  listAllRoles: () => stationMembers.listAllPermissions(),
+  getDetail: async (groupId) => {
+    const [members, roles] = await Promise.all([
+      memberGroups.getGroupMembers(groupId),
+      memberGroups.getGroupPermissions(groupId),
+    ])
+    return {members, roles}
+  },
+  createGroup: (patch) => memberGroups.createGroup(patch),
+  updateGroup: (groupId, patch) => memberGroups.updateGroup(groupId, patch),
+  deleteGroup: (groupId) => memberGroups.deleteGroup(groupId),
+  setMembers: (groupId, memberIds) => memberGroups.setGroupMembers(groupId, {memberIds}),
+  setRoles: (groupId, roleIds) => memberGroups.setGroupPermissions(groupId, {permissionIds: roleIds}),
+  convertToTag: (groupId) => memberGroups.convertToTag(groupId),
+}
 
 const {
-  show: showDeleteModal,
-  target: deleteTarget,
-  requestDelete,
-  confirm: confirmDelete,
-} = useConfirmDelete<MemberGroup>({
-  onDelete: g => memberGroups.deleteGroup(g.id),
-  onSuccess: async deleted => {
-    if (selectedGroup.value?.id === deleted.id) {
-      selectedGroup.value = null
-      groupMembers.value = []
-    }
-    groups.value = await memberGroups.listGroups()
-  },
-  error,
+  groups, allMembers, allRoles, selectedGroup, groupMembers, groupRoles, groupRoleIds,
+  groupLoading, loading, error, showGroupModal, editingGroup, groupName, groupColor,
+  groupSaving, groupSaveError, selectGroup, openCreateGroup, openEditGroup, saveGroup,
+  showDeleteModal, deleteTarget, requestDelete, confirmDelete, refreshAfter,
+} = useGroupsConfig(port, {
+  hasColour: true,
+  canConvertToTag: hasPermission(StationPermission.MEMBER_MANAGE_TAGS),
+  hasPermissions: true,
+  permissionScope: 'station',
+  holds: 'members',
 })
 
-const {
-  show: showConvertModal,
-  target: convertTarget,
-  request: requestConvertToTag,
-  confirm: confirmConvertToTag,
-} = useConfirmAction<MemberGroup>({
-  onConfirm: g => memberGroups.convertToTag(g.id),
-  onSuccess: async converted => {
-    if (selectedGroup.value?.id === converted.id) {
-      selectedGroup.value = null
-      groupMembers.value = []
-    }
-    groups.value = await memberGroups.listGroups()
-  },
-  error,
-})
+const canConvertToTag = computed(() => hasPermission(StationPermission.MEMBER_MANAGE_TAGS))
 
 const sortedGroupMembers = computed(() =>
     [...groupMembers.value].sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
@@ -111,64 +77,16 @@ const {
     error,
 )
 
-async function selectGroup(group: MemberGroup) {
-  selectedGroup.value = group
-  groupLoading.value = true
-  try {
-    const [members, roles] = await Promise.all([
-      memberGroups.getGroupMembers(group.id),
-      memberGroups.getGroupPermissions(group.id),
-    ])
-    groupMembers.value = members
-    groupRoles.value = roles
-  } catch {
-    error.value = t('common.error')
-    groupMembers.value = []
-    groupRoles.value = []
-  } finally {
-    groupLoading.value = false
-  }
-}
-
-function openCreateGroup() {
-  editingGroup.value = null
-  groupName.value = ''
-  groupColor.value = ''
-  groupPosition.value = 0
-  showGroupModal.value = true
-}
-
-function openEditGroup(group: MemberGroup) {
-  editingGroup.value = group
-  groupName.value = group.name ?? ''
-  groupColor.value = group.color ?? ''
-  groupPosition.value = group.position ?? 0
-  showGroupModal.value = true
-}
-
-const {running: groupSaving, error: groupSaveError, run: saveGroup} = useAsyncAction(async () => {
-  error.value = ''
-  if (editingGroup.value) {
-    await memberGroups.updateGroup(editingGroup.value.id, {name: groupName.value, color: groupColor.value || null, position: groupPosition.value})
-  } else {
-    await memberGroups.createGroup({name: groupName.value, color: groupColor.value || null, position: groupPosition.value})
-  }
-  showGroupModal.value = false
-  groups.value = await memberGroups.listGroups()
-  if (selectedGroup.value && editingGroup.value?.id === selectedGroup.value.id) {
-    selectedGroup.value = groups.value.find(g => g.id === selectedGroup.value!.id) ?? null
-  }
-}, {formatError: () => t('common.error')})
-
-async function syncGroupRoles(newIds: Set<number>) {
-  if (!selectedGroup.value) return
-  try {
-    groupRoles.value = await memberGroups.setGroupPermissions(selectedGroup.value.id, {permissionIds: [...newIds]})
-  } catch (e: unknown) {
-    error.value = apiErrorMessage(e) || t('common.error')
-  }
-}
-
+const {
+  show: showConvertModal,
+  target: convertTarget,
+  request: requestConvertToTag,
+  confirm: confirmConvertToTag,
+} = useConfirmAction<MemberGroup>({
+  onConfirm: g => memberGroups.convertToTag(g.id),
+  onSuccess: converted => refreshAfter(converted.id),
+  error,
+})
 </script>
 
 <template>

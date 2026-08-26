@@ -14,11 +14,12 @@ import KbBrowseSection from './knowledgebaseview/KbBrowseSection.vue'
 import KbCreateModals from './knowledgebaseview/KbCreateModals.vue'
 import KbDeleteModals from './knowledgebaseview/KbDeleteModals.vue'
 import KbEditModals from './knowledgebaseview/KbEditModals.vue'
+import KbShareModals from './knowledgebaseview/KbShareModals.vue'
 import KbFiltersBar from './knowledgebaseview/KbFiltersBar.vue'
 import KbSearchResults from './knowledgebaseview/KbSearchResults.vue'
 import {useKbBrowse} from './knowledgebaseview/useKbBrowse'
 import {useKbFilters} from './knowledgebaseview/useKbFilters'
-import {useKbNavigation} from './knowledgebaseview/useKbNavigation'
+import {useKbNavigation, type KbRoutes} from './knowledgebaseview/useKbNavigation'
 import {useKbItems} from './knowledgebaseview/useKbItems'
 import {useKbSearch} from './knowledgebaseview/useKbSearch'
 import {useKbShareLink} from './knowledgebaseview/useKbShareLink'
@@ -28,12 +29,20 @@ import {knowledgeBase} from '@/api'
 import {downloadAuthed} from '@/util/downloadAuthed'
 import {KbAccessLevel, levelCovers, type KbFolder, type KbFile} from '@/api/knowledgeBase'
 
+const props = defineProps<{
+  /** The pages this knowledge base is mounted on, which differ when an association opens its own. */
+  routes?: KbRoutes
+  /** The heading, when the station's own wording is not the right one. */
+  title?: string
+  subtitle?: string
+}>()
+
 const {t} = useI18n()
 const {canEditKnowledge, loaded, isKbPublic} = useSession()
 
 const viewMode = ref<'grid' | 'list'>('grid')
 
-const navigation = useKbNavigation()
+const navigation = useKbNavigation(props.routes)
 const browse = useKbBrowse(navigation)
 const filters = useKbFilters(browse)
 const search = useKbSearch(filters)
@@ -41,10 +50,12 @@ const search = useKbSearch(filters)
 const {
     folderParam, isFavouritesView, currentFolderId,
     navigateToFolder, navigateToFile, navigateToFederatedFile, navigateToFavourites,
+    navigateToSharedFolder, sharedFolderId,
 } = navigation
 const {
     currentFolder, breadcrumbs, favourites, favouriteIds, currentLevel, folderLevels, fileLevels,
-    loading, error, loadData, toggleFavourite, copySharedFile,
+    loading, error, loadData, toggleFavourite, copySharedFile, sharedFolders,
+    publicIds, federatedIds, narrowIds, folderKey, fileKey, sharedTrail,
 } = browse
 const {showFederated, filterStationId, filterTag, allKbTags, partnerStations, filteredFolders, filteredFiles, filteredSharedFiles, loadTags} = filters
 const {searchQuery, searchResults, searching, isSearching, filteredSearchResults, onSearchInput} = search
@@ -58,6 +69,7 @@ const canCreateHere = computed(() => canEditKnowledge() && levelCovers(currentLe
 
 const createModalsRef = ref<InstanceType<typeof KbCreateModals> | null>(null)
 const editModalsRef = ref<InstanceType<typeof KbEditModals> | null>(null)
+const shareModalsRef = ref<InstanceType<typeof KbShareModals> | null>(null)
 
 const {
     show: showDeleteFolderModal,
@@ -92,6 +104,12 @@ const {items, toSearchItems} = useKbItems(
         folders: filteredFolders,
         files: filteredFiles,
         sharedFiles: filteredSharedFiles,
+        sharedFolders,
+        publicIds,
+        federatedIds,
+        narrowIds,
+        folderKey,
+        fileKey,
         favourites,
         favouriteIds,
         currentFolder,
@@ -106,18 +124,21 @@ const {items, toSearchItems} = useKbItems(
         openFederatedFile: navigateToFederatedFile,
         openFavourites: navigateToFavourites,
         editFolder: folder => editModalsRef.value?.openFolder(folder),
+        shareFolder: folder => shareModalsRef.value?.openFolder(folder),
         deleteFolder: confirmDeleteFolder,
         editFile: file => editModalsRef.value?.openFile(file),
+        shareFile: file => shareModalsRef.value?.openFile(file),
         deleteFile: confirmDeleteFile,
         exportFilePdf,
         copySharedFile,
+        openSharedFolder: navigateToSharedFolder,
         removeFavourite: toggleFavourite,
     },
 )
 
 const searchItems = computed(() => toSearchItems(filteredSearchResults.value))
 
-watch(folderParam, () => {
+watch([folderParam, sharedFolderId], () => {
     loadData()
 })
 
@@ -128,9 +149,11 @@ watch(loaded, (isLoaded) => {
 
 <template>
     <ViewContent
-        :title="t('pages.kb-browse.title')"
-        :subtitle="t('pages.kb-browse.subtitle')"
+        :title="title ?? t('pages.kb-browse.title')"
+        :subtitle="subtitle ?? t('pages.kb-browse.subtitle')"
     >
+        <slot name="before"/>
+
         <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
 
         <div class="mb-4">
@@ -154,6 +177,8 @@ watch(loaded, (isLoaded) => {
             v-if="!isSearching"
             :current-folder="currentFolder"
             :breadcrumbs="breadcrumbs"
+            :shared-trail="sharedTrail"
+            @navigate-shared="navigateToSharedFolder"
             :is-favourites-view="isFavouritesView"
             :is-kb-public="isKbPublic()"
             :share-copied="shareCopied"
@@ -194,6 +219,11 @@ watch(loaded, (isLoaded) => {
 
         <KbEditModals
             ref="editModalsRef"
+            @saved="loadData()"
+        />
+
+        <KbShareModals
+            ref="shareModalsRef"
             @saved="loadData()"
         />
 

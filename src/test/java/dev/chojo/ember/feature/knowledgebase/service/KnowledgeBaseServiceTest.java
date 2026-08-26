@@ -8,7 +8,10 @@ package dev.chojo.ember.feature.knowledgebase.service;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
@@ -66,7 +69,8 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService),
                 linkMetadataService,
                 new PresentationCompressor(storageConfig),
-                new PdfCompressor(storageConfig));
+                new PdfCompressor(storageConfig),
+                new ClusterAutoShareService(new ClusterRepository(), new FederationRepository()));
         station = stationRepo.create("KbSvcStation");
         account = accountRepo.create("kb-svc@test.com", "Kb", "SvcTester");
         member = stationMemberRepo.create(station.id(), account.id());

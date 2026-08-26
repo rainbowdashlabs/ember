@@ -40,7 +40,6 @@ const containerId = ref<number | null>(null)
 const fieldDefs = ref<InventoryFieldDefinition[]>([])
 const fieldValues = ref<Record<string, any>>({})
 const containers = ref<InventoryContainer[]>([])
-const owned = ref(false)
 
 const sortedContainers = computed(() => [...containers.value].sort((a, b) => a.name.localeCompare(b.name)))
 const fieldsInvalid = computed(() => inventoryFields.hasInvalidFieldValues(fieldDefs.value, fieldValues.value))
@@ -66,7 +65,6 @@ watch(() => props.item, async (item) => {
   sizeId.value = item.sizeId != null ? String(item.sizeId) : ''
   containerId.value = item.containerId ?? null
   const parsed = parseItemMetadata(item.metadata)
-  owned.value = parsed.owned
   await loadForInventory(item.inventoryId)
   const values: Record<string, any> = {}
   for (const def of fieldDefs.value) {
@@ -87,7 +85,7 @@ async function save() {
       name: itemName.value,
       internalId: normalisedInternalId || undefined,
       sizeId: sizeId.value ? Number(sizeId.value) : undefined,
-      metadata: buildItemMetadata(fieldDefs.value, fieldValues.value, owned.value),
+      metadata: buildItemMetadata(fieldDefs.value, fieldValues.value),
     })
     if (containerId.value !== (props.item.containerId ?? null)) {
       await inventoryContainers.setItemContainer(props.item.id, containerId.value)

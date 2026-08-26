@@ -20,6 +20,7 @@ import {attendance, memberGroups} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import {moveWithin} from '@/util/reorder'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -79,25 +80,10 @@ function removeGroup(groupId: number) {
   saveGroups()
 }
 
-function swapGroups(index: number, otherIndex: number) {
-  const arr = [...templateGroups.value]
-  const current = arr[index]
-  const other = arr[otherIndex]
-  if (!current || !other) return
-  arr[index] = other
-  arr[otherIndex] = current
-  templateGroups.value = arr.map((g, i) => ({...g, position: i}))
+function reorderGroups(fromIndex: number, toIndex: number) {
+  templateGroups.value = moveWithin(templateGroups.value, fromIndex, toIndex)
+      .map((g, i) => ({...g, position: i}))
   saveGroups()
-}
-
-function moveGroupUp(index: number) {
-  if (index === 0) return
-  swapGroups(index - 1, index)
-}
-
-function moveGroupDown(index: number) {
-  if (index >= templateGroups.value.length - 1) return
-  swapGroups(index, index + 1)
 }
 
 async function saveGroups() {
@@ -134,11 +120,7 @@ const {running: fieldSaving, error: fieldSaveError, run: saveField} = useAsyncAc
 
 async function reorderFields(fromIndex: number, toIndex: number) {
   if (!templateId.value) return
-  const arr = [...fields.value]
-  const [moved] = arr.splice(fromIndex, 1)
-  if (!moved) return
-  arr.splice(toIndex, 0, moved)
-  fields.value = arr.map((f, i) => ({...f, position: i}))
+  fields.value = moveWithin(fields.value, fromIndex, toIndex).map((f, i) => ({...f, position: i}))
 
   try {
     for (const f of fields.value) {
@@ -200,8 +182,7 @@ function goBack() {
           :save-template="saveTemplate"
           @add-group="addGroup"
           @remove-group="removeGroup"
-          @move-group-up="moveGroupUp"
-          @move-group-down="moveGroupDown"
+          @reorder-groups="reorderGroups"
           @add-field="openAddField"
           @edit-field="openEditField"
           @delete-field="requestDeleteField"

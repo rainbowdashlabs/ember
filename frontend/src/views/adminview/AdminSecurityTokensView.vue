@@ -22,7 +22,7 @@ const {config, loading, error, runWith} = useConfigPanel<TokensConfigResponse>({
     tokenBytes: 32,
     verifyTokenHours: 24,
     passwordTokenHours: 72,
-    sessionMinutes: 30,
+    sessionMinutes: 43200,
     untrustedSessionMinutes: 60,
     tokenPepperConfigured: false,
   },

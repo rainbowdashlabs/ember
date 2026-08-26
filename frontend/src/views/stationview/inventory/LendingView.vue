@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {onMounted, ref, computed, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
@@ -24,6 +25,8 @@ import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
 import {StationPermission} from '@/api/types'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+
+const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const router = useRouter()
@@ -69,7 +72,7 @@ watch([filterDateFrom, filterDateTo], () => {
 
 function navigateToCreateRequest(item: AvailableInventoryEntry) {
   router.push({
-    name: 'inventory-lending-create',
+    name: routes.lendingCreate,
     query: {
       inventoryId: String(item.inventoryId),
       stationId: String(item.stationId),
@@ -119,7 +122,7 @@ watch(loaded, (v) => {
       :subtitle="t('pages.inventory-lending.subtitle')"
   >
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
-      <PrimaryButton v-if="isLendingManager" :icon="['fas', 'calendar-xmark']" @click="router.push({name: 'inventory-lending-blocks'})">
+      <PrimaryButton v-if="isLendingManager" :icon="['fas', 'calendar-xmark']" @click="router.push({name: routes.lendingBlocks})">
         {{ t('lending.blocks') }}
       </PrimaryButton>
     </div>

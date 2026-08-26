@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Random;
 
 @Singleton
-public class DemoProcedureSeeder implements DemoSeeder {
+public class DemoProcedureSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoProcedureSeeder.class);
 
     private final ProcedureRepository repo;
@@ -38,9 +38,9 @@ public class DemoProcedureSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        var members = context.members();
-        seed(context.stationId(), context.adminMember(), members.betreuer(), members.anfaenger(), new Random(42_020));
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        var members = station.members();
+        seed(station.stationId(), station.adminMember(), members.betreuer(), members.anfaenger(), new Random(42_020));
         log.info("Demo: Created Procedure data");
     }
 

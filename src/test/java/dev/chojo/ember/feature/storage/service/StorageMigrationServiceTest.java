@@ -21,6 +21,8 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.feature.storage.migration.MigrationLockRegistry;
+import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
+import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterEach;
@@ -57,6 +59,8 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
 
     private static StationStorageConfigRepository storageConfigRepo;
     private static CredentialCipher cipher;
+    private static ClusterStorageConfigRepository clusterConfigRepo;
+    private static ClusterStationStorageRepository placements;
 
     private Path sourceRoot;
     private Path targetRoot;
@@ -72,6 +76,8 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void initRepos() {
         storageConfigRepo = new StationStorageConfigRepository();
+        clusterConfigRepo = new ClusterStorageConfigRepository();
+        placements = new ClusterStationStorageRepository();
         cipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));
     }
 
@@ -113,10 +119,11 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
         factory = new SwappableFactory(storage, sourceBackend, cipher);
         factory.stationTarget = targetBackend;
         factory.instanceBackend = sourceBackend;
-        resolver = new StorageBackendResolver(factory, storageConfigRepo);
+        resolver = new StorageBackendResolver(factory, storageConfigRepo, new ClusterStationStorageRepository());
         storageService = new StorageService(resolver, sourceBackend);
         locks = new MigrationLockRegistry();
-        migrationService = new StorageMigrationService(stationRepo, storageConfigRepo, factory, resolver, locks);
+        migrationService = new StorageMigrationService(
+                stationRepo, storageConfigRepo, new ClusterStationStorageRepository(), factory, resolver, locks);
     }
 
     @AfterEach
@@ -244,6 +251,47 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
         assertEquals(0, result.totalKeys());
         assertEquals(0, result.deleted());
         assertTrue(storageConfigRepo.findOne(station.id()).isPresent());
+    }
+
+    /**
+     * The three destinations through the one method, and what each of them records.
+     *
+     * <p>Where a station stands is one row or the other or neither, never both: a station carried onto its
+     * association's storage that kept an override of its own would resolve to the override and be counted as
+     * paying for itself, which is exactly the pair of facts this move exists to keep straight.
+     */
+    @Test
+    void eachDestinationCarriesTheBytesAndRecordsWhereTheStationStands() {
+        Station station = newStation("Station Migration Ziele");
+        var cluster = clusterService.create("Kreisverband Umzug " + station.id(), null);
+        var version = clusterConfigRepo.insertCurrent(cluster.id(), targetConfig());
+        byte[] payload = "wanderndes-dokument".getBytes(StandardCharsets.UTF_8);
+        String fullKey = storeOnSource(station, "doc.txt", payload);
+
+        var onOwn =
+                migrationService.moveStation(station.id(), new StorageMigrationService.Destination.Own(targetConfig()));
+        assertEquals(1, onOwn.copied());
+        assertTrue(storageConfigRepo.findOne(station.id()).isPresent(), "its own backend is its own row");
+        assertTrue(placements.findByStation(station.id()).isEmpty(), "and it stands on no cluster storage");
+
+        var onCluster = migrationService.moveStation(
+                station.id(),
+                new StorageMigrationService.Destination.Cluster(cluster.id(), version.id(), targetConfig()));
+        assertEquals(0, onCluster.copied(), "the same destination carries nothing a second time");
+        assertTrue(storageConfigRepo.findOne(station.id()).isEmpty(), "the override goes when the cluster's comes");
+        assertEquals(
+                version.id(),
+                placements.findByStation(station.id()).orElseThrow().configId(),
+                "and the placement names the version the bytes were carried to");
+
+        var home =
+                migrationService.moveStation(station.id(), new StorageMigrationService.Destination.InstanceDefault());
+        assertEquals(1, home.copied(), "coming home carries them back off the cluster's storage");
+        assertArrayEquals(payload, read(sourceBackend, fullKey));
+        assertTrue(placements.findByStation(station.id()).isEmpty());
+        assertTrue(storageConfigRepo.findOne(station.id()).isEmpty(), "the instance default is the absence of both");
+
+        clusterService.delete(cluster.id());
     }
 
     /**

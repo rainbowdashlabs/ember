@@ -18,7 +18,6 @@ const {t} = useI18n()
 
 <template>
   <SidebarGroup :icon="['fas', 'boxes-stacked']" :label="t('sidebar.inventory')"
-                prefix="/helpcenter/station/inventory"
                 to="/helpcenter/station/inventory" name="help-inventory-module-overview" @navigate="close">
     <SidebarLink :icon="['fas', 'house']" name="help-inventory-overview"
                  to="/helpcenter/station/inventory/overview" @navigate="close">

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
@@ -45,8 +46,12 @@ public class QuizService {
         this.attemptService = attemptService;
     }
 
+    /**
+     * Creates a catalog the station wrote itself, which is why it carries no provenance: where a
+     * catalog came from is something only an import or a copy from a partner can say.
+     */
     public QuizCatalog createCatalog(int stationId, String name, String description, boolean trainingEnabled) {
-        return catalogService.createCatalog(stationId, name, description, trainingEnabled);
+        return catalogService.createCatalog(stationId, name, description, trainingEnabled, CatalogMetadata.none());
     }
 
     public QuizCategory createCategory(int stationId, String name, String description, int position) {

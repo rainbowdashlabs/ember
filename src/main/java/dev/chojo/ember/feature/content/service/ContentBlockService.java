@@ -103,7 +103,8 @@ public class ContentBlockService {
      * Copies every row and cell of one container into another. Used when a page is duplicated.
      */
     public void copyInto(int sourceContainerId, int targetContainerId) {
-        for (var row : repository.loadRows(sourceContainerId)) {
+        var rows = repository.loadRows(sourceContainerId);
+        for (var row : rows) {
             int rowId = repository.insertRow(targetContainerId, row.sortOrder());
             for (var cell : row.cells()) {
                 repository.insertCell(
@@ -115,6 +116,11 @@ public class ContentBlockService {
                         cell.config());
             }
         }
+        log.info(
+                "Copied {} row(s) from container {} into container {}",
+                rows.size(),
+                sourceContainerId,
+                targetContainerId);
     }
 
     /**
@@ -125,6 +131,7 @@ public class ContentBlockService {
     public void delete(Integer containerId) {
         if (containerId == null) return;
         repository.delete(containerId);
+        log.info("Deleted content container {} and its blocks", containerId);
     }
 
     private void requireAllowed(CellContentType type, Scope scope) {

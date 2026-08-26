@@ -22,14 +22,33 @@ const allRoutes = parseRoutes()
 
 const KNOWN_MISSING_HELP = new Set([])
 
-const KNOWN_SHARED_HELP_COMPONENTS = new Set([])
+// ── Articles that answer for two screens on purpose ─────────────────
+//
+// An association's knowledge base, news list and calendar are a station's, kept on the station the
+// association owns and edited with the station's own screens. The screens are one set of components, so
+// the article that explains them is one article, mounted once under each panel. Writing a second copy
+// would leave the two to drift apart while describing the same buttons.
+
+const KNOWN_SHARED_HELP_COMPONENTS = new Set([
+    'helpcenter/stationview/events/EventDetailHelp.vue',
+    'helpcenter/stationview/events/EventDetailDateHelp.vue',
+    'helpcenter/stationview/events/EventEditHelp.vue',
+    'helpcenter/stationview/events/BatchHelp.vue',
+    'helpcenter/stationview/events/CategoriesHelp.vue',
+    'helpcenter/stationview/events/EventNewHelp.vue',
+    'helpcenter/stationview/knowledge/FileViewHelp.vue',
+    'helpcenter/stationview/knowledge/VersionsHelp.vue',
+    'helpcenter/stationview/news/DetailHelp.vue',
+    'helpcenter/stationview/news/EditHelp.vue',
+    'helpcenter/stationview/news/CreateHelp.vue',
+])
 
 // ── Panel definitions ───────────────────────────────────────────────
 
 const panels = [
     {
         label: 'Station',
-        appFilter: (r) => !['help-', 'admin-', 'account-', 'login', 'forgot', 'set-password', 'station-select',
+        appFilter: (r) => !['help-', 'admin-', 'cluster-', 'account-', 'login', 'forgot', 'set-password', 'station-select',
             'cross-station-dashboard', '2fa-verify', 'apply', 'waitlist-', 'waiting-list', 'home', 'privacy', 'terms', 'reconsent', 'imprint',
             'patch-notes', 'reset-password', 'confirm-email-change', 'install', 'public-', 'not-found', 'style', 'helpcenter-', 'requirements',
             'pitch']
@@ -132,9 +151,9 @@ for (const r of allRoutes) {
 let duplicateCount = 0
 for (const [comp, routes] of helpComponentUsage) {
     if (routes.length <= 1) continue
-    const known = KNOWN_SHARED_HELP_COMPONENTS.has(comp)
-    if (!known) duplicateCount++
     const short = comp.replace(/.*\/views\//, '')
+    const known = KNOWN_SHARED_HELP_COMPONENTS.has(short)
+    if (!known) duplicateCount++
     const color = known ? YELLOW : RED
     const label = known ? 'warning' : 'error'
     console.log(`  ${color}${label}${RESET} ${short} used ${routes.length} times:`)

@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheckScope;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -40,7 +41,8 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var containerService = new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo);
+        var containerService =
+                new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService);
         service = new InventoryCheckService(
                 inventoryCheckRepo,
                 inventoryRepo,
@@ -48,7 +50,8 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
                 memberGroupRepo,
                 accountRepo,
                 memberIdentityFactory,
-                containerService);
+                containerService,
+                itemCustodyService);
         station = stationRepo.create("CheckSvcStation");
         checkerAccount = accountRepo.create("checker-svc@test.com", "Check", "Er");
         targetAccount = accountRepo.create("target-svc@test.com", "Target", "Member");
@@ -64,7 +67,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         inventoryId = inv.id();
         var item = inventoryRepo.createItem(inv.id(), "CS-001", "Check Item", null, null);
         itemId = item.id();
-        inventoryRepo.assignItem(item.id(), target.id());
+        itemCustodyService.assignToMember(item.id(), target.id(), "");
     }
 
     @AfterAll
@@ -185,7 +188,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         assertTrue(item.isPresent());
         assertNotNull(item.get().lostAt());
         // Restore
-        inventoryRepo.markFound(itemId);
+        itemCustodyService.markFound(itemId);
     }
 
     @Test
@@ -203,12 +206,51 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     @Order(60)
     void getRequiredItems() {
         // Create a requirement for MEMBER user type
-        var req = inventoryRepo.createRequirement(inventoryId, StationUserType.MEMBER, 0, 2);
+        var req = inventoryRepo.createRequirement(inventoryId, StationUserType.MEMBER, 0, null, 2);
 
         var required = service.getRequiredItems(station.id(), target.id());
         assertTrue(required.stream().anyMatch(r -> r.inventoryId() == inventoryId && r.requiredQuantity() == 2));
 
         inventoryRepo.deleteRequirement(req.id());
+    }
+
+    /**
+     * A piece handed in for an exchange still counts as equipment the member has.
+     *
+     * <p>The check asks whether they are equipped, not what is in their hands this minute. Counting
+     * only the assignment would report a gap for the whole run of an exchange, which over the body
+     * above the station is weeks, and whoever walks the check would order a jacket that is in the post.
+     */
+    @Test
+    @Order(60)
+    void gearAwayInAnExchangeStillCounts() {
+        var requirement = inventoryRepo.createRequirement(inventoryId, StationUserType.MEMBER, 0, null, 1);
+        var movement = itemMovementService.create(
+                station.id(),
+                MovementPurpose.EXCHANGE,
+                target.id(),
+                "Target Member",
+                itemId,
+                inventoryId,
+                null,
+                null,
+                "Zu klein",
+                new ItemMovementService.Actor(target.id(), true),
+                null);
+        itemMovementService.acknowledge(
+                movement.id(), movement.currentStepId(), new ItemMovementService.Actor(target.id(), true), "", null);
+
+        var required = service.getRequiredItems(station.id(), target.id()).stream()
+                .filter(row -> row.inventoryId() == inventoryId)
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(1, required.assignedQuantity(), "handed in is not the same as missing");
+        assertEquals(1, required.inExchangeQuantity(), "and the row says why it is not in their hands");
+
+        itemMovementRepo.delete(movement.id());
+        itemCustodyService.assignToMember(itemId, target.id(), "");
+        inventoryRepo.deleteRequirement(requirement.id());
     }
 
     @Test
@@ -291,7 +333,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         var group = memberGroupRepo.create(station.id(), "CheckGroup");
         memberGroupRepo.addMember(group.id(), target.id());
 
-        var req = inventoryRepo.createRequirement(inventoryId, null, group.id(), 1);
+        var req = inventoryRepo.createRequirement(inventoryId, null, group.id(), null, 1);
         var required = service.getRequiredItems(station.id(), target.id());
         assertTrue(required.stream().anyMatch(r -> r.inventoryId() == inventoryId));
 

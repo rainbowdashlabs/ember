@@ -13,7 +13,6 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
 import {EventFieldTypes, type EventFieldTypeName, type EventRegistrationFieldDefinition} from '@/api/events'
 
 const field = defineModel<EventRegistrationFieldDefinition>({required: true})
@@ -24,7 +23,6 @@ defineProps<{
 
 const emit = defineEmits<{
   remove: []
-  move: [delta: number]
 }>()
 
 const {t} = useI18n()
@@ -66,8 +64,6 @@ function numberOrNull(value: unknown): number | null {
           <option v-for="type in types" :key="type.value" :value="type.value">{{ type.label }}</option>
         </SelectInput>
       </div>
-      <IconButton :icon="['fas', 'arrow-up']" :label="t('common.moveUp')" @click="emit('move', -1)"/>
-      <IconButton :icon="['fas', 'arrow-down']" :label="t('common.moveDown')" @click="emit('move', 1)"/>
       <DeleteButton @click="emit('remove')"/>
     </div>
 

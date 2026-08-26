@@ -113,7 +113,7 @@ watch(show, (open) => {
 
     <div class="flex justify-end gap-2 mt-4">
       <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
-      <PrimaryButton :disabled="busy || missing.length > 0" @click="confirm">
+      <PrimaryButton data-onboarding="events.registration-fields.submit" :disabled="busy || missing.length > 0" @click="confirm">
         {{ t('events.register') }}
       </PrimaryButton>
     </div>

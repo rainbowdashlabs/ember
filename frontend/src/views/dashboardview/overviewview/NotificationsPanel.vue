@@ -35,6 +35,7 @@ const typeIcons: Record<string, string> = {
   EVENT_REGISTRATION_STATUS: 'calendar-days',
   EXCHANGE_STATUS_CHANGE: 'rotate',
   EXCHANGE_NEW_REQUEST: 'rotate',
+  MOVEMENT_DECLINED: 'ban',
   NEW_EVENT: 'calendar-plus',
   NEW_EVENTS_BATCH: 'calendar-plus',
   MEMBER_ADDED_TO_GROUP: 'layer-group',
@@ -50,6 +51,17 @@ const typeIcons: Record<string, string> = {
   WAITLIST_NEW_ENTRY: 'list-ol',
   WAITLIST_PUBLIC_REGISTRATION: 'list-ol',
   STORAGE_WARNING: 'triangle-exclamation',
+  CLUSTER_APPLICATION_SUBMITTED: 'sitemap',
+  CLUSTER_APPLICATION_APPROVED: 'sitemap',
+  CLUSTER_APPLICATION_DENIED: 'sitemap',
+  CLUSTER_APPLICATION_WITHDRAWN: 'sitemap',
+  CLUSTER_STATION_RELEASED: 'sitemap',
+  CLUSTER_MODULE_DENIED: 'sitemap',
+  CLUSTER_QUOTA_CHANGED: 'hard-drive',
+  CLUSTER_ITEM_ISSUED: 'truck',
+  CLUSTER_ITEM_LOST: 'triangle-exclamation',
+  CLUSTER_MEMBER_ROLE_CHANGED: 'user-shield',
+  CLUSTER_FIELD_VALUE_CHANGED: 'id-card',
   REGISTRATION_DEADLINE_EXPIRED: 'clock',
   EVENT_CANCELLED: 'calendar-xmark',
   EVENT_REMINDER: 'bell',
@@ -59,6 +71,14 @@ const typeIcons: Record<string, string> = {
   PROCEDURE_ITEM_CHECKED: 'square-check',
 }
 
+/**
+ * The sentence for one notification.
+ *
+ * <p>Most of it is the message the type carries, with the enums in its parameters routed through
+ * their locale namespace so they read in German. A movement called off is the exception with two
+ * sentences rather than one: whether the piece came home cannot be said in a word, and it is the
+ * half the reader cannot guess.
+ */
 function renderMessage(n: NotificationEntry): string {
   const params = {...n.params}
   // Status fields arrive as raw enum names from the backend (PENDING, DONE, …);
@@ -66,11 +86,17 @@ function renderMessage(n: NotificationEntry): string {
   if (n.type === 'EVENT_REGISTRATION_STATUS' && params.status) {
     params.status = t(`dashboard.registrationStatus.${params.status}`)
   }
-  if (n.type === 'EXCHANGE_STATUS_CHANGE' && params.status) {
-    params.status = t(`dashboard.exchangeStatus.${params.status}`)
+  // A movement's step carries the words its own flow gives it, so there is nothing to look up.
+  // The party it is waiting on is an enum and does need one.
+  if (n.type === 'EXCHANGE_STATUS_CHANGE' && params.nextActor) {
+    params.nextActor = t(`movements.actor.${params.nextActor}`)
   }
   if (n.type === 'LENDING_STATUS_CHANGE' && params.status) {
     params.status = t(`dashboard.lendingStatus.${params.status}`)
+  }
+  if (n.type === 'MOVEMENT_CANCELLED') {
+    const key = params.itemStayedAway === 'true' ? 'movementCancelledAway' : 'movementCancelled'
+    return t(`notification.${key}`, params)
   }
   return t(n.localeKey, params)
 }

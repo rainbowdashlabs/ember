@@ -19,8 +19,10 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Arrays;
@@ -129,6 +131,26 @@ public class ConsentService {
      */
     public LegalDocumentService.RenderedDocument getImprint(String locale) {
         return documentService.getDocument(imprintDir, locale);
+    }
+
+    /**
+     * Whether the operator has laid down legal texts of their own. Reading the rendered document
+     * cannot answer this: it never comes back blank, because the bundled template stands in wherever
+     * nothing was written.
+     */
+    public boolean hasOwnLegalTexts() {
+        return holdsMarkdown(imprintDir) && holdsMarkdown(privacyPolicyDir);
+    }
+
+    private static boolean holdsMarkdown(Path dir) {
+        if (!Files.isDirectory(dir)) return false;
+        try (var paths = Files.walk(dir)) {
+            return paths.anyMatch(path ->
+                    Files.isRegularFile(path) && path.getFileName().toString().endsWith(".md"));
+        } catch (IOException e) {
+            log.warn("Failed to look for legal texts in {}", dir, e);
+            return false;
+        }
     }
 
     // -- Version info --

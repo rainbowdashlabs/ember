@@ -15,7 +15,7 @@ import FieldDefaultValueSection from '@/components/input/FieldDefaultValueSectio
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import PositionField from './fieldmodal/PositionField.vue'
 import ModalActions from './fieldmodal/ModalActions.vue'
-import WidthField from './fieldmodal/WidthField.vue'
+import WidthField from '@/components/profilefields/WidthField.vue'
 import {
     DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
     type ProfileField, type ProfileFieldConfig, type ProfileFieldRequest,

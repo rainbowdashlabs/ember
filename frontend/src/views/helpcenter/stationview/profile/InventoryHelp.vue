@@ -118,6 +118,20 @@ const dummyStiefel: MyInventoryItem = {
       <p>{{ t('helpCenter.inventoryMy.exchangeText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.inventoryMy.runningTitle')">
+      <p>{{ t('helpCenter.inventoryMy.runningText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.inventoryMy.withdrawTitle')">
+      <p>{{ t('helpCenter.inventoryMy.withdrawText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.inventoryMy.lostTitle')">
+      <p>{{ t('helpCenter.inventoryMy.lostText') }}</p>
+      <p>{{ t('helpCenter.inventoryMy.lostNoteText') }}</p>
+      <p>{{ t('helpCenter.inventoryMy.lostReplacementText') }}</p>
+    </HelpSection>
+
     <!-- Exchange request modal using real Modal -->
     <Modal v-model="showExchangeModal">
       <div class="space-y-3">

@@ -4,11 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import StockActions from './manageview/StockActions.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
@@ -20,6 +21,15 @@ import {useConfigPanel} from '@/composables/useConfigPanel'
 import ScannerPanel from './manageview/ScannerPanel.vue'
 import InventorySummaryCard from './manageview/InventorySummaryCard.vue'
 import CreateInventoryModal from './manageview/CreateInventoryModal.vue'
+import LossSettingsPanel from './manageview/LossSettingsPanel.vue'
+
+const routes = useInventoryRoutes()
+
+/** The heading, when the station's own wording is not the right one. */
+const props = defineProps<{
+  title?: string
+  subtitle?: string
+}>()
 
 const {t} = useI18n()
 const router = useRouter()
@@ -43,11 +53,11 @@ const {
 })
 
 function viewDetail(inv: InventorySummary) {
-  router.push({name: 'inventory-detail', params: {id: inv.id}})
+  router.push({name: routes.detail, params: {id: inv.id}})
 }
 
 function editInventory(inv: InventorySummary) {
-  router.push({name: 'inventory-edit', params: {id: inv.id}})
+  router.push({name: routes.edit, params: {id: inv.id}})
 }
 
 function onCreated() {
@@ -61,19 +71,17 @@ function onError() {
 
 <template>
   <ViewContent
-      :title="t('pages.inventory-manage.title')"
-      :subtitle="t('pages.inventory-manage.subtitle')"
+      :title="props.title ?? t('pages.inventory-manage.title')"
+      :subtitle="props.subtitle ?? t('pages.inventory-manage.subtitle')"
   >
     <div class="space-y-6">
+      <slot name="before"/>
+
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <div class="flex items-center justify-end">
-          <PrimaryButton :icon="['fas', 'plus']" @click="showCreateModal = true">
-            {{ t('inventory.manage.create') }}
-          </PrimaryButton>
-        </div>
+        <StockActions @create="showCreateModal = true"/>
 
         <ScannerPanel />
 
@@ -89,6 +97,10 @@ function onError() {
             @remove="requestDelete"
           />
         </div>
+
+        <template v-if="!routes.settings">
+          <LossSettingsPanel />
+        </template>
       </template>
 
       <CreateInventoryModal

@@ -1,0 +1,129 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script setup lang="ts">
+import {computed, onMounted, ref, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
+import ViewContent from '@/components/layout/ViewContent.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import MemberListPanel from '@/views/stationview/members/listview/MemberListPanel.vue'
+import {useMemberListConfig, type MemberListPort} from '@/views/stationview/members/listview/useMemberListConfig'
+import {provideMemberRowExtras} from '@/views/stationview/members/listview/memberRowExtras'
+import CreateMemberModal from './clustermembermanagementview/CreateMemberModal.vue'
+import {useClusterMemberSource, MANAGED_MEMBER_CAP} from './clustermembersview/clusterMemberSource'
+import {clusterMembers} from '@/api'
+import type {ManagedStation} from '@/api/clusterMembers'
+import {ClusterPermission} from '@/api/clusters'
+import {useSession} from '@/composables/useSession'
+
+const {t} = useI18n()
+const {hasClusterPermission, sessionInfo} = useSession()
+
+const stationUid = ref('')
+const includeFormer = ref(false)
+const stations = ref<ManagedStation[]>([])
+
+const {source, managed, overflowed} = useClusterMemberSource(() => includeFormer.value)
+
+/**
+ * An association reads across its stations and reaches its own copies of the member screens. It
+ * offers no column for a station's own groups or tags, because those belong to one station and most
+ * of the list would have nothing under them.
+ */
+const port: MemberListPort = {
+  source,
+  // One screen, not two: the association's copy shows what is asked of somebody and lets it be
+  // answered on the same page, so there is nothing a separate edit screen would add.
+  routes: {detail: 'cluster-member-detail'},
+  canExport: computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_EXPORT)),
+  canEdit: computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER)),
+  exportFileName: 'verbandsmitglieder',
+}
+
+const config = useMemberListConfig(port)
+
+/**
+ * Whose row offers nothing, and why.
+ *
+ * <p>An association's member manager may not touch a station's owner, and may not touch their own
+ * membership of any station in the association. Both are refused by the server; saying so here means
+ * nobody has to find out by pressing something.
+ */
+function blockedReason(memberId: number): string {
+  const person = managed.value.get(memberId)
+  if (!person) return ''
+  if (person.stationOwner) return t('clusterMemberManagement.blockedOwner')
+  if (person.id === sessionInfo.value?.member?.id) return t('clusterMemberManagement.blockedSelf')
+  return ''
+}
+
+/**
+ * Which stations somebody belongs to, which a station's own list never has to say.
+ *
+ * <p>Silent once the reader has narrowed to one station: every row would then repeat the same word.
+ * All of them rather than the one this row came from, because the search returns one row per
+ * membership and somebody at two stations is two rows that would otherwise never say so.
+ */
+function stationNameOf(memberId: number): string {
+  if (stationUid.value) return ''
+  const person = managed.value.get(memberId)
+  return person?.stationNames || person?.stationName || ''
+}
+
+provideMemberRowExtras({note: stationNameOf, blockedReason, stationLocalColumns: false})
+
+const shownMembers = computed(() => {
+  if (!stationUid.value) return config.sortedMembers.value
+  return config.sortedMembers.value.filter(m => managed.value.get(m.id)?.stationUid === stationUid.value)
+})
+
+const showCreate = ref(false)
+const canEdit = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER))
+
+/** Somebody new belongs on the list the moment they exist, so the list is read again. */
+async function onCreated() {
+  await config.reload()
+}
+
+onMounted(async () => {
+  stations.value = await clusterMembers.listManagedStations().catch(() => [])
+})
+
+watch(includeFormer, () => { void config.reload() })
+</script>
+
+<template>
+  <ViewContent :subtitle="t('pages.cluster-member-management.subtitle')"
+               :title="t('pages.cluster-member-management.title')">
+    <div class="space-y-4">
+      <Alert v-if="overflowed" variant="info">
+        {{ t('clusterMemberManagement.tooMany', {count: MANAGED_MEMBER_CAP}) }}
+      </Alert>
+
+      <NeutralContainer class="flex flex-wrap items-center gap-3">
+        <SelectInput v-model="stationUid" class="w-56">
+          <option value="">{{ t('clusterMemberManagement.allStations') }}</option>
+          <option v-for="station in stations" :key="station.uid" :value="station.uid">{{ station.name }}</option>
+        </SelectInput>
+        <label class="flex items-center gap-2 text-sm">
+          <CheckboxInput v-model="includeFormer"/>
+          <span>{{ t('clusterMemberManagement.includeFormer') }}</span>
+        </label>
+        <PrimaryButton v-if="canEdit" :icon="['fas', 'user-plus']" class="ml-auto"
+                       data-testid="cluster-member-create" @click="showCreate = true">
+          {{ t('clusterMemberManagement.create.button') }}
+        </PrimaryButton>
+      </NeutralContainer>
+
+      <MemberListPanel :config="config" :members="shownMembers"/>
+
+      <CreateMemberModal v-model="showCreate" :stations="stations" @created="onCreated"/>
+    </div>
+  </ViewContent>
+</template>

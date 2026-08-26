@@ -13,6 +13,8 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +28,8 @@ import java.util.concurrent.TimeUnit;
  */
 @Singleton
 public class MemberLookupService {
+    private static final Logger log = LoggerFactory.getLogger(MemberLookupService.class);
+
     private final Cache<Integer, UUID> memberUidCache = Caffeine.newBuilder()
             .expireAfterAccess(5, TimeUnit.MINUTES)
             .maximumSize(10_000)
@@ -96,6 +100,7 @@ public class MemberLookupService {
     public void setUid(int memberId, UUID uid) {
         memberRepository.updateUid(memberId, uid);
         invalidate(memberId);
+        log.info("Member {} was pinned to uid {}", memberId, uid);
     }
 
     /**

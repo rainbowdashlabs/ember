@@ -13,7 +13,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import DiscoveryGrid from '@/components/discovery/DiscoveryGrid.vue'
+import DiscoveryGroups from '@/components/discovery/DiscoveryGroups.vue'
 import StationMap, {type MapStation} from '@/components/map/StationMap.vue'
 import {discovery} from '@/api'
 import type {DiscoveryEntry} from '@/api/discovery'
@@ -102,7 +102,7 @@ async function handleInvite(station: DiscoveryEntry) {
         <EmptyState v-if="mapStations.length === 0" :message="t('stationDiscovery.noCoordinatesForFilter')"/>
         <StationMap v-else :stations="mapStations" height="520px"/>
       </NeutralContainer>
-      <DiscoveryGrid v-else :stations="stations" :can-connect="canManageFederation()" :show-invite="true" @connect="handleConnect" @invite="handleInvite"/>
+      <DiscoveryGroups v-else :stations="stations" :can-connect="canManageFederation()" :show-invite="true" @connect="handleConnect" @invite="handleInvite"/>
     </AsyncSection>
   </div>
   </ViewContent>

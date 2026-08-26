@@ -12,7 +12,9 @@ import MutedText from '@/components/typography/MutedText.vue'
 import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import GroupMembersTab from './GroupMembersTab.vue'
-import type {MemberGroup, PermissionGrant, StationMember} from '@/api/types'
+import type {MemberGroup, PermissionGrant} from '@/api/types'
+import type {AssignableMember} from '@/composables/useGroupsConfig'
+import {useGroupsCapabilities} from '@/composables/useGroupsConfig'
 import {useModelProxy} from '@/composables/useModelProxy'
 
 const {t} = useI18n()
@@ -20,8 +22,8 @@ const {t} = useI18n()
 const props = defineProps<{
   selectedGroup: MemberGroup
   groupLoading: boolean
-  sortedGroupMembers: StationMember[]
-  availableMembers: StationMember[]
+  sortedGroupMembers: AssignableMember[]
+  availableMembers: AssignableMember[]
   groupRoles: PermissionGrant[]
   allRoles: PermissionGrant[]
   groupRoleIds: Set<number>
@@ -29,15 +31,18 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'add-member', member: StationMember): void
-  (e: 'remove-member', member: StationMember): void
+  (e: 'add-member', member: AssignableMember): void
+  (e: 'remove-member', member: AssignableMember): void
   (e: 'update:groupRoleIds', ids: Set<number>): void
 }>()
+
+/** A group that grants nothing has one tab, and one tab is no tab bar at all. */
+const capabilities = useGroupsCapabilities()
 
 const detailTab = ref('members')
 const detailTabs = computed(() => [
   {key: 'members', label: t('memberGroups.tabMembers')},
-  {key: 'permissions', label: t('memberGroups.tabPermissions')},
+  ...(capabilities.hasPermissions ? [{key: 'permissions', label: t('memberGroups.tabPermissions')}] : []),
 ])
 
 const roleIdsModel = useModelProxy(() => props.groupRoleIds, emit, 'groupRoleIds')
@@ -50,7 +55,7 @@ const roleIdsModel = useModelProxy(() => props.groupRoleIds, emit, 'groupRoleIds
     <Spinner v-if="groupLoading" size="md"/>
 
     <template v-if="!groupLoading">
-      <TabBar v-model="detailTab" :tabs="detailTabs"/>
+      <TabBar v-if="detailTabs.length > 1" v-model="detailTab" :tabs="detailTabs"/>
 
       <template v-if="detailTab === 'members'">
         <GroupMembersTab
@@ -63,7 +68,7 @@ const roleIdsModel = useModelProxy(() => props.groupRoleIds, emit, 'groupRoleIds
 
       <template v-if="detailTab === 'permissions'">
         <div v-if="canEditRoles" class="space-y-2">
-          <PermissionPicker v-model="roleIdsModel" :all-roles="allRoles"/>
+          <PermissionPicker v-model="roleIdsModel" :all-roles="allRoles" :scope="capabilities.permissionScope"/>
           <MutedText v-if="groupRoles.length === 0" size="sm">{{ t('memberGroups.noPermissions') }}</MutedText>
         </div>
         <MutedText v-else size="sm">{{ t('memberGroups.noPermissionAccess') }}</MutedText>

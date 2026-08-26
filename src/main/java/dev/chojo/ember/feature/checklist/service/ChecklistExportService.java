@@ -9,7 +9,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.checklist.entity.ChecklistCell;
 import dev.chojo.ember.feature.checklist.entity.ChecklistColumn;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
-import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.TypstCompiler;
@@ -100,8 +100,8 @@ public class ChecklistExportService {
         var entries = checklistService.findEntries(checklistId, false);
         var cells = indexCells(checklistService.findCells(checklistId));
 
-        String locale = resolveLocalePrefix(station);
-        ZoneId zone = resolveTimezone(station);
+        String locale = StationFormat.languageOf(station);
+        ZoneId zone = StationFormat.timezoneOf(station);
 
         var rows = new ArrayList<Map<String, Object>>();
         for (var entry : entries) {
@@ -171,20 +171,5 @@ public class ChecklistExportService {
         if (value == null) return "";
         String escaped = value.replace("\"", "\"\"");
         return '"' + escaped + '"';
-    }
-
-    private static String resolveLocalePrefix(Station station) {
-        if (station != null && station.locale() != null && station.locale().startsWith("de")) return "de";
-        return "en";
-    }
-
-    private static ZoneId resolveTimezone(Station station) {
-        if (station != null && station.timezone() != null) {
-            try {
-                return ZoneId.of(station.timezone());
-            } catch (Exception ignored) {
-            }
-        }
-        return ZoneOffset.UTC;
     }
 }

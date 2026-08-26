@@ -170,6 +170,7 @@ onMounted(loadItems)
             'py-2 px-2 flex items-center gap-3 text-sm cursor-pointer rounded-theme',
             selectedIds.has(i.id) ? 'bg-primary/10' : 'hover:bg-(--bg-accent)',
           ]"
+          data-testid="container-add-item"
           @click="toggle(i)"
       >
         <font-awesome-icon
@@ -189,7 +190,12 @@ onMounted(loadItems)
 
     <div class="flex justify-end gap-2 mt-4 max-sm:mt-auto max-sm:pt-4">
       <SecondaryButton :disabled="submitting" @click="onClose">{{ t('common.cancel') }}</SecondaryButton>
-      <PrimaryButton :disabled="submitting || selectedIds.size === 0" :icon="['fas', 'plus']" @click="submit">
+      <PrimaryButton
+          :disabled="submitting || selectedIds.size === 0"
+          :icon="['fas', 'plus']"
+          data-testid="container-add-submit"
+          @click="submit"
+      >
         {{ t('inventory.storage.addItems.submit', {count: selectedIds.size}) }}
       </PrimaryButton>
     </div>

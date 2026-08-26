@@ -65,7 +65,13 @@ class LendingServiceTest extends RepositoryTestBase {
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
         service = new LendingService(
-                lendingRepo, httpClient, federationService, stationRepo, inventoryRepo, new DomainEventBus(Set.of()));
+                lendingRepo,
+                httpClient,
+                federationService,
+                stationRepo,
+                inventoryRepo,
+                itemCustodyService,
+                new DomainEventBus(Set.of()));
 
         stationA = stationRepo.create("LendSvcTestStationA");
         stationB = stationRepo.create("LendSvcTestStationB");

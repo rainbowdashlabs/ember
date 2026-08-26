@@ -10,7 +10,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
-import DiscoveryGrid from '@/components/discovery/DiscoveryGrid.vue'
+import DiscoveryGroups from '@/components/discovery/DiscoveryGroups.vue'
 import {discovery, federation} from '@/api'
 import type {DiscoveryEntry} from '@/api/discovery'
 import {useSession} from '@/composables/useSession'
@@ -59,7 +59,7 @@ watch(loaded, (v) => { if (v) loadAll() }, {immediate: true})
     <Alert v-if="success" variant="success" class="mb-2">{{ success }}</Alert>
 
     <AsyncSection :empty="stations.length === 0" :empty-message="t('discovery.empty')" :loading="loading">
-      <DiscoveryGrid :stations="stations" :can-connect="canManageFederation()" :show-invite="false" @connect="handleConnect"/>
+      <DiscoveryGroups :stations="stations" :can-connect="canManageFederation()" :show-invite="false" @connect="handleConnect"/>
     </AsyncSection>
   </ViewContent>
 </template>

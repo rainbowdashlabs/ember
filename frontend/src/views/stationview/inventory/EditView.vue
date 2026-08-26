@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
@@ -19,6 +20,8 @@ import SettingsSection from './editview/SettingsSection.vue'
 import SizesSection from './editview/SizesSection.vue'
 import ItemListSection from './editview/ItemListSection.vue'
 import FieldDefinitionsSection from './editview/FieldDefinitionsSection.vue'
+
+const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const route = useRoute()
@@ -66,7 +69,7 @@ function onError(message: string) {
       :subtitle="t('pages.inventory-edit.subtitle')"
   >
     <div class="space-y-6">
-      <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'inventory-manage' })">
+      <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: routes.manage })">
         {{ t('inventory.edit.back') }}
       </SecondaryButton>
 

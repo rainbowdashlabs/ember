@@ -27,6 +27,7 @@ import {useFlashMessage} from '@/composables/useFlashMessage'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
+const eventRoutes = useEventRoutes()
 const {loaded, hasPermission} = useSession()
 
 const canFederate = computed(() => hasPermission(StationPermission.EVENTS_FEDERATE))
@@ -115,7 +116,7 @@ function leaveEditor() {
   if (returnTo && returnTo.startsWith('/')) {
     router.push(returnTo)
   } else {
-    router.push({name: 'events'})
+    router.push({name: eventRoutes.index})
   }
 }
 

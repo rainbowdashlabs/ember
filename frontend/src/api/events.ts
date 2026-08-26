@@ -180,7 +180,8 @@ export interface EventTemplateField {
     templateId: number
     name: string
     fieldType: string
-    config: string
+    /** The field's settings as the server sends them, which is an object rather than the text it is stored as. */
+    config: Record<string, unknown>
     position: number
     overview: boolean
     isPublic: boolean
@@ -498,6 +499,38 @@ export async function listRegistrationCounts(): Promise<RegistrationCount[]> {
 
 export async function withdrawRegistration(id: number): Promise<void> {
     await client.delete(`/events/registrations/${id}`)
+}
+
+/** Somebody in the household who still owes an answer. */
+export interface AwaitingMember {
+    memberId: number
+    name: string
+}
+
+/** An event still waiting on an answer, and everyone who owes one. */
+export interface AwaitingAnswer {
+    eventId: number
+    name: string
+    startTime: string
+    registrationDeadline: string
+    members: AwaitingMember[]
+}
+
+/** Events whose registration closes soon and which the household has not answered. */
+export async function listAwaitingAnswer(): Promise<AwaitingAnswer[]> {
+    const res = await client.get<AwaitingAnswer[]>('/events/registrations/awaiting')
+    return res.data
+}
+
+/**
+ * Changes whether somebody is coming.
+ *
+ * <p>Open to the member and whoever looks after them while registration is open, and to the people who
+ * run the event afterwards. Coming back after declining is a fresh answer, so an event that confirms its
+ * list confirms this one too.
+ */
+export async function changeRegistrationAnswer(id: number, attending: boolean): Promise<void> {
+    await client.put(`/events/registrations/${id}/answer`, {attending})
 }
 
 export async function updateRegistrationStatus(id: number, status: string): Promise<unknown> {

@@ -144,12 +144,14 @@ test.describe('Knowledge base', () => {
      * A station can put a page of its wiki in front of everybody. The story marks a file public and
      * then reads the public wiki with no session at all - which is the only way to know that the
      * mark means what it says.
+     *
+     * <p>It is marked from the article's own visibility dialog, not from its properties. Who may see
+     * a thing is not a property of the thing the way its name is, and it has a place of its own.
      */
     test('a file marked public is readable on the public wiki', async ({managerPage: page, browser}) => {
         const {folder, file} = await createFileInFolder(page)
 
-        // The file is open where creating it landed, and its properties are edited from there.
-        await page.getByRole('button', {name: 'Eigenschaften'}).click()
+        await page.getByRole('button', {name: 'Sichtbarkeit'}).click()
         await page.locator('select:has(option:text-is("Öffentlich sichtbar"))')
             .selectOption({label: 'Öffentlich sichtbar'})
         await page.getByRole('button', {name: 'Speichern'}).click()

@@ -4,12 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref, watch} from 'vue'
+import {computed, ref, useSlots, watch} from 'vue'
 import {useRoute} from 'vue-router'
 import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
 import {useSidebarFlyoutParent} from '@/composables/useSidebarFlyoutContext'
 import {useFlyoutHover} from '@/composables/useFlyoutHover'
 import SidebarFlyoutMenu from '@/components/navigation/SidebarFlyoutMenu.vue'
+import {collectSidebarPaths} from '@/util/sidebarEntries'
 
 const {collapsed} = useSidebarCollapse()
 const parentFlyout = useSidebarFlyoutParent()
@@ -17,13 +18,23 @@ const inFlyout = parentFlyout !== null
 
 const props = defineProps<{
   label: string
-  prefix: string
+  /** Pages this subsection covers that are not entries in it. What its entries lead to is read off them. */
+  prefix?: string | string[]
   icon?: string[]
   badge?: number
 }>()
 
 const route = useRoute()
-const isActive = computed(() => (route.path + '/').startsWith(props.prefix + '/') || route.path === props.prefix)
+const slots = useSlots()
+
+const prefixes = computed(() => {
+  const written = Array.isArray(props.prefix) ? props.prefix : props.prefix ? [props.prefix] : []
+  const slotFn = slots.default
+  return [...written, ...(slotFn ? collectSidebarPaths(slotFn()) : [])]
+})
+
+const isActive = computed(() => prefixes.value.some(
+    prefix => (route.path + '/').startsWith(prefix + '/') || route.path === prefix))
 const expanded = ref(isActive.value)
 
 watch(isActive, (active) => {

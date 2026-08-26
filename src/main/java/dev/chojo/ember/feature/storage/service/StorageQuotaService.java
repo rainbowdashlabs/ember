@@ -8,10 +8,12 @@ package dev.chojo.ember.feature.storage.service;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.StorageWarningEvent;
-import dev.chojo.ember.feature.storage.entity.StationStorageQuota;
+import dev.chojo.ember.feature.storage.entity.QuotaAuthority;
+import dev.chojo.ember.feature.storage.entity.QuotaOrigin;
+import dev.chojo.ember.feature.storage.entity.StationQuotas;
+import dev.chojo.ember.feature.storage.entity.StationQuotas.ResolvedQuota;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageUsage;
-import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -25,36 +27,36 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Service for quota checking, delta tracking, and usage aggregation.
- * Resolves effective quotas from station overrides → instance defaults.
+ *
+ * <p>Resolves what a station may keep from what its cluster granted it, then what its cluster gives its
+ * stations by default, then what an instance administrator set for it, then the instance configuration. A
+ * station under a cluster is governed by that cluster: the instance's per-station override does not reach it,
+ * because the instance's lever on a cluster is the pool it grants, and inside the pool the cluster decides.
  */
 @Singleton
 public class StorageQuotaService {
     private static final Logger log = LoggerFactory.getLogger(StorageQuotaService.class);
 
     private final StorageUsageRepository usageRepository;
-    private final StationStorageConfigRepository overrideRepository;
     private final Storage storageConfig;
     private final DomainEventBus eventBus;
 
     @Inject
-    public StorageQuotaService(
-            StorageUsageRepository usageRepository,
-            StationStorageConfigRepository overrideRepository,
-            Storage storageConfig,
-            DomainEventBus eventBus) {
+    public StorageQuotaService(StorageUsageRepository usageRepository, Storage storageConfig, DomainEventBus eventBus) {
         this.usageRepository = usageRepository;
-        this.overrideRepository = overrideRepository;
         this.storageConfig = storageConfig;
         this.eventBus = eventBus;
     }
 
     /**
-     * Returns {@code true} when the station has its own remote-backend override. Instance-side
-     * quotas (per-category, per-file, per-image, total) do not apply in that case - the station
-     * is paying for its own storage and the instance has no business limiting it.
+     * Whether nobody bounds what this station keeps, which is the case when whoever pays for its storage is
+     * the station itself.
+     *
+     * @param stationId the station
+     * @return {@code true} when no limit applies to it at all
      */
-    public boolean hasOwnBackend(int stationId) {
-        return overrideRepository.findOne(stationId).isPresent();
+    public boolean isUnbounded(int stationId) {
+        return resolveQuotas(stationId).total().origin() == QuotaOrigin.UNLIMITED;
     }
 
     /**
@@ -64,23 +66,37 @@ public class StorageQuotaService {
      */
     public void checkQuota(int stationId, StorageCategory category, long incomingBytes) {
         if (!category.enforcesQuota()) return;
-        if (hasOwnBackend(stationId)) return;
 
         var quota = resolveQuotas(stationId);
+        if (quota.authority() == QuotaAuthority.NOBODY) return;
+
         long categoryUsed = usageRepository.categoryBytes(stationId, category);
         long categoryLimit = categoryQuota(quota, category);
         if (categoryUsed + incomingBytes > categoryLimit) {
+            log.info(
+                    "Station {} is out of room for {}: {} of {} bytes used, {} more offered",
+                    stationId,
+                    category,
+                    categoryUsed,
+                    categoryLimit,
+                    incomingBytes);
             throw new StorageQuotaExceededException(
                     category,
                     categoryUsed,
                     categoryLimit,
                     usageRepository.totalEnforcedBytes(stationId),
-                    effectiveTotalQuota(quota));
+                    quota.total().bytes());
         }
 
         long totalUsed = usageRepository.totalEnforcedBytes(stationId);
-        long totalLimit = effectiveTotalQuota(quota);
+        long totalLimit = quota.total().bytes();
         if (totalUsed + incomingBytes > totalLimit) {
+            log.info(
+                    "Station {} is out of room altogether: {} of {} bytes used, {} more offered",
+                    stationId,
+                    totalUsed,
+                    totalLimit,
+                    incomingBytes);
             throw new StorageQuotaExceededException(category, categoryUsed, categoryLimit, totalUsed, totalLimit);
         }
     }
@@ -91,10 +107,9 @@ public class StorageQuotaService {
      * @throws StorageQuotaExceededException if the file exceeds the limit
      */
     public void checkFileSize(int stationId, long fileBytes) {
-        if (hasOwnBackend(stationId)) return;
-        var quota = resolveQuotas(stationId);
-        long limit = quota.perFileBytes() != null ? quota.perFileBytes() : storageConfig.defaultPerFileBytes();
+        long limit = resolveQuotas(stationId).perFile().bytes();
         if (fileBytes > limit) {
+            log.info("Station {} offered a {} byte file, over its {} byte limit", stationId, fileBytes, limit);
             throw new StorageQuotaExceededException(
                     "File size %d exceeds per-file limit %d".formatted(fileBytes, limit));
         }
@@ -106,10 +121,9 @@ public class StorageQuotaService {
      * @throws StorageQuotaExceededException if the image exceeds the limit
      */
     public void checkImageSize(int stationId, long imageBytes) {
-        if (hasOwnBackend(stationId)) return;
-        var quota = resolveQuotas(stationId);
-        long limit = quota.perImageBytes() != null ? quota.perImageBytes() : storageConfig.defaultPerImageBytes();
+        long limit = resolveQuotas(stationId).perImage().bytes();
         if (imageBytes > limit) {
+            log.info("Station {} offered a {} byte image, over its {} byte limit", stationId, imageBytes, limit);
             throw new StorageQuotaExceededException(
                     "Image size %d exceeds per-image limit %d".formatted(imageBytes, limit));
         }
@@ -121,6 +135,12 @@ public class StorageQuotaService {
     public void trackDelta(int stationId, StorageCategory category, long bytesDelta, int fileCountDelta) {
         usageRepository.applyDelta(stationId, category, bytesDelta, fileCountDelta);
         checkWarningThreshold(stationId);
+        log.debug(
+                "Storage of station {} moved by {} bytes and {} file(s) in {}",
+                stationId,
+                bytesDelta,
+                fileCountDelta,
+                category);
     }
 
     /**
@@ -156,7 +176,7 @@ public class StorageQuotaService {
      * Resolves the effective total quota for a station.
      */
     public long getEffectiveTotalQuota(int stationId) {
-        return effectiveTotalQuota(resolveQuotas(stationId));
+        return resolveQuotas(stationId).total().bytes();
     }
 
     /**
@@ -203,36 +223,161 @@ public class StorageQuotaService {
     }
 
     /**
-     * Resolves per-station quota overrides from the station table.
+     * What a station may keep, with every dimension resolved and carrying where its number came from.
+     *
+     * <p>One read for all of it: the station's own overrides, the grant its cluster made it, its cluster's
+     * defaults, and whether either of them brought a storage backend of their own. Reading them together is
+     * what lets one answer say both how much and on whose word.
+     *
+     * @param stationId the station
+     * @return its quotas, or the instance's own defaults when there is no such station
      */
-    StationStorageQuota resolveQuotas(int stationId) {
+    public StationQuotas resolveQuotas(int stationId) {
         return query("""
-                SELECT id, storage_quota_bytes, storage_quota_kb_bytes, storage_quota_board_bytes,
-                       storage_quota_images_bytes, storage_quota_pages_bytes, storage_per_file_bytes,
-                       storage_per_image_bytes
-                FROM station WHERE id = :id;
+                SELECT s.id,
+                       c.id AS cluster_id,
+                       s.storage_quota_bytes,
+                       s.storage_quota_kb_bytes,
+                       s.storage_quota_board_bytes,
+                       s.storage_quota_images_bytes,
+                       s.storage_quota_pages_bytes,
+                       s.storage_per_file_bytes,
+                       s.storage_per_image_bytes,
+                       q.quota_bytes        AS granted_bytes,
+                       q.quota_kb_bytes     AS granted_kb_bytes,
+                       q.quota_board_bytes  AS granted_board_bytes,
+                       q.quota_images_bytes AS granted_images_bytes,
+                       q.quota_pages_bytes  AS granted_pages_bytes,
+                       q.per_file_bytes     AS granted_per_file_bytes,
+                       q.per_image_bytes    AS granted_per_image_bytes,
+                       c.default_quota_bytes,
+                       c.default_quota_kb_bytes,
+                       c.default_quota_board_bytes,
+                       c.default_quota_images_bytes,
+                       c.default_quota_pages_bytes,
+                       c.default_per_file_bytes,
+                       c.default_per_image_bytes,
+                       ssc.station_id IS NOT NULL AS station_backend,
+                       css.station_id IS NOT NULL AS cluster_backend
+                FROM station s
+                    -- A cluster's own store is the home station it owns, which carries no membership row of
+                    -- its own, so it is found the other way round
+                    LEFT JOIN cluster c ON c.id = s.cluster_id OR c.home_station_id = s.id
+                    LEFT JOIN cluster_station_quota q ON q.station_id = s.id
+                    LEFT JOIN station_storage_config ssc ON ssc.station_id = s.id
+                    -- Who pays follows where the bytes are and not what anybody decided: a station its
+                    -- cluster has configured a backend for but never moved is still on the instance's disk
+                    LEFT JOIN cluster_station_storage css ON css.station_id = s.id
+                WHERE s.id = :id;
                 """)
                 .single(call().bind("id", stationId))
-                .map(StationStorageQuota.map())
+                .map(row -> {
+                    QuotaAuthority authority = row.getBoolean("station_backend")
+                            ? QuotaAuthority.NOBODY
+                            : row.getBoolean("cluster_backend") ? QuotaAuthority.CLUSTER : QuotaAuthority.INSTANCE;
+                    boolean underCluster = row.getObject("cluster_id", Integer.class) != null;
+                    return new StationQuotas(
+                            row.getInt("id"),
+                            authority,
+                            resolve(
+                                    authority,
+                                    underCluster,
+                                    row.getObject("granted_bytes", Long.class),
+                                    row.getObject("default_quota_bytes", Long.class),
+                                    row.getObject("storage_quota_bytes", Long.class),
+                                    storageConfig.defaultTotalBytes()),
+                            resolve(
+                                    authority,
+                                    underCluster,
+                                    row.getObject("granted_kb_bytes", Long.class),
+                                    row.getObject("default_quota_kb_bytes", Long.class),
+                                    row.getObject("storage_quota_kb_bytes", Long.class),
+                                    storageConfig.defaultKbBytes()),
+                            resolve(
+                                    authority,
+                                    underCluster,
+                                    row.getObject("granted_board_bytes", Long.class),
+                                    row.getObject("default_quota_board_bytes", Long.class),
+                                    row.getObject("storage_quota_board_bytes", Long.class),
+                                    storageConfig.defaultBoardBytes()),
+                            resolve(
+                                    authority,
+                                    underCluster,
+                                    row.getObject("granted_images_bytes", Long.class),
+                                    row.getObject("default_quota_images_bytes", Long.class),
+                                    row.getObject("storage_quota_images_bytes", Long.class),
+                                    storageConfig.defaultImagesBytes()),
+                            resolve(
+                                    authority,
+                                    underCluster,
+                                    row.getObject("granted_pages_bytes", Long.class),
+                                    row.getObject("default_quota_pages_bytes", Long.class),
+                                    row.getObject("storage_quota_pages_bytes", Long.class),
+                                    storageConfig.defaultPagesBytes()),
+                            resolve(
+                                    authority,
+                                    underCluster,
+                                    row.getObject("granted_per_file_bytes", Long.class),
+                                    row.getObject("default_per_file_bytes", Long.class),
+                                    row.getObject("storage_per_file_bytes", Long.class),
+                                    storageConfig.defaultPerFileBytes()),
+                            resolve(
+                                    authority,
+                                    underCluster,
+                                    row.getObject("granted_per_image_bytes", Long.class),
+                                    row.getObject("default_per_image_bytes", Long.class),
+                                    row.getObject("storage_per_image_bytes", Long.class),
+                                    storageConfig.defaultPerImageBytes()));
+                })
                 .first()
-                .orElse(new StationStorageQuota(stationId, null, null, null, null, null, null, null));
+                .orElseGet(() -> instanceDefaults(stationId));
     }
 
-    private long effectiveTotalQuota(StationStorageQuota quota) {
-        return quota.quotaBytes() != null ? quota.quotaBytes() : storageConfig.defaultTotalBytes();
+    /**
+     * One dimension, resolved down the chain.
+     *
+     * <p>The cluster's grant first, then what the cluster gives its stations by default. The instance's
+     * per-station override comes next and is skipped for a station under a cluster, because the instance's
+     * lever there is the pool it granted the cluster rather than a number on one of its stations. The
+     * instance's configured default is the last word, unless nobody who could set one is paying.
+     */
+    private static ResolvedQuota resolve(
+            QuotaAuthority authority,
+            boolean underCluster,
+            Long granted,
+            Long clusterDefault,
+            Long override,
+            long instanceDefault) {
+        if (authority == QuotaAuthority.NOBODY) return ResolvedQuota.unlimited();
+        if (granted != null) return new ResolvedQuota(granted, QuotaOrigin.CLUSTER_GRANT);
+        if (clusterDefault != null) return new ResolvedQuota(clusterDefault, QuotaOrigin.CLUSTER_DEFAULT);
+        if (authority == QuotaAuthority.CLUSTER) return ResolvedQuota.unlimited();
+        if (!underCluster && override != null) return new ResolvedQuota(override, QuotaOrigin.INSTANCE_OVERRIDE);
+        return new ResolvedQuota(instanceDefault, QuotaOrigin.INSTANCE_DEFAULT);
     }
 
-    private long categoryQuota(StationStorageQuota quota, StorageCategory category) {
+    /** What a station nobody has said anything about may keep, which is what the instance configuration says. */
+    private StationQuotas instanceDefaults(int stationId) {
+        return new StationQuotas(
+                stationId,
+                QuotaAuthority.INSTANCE,
+                new ResolvedQuota(storageConfig.defaultTotalBytes(), QuotaOrigin.INSTANCE_DEFAULT),
+                new ResolvedQuota(storageConfig.defaultKbBytes(), QuotaOrigin.INSTANCE_DEFAULT),
+                new ResolvedQuota(storageConfig.defaultBoardBytes(), QuotaOrigin.INSTANCE_DEFAULT),
+                new ResolvedQuota(storageConfig.defaultImagesBytes(), QuotaOrigin.INSTANCE_DEFAULT),
+                new ResolvedQuota(storageConfig.defaultPagesBytes(), QuotaOrigin.INSTANCE_DEFAULT),
+                new ResolvedQuota(storageConfig.defaultPerFileBytes(), QuotaOrigin.INSTANCE_DEFAULT),
+                new ResolvedQuota(storageConfig.defaultPerImageBytes(), QuotaOrigin.INSTANCE_DEFAULT));
+    }
+
+    private long categoryQuota(StationQuotas quota, StorageCategory category) {
         return switch (category) {
-            case KB_FILES -> quota.quotaKbBytes() != null ? quota.quotaKbBytes() : storageConfig.defaultKbBytes();
-            case BOARD_ATTACHMENTS ->
-                quota.quotaBoardBytes() != null ? quota.quotaBoardBytes() : storageConfig.defaultBoardBytes();
+            case KB_FILES -> quota.kb().bytes();
+            case BOARD_ATTACHMENTS -> quota.board().bytes();
             case IMAGE_LOST_AND_FOUND, IMAGE_QUIZ_QUESTION, IMAGE_KB_ICON, IMAGE_KB_IMAGE, IMAGE_LOGO_FRAGMENT ->
-                quota.quotaImagesBytes() != null ? quota.quotaImagesBytes() : storageConfig.defaultImagesBytes();
-            case MEDIA_FILES, MEDIA_IMAGES ->
-                quota.quotaPagesBytes() != null ? quota.quotaPagesBytes() : storageConfig.defaultPagesBytes();
-            case MEMBER_DOCUMENTS ->
-                quota.quotaKbBytes() != null ? quota.quotaKbBytes() : storageConfig.defaultKbBytes();
+                quota.images().bytes();
+            case MEDIA_FILES, MEDIA_IMAGES -> quota.pages().bytes();
+            case MEMBER_DOCUMENTS, MOVEMENT_DOCUMENTS -> quota.kb().bytes();
             // A quota limits what one station may keep. What the instance holds is not any
             // station's to be charged for, so nothing here has a limit to look up.
             case IMAGE_AVATAR,
@@ -246,13 +391,13 @@ public class StorageQuotaService {
     }
 
     private void checkWarningThreshold(int stationId) {
-        if (hasOwnBackend(stationId)) {
+        var quota = resolveQuotas(stationId);
+        if (quota.authority() == QuotaAuthority.NOBODY || quota.total().origin() == QuotaOrigin.UNLIMITED) {
             if (isWarningSent(stationId)) setWarningSent(stationId, false);
             return;
         }
-        var quota = resolveQuotas(stationId);
         long totalUsed = usageRepository.totalEnforcedBytes(stationId);
-        long totalLimit = effectiveTotalQuota(quota);
+        long totalLimit = quota.total().bytes();
         int percent = totalLimit > 0 ? (int) (totalUsed * 100 / totalLimit) : 0;
 
         boolean warningSent = isWarningSent(stationId);

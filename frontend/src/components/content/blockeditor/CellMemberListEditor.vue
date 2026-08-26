@@ -20,6 +20,7 @@ import {getMemberPickerByUid, type MemberSearchResult} from '@/api/members'
 import {MemberListSortBy, resolveMemberListSource, type MemberListSortByName, type MemberListSource, type ResolvedMember} from '@/api/pageManage'
 import type {MemberGroup, UserTag} from '@/api/types'
 import {useConfigPatch} from '@/composables/useConfigPatch'
+import {moveWithin} from '@/util/reorder'
 
 const config = defineModel<Record<string, unknown>>('config', {required: true})
 
@@ -128,21 +129,12 @@ function addManualMember(uid: string) {
     patch({source: {kind: 'manual', memberUids: [...manualUids.value, uid]}})
 }
 function moveManualMember(from: number, to: number) {
-    if (from === to || from < 0 || to < 0 || from >= manualUids.value.length || to >= manualUids.value.length) return
-    const next = [...manualUids.value]
-    const [item] = next.splice(from, 1)
-    if (item === undefined) return
-    next.splice(to, 0, item)
+    const next = moveWithin(manualUids.value, from, to)
     patch({source: {kind: 'manual', memberUids: next}, memberOrder: next})
 }
 
 function moveDynamicMember(from: number, to: number) {
-    const list = dynamicResolved.value
-    if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return
-    const next = [...list]
-    const item = next[from]!
-    next.splice(from, 1)
-    next.splice(to, 0, item)
+    const next = moveWithin(dynamicResolved.value, from, to)
     dynamicResolved.value = next
     patch({memberOrder: next.map(m => m.memberUid)})
 }

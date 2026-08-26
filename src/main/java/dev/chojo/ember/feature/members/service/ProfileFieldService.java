@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.PagedChanges;
 import dev.chojo.ember.feature.members.entity.ProfileField;
@@ -54,6 +56,7 @@ public class ProfileFieldService {
     private final NotificationService notificationService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
+    private final ClusterProfileFieldRepository clusterFieldRepository;
 
     @Inject
     public ProfileFieldService(
@@ -61,12 +64,14 @@ public class ProfileFieldService {
             ProfileFieldChangeRepository changeRepository,
             NotificationService notificationService,
             StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            ClusterProfileFieldRepository clusterFieldRepository) {
         this.profileFieldRepository = profileFieldRepository;
         this.changeRepository = changeRepository;
         this.notificationService = notificationService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
+        this.clusterFieldRepository = clusterFieldRepository;
     }
 
     // -- Field Definitions --
@@ -89,13 +94,66 @@ public class ProfileFieldService {
         return profileFieldRepository.findByStationAndScope(stationId, scope);
     }
 
-    public List<ProfileField> findApplicableFields(int memberId) {
+    public List<MergedField> findApplicableFields(int memberId) {
         var member = stationMemberRepository.findById(memberId).orElse(null);
         if (member == null) return List.of();
         var scope = scopeForUserType(member.userType());
         if (scope == null) return List.of();
-        return profileFieldRepository.findByStationAndScope(member.stationId(), scope);
+        return findMergedFields(member.stationId(), scope);
     }
+
+    /**
+     * The fields a station's profile shows in one scope: its own, and the ones its cluster asks for.
+     *
+     * <p>Unioned rather than returned as two lists, so the profile lays out as one form. Each entry carries
+     * where it came from, because that decides two things the reader has to see: whether the station may
+     * write the answer, and who to blame for the question.
+     *
+     * @param stationId the station
+     * @param scope     which kind of member the fields apply to
+     * @return the station's own fields first, then the cluster's
+     */
+    public List<MergedField> findMergedFields(int stationId, ProfileFieldScope scope) {
+        List<MergedField> merged = new ArrayList<>();
+        for (ProfileField field : findByStationAndScope(stationId, scope)) {
+            merged.add(new MergedField(
+                    field.id(),
+                    field.name(),
+                    field.fieldType(),
+                    field.config(),
+                    field.position(),
+                    field.scope(),
+                    FieldOrigin.STATION,
+                    false));
+        }
+        for (var field : clusterFieldRepository.findForStation(stationId, scope)) {
+            merged.add(new MergedField(
+                    field.id(),
+                    field.name(),
+                    field.fieldType(),
+                    field.config(),
+                    field.position(),
+                    field.scope(),
+                    FieldOrigin.CLUSTER,
+                    field.stationReadonly()));
+        }
+        return merged;
+    }
+
+    /**
+     * @param origin          who asked
+     * @param readonlyAtStation whether the people at the station may read the answer but not write it, which
+     *                          only a cluster field can be
+     */
+    public record MergedField(
+            int id,
+            String name,
+            ProfileFieldType fieldType,
+            ProfileFieldConfig config,
+            int position,
+            ProfileFieldScope scope,
+            FieldOrigin origin,
+            boolean readonlyAtStation) {}
 
     public Optional<ProfileField> findById(int id) {
         return profileFieldRepository.findById(id);
@@ -108,7 +166,7 @@ public class ProfileFieldService {
             ProfileFieldConfig config,
             int position,
             ProfileFieldScope scope) {
-        requireSingleBirthDate(stationId, fieldType, 0);
+        requireSingleBirthDate(stationId, fieldType, scope, 0);
         var field = profileFieldRepository.create(stationId, name, fieldType, config, position, scope);
         log.info(
                 "Profile field created: id={}, station={}, name='{}', type={}, scope={}",
@@ -132,7 +190,8 @@ public class ProfileFieldService {
             log.warn("Profile field update affected no rows: id={}", id);
             return Optional.empty();
         }
-        requireSingleBirthDate(existing.get().stationId(), fieldType, id);
+        requireSingleBirthDate(
+                existing.get().stationId(), fieldType, existing.get().scope(), id);
         if (profileFieldRepository.update(id, name, fieldType, config, position, keepOnArchive)) {
             log.info("Profile field updated: id={}, name='{}', type={}", id, name, fieldType);
             return profileFieldRepository.findById(id);
@@ -146,18 +205,49 @@ public class ProfileFieldService {
      *
      * @param stationId  the station the field belongs to
      * @param fieldType  the type the field is about to carry
+     * @param scope      who the field is put to
      * @param excludedId the field being updated, so it does not clash with itself; 0 when creating
-     * @throws BadRequestResponse if another field of the station already is the birth date
+     * @throws BadRequestResponse if a date of birth already reaches the same members
      */
-    private void requireSingleBirthDate(int stationId, ProfileFieldType fieldType, int excludedId) {
+    private void requireSingleBirthDate(
+            int stationId, ProfileFieldType fieldType, ProfileFieldScope scope, int excludedId) {
         if (fieldType != ProfileFieldType.BIRTH_DATE) return;
-        profileFieldRepository
-                .findByStationAndType(stationId, ProfileFieldType.BIRTH_DATE)
-                .filter(existing -> existing.id() != excludedId)
-                .ifPresent(existing -> {
-                    throw new BadRequestResponse(
-                            "A birth date field already exists in this station: " + existing.name());
-                });
+        for (ProfileField other :
+                profileFieldRepository.findAllByStationAndType(stationId, ProfileFieldType.BIRTH_DATE)) {
+            if (other.id() == excludedId || !birthDatesCollide(scope, other.scope())) continue;
+            throw new BadRequestResponse("A birth date field already reaches these members: " + other.name());
+        }
+    }
+
+    /**
+     * Whether two dates of birth could be put to the same person.
+     *
+     * <p>A field aimed at a kind of member is met only by that kind, and nobody is two kinds at once, so
+     * asking the team and asking the guardians are two questions no single member can answer twice. That is
+     * what makes several of them safe, and a station that wants the date from some kinds and not others
+     * needs them.
+     *
+     * <p>A group is the exception, and the reason the rule cannot simply be dropped: a member belongs to
+     * any number of groups and to a kind besides, so a date asked of a group can meet a member who is
+     * already being asked elsewhere. One of those blocks every other.
+     */
+    private static boolean birthDatesCollide(ProfileFieldScope scope, ProfileFieldScope other) {
+        if (scope == ProfileFieldScope.GROUP || other == ProfileFieldScope.GROUP) return true;
+        return scope == other;
+    }
+
+    /**
+     * Puts a station's fields in the given order, in one write.
+     *
+     * <p>Dragging one field moves every field after it, and sending that as one update per field made a
+     * screen with twenty of them do twenty round trips for a single drag.
+     *
+     * @param stationId the station whose fields these are
+     * @param fieldIds  the fields in the order they should stand
+     */
+    public void reorder(int stationId, List<Integer> fieldIds) {
+        int moved = profileFieldRepository.applyOrder(stationId, fieldIds);
+        log.info("Profile fields reordered: station={}, fields={}", stationId, moved);
     }
 
     public boolean delete(int id) {
@@ -212,19 +302,62 @@ public class ProfileFieldService {
 
     // -- Field Values --
 
-    public List<ProfileFieldValue> findValues(int memberId) {
-        return profileFieldRepository.findValues(memberId);
+    public List<MergedValue> findValues(int memberId) {
+        List<MergedValue> values = new ArrayList<>();
+        for (var value : profileFieldRepository.findValues(memberId)) {
+            values.add(new MergedValue(value.fieldId(), value.value(), FieldOrigin.STATION));
+        }
+        for (var value : clusterFieldRepository.findValues(memberId)) {
+            values.add(new MergedValue(value.fieldId(), value.value(), FieldOrigin.CLUSTER));
+        }
+        return values;
     }
 
-    public List<ProfileFieldValue> setValues(int memberId, List<FieldValueEntry> entries, int changedBy) {
-        Map<Integer, String> oldValues = profileFieldRepository.findValues(memberId).stream()
+    /**
+     * An answer, and which table its question lives in.
+     *
+     * <p>The two id spaces are separate, so a bare field id says nothing on its own: the profile screen
+     * carries the origin back with every answer it saves, and this is the shape it reads them in.
+     *
+     * @param fieldId the field the answer belongs to, in its own table
+     * @param value   the answer
+     * @param origin  who asked
+     */
+    public record MergedValue(int fieldId, String value, FieldOrigin origin) {}
+
+    public List<MergedValue> setValues(int memberId, List<FieldValueEntry> entries, int changedBy) {
+        return setValues(memberId, entries, changedBy, false);
+    }
+
+    /**
+     * Saves answers, saying whether the party writing them is the cluster that asked.
+     *
+     * <p>A cluster question marked readable but not writable at the station is locked against the station,
+     * not against the cluster. The station's own screens call the short form above and are refused it; the
+     * cluster's own screens say so here and are not, because the lock is theirs to begin with.
+     *
+     * @param memberId  whose answers these are
+     * @param entries   the answers, each naming which table its question lives in
+     * @param changedBy the member row recorded as the author
+     * @param asOwner   whether the caller is the cluster that asked, rather than the station that holds them
+     * @return every answer this member now has
+     */
+    public List<MergedValue> setValues(int memberId, List<FieldValueEntry> entries, int changedBy, boolean asOwner) {
+        Map<Integer, String> oldStation = profileFieldRepository.findValues(memberId).stream()
                 .collect(Collectors.toMap(ProfileFieldValue::fieldId, v -> v.value() != null ? v.value() : "null"));
+        Map<Integer, String> oldCluster = clusterFieldRepository.findValues(memberId).stream()
+                .collect(Collectors.toMap(
+                        ClusterProfileFieldRepository.Value::fieldId, v -> v.value() != null ? v.value() : "null"));
 
         List<String> changedFieldNames = new ArrayList<>();
         for (var entry : entries) {
-            String oldValue = oldValues.getOrDefault(entry.fieldId(), "null");
             String newValue = entry.value() != null ? entry.value() : "null";
+            if (entry.origin() == FieldOrigin.CLUSTER) {
+                writeClusterAnswer(memberId, entry, oldCluster, newValue, changedBy, changedFieldNames, asOwner);
+                continue;
+            }
 
+            String oldValue = oldStation.getOrDefault(entry.fieldId(), "null");
             profileFieldRepository.setValue(memberId, entry.fieldId(), entry.value());
 
             if (!Objects.equals(oldValue, newValue)) {
@@ -242,7 +375,47 @@ public class ProfileFieldService {
                     changedFieldNames);
         }
 
-        return profileFieldRepository.findValues(memberId);
+        return findValues(memberId);
+    }
+
+    /**
+     * Saves one answer to a question the cluster asked.
+     *
+     * <p>A field the cluster keeps to itself is not written when the station is the one writing: the
+     * station's screen shows it without a control, so an entry naming one is a stale form rather than
+     * somebody trying something, and refusing the whole save would lose the answers beside it. The cluster
+     * writing its own is a different matter, and {@code asOwner} says which of the two this is.
+     *
+     * <p>The change is recorded like any other, which is what puts it in front of the people at the station
+     * who acknowledge changes. What is not raised is the cluster's own notification: that one says the
+     * cluster changed something, and here the station did.
+     */
+    private void writeClusterAnswer(
+            int memberId,
+            FieldValueEntry entry,
+            Map<Integer, String> oldValues,
+            String newValue,
+            int changedBy,
+            List<String> changedFieldNames,
+            boolean asOwner) {
+        var field = clusterFieldRepository
+                .findById(entry.fieldId())
+                .filter(candidate -> asOwner || !candidate.stationReadonly())
+                .orElse(null);
+        if (field == null) return;
+
+        String oldValue = oldValues.getOrDefault(field.id(), "null");
+        if (Objects.equals(oldValue, newValue)) return;
+
+        clusterFieldRepository.setValue(memberId, field.id(), entry.value());
+        changeRepository.createForClusterField(
+                field.id(),
+                memberId,
+                oldValue,
+                newValue,
+                changedBy,
+                field.config().notifyOnChange());
+        changedFieldNames.add(field.name());
     }
 
     public boolean deleteValue(int memberId, int fieldId) {
@@ -272,6 +445,7 @@ public class ProfileFieldService {
                 .map(c -> new ProfileFieldChange(
                         c.id(),
                         c.fieldId(),
+                        c.clusterFieldId(),
                         c.memberId(),
                         c.oldValue(),
                         c.newValue(),
@@ -337,6 +511,7 @@ public class ProfileFieldService {
                     return new ProfileFieldChange(
                             c.id(),
                             c.fieldId(),
+                            c.clusterFieldId(),
                             c.memberId(),
                             c.oldValue(),
                             c.newValue(),

@@ -114,7 +114,8 @@
     "NEW_EVENTS_BATCH.one": "Ein neuer Termin",
     "NEW_EVENTS_BATCH.other": "{count} neue Termine",
     "EVENT_REGISTRATION_STATUS": "Anmeldung {statusLabel}: {eventName}",
-    "EXCHANGE_STATUS_CHANGE": "Tausch {statusLabel}: {inventoryName}",
+    "EXCHANGE_STATUS_CHANGE": "Tausch: {stepLabel} ({inventoryName})",
+    "MOVEMENT_DECLINED": "Bewegung abgelehnt: {inventoryName}",
     "EXCHANGE_NEW_REQUEST": "Tausch-Anfrage: {inventoryName}",
     "MEMBER_ADDED_TO_GROUP": "Zur Gruppe hinzugefügt: {groupName}",
     "PROFILE_FIELD_CHANGED": "Profiländerung: {memberName} - {fieldName}",
@@ -138,7 +139,16 @@
     "PROCEDURE_REOPENED": "Wieder geöffnet: {procedureName}",
     "PROCEDURE_ITEM_CHECKED": "Abgehakt: {itemTitle} - in {procedureName}",
     "WAITLIST_PUBLIC_REGISTRATION": "Öffentliche Anmeldung - {listName}: {childName}",
-    "STORAGE_WARNING": "Speicher bei {usedPercent}% - {usedFormatted} / {quotaFormatted}"
+    "STORAGE_WARNING": "Speicher bei {usedPercent}% - {usedFormatted} / {quotaFormatted}",
+    "CLUSTER_APPLICATION_SUBMITTED": "Beitrittsanfrage: {stationName}",
+    "CLUSTER_APPLICATION_APPROVED": "Aufgenommen in {clusterName}",
+    "CLUSTER_APPLICATION_DENIED": "Abgelehnt von {clusterName}",
+    "CLUSTER_APPLICATION_WITHDRAWN": "Anfrage zurückgezogen: {stationName}",
+    "CLUSTER_STATION_RELEASED": "Aus {clusterName} entlassen",
+    "CLUSTER_MODULE_DENIED": "{module} vom Verband abgeschaltet",
+    "CLUSTER_QUOTA_CHANGED": "Neuer Speicherplatz: {quota}",
+    "CLUSTER_MEMBER_ROLE_CHANGED": "Deine Rechte im Verband {clusterName}",
+    "CLUSTER_FIELD_VALUE_CHANGED": "Profil vom Verband geändert: {fields}"
   },
   "digest": {
     "subject.one": "{stationName}: 1 neue Benachrichtigung",
@@ -173,7 +183,17 @@
     "PROCEDURE_ITEM_CHECKED": "Prozedur-Punkt abgehakt",
     "WAITLIST_NEW_ENTRY": "Neue Wartelisten-Anmeldung",
     "WAITLIST_PUBLIC_REGISTRATION": "Öffentliche Anmeldung",
-    "STORAGE_WARNING": "Speicherwarnung"
+    "STORAGE_WARNING": "Speicherwarnung",
+    "MOVEMENT_DECLINED": "Bewegung abgelehnt",
+    "CLUSTER_APPLICATION_SUBMITTED": "Neue Beitrittsanfrage",
+    "CLUSTER_APPLICATION_APPROVED": "Beitritt bestätigt",
+    "CLUSTER_APPLICATION_DENIED": "Beitritt abgelehnt",
+    "CLUSTER_APPLICATION_WITHDRAWN": "Anfrage zurückgezogen",
+    "CLUSTER_STATION_RELEASED": "Aus dem Verband entlassen",
+    "CLUSTER_MODULE_DENIED": "Modul abgeschaltet",
+    "CLUSTER_QUOTA_CHANGED": "Speicherplatz geändert",
+    "CLUSTER_MEMBER_ROLE_CHANGED": "Rechte geändert",
+    "CLUSTER_FIELD_VALUE_CHANGED": "Profil vom Verband geändert"
   },
   "message": {
     "notification.newNews": "{title} - von {author}",
@@ -207,6 +227,18 @@
     "notification.procedureItemChecked": "{checkedByName} hat \"{itemTitle}\" in {procedureName} abgehakt",
     "notification.waitlistNewEntry": "{childName} wurde auf die Warteliste {listName} gesetzt",
     "notification.waitlistPublicRegistration": "Öffentliche Anmeldung: {childName} auf Warteliste {listName}",
-    "notification.storageWarning": "Speicher bei {usedPercent}% ({usedFormatted} von {quotaFormatted})"
+    "notification.storageWarning": "Speicher bei {usedPercent}% ({usedFormatted} von {quotaFormatted})",
+    "notification.movementDeclined": "{inventoryName}: abgelehnt - {reason}",
+    "notification.clusterApplicationSubmitted": "{stationName} möchte dem Verband beitreten",
+    "notification.clusterApplicationApproved": "Eure Wache gehört jetzt zu {clusterName}",
+    "notification.clusterApplicationDenied": "{clusterName} hat die Anfrage abgelehnt: {reason}",
+    "notification.clusterApplicationWithdrawn": "{stationName} hat die Beitrittsanfrage zurückgezogen",
+    "notification.clusterStationReleased": "{clusterName} hat eure Wache entlassen",
+    "notification.clusterModuleDenied": "{clusterName} hat {module} für eure Wache abgeschaltet. Eure Daten dazu bleiben erhalten.",
+    "notification.clusterQuotaChanged": "{clusterName} hat euren Speicherplatz auf {quota} gesetzt",
+    "notification.clusterItemIssued": "{clusterName} schickt euch {itemName}",
+    "notification.clusterItemLost": "{itemName} wird bei {stationName} vermisst",
+    "notification.clusterMemberRoleChanged": "Deine Rechte im Verband {clusterName} haben sich geändert",
+    "notification.clusterFieldValueChanged": "{clusterName} hat in deinem Profil {fields} geändert"
   }
 }

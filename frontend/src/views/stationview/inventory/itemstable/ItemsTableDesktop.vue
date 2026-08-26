@@ -30,7 +30,7 @@ const props = defineProps<{
 }>()
 
 const showSize = computed(() => props.tableApi ? props.tableApi.isColumnVisible('size') : props.hasSizes)
-const showSource = computed(() => props.tableApi ? props.tableApi.isColumnVisible('source') : props.isMixed)
+const showOwner = computed(() => props.tableApi ? props.tableApi.isColumnVisible('owner') : props.isMixed)
 const showAssigned = computed(() => props.tableApi ? props.tableApi.isColumnVisible('assigned') : true)
 
 function fieldValues(item: InventoryItem): string[] {
@@ -58,14 +58,14 @@ const { t } = useI18n()
           <Th>{{ t('inventory.edit.colName') }}</Th>
           <Th>{{ t('inventory.edit.colId') }}</Th>
           <Th v-if="hasSizes">{{ t('inventory.edit.colSize') }}</Th>
-          <Th v-if="isMixed">{{ t('inventory.edit.colSource') }}</Th>
+          <Th v-if="isMixed">{{ t('inventory.edit.colOwner') }}</Th>
           <Th>{{ t('inventory.edit.colAssigned') }}</Th>
           <th v-if="showActions || showHistory" class="px-3 py-2"></th>
         </THead>
       </thead>
       <tbody>
         <ItemsTableRow v-for="item in items" :key="item.id"
-                       :item="item" :has-sizes="showSize" :is-mixed="showSource"
+                       :item="item" :has-sizes="showSize" :is-mixed="showOwner"
                        :show-assigned="showAssigned" :field-values="fieldValues(item)"
                        :show-actions="showActions" :show-history="showHistory"
                        :lent-out="lentItemMap?.has(item.id) ?? false"

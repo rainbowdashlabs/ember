@@ -8,14 +8,44 @@ import axios, {type AxiosError, type InternalAxiosRequestConfig} from 'axios'
 declare module 'axios' {
     export interface InternalAxiosRequestConfig {
         _startTime?: number
-        _stepUpRetried?: boolean
+        _stepUpAttempts?: number
     }
 }
 import {getItem, removeItem, setItem} from './storage'
 import {showToast} from '@/util/toast'
 import {reportApiError} from '@/util/devErrorReporter'
-import {requestStepUp, type StepUpCategory} from '@/util/stepUp'
+import {requestStepUp, StepUpCancelledError, type StepUpCategory} from '@/util/stepUp'
 import type {ApiErrorBody} from '@/util/apiError'
+import {getActingStation} from '@/util/actingStationState'
+import i18n from '@/i18n'
+
+/**
+ * How often one request may be sent back through the step-up prompt. One answered challenge that
+ * the server still refuses is worth asking about again, because the reader can plausibly fix it by
+ * answering with a different factor. Past that it is the instance saying no, not the answer being
+ * wrong, and asking a third time would only loop.
+ */
+const MAX_STEP_UP_ATTEMPTS = 2
+
+/** The largest delay setTimeout takes. Anything past it wraps and fires immediately instead. */
+const MAX_TIMER_DELAY = 2_147_483_647
+
+const STEP_UP_CATEGORIES: readonly StepUpCategory[] = [
+    'ACCOUNT_SECURITY',
+    'FEDERATION',
+    'INSTANCE_CONFIG',
+    'ROLE_CHANGE',
+]
+
+/**
+ * Reads the category off a step-up refusal, from the body or the header it is repeated in. An
+ * unknown or missing value still opens the prompt: the challenge is the same one either way, and
+ * only the sentence naming what is being confirmed is lost.
+ */
+function stepUpCategoryOf(body: ApiErrorBody | undefined, header: unknown): StepUpCategory | null {
+    const raw = body?.category ?? (typeof header === 'string' ? header : undefined)
+    return STEP_UP_CATEGORIES.find((known) => known === raw) ?? null
+}
 
 // -- Request history for problem reports --
 export interface RequestHistoryEntry {
@@ -51,9 +81,16 @@ function applyAuthHeaders(config: InternalAxiosRequestConfig) {
     if (token) {
         config.headers.Authorization = `Bearer ${token}`
     }
-    const stationId = getItem('station_id')
+    // A screen that edits an association's own content acts at the station the association owns, whether or
+    // not the reader has a station of their own selected.
+    const stationId = getActingStation() ?? getItem('station_id')
     if (stationId) {
         config.headers['X-Station-Id'] = stationId
+    }
+    // A request may carry both: one person can be a cluster manager and a member of one of its stations
+    const clusterId = getItem('cluster_id')
+    if (clusterId) {
+        config.headers['X-Cluster-Id'] = clusterId
     }
 }
 
@@ -122,18 +159,27 @@ client.interceptors.response.use(
             const body = error.response?.data as ApiErrorBody | undefined
             const isStepUp = body?.error === 'step_up_required'
                 || error.response?.headers?.['x-stepup-required'] != null
-            if (isStepUp && config && !config._stepUpRetried) {
-                const category = (body?.category
-                    ?? error.response?.headers?.['x-stepup-required']) as StepUpCategory
-                config._stepUpRetried = true
+            if (isStepUp && config) {
+                const attempts = config._stepUpAttempts ?? 0
+                if (attempts >= MAX_STEP_UP_ATTEMPTS) {
+                    // Answering again cannot help, so say why the action stopped rather than let the
+                    // caller render a bare "something went wrong" with no prompt in sight.
+                    showToast(i18n.global.t('twoFactor.stepUp.stillRequired'), 'error')
+                    return Promise.reject(error as AxiosError)
+                }
+                config._stepUpAttempts = attempts + 1
+                const category = stepUpCategoryOf(body, error.response?.headers?.['x-stepup-required'])
                 return requestStepUp(category)
                     .then(() => client.request(config))
-                    .catch((stepUpErr) => Promise.reject(stepUpErr ?? (error as AxiosError)))
+                    .catch((stepUpErr) => Promise.reject(
+                        stepUpErr instanceof StepUpCancelledError ? (error as AxiosError) : stepUpErr,
+                    ))
             }
             const token = getItem('session_token')
             if (token && !refreshing && !isStepUp) {
                 removeItem('session_token')
                 removeItem('station_id')
+                removeItem('cluster_id')
                 const currentPath = window.location.pathname
                 const isPublicPath = currentPath === '/'
                     || currentPath === '/login'
@@ -163,6 +209,14 @@ export function scheduleTokenRefresh(expiresAt: string) {
     const now = Date.now()
     // Refresh 2 minutes before expiry
     const delay = Math.max(expiryMs - now - 2 * 60 * 1000, 10_000)
+
+    // A session can outlast the longest wait a timer can express, and a longer one fires at once
+    // rather than late: left alone that turns a month-long session into a refresh every few
+    // seconds. Wait out the ceiling and work out the rest afterwards.
+    if (delay > MAX_TIMER_DELAY) {
+        refreshTimer = setTimeout(() => scheduleTokenRefresh(expiresAt), MAX_TIMER_DELAY)
+        return
+    }
 
     refreshTimer = setTimeout(async () => {
         const token = getItem('session_token')

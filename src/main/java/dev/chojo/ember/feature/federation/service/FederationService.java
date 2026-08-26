@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.federation.entity.FederationShare;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -261,6 +262,7 @@ public class FederationService {
     }
 
     public boolean suspendPartner(int partnerId) {
+        requirePausable(partnerId);
         boolean updated = repository.updatePartnerStatus(partnerId, FederationPartner.FederationStatus.SUSPENDED);
         if (updated) {
             log.info("Suspended federation partner {}", partnerId);
@@ -295,6 +297,7 @@ public class FederationService {
     }
 
     public boolean endFederation(int partnerId) {
+        requireDeletable(partnerId);
         // Find and delete the reverse partner too
         var partner = repository.findPartnerById(partnerId);
         if (partner.isPresent()) {
@@ -318,6 +321,117 @@ public class FederationService {
             log.warn("End federation for partner {} affected no row", partnerId);
         }
         return deleted;
+    }
+
+    // -- Pairs a cluster owns --
+
+    /**
+     * Wires a station into its cluster's federation.
+     *
+     * <p>Two things at once, and they are governed differently. The home pair, in both directions between
+     * the station and the cluster's own station, is how cluster content arrives, so it is made whatever the
+     * cluster's settings say. The mesh pairs, between this station and every other member station, are made
+     * only when the cluster asked for them, because whether stations under one roof see each other is a
+     * choice the cluster gets to make.
+     *
+     * @param homeStationId  the cluster's own station
+     * @param stationId      the station joining
+     * @param siblingIds     the other member stations, for the mesh
+     * @param autoFederate   whether the cluster wants its stations connected to each other
+     */
+    public void createClusterFederation(
+            int homeStationId, int stationId, List<Integer> siblingIds, boolean autoFederate) {
+        pairUp(homeStationId, stationId, true);
+        if (!autoFederate) {
+            log.info("Station {} is paired with its cluster home only, the mesh is switched off", stationId);
+            return;
+        }
+        for (int siblingId : siblingIds) {
+            if (siblingId == stationId) continue;
+            pairUp(siblingId, stationId, false);
+        }
+    }
+
+    /**
+     * Fills in the mesh pairs that were never made while the cluster had them switched off.
+     *
+     * <p>Switching the setting back on does not reach into the past for pairs somebody paused or that were
+     * made by hand: it only adds the ones that are missing.
+     *
+     * @param stationIds the cluster's member stations
+     */
+    public void backfillClusterMesh(List<Integer> stationIds) {
+        for (int first : stationIds) {
+            for (int second : stationIds) {
+                if (first >= second) continue;
+                pairUp(first, second, false);
+            }
+        }
+    }
+
+    /**
+     * Takes a station out of its cluster's federation, in both directions.
+     *
+     * <p>Everything the cluster made goes, including the mesh pairs to its former siblings. What the station
+     * arranged with anybody itself is untouched, inside the cluster or out: a pair two stations made is
+     * theirs and survives the cluster that happened to introduce them.
+     *
+     * @param stationId the station being released
+     */
+    public void removeClusterFederation(int stationId) {
+        for (FederationPartner partner : repository.findClusterManagedFor(stationId)) {
+            repository.deletePartner(partner.id());
+        }
+        log.info("Removed the cluster-managed federation of station {}", stationId);
+    }
+
+    /**
+     * Makes both directions of one pair and turns every capability on, in case either row is new.
+     */
+    private void pairUp(int firstStationId, int secondStationId, boolean clusterHome) {
+        UUID firstUid = resolveStationUid(firstStationId);
+        UUID secondUid = resolveStationUid(secondStationId);
+        if (firstUid == null || secondUid == null) {
+            log.warn(
+                    "Cluster pairing of station {} and station {} skipped: one has no uid",
+                    firstStationId,
+                    secondStationId);
+            return;
+        }
+
+        repository.createClusterPartner(firstStationId, secondUid, clusterHome).ifPresent(this::enableEveryCapability);
+        repository.createClusterPartner(secondStationId, firstUid, clusterHome).ifPresent(this::enableEveryCapability);
+        log.info("Paired station {} with station {} through their cluster", firstStationId, secondStationId);
+    }
+
+    /**
+     * Every capability in both directions, written against the enum rather than a list.
+     *
+     * <p>Stations under one cluster have already agreed to share; asking them to tick seven boxes each would
+     * be a formality with no decision behind it. A capability added later is enabled here for free.
+     */
+    private void enableEveryCapability(FederationPartner partner) {
+        for (CapabilityType capability : CapabilityType.values()) {
+            repository.upsertCapability(partner.id(), capability, Direction.EXPORT, true);
+            repository.upsertCapability(partner.id(), capability, Direction.IMPORT, true);
+        }
+    }
+
+    private void requirePausable(int partnerId) {
+        repository.findPartnerById(partnerId).ifPresent(partner -> {
+            if (!partner.pausableByStation()) {
+                throw new BadRequestResponse("This connection carries the cluster's own content and cannot be paused");
+            }
+        });
+    }
+
+    private void requireDeletable(int partnerId) {
+        repository.findPartnerById(partnerId).ifPresent(partner -> {
+            if (!partner.deletableByStation()) {
+                throw new BadRequestResponse(
+                        "This connection belongs to the cluster and ends when its membership does");
+            }
+        });
     }
 
     public List<FederationCapability> findCapabilities(int partnerId) {
@@ -362,13 +476,32 @@ public class FederationService {
         return repository.findKbShares(stationId);
     }
 
+    /** The stations one knowledge share is aimed at, empty when it is for everybody. */
+    public List<Integer> findKbShareTargets(int shareId) {
+        return repository.findKbShareTargets(shareId);
+    }
+
     public FederationShare createKbShare(int stationId, Integer fileId, Integer folderId, ShareScope shareScope) {
+        return createKbShare(stationId, fileId, folderId, shareScope, List.of());
+    }
+
+    /**
+     * Shares a knowledge entry, with everybody or with named stations.
+     *
+     * @param partnerIds the partnerships it is for, read only when the scope names stations
+     */
+    public FederationShare createKbShare(
+            int stationId, Integer fileId, Integer folderId, ShareScope shareScope, List<Integer> partnerIds) {
         var share = repository.createKbShare(stationId, fileId, folderId, shareScope);
+        if (shareScope == ShareScope.SPECIFIC) {
+            repository.setKbShareTargets(share.id(), partnerIds);
+        }
         log.info(
-                "Created knowledge-base federation share {} for station {} (scope {})",
+                "Created knowledge-base federation share {} for station {} (scope {}, {} targets)",
                 share.id(),
                 stationId,
-                shareScope);
+                shareScope,
+                partnerIds.size());
         return share;
     }
 

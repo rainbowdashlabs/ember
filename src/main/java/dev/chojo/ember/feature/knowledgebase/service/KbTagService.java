@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -20,6 +22,7 @@ import java.util.List;
  */
 @Singleton
 public class KbTagService {
+    private static final Logger log = LoggerFactory.getLogger(KbTagService.class);
     private final KnowledgeBaseRepository repository;
 
     @Inject
@@ -57,6 +60,7 @@ public class KbTagService {
      */
     public List<KbTag> setFileTags(int fileId, List<String> tagNames, int stationId) {
         repository.setFileTags(fileId, tagNames, stationId);
+        log.info("Knowledge file {} now carries the tags {}", fileId, tagNames);
         return repository.findFileTags(fileId);
     }
 
@@ -80,6 +84,7 @@ public class KbTagService {
      */
     public List<KbTag> setFolderTags(int folderId, List<String> tagNames, int stationId) {
         repository.setFolderTags(folderId, tagNames, stationId);
+        log.info("Knowledge folder {} now carries the tags {}", folderId, tagNames);
         return repository.findFolderTags(folderId);
     }
 

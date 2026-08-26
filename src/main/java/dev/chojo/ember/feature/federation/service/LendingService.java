@@ -18,11 +18,14 @@ import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLocationService;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -37,6 +40,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.IntConsumer;
 
 /**
  * Business logic for cross-station inventory lending. Internally peer references travel as
@@ -53,6 +57,7 @@ public class LendingService {
     private final FederationService federationService;
     private final StationRepository stationRepository;
     private final InventoryRepository inventoryRepository;
+    private final ItemCustodyService custodyService;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -62,12 +67,14 @@ public class LendingService {
             FederationService federationService,
             StationRepository stationRepository,
             InventoryRepository inventoryRepository,
+            ItemCustodyService custodyService,
             DomainEventBus eventBus) {
         this.repository = repository;
         this.httpClient = httpClient;
         this.federationService = federationService;
         this.stationRepository = stationRepository;
         this.inventoryRepository = inventoryRepository;
+        this.custodyService = custodyService;
         this.eventBus = eventBus;
     }
 
@@ -101,7 +108,9 @@ public class LendingService {
     // -- Requests --
 
     public LendingRequestItem addRequestItem(int requestId, Integer inventoryId, Integer itemId, int quantity) {
-        return repository.addRequestItem(requestId, inventoryId, itemId, quantity);
+        LendingRequestItem added = repository.addRequestItem(requestId, inventoryId, itemId, quantity);
+        log.info("Lending request {} now asks for {} piece(s) more", requestId, quantity);
+        return added;
     }
 
     public List<LendingRequestItem> findRequestItems(int requestId) {
@@ -109,7 +118,29 @@ public class LendingService {
     }
 
     public boolean assignItem(int requestItemId, int assignedItemId) {
-        return repository.assignItem(requestItemId, assignedItemId);
+        requireLendable(assignedItemId);
+        boolean assigned = repository.assignItem(requestItemId, assignedItemId);
+        if (assigned) log.info("Item {} was set aside for lending request item {}", assignedItemId, requestItemId);
+        else log.warn("Assign of item {} to lending request item {} affected zero rows", assignedItemId, requestItemId);
+        return assigned;
+    }
+
+    /**
+     * Refuses to lend on gear the station does not own.
+     *
+     * <p>Lending is the owner's decision, and a station holding a cluster's jacket is not its owner. Passing
+     * it to a third party would put it somewhere the cluster never agreed to and, worse, somewhere the
+     * cluster cannot see: the partner's records are not ours to read.
+     *
+     * @param itemId the item somebody wants to lend out
+     * @throws ForbiddenResponse when the item belongs to a cluster
+     */
+    private void requireLendable(int itemId) {
+        inventoryRepository.findItemById(itemId).ifPresent(item -> {
+            if (item.ownerKind() == ItemOwner.CLUSTER) {
+                throw new ForbiddenResponse("This gear belongs to the body above the station and cannot be lent on");
+            }
+        });
     }
 
     public boolean approveRequest(int requestId, int stationId) {
@@ -146,6 +177,7 @@ public class LendingService {
     public boolean markLent(int requestId, int stationId) {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.LENT);
         if (updated) {
+            forEachLentItem(requestId, custodyService::lendToPartner);
             repository.createMessage(
                     requestId, stationRepository.resolveUid(stationId), null, "Ausrüstung ausgeliehen", true);
             repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.LENT));
@@ -161,6 +193,7 @@ public class LendingService {
     public boolean markReturned(int requestId, int stationId) {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.RETURNED);
         if (updated) {
+            forEachLentItem(requestId, custodyService::returnFromPartner);
             repository.createMessage(
                     requestId, stationRepository.resolveUid(stationId), null, "Ausrüstung zurückgegeben", true);
             repository
@@ -171,6 +204,20 @@ public class LendingService {
             log.warn("Mark-returned for lending request {} by station {} affected no row", requestId, stationId);
         }
         return updated;
+    }
+
+    /**
+     * Runs an action over every item actually assigned to a lending request, which is what changes
+     * hands when the request is marked lent or returned. Request lines that never got an item
+     * assigned carry nothing to move.
+     *
+     * @param requestId the lending request
+     * @param action    what to do with each assigned item
+     */
+    private void forEachLentItem(int requestId, IntConsumer action) {
+        for (var requestItem : repository.findItemsByRequest(requestId)) {
+            if (requestItem.assignedItemId() != null) action.accept(requestItem.assignedItemId());
+        }
     }
 
     public boolean closeRequest(int requestId, int stationId) {

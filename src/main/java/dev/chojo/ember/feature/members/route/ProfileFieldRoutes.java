@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -95,6 +96,7 @@ public class ProfileFieldRoutes implements Routes {
         // Field definitions (station config)
         routes.get(prefix + "/profile-fields", this::list, StationPermission.USER);
         routes.post(prefix + "/profile-fields", this::create, StationPermission.MEMBER_FIELDS);
+        routes.put(prefix + "/profile-fields/order", this::reorder, StationPermission.MEMBER_FIELDS);
         routes.get(prefix + "/profile-fields/{id}", this::get, StationPermission.USER);
         routes.put(prefix + "/profile-fields/{id}", this::update, StationPermission.MEMBER_FIELDS);
         routes.delete(prefix + "/profile-fields/{id}", this::delete, StationPermission.MEMBER_FIELDS);
@@ -200,6 +202,21 @@ public class ProfileFieldRoutes implements Routes {
                 @OpenApiResponse(status = "204"),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
+    /**
+     * Puts the fields in the given order, in one request rather than one per field.
+     *
+     * <p>Registered before the path that takes a field id, or "order" is read as one.
+     */
+    private void reorder(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(FieldOrderRequest.class);
+        profileFieldService.reorder(session.stationId(), req.fieldIds() != null ? req.fieldIds() : List.of());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /** The fields in the order they should stand. */
+    public record FieldOrderRequest(List<Integer> fieldIds) {}
+
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedField(ctx, id);
@@ -252,17 +269,25 @@ public class ProfileFieldRoutes implements Routes {
         var request = ctx.bodyAsClass(SetValuesRequest.class);
         boolean canEditReadonly = session.hasPermission(StationPermission.MEMBER_EDIT);
 
+        // A cluster's question is not one of this station's, so it cannot be checked against the station's
+        // own list: whether the station may answer it is the cluster's to say, and the service asks that.
         List<FieldValueEntry> entries = request.values() != null
                 ? request.values().stream()
                         .filter(v -> {
+                            if (v.origin() == FieldOrigin.CLUSTER) return true;
                             var field = requireOwnedField(ctx, v.fieldId());
                             return canEditReadonly || !field.config().readonly();
                         })
-                        .map(v -> new FieldValueEntry(v.fieldId(), v.value()))
+                        .map(v -> new FieldValueEntry(v.fieldId(), v.value(), originOf(v)))
                         .toList()
                 : List.of();
         ctx.json(profileFieldService.setValues(
                 memberId, entries, session.member().id()));
+    }
+
+    /** An entry that names no origin is the station's own, which is what every older caller sends. */
+    private static FieldOrigin originOf(FieldValueEntry entry) {
+        return entry.origin() != null ? entry.origin() : FieldOrigin.STATION;
     }
 
     /** A request naming no settings gets the empty ones rather than none at all. */

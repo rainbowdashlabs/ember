@@ -29,7 +29,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   toggleMcOption: [idx: number]
   reorderItems: [fromIndex: number, toIndex: number]
-  moveOrderItem: [index: number, direction: -1 | 1]
   setConnectPair: [leftIndex: number, rightValue: string]
   setFillGap: [gapIndex: number, value: string]
 }>()
@@ -69,7 +68,6 @@ const correctPairs = computed<{ left: string; right: string }[]>(() => {
     @toggle-mc-option="(i: number) => emit('toggleMcOption', i)"
     @set-fill-gap="(gi: number, v: string) => emit('setFillGap', gi, v)"
     @reorder-items="(from: number, to: number) => emit('reorderItems', from, to)"
-    @move-order-item="(i: number, d: -1 | 1) => emit('moveOrderItem', i, d)"
     @set-connect-pair="(li: number, rv: string) => emit('setConnectPair', li, rv)"
   >
     <!-- MC answer reveal -->

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -43,7 +44,8 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 profileFieldChangeRepo,
                 mock(NotificationService.class),
                 stationMemberRepo,
-                accountRepo);
+                accountRepo,
+                clusterProfileFieldRepo);
         station = stationRepo.create("ProfileField Station");
         account = accountRepo.create("pfield-svc@test.com", "Profile", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -459,6 +461,115 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         assertTrue(service.findValues(member.id()).isEmpty());
     }
 
+    /**
+     * Nobody is two kinds of member at once, so asking the team for a date of birth and asking the
+     * guardians for one are two questions no single person can answer twice. A group is the exception:
+     * a member belongs to any number of them and to a kind besides, so one of those blocks every other.
+     */
+    @Test
+    @Order(29)
+    void aDateOfBirthPerKindOfMemberIsFineAndAGroupOneIsNot() {
+        var forTeam = service.create(
+                station.id(),
+                "Geburtstag Team",
+                ProfileFieldType.BIRTH_DATE,
+                ProfileFieldConfig.parse("{}"),
+                60,
+                ProfileFieldScope.TEAM);
+
+        var forGuardians = service.create(
+                station.id(),
+                "Geburtstag Eltern",
+                ProfileFieldType.BIRTH_DATE,
+                ProfileFieldConfig.parse("{}"),
+                61,
+                ProfileFieldScope.GUARDIAN);
+        assertNotNull(forGuardians, "a second kind of member may be asked as well");
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.create(
+                        station.id(),
+                        "Noch einer",
+                        ProfileFieldType.BIRTH_DATE,
+                        ProfileFieldConfig.parse("{}"),
+                        62,
+                        ProfileFieldScope.TEAM),
+                "asking the same kind twice would give one member two dates");
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.create(
+                        station.id(),
+                        "Gruppengeburtstag",
+                        ProfileFieldType.BIRTH_DATE,
+                        ProfileFieldConfig.parse("{}"),
+                        63,
+                        ProfileFieldScope.GROUP),
+                "a group reaches members who are already asked by their kind");
+
+        profileFieldRepo.delete(forTeam.id());
+        profileFieldRepo.delete(forGuardians.id());
+    }
+
+    /** With one asked of a group, no other date of birth may be added at all. */
+    @Test
+    @Order(29)
+    void aGroupDateOfBirthBlocksEveryOther() {
+        var forGroup = service.create(
+                station.id(),
+                "Geburtstag Gruppe",
+                ProfileFieldType.BIRTH_DATE,
+                ProfileFieldConfig.parse("{}"),
+                70,
+                ProfileFieldScope.GROUP);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.create(
+                        station.id(),
+                        "Geburtstag Team",
+                        ProfileFieldType.BIRTH_DATE,
+                        ProfileFieldConfig.parse("{}"),
+                        71,
+                        ProfileFieldScope.TEAM),
+                "the group one can meet a team member as well");
+
+        profileFieldRepo.delete(forGroup.id());
+    }
+
+    /** Twenty fields moved by one drag is one request, not twenty. */
+    @Test
+    @Order(29)
+    void anOrderIsWrittenInOneGo() {
+        var first = service.create(
+                station.id(),
+                "Erstes",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                80,
+                ProfileFieldScope.MANAGER);
+        var second = service.create(
+                station.id(),
+                "Zweites",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                81,
+                ProfileFieldScope.MANAGER);
+
+        service.reorder(station.id(), List.of(second.id(), first.id()));
+
+        // Nothing to move is not an error, and writes nothing
+        service.reorder(station.id(), List.of());
+
+        var ordered = service.findByStationAndScope(station.id(), ProfileFieldScope.MANAGER);
+        assertEquals(second.id(), ordered.getFirst().id(), "the order given is the order stored");
+        assertEquals(first.id(), ordered.get(1).id());
+
+        profileFieldRepo.delete(first.id());
+        profileFieldRepo.delete(second.id());
+    }
+
     @Test
     @Order(30)
     void onlyOneBirthDateFieldPerStation() {
@@ -535,6 +646,69 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 ProfileFieldScope.GUARDIAN);
         assertEquals(ProfileFieldType.BIRTH_DATE, second.fieldType());
         service.delete(second.id());
+    }
+
+    /**
+     * The profile is one form of two origins. What the cluster keeps to itself is readable and not
+     * writable; what it leaves open the station answers, and the answer lands in the cluster's own table
+     * rather than the station's.
+     */
+    @Test
+    @Order(80)
+    void aProfileCarriesTheClustersQuestionsBesideTheStationsOwn() {
+        var home = stationRepo.create("Träger Profil");
+        var cluster = clusterRepo.create("Kreisverband Profil", null, home.id());
+        stationRepo.setCluster(station.id(), cluster.id());
+
+        var kept = clusterProfileFieldRepo.create(
+                cluster.id(),
+                "Führerscheinklasse",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                0,
+                ProfileFieldScope.MEMBER,
+                true,
+                false,
+                null);
+        var open = clusterProfileFieldRepo.create(
+                cluster.id(),
+                "Funkrufname",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                1,
+                ProfileFieldScope.MEMBER,
+                false,
+                false,
+                null);
+
+        var fields = service.findApplicableFields(member.id());
+        assertTrue(
+                fields.stream().anyMatch(f -> f.origin() == FieldOrigin.STATION),
+                "the station's own questions are still there");
+        var keptField = fields.stream()
+                .filter(f -> f.origin() == FieldOrigin.CLUSTER && f.name().equals("Führerscheinklasse"))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(keptField.readonlyAtStation(), "the cluster kept that one to itself");
+
+        service.setValues(
+                member.id(),
+                List.of(
+                        new FieldValueEntry(kept.id(), "\"C1\"", FieldOrigin.CLUSTER),
+                        new FieldValueEntry(open.id(), "\"Florian 1\"", FieldOrigin.CLUSTER)),
+                member.id());
+
+        var answers = service.findValues(member.id());
+        assertTrue(
+                answers.stream().anyMatch(v -> v.origin() == FieldOrigin.CLUSTER && v.fieldId() == open.id()),
+                "the station answered the question the cluster left open");
+        assertTrue(
+                answers.stream().noneMatch(v -> v.origin() == FieldOrigin.CLUSTER && v.fieldId() == kept.id()),
+                "and left alone the one it did not");
+
+        stationRepo.setCluster(station.id(), null);
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(home.id());
     }
 
     @Test

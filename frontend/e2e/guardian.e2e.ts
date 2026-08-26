@@ -59,6 +59,13 @@ async function managedMemberToActOn(page: Page, request: APIRequestContext): Pro
     return spare
 }
 
+/**
+ * Serial, because the stories share the one member the seeded guardian looks after and may be written
+ * to. Two of them give that member an address, and run at once they read each other's: the address one
+ * of them saves is the address the other is looking at.
+ */
+test.describe.configure({mode: 'serial'})
+
 test.describe('Guardian', () => {
     /**
      * The panel is where a parent does this, so the story goes through it rather than through the
@@ -114,6 +121,34 @@ test.describe('Guardian', () => {
             `/api/v1/managed-members/${memberId}/login`, {headers, data: {enabled: false}})
         expect(refused.ok()).toBeTruthy()
         expect((await refused.json()).loginEnabled).toBe(false)
+
+        await page.context().close()
+    })
+
+    /**
+     * A name of their own is the other way in, and the one that makes a child with no address
+     * reachable at all. The story sets one and then signs in with it, because a name that is stored
+     * but does not sign anybody in would prove nothing.
+     */
+    test('a member signs in with the name their guardian gave them', async ({browser, request}) => {
+        const page = await guardianPage(browser, request)
+        const memberId = (await managedMemberToActOn(page, request)).id
+        const headers = await apiHeaders(page)
+        const name = unique('kind').toLowerCase()
+
+        const named = await page.request.put(
+            `/api/v1/managed-members/${memberId}/username`, {headers, data: {username: name}})
+        expect(named.ok()).toBeTruthy()
+        expect((await named.json()).username).toBe(name)
+        expect((await named.json()).canSignIn).toBe(true)
+
+        const wrongPassword = await page.request.post(
+            '/api/v1/auth/login', {data: {identifier: name, password: 'definitely-not-the-password'}})
+        expect(wrongPassword.status(), 'the name reaches the login, the password still decides').toBe(401)
+
+        const taken = await page.request.put(
+            `/api/v1/managed-members/${memberId}/username`, {headers, data: {username: 'a'}})
+        expect(taken.status(), 'a name too short to be one is refused').toBe(400)
 
         await page.context().close()
     })
@@ -181,4 +216,51 @@ test.describe('Guardian', () => {
 
         await page.context().close()
     })
+
+    /**
+     * A guardian answering for a household says it once. The dialog appears only where there is more than
+     * one person to answer for, ticks everyone by default, and lets one be left out: declining for one
+     * child and not the other is the whole reason it exists.
+     */
+    test('a guardian declines for part of the household in one dialog',
+        async ({browser, request, managerPage}) => {
+            const page = await guardianPage(browser, request)
+            const managed = await managedMembers(page)
+            const managerHeaders = await apiHeaders(managerPage)
+            const name = `Haushalt ${test.info().workerIndex}-${Date.now()}`
+
+            const created = await managerPage.request.post('/api/v1/events', {
+                headers: managerHeaders,
+                data: {
+                    name,
+                    description: 'Haushaltsprobe',
+                    eventType: 'ONE_TIME',
+                    startTime: new Date(Date.now() + 8 * 86400000).toISOString(),
+                    endTime: new Date(Date.now() + 8 * 86400000 + 3600000).toISOString(),
+                    requiresRegistration: true,
+                    registrationDeadline: new Date(Date.now() + 2 * 86400000).toISOString(),
+                },
+            })
+            expect(created.ok(), `the organiser made an event (${await created.text()})`).toBeTruthy()
+            const eventId = (await created.json()).id
+
+            await page.goto('/station/dashboard/overview')
+            const row = page.getByTestId('awaiting-answer').filter({hasText: name})
+            await expect(row).toHaveCount(1, {timeout: 15000})
+
+            await row.getByTestId('awaiting-decline').click()
+
+            // More than one person owes an answer, so the row asks who it is about
+            const confirm = page.getByTestId('answer-confirm')
+            await expect(confirm).toBeVisible({timeout: 15000})
+            await page.getByTestId(`answer-for-${managed[0]!.id}`).uncheck()
+            await confirm.click()
+
+            // The one left out still owes an answer, so the event stays on the dashboard
+            await expect(page.getByTestId('awaiting-answer').filter({hasText: name}))
+                .toHaveCount(1, {timeout: 15000})
+
+            await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})
+            await page.context().close()
+        })
 })

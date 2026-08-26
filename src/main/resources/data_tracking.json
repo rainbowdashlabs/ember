@@ -1,12 +1,12 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:fe23ae5da5ed5b0fb0336c24c4ea9ba717bf73e502e3198d301d550e829279ab",
-  "generatedAt" : "2026-08-20T23:14:30Z",
+  "schemaHash" : "sha256:0989b453642cbf686729d499edf3398c662dc0cec09414a1dd1e769b77579889",
+  "generatedAt" : "2026-08-26T00:33:10Z",
   "tables" : {
     "account" : {
       "feature" : "account",
       "scope" : "USER",
-      "tableHash" : "sha256:fd6be129b09c7d16197209fc2e4f8d2e0701dfe41e4a95b76d3bca3e4503144e",
+      "tableHash" : "sha256:1457007338b6c64432a892dd6fdbdb2f090522555d03b59841489db7ce8854ea",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -65,6 +65,12 @@
         "nullable" : true,
         "verified" : true,
         "description" : "Timestamp of the first successful login. NULL means the account has been created but the recipient has not yet completed setup (clicked the link, set a password, signed in). Managers see pending accounts flagged in the member list."
+      }, {
+        "name" : "username",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The name this account signs in with beside its address, or null when the address is the only way in. Never contains an at sign, and is unique without regard to case. A station arriving from another instance whose name is already taken here arrives without one."
       } ],
       "foreignKeys" : [ {
         "column" : "creating_station_id",
@@ -2879,6 +2885,1183 @@
       },
       "description" : "Materialisation filter that resolved into the frozen member set at checklist creation. Exactly one of user_type, group_id, tag_id, member_id is set per row. Editing the filter does not refresh; refresh is explicit."
     },
+    "cluster" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:50a551c5fe27e597054bf11329b32c186a860a58c87d93d0c4ed0275032731ec",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "uid",
+        "type" : "uuid",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Stable identity used wherever a cluster is named across instances."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the cluster is called. The home station is kept in step with it."
+      }, {
+        "name" : "description",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "A sentence about the cluster, shown where it is presented."
+      }, {
+        "name" : "home_station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station shell the cluster owns, where its content and its inventory pool live. Restricted on delete because the cluster cannot exist without it."
+      }, {
+        "name" : "auto_federate",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether member stations are paired with the cluster and with each other as they join."
+      }, {
+        "name" : "theme_locked",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether member stations may change their theme."
+      }, {
+        "name" : "colors_locked",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether member stations may change their colours."
+      }, {
+        "name" : "feel_locked",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether member stations may change the rest of their look and feel."
+      }, {
+        "name" : "logo_locked",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether member stations may change their logo."
+      }, {
+        "name" : "storage_pool_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "How much storage the cluster has to hand out to its stations, or null for no pool of its own."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the cluster was created."
+      }, {
+        "name" : "default_theme",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The colour theme the cluster hands its stations, or null when it does not care."
+      }, {
+        "name" : "custom_theme_colors",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The cluster's own colour set, in the same shape a station keeps its own."
+      }, {
+        "name" : "default_feel",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The interface feel the cluster hands its stations, or null when it does not care."
+      }, {
+        "name" : "storage_backend_reach",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "How far the cluster's own storage reaches: NONE, OWN_FILES for its own store alone, or EVERY_STATION."
+      }, {
+        "name" : "storage_backend_locked",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether a station may point itself anywhere; locked, only the cluster moves a station."
+      }, {
+        "name" : "default_quota_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "How much a station of this cluster may use in total when the cluster granted it nothing of its own, or null to leave it to the instance."
+      }, {
+        "name" : "default_quota_kb_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The same, for knowledge base files and the documents filed beside them."
+      }, {
+        "name" : "default_quota_board_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The same, for board attachments."
+      }, {
+        "name" : "default_quota_images_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The same, for images."
+      }, {
+        "name" : "default_quota_pages_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The same, for page media."
+      }, {
+        "name" : "default_per_file_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The same, for the largest single file."
+      }, {
+        "name" : "default_per_image_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The same, for the largest single image."
+      }, {
+        "name" : "uses_inventory",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "TRUE when the cluster keeps its gear here, which is what lets its own steps appear in a movement."
+      }, {
+        "name" : "loss_report_requires",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What a loss report must carry before the association will look at it: NOTHING, NOTE or DOCUMENT."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "home_station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "RESTRICT"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster configuration, holds no personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster configuration, holds no personal data"
+      },
+      "description" : "A body that owns several stations: a district association, an umbrella organisation, a municipality."
+    },
+    "cluster_application" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:4684dc65be54109329c3f9f0800eda5cebe74508a96fbbd43bf0f9d83f9ee8db",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster being asked."
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station asking to join."
+      }, {
+        "name" : "requested_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The station member who asked, always the station owner at the time. Survives them leaving."
+      }, {
+        "name" : "requested_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the application was opened."
+      }, {
+        "name" : "status",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "PENDING while it waits, APPROVED, DENIED, or WITHDRAWN when the station took it back."
+      }, {
+        "name" : "deny_reason",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "What the cluster said when it refused, shown to the station owner."
+      }, {
+        "name" : "resolved_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When it stopped being pending."
+      }, {
+        "name" : "resolved_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The cluster member who decided. Survives them leaving the cluster."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "requested_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "resolved_by",
+        "refTable" : "cluster_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names a station member only as the audit trail of who asked, which the station's own export already covers"
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "requested_by",
+          "strategy" : "NULL",
+          "reason" : "The record that a station applied outlives the person who filed it"
+        }, {
+          "column" : "resolved_by",
+          "strategy" : "NULL",
+          "reason" : "The record of a decision outlives the person who made it"
+        } ]
+      },
+      "description" : "A station owner asking to join a cluster. One row per station and cluster, whatever became of it."
+    },
+    "cluster_denied_module" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:24db249ce62d8fa070ade365b352623972ccd06c3fde02d804eed914d413f74f",
+      "columns" : [ {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster doing the denying."
+      }, {
+        "name" : "module",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The module name, matching the values a station uses for its own switched-off modules."
+      }, {
+        "name" : "station_group_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The group of stations the denial applies to, or null for every station of the cluster."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_group_id",
+        "refTable" : "cluster_station_group",
+        "refColumn" : "id",
+        "onDelete" : "RESTRICT"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: a rule the cluster set about its stations"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "Modules a cluster switches off for all of its stations. A station cannot turn a denied module back on."
+    },
+    "cluster_member" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:7643d8ad712a16609dd8805cf80eccc2887230d26377c49813a5b49d97961c7b",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster they belong to."
+      }, {
+        "name" : "account_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The account behind them."
+      }, {
+        "name" : "user_type",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Their user type, which carries a set of permissions by default."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "account_id",
+        "refTable" : "account",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "ACCOUNT_ID",
+          "column" : "account_id"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "account_id",
+          "strategy" : "CASCADE",
+          "reason" : "Membership is the account acting for the cluster and goes with it"
+        } ]
+      },
+      "description" : "An account acting on a cluster's behalf. There is no unique constraint on the account alone: one account may belong to several clusters."
+    },
+    "cluster_member_group" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:8a7ef709ac6d3bebbb38be75560d870e3bb7e6ebaa29b891534f35f86463f198",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster the group belongs to."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the group is called, unique within the cluster."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster configuration, holds no personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster configuration, holds no personal data"
+      },
+      "description" : "A named group of cluster members, which permissions can be hung off."
+    },
+    "cluster_member_group_membership" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:a871d803fca0a37580edbd5e8d46b5d6d85346745c39f6c9a85087a303cdb6dd",
+      "columns" : [ {
+        "name" : "group_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The group."
+      }, {
+        "name" : "member_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The member in it."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "group_id",
+        "refTable" : "cluster_member_group",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "member_id",
+        "refTable" : "cluster_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster configuration, holds no personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Cascades from the membership it hangs off"
+      },
+      "description" : "Which cluster members are in which group."
+    },
+    "cluster_member_group_permission" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:e0faeca4e26b9a051ab21868ac46f0568fbf8750e7374efad189d26c7da54b1d",
+      "columns" : [ {
+        "name" : "group_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The group holding it."
+      }, {
+        "name" : "permission_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The permission held."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "group_id",
+        "refTable" : "cluster_member_group",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "permission_id",
+        "refTable" : "cluster_permission",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster configuration, holds no personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster configuration, holds no personal data"
+      },
+      "description" : "Permissions granted to everybody in a group."
+    },
+    "cluster_member_permission" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:1e0aefe321d45eca0de0c697e88d5c7fe20e5f884605626c94d0b1f624934622",
+      "columns" : [ {
+        "name" : "member_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The member holding it."
+      }, {
+        "name" : "permission_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The permission held."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "member_id",
+        "refTable" : "cluster_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "permission_id",
+        "refTable" : "cluster_permission",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster configuration, holds no personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Cascades from the membership it hangs off"
+      },
+      "description" : "Permissions granted to one cluster member directly."
+    },
+    "cluster_permission" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:7eb85bac5bb9d0b8ce690aaa3b200ab737085a4f8472fc9b4e67e3d0c7f2213b",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The permission's name, matching the enum in the code."
+      } ],
+      "foreignKeys" : [ ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster configuration, holds no personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster configuration, holds no personal data"
+      },
+      "description" : "The permissions a cluster member can hold."
+    },
+    "cluster_profile_field" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:bb11069c47610d136d36d9a63ab5d39d00b3efb0de87f148101e5ea830f52da4",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster asking."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The label, unique within its cluster, its scope and the group of stations it is asked of."
+      }, {
+        "name" : "field_type",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What kind of answer it takes, from the same set a station field uses."
+      }, {
+        "name" : "config",
+        "type" : "jsonb",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The same settings a station field carries: required, read-only, notify on change and the rest."
+      }, {
+        "name" : "position",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Where it sits among the cluster's own fields."
+      }, {
+        "name" : "scope",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which kind of member it applies to. Group scope is refused: a group is a station's own and a cluster cannot see it."
+      }, {
+        "name" : "station_readonly",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "TRUE when the people at the station may read the answer but not write it."
+      }, {
+        "name" : "keep_on_archive",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "TRUE when the answer survives the member being marked as having left."
+      }, {
+        "name" : "station_group_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The group of stations this question is asked of. NULL asks it of every station under the association."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_group_id",
+        "refTable" : "cluster_station_group",
+        "refColumn" : "id",
+        "onDelete" : "RESTRICT"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: the question a cluster asks, not anybody's answer to it"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "A question a cluster asks of the members at its stations, shaped like a station's own profile field."
+    },
+    "cluster_profile_field_value" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:50f7fe6b131198680486886641c11436ed227f80fb229fe92b27a9e3134530cd",
+      "columns" : [ {
+        "name" : "member_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The member who answered."
+      }, {
+        "name" : "field_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The question."
+      }, {
+        "name" : "value",
+        "type" : "jsonb",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The answer, in the same shape a station field's is."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "field_id",
+        "refTable" : "cluster_profile_field",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "member_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "The answers belong to the cluster and are cleared when a station leaves it, so they never travel with one"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "member_id"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "member_id",
+          "strategy" : "CASCADE",
+          "reason" : "The answer is about that member and goes with them"
+        } ]
+      },
+      "description" : "What one member answered to one cluster question. Keyed on the station member, because that is who was asked."
+    },
+    "cluster_station_group" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:8a7ef709ac6d3bebbb38be75560d870e3bb7e6ebaa29b891534f35f86463f198",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The association doing the filing."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The label, unique within its association."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: how a cluster files its stations"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "A named set of an association's stations, which its questions can be pointed at."
+    },
+    "cluster_station_group_membership" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:5b3a3abc7ae465e3a9f8c27d823c6986445e3467c2e39a2b01a3664f707d26e0",
+      "columns" : [ {
+        "name" : "group_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The group."
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station in it."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "group_id",
+        "refTable" : "cluster_station_group",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: which stations a cluster filed together"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "Which stations are in which group. A station may be in several, because the ways of grouping stations cut across each other."
+    },
+    "cluster_station_quota" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:123b64b28152da3ea73209f6704c55c407e29fd518a053f8aec4855b7335d296",
+      "columns" : [ {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station being granted room."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster granting it, carried here so the pool arithmetic is one read."
+      }, {
+        "name" : "quota_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Total room in bytes, or null to fall back to the cluster's default."
+      }, {
+        "name" : "quota_kb_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Room for knowledge base files in bytes, or null to fall back."
+      }, {
+        "name" : "quota_board_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Room for board attachments in bytes, or null to fall back."
+      }, {
+        "name" : "quota_images_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Room for images in bytes, or null to fall back."
+      }, {
+        "name" : "quota_pages_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Room for page media in bytes, or null to fall back."
+      }, {
+        "name" : "per_file_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Largest single file in bytes, or null to fall back."
+      }, {
+        "name" : "per_image_bytes",
+        "type" : "int8",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Largest single image in bytes, or null to fall back."
+      }, {
+        "name" : "preset_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The cluster tier the station was put on, kept so the screen can name it. Editing a tier does not move the stations already on it."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "preset_id",
+        "refTable" : "cluster_storage_quota_preset",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: room the cluster granted a station"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "What one cluster granted one of its stations. A station without a row here has been granted nothing and falls back to the cluster's defaults."
+    },
+    "cluster_station_storage" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:7bfedee391eb7caeae8f9db758d700aa2d8aca0e2bb5d33a3ee01883c72f58bc",
+      "columns" : [ {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station whose bytes were moved."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster whose storage they are on, beside the version so the pool arithmetic is one indexed read."
+      }, {
+        "name" : "config_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The version of that storage the bytes were carried to, which is what the resolver builds."
+      }, {
+        "name" : "moved_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the copy finished."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "config_id",
+        "refTable" : "cluster_storage_config",
+        "refColumn" : "id",
+        "onDelete" : "NO ACTION"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: where a station's bytes were carried"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "The stations whose bytes sit on a cluster's storage, and which version of it they were carried to."
+    },
+    "cluster_storage_config" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:45609c8b3ef1700106657a42745f66a0f60a797d23a635320b7f6227f1d42c83",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The version a placement points at."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster this backend belongs to."
+      }, {
+        "name" : "backend_type",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Discriminator for the typed backend configuration carried in config."
+      }, {
+        "name" : "config",
+        "type" : "jsonb",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The typed backend configuration, encrypted where it carries credentials."
+      }, {
+        "name" : "is_current",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether this is the version the cluster points new placements at; kept false for the ones people still stand on."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When this version was first set."
+      }, {
+        "name" : "updated_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When its credentials were last edited, which is a change that moves nobody."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: a rule the cluster set about its stations"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "One version of a cluster's own storage backend; at most one of them is current per cluster."
+    },
+    "cluster_storage_quota_preset" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:cfc88ce9318b820de5825c7fa1596148796a87013d91eca89a2e4162697364a1",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster the preset belongs to."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the tier is called, unique within its cluster."
+      }, {
+        "name" : "total",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Total room in bytes."
+      }, {
+        "name" : "kb",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Room for knowledge base files in bytes."
+      }, {
+        "name" : "board",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Room for board attachments in bytes."
+      }, {
+        "name" : "images",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Room for images in bytes."
+      }, {
+        "name" : "pages",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Room for page media in bytes."
+      }, {
+        "name" : "per_file",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Largest single file in bytes."
+      }, {
+        "name" : "per_image",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Largest single image in bytes."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: a set of numbers the cluster keeps"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "A reusable set of quotas a cluster hands to its stations, the same shape as the instance's own presets."
+    },
+    "cluster_user_type_permission" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:a68a52bb75f651a6671fc3edf897494ed0dab202f53f63154a0a1d964630f269",
+      "columns" : [ {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster whose rule this is."
+      }, {
+        "name" : "user_type",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The user type it applies to."
+      }, {
+        "name" : "permission_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The permission granted."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "permission_id",
+        "refTable" : "cluster_permission",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster configuration, holds no personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster configuration, holds no personal data"
+      },
+      "description" : "Permissions a cluster grants to everybody of a given user type."
+    },
     "content_container" : {
       "feature" : "content",
       "scope" : "STATION",
@@ -3419,229 +4602,10 @@
       },
       "description" : "Version history for entity notes (diff-based)."
     },
-    "equipment_exchange_log" : {
-      "feature" : "inventory",
-      "scope" : "STATION",
-      "tableHash" : "sha256:e5084b8ed39c4a350bad800598811350162ec5044d6dcfabda1c990144bb5e78",
-      "columns" : [ {
-        "name" : "id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Auto-generated primary key."
-      }, {
-        "name" : "request_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "References the exchange request."
-      }, {
-        "name" : "old_status",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Previous status."
-      }, {
-        "name" : "new_status",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "New status."
-      }, {
-        "name" : "changed_by",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Member who changed the status."
-      }, {
-        "name" : "changed_at",
-        "type" : "timestamp",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "When the status was changed."
-      }, {
-        "name" : "note",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Optional note about the status change."
-      } ],
-      "foreignKeys" : [ {
-        "column" : "changed_by",
-        "refTable" : "station_member",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      }, {
-        "column" : "request_id",
-        "refTable" : "equipment_exchange_request",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      } ],
-      "stationTransfer" : {
-        "status" : "TRACKED"
-      },
-      "gdprExport" : {
-        "status" : "TRACKED",
-        "identityColumns" : [ {
-          "type" : "MEMBER_ID",
-          "column" : "changed_by"
-        } ]
-      },
-      "gdprDeletion" : {
-        "status" : "IGNORED",
-        "reason" : "Audit log of exchanges, cascades from request deletion"
-      },
-      "description" : "Status change history for equipment exchange requests."
-    },
-    "equipment_exchange_request" : {
-      "feature" : "inventory",
-      "scope" : "STATION",
-      "tableHash" : "sha256:678a773ba9d5ae79e0d8ecd1b0a34f9732d9639fd35b5812236fdc76b3e80724",
-      "columns" : [ {
-        "name" : "id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Auto-generated primary key."
-      }, {
-        "name" : "station_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "References the station."
-      }, {
-        "name" : "member_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Member requesting the exchange."
-      }, {
-        "name" : "item_id",
-        "type" : "int4",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "Current item to be exchanged. NULL if item was deleted."
-      }, {
-        "name" : "inventory_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "References the inventory the exchange is for."
-      }, {
-        "name" : "old_size_id",
-        "type" : "int4",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "Current size of the item."
-      }, {
-        "name" : "new_size_id",
-        "type" : "int4",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "Requested new size."
-      }, {
-        "name" : "exchanged_item_id",
-        "type" : "int4",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "The replacement item after exchange is fulfilled."
-      }, {
-        "name" : "status",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Request status: ANNOUNCED, APPROVED, FULFILLED, REJECTED."
-      }, {
-        "name" : "reason",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Reason for the exchange request."
-      }, {
-        "name" : "created_by",
-        "type" : "int4",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "Member who created the request (may differ from member_id)."
-      }, {
-        "name" : "created_at",
-        "type" : "timestamp",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "When the request was created."
-      }, {
-        "name" : "updated_at",
-        "type" : "timestamp",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "When the request was last updated."
-      } ],
-      "foreignKeys" : [ {
-        "column" : "created_by",
-        "refTable" : "station_member",
-        "refColumn" : "id",
-        "onDelete" : "SET NULL"
-      }, {
-        "column" : "exchanged_item_id",
-        "refTable" : "inventory_item",
-        "refColumn" : "id",
-        "onDelete" : "SET NULL"
-      }, {
-        "column" : "inventory_id",
-        "refTable" : "inventory",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      }, {
-        "column" : "item_id",
-        "refTable" : "inventory_item",
-        "refColumn" : "id",
-        "onDelete" : "SET NULL"
-      }, {
-        "column" : "member_id",
-        "refTable" : "station_member",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      }, {
-        "column" : "new_size_id",
-        "refTable" : "inventory_size",
-        "refColumn" : "id",
-        "onDelete" : "SET NULL"
-      }, {
-        "column" : "old_size_id",
-        "refTable" : "inventory_size",
-        "refColumn" : "id",
-        "onDelete" : "SET NULL"
-      }, {
-        "column" : "station_id",
-        "refTable" : "station",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      } ],
-      "stationTransfer" : {
-        "status" : "TRACKED",
-        "ignoredColumns" : [ "station_id" ]
-      },
-      "gdprExport" : {
-        "status" : "TRACKED",
-        "identityColumns" : [ {
-          "type" : "MEMBER_ID",
-          "column" : "member_id"
-        } ]
-      },
-      "gdprDeletion" : {
-        "status" : "TRACKED",
-        "strategies" : [ {
-          "column" : "member_id",
-          "strategy" : "CASCADE",
-          "reason" : "FK ON DELETE CASCADE on member delete"
-        } ]
-      },
-      "description" : "Requests for exchanging inventory items (e.g. size change)."
-    },
     "equipment_procurement" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:a5b8671ac108ac4d7e83514c6b4aaac8e8473052f9d75e5bfafbe1d04841f955",
+      "tableHash" : "sha256:eafb6a337cbb61deffa6e47510c2231ecacbd69c30dba6a5a51ee8bbba0d1c07",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -3663,7 +4627,7 @@
       }, {
         "name" : "member_id",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
         "description" : "Member the procurement is for."
       }, {
@@ -3893,6 +4857,47 @@
         } ]
       },
       "description" : "Comments on station events (threaded via parent_id)."
+    },
+    "event_deadline_reminder_sent" : {
+      "feature" : "events",
+      "scope" : "STATION",
+      "tableHash" : "sha256:9fe12727e41957ecfeb2ad7d582d238c059164e95602b488d685276cd1defff7",
+      "columns" : [ {
+        "name" : "event_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "days_before",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "How many days before the registration deadline this warning was the one for."
+      }, {
+        "name" : "sent_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ {
+        "column" : "event_id",
+        "refTable" : "station_event",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Notification dedup state for registration deadlines, ephemeral"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Event structure data, not per-member"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Event structure data, not per-member"
+      },
+      "description" : "Which run-out warnings have gone out for an event, so a sweep every few minutes warns once."
     },
     "event_federation_registration" : {
       "feature" : "events",
@@ -6055,7 +7060,7 @@
     "federation_partner" : {
       "feature" : "federation",
       "scope" : "STATION",
-      "tableHash" : "sha256:33cec3da7ff559730a0bdf8045f8d7b021221a41392b19242ab4f703aff21271",
+      "tableHash" : "sha256:badc1086ecc975446d1f258e9f91f9fec14dc22a1adff0a28637f06c789cc3a3",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -6139,6 +7144,18 @@
         "nullable" : true,
         "verified" : true,
         "description" : "Last contract vector the partner presented: core hash plus one hash per feature surface. NULL until the first version exchange; treated as incompatible while unknown."
+      }, {
+        "name" : "cluster_managed",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "TRUE when a cluster made this pair rather than the two stations. Neither side may delete it."
+      }, {
+        "name" : "cluster_home",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "TRUE when this pair runs to or from a cluster home station, which carries the cluster content. It can never be paused."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
@@ -7576,7 +8593,7 @@
     "inventory_item" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:6d56720e904d63cf3e1aebf87247c8004b2cce2b7eb0b1cf67913506d4ea8b63",
+      "tableHash" : "sha256:89b9e124685f207ad8912a50df5e8a696e3d7239d7e0f65ae8a157d5fa2c1f2d",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -7626,17 +8643,53 @@
         "verified" : true,
         "description" : "When the item was marked as lost. NULL if not lost."
       }, {
-        "name" : "item_source",
-        "type" : "text",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "Where the item came from (e.g. purchased, donated)."
-      }, {
         "name" : "container_id",
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
         "description" : "Optional reference to the container that physically holds this item. NULL means unlocated. An item with a container is not assigned to a member; the two states are mutually exclusive via the inventory_item_assigned_xor_in_container CHECK. ON DELETE SET NULL keeps the item even if the container is deleted."
+      }, {
+        "name" : "owner_kind",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Who owns the item: STATION for the station running its inventory, CLUSTER for the one body above that station."
+      }, {
+        "name" : "owner_cluster_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The owning body when it runs on this instance, null when it owns the item without using Ember. Only ever set for CLUSTER."
+      }, {
+        "name" : "custody",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Who has the item right now: WITH_OWNER in the owner's own store, AT_STATION held by a station that does not own it, WITH_MEMBER held by a member, WITH_PARTNER lent to a federation partner, IN_TRANSIT between two parties, LOST missing and still on the record of whoever had it."
+      }, {
+        "name" : "custody_station_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The station the custody runs through: the holder for AT_STATION, the station a member holds it through for WITH_MEMBER, the lender for WITH_PARTNER, and the holding station for LOST. Null for WITH_OWNER."
+      }, {
+        "name" : "custody_movement_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The movement holding the item while it is IN_TRANSIT. Null for every other custody."
+      }, {
+        "name" : "lost_note",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "What was written when the item was marked lost, cleared when it is found again."
+      }, {
+        "name" : "lost_note_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who wrote that note, which is the guardian rather than the member when one acted for the other."
       } ],
       "foreignKeys" : [ {
         "column" : "assigned_to",
@@ -7649,10 +8702,30 @@
         "refColumn" : "id",
         "onDelete" : "SET NULL"
       }, {
+        "column" : "custody_movement_id",
+        "refTable" : "item_movement",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "custody_station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
         "column" : "inventory_id",
         "refTable" : "inventory",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
+      }, {
+        "column" : "lost_note_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "owner_cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
       }, {
         "column" : "size_id",
         "refTable" : "inventory_size",
@@ -7754,7 +8827,7 @@
     "inventory_requirement" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:3b9ca1a1748efe4fc2593ab93a75b7b2afa322d49bfe77f36993104f6b87c64d",
+      "tableHash" : "sha256:080bf10d04eb1de5b1d507965b90c49c047a20596afea0b7a4119a60bdeb96bc",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -7790,6 +8863,12 @@
         "type" : "text",
         "nullable" : true,
         "verified" : true
+      }, {
+        "name" : "station_group_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The group of stations this requirement counts at, or null for every station reading it."
       } ],
       "foreignKeys" : [ {
         "column" : "group_id",
@@ -7801,6 +8880,11 @@
         "refTable" : "inventory",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_group_id",
+        "refTable" : "cluster_station_group",
+        "refColumn" : "id",
+        "onDelete" : "RESTRICT"
       } ],
       "stationTransfer" : {
         "status" : "TRACKED"
@@ -7868,6 +8952,396 @@
         "reason" : "Inventory structure/config, not per-member"
       },
       "description" : "Size options for inventories that have sizes enabled."
+    },
+    "item_movement" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:ad60cfe5b34115b9353367f9193614b93f62dae002eff474c8608bc1777e9761",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station the movement runs at."
+      }, {
+        "name" : "purpose",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the movement is for: ISSUE, RETURN or EXCHANGE."
+      }, {
+        "name" : "flow_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The flow this movement walks, resolved once at creation and pinned here."
+      }, {
+        "name" : "current_step_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The step the movement is standing on, or null once it is closed."
+      }, {
+        "name" : "member_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The member the movement starts or ends at, if any."
+      }, {
+        "name" : "outgoing_item_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The item leaving, if any."
+      }, {
+        "name" : "incoming_item_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The item arriving, once somebody has named it."
+      }, {
+        "name" : "inventory_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The inventory the movement is about."
+      }, {
+        "name" : "old_size_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The size being replaced, if any."
+      }, {
+        "name" : "new_size_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The size asked for, if any."
+      }, {
+        "name" : "state",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "OPEN, DONE, DECLINED or CANCELLED."
+      }, {
+        "name" : "reason",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Why the movement was started, in the words of whoever started it."
+      }, {
+        "name" : "created_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who started it, when that is somebody other than the member it concerns."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When it was started."
+      }, {
+        "name" : "closed_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When it reached its end, however it ended."
+      }, {
+        "name" : "close_reason",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Why it was declined or cancelled, in the words of whoever ended it."
+      }, {
+        "name" : "lost_report",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "TRUE when the movement was raised to report gear missing, which is what makes it skip the return leg."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "created_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "current_step_id",
+        "refTable" : "movement_flow_step",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "flow_id",
+        "refTable" : "movement_flow",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "incoming_item_id",
+        "refTable" : "inventory_item",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "inventory_id",
+        "refTable" : "inventory",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "member_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "new_size_id",
+        "refTable" : "inventory_size",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "old_size_id",
+        "refTable" : "inventory_size",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "outgoing_item_id",
+        "refTable" : "inventory_item",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "ignoredColumns" : [ "station_id" ]
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "member_id"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "member_id",
+          "strategy" : "NULL",
+          "reason" : "Movement kept as a record of the gear, member unlinked"
+        }, {
+          "column" : "created_by",
+          "strategy" : "NULL",
+          "reason" : "Movement kept as a record of the gear, member unlinked"
+        } ]
+      },
+      "description" : "One movement of gear between two parties, walking the flow pinned on it. Replaces the equipment exchange request, which could only ever be an exchange."
+    },
+    "item_movement_document" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:6cc51acdd53bf860f23a013ed33aef6c3c3cb7265f8b3fb9738b6a25085cff73",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "movement_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "file_name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "mime_type",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "size_bytes",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "uploaded_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "created_at",
+        "type" : "timestamp",
+        "nullable" : false,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ {
+        "column" : "movement_id",
+        "refTable" : "item_movement",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "uploaded_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "uploaded_by"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "uploaded_by",
+          "strategy" : "NULL",
+          "reason" : "Evidence kept with the movement it belongs to, uploader unlinked"
+        } ]
+      },
+      "description" : "A file attached to one movement as evidence, read by opening that movement."
+    },
+    "item_movement_item" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:70541dcdd216ccc1d1008a1e4927705122b05c2d5a7ce00459f3dbccca8d44fc",
+      "columns" : [ {
+        "name" : "movement_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "item_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "subject",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which leg the piece is on: OUTGOING or INCOMING, the same distinction a step draws."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "item_id",
+        "refTable" : "inventory_item",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "movement_id",
+        "refTable" : "item_movement",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names gear and a movement, never a person"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names gear and a movement, never a person; cascades from movement deletion"
+      },
+      "description" : "The pieces one movement carries, for a dispatch that sends many at once."
+    },
+    "item_movement_log" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:8b7781a491b1bb1b78893a0eae1a364aa3715a350ac9dd5c3b0cde3ad52d6d64",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "movement_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The movement this entry belongs to."
+      }, {
+        "name" : "step_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The step acknowledged, or null once that step is gone."
+      }, {
+        "name" : "step_label",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The words the step carried at the time, kept so a finished movement still reads the way it was walked."
+      }, {
+        "name" : "ack_kind",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "CONFIRMED when the party that owns the step said so itself, ASSERTED when the station said so for an owner that does not use Ember, FORCED when the flow owner overrode a party that could have answered and did not."
+      }, {
+        "name" : "changed_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who pressed the button."
+      }, {
+        "name" : "changed_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When they pressed it."
+      }, {
+        "name" : "note",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What they wrote alongside. Mandatory when the step was forced."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "changed_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "movement_id",
+        "refTable" : "item_movement",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "step_id",
+        "refTable" : "movement_flow_step",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "changed_by"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Audit log of movements, cascades from movement deletion"
+      },
+      "description" : "What was acknowledged on a movement, when, by whom and on whose behalf."
     },
     "kb_access_grant" : {
       "feature" : "knowledgebase",
@@ -8914,6 +10388,49 @@
       },
       "description" : "Which mail provider a receiving domain has refused outright, so it is not tried there again."
     },
+    "managed_login_notice" : {
+      "feature" : "members",
+      "scope" : "STATION",
+      "tableHash" : "sha256:fa3cc4eb2ea2a98ee2aa2d7351d86df723e33dd6facf201bb0bc608821af8cea",
+      "columns" : [ {
+        "name" : "member_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The member the change was made for, who is also the recipient of the mail."
+      }, {
+        "name" : "granted",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The state waiting to be announced: TRUE when signing in was switched on, FALSE when it was taken away. A switch back to the other value inside the waiting time deletes the row instead of replacing it."
+      }, {
+        "name" : "due_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the mail may leave, which is the moment of the change plus the configured waiting time."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "member_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "A few-minute timer for a mail that has not gone out, ephemeral. Carrying it across would send it a second time."
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "A few-minute timer for a mail that has not gone out, ephemeral"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Removed with the member row it points at"
+      },
+      "description" : "Access changes a guardian made that the member has not been told about yet. Emptied by the sweeper that sends the mails."
+    },
     "member_absence" : {
       "feature" : "members",
       "scope" : "STATION",
@@ -9002,14 +10519,12 @@
         "name" : "id",
         "type" : "int4",
         "nullable" : false,
-        "verified" : true,
-        "description" : "Auto-generated primary key."
+        "verified" : true
       }, {
         "name" : "station_id",
         "type" : "int4",
         "nullable" : false,
-        "verified" : true,
-        "description" : "References the owning station."
+        "verified" : true
       }, {
         "name" : "title",
         "type" : "text",
@@ -9026,14 +10541,12 @@
         "name" : "mime_type",
         "type" : "text",
         "nullable" : false,
-        "verified" : true,
-        "description" : "What kind of file it is, which decides whether it can be shown."
+        "verified" : true
       }, {
         "name" : "size_bytes",
         "type" : "int8",
         "nullable" : false,
-        "verified" : true,
-        "description" : "How large the file is."
+        "verified" : true
       }, {
         "name" : "hidden",
         "type" : "bool",
@@ -9056,14 +10569,12 @@
         "name" : "uploaded_by",
         "type" : "int4",
         "nullable" : true,
-        "verified" : true,
-        "description" : "The member who put it there, null once they are gone."
+        "verified" : true
       }, {
         "name" : "created_at",
         "type" : "timestamp",
         "nullable" : false,
-        "verified" : true,
-        "description" : "When the document was put there."
+        "verified" : true
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
@@ -9104,14 +10615,12 @@
         "name" : "document_id",
         "type" : "int4",
         "nullable" : false,
-        "verified" : true,
-        "description" : "References the document."
+        "verified" : true
       }, {
         "name" : "member_id",
         "type" : "int4",
         "nullable" : false,
-        "verified" : true,
-        "description" : "References the station member it is bound to."
+        "verified" : true
       } ],
       "foreignKeys" : [ {
         "column" : "document_id",
@@ -9152,14 +10661,12 @@
         "name" : "document_id",
         "type" : "int4",
         "nullable" : false,
-        "verified" : true,
-        "description" : "References the document."
+        "verified" : true
       }, {
         "name" : "search_text",
         "type" : "tsvector",
         "nullable" : false,
-        "verified" : true,
-        "description" : "Precomputed tsvector of what the document says."
+        "verified" : true
       } ],
       "foreignKeys" : [ {
         "column" : "document_id",
@@ -9192,20 +10699,17 @@
         "name" : "id",
         "type" : "int4",
         "nullable" : false,
-        "verified" : true,
-        "description" : "Auto-generated primary key."
+        "verified" : true
       }, {
         "name" : "station_id",
         "type" : "int4",
         "nullable" : false,
-        "verified" : true,
-        "description" : "References the owning station."
+        "verified" : true
       }, {
         "name" : "name",
         "type" : "text",
         "nullable" : false,
-        "verified" : true,
-        "description" : "The label as somebody typed it."
+        "verified" : true
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
@@ -9234,14 +10738,12 @@
         "name" : "document_id",
         "type" : "int4",
         "nullable" : false,
-        "verified" : true,
-        "description" : "References the document."
+        "verified" : true
       }, {
         "name" : "tag_id",
         "type" : "int4",
         "nullable" : false,
-        "verified" : true,
-        "description" : "References the label."
+        "verified" : true
       } ],
       "foreignKeys" : [ {
         "column" : "document_id",
@@ -9458,6 +10960,221 @@
         } ]
       },
       "description" : "Member-manages-member relationships (e.g. legal guardian manages a minor)."
+    },
+    "movement_flow" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:fb0b2ca94cc962576805f70dfc08f3172bbb98e7db5368c242beedd71781183f",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The station whose flow this is, or null when the body above owns it."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The body above whose flow this is, once such a body runs on this instance. No reference yet, because that table does not exist."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the flow is called where it is configured."
+      }, {
+        "name" : "purpose",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What kind of movement this flow is for: ISSUE, RETURN or EXCHANGE."
+      }, {
+        "name" : "archived",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether the flow is retired. Retired flows are not offered to new movements and still render in the history of the ones that walked them."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "ignoredColumns" : [ "station_id" ]
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, holds no personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, holds no personal data"
+      },
+      "description" : "A named chain of steps a movement between two parties walks. Owned by the station or by the body above it."
+    },
+    "movement_flow_binding" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:3bbcfb33112dba876fc56f17a804e0214d01a6eff5c32feec96fe3e3f0e24f95",
+      "columns" : [ {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station the binding belongs to."
+      }, {
+        "name" : "inventory_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The inventory this binding is for, or null for the station-wide one."
+      }, {
+        "name" : "owner_kind",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which owner the binding applies to: STATION or CLUSTER."
+      }, {
+        "name" : "purpose",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which purpose the binding applies to: ISSUE, RETURN, EXCHANGE or REQUEST."
+      }, {
+        "name" : "party",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which end the chain runs to: STORE for the station shelf, MEMBER for somebody wearing it. An issue that fills a shelf and one that dresses a member are different chains."
+      }, {
+        "name" : "flow_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The flow to walk."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "flow_id",
+        "refTable" : "movement_flow",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "inventory_id",
+        "refTable" : "inventory",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "ignoredColumns" : [ "station_id" ]
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, holds no personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, holds no personal data"
+      },
+      "description" : "Which flow a station uses for a given owner and purpose, per inventory when one is set and station-wide otherwise."
+    },
+    "movement_flow_step" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:90323b2c3fed139b1eb0f7a741c74e01be0df03940eb99f3ba65c34418f512a3",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "flow_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The flow this step belongs to."
+      }, {
+        "name" : "position",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Where in the chain the step sits, counted from zero."
+      }, {
+        "name" : "label",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the step is called. Free text: the behaviour hangs off the custody and the subject, never off the words."
+      }, {
+        "name" : "actor",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Who acknowledges this step: MEMBER, STATION or OWNER."
+      }, {
+        "name" : "subject",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which item the step is about: the OUTGOING one or the INCOMING one."
+      }, {
+        "name" : "custody_after",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The custody the subject item is in once the step is acknowledged."
+      }, {
+        "name" : "picks_item",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether the acknowledger names the replacement at this step. At most one incoming step per flow does."
+      }, {
+        "name" : "archived",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether the step is retired. A step in use is archived rather than deleted so finished movements still read with the words they were walked under."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "flow_id",
+        "refTable" : "movement_flow",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, holds no personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, holds no personal data"
+      },
+      "description" : "One step of a flow: who acknowledges it, which item it is about, and what custody that item is in afterwards."
     },
     "news" : {
       "feature" : "news",
@@ -9987,7 +11704,7 @@
     "notification" : {
       "feature" : "notifications",
       "scope" : "STATION",
-      "tableHash" : "sha256:1cca9550332e14270d362d86464d33f4ed684bd6a79b997f4aa4a2a340ae7170",
+      "tableHash" : "sha256:21a2cb9786c917884cc15b7795b14389cb7a740741ab4339916d83d9e1c63c0e",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -9997,9 +11714,9 @@
       }, {
         "name" : "member_id",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
-        "description" : "References the station member this notification is for."
+        "description" : "The station member this is for, or null when it is addressed to a cluster member instead."
       }, {
         "name" : "type",
         "type" : "text",
@@ -10030,8 +11747,19 @@
         "nullable" : true,
         "verified" : true,
         "description" : "When the notification was sent via email. NULL if not emailed."
+      }, {
+        "name" : "cluster_member_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The cluster member this is for, or null when it is addressed to a station member instead."
       } ],
       "foreignKeys" : [ {
+        "column" : "cluster_member_id",
+        "refTable" : "cluster_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
         "column" : "member_id",
         "refTable" : "station_member",
         "refColumn" : "id",
@@ -10057,6 +11785,183 @@
         } ]
       },
       "description" : "In-app notifications for station members."
+    },
+    "onboarding_instance_task" : {
+      "feature" : "onboarding",
+      "scope" : "INSTANCE",
+      "tableHash" : "sha256:76246da4aca25c7726a625a72c08e8ac7409aa225e292b8b3533d933e5a511fc",
+      "columns" : [ {
+        "name" : "task_key",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which task, by the key the catalogue gives it."
+      }, {
+        "name" : "state",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "CONFIRMED for a task ticked off by hand, SKIPPED for one passed over, DISMISSED for one thrown away for good. A task taken up again has its row deleted."
+      }, {
+        "name" : "changed_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When it was last said."
+      }, {
+        "name" : "changed_by_account",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who said it, so another administrator can see whose decision they are looking at. Null once that account is gone."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "changed_by_account",
+        "refTable" : "account",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Belongs to the instance, not to any one station"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "ACCOUNT_ID",
+          "column" : "changed_by_account"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "changed_by_account",
+          "strategy" : "ANONYMIZE",
+          "reason" : "FK ON DELETE SET NULL keeps the instance setup and drops who settled it"
+        } ]
+      },
+      "description" : "What an administrator said about setting up the instance. Shared by every administrator, because the instance is set up once and not once per person."
+    },
+    "onboarding_member_task" : {
+      "feature" : "onboarding",
+      "scope" : "USER",
+      "tableHash" : "sha256:a1c8aef3f32c2366169359cbeb5b045dbcc84a86e4bf4b7fc7e3f73bf30ce7ff",
+      "columns" : [ {
+        "name" : "member_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The member whose task this is. Their own, shared with nobody."
+      }, {
+        "name" : "task_key",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which task, by the key the catalogue gives it. Carries the member it is about where a task repeats per managed member."
+      }, {
+        "name" : "state",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "CONFIRMED for a task ticked off by hand, SKIPPED for one passed over, DISMISSED for one thrown away for good. A task taken up again has its row deleted."
+      }, {
+        "name" : "changed_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When it was last said."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "member_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "member_id"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "member_id",
+          "strategy" : "CASCADE",
+          "reason" : "FK ON DELETE CASCADE on member/account delete"
+        } ]
+      },
+      "description" : "What a member said about their own onboarding tasks. Holds only what cannot be derived: a task ticked off by hand, or one deliberately skipped."
+    },
+    "onboarding_station_task" : {
+      "feature" : "onboarding",
+      "scope" : "STATION",
+      "tableHash" : "sha256:884832f7ee4f087fc87015e24aa415713da7269e8a31d3fa0331cdf36089cd16",
+      "columns" : [ {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station whose setup this is about."
+      }, {
+        "name" : "task_key",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which task, by the key the catalogue gives it."
+      }, {
+        "name" : "state",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "CONFIRMED for a task ticked off by hand, SKIPPED for one passed over, DISMISSED for one thrown away for good. A task taken up again has its row deleted."
+      }, {
+        "name" : "changed_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When it was last said."
+      }, {
+        "name" : "changed_by_member",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who said it, so a colleague can see whose decision they are looking at. Null once that member is gone."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "changed_by_member",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "changed_by_member"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "changed_by_member",
+          "strategy" : "ANONYMIZE",
+          "reason" : "FK ON DELETE SET NULL keeps the station setup and drops who settled it"
+        } ]
+      },
+      "description" : "What a station said about setting itself up. Shared by everyone who manages the station: what one of them ticks off is ticked off for all."
     },
     "page_cell" : {
       "feature" : "page",
@@ -10815,7 +12720,7 @@
     "profile_field_change" : {
       "feature" : "members",
       "scope" : "STATION",
-      "tableHash" : "sha256:41d3ce55b18f23abdf7e88001e6b7419b81914ea696d11f0d92cbe6234e3a4d0",
+      "tableHash" : "sha256:cabfdefe294c8cc64f12c508993d032e2095ef4edc20a08a3f25138e224360a2",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -10825,9 +12730,9 @@
       }, {
         "name" : "field_id",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
-        "description" : "References the profile field that was changed."
+        "description" : "The station's own field that changed, or null when a cluster's field changed instead."
       }, {
         "name" : "member_id",
         "type" : "int4",
@@ -10864,10 +12769,21 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Whether a manager must acknowledge this change."
+      }, {
+        "name" : "cluster_field_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The cluster field that changed, or null when the station's own field changed instead."
       } ],
       "foreignKeys" : [ {
         "column" : "changed_by",
         "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "cluster_field_id",
+        "refTable" : "cluster_profile_field",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
       }, {
@@ -11026,7 +12942,7 @@
     "quiz_catalog" : {
       "feature" : "quiz",
       "scope" : "STATION",
-      "tableHash" : "sha256:d4b64ae635c1eb7759ef4758857afd7b168be380036c8406ae380f692914a828",
+      "tableHash" : "sha256:0324ff00f0953b134c307f451f1867af3af97ddff2c28659614ebf743d99db12",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -11075,6 +12991,30 @@
         "nullable" : false,
         "verified" : true,
         "description" : "When true, the catalog's questions are eligible for the public quiz random endpoint that backs the QUIZ_TEASER cell. Defaults to FALSE; catalog managers opt-in per catalog from the catalog settings view."
+      }, {
+        "name" : "language",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The language the questions are written in, as a BCP 47 tag. Null when nobody said."
+      }, {
+        "name" : "source",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Where the questions came from, in free text: the sheet, the handbook or the station they were taken over from. Null when nobody said."
+      }, {
+        "name" : "author",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who wrote the questions, in free text. Null when nobody said."
+      }, {
+        "name" : "license",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The terms the questions may be used under, in free text. Null when nobody said."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
@@ -11258,6 +13198,73 @@
         "reason" : "Quiz structure data — pending detailed review"
       },
       "description" : "Individual quiz questions within a catalog."
+    },
+    "quiz_question_report" : {
+      "feature" : "quiz",
+      "scope" : "STATION",
+      "tableHash" : "sha256:6aca8821881c3073ce418a8b3c2d6e176c1b4d907b0bd185bd0e8dfd04719a24",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "question_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The question the note is about. The note goes when the question goes."
+      }, {
+        "name" : "reported_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who wrote the note, so somebody can ask back. Null once that member is gone, which leaves the note itself standing."
+      }, {
+        "name" : "note",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the member says is wrong with the question, in their own words."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the note was written."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "question_id",
+        "refTable" : "quiz_question",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "reported_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "rationale" : "Belongs in station transfer; handler in StationExportService/StationImportService not yet implemented"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "reported_by"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "reported_by",
+          "strategy" : "NULL",
+          "reason" : "Note preserved so the catalog keeps the open remark, reporter cleared"
+        } ]
+      },
+      "description" : "Notes members left on a quiz question while training, saying that something about it is wrong, out of date or ambiguous. Deleted once whoever maintains the catalog has acknowledged the note."
     },
     "quiz_test" : {
       "feature" : "quiz",
@@ -12105,7 +14112,7 @@
     "station" : {
       "feature" : "station",
       "scope" : "STATION",
-      "tableHash" : "sha256:d679343f780505317b7e8a4c30ca3cbc180c1f66a7bf98f9c2dddc585f7c155d",
+      "tableHash" : "sha256:3a044e9b88c8958068e334f415031cea131f69cfc2254ef799b090a3d81ea6b6",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -12350,8 +14357,31 @@
         "nullable" : true,
         "verified" : true,
         "description" : "Timestamp when an administrator first marked the station setup wizard as complete. NULL means the wizard still runs for administrators logging in, and the dashboard setup checklist is shown."
+      }, {
+        "name" : "station_kind",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "REGULAR for a station somebody joins, CLUSTER_HOME for the shell a cluster owns and nobody is a member of."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The cluster this station belongs to, or null when it answers to nobody."
+      }, {
+        "name" : "loss_note_required",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether a member marking their own gear lost must write a note about it."
       } ],
       "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
         "column" : "landing_page_id",
         "refTable" : "station_page",
         "refColumn" : "id",

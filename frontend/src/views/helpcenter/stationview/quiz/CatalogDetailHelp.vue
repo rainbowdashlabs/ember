@@ -9,6 +9,8 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import InfoContainer from '@/components/container/InfoContainer.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -115,6 +117,28 @@ const { t } = useI18n()
         </div>
       </div>
     </NeutralContainer>
+
+    <HelpSection :title="t('helpCenter.quiz.reportsTitle')">
+      <p>{{ t('helpCenter.quiz.reportsText') }}</p>
+      <p>{{ t('helpCenter.quiz.reportsAcknowledge') }}</p>
+    </HelpSection>
+
+    <!-- Dummy: an open note on a question -->
+    <InfoContainer class="space-y-2">
+      <div class="flex items-center gap-2">
+        <font-awesome-icon :icon="['fas', 'flag']" />
+        <span class="text-sm font-medium">{{ t('quiz.report.openCount', {count: 1}) }}</span>
+      </div>
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <p class="text-sm">Die Antwort stimmt so nicht mehr, seit 2024 gilt eine neue Regel.</p>
+          <MutedText class="block text-xs">Nora &bull; 12.03.2026 18:40</MutedText>
+        </div>
+        <SecondaryButton class="shrink-0 text-xs" :icon="['fas', 'check']" disabled>
+          {{ t('quiz.report.acknowledge') }}
+        </SecondaryButton>
+      </div>
+    </InfoContainer>
 
     <HelpTip>{{ t('helpCenter.quiz.catalogDetailTip') }}</HelpTip>
   </HelpArticle>

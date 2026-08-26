@@ -146,8 +146,22 @@ export const deleteProtocolShare = protocolShares.remove
 
 // -- Browse shared content --
 
-export async function browseSharedKb(): Promise<SharedContentItem[]> {
-    const res = await client.get<SharedContentItem[]>('/federated/kb')
+/** One level of what the partners share: their folders and the articles standing beside them. */
+export interface SharedKbBrowse {
+    folders: SharedContentItem[]
+    files: SharedContentItem[]
+    /** The way back out of a shared folder, outermost first. Empty at the top of the shared list. */
+    trail: SharedContentItem[]
+}
+
+export async function browseSharedKb(): Promise<SharedKbBrowse> {
+    const res = await client.get<SharedKbBrowse>('/federated/kb')
+    return res.data
+}
+
+/** What is inside a folder a partner shares. */
+export async function browseSharedKbFolder(stationUid: string, folderId: number): Promise<SharedKbBrowse> {
+    const res = await client.get<SharedKbBrowse>(`/federated/${stationUid}/kb/folders/${folderId}`)
     return res.data
 }
 

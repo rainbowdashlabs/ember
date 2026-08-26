@@ -32,6 +32,8 @@ export interface DemoAccount {
     tags: string[]
     profileComplete: boolean
     instanceAdministrator?: boolean
+    /** Everything the account may do for any association, expanded. Empty for somebody in none. */
+    clusterPermissions?: string[]
 }
 
 /** A station and the demo accounts that belong to it. */

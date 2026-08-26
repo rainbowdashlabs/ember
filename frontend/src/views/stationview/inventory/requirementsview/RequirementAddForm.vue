@@ -9,18 +9,25 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { Inventory } from '@/api/inventory'
-import {StationUserType, type MemberGroup} from '@/api/types'
-import { userTypeFriendlyNames } from './types'
+import type { MemberGroup } from '@/api/types'
+import type { StationGroup } from '@/api/clusterStationGroups'
+import RequirementTargetFields from './RequirementTargetFields.vue'
 
 const targetType = defineModel<'userType' | 'group'>('targetType', { default: 'userType' })
 const userType = defineModel<string>('userType', { default: '' })
 const groupId = defineModel<string>('groupId', { default: '' })
 const inventoryId = defineModel<string>('inventoryId', { default: '' })
 const quantity = defineModel<number>('quantity', { default: 1 })
+const stationGroupId = defineModel<string>('stationGroupId', { default: '' })
 
 defineProps<{
   inventories: Inventory[]
   allGroups: MemberGroup[]
+  /**
+   * The association's ways of filing its stations. Empty at a station, which writes requirements for
+   * itself and has nothing to point them at.
+   */
+  stationGroups?: StationGroup[]
 }>()
 
 const { t } = useI18n()
@@ -28,29 +35,14 @@ const { t } = useI18n()
 
 <template>
   <div class="space-y-4">
-    <div class="space-y-1">
-      <FieldLabel>{{ t('inventory.requirements.targetType') }}</FieldLabel>
-      <SelectInput v-model="targetType">
-        <option value="userType">{{ t('inventory.requirements.byUserType') }}</option>
-        <option value="group">{{ t('inventory.requirements.byGroup') }}</option>
-      </SelectInput>
-    </div>
-
-    <div v-if="targetType === 'userType'" class="space-y-1">
-      <FieldLabel>{{ t('inventory.requirements.userType') }}</FieldLabel>
-      <SelectInput v-model="userType">
-        <option value="" disabled>{{ t('inventory.requirements.selectUserType') }}</option>
-        <option v-for="(value, key) in StationUserType" :key="key" :value="value">{{ userTypeFriendlyNames[value] ?? value }}</option>
-      </SelectInput>
-    </div>
-
-    <div v-if="targetType === 'group'" class="space-y-1">
-      <FieldLabel>{{ t('inventory.requirements.group') }}</FieldLabel>
-      <SelectInput v-model="groupId">
-        <option value="" disabled>{{ t('inventory.requirements.selectGroup') }}</option>
-        <option v-for="group in allGroups" :key="group.id" :value="String(group.id)">{{ group.name }}</option>
-      </SelectInput>
-    </div>
+    <RequirementTargetFields
+      v-model:target-type="targetType"
+      v-model:user-type="userType"
+      v-model:group-id="groupId"
+      v-model:station-group-id="stationGroupId"
+      :all-groups="allGroups"
+      :station-groups="stationGroups"
+    />
 
     <div class="space-y-1">
       <FieldLabel>{{ t('inventory.requirements.inventory') }}</FieldLabel>

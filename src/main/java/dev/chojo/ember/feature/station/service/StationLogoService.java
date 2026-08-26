@@ -88,6 +88,7 @@ public class StationLogoService {
     public void delete(int stationId) {
         variants.delete(scope(stationId), StorageCategory.IMAGE_STATION_LOGO, KEY);
         stationRepository.deleteLogo(stationId);
+        log.info("Station {} dropped its logo", stationId);
     }
 
     private Optional<ImageData> migrateOrServeLegacy(int stationId, int size) {

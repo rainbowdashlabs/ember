@@ -31,6 +31,8 @@ export async function invite(data: InviteRequest): Promise<InviteResponse> {
 
 export async function updateAccount(accountId: number, data: {
     email?: string;
+    /** The name this account signs in with. Absent leaves it alone; empty clears it. */
+    username?: string;
     firstName?: string;
     lastName?: string
 }): Promise<MessageResponse> {

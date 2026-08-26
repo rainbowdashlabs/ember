@@ -11,7 +11,6 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.service.LendingService;
-import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -44,7 +43,7 @@ import java.util.Map;
  * ids are taken from real seeded records so deep links resolve.
  */
 @Singleton
-public class DemoNotificationSeeder implements DemoSeeder {
+public class DemoNotificationSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoNotificationSeeder.class);
 
     private final NotificationRepository notificationRepository;
@@ -81,8 +80,8 @@ public class DemoNotificationSeeder implements DemoSeeder {
     }
 
     @Override
-    public void seed(DemoSeederContext context) {
-        int stationId = context.stationId();
+    public void seedStation(DemoRunContext run, DemoStationContext station) {
+        int stationId = station.stationId();
         var nextMonday = LocalDate.now()
                 .with(DayOfWeek.MONDAY)
                 .plusWeeks(LocalDate.now().getDayOfWeek().getValue() > 1 ? 1 : 0);
@@ -125,14 +124,14 @@ public class DemoNotificationSeeder implements DemoSeeder {
                         .orElse(null));
 
         var showcase = new ShowcaseContext(
-                context.news().firstNewsId(),
-                context.events().stadtfestId(),
-                context.events().evUebung().id(),
+                station.news().firstNewsId(),
+                station.events().stadtfestId(),
+                station.events().evUebung().id(),
                 nextMonday.toString(),
                 null,
-                context.lostAndFoundItem() == null
+                station.lostAndFoundItem() == null
                         ? null
-                        : context.lostAndFoundItem().id(),
+                        : station.lostAndFoundItem().id(),
                 lendingRequestId,
                 boardId,
                 boardKey,
@@ -142,7 +141,7 @@ public class DemoNotificationSeeder implements DemoSeeder {
                 inventoryId,
                 null,
                 stationId);
-        seedShowcase(context.adminMember(), context.members().anfaenger(), showcase);
+        seedShowcase(station.adminMember(), station.members().anfaenger(), showcase);
         log.info("Demo: Created showcase notification for every NotificationType");
     }
 
@@ -279,8 +278,7 @@ public class DemoNotificationSeeder implements DemoSeeder {
                 memberId,
                 NotificationType.EXCHANGE_STATUS_CHANGE,
                 NotificationData.of(
-                        new NotificationParams.ExchangeStatusChange(
-                                ExchangeStatus.DONE, "Blouson Größe 152", "Neuer Blouson Größe 158 ausgegeben"),
+                        new NotificationParams.ExchangeStatusChange("Ersatz ausgegeben", "Blouson Größe 152", null),
                         exchangeLink));
 
         notificationRepository.create(

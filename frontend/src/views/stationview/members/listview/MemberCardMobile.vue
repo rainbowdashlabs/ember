@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EditButton from '@/components/button/EditButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -13,6 +14,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import MemberTypeBadge from './MemberTypeBadge.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import {useMemberRowExtras} from './memberRowExtras'
 import type {ProfileField} from '@/api/profileFields'
 import type {StationMember} from '@/api/types'
 
@@ -36,6 +39,9 @@ const emit = defineEmits<{
   navigateDetail: [event: Event]
   navigateEdit: [event: Event]
 }>()
+
+const extras = useMemberRowExtras()
+const blockedReason = computed(() => extras.blockedReason(props.member.id))
 </script>
 
 <template>
@@ -50,10 +56,11 @@ const emit = defineEmits<{
           </div>
         </div>
       </div>
-      <div v-if="!exportMode" class="flex gap-1" @click.stop>
+      <div v-if="!exportMode && !blockedReason" class="flex gap-1" @click.stop>
         <IconButton :icon="['fas', 'eye']" :label="t('membersList.detail')" class="text-primary hover:bg-primary/15" @click="emit('navigateDetail', $event)"/>
         <EditButton v-if="canEdit" @click="emit('navigateEdit', $event)"/>
       </div>
+      <MutedText v-else-if="!exportMode" size="sm" class="self-center">{{ blockedReason }}</MutedText>
       <div v-else @click.stop>
         <CheckboxInput :model-value="selected ?? false" @update:model-value="emit('toggleSelect')"/>
       </div>

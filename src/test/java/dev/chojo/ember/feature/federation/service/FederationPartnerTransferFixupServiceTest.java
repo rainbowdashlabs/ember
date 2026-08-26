@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -119,7 +120,10 @@ class FederationPartnerTransferFixupServiceTest {
                 null,
                 null,
                 null,
-                null);
+                null,
+                StationKind.REGULAR,
+                null,
+                false);
     }
 
     private FederationPartnerTransferFixupService newService(

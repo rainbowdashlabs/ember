@@ -300,8 +300,10 @@ public class NewsFederationService {
                 station.federationPrivateKey(),
                 CommentResponse.class);
         if (result == null) {
+            log.warn("Partner {} refused a comment on its news article {}", partner.id(), newsId);
             throw new InternalServerErrorResponse("Failed to create comment on partner");
         }
+        log.info("Station {} commented on news article {} at partner {}", stationId, newsId, partner.id());
         return result;
     }
 
@@ -335,8 +337,10 @@ public class NewsFederationService {
                 station.federationPrivateKey(),
                 CommentResponse.class);
         if (result == null) {
+            log.warn("Partner {} refused an edit of its comment {}", partner.id(), commentId);
             throw new InternalServerErrorResponse("Failed to update comment on partner");
         }
+        log.info("Station {} edited its comment {} at partner {}", stationId, commentId, partner.id());
         return result;
     }
 
@@ -366,8 +370,10 @@ public class NewsFederationService {
                 station.id(),
                 station.federationPrivateKey());
         if (!deleted) {
+            log.warn("Partner {} refused a deletion of its comment {}", partner.id(), commentId);
             throw new InternalServerErrorResponse("Failed to delete comment on partner");
         }
+        log.info("Station {} deleted its comment {} at partner {}", stationId, commentId, partner.id());
     }
 
     private FederationPartner requirePartner(int stationId, UUID partnerStationUid) {

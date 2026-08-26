@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -15,6 +16,9 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.insights.service.BotClassifier;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.insights.service.RefererDomainExtractor;
@@ -27,6 +31,7 @@ import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyForTransferException;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
 import dev.chojo.ember.feature.system.service.DemoService;
@@ -56,6 +61,7 @@ import io.javalin.openapi.plugin.swagger.SwaggerConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerPlugin;
 import io.javalin.security.RouteRole;
 import jakarta.inject.Inject;
+import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
@@ -120,6 +126,9 @@ public class ApiServer {
             "/api/v1/station/storage/backend/probe",
             "/api/v1/station/storage/backend/probe-config",
             "/api/v1/station/storage/backend/apply",
+            "/api/v1/cluster/storage/backend/probe",
+            "/api/v1/cluster/storage/backend/probe-config",
+            "/api/v1/cluster/storage/backend/apply",
             "/api/v1/admin/storage/backend/probe",
             "/api/v1/admin/storage/backend/probe-config",
             "/api/v1/admin/storage/backend/apply",
@@ -146,6 +155,8 @@ public class ApiServer {
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final StationRepository stationRepository;
+    private final ClusterRepository clusterRepository;
+    private final Provider<ClusterService> clusterService;
     private final ProfileFieldService profileFieldService;
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
@@ -171,6 +182,8 @@ public class ApiServer {
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
             StationRepository stationRepository,
+            ClusterRepository clusterRepository,
+            Provider<ClusterService> clusterService,
             ProfileFieldService profileFieldService,
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
@@ -193,6 +206,8 @@ public class ApiServer {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.stationRepository = stationRepository;
+        this.clusterRepository = clusterRepository;
+        this.clusterService = clusterService;
         this.profileFieldService = profileFieldService;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
@@ -584,6 +599,10 @@ public class ApiServer {
      * <p>Registered only while the backend runs with {@code demo.dev}, alongside the password-free
      * login that serves the same purpose. It is destructive by design and has no place anywhere a
      * real station's data lives.
+     *
+     * <p>A wipe that fails answers with the failure rather than with success, because the end-to-end
+     * suite asks for this before every run and stops when it is refused. Told that a database it
+     * never got was fresh, it would run its stories against whatever the run before left.
      */
     private void handleDevReset(@NotNull Context ctx) {
         log.info("Dev reset requested, discarding all data and seeding again");
@@ -592,7 +611,8 @@ public class ApiServer {
     }
 
     private void handleDemoAccounts(@NotNull Context ctx) {
-        var allStations = stationRepository.findAll();
+        // A cluster's home station has no members, so it would only ever be an empty group
+        var allStations = stationRepository.findAllRegular();
         var stationGroups = new ArrayList<DemoStationGroup>();
         for (var station : allStations) {
             var members = stationMemberRepository.findByStation(station.id());
@@ -620,7 +640,8 @@ public class ApiServer {
                             groupNames,
                             tagNames,
                             complete,
-                            account.instanceUserType() == InstanceUserType.ADMINISTRATOR));
+                            account.instanceUserType() == InstanceUserType.ADMINISTRATOR,
+                            clusterPermissionsOf(account.id())));
                 });
             }
             if (!accounts.isEmpty()) {
@@ -628,9 +649,15 @@ public class ApiServer {
             }
         }
 
+        // A row on a cluster's own station is a byline on what the cluster writes, not somebody being at a
+        // station: the demo administrator would otherwise vanish from this list the moment they write for a
+        // cluster, and the picker is where they are chosen.
+        var regularStationIds = allStations.stream().map(Station::id).collect(Collectors.toSet());
         var noStationAccounts = new ArrayList<DemoAccount>();
         for (var account : accountRepository.findAll()) {
-            if (!stationMemberRepository.findAllByAccountId(account.id()).isEmpty()) {
+            boolean atAStation = stationMemberRepository.findAllByAccountId(account.id()).stream()
+                    .anyMatch(member -> regularStationIds.contains(member.stationId()));
+            if (atAStation) {
                 continue;
             }
             boolean administrator = account.instanceUserType() == InstanceUserType.ADMINISTRATOR;
@@ -644,7 +671,8 @@ public class ApiServer {
                     List.of(),
                     List.of(),
                     true,
-                    administrator));
+                    administrator,
+                    clusterPermissionsOf(account.id())));
         }
 
         ctx.json(new DemoAccountsResponse(noStationAccounts, stationGroups));
@@ -654,6 +682,12 @@ public class ApiServer {
      * Before-matched handler that enforces authentication and role-based authorization.
      * Resolves the session from the Authorization header, stores it as a context attribute,
      * and checks that the user has at least one of the required route roles.
+     *
+     * <p>A station or cluster header naming something this instance cannot find is answered as a
+     * bad request, not as an unauthorized one. Only the bearer says whether the sign-in still
+     * stands, and every client reads a 401 as the sign-in being over: answering a stale header
+     * that way threw away a perfectly good session and put the reader back on the login screen,
+     * which is the one thing a wrong header must not be able to do.
      */
     private void handleAccess(@NotNull Context ctx) {
         Set<RouteRole> routeRoles = ctx.routeRoles();
@@ -706,16 +740,30 @@ public class ApiServer {
                 var uid = UUID.fromString(stationIdHeader);
                 station = stationRepository.findByUid(uid).orElse(null);
                 if (station == null) {
-                    throw new UnauthorizedResponse("Unknown station");
+                    throw new BadRequestResponse("Unknown station");
                 }
             } catch (IllegalArgumentException e) {
                 log.warn("Invalid X-Station-Id header value", e);
-                throw new UnauthorizedResponse("Invalid X-Station-Id header");
+                throw new BadRequestResponse("Invalid X-Station-Id header");
+            }
+        }
+
+        // A request may name a cluster as well as a station: one person can wear both hats at once
+        Cluster cluster = null;
+        String clusterIdHeader = ctx.header("X-Cluster-Id");
+        if (clusterIdHeader != null && !clusterIdHeader.isBlank()) {
+            try {
+                cluster = clusterRepository
+                        .findByUid(UUID.fromString(clusterIdHeader))
+                        .orElseThrow(() -> new BadRequestResponse("Unknown cluster"));
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid X-Cluster-Id header value", e);
+                throw new BadRequestResponse("Invalid X-Cluster-Id header");
             }
         }
 
         // Resolve user session with account info and roles
-        Optional<UserSession> sessionOpt = accessManager.resolveUserSession(token, station);
+        Optional<UserSession> sessionOpt = accessManager.resolveUserSession(token, station, cluster);
         if (sessionOpt.isEmpty()) {
             throw new UnauthorizedResponse("Invalid or expired session");
         }
@@ -754,14 +802,20 @@ public class ApiServer {
                 permissionGranted = true;
             } else if (required instanceof InstancePermission ip && session.hasInstancePermission(ip)) {
                 permissionGranted = true;
+            } else if (required instanceof ClusterPermission cp && session.hasClusterPermission(cp)) {
+                permissionGranted = true;
             }
         }
 
         if (permissionRequired && !permissionGranted) {
+            // What a route asks for decides which of the three sets the answer should name: telling
+            // somebody their station permissions when the route wanted a cluster one explains nothing.
+            Set<? extends RouteRole> held = routeRoles.stream().anyMatch(r -> r instanceof ClusterPermission)
+                    ? session.clusterPermissions()
+                    : session.permissions();
             ctx.header("X-Required-Permissions", routeRoles.toString());
-            ctx.header("X-User-Permissions", session.permissions().toString());
-            throw new ForbiddenResponse(
-                    "Insufficient permissions. Required: " + routeRoles + ", Current: " + session.permissions());
+            ctx.header("X-User-Permissions", held.toString());
+            throw new ForbiddenResponse("Insufficient permissions. Required: " + routeRoles + ", Current: " + held);
         }
 
         if (stepUpCategory != null && !isStepUpFresh(session)) {
@@ -840,6 +894,7 @@ public class ApiServer {
         // cross-version compatibility) will not accidentally regress this.
         ObjectMapper mapper = JsonMapper.builder()
                 .addModule(new StationIdModule(stationRepository))
+                .addModule(new ClusterIdModule(clusterRepository))
                 .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
                 .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .defaultDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX"))
@@ -906,6 +961,15 @@ public class ApiServer {
         routes.exception(IllegalArgumentException.class, (err, ctx) -> {
             log.warn("Invalid input on {} {}: {}", ctx.method(), ctx.path(), err.getMessage(), err);
             ctx.json(new ErrorResponseWrapper("Invalid Input", "Invalid input")).status(HttpStatus.BAD_REQUEST);
+        });
+
+        // A copy that cannot be made is a refusal with a reason, not a fault. It reaches here from the acts
+        // that move files as a side effect of something else - a station joining a cluster or being let go -
+        // where the caller has to be told that nothing happened and why.
+        routes.exception(MigrationException.class, (err, ctx) -> {
+            log.warn("Storage move refused on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+            ctx.json(new ErrorResponseWrapper("Storage Unavailable", err.getMessage()))
+                    .status(HttpStatus.BAD_REQUEST);
         });
 
         routes.exception(StreamReadException.class, (err, ctx) -> {
@@ -1145,6 +1209,30 @@ public class ApiServer {
      *                              permissions say nothing about that, so a caller looking for
      *                              someone who may reach the admin area has no other way to tell.
      */
+
+    /**
+     * Everything an account may do for any cluster it belongs to, flattened.
+     *
+     * <p>Flattened because the stories that read this pick an actor by what they are allowed to do, and the
+     * demo has one cluster: telling them which cluster each right came from would be a distinction with
+     * nothing behind it. An account in no cluster answers with nothing, which is the same answer the picker
+     * gives.
+     *
+     * @param accountId the account
+     * @return the names of the permissions it holds, sorted, each once
+     */
+    private List<String> clusterPermissionsOf(int accountId) {
+        var service = clusterService.get();
+        return clusterRepository.findAll().stream()
+                .flatMap(cluster -> service.findMembers(cluster.id()).stream())
+                .filter(member -> member.accountId() == accountId)
+                .flatMap(member -> service.resolvePermissions(member).stream())
+                .map(Enum::name)
+                .distinct()
+                .sorted()
+                .toList();
+    }
+
     public record DemoAccount(
             String email,
             String firstName,
@@ -1154,7 +1242,8 @@ public class ApiServer {
             List<String> groups,
             List<String> tags,
             boolean profileComplete,
-            boolean instanceAdministrator) {}
+            boolean instanceAdministrator,
+            List<String> clusterPermissions) {}
 
     public record PublicConfigResponse(String demoUrl, boolean demo, String version) {}
 

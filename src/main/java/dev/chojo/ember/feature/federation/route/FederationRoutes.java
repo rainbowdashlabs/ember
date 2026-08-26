@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
@@ -28,17 +29,23 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.List;
 import java.util.UUID;
 
 @Singleton
 public class FederationRoutes implements Routes {
 
     private final FederationService service;
+    private final KnowledgeBaseFederationService kbFederationService;
     private final StationRepository stationRepository;
 
     @Inject
-    public FederationRoutes(FederationService service, StationRepository stationRepository) {
+    public FederationRoutes(
+            FederationService service,
+            KnowledgeBaseFederationService kbFederationService,
+            StationRepository stationRepository) {
         this.service = service;
+        this.kbFederationService = kbFederationService;
         this.stationRepository = stationRepository;
     }
 
@@ -327,18 +334,26 @@ public class FederationRoutes implements Routes {
 
     private void listKbShares(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(service.findKbShares(session.stationId()));
+        ctx.json(service.findKbShares(session.stationId()).stream()
+                .map(share -> new KbShareResponse(
+                        share.id(),
+                        share.fileId(),
+                        share.folderId(),
+                        share.shareScope().name(),
+                        service.findKbShareTargets(share.id())))
+                .toList());
     }
 
     private void createKbShare(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(KbShareRequest.class);
         ctx.status(HttpStatus.CREATED)
-                .json(service.createKbShare(
+                .json(kbFederationService.shareEntry(
                         session.stationId(),
                         req.fileId(),
                         req.folderId(),
-                        req.shareScope() != null ? req.shareScope() : ShareScope.ALL_PARTNERS));
+                        req.shareScope() != null ? req.shareScope() : ShareScope.ALL_PARTNERS,
+                        req.partnerIds() != null ? req.partnerIds() : List.of()));
     }
 
     private void deleteKbShare(Context ctx) {
@@ -410,7 +425,14 @@ public class FederationRoutes implements Routes {
 
     public record CapabilityRequest(CapabilityType capability, Direction direction, boolean enabled) {}
 
-    public record KbShareRequest(Integer fileId, Integer folderId, ShareScope shareScope) {}
+    public record KbShareRequest(Integer fileId, Integer folderId, ShareScope shareScope, List<Integer> partnerIds) {}
+
+    /**
+     * A knowledge share as the screens read it, carrying the stations it names so the dialog can show
+     * the audience it is about to change rather than starting blank every time.
+     */
+    public record KbShareResponse(
+            int id, Integer fileId, Integer folderId, String shareScope, List<Integer> partnerIds) {}
 
     public record QuizShareRequest(int catalogId, ShareScope shareScope) {}
 

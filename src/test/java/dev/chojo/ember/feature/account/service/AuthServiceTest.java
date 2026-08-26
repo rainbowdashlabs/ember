@@ -16,6 +16,7 @@ import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
+import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
@@ -62,6 +63,7 @@ class AuthServiceTest extends RepositoryTestBase {
         service = new AuthService(
                 accountRepo,
                 new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
+                new MailRecipientService(accountRepo, stationMemberRepo),
                 registrationCodeRepo,
                 stationMemberRepo,
                 memberGroupRepo,
@@ -441,7 +443,7 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(36)
     void sendPasswordSetup() {
-        assertDoesNotThrow(() -> service.sendPasswordSetup(accountId, EMAIL, "Auth"));
+        assertDoesNotThrow(() -> service.sendPasswordSetup(accountId));
     }
 
     @Test
@@ -746,6 +748,193 @@ class AuthServiceTest extends RepositoryTestBase {
 
         accountRepo.delete(fixture.accountId());
         stationRepo.delete(fixture.stationId());
+    }
+
+    @Test
+    @Order(84)
+    void refreshSessionKeepsTwoFactorVerification() {
+        var fixture = createLoginCapableAccount("refresh-stepup");
+        var device = trustedDeviceService.issue(fixture.accountId(), 7, "agent");
+        var verifiedAt = Instant.now().minus(30, ChronoUnit.SECONDS);
+        String token = "refresh-keeps-stepup-" + UUID.randomUUID();
+        // Seeded well short of the configured session length, so the refreshed expiry is visibly later.
+        accountRepo.createSession(
+                fixture.accountId(),
+                token,
+                Instant.now().plus(5, ChronoUnit.MINUTES),
+                "agent",
+                "DE",
+                verifiedAt,
+                device.device().id(),
+                true);
+        var before = accountRepo.findSession(token).orElseThrow();
+
+        var result = service.refreshSession(token, "agent", "DE");
+        assertTrue(result.success(), result.message());
+
+        var after = accountRepo.findSession(result.token()).orElseThrow();
+        assertEquals(before.id(), after.id(), "a refresh continues the same session rather than starting a new one");
+        assertEquals(
+                before.twoFactorVerifiedAt(),
+                after.twoFactorVerifiedAt(),
+                "the step-up window has to survive a token refresh");
+        assertTrue(after.trustedDevice(), "the trusted-device flag has to survive a token refresh");
+        assertTrue(after.expiresAt().isAfter(before.expiresAt()), "a refresh pushes the expiry back");
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    @Test
+    @Order(85)
+    void refreshSessionRetiresTheOldToken() {
+        var fixture = createLoginCapableAccount("refresh-rotate");
+        String token = "refresh-rotates-" + UUID.randomUUID();
+        accountRepo.createSession(
+                fixture.accountId(), token, Instant.now().plus(60, ChronoUnit.MINUTES), "agent", "DE");
+
+        var result = service.refreshSession(token, "agent", "DE");
+        assertTrue(result.success(), result.message());
+        assertNotEquals(token, result.token(), "the refreshed session must be handed a new token");
+        assertTrue(accountRepo.findSession(token).isEmpty(), "the old token must stop working");
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /**
+     * The same service on an instance that is in demo mode.
+     *
+     * <p>A second service rather than a flag, because whether this is a demo instance is configuration and
+     * is read where it was injected. Quick login is the only thing that behaves differently for it here.
+     */
+    private AuthService demoModeService() {
+        var demo = mock(Demo.class);
+        when(demo.enabled()).thenReturn(true);
+        var hibpClient = mock(HibpClient.class);
+        when(hibpClient.isPwned(anyString())).thenReturn(false);
+        return new AuthService(
+                accountRepo,
+                new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
+                new MailRecipientService(accountRepo, stationMemberRepo),
+                registrationCodeRepo,
+                stationMemberRepo,
+                memberGroupRepo,
+                new PasswordHasher(),
+                mock(EmailService.class),
+                new Auth(),
+                demo,
+                hibpClient,
+                mock(BreachCheckWorker.class),
+                twoFactorRepoLocal,
+                trustedDeviceService);
+    }
+
+    /**
+     * Quick login signs somebody in by address alone, and an ordinary instance refuses it.
+     *
+     * <p>The route is only registered on a dev or demo instance, so this is the second of two gates. It is
+     * the one that would still hold if a change ever exposed the path somewhere else, which is what makes it
+     * worth a test rather than a comment.
+     */
+    @Test
+    @Order(86)
+    void quickLoginIsRefusedOffADemoInstance() {
+        var fixture = createLoginCapableAccount("quick-refused");
+
+        var result = service.loginAsDemo(fixture.email(), "agent", "DE");
+        assertFalse(result.success(), "quick login must sign nobody in on an ordinary instance");
+        assertNull(result.token());
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /**
+     * On a demo instance it signs the account in without a password, and an address nobody holds is refused
+     * the way a wrong password is rather than by saying the address is unknown.
+     */
+    @Test
+    @Order(87)
+    void quickLoginSignsInByAddressOnADemoInstance() {
+        var fixture = createLoginCapableAccount("quick-login");
+        var demoService = demoModeService();
+
+        var result = demoService.loginAsDemo(fixture.email(), "agent", "DE");
+        assertTrue(result.success(), result.message());
+        // The address is the session token in demo mode, so a restart does not sign everybody out again
+        assertEquals(fixture.email(), result.token());
+        assertTrue(accountRepo.findSession(fixture.email()).isPresent(), "the session has to be there to use");
+
+        var unknown = demoService.loginAsDemo("nobody-" + UUID.randomUUID() + "@test.com", "agent", "DE");
+        assertFalse(unknown.success());
+        assertNull(unknown.token());
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /**
+     * Signing in by name rather than by address, including the member who has no address at all:
+     * their name is the only thing they could type, and the unverified-address refusal has nothing
+     * to refuse.
+     */
+    @Test
+    @Order(98)
+    void signingInByName() {
+        var withAddress = accountRepo.create("named@test.com", "Nina", "Name", true);
+        accountRepo.createCredential(withAddress.id(), new PasswordHasher().hash(PASSWORD));
+        accountRepo.updateUsername(withAddress.id(), "nina.name");
+
+        assertTrue(service.login("nina.name", PASSWORD, "agent", "DE").success(), "the name signs them in");
+        assertTrue(service.login("named@test.com", PASSWORD, "agent", "DE").success(), "so does the address");
+        assertFalse(service.login("NINA.NAME", "WrongPassword!", "agent", "DE").success());
+        assertTrue(service.login("NINA.NAME", PASSWORD, "agent", "DE").success(), "case is not part of the name");
+
+        var withoutAddress = accountRepo.create("kid@managed.local", "Kim", "Kind", false);
+        accountRepo.createCredential(withoutAddress.id(), new PasswordHasher().hash(PASSWORD));
+        accountRepo.updateUsername(withoutAddress.id(), "kim.kind");
+
+        assertTrue(
+                service.login("kim.kind", PASSWORD, "agent", "DE").success(),
+                "an account with no address has no address to verify");
+
+        accountRepo.delete(withAddress.id());
+        accountRepo.delete(withoutAddress.id());
+    }
+
+    @Test
+    @Order(98)
+    void aPasswordSetOnSomebodysBehalfEndsTheirSessionsAndSignsThemIn() {
+        var child = accountRepo.create("kid-behalf@managed.local", "Kim", "Kind", false);
+        accountRepo.updateUsername(child.id(), "kim.behalf");
+        accountRepo.createCredential(child.id(), new PasswordHasher().hash(PASSWORD));
+        var session = service.login("kim.behalf", PASSWORD, "agent", "DE");
+        assertTrue(session.success(), "the old password works before it is replaced");
+
+        var outcome = service.setPasswordFor(child, "SomebodyElseSetThis1!");
+
+        assertEquals(AuthService.SetPasswordOutcome.OK, outcome);
+        assertTrue(accountRepo.findSessionsByAccount(child.id()).isEmpty(), "the sessions that were open have ended");
+        assertTrue(
+                service.login("kim.behalf", "SomebodyElseSetThis1!", "agent", "DE")
+                        .success(),
+                "the new password signs them in");
+        assertFalse(service.login("kim.behalf", PASSWORD, "agent", "DE").success(), "and the old one no longer does");
+
+        accountRepo.delete(child.id());
+    }
+
+    @Test
+    @Order(98)
+    void anAccountWithoutCredentialsGetsThemFromSomebodyElse() {
+        var child = accountRepo.create("kid-fresh@managed.local", "Kai", "Kind", false);
+        accountRepo.updateUsername(child.id(), "kai.fresh");
+
+        assertEquals(AuthService.SetPasswordOutcome.OK, service.setPasswordFor(child, "AFirstPassword1!"));
+        assertTrue(service.login("kai.fresh", "AFirstPassword1!", "agent", "DE").success());
+
+        accountRepo.delete(child.id());
     }
 
     @Test

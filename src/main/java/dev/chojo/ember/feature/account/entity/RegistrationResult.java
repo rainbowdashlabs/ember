@@ -46,6 +46,7 @@ public record RegistrationResult(boolean success, String message, Account accoun
                         0,
                         UUID.randomUUID(),
                         email,
+                        null,
                         firstName,
                         lastName,
                         false,

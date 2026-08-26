@@ -70,6 +70,13 @@ public interface DemoSeeder {
     int SETUP_STATE = 90;
 
     /**
+     * Profile pictures, once every account the run makes exists. Last on purpose: an earlier band
+     * would leave whoever is created after it faceless, which is what happened to the association's
+     * people and the un-set-up station's administrator.
+     */
+    int PORTRAITS = 100;
+
+    /**
      * The band this seeder belongs to. Lower values run first; equal values run in parallel.
      *
      * @return the order value
@@ -79,7 +86,10 @@ public interface DemoSeeder {
     /**
      * Seeds this step's data.
      *
-     * @param context the shared run context carrying the results of earlier bands
+     * <p>Once per run, however many stations the run carries. Anything that hangs on a station is a
+     * {@link DemoPerStationSeeder} instead and is handed the station to work on.
+     *
+     * @param run the shared run context carrying the results of earlier bands
      */
-    void seed(DemoSeederContext context);
+    void seed(DemoRunContext run);
 }

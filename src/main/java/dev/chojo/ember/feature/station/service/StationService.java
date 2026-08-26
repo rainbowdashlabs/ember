@@ -10,6 +10,8 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.members.entity.Permission;
@@ -24,11 +26,13 @@ import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.SlugGenerator;
 import io.javalin.http.BadRequestResponse;
+import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -47,6 +51,7 @@ public class StationService {
     private final AccountRepository accountRepository;
     private final FederationService federationService;
     private final StationMemberInviteService inviteService;
+    private final ClusterRepository clusterRepository;
 
     @Inject
     public StationService(
@@ -54,21 +59,27 @@ public class StationService {
             StationMemberRepository memberRepository,
             AccountRepository accountRepository,
             FederationService federationService,
-            StationMemberInviteService inviteService) {
+            StationMemberInviteService inviteService,
+            ClusterRepository clusterRepository) {
         this.stationRepository = stationRepository;
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
         this.federationService = federationService;
         this.inviteService = inviteService;
+        this.clusterRepository = clusterRepository;
     }
 
     /**
-     * Retrieves all stations.
+     * The stations of the instance.
      *
-     * @return a list of all stations
+     * <p>A cluster's own station is not one of them. It exists so a cluster has somewhere to keep its
+     * things and it is not a station anybody runs: offering it here would offer somebody the chance to
+     * rename or delete the identity a cluster is built on.
+     *
+     * @return the stations somebody actually runs
      */
     public List<Station> findAll() {
-        return stationRepository.findAll();
+        return stationRepository.findAllRegular();
     }
 
     /**
@@ -86,7 +97,10 @@ public class StationService {
     }
 
     public boolean updatePublicKbMode(int stationId, PublicKbMode mode) {
-        return stationRepository.updatePublicKbMode(stationId, mode);
+        boolean updated = stationRepository.updatePublicKbMode(stationId, mode);
+        if (updated) log.info("Station {} set its public knowledge base to {}", stationId, mode);
+        else log.warn("Public knowledge base mode of station {} affected zero rows", stationId);
+        return updated;
     }
 
     /**
@@ -146,8 +160,10 @@ public class StationService {
      */
     public Optional<Station> updateTimezone(int id, String timezone) {
         if (stationRepository.updateTimezone(id, timezone)) {
+            log.info("Station {} now keeps time in {}", id, timezone);
             return stationRepository.findById(id);
         }
+        log.warn("Timezone update for station {} affected zero rows", id);
         return Optional.empty();
     }
 
@@ -160,8 +176,10 @@ public class StationService {
      */
     public Optional<Station> updateLocale(int id, String locale) {
         if (stationRepository.updateLocale(id, locale)) {
+            log.info("Station {} now speaks {}", id, locale);
             return stationRepository.findById(id);
         }
+        log.warn("Locale update for station {} affected zero rows", id);
         return Optional.empty();
     }
 
@@ -172,9 +190,62 @@ public class StationService {
             String customThemeColors,
             ThemeFeel defaultFeel,
             boolean allowUserFeel) {
+        Station current = stationRepository.findById(id).orElseThrow(NotFoundResponse::new);
+        Locks locks = lookAndFeelLocks(id);
+        // A locked setting keeps whatever the cluster last wrote, whatever the station sent. Refusing the
+        // whole save instead would stop a station changing the parts it may still change, which are on the
+        // same screen and in the same request.
         stationRepository.updateThemeSettings(
-                id, defaultTheme, allowUserTheme, customThemeColors, defaultFeel, allowUserFeel);
+                id,
+                locks.theme() ? current.defaultTheme() : defaultTheme,
+                allowUserTheme,
+                locks.colors() ? current.customThemeColors() : customThemeColors,
+                locks.feel() ? current.defaultFeel() : defaultFeel,
+                allowUserFeel);
+        log.info(
+                "Station {} changed its look, with theme={}, colors={} and feel={} locked by its cluster",
+                id,
+                locks.theme(),
+                locks.colors(),
+                locks.feel());
     }
+
+    /**
+     * What a station's cluster has taken out of its hands.
+     *
+     * <p>Whether members may pick their own theme is not among them: that is a question about the people at
+     * the station rather than about how the cluster wants to look, and it stays the station's either way.
+     *
+     * @param stationId the station
+     * @return what is locked, all false when the station answers to no cluster
+     */
+    public Locks lookAndFeelLocks(int stationId) {
+        return clusterRepository
+                .findByStation(stationId)
+                .map(cluster -> new Locks(
+                        cluster.themeLocked(), cluster.colorsLocked(), cluster.feelLocked(), cluster.logoLocked()))
+                .orElseGet(() -> new Locks(false, false, false, false));
+    }
+
+    /**
+     * The name of the cluster a station answers to, for a screen that has to say who locked something.
+     *
+     * @param stationId the station
+     * @return the cluster's name, or empty when it answers to nobody
+     */
+    public Optional<String> clusterNameOf(int stationId) {
+        return clusterRepository.findByStation(stationId).map(Cluster::name);
+    }
+
+    /**
+     * The look-and-feel settings a station may not change itself.
+     *
+     * @param theme  the colour theme
+     * @param colors the colour set
+     * @param feel   the interface feel
+     * @param logo   the station's logo
+     */
+    public record Locks(boolean theme, boolean colors, boolean feel, boolean logo) {}
 
     /**
      * Updates a station's name and assigns a manager by email.
@@ -280,6 +351,23 @@ public class StationService {
         return stationRepository.findDisabledModules(stationId);
     }
 
+    /**
+     * Every module the station does not have, whoever switched it off.
+     *
+     * <p>What the shell has to go by. A module its cluster denied is as gone as one the station switched
+     * off itself: leaving it out of this list left the sidebar offering a page that refuses whoever follows
+     * it. The management screen still asks for the two lists apart, because there it matters who decided.
+     *
+     * @param stationId the station
+     * @return the station's own set and its cluster's, together
+     */
+    public Set<StationModule> findEffectiveDisabledModules(int stationId) {
+        Set<StationModule> disabled = EnumSet.noneOf(StationModule.class);
+        disabled.addAll(stationRepository.findDisabledModules(stationId));
+        disabled.addAll(findClusterDeniedModules(stationId));
+        return disabled;
+    }
+
     // -- Modules --
 
     /**
@@ -294,7 +382,22 @@ public class StationService {
      * Checks whether a module is enabled for a station.
      */
     public boolean isModuleEnabled(int stationId, StationModule module) {
+        // A cluster's denial outranks the station's own answer, whichever way that answer went
+        if (clusterRepository.isModuleDeniedForStation(stationId, module)) return false;
         return !stationRepository.findDisabledModules(stationId).contains(module);
+    }
+
+    /**
+     * The modules the station's cluster has switched off, which it cannot turn back on.
+     *
+     * <p>Separate from {@link #isModuleEnabled(int, StationModule)} because the station's own screen has to
+     * show them differently: locked with the cluster named, rather than simply off.
+     *
+     * @param stationId the station
+     * @return what its cluster denies, empty when it answers to no cluster
+     */
+    public Set<StationModule> findClusterDeniedModules(int stationId) {
+        return clusterRepository.findDeniedModulesForStation(stationId);
     }
 
     /**
@@ -302,18 +405,22 @@ public class StationService {
      */
     public void updatePublicCalendarEnabled(int stationId, boolean enabled) {
         stationRepository.updatePublicCalendarEnabled(stationId, enabled);
+        log.info("Station {} turned its public calendar {}", stationId, enabled ? "on" : "off");
     }
 
     public void updatePublicPagesEnabled(int stationId, boolean enabled) {
         stationRepository.updatePublicPagesEnabled(stationId, enabled);
+        log.info("Station {} turned its public pages {}", stationId, enabled ? "on" : "off");
     }
 
     public void updatePublicWaitlistEnabled(int stationId, boolean enabled) {
         stationRepository.updatePublicWaitlistEnabled(stationId, enabled);
+        log.info("Station {} turned its public waiting list {}", stationId, enabled ? "on" : "off");
     }
 
     public void updatePublicBlogEnabled(int stationId, boolean enabled) {
         stationRepository.updatePublicBlogEnabled(stationId, enabled);
+        log.info("Station {} turned its public blog {}", stationId, enabled ? "on" : "off");
     }
 
     public void updatePublicSlug(int stationId, String slug) {
@@ -324,11 +431,17 @@ public class StationService {
             }
         }
         stationRepository.updatePublicSlug(stationId, slug);
+        log.info("Station {} is reached at the slug '{}'", stationId, slug);
     }
 
     public void updateDiscoverySettings(
             int stationId, DiscoveryVisibility visibility, String description, boolean showKb) {
         stationRepository.updateDiscoverySettings(stationId, visibility, description, showKb);
+        log.info(
+                "Station {} is discoverable as {} and {} its knowledge base",
+                stationId,
+                visibility,
+                showKb ? "shows" : "hides");
     }
 
     /**

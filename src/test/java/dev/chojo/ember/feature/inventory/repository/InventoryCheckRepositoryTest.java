@@ -54,7 +54,7 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         });
         inventory = inventoryRepo.create(station.id(), "Check Inv", InventoryType.EXTERNAL, false);
         item = inventoryRepo.createItem(inventory.id(), "C-001", "Check Item", null, null);
-        inventoryRepo.assignItem(item.id(), member1.id());
+        itemCustodyService.assignToMember(item.id(), member1.id(), "");
     }
 
     @AfterAll

@@ -33,6 +33,18 @@ const {t} = useI18n()
     </HelpSection>
 
     <!-- Dummy: Event detail view -->
+    <HelpSection :title="t('helpCenter.eventDetail.answeringTitle')">
+      <p>{{ t('helpCenter.eventDetail.answeringText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventDetail.changingTitle')">
+      <p>{{ t('helpCenter.eventDetail.changingText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventDetail.reminderTitle')">
+      <p>{{ t('helpCenter.eventDetail.reminderText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('events.general')">
       <!-- Event header -->
       <div class="flex items-center justify-between flex-wrap gap-3">

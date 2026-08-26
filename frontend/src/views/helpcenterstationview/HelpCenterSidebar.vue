@@ -65,6 +65,7 @@ function escapeHtml(text: string): string {
     <div v-else class="flex flex-col gap-1 px-2 pb-3">
       <BaseButton v-for="result in searchResults" :key="result.entry.route"
                   class="!text-left !block !py-2 hover:bg-[var(--bg-hover)]"
+                  data-testid="help-search-result"
                   full-width
                   @click="navigateToResult(result.entry.path)">
         <div class="text-sm font-medium text-[var(--text)]">{{ result.entry.title }}</div>
@@ -76,7 +77,7 @@ function escapeHtml(text: string): string {
   </template>
 
   <template v-else>
-    <SidebarGroup :icon="['fas', 'book']" :label="t('helpCenter.basics.sidebar')" prefix="/helpcenter/station/basics"
+    <SidebarGroup :icon="['fas', 'book']" :label="t('helpCenter.basics.sidebar')"
                   to="/helpcenter/station/basics" name="help-welcome" @navigate="close">
       <SidebarLink :icon="['fas', 'circle-info']" name="help-basics-overview"
                    to="/helpcenter/station/basics/overview" @navigate="close">
@@ -113,7 +114,7 @@ function escapeHtml(text: string): string {
       </SidebarLink>
     </SidebarGroup>
 
-    <SidebarGroup :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/helpcenter/station/dashboard"
+    <SidebarGroup :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')"
                   to="/helpcenter/station/dashboard" name="help-dashboard-module-overview" @navigate="close">
       <SidebarLink :icon="['fas', 'house']" name="help-dashboard-overview"
                    to="/helpcenter/station/dashboard/overview" @navigate="close">
@@ -125,10 +126,10 @@ function escapeHtml(text: string): string {
       </SidebarLink>
     </SidebarGroup>
 
-    <SidebarGroup :icon="['fas', 'clipboard-check']" :label="t('sidebar.requirements')" prefix="/helpcenter/station/requirements"
+    <SidebarGroup :icon="['fas', 'clipboard-check']" :label="t('sidebar.requirements')"
                   to="/helpcenter/station/requirements" name="help-station-requirements" @navigate="close"/>
 
-    <SidebarGroup :icon="['fas', 'newspaper']" :label="t('sidebar.news')" prefix="/helpcenter/station/news"
+    <SidebarGroup :icon="['fas', 'newspaper']" :label="t('sidebar.news')"
                   to="/helpcenter/station/news" name="help-news-module-overview" @navigate="close">
       <SidebarLink :icon="['fas', 'pen']" name="help-news-create" to="/helpcenter/station/news/create" @navigate="close">
         {{ t('sidebar.newsEdit') }}
@@ -142,7 +143,7 @@ function escapeHtml(text: string): string {
       </SidebarLink>
     </SidebarGroup>
 
-    <SidebarGroup :icon="['fas', 'user']" :label="t('sidebar.profile')" prefix="/helpcenter/station/profile"
+    <SidebarGroup :icon="['fas', 'user']" :label="t('sidebar.profile')"
                   to="/helpcenter/station/profile" name="help-profile-module-overview" @navigate="close">
       <SidebarLink :icon="['fas', 'calendar-days']" name="help-profile-absences"
                    to="/helpcenter/station/profile/absences" @navigate="close">
@@ -182,11 +183,15 @@ function escapeHtml(text: string): string {
       </SidebarLink>
     </SidebarGroup>
 
-    <SidebarGroup :icon="['fas', 'gears']" :label="t('sidebar.station')" prefix="/helpcenter/station/manage"
+    <SidebarGroup :icon="['fas', 'gears']" :label="t('sidebar.station')"
                   to="/helpcenter/station/manage" name="help-manage-module-overview" @navigate="close">
       <SidebarLink :icon="['fas', 'palette']" name="help-station-theme-manage"
                    to="/helpcenter/station/manage/theme" @navigate="close">
         {{ t('helpCenter.themeManage.sidebarLabel') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'sitemap']" name="help-station-manage-cluster"
+                   to="/helpcenter/station/manage/cluster" @navigate="close">
+        {{ t('sidebar.stationCluster') }}
       </SidebarLink>
       <SidebarExpandableLink :icon="['fas', 'arrow-right-arrow-left']" name="help-station-federation"
                              to="/helpcenter/station/federate" @navigate="close">

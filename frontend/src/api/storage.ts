@@ -48,6 +48,7 @@ const NECESSITY: Record<string, StorageNecessityName> = {
     session_expires_at: StorageNecessity.REQUIRED,
     ember_last_activity: StorageNecessity.REQUIRED,
     station_id: StorageNecessity.REQUIRED,
+    cluster_id: StorageNecessity.REQUIRED,
     ai_provider: StorageNecessity.FUNCTIONAL,
     ai_model: StorageNecessity.FUNCTIONAL,
     ai_api_key: StorageNecessity.FUNCTIONAL,
@@ -182,6 +183,7 @@ export function clearStoredData(): void {
     if (!isClient) return
     localStorage.removeItem('session_token')
     localStorage.removeItem('station_id')
+    localStorage.removeItem('cluster_id')
     localStorage.removeItem(CONSENT_VERSION_KEY)
     localStorage.removeItem(PRIVACY_VERSION_KEY)
     localStorage.removeItem(TOS_VERSION_KEY)

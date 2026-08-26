@@ -9,13 +9,15 @@ import {useI18n} from 'vue-i18n'
 import type {PermissionGrant} from '@/api/types'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import {usePermissionTree} from '@/composables/usePermissionTree'
+import {usePermissionTree, type PermissionScope} from '@/composables/usePermissionTree'
 import {GROUP_ICONS} from '@/components/input/permissionpicker/groupIcons'
 
 const props = defineProps<{
   allRoles: PermissionGrant[]
   modelValue: Set<number>
   lockedPermissions?: Map<string, string>
+  /** Whose permissions these are. An association's are a different enum with its own root. */
+  scope?: PermissionScope
 }>()
 
 const emit = defineEmits<{
@@ -45,6 +47,7 @@ const {
     toRef(props, 'allRoles'),
     computed(() => props.lockedPermissions),
     next => emit('update:modelValue', next),
+    props.scope ?? 'station',
 )
 </script>
 

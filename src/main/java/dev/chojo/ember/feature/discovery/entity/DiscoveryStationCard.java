@@ -32,7 +32,49 @@ public record DiscoveryStationCard(
         Instant publishedAt,
         String addressLine,
         BigDecimal latitude,
-        BigDecimal longitude) {
+        BigDecimal longitude,
+        String clusterUid,
+        String clusterName) {
+
+    /**
+     * A card from a peer that predates the cluster fields, which reads as "not in a cluster".
+     *
+     * <p>Older instances send nothing for them, and absent is exactly what a station outside any cluster
+     * would send anyway, so no version check is needed to tell the two apart.
+     */
+    public DiscoveryStationCard(
+            String stationUid,
+            String name,
+            String slogan,
+            String logoUrl,
+            String country,
+            String region,
+            String city,
+            String contactUrl,
+            List<String> tags,
+            String memberCount,
+            Instant publishedAt,
+            String addressLine,
+            BigDecimal latitude,
+            BigDecimal longitude) {
+        this(
+                stationUid,
+                name,
+                slogan,
+                logoUrl,
+                country,
+                region,
+                city,
+                contactUrl,
+                tags,
+                memberCount,
+                publishedAt,
+                addressLine,
+                latitude,
+                longitude,
+                null,
+                null);
+    }
 
     public static DiscoveryStationCard parse(String json) {
         try {

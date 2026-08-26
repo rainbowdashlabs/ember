@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.page.service.PageService;
@@ -65,15 +66,24 @@ public class PublicStationRoutes implements Routes {
             summary = "Get public information about a station",
             tags = {"Public Station"},
             pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
+            description = "An association's own station answers with its wiki alone, and only when the "
+                    + "association has put that wiki on the public web.",
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = PublicStationInfo.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getInfo(Context ctx) {
-        var station = resolveStation(ctx);
+        var station = resolveStation(ctx, true);
 
         boolean hasPublicKb = station.publicKbMode() != PublicKbMode.OFF;
+
+        if (station.stationKind() == StationKind.CLUSTER_HOME) {
+            if (!hasPublicKb) throw new NotFoundResponse();
+            ctx.json(publicInfo(station, true, false, false, false, false, null));
+            return;
+        }
+
         boolean hasPublicCalendar = station.publicCalendarEnabled();
         boolean hasPublicPages = station.publicPagesEnabled() && pageService.hasPublishedPages(station.id());
         boolean hasPublicWaitlist =
@@ -84,15 +94,32 @@ public class PublicStationRoutes implements Routes {
             throw new NotFoundResponse();
         }
 
-        boolean hasLogo = logoService.exists(station.id());
         String landingPageSlug =
                 hasPublicPages ? pageService.getLandingPageSlug(station.id()).orElse(null) : null;
 
-        ctx.json(new PublicStationInfo(
+        ctx.json(publicInfo(
+                station,
+                hasPublicKb,
+                hasPublicCalendar,
+                hasPublicPages,
+                hasPublicWaitlist,
+                hasPublicBlog,
+                landingPageSlug));
+    }
+
+    private PublicStationInfo publicInfo(
+            Station station,
+            boolean hasPublicKb,
+            boolean hasPublicCalendar,
+            boolean hasPublicPages,
+            boolean hasPublicWaitlist,
+            boolean hasPublicBlog,
+            String landingPageSlug) {
+        return new PublicStationInfo(
                 station.uid().toString(),
                 station.name(),
                 station.discoveryDescription(),
-                hasLogo,
+                logoService.exists(station.id()),
                 hasPublicKb,
                 hasPublicCalendar,
                 hasPublicPages,
@@ -102,18 +129,32 @@ public class PublicStationRoutes implements Routes {
                 station.publicSlug(),
                 station.defaultTheme(),
                 station.defaultFeel() != null ? station.defaultFeel().name() : null,
-                station.customThemeColors()));
+                station.customThemeColors());
     }
 
-    private Station resolveStation(Context ctx) {
+    /**
+     * The station a public address names, by uid or by the readable name it may have been given.
+     *
+     * <p>A cluster's home station is refused unless the caller says otherwise: it is not a station anybody
+     * may look at, and everything it could serve as one would be an accident. Its wiki is the exception,
+     * and only its wiki, which is why the exception is asked for rather than assumed.
+     *
+     * @param allowClusterHome whether an association's own station may answer, which only the wiki does
+     */
+    private Station resolveStation(Context ctx, boolean allowClusterHome) {
         String param = ctx.pathParam("stationUid");
+        Station station;
         try {
             UUID uid = UUID.fromString(param);
-            return stationRepository.findByUid(uid).orElseThrow(NotFoundResponse::new);
+            station = stationRepository.findByUid(uid).orElseThrow(NotFoundResponse::new);
         } catch (IllegalArgumentException e) {
             // Not a UUID - try as public slug
-            return stationRepository.findBySlug(param).orElseThrow(NotFoundResponse::new);
+            station = stationRepository.findBySlug(param).orElseThrow(NotFoundResponse::new);
         }
+        if (!allowClusterHome && station.stationKind() == StationKind.CLUSTER_HOME) {
+            throw new NotFoundResponse();
+        }
+        return station;
     }
 
     public record PublicStationInfo(

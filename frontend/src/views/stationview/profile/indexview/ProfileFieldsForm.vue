@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
-import ProfileFieldsLayout from '@/components/profilefields/ProfileFieldsLayout.vue'
+import ProfileFieldsLayout, {type LaidOutField} from '@/components/profilefields/ProfileFieldsLayout.vue'
 import type {ProfileField} from '@/api/profileFields'
 
 const props = defineProps<{
@@ -24,8 +24,14 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-function onUpdate(fieldId: number, value: string) {
-  emit('update', fieldId, value)
+// The layout hands back the field it drew, and this form only ever draws the station's own, so the id
+// is still all its caller needs
+function onUpdate(field: LaidOutField, value: string) {
+  emit('update', field.id, value)
+}
+
+function valueOf(field: LaidOutField): string {
+  return props.getValue(field.id)
 }
 </script>
 
@@ -35,8 +41,8 @@ function onUpdate(fieldId: number, value: string) {
 
     <EmptyState compact v-if="editableFields.length === 0">{{ t('profile.noFields') }}</EmptyState>
 
-    <ProfileFieldsLayout :fields="editableFields" :get-value="props.getValue" @update="onUpdate"/>
+    <ProfileFieldsLayout data-onboarding="profile.fields" :fields="editableFields" :get-value="valueOf" @update="onUpdate"/>
 
-    <SaveButton :action="saveAction"/>
+    <SaveButton data-onboarding="profile.save" :action="saveAction"/>
   </NeutralContainer>
 </template>

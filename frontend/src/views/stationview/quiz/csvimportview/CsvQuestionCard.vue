@@ -4,99 +4,90 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
+import {computed} from 'vue'
+import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import { QuizQuestionTypes } from '@/api/quiz'
-import { ANSWER_SEPARATOR_PRESETS, needsSplit, type ImportQuestion } from './quizCsvImport'
+import AnswerSeparatorPicker from './AnswerSeparatorPicker.vue'
+import {answerList, hasAnswerList, hasCorrectness, isCorrect, type ImportDraft} from './quizCsvImport'
 
 const props = defineProps<{
-  question: ImportQuestion
+  draft: ImportDraft
   index: number
+  categoryName: string
 }>()
 
 const emit = defineEmits<{
   toggleInclude: [index: number]
   resplit: [index: number]
   setSeparator: [index: number, value: string]
-  toggleMcCorrect: [index: number, optionIndex: number]
-  updateSplitItem: [index: number, optionIndex: number, value: string]
-  removeSplitItem: [index: number, optionIndex: number]
+  toggleCorrect: [index: number, optionIndex: number]
+  updateAnswer: [index: number, optionIndex: number, value: string]
+  removeAnswer: [index: number, optionIndex: number]
 }>()
 
-const { t } = useI18n()
+const {t} = useI18n()
 
-const isMultipleChoice = computed(() => props.question.type === QuizQuestionTypes.MULTIPLE_CHOICE)
-const splittable = computed(() => needsSplit(props.question.type))
+const type = computed(() => props.draft.question.quizQuestionType)
+const answers = computed(() => answerList(props.draft))
+const editable = computed(() => hasAnswerList(type.value))
+const markable = computed(() => hasCorrectness(type.value))
+const splittable = computed(() => editable.value && props.draft.rawAnswer.length > 0)
 </script>
 
 <template>
-  <NeutralContainer
-    class="space-y-3 transition-opacity"
-    :class="{ 'opacity-40': !question.included }"
-  >
+  <NeutralContainer class="space-y-3 transition-opacity" :class="{'opacity-40': !draft.included}">
     <div class="flex items-start justify-between gap-2 flex-wrap">
       <div class="flex-1 min-w-0">
-        <p class="font-medium text-sm truncate">{{ question.title || t('quiz.csv.noTitle') }}</p>
+        <p class="font-medium text-sm truncate">{{ draft.question.title || t('quiz.csv.noTitle') }}</p>
         <div class="flex items-center gap-2 mt-0.5 flex-wrap">
-          <span class="text-xs text-(--text-muted)">{{ t(`quiz.questionTypes.${question.type}`) }}</span>
+          <span class="text-xs text-(--text-muted)">{{ t(`quiz.questionTypes.${type}`) }}</span>
           <span class="text-xs text-(--text-muted)">&bull;</span>
-          <span class="text-xs text-(--text-muted)">{{ question.points }} {{ t('quiz.points') }}</span>
-          <span v-if="question.category" class="text-xs text-(--text-muted)">&bull; {{ question.category }}</span>
+          <span class="text-xs text-(--text-muted)">{{ draft.question.points }} {{ t('quiz.points') }}</span>
+          <span v-if="categoryName" class="text-xs text-(--text-muted)">&bull; {{ categoryName }}</span>
         </div>
       </div>
-      <div class="flex items-center gap-1 shrink-0">
-        <IconButton
-          :icon="['fas', question.included ? 'eye-slash' : 'eye']"
-          :label="question.included ? t('quiz.csv.exclude') : t('quiz.csv.include')"
-          @click="emit('toggleInclude', index)"
-        />
-      </div>
+      <IconButton
+        :icon="['fas', draft.included ? 'eye-slash' : 'eye']"
+        :label="draft.included ? t('quiz.csv.exclude') : t('quiz.csv.include')"
+        @click="emit('toggleInclude', index)"
+      />
     </div>
 
-    <template v-if="question.included && splittable">
-      <div class="flex items-center gap-1 flex-wrap">
-        <span class="text-xs text-(--text-muted) mr-1">{{ t('quiz.csv.answerSeparator') }}:</span>
-        <SelectionToggleButton
-          v-for="preset in ANSWER_SEPARATOR_PRESETS"
-          :key="preset.label"
-          :selected="question.answerSeparator === preset.value"
-          @toggle="emit('setSeparator', index, preset.value)"
-        >
-          {{ preset.label }}
-        </SelectionToggleButton>
+    <template v-if="draft.included && editable">
+      <div v-if="splittable" class="flex items-center gap-1 flex-wrap">
+        <AnswerSeparatorPicker
+          inline
+          :separator="draft.answerSeparator"
+          @update:separator="emit('setSeparator', index, $event)"
+        />
         <SecondaryButton class="text-xs" @click="emit('resplit', index)">
           {{ t('quiz.csv.resplit') }}
         </SecondaryButton>
       </div>
 
-      <div v-if="question.splitItems.length > 0" class="space-y-1">
-        <div
-          v-for="(item, itemIndex) in question.splitItems"
-          :key="itemIndex"
-          class="flex items-center gap-2"
-        >
+      <div v-if="answers.length > 0" class="space-y-1">
+        <div v-for="(answer, answerIndex) in answers" :key="answerIndex" class="flex items-center gap-2">
           <SelectionToggleButton
-            v-if="isMultipleChoice"
-            :selected="question.mcCorrectIndices.has(itemIndex)"
-            @toggle="emit('toggleMcCorrect', index, itemIndex)"
+            v-if="markable"
+            :selected="isCorrect(draft, answerIndex)"
+            @toggle="emit('toggleCorrect', index, answerIndex)"
           >
-            <font-awesome-icon :icon="['fas', question.mcCorrectIndices.has(itemIndex) ? 'check' : 'xmark']" />
+            <font-awesome-icon :icon="['fas', isCorrect(draft, answerIndex) ? 'check' : 'xmark']" />
           </SelectionToggleButton>
           <TextInput
-            :model-value="item"
+            :model-value="answer"
             class="flex-1 text-xs"
-            @update:model-value="emit('updateSplitItem', index, itemIndex, $event ?? '')"
+            @update:model-value="emit('updateAnswer', index, answerIndex, $event ?? '')"
           />
           <IconButton
             :icon="['fas', 'trash']"
             :label="t('common.delete')"
             class="text-error"
-            @click="emit('removeSplitItem', index, itemIndex)"
+            @click="emit('removeAnswer', index, answerIndex)"
           />
         </div>
       </div>
@@ -105,8 +96,8 @@ const splittable = computed(() => needsSplit(props.question.type))
       </div>
     </template>
 
-    <p v-else-if="question.included && question.answer" class="text-xs text-(--text-muted)">
-      {{ question.answer }}
+    <p v-else-if="draft.included && draft.rawAnswer" class="text-xs text-(--text-muted)">
+      {{ draft.rawAnswer }}
     </p>
   </NeutralContainer>
 </template>

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.service;
 
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
@@ -34,7 +35,7 @@ class QuizQuestionServiceTest extends RepositoryTestBase {
         service = new QuizQuestionService(quizCatalogRepo);
         station = stationRepo.create("QuizQuestionSvcStation");
         catalogId = quizCatalogRepo
-                .create(station.id(), "Question Catalog", "Questions", false)
+                .create(station.id(), "Question Catalog", "Questions", false, CatalogMetadata.none())
                 .id();
         categoryId = quizCatalogRepo
                 .createCategory(station.id(), "QuestionCat", "", 0)

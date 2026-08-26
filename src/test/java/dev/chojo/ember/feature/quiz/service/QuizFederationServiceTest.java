@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -96,7 +97,8 @@ class QuizFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(2)
     void browseSharedQuizListsPartnerCatalogs() {
-        var catalog = quizCatalogRepo.create(localPartner.id(), "FedCatalog", "Federated catalog", false);
+        var catalog = quizCatalogRepo.create(
+                localPartner.id(), "FedCatalog", "Federated catalog", false, CatalogMetadata.none());
         var share = federationRepo.createQuizShare(localPartner.id(), catalog.id(), ShareScope.ALL_PARTNERS);
 
         assertTrue(service.browseSharedQuiz(station.id()).stream().anyMatch(s -> s.id() == catalog.id()));
@@ -108,7 +110,8 @@ class QuizFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(3)
     void browseSharedCatalogsResolvesStationName() {
-        var catalog = quizCatalogRepo.create(localPartner.id(), "FedNamed", "Federated catalog", false);
+        var catalog = quizCatalogRepo.create(
+                localPartner.id(), "FedNamed", "Federated catalog", false, CatalogMetadata.none());
         var share = federationRepo.createQuizShare(localPartner.id(), catalog.id(), ShareScope.ALL_PARTNERS);
 
         var entry = service.browseSharedCatalogs(station.id()).stream()
@@ -125,7 +128,8 @@ class QuizFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void getFederatedQuizCatalogFromLocalPartner() {
-        var catalog = quizCatalogRepo.create(localPartner.id(), "FedDetail", "Detailed catalog", false);
+        var catalog = quizCatalogRepo.create(
+                localPartner.id(), "FedDetail", "Detailed catalog", false, CatalogMetadata.none());
         var question = quizCatalogRepo.createQuestion(
                 catalog.id(),
                 null,
@@ -150,7 +154,8 @@ class QuizFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(11)
     void getFederatedQuizCatalogRejectsForeignCatalog() {
-        var catalog = quizCatalogRepo.create(station.id(), "LocalOnly", "Not on the partner", false);
+        var catalog =
+                quizCatalogRepo.create(station.id(), "LocalOnly", "Not on the partner", false, CatalogMetadata.none());
         assertThrows(
                 Exception.class, () -> service.getFederatedQuizCatalog(station.id(), localPartner.uid(), catalog.id()));
         quizCatalogRepo.delete(catalog.id());
@@ -159,7 +164,8 @@ class QuizFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void copyQuizCatalogClonesCategoriesAndQuestions() {
-        var source = quizCatalogRepo.create(localPartner.id(), "CopySrc", "Source for copy", true);
+        var source =
+                quizCatalogRepo.create(localPartner.id(), "CopySrc", "Source for copy", true, CatalogMetadata.none());
         var category = quizCatalogRepo.createCategory(localPartner.id(), "CopyCat", "Category to copy", 0);
         var question = quizCatalogRepo.createQuestion(
                 source.id(),
@@ -207,7 +213,8 @@ class QuizFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(21)
     void copyQuizCatalogLeavesUnreferencedCategoriesBehind() {
-        var source = quizCatalogRepo.create(localPartner.id(), "CopySrc2", "Source without categories", false);
+        var source = quizCatalogRepo.create(
+                localPartner.id(), "CopySrc2", "Source without categories", false, CatalogMetadata.none());
         var unused = quizCatalogRepo.createCategory(localPartner.id(), "UnusedCat", "Never referenced", 0);
 
         var copied = service.copyQuizCatalog(source.id(), station.id());
@@ -246,7 +253,9 @@ class QuizFederationServiceTest extends RepositoryTestBase {
     @Order(31)
     void getFederatedQuizCatalogFromRemotePartner() {
         var remoteResult = new QuizFederationService.FederatedCatalogDetail(
-                new QuizCatalog(88, 0, "RemoteCatalog", "desc", false, false, null, null), List.of(), List.of());
+                new QuizCatalog(88, 0, "RemoteCatalog", "desc", false, false, CatalogMetadata.none(), null, null),
+                List.of(),
+                List.of());
         when(httpClient.get(
                         eq("https://remote-quiz.example.com"),
                         pathIs("/remote/quiz/catalogs/88"),

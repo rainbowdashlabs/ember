@@ -14,7 +14,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import CatalogHeader from './catalogdetailview/CatalogHeader.vue'
 import CategorySection from './catalogdetailview/CategorySection.vue'
 import QuestionSection from './catalogdetailview/QuestionSection.vue'
-import type { QuizCatalogDetail, QuizQuestion } from '@/api/quiz'
+import type { QuizCatalogDetail, QuizQuestion, QuizQuestionReport } from '@/api/quiz'
 import { quiz, federation, storage } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -41,6 +41,7 @@ const readonly = computed(() => isFederated.value || !canEdit.value)
 
 const catalog = ref<QuizCatalogDetail | null>(null)
 const questions = ref<QuizQuestion[]>([])
+const reports = ref<QuizQuestionReport[]>([])
 
 const catalogHeaderRef = ref<InstanceType<typeof CatalogHeader> | null>(null)
 
@@ -51,6 +52,7 @@ const { loading, error, reload: loadData } = useAsyncLoader(async () => {
   ])
   catalog.value = catalogData
   questions.value = questionsData
+  reports.value = isFederated.value ? [] : await quiz.listCatalogReports(catalogId.value)
   catalogHeaderRef.value?.resetForm()
 }, { autoLoad: false })
 
@@ -110,6 +112,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
         <QuestionSection
           :catalog-id="catalogId"
           :questions="questions"
+          :reports="reports"
           :categories="catalog.categories"
           :is-federated="isFederated"
           :readonly="readonly"

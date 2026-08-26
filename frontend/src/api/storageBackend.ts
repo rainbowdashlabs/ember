@@ -92,13 +92,32 @@ export interface SftpSummary {
 
 export type BackendOverrideSummary = S3Summary | SmbSummary | SftpSummary
 
+/**
+ * What is behind a station's files, on whose word, and what is still the station's to change.
+ *
+ * A station under an association may be standing on the association's storage and may have been put there
+ * by somebody else, so the answer says who decided rather than only what was decided.
+ */
 export interface BackendOverrideResponse {
     instanceDefault: StorageBackendTypeName
     override: BackendOverrideSummary | null
+    /** The association's storage its files were carried to, or null when they are not on it. */
+    clusterBackend: BackendOverrideSummary | null
+    /** The association the station answers to, or null when it answers to nobody. */
+    clusterName: string | null
+    /** Whether that association keeps storage its stations may move onto. */
+    clusterOffersStorage: boolean
+    /** Whether the association decides, which makes the station's own screen read-only. */
+    locked: boolean
 }
 
 export interface LocalRequest {
     type: 'LOCAL'
+}
+
+/** Moves the station onto the current version of its association's storage. */
+export interface ClusterRequest {
+    type: 'CLUSTER'
 }
 
 export interface S3Request {
@@ -139,7 +158,7 @@ export interface SftpRequest {
 
 export type StationBackendRequest = S3Request | SmbRequest | SftpRequest
 
-export type StationApplyRequest = LocalRequest | S3Request | SmbRequest | SftpRequest
+export type StationApplyRequest = LocalRequest | ClusterRequest | S3Request | SmbRequest | SftpRequest
 
 export interface InstanceBackendLocalRequest {
     type: 'LOCAL'

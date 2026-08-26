@@ -11,6 +11,7 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.RichMember;
@@ -175,6 +176,133 @@ public class StationMemberRepository {
                 .single(call().bind("station_id", stationId).bind("include_former", includeFormer))
                 .map(RichMember.map())
                 .all();
+    }
+
+    /**
+     * Members across every station of one cluster, for the people who look after all of them at once.
+     *
+     * <p>One query rather than a loop over the stations: a cluster manager browsing thirty stations should
+     * not cost thirty round trips, and the paging has to be over the whole set to mean anything.
+     *
+     * @param clusterId   the cluster whose stations to search
+     * @param search      a name or email fragment, or {@code null} for everybody
+     * @param stationId   narrow to one station, or {@code null} for all of them
+     * @param userType    narrow to one user type, or {@code null} for all
+     * @param includeFormer whether people who have left are listed too
+     * @param limit       page size
+     * @param offset      how many to skip
+     * @return the members, with the station each belongs to
+     */
+    public List<ClusterMemberRow> findClusterMembers(
+            int clusterId,
+            String search,
+            Integer stationId,
+            StationUserType userType,
+            boolean includeFormer,
+            int limit,
+            int offset) {
+        return query("""
+                SELECT sm.id, sm.uid, sm.station_id, s.uid AS station_uid, s.name AS station_name,
+                       sm.former, sm.user_type, sm.join_date,
+                       coalesce(a.full_name, sm.display_name, '') AS name,
+                       coalesce(a.email, '') AS email,
+                       (s.owner_member_id = sm.id) AS station_owner,
+                       coalesce((SELECT string_agg(DISTINCT s2.name, ', ' ORDER BY s2.name)
+                                 FROM station_member sm2
+                                 JOIN station s2 ON s2.id = sm2.station_id
+                                 WHERE s2.cluster_id = :cluster_id
+                                   AND s2.station_kind = :kind
+                                   AND sm2.account_id IS NOT NULL
+                                   AND sm2.account_id = sm.account_id
+                                   AND (sm2.former = FALSE OR :include_former)), s.name) AS station_names
+                FROM station_member sm
+                JOIN station s ON s.id = sm.station_id
+                LEFT JOIN account a ON a.id = sm.account_id
+                WHERE s.cluster_id = :cluster_id
+                  AND s.station_kind = :kind
+                  AND (:station_id::int IS NULL OR sm.station_id = :station_id)
+                  AND (:user_type::text IS NULL OR sm.user_type = :user_type)
+                  AND (sm.former = FALSE OR :include_former)
+                  AND (:search::text IS NULL
+                       OR coalesce(a.full_name, sm.display_name, '') ILIKE '%' || :search || '%'
+                       OR coalesce(a.email, '') ILIKE '%' || :search || '%')
+                ORDER BY s.name, name
+                LIMIT :limit OFFSET :offset;""")
+                .single(call().bind("cluster_id", clusterId)
+                        .bind("kind", StationKind.REGULAR)
+                        .bind("station_id", stationId)
+                        .bind("user_type", userType != null ? userType.name() : null)
+                        .bind("include_former", includeFormer)
+                        .bind("search", search != null && !search.isBlank() ? search.trim() : null)
+                        .bind("limit", limit)
+                        .bind("offset", offset))
+                .map(ClusterMemberRow.map())
+                .all();
+    }
+
+    /**
+     * How many members that same search would find, for the paging.
+     */
+    public int countClusterMembers(
+            int clusterId, String search, Integer stationId, StationUserType userType, boolean includeFormer) {
+        return SqlSupport.count(
+                """
+                SELECT count(*) AS cnt
+                FROM station_member sm
+                JOIN station s ON s.id = sm.station_id
+                LEFT JOIN account a ON a.id = sm.account_id
+                WHERE s.cluster_id = :cluster_id
+                  AND s.station_kind = :kind
+                  AND (:station_id::int IS NULL OR sm.station_id = :station_id)
+                  AND (:user_type::text IS NULL OR sm.user_type = :user_type)
+                  AND (sm.former = FALSE OR :include_former)
+                  AND (:search::text IS NULL
+                       OR coalesce(a.full_name, sm.display_name, '') ILIKE '%' || :search || '%'
+                       OR coalesce(a.email, '') ILIKE '%' || :search || '%');""",
+                call().bind("cluster_id", clusterId)
+                        .bind("kind", StationKind.REGULAR)
+                        .bind("station_id", stationId)
+                        .bind("user_type", userType != null ? userType.name() : null)
+                        .bind("include_former", includeFormer)
+                        .bind("search", search != null && !search.isBlank() ? search.trim() : null));
+    }
+
+    /**
+     * One member as a cluster manager sees them: who they are, and which station they belong to.
+     *
+     * @param stationOwner whether they are their station's owner, which a cluster manager may not touch
+     * @param stationNames every station of this association the person behind the row belongs to, because
+     *                     the search returns one row per membership and somebody at two stations is
+     *                     otherwise two rows that never say they are the same person
+     */
+    public record ClusterMemberRow(
+            int id,
+            UUID uid,
+            int stationId,
+            UUID stationUid,
+            String stationName,
+            boolean former,
+            StationUserType userType,
+            LocalDate joinDate,
+            String name,
+            String email,
+            boolean stationOwner,
+            String stationNames) {
+        public static RowMapping<ClusterMemberRow> map() {
+            return row -> new ClusterMemberRow(
+                    row.getInt("id"),
+                    row.get("uid", StandardValueConverter.UUID_STRING),
+                    row.getInt("station_id"),
+                    row.get("station_uid", StandardValueConverter.UUID_STRING),
+                    row.getString("station_name"),
+                    row.getBoolean("former"),
+                    row.getEnum("user_type", StationUserType.class),
+                    row.getObject("join_date", LocalDate.class),
+                    row.getString("name"),
+                    row.getString("email"),
+                    row.getBoolean("station_owner"),
+                    row.getString("station_names"));
+        }
     }
 
     /**
@@ -399,6 +527,13 @@ public class StationMemberRepository {
                 .single(call().bind("member_id", memberId))
                 .map(Permission.map())
                 .all();
+    }
+
+    /**
+     * Whether this member holds one particular permission of their own.
+     */
+    public boolean hasPermission(int memberId, StationPermission permission) {
+        return findPermissions(memberId).stream().anyMatch(held -> held.permission() == permission);
     }
 
     public Optional<Permission> findPermissionByName(StationPermission permission) {

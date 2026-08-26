@@ -70,7 +70,7 @@ const { t } = useI18n()
         <Th align="center">{{ t('inventory.detail.assigned') }}</Th>
         <Th align="center">{{ t('inventory.detail.lost') }}</Th>
       </template>
-      <TRow v-for="row in props.sizeStats" :key="row.size?.id ?? 'none'">
+      <TRow v-for="row in props.sizeStats" :key="row.size?.id ?? 'none'" data-testid="stats-size-row">
         <Td class="font-medium">{{ row.size?.label ?? t('inventory.detail.noSize') }}</Td>
         <Td align="center">{{ row.total }}</Td>
         <Td align="center" class="text-success">{{ row.free }}</Td>

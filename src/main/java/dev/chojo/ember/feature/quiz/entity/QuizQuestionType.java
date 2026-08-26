@@ -11,6 +11,8 @@ import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.util.Optional;
+
 import static org.slf4j.LoggerFactory.getLogger;
 
 @OpenApiName("QuizQuestionType")
@@ -56,15 +58,28 @@ public enum QuizQuestionType {
     }
 
     /**
-     * Parses a JSON config string into the typed config record for this question type.
+     * Parses a JSON config string into the typed config record for this question type. A payload
+     * that cannot be read falls back to {@link QuestionConfig.Unknown}, because this reads back
+     * columns written by older versions and one stale row must not take out the whole catalog.
      */
     public QuestionConfig parseConfig(String configStr) {
-        if (configStr == null || configStr.isBlank()) return new QuestionConfig.Unknown();
+        return readConfig(configStr).orElseGet(QuestionConfig.Unknown::new);
+    }
+
+    /**
+     * Reads a JSON config the way {@link #parseConfig(String)} does, but reports a payload that
+     * does not fit this type instead of quietly emptying it. Inbound files use this, where a
+     * config that cannot be read has to be named back to the person importing it.
+     *
+     * @return the parsed config, or empty when the payload does not fit this type
+     */
+    public Optional<QuestionConfig> readConfig(String configStr) {
+        if (configStr == null || configStr.isBlank()) return Optional.of(new QuestionConfig.Unknown());
         try {
-            return MAPPER.readValue(configStr, configClass);
+            return Optional.of(MAPPER.readValue(configStr, configClass));
         } catch (Exception e) {
             log.error("Failed to parse config {} for type {}: {}", this, configClass, e.getMessage(), e);
-            return new QuestionConfig.Unknown();
+            return Optional.empty();
         }
     }
 }

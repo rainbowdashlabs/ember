@@ -22,15 +22,19 @@ import {RouterLink} from 'vue-router'
 import StoragePresetPanel from './adminstorageview/StoragePresetPanel.vue'
 import StorageStationTable from './adminstorageview/StorageStationTable.vue'
 import {
-  type AdminStationUsage,
-  type StorageQuotaPreset,
+  applyPreset,
+  createPreset,
+  deletePreset,
   getAdminUsage,
   getPresets,
   recalculateAll,
+  recalculateStation,
+  resetStationQuotas,
+  updatePreset,
 } from '@/api/storageMonitoring'
 import {STORAGE_CATEGORY_COLORS, buildStorageCategoryLabeler, formatBytes} from '@/util/storage'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {errorMessage} from '@/util/apiError'
+import {useStorageQuotas, type StorageQuotasPort} from '@/composables/useStorageQuotas'
 
 use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent])
 
@@ -47,36 +51,41 @@ const {t} = useI18n()
 const isDark = ref(document.documentElement.classList.contains('dark'))
 let observer: MutationObserver | null = null
 
-const loading = ref(true)
-const loadError = ref('')
-const stations = ref<AdminStationUsage[]>([])
-const presets = ref<StorageQuotaPreset[]>([])
+/**
+ * The instance's own quotas: every station on it, the tiers it keeps, and the count of what is really there.
+ *
+ * <p>A station that answers to an association is shown and left alone. What the instance grants such a
+ * station is the pool its association hands out of, so a number set here would change nothing anybody sees.
+ */
+const port: StorageQuotasPort = {
+  load: async () => {
+    const [stations, tiers] = await Promise.all([getAdminUsage(), getPresets()])
+    return {stations, tiers}
+  },
+  createTier: (values) => createPreset(values),
+  updateTier: (tierId, values) => updatePreset(tierId, values),
+  deleteTier: (tierId) => deletePreset(tierId),
+  applyTier: (tierId, stationIds) => applyPreset(tierId, stationIds),
+  resetStation: (stationId) => resetStationQuotas(stationId),
+  recalculateStation: (stationId) => recalculateStation(stationId),
+}
+
+const {
+  stations, tiers: presets, loading, error: loadError, reload,
+  saveTier, removeTier, applyTier, resetStation, recalculateStation: recount,
+} = useStorageQuotas(port, {canRecalculate: true, showsOrigin: false, deferToCluster: true})
 
 onMounted(() => {
   observer = new MutationObserver(() => {
     isDark.value = document.documentElement.classList.contains('dark')
   })
   observer.observe(document.documentElement, {attributes: true, attributeFilter: ['class']})
-  loadData()
+  reload()
 })
 
 onUnmounted(() => {
   observer?.disconnect()
 })
-
-async function loadData() {
-  loading.value = true
-  loadError.value = ''
-  try {
-    const [usageData, presetData] = await Promise.all([getAdminUsage(), getPresets()])
-    stations.value = usageData
-    presets.value = presetData
-  } catch (e) {
-    loadError.value = errorMessage(e) || 'Failed to load storage data'
-  } finally {
-    loading.value = false
-  }
-}
 
 const totalUsage = computed(() => stations.value.reduce((s, st) => s + st.totalBytes, 0))
 const stationsWarning = computed(() => stations.value.filter(s => s.quotaUsedPercent >= 80 && s.quotaUsedPercent < 95).length)
@@ -88,7 +97,7 @@ const categoryLabel = buildStorageCategoryLabeler(t)
 
 const {running: reconciling, error: reconcileError, run: handleRecalculateAll} = useAsyncAction(async () => {
   await recalculateAll()
-  setTimeout(() => loadData(), 2000)
+  setTimeout(() => reload(), 2000)
 })
 
 const error = computed(() => loadError.value || reconcileError.value)
@@ -189,8 +198,9 @@ const categoryPieChart = computed(() => {
         </PrimaryButton>
       </div>
 
-      <StoragePresetPanel :presets="presets" :stations="stations" @reload="loadData"/>
-      <StorageStationTable :stations="stations" @reload="loadData"/>
+      <StoragePresetPanel :stations="stations" :tiers="presets"
+                          @apply="applyTier" @remove="removeTier" @save="saveTier"/>
+      <StorageStationTable :stations="stations" @recalculate="recount" @reset="resetStation"/>
     </template>
   </ViewContent>
 </template>

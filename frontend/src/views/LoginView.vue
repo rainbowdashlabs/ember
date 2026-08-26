@@ -11,14 +11,14 @@ import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
-import {auth, session, adminSettings} from '@/api'
+import {auth, session, adminSettings, clusters} from '@/api'
 import {StorageDeniedError} from '@/api/auth'
 import {acceptStorage, getItem} from '@/api/storage'
 import {useStations} from '@/composables/useStations'
+import {useCluster} from '@/composables/useCluster'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useDemoAccounts, type DemoAccount} from '@/composables/useDemoAccounts'
 import {useLoginConsent} from '@/composables/useLoginConsent'
-import {StationUserTypeLabels} from '@/api/types'
 import DemoLogin from '@/views/loginview/DemoLogin.vue'
 import ConsentGate from '@/views/loginview/ConsentGate.vue'
 import LegalModal from '@/views/loginview/LegalModal.vue'
@@ -29,11 +29,11 @@ import {apiErrorMessage} from '@/util/apiError'
 const {t} = useI18n()
 const route = useRoute()
 const {setActiveStation, clearActiveStation} = useStations()
+const {setActiveCluster, clearActiveCluster} = useCluster()
 
 const demo = useDemoAccounts()
 const {
-  isDemo, isDev, loading: demoLoading, activeStationTab, hasDemoAccounts,
-  stationTabs, showStationTabs, roleGroups, noStationRoleGroups,
+  isDemo, isDev, loading: demoLoading, activeStation, search, hasDemoAccounts, view: demoView,
 } = demo
 
 const legal = useLoginConsent()
@@ -43,7 +43,7 @@ const {
   showTos, tosHtml, tosLoading,
 } = legal
 
-const email = ref('')
+const identifier = ref('')
 const password = ref('')
 /**
  * Whether the person signing in vouches for this machine. Carried into the second factor as well,
@@ -53,11 +53,13 @@ const trustedDevice = ref(false)
 
 /**
  * A sign-in form wants to be narrow; a consent text wants to be read. The gate carries the whole
- * consent document, which at the width of a password field is a column of three words.
+ * consent document, which at the width of a password field is a column of three words. The demo
+ * account grid needs room of its own, so the column widens for it while the form inside keeps its
+ * own narrow width.
  */
 const containerWidth = computed(() => {
   if (consent.value === null) return 'max-w-5xl'
-  return isDemo.value || isDev.value ? 'max-w-2xl' : 'max-w-sm'
+  return isDemo.value || isDev.value ? 'max-w-2xl' : 'max-w-xs'
 })
 const registrationEnabled = ref(true)
 
@@ -88,9 +90,11 @@ onMounted(async () => {
 async function resolveStationAndRedirect() {
   const redirectPath = route.query.redirect as string | undefined
   clearActiveStation()
-  const [stations, info] = await Promise.all([
+  clearActiveCluster()
+  const [stations, info, myClusters] = await Promise.all([
     session.getStations(),
     session.getSessionInfo().catch(() => null),
+    clusters.listMine().catch(() => []),
   ])
   const [onlyStation] = stations
   if (stations.length === 1 && onlyStation) {
@@ -100,16 +104,21 @@ async function resolveStationAndRedirect() {
     await navigateTo(redirectPath || '/cross-station')
   } else if (info?.instanceUserType === 'ADMINISTRATOR') {
     await navigateTo(redirectPath || '/admin/dashboard/overview')
+  } else if (myClusters.length > 0) {
+    // Somebody who manages a cluster and belongs to no station has the cluster as their whole reason to be here
+    const [onlyCluster] = myClusters
+    if (myClusters.length === 1 && onlyCluster) setActiveCluster(onlyCluster.uid)
+    await navigateTo(redirectPath || '/cluster')
   } else {
     await navigateTo(redirectPath || '/account')
   }
 }
 
 const {running: loggingIn, error: loginError, run: handleLogin} = useAsyncAction(async () => {
-  if (!email.value || !password.value) return
+  if (!identifier.value || !password.value) return
 
   const result = await auth.login({
-    email: email.value,
+    identifier: identifier.value,
     password: password.value,
     trustedDevice: trustedDevice.value,
   })
@@ -142,10 +151,6 @@ const {running: demoLoggingIn, error: demoError, run: loginAsDemo} = useAsyncAct
 
 const loading = computed(() => loggingIn.value || demoLoggingIn.value)
 const error = computed(() => loginError.value || demoError.value)
-
-function topRoleLabel(account: DemoAccount): string {
-  return StationUserTypeLabels[account.userType as keyof typeof StationUserTypeLabels] ?? account.userType ?? 'Login'
-}
 </script>
 
 <template>
@@ -156,14 +161,13 @@ function topRoleLabel(account: DemoAccount): string {
         <PageHeader class="text-2xl font-bold">{{ t('login.title') }}</PageHeader>
       </div>
 
-      <Spinner v-if="demoLoading" size="lg"/>
+      <div v-if="demoLoading" class="flex justify-center">
+        <Spinner size="lg"/>
+      </div>
 
       <DemoLogin v-if="isDemo && !demoLoading"
-                 :error="error" :loading="loading"
-                 :no-station-role-groups="noStationRoleGroups" :role-groups="roleGroups"
-                 :station-tabs="stationTabs" :show-station-tabs="showStationTabs"
-                 v-model:active-station-tab="activeStationTab"
-                 :role-label="topRoleLabel" @login="loginAsDemo"/>
+                 v-model:active-station="activeStation" v-model:search="search"
+                 :view="demoView" :error="error" :loading="loading" @login="loginAsDemo"/>
 
       <template v-if="!isDemo && !demoLoading">
         <ConsentGate v-if="consent === null"
@@ -182,19 +186,16 @@ function topRoleLabel(account: DemoAccount): string {
         <LegalModal v-model="showTos" :title="t('storageConsent.tosTitle')"
                     :loading="tosLoading" :html="tosHtml"/>
 
-        <LoginForm v-if="consent === 'accepted'"
-                   v-model:email="email" v-model:password="password"
+        <LoginForm v-if="consent === 'accepted'" class="mx-auto w-full max-w-xs"
+                   v-model:identifier="identifier" v-model:password="password"
                    v-model:trustedDevice="trustedDevice"
                    :error="error" :loading="loading"
                    :registration-enabled="registrationEnabled"
                    @submit="handleLogin"/>
 
         <DevDemoFooter v-if="isDev && hasDemoAccounts && consent === 'accepted'"
-                       :loading="loading"
-                       :no-station-role-groups="noStationRoleGroups" :role-groups="roleGroups"
-                       :station-tabs="stationTabs" :show-station-tabs="showStationTabs"
-                       v-model:active-station-tab="activeStationTab"
-                       :role-label="topRoleLabel" @login="loginAsDemo"/>
+                       v-model:active-station="activeStation" v-model:search="search"
+                       :view="demoView" :loading="loading" @login="loginAsDemo"/>
       </template>
     </div>
   </div>

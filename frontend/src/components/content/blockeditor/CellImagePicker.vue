@@ -4,13 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
+import DragList from '@/components/input/DragList.vue'
 import CellImagePickerMultiItem from './cellimagepicker/CellImagePickerMultiItem.vue'
 import {type GalleryItem} from '@/api/pageManage'
 import {mediaFileUrl, type StationFile} from '@/api/media'
+import {moveWithin} from '@/util/reorder'
 
 const itemsModel = defineModel<GalleryItem[] | null>('items')
 const imageHashModel = defineModel<string | null>('imageHash')
@@ -23,7 +25,6 @@ const props = withDefaults(defineProps<{
 })
 
 const {t} = useI18n()
-const dragIndex = ref<number | null>(null)
 
 const items = computed<GalleryItem[]>(() => {
     if (props.multi) return Array.isArray(itemsModel.value) ? itemsModel.value : []
@@ -60,15 +61,9 @@ function removeAt(i: number) {
     else imageHashModel.value = null
 }
 
-function moveAt(i: number, delta: number) {
+function moveAt(fromIndex: number, toIndex: number) {
     if (!props.multi) return
-    const next = [...items.value]
-    const target = i + delta
-    if (target < 0 || target >= next.length) return
-    const [moved] = next.splice(i, 1)
-    if (!moved) return
-    next.splice(target, 0, moved)
-    itemsModel.value = next
+    itemsModel.value = moveWithin(items.value, fromIndex, toIndex)
 }
 
 function updateField(i: number, field: 'altText' | 'subtext', value: string) {
@@ -86,25 +81,6 @@ function swapAt(i: number, payload: {file: StationFile}) {
     }
 }
 
-function onDragStart(i: number, ev: DragEvent) {
-    dragIndex.value = i
-    if (ev.dataTransfer) ev.dataTransfer.effectAllowed = 'move'
-}
-
-function onDragOver(ev: DragEvent) {
-    ev.preventDefault()
-    if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move'
-}
-
-function onDrop(target: number) {
-    if (dragIndex.value === null || dragIndex.value === target) return
-    const next = [...items.value]
-    const [moved] = next.splice(dragIndex.value, 1)
-    if (!moved) return
-    next.splice(target, 0, moved)
-    itemsModel.value = next
-    dragIndex.value = null
-}
 </script>
 
 <template>
@@ -115,22 +91,22 @@ function onDrop(target: number) {
             class="space-y-2 pr-1"
             :class="items.length > 5 ? 'max-h-96 overflow-y-auto' : ''"
         >
-            <CellImagePickerMultiItem
-                v-for="(item, i) in items" :key="item.imageHash + '-' + i"
-                :item="item"
-                :index="i"
-                :is-first="i === 0"
-                :is-last="i === items.length - 1"
-                :station-uid="stationUid"
-                @move-up="moveAt(i, -1)"
-                @move-down="moveAt(i, 1)"
-                @remove="removeAt(i)"
-                @update-field="(field, value) => updateField(i, field, value)"
-                @swap-image="swapAt(i, $event)"
-                @drag-start="onDragStart(i, $event)"
-                @drag-over="onDragOver"
-                @drop="onDrop(i)"
-            />
+            <DragList
+                :items="items"
+                :key-fn="(item, i) => item.imageHash + '-' + i"
+                class="space-y-2"
+                @reorder="moveAt"
+            >
+                <template #default="{item, index}">
+                    <CellImagePickerMultiItem
+                        :item="item"
+                        :station-uid="stationUid"
+                        @remove="removeAt(index)"
+                        @update-field="(field, value) => updateField(index, field, value)"
+                        @swap-image="swapAt(index, $event)"
+                    />
+                </template>
+            </DragList>
         </div>
 
         <!-- Single-mode: one image preview -->

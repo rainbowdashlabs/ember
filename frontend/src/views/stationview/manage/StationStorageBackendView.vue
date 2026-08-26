@@ -61,7 +61,7 @@ const success = ref('')
 const backend = ref<BackendOverrideResponse | null>(null)
 const auditEntries = ref<AuditEntry[]>([])
 
-const selectedType = ref<'LOCAL' | 'S3' | 'SMB' | 'SFTP'>('LOCAL')
+const selectedType = ref<'LOCAL' | 'CLUSTER' | 'S3' | 'SMB' | 'SFTP'>('LOCAL')
 const s3 = ref<S3Request>(newS3())
 const smb = ref<SmbRequest>(newSmb())
 const sftp = ref<SftpRequest>(newSftp())
@@ -70,13 +70,36 @@ const confirmApply = ref(false)
 
 const overrideType = computed(() => backend.value?.override?.type ?? null)
 const hasOverride = computed(() => overrideType.value !== null)
+const onClusterStorage = computed(() => backend.value?.clusterBackend != null)
+const locked = computed(() => backend.value?.locked === true)
 
+/**
+ * Where this station's files are, in one line.
+ *
+ * Three answers rather than two, because a station under an association may be standing on the
+ * association's storage, and it will not have been the station that put it there.
+ */
 const activeBackendLabel = computed(() => {
     if (!backend.value) return ''
-    return overrideType.value
-        ? t('stationStorageBackend.summary.override', {type: overrideType.value})
-        : t('stationStorageBackend.summary.inherit', {type: backend.value.instanceDefault})
+    if (overrideType.value) return t('stationStorageBackend.summary.override', {type: overrideType.value})
+    if (onClusterStorage.value) {
+        return t('stationStorageBackend.summary.cluster', {
+            type: backend.value.clusterBackend!.type,
+            cluster: backend.value.clusterName ?? '',
+        })
+    }
+    return t('stationStorageBackend.summary.inherit', {type: backend.value.instanceDefault})
 })
+
+/**
+ * What this station may point itself at. Its association's storage only when there is some to move onto,
+ * and nothing at all when the association has said it decides.
+ */
+const offeredTypes = computed<('LOCAL' | 'CLUSTER' | 'S3' | 'SMB' | 'SFTP')[]>(() =>
+    backend.value?.clusterOffersStorage
+        ? ['LOCAL', 'CLUSTER', 'S3', 'SMB', 'SFTP']
+        : ['LOCAL', 'S3', 'SMB', 'SFTP'],
+)
 
 onMounted(loadAll)
 
@@ -116,7 +139,7 @@ function apiErrorTitle(e: unknown, fallback: string): string {
 }
 
 function currentRequest(): StationBackendRequest | null {
-    if (selectedType.value === 'LOCAL') return null
+    if (selectedType.value === 'LOCAL' || selectedType.value === 'CLUSTER') return null
     if (selectedType.value === 'S3') return s3.value
     if (selectedType.value === 'SMB') return smb.value
     return sftp.value
@@ -155,6 +178,7 @@ function probeConfig() {
 
 function applyRequest(): StationApplyRequest {
     if (selectedType.value === 'LOCAL') return {type: 'LOCAL'}
+    if (selectedType.value === 'CLUSTER') return {type: 'CLUSTER'}
     return currentRequest()!
 }
 
@@ -196,18 +220,24 @@ const {running: saving, error: applyError, run: runApply} = useAsyncAction(
             <template v-else-if="backend">
                 <NeutralContainer class="space-y-2">
                     <SubHeader>{{ t('stationStorageBackend.summary.title') }}</SubHeader>
-                    <MutedText tag="p" size="sm">{{ activeBackendLabel }}</MutedText>
+                    <MutedText tag="p" size="sm" data-testid="station-storage-where">{{ activeBackendLabel }}</MutedText>
                     <MutedText tag="p" size="sm">
                         {{ t('stationStorageBackend.summary.instanceDefault', {type: backend.instanceDefault}) }}
                     </MutedText>
                 </NeutralContainer>
 
+                <Alert v-if="locked" variant="info" data-testid="station-storage-locked">
+                    {{ t('stationStorageBackend.lockedByCluster', {cluster: backend.clusterName ?? ''}) }}
+                </Alert>
+
                 <StorageBackendForm
+                    v-if="!locked"
                     v-model:selected-type="selectedType"
                     v-model:s3="s3"
                     v-model:smb="smb"
                     v-model:sftp="sftp"
                     i18n-prefix="stationStorageBackend"
+                    :types="offeredTypes"
                     :probing="probing"
                     :saving="saving"
                     show-live-probe

@@ -266,7 +266,8 @@ public class MediaStorageService {
             }
             try {
                 Files.deleteIfExists(legacyRoot);
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                log.debug("Legacy media root {} stays behind, empty", legacyRoot, e);
             }
         } catch (IOException e) {
             log.warn("Legacy media migration failed; older uploads may not be reachable", e);

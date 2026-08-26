@@ -28,6 +28,7 @@ const {t} = useI18n()
 <template>
   <div class="grid gap-4 sm:grid-cols-2">
     <PrimaryContainer
+        data-onboarding="admin.stations.create"
         class="flex flex-col items-center justify-center gap-2 cursor-pointer py-6 border-dashed hover:opacity-80 transition-opacity"
         @click="$emit('create')"
     >

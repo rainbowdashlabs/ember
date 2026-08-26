@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
@@ -24,6 +25,8 @@ import {containerPathFor} from '@/util/containerPath'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 import type {InventoryItem} from '@/api/inventory'
 import {apiErrorMessage} from '@/util/apiError'
+
+const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const router = useRouter()
@@ -106,23 +109,23 @@ async function onScanDecoded(value: string) {
   if (!term) return
   const container = await inventoryContainers.resolveContainerByScan(term)
   if (container) {
-    router.push({name: 'inventory-container-detail', params: {id: String(container.id)}})
+    router.push({name: routes.container, params: {id: String(container.id)}})
     return
   }
   const item = await inventory.findByInternalId(term)
   if (item) {
-    router.push({name: 'inventory-item-detail', params: {id: String(item.id)}})
+    router.push({name: routes.item, params: {id: String(item.id)}})
     return
   }
   error.value = t('inventory.storage.scanNoMatch', {scan: term})
 }
 
 function openContainer(c: InventoryContainer) {
-  router.push({name: 'inventory-container-detail', params: {id: String(c.id)}})
+  router.push({name: routes.container, params: {id: String(c.id)}})
 }
 
 function openItem(i: InventoryItem) {
-  router.push({name: 'inventory-item-detail', params: {id: String(i.id)}})
+  router.push({name: routes.item, params: {id: String(i.id)}})
 }
 
 async function onCreated() {

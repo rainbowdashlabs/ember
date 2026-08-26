@@ -20,7 +20,13 @@ export interface FlatItem {
   chainDepth: number
 }
 
-const ROOT = 'STATION_ADMINISTRATOR'
+/** Which set of permissions a picker is drawing, and the one that sits above all of them. */
+export type PermissionScope = 'station' | 'cluster'
+
+const ROOTS: Record<PermissionScope, string> = {
+  station: 'STATION_ADMINISTRATOR',
+  cluster: 'CLUSTER_ADMINISTRATOR',
+}
 
 /**
  * The permission hierarchy behind the picker: which permissions exist, which ones a selection
@@ -35,20 +41,25 @@ const ROOT = 'STATION_ADMINISTRATOR'
  * @param allRoles          every grant, used to map a permission name onto its id
  * @param lockedPermissions permissions the caller grants unconditionally, with the reason shown
  * @param onChange          called with the new selection whenever a toggle changes it
+ * @param scope             whose permissions these are, the station's or an association's
  */
 export function usePermissionTree(
   selected: Ref<Set<number>>,
   allRoles: Ref<PermissionGrant[]>,
   lockedPermissions: Ref<Map<string, string> | undefined>,
   onChange: (next: Set<number>) => void,
+  scope: PermissionScope = 'station',
 ) {
   const { t } = useI18n()
 
+  const ROOT = ROOTS[scope]
   const hierarchy = ref<PermissionNode[]>([])
   const loading = ref(true)
 
   onMounted(async () => {
-    hierarchy.value = await data.getPermissionHierarchy()
+    hierarchy.value = scope === 'cluster'
+      ? await data.getClusterPermissionHierarchy()
+      : await data.getPermissionHierarchy()
     loading.value = false
   })
 

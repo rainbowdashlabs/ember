@@ -29,6 +29,7 @@ import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
 const router = useRouter()
+const newsRoutes = useNewsRoutes()
 const route = useRoute()
 const { loaded, hasPermission, sessionInfo } = useSession()
 const canFederateNews = () => hasPermission(StationPermission.NEWS_FEDERATE)
@@ -56,7 +57,7 @@ const federationPartnerIds = ref<number[]>([])
 const partners = ref<PartnerResponse[]>([])
 
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
-const {attachments, load: loadAttachments, add: addAttachment, remove: removeAttachment, move: moveAttachment, persist: persistAttachments} = useNewsAttachments()
+const {attachments, load: loadAttachments, add: addAttachment, remove: removeAttachment, reorder: reorderAttachments, persist: persistAttachments} = useNewsAttachments()
 
 /**
  * The saved shape of a block tree turned into the shape the editor works on. Ids of zero mark rows
@@ -201,7 +202,7 @@ async function save() {
       }
     }
 
-    await router.push({ name: 'news-list' })
+    await router.push({ name: newsRoutes.list })
   } catch (e) {
     error.value = t('common.error')
     throw e
@@ -220,7 +221,7 @@ watch(loaded, (isLoaded) => {
   >
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'news-list' })">
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: newsRoutes.list })">
           {{ t('common.back') }}
         </SecondaryButton>
       </div>
@@ -242,7 +243,7 @@ watch(loaded, (isLoaded) => {
             :station-uid="stationUid"
             @add="addAttachment"
             @remove="removeAttachment"
-            @move="moveAttachment"
+            @reorder="reorderAttachments"
         />
         <AudiencePanels
             v-model:public-blog="publicBlog"
@@ -260,7 +261,7 @@ watch(loaded, (isLoaded) => {
         />
 
         <div class="flex justify-end gap-3">
-          <SecondaryButton @click="router.push({ name: 'news-list' })">{{ t('common.cancel') }}</SecondaryButton>
+          <SecondaryButton @click="router.push({ name: newsRoutes.list })">{{ t('common.cancel') }}</SecondaryButton>
           <SaveButton :disabled="!canSave" :action="save"/>
         </div>
       </template>

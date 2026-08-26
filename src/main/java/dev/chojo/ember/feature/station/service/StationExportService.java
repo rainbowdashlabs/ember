@@ -7,11 +7,13 @@ package dev.chojo.ember.feature.station.service;
 
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.engine.GenericTableExporter;
 import dev.chojo.ember.tracking.engine.TableOrder;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -82,6 +84,27 @@ public class StationExportService {
     /**
      * Returns the topologically-sorted list of TRACKED tables.
      */
+    /**
+     * Refuses a cluster's home station.
+     *
+     * <p>A shell is not a station anybody could move: what it holds belongs to the cluster that owns it, and
+     * that cluster stays where it is. Letting one out through the transfer would produce a station on the
+     * other side with content and no owner.
+     *
+     * @param stationId the station somebody wants to move
+     */
+    private void requireTransferable(int stationId) {
+        stationRepository.findById(stationId).ifPresent(station -> {
+            if (station.stationKind() == StationKind.CLUSTER_HOME) {
+                throw new BadRequestResponse("A cluster's home station cannot be transferred");
+            }
+            if (station.clusterId() != null) {
+                throw new BadRequestResponse(
+                        "A station that belongs to a cluster cannot be transferred. Leave the cluster first.");
+            }
+        });
+    }
+
     public List<String> getTableOrder() {
         return tableOrder;
     }
@@ -109,6 +132,7 @@ public class StationExportService {
      * station.
      */
     public String createTransferToken(int stationId) {
+        requireTransferable(stationId);
         byte[] bytes = new byte[32];
         RANDOM.nextBytes(bytes);
         String randomPart = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
@@ -288,6 +312,7 @@ public class StationExportService {
                 """)
                 .single(call().bind("token", token).bind("url", targetInstanceUrl.trim()))
                 .update();
+        log.info("Transfer token is being pulled by {}", targetInstanceUrl.trim());
     }
 
     /**
@@ -370,7 +395,7 @@ public class StationExportService {
                 return new String(is.readAllBytes(), StandardCharsets.UTF_8).strip();
             }
         } catch (IOException e) {
-            // ignore
+            log.warn("Version resource could not be read, the export says 'unknown'", e);
         }
         return "unknown";
     }

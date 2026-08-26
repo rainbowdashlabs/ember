@@ -9,6 +9,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import DragList from '@/components/input/DragList.vue'
+import {moveWithin} from '@/util/reorder'
 import RegistrationFieldRow from './RegistrationFieldRow.vue'
 import {EventFieldTypes, type EventRegistrationFieldDefinition} from '@/api/events'
 
@@ -40,14 +42,8 @@ function removeField(index: number) {
   fields.value = fields.value.filter((_, i) => i !== index)
 }
 
-function move(index: number, delta: number) {
-  const target = index + delta
-  if (target < 0 || target >= fields.value.length) return
-  const next = [...fields.value]
-  const [moved] = next.splice(index, 1)
-  if (!moved) return
-  next.splice(target, 0, moved)
-  fields.value = next
+function move(fromIndex: number, toIndex: number) {
+  fields.value = moveWithin(fields.value, fromIndex, toIndex)
 }
 
 function replace(index: number, field: EventRegistrationFieldDefinition) {
@@ -66,15 +62,16 @@ function replace(index: number, field: EventRegistrationFieldDefinition) {
       {{ t('events.registrationFields.noFields') }}
     </p>
 
-    <RegistrationFieldRow
-        v-for="(field, index) in fields"
-        :key="index"
-        :model-value="field"
-        :types="TYPES"
-        @update:model-value="f => replace(index, f)"
-        @remove="removeField(index)"
-        @move="delta => move(index, delta)"
-    />
+    <DragList :items="fields" :key-fn="(_, index) => index" @reorder="move">
+      <template #default="{index}">
+        <RegistrationFieldRow
+            :model-value="fields[index]!"
+            :types="TYPES"
+            @update:model-value="f => replace(index, f)"
+            @remove="removeField(index)"
+        />
+      </template>
+    </DragList>
 
     <SecondaryButton :icon="['fas', 'plus']" @click="addField">
       {{ t('events.registrationFields.addField') }}

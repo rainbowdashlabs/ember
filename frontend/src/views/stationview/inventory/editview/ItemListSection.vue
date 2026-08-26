@@ -18,7 +18,7 @@ import ItemTableHeadRow from '../itemtable/ItemTableHeadRow.vue'
 import ItemTableFilterModal from '../itemtable/ItemTableFilterModal.vue'
 import ItemListControls from '../itemtable/ItemListControls.vue'
 import {useItemTable} from '../itemtable/useItemTable'
-import {InventoryTypes, ItemSource, type InventoryDetail, type InventoryItem} from '@/api/inventory'
+import {InventoryTypes, ItemOwner, type InventoryDetail, type InventoryItem} from '@/api/inventory'
 import type {StationMember} from '@/api/types'
 import {inventory} from '@/api'
 import {useBreakpoint} from '@/composables/useBreakpoint'
@@ -132,10 +132,10 @@ async function doMarkFound(item: InventoryItem) {
             <div>{{ getSizeLabel(item.sizeId) }}</div>
           </div>
           <div v-if="detail.inventoryType === InventoryTypes.MIXED">
-            <div class="text-(--text-muted)">{{ t('inventory.edit.colSource') }}</div>
+            <div class="text-(--text-muted)">{{ t('inventory.edit.colOwner') }}</div>
             <div>
-              <PrimaryBadge v-if="item.itemSource === ItemSource.INTERNAL">{{ t('inventory.edit.sourceInternal') }}</PrimaryBadge>
-              <SecondaryBadge v-else-if="item.itemSource === ItemSource.EXTERNAL">{{ t('inventory.edit.sourceExternal') }}</SecondaryBadge>
+              <PrimaryBadge v-if="item.ownerKind === ItemOwner.STATION">{{ t('inventory.edit.ownerStation') }}</PrimaryBadge>
+              <SecondaryBadge v-else-if="item.ownerKind === ItemOwner.CLUSTER">{{ t('inventory.edit.ownerCluster') }}</SecondaryBadge>
               <span v-else>&#x2013;</span>
             </div>
           </div>
@@ -172,8 +172,8 @@ async function doMarkFound(item: InventoryItem) {
             <Td muted>{{ item.internalId || '–' }}</Td>
             <Td v-if="table.isColumnVisible('size')" muted>{{ getSizeLabel(item.sizeId) || '–' }}</Td>
             <Td v-if="table.isColumnVisible('source')">
-              <PrimaryBadge v-if="item.itemSource === ItemSource.INTERNAL">{{ t('inventory.edit.sourceInternal') }}</PrimaryBadge>
-              <SecondaryBadge v-else-if="item.itemSource === ItemSource.EXTERNAL">{{ t('inventory.edit.sourceExternal') }}</SecondaryBadge>
+              <PrimaryBadge v-if="item.ownerKind === ItemOwner.STATION">{{ t('inventory.edit.ownerStation') }}</PrimaryBadge>
+              <SecondaryBadge v-else-if="item.ownerKind === ItemOwner.CLUSTER">{{ t('inventory.edit.ownerCluster') }}</SecondaryBadge>
               <span v-else class="text-(--text-muted)">&#x2013;</span>
             </Td>
             <Td v-if="table.isColumnVisible('assigned')">

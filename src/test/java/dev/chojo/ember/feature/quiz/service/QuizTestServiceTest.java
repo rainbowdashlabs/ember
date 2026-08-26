@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.quiz.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.SectionEntry;
 import dev.chojo.ember.feature.quiz.entity.SourceEntry;
@@ -42,7 +43,7 @@ class QuizTestServiceTest extends RepositoryTestBase {
         account = accountRepo.create("quiz-test-svc@test.com", "Quiz", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
         catalogId = quizCatalogRepo
-                .create(station.id(), "Test Catalog", "Questions", false)
+                .create(station.id(), "Test Catalog", "Questions", false, CatalogMetadata.none())
                 .id();
         categoryId =
                 quizCatalogRepo.createCategory(station.id(), "TestCat", "", 0).id();

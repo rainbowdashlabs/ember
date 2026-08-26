@@ -11,20 +11,21 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type {StationMember, UserTag} from '@/api/types'
+import type {UserTag} from '@/api/types'
+import type {AssignableMember} from '@/composables/useGroupsConfig'
 
 const {t} = useI18n()
 
 defineProps<{
   selectedTag: UserTag
   tagLoading: boolean
-  tagMembers: StationMember[]
-  availableMembers: StationMember[]
+  tagMembers: AssignableMember[]
+  availableMembers: AssignableMember[]
 }>()
 
 const emit = defineEmits<{
-  (e: 'add-member', member: StationMember): void
-  (e: 'remove-member', member: StationMember): void
+  (e: 'add-member', member: AssignableMember): void
+  (e: 'remove-member', member: AssignableMember): void
 }>()
 </script>
 

@@ -21,7 +21,7 @@ const SIZES: InventorySize[] = [
 
 const CLOTHING: RequiredInventoryItem = {
     inventoryId: 1, inventoryName: 'Einsatzkleidung', inventoryType: 'INTERNAL',
-    hasSizes: true, sizes: SIZES, requiredQuantity: 4, assignedQuantity: 3,
+    hasSizes: true, sizes: SIZES, requiredQuantity: 4, assignedQuantity: 3, inExchangeQuantity: 0,
 }
 
 function item(id: number, name: string, internalId: string, sizeId: number): InventoryItem {

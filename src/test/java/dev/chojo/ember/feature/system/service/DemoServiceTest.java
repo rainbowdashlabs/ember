@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Database;
@@ -13,6 +14,7 @@ import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.board.service.BoardAttachmentService;
@@ -21,6 +23,9 @@ import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
 import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.checklist.service.ChecklistService;
+import dev.chojo.ember.feature.cluster.service.ClusterApplicationService;
+import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
+import dev.chojo.ember.feature.cluster.service.ClusterContentService;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -40,6 +45,7 @@ import dev.chojo.ember.feature.federation.service.FederationSigningService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
@@ -85,10 +91,10 @@ import dev.chojo.ember.feature.quiz.service.QuizQuestionSelector;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.quiz.service.QuizTestService;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
-import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
@@ -102,11 +108,14 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -155,9 +164,11 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 memberLookupService,
                 accountRepo);
-        var inventoryService = new InventoryService(inventoryRepo);
-        var exchangeService = new ExchangeService(exchangeRepo, inventoryRepo, inventoryService, noOpBus);
-        var procurementService = new ProcurementService(procurementRepo, inventoryService, inventoryRepo, noOpBus);
+        var inventoryService =
+                new InventoryService(inventoryRepo, itemCustodyService, clusterRepo, clusterStationGroupRepo);
+        var exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
+        var procurementService = new ProcurementService(
+                procurementRepo, inventoryService, inventoryRepo, clusterRepo, itemCustodyService, noOpBus);
         var eventTemplateService = new EventTemplateService(eventTemplateRepo);
         var feedTokenService = new FeedTokenService(feedTokenRepo);
 
@@ -186,7 +197,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 new KbPresentationService(knowledgeBaseRepo, kbFileStorage, kbContentService),
                 new KbLinkMetadataService(new RemoteUrlValidator(new Federation(), new Demo())),
                 new PresentationCompressor(kbStorageConfig),
-                new PdfCompressor(kbStorageConfig));
+                new PdfCompressor(kbStorageConfig),
+                new ClusterAutoShareService(clusterRepo, new FederationRepository()));
         var kbFederationService = new KnowledgeBaseFederationService(
                 kbService,
                 kbContentService,
@@ -200,7 +212,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 memberNameResolver,
                 federationFanout,
                 federationEntityResolver,
-                mock(KbPdfExportService.class));
+                mock(KbPdfExportService.class),
+                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo));
         var quizQuestionService = new QuizQuestionService(quizCatalogRepo);
         var quizService = new QuizService(
                 new QuizCatalogService(quizCatalogRepo),
@@ -225,7 +238,9 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 accountRepo,
                 federationService,
-                new StationMemberInviteService(stationMemberRepo, memberGroupRepo, accountRepo, authService));
+                new StationMemberInviteService(
+                        stationMemberRepo, memberGroupRepo, new AccountInviteService(accountRepo, authService)),
+                clusterRepo);
 
         var groupService =
                 new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, new DomainEventBus(Set.of()));
@@ -268,7 +283,13 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationFanout,
                 federationEntityResolver);
         var lendingService = new LendingService(
-                lendingRepo, federationHttpClient, federationService, stationRepo, inventoryRepo, noOpBus);
+                lendingRepo,
+                federationHttpClient,
+                federationService,
+                stationRepo,
+                inventoryRepo,
+                itemCustodyService,
+                noOpBus);
         var federatedBoardService = new FederatedBoardService(federatedBoardRepo);
 
         // Services consumed by DemoService for the post-seed notification showcase (read-only
@@ -309,7 +330,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventServices.restriction(),
                 new EventRegistrationFieldService(new EventRegistrationFieldRepository()));
         var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo);
-        var containerSvc = new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo);
+        var containerSvc =
+                new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService);
         var fieldDefSvc = new InventoryFieldDefinitionService(fieldDefinitionRepo);
         var inventorySeeder = new DemoInventorySeeder(
                 inventoryRepo,
@@ -318,8 +340,30 @@ class DemoServiceTest extends RepositoryTestBase {
                 containerSvc,
                 fieldDefSvc,
                 exchangeService,
-                exchangeRepo,
-                procurementService);
+                procurementService,
+                itemCustodyService);
+        var clusterSeeder = new DemoClusterSeeder(
+                accountRepo,
+                passwordHasher,
+                clusterService,
+                clusterMemberService,
+                clusterInventoryService,
+                clusterProfileFieldService,
+                clusterStationGroupService,
+                new ClusterContentService(clusterRepo, stationRepo, stationMemberRepo, kbService),
+                new ClusterApplicationService(
+                        clusterApplicationRepo, clusterRepo, stationRepo, clusterService, noOpBus),
+                clusterStorageQuotaService,
+                stationRepo,
+                inventoryRepo,
+                fieldDefSvc,
+                itemCustodyService,
+                itemMovementService,
+                movementFlowService,
+                newsService,
+                eventServices.crud(),
+                eventRegistrationRepo,
+                notificationRepo);
         var formSeeder = new DemoFormSeeder(formRepo, restrictionService);
         var notificationSeeder = new DemoNotificationSeeder(
                 notificationRepo, inventoryRepo, boardService, boardTicketService, procedureService, lendingService);
@@ -328,11 +372,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var quizSeeder = new DemoQuizSeeder(quizCatalogRepo, quizTestRepo, quizService, quizImageService);
         var kbSeeder = new DemoKnowledgeBaseSeeder(kbService, kbContentService, knowledgeBaseRepo);
         var protocolSeeder = new DemoProtocolSeeder(testProtocolRepo);
-        var mediaSeeder = new DemoMediaSeeder(
-                avatarService,
-                stationService,
-                mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
-                accountRepo);
+        var avatarSeeder = new DemoAvatarSeeder(avatarService, accountRepo);
         var federationSeeder = new DemoFederationSeeder(
                 stationRepo,
                 federationService,
@@ -370,8 +410,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 demoStorage,
                 new MediaVariantService(demoStorage, demoStorageConfig),
                 new MediaReferenceRegistry(contentContainerRepo),
-                new StorageQuotaService(
-                        storageUsageRepo, new StationStorageConfigRepository(), demoStorageConfig, noOpBus));
+                new StorageQuotaService(storageUsageRepo, demoStorageConfig, noOpBus));
         var pageSeeder = new DemoPageSeeder(
                 new PageService(
                         pageRepo,
@@ -398,7 +437,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 apiConfig);
         var sessionSeeder = new DemoSessionSeeder(accountRepo);
         var settingsSeeder = new DemoSettingsSeeder(feedTokenService, stationRepo, applicationSettingRepo);
-        var setupSeeder = new DemoSetupSeeder(stationRepo, accountRepo, stationMemberRepo);
+        var setupSeeder = new DemoSetupSeeder(stationRepo);
+        var freshStationSeeder = new DemoFreshStationSeeder(stationRepo, accountRepo, stationMemberRepo);
         // A demo instance is what lets the TOTP service run without a configured encryption key,
         // which is the same reason the seeder only ever runs on one.
         var demoInstance = mock(Demo.class);
@@ -421,6 +461,7 @@ class DemoServiceTest extends RepositoryTestBase {
                         lostAndFoundSeederLocal,
                         attendanceSeeder,
                         inventorySeeder,
+                        clusterSeeder,
                         formSeeder,
                         sessionSeeder,
                         waitingListSeeder,
@@ -428,7 +469,7 @@ class DemoServiceTest extends RepositoryTestBase {
                         kbSeeder,
                         protocolSeeder,
                         procedureSeeder,
-                        mediaSeeder,
+                        avatarSeeder,
                         federationSeeder,
                         settingsSeeder,
                         checklistSeederLocal,
@@ -437,7 +478,11 @@ class DemoServiceTest extends RepositoryTestBase {
                         lendingSeeder,
                         notificationSeeder,
                         setupSeeder,
-                        twoFactorSeeder));
+                        freshStationSeeder,
+                        twoFactorSeeder),
+                stationRepo,
+                clusterRepo,
+                new StorageBackendResolver(new LocalStorageBackend()));
     }
 
     @Test
@@ -483,5 +528,116 @@ class DemoServiceTest extends RepositoryTestBase {
         assertTrue(
                 stations.stream().anyMatch(s -> "JF Partnerwache".equals(s.name())),
                 "Partner station 'JF Partnerwache' should exist");
+    }
+
+    /**
+     * The two full stations, which is what lets a feature be looked at inside an association and outside it.
+     *
+     * <p>They are seeded by the same seeders from the same data, so what is asserted is that the second one
+     * really was built rather than half built, that it is the one inside the association, and that the same
+     * person exists at both without the two colliding.
+     */
+    @Test
+    @Order(6)
+    void verifyBothFullStationsSeeded() {
+        var musterstadt = stationByName("Jugendfeuerwehr Musterstadt");
+        var nordstadt = stationByName("Jugendfeuerwehr Nordstadt");
+
+        assertNull(musterstadt.clusterId(), "Musterstadt answers to nobody");
+        assertNotNull(nordstadt.clusterId(), "Nordstadt answers to the association");
+
+        // The same people at both, at addresses of their own
+        assertTrue(accountRepo.findByEmail("max@mustermann.local").isPresent(), "Max at the first station");
+        assertTrue(accountRepo.findByEmail("max@mustermann.nord.local").isPresent(), "Max at the second");
+
+        // And the same amount of everything, because the second one is the first one again
+        assertEquals(
+                stationMemberRepo.findByStation(musterstadt.id()).size(),
+                stationMemberRepo.findByStation(nordstadt.id()).size(),
+                "Both stations should carry the same members");
+        // Not equal here, and deliberately: the association keeps a store of its own at the station it
+        // governs, which is the association's doing rather than a difference in how the two were built
+        assertTrue(
+                inventoryRepo.findByStation(nordstadt.id()).size()
+                        >= inventoryRepo.findByStation(musterstadt.id()).size(),
+                "The twin should carry what the first carries, and the association's store on top");
+
+        // Both borrow from the same partner, so what federation does can be seen at either
+        var federations = new FederationRepository();
+        assertFalse(federations.findPartners(musterstadt.id()).isEmpty(), "Musterstadt has its partner");
+        assertFalse(federations.findPartners(nordstadt.id()).isEmpty(), "Nordstadt has the same partner");
+    }
+
+    private static Station stationByName(String name) {
+        return stationRepo.findAll().stream()
+                .filter(station -> name.equals(station.name()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The station '" + name + "' should exist"));
+    }
+
+    /**
+     * The cluster seeder skips a lot of itself when the pieces it builds on are missing, which is right at
+     * run time and useless in a test: a silent skip and a working seeder look identical from outside. These
+     * assertions name the things that only exist if it ran the whole way through.
+     */
+    @Test
+    void verifyClusterSeeded() {
+        var cluster = clusterRepo.findAll().stream()
+                .filter(c -> "Kreisverband Musterstadt".equals(c.name()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo cluster should exist"));
+
+        assertTrue(cluster.usesInventory(), "The demo cluster should keep gear of its own");
+        // The station the demo is about, the neighbouring one, and the one the cluster made itself. The
+        // federation partner and the mirror are the two that stay outside.
+        assertEquals(3, clusterRepo.findStationIds(cluster.id()).size(), "Three stations should be in the cluster");
+        assertFalse(
+                clusterApplicationRepo.findByCluster(cluster.id()).isEmpty(),
+                "A station should be waiting to join the cluster");
+        assertEquals(
+                2,
+                clusterProfileFieldRepo.findByCluster(cluster.id()).size(),
+                "The cluster should ask two questions of its members");
+
+        // The room the cluster hands out, in all four places a station can get its numbers from: the pool,
+        // the defaults, the two tiers, and the grants. A storage screen with none of them shows nothing.
+        var room = clusterStorageQuotaService.findOverview(cluster.id());
+        assertEquals(100L * 1024 * 1024 * 1024, room.poolBytes(), "The instance should have granted a pool");
+        assertNotNull(room.defaults().quotaBytes(), "The cluster should say what a station it granted nothing gets");
+        assertEquals(2, room.presets().size(), "The cluster should keep two tiers");
+        assertEquals(
+                41L * 1024 * 1024 * 1024,
+                room.handedOut(),
+                "Its own store and two of its stations should have been granted room");
+        assertTrue(
+                room.stations().stream()
+                        .anyMatch(s -> s.ownStore() && s.granted().totalBytes() != null),
+                "The cluster's own store should be granted room like any other station");
+
+        var gear = inventoryRepo.findItemsOwnedByCluster(cluster.id());
+        for (String code : List.of("KV-0001", "KV-0002", "KV-0003", "KV-0004", "KV-0005", "KV-0006")) {
+            assertTrue(
+                    gear.stream().anyMatch(item -> code.equals(item.internalId())),
+                    "The cluster should own the piece of gear " + code);
+        }
+        assertTrue(
+                gear.size() > 6,
+                "The gear the demo station already kept for the body above it should have found its owner "
+                        + "when the station joined");
+        for (ItemCustody custody : List.of(
+                ItemCustody.WITH_OWNER, ItemCustody.AT_STATION, ItemCustody.WITH_MEMBER, ItemCustody.IN_TRANSIT)) {
+            assertTrue(
+                    gear.stream().anyMatch(item -> item.custody() == custody),
+                    "The cluster's gear should show a piece that is " + custody);
+        }
+
+        var admin = clusterRepo.findMembers(cluster.id()).stream()
+                .filter(m -> m.userType() == ClusterUserType.CLUSTER_ADMIN)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The cluster should have an administrator"));
+        assertEquals(
+                3,
+                notificationRepo.findAllForClusterMember(admin.id()).size(),
+                "The administrator should have been told about the cluster's own business");
     }
 }

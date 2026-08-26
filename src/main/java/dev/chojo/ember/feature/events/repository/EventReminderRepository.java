@@ -65,6 +65,30 @@ public class EventReminderRepository {
      * @param eventDate  the occurrence date
      * @param daysBefore the reminder lead time
      */
+    /** Whether the run-out warning for this lead time has already gone out for an event. */
+    public boolean isDeadlineWarningSent(int eventId, int daysBefore) {
+        return SqlSupport.exists("""
+                SELECT
+                    1
+                FROM
+                    event_deadline_reminder_sent
+                WHERE event_id = :event_id
+                  AND days_before = :days_before;""", call().bind("event_id", eventId).bind("days_before", daysBefore));
+    }
+
+    /** Records that the run-out warning for this lead time has gone out. */
+    public void markDeadlineWarningSent(int eventId, int daysBefore) {
+        query("""
+                INSERT
+                INTO
+                    event_deadline_reminder_sent(event_id, days_before)
+                VALUES
+                    (:event_id, :days_before)
+                ON CONFLICT DO NOTHING;""")
+                .single(call().bind("event_id", eventId).bind("days_before", daysBefore))
+                .insert();
+    }
+
     public boolean isSent(int eventId, LocalDate eventDate, int daysBefore) {
         return SqlSupport.exists(
                 """

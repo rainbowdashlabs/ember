@@ -8,8 +8,8 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
-import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -30,7 +30,7 @@ public class FormerMemberService {
     private final StationMemberRepository memberRepository;
     private final AccountRepository accountRepository;
     private final InventoryRepository inventoryRepository;
-    private final ExchangeRepository exchangeRepository;
+    private final ExchangeService exchangeService;
     private final MemberGroupRepository groupRepository;
     private final UserTagRepository tagRepository;
     private final AttendanceRepository attendanceRepository;
@@ -42,7 +42,7 @@ public class FormerMemberService {
             StationMemberRepository memberRepository,
             AccountRepository accountRepository,
             InventoryRepository inventoryRepository,
-            ExchangeRepository exchangeRepository,
+            ExchangeService exchangeService,
             MemberGroupRepository groupRepository,
             UserTagRepository tagRepository,
             AttendanceRepository attendanceRepository,
@@ -51,7 +51,7 @@ public class FormerMemberService {
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
         this.inventoryRepository = inventoryRepository;
-        this.exchangeRepository = exchangeRepository;
+        this.exchangeService = exchangeService;
         this.groupRepository = groupRepository;
         this.tagRepository = tagRepository;
         this.attendanceRepository = attendanceRepository;
@@ -113,9 +113,9 @@ public class FormerMemberService {
         memberRepository.removeAllManaged(memberId);
 
         // Delete exchange requests
-        var exchanges = exchangeRepository.findByMember(memberId);
+        var exchanges = exchangeService.findByMember(memberId);
         for (var ex : exchanges) {
-            exchangeRepository.delete(ex.id());
+            exchangeService.delete(ex.id());
         }
 
         // Remove from all groups

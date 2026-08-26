@@ -43,7 +43,7 @@ import java.util.UUID;
  */
 public class StationIdModule extends SimpleModule {
     private static final Set<String> STATION_ID_FIELDS =
-            Set.of("stationId", "sourceStationId", "partnerStationId", "owningStationId");
+            Set.of("stationId", "sourceStationId", "partnerStationId", "owningStationId", "homeStationId");
     private final StationRepository stationRepository;
 
     public StationIdModule(StationRepository stationRepository) {

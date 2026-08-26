@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.account.service.LoginNameService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -27,70 +28,102 @@ import java.util.regex.Pattern;
 
 /**
  * The access a guardian manages for the members in their care: the address the account is reached
- * at, and whether that account may sign in at all.
+ * at, the name and password it signs in with, and whether it may sign in at all.
  *
  * <p>Everything here is deliberately narrow. A guardian speaks for a child, so they may give the
- * child an address and switch its access on and off - but only for the members they manage, only
- * for the member types a guardian can be assigned to, and only for this one permission. Nothing
+ * child an address, a name and switch its access on and off - but only for the members they manage,
+ * only for the member types a guardian can be assigned to, and only for this one permission. Nothing
  * else about the account is theirs to change.
+ *
+ * <p>The name is what makes a child with no address of their own reachable at all: it is what they
+ * type at the login screen, and the mail Ember would have written to them goes to their guardians.
+ * That exception belongs to the two member types a guardian can be assigned to and to nobody else,
+ * which is enforced by this service refusing every other type outright.
  */
 @Singleton
 public class ManagedAccessService {
     private static final Logger log = LoggerFactory.getLogger(ManagedAccessService.class);
-
-    /**
-     * Members without an address of their own carry a synthetic one. It cannot receive mail, so it
-     * is treated as no address at all.
-     */
-    private static final String SYNTHETIC_EMAIL_SUFFIX = ".local";
 
     private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
     private final StationMemberRepository memberRepository;
     private final AccountRepository accountRepository;
     private final MailLocaleService mailLocaleService;
+    private final LoginNameService loginNameService;
     private final StationMemberService memberService;
-    private final AuthService authService;
+    private final ManagedLoginNoticeService noticeService;
     private final EmailService emailService;
+    private final AuthService authService;
 
     @Inject
     public ManagedAccessService(
             StationMemberRepository memberRepository,
             AccountRepository accountRepository,
             MailLocaleService mailLocaleService,
+            LoginNameService loginNameService,
             StationMemberService memberService,
-            AuthService authService,
-            EmailService emailService) {
+            ManagedLoginNoticeService noticeService,
+            EmailService emailService,
+            AuthService authService) {
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
         this.mailLocaleService = mailLocaleService;
+        this.loginNameService = loginNameService;
         this.memberService = memberService;
-        this.authService = authService;
+        this.noticeService = noticeService;
         this.emailService = emailService;
+        this.authService = authService;
     }
 
     /**
      * What a guardian sees and may change about the access of a member in their care.
      *
      * @param email        the address the account carries, or null when it is only a synthetic one
+     * @param username     the name the member signs in with, or null when there is none
      * @param loginEnabled whether the member may sign in
-     * @param canSignIn    whether granting access is possible at all, which needs a real address
+     * @param canSignIn    whether granting access is possible at all, which needs either an address
+     *                     or a name to sign in with
      */
-    public record ManagedAccess(String email, boolean loginEnabled, boolean canSignIn) {}
+    public record ManagedAccess(String email, String username, boolean loginEnabled, boolean canSignIn) {}
 
     /**
      * Reads the access state of a managed member.
      *
      * @param guardianMemberId the member acting as guardian
      * @param memberId         the member in their care
-     * @return the address and whether signing in is switched on
+     * @return the address, the name, and whether signing in is switched on
      */
     public ManagedAccess get(int guardianMemberId, int memberId) {
         StationMember member = requireManaged(guardianMemberId, memberId);
         var account = account(member);
-        String email = account.email();
-        boolean real = isReal(email);
-        return new ManagedAccess(real ? email : null, hasLogin(memberId), real);
+        boolean real = account.hasRealEmail();
+        return new ManagedAccess(
+                real ? account.email() : null, account.username(), hasLogin(memberId), canSignIn(account));
+    }
+
+    /**
+     * Sets or clears the name a managed member signs in with.
+     *
+     * <p>This is what makes a login possible for a child with no address of their own: the name is
+     * what they type, and everything Ember would write to them goes to their guardians instead.
+     * Clearing it is refused while it is the only way in and signing in is switched on, because that
+     * would lock the member out without saying so.
+     *
+     * @param guardianMemberId the member acting as guardian
+     * @param memberId         the member in their care
+     * @param username         the new name, or null or blank to clear it
+     * @return the access state after the change
+     */
+    public ManagedAccess setUsername(int guardianMemberId, int memberId, String username) {
+        StationMember member = requireManaged(guardianMemberId, memberId);
+        var account = account(member);
+        accountRepository.updateUsername(account.id(), loginNameService.validatedFor(account, username));
+        log.info(
+                "Guardian {} set the username of managed member {} (account {})",
+                guardianMemberId,
+                memberId,
+                account.id());
+        return get(guardianMemberId, memberId);
     }
 
     /**
@@ -109,7 +142,7 @@ public class ManagedAccessService {
     public ManagedAccess setEmail(int guardianMemberId, int memberId, String email) {
         StationMember member = requireManaged(guardianMemberId, memberId);
         String normalised = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
-        if (!EMAIL.matcher(normalised).matches() || !isReal(normalised)) {
+        if (!EMAIL.matcher(normalised).matches() || !Account.isRealEmail(normalised)) {
             throw new BadRequestResponse("A valid email address is required");
         }
         var account = account(member);
@@ -124,7 +157,7 @@ public class ManagedAccessService {
         String previous = account.email();
         accountRepository.updateEmail(account.id(), normalised);
         accountRepository.deleteSessionsByAccount(account.id());
-        if (isReal(previous)) {
+        if (Account.isRealEmail(previous)) {
             String mailLocale = mailLocaleService.forAccount(account.id());
             emailService.sendEmailChangedNotice(previous, account.firstName(), previous, normalised, mailLocale);
             emailService.sendEmailChangedNotice(normalised, account.firstName(), previous, normalised, mailLocale);
@@ -138,10 +171,50 @@ public class ManagedAccessService {
     }
 
     /**
+     * Sets the password a managed member signs in with.
+     *
+     * <p>Only for a member with no address of their own, whose invitation lands in the guardian's
+     * postbox anyway, so this spares them the detour rather than granting them anything new. A
+     * member with an address of their own keeps that door to themselves: setting it here would be
+     * taking over an account past its owner's postbox.
+     *
+     * @param guardianMemberId the member acting as guardian
+     * @param memberId         the member in their care
+     * @param password         the new password
+     * @return the access state after the change
+     */
+    public ManagedAccess setPassword(int guardianMemberId, int memberId, String password) {
+        StationMember member = requireManaged(guardianMemberId, memberId);
+        var account = account(member);
+        if (account.hasRealEmail()) {
+            throw new ForbiddenResponse("This member has an address of their own and sets their own password");
+        }
+        if (password == null || password.isBlank()) {
+            throw new BadRequestResponse("setPassword.passwordTooShort");
+        }
+        switch (authService.setPasswordFor(account, password)) {
+            case PASSWORD_TOO_SHORT -> throw new BadRequestResponse("setPassword.passwordTooShort");
+            case PASSWORD_BREACHED -> throw new BadRequestResponse("setPassword.passwordBreached");
+            default ->
+                log.info(
+                        "Guardian {} set the password of managed member {} (account {})",
+                        guardianMemberId,
+                        memberId,
+                        account.id());
+        }
+        return get(guardianMemberId, memberId);
+    }
+
+    /**
      * Switches signing in on or off for a managed member.
      *
      * <p>Switching it on needs an address to send the invitation to; switching it off ends the
      * sessions that are open, so the change is not merely cosmetic.
+     *
+     * <p>The member is told by mail, but not straight away: the change is handed to
+     * {@link ManagedLoginNoticeService}, which waits a few minutes so a toggle flicked by mistake
+     * and flicked back reaches nobody. That is also where the password-setup mail for an account
+     * nobody has claimed yet comes from.
      *
      * @param guardianMemberId the member acting as guardian
      * @param memberId         the member in their care
@@ -156,32 +229,30 @@ public class ManagedAccessService {
                 .orElseThrow(() -> new BadRequestResponse("The login permission does not exist"));
 
         if (enabled) {
-            if (!isReal(account.email())) {
-                throw new BadRequestResponse("Set an email address before allowing this member to sign in");
+            if (!canSignIn(account)) {
+                throw new BadRequestResponse(
+                        "Set an email address or a username before allowing this member to sign in");
             }
             if (!hasLogin(memberId)) {
                 memberRepository.grantPermission(memberId, permission.id());
-                if (accountRepository.findCredential(account.id()).isEmpty()) {
-                    authService.sendPasswordSetup(account.id(), account.email(), account.firstName());
-                }
+                noticeService.record(memberId, true);
             }
         } else if (hasLogin(memberId)) {
             memberRepository.revokePermission(memberId, permission.id());
             accountRepository.deleteSessionsByAccount(account.id());
+            noticeService.record(memberId, false);
         }
         log.info("Guardian {} set login of managed member {} to {}", guardianMemberId, memberId, enabled);
         return get(guardianMemberId, memberId);
     }
 
     private boolean hasLogin(int memberId) {
-        return memberRepository.findPermissions(memberId).stream()
-                .anyMatch(permission -> permission.permission() == StationPermission.LOGIN);
+        return memberRepository.hasPermission(memberId, StationPermission.LOGIN);
     }
 
-    private static boolean isReal(String email) {
-        return email != null
-                && !email.isBlank()
-                && !email.toLowerCase(Locale.ROOT).endsWith(SYNTHETIC_EMAIL_SUFFIX);
+    /** There has to be something to type at the login screen: an address, or a name of their own. */
+    private static boolean canSignIn(Account account) {
+        return account.hasRealEmail() || account.username() != null;
     }
 
     private Account account(StationMember member) {

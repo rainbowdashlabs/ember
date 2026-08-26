@@ -13,9 +13,13 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import type {InventoryItem} from '@/api/inventory'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   item: InventoryItem
-}>()
+  /** Whether there is anybody to hand it to. An association keeps gear in containers, not on people. */
+  canAssign?: boolean
+}>(), {
+  canAssign: true,
+})
 
 const emit = defineEmits<{
   assign: []
@@ -31,7 +35,7 @@ const {t} = useI18n()
   <NeutralContainer class="space-y-3">
     <SubHeader>{{ t('itemDetail.actions') }}</SubHeader>
     <div class="flex flex-wrap gap-2">
-      <PrimaryButton :icon="['fas', 'user-plus']" @click="emit('assign')">
+      <PrimaryButton v-if="props.canAssign" :icon="['fas', 'user-plus']" @click="emit('assign')">
         {{ t('itemDetail.assign') }}
       </PrimaryButton>
       <SecondaryButton v-if="props.item.assignedTo" :icon="['fas', 'user-minus']" @click="emit('unassign')">
