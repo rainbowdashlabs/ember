@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -12,6 +12,7 @@ import MappingHelp from './mappingstep/MappingHelp.vue'
 import MappingRow from './mappingstep/MappingRow.vue'
 import ValueMapEditorModal from './mappingstep/ValueMapEditorModal.vue'
 import { createColumnMapping, SKIP_TARGET, type ColumnMapping } from './memberImport'
+import type { TargetValue } from './useMemberCsvImport'
 
 const { t } = useI18n()
 
@@ -25,6 +26,8 @@ const props = defineProps<{
   primaryGroupLabel: string
   managerCount: number
   needsValueMapFn: (mapping: ColumnMapping) => boolean
+  /** The answers a target allows, so the value editor offers them instead of asking for free text. */
+  valuesForTarget: (target: string) => TargetValue[]
 }>()
 
 const editingValueMapIndex = ref<number | null>(null)
@@ -133,11 +136,27 @@ function openValueMapEditor(index: number) {
   editingValueMapIndex.value = index
 }
 
+/** The answers the question behind the column being edited allows, empty where it allows anything. */
+const editingTargetValues = computed(() => {
+  const index = editingValueMapIndex.value
+  if (index === null) return []
+  const target = mappings.value[index]?.target
+  return target ? props.valuesForTarget(target) : []
+})
+
+/**
+ * Keeps what was written in the value editor.
+ *
+ * <p>Both sides trimmed: a stray space in a spreadsheet is not a different answer, and a target typed
+ * with one matches nothing at all and leaves the value arriving exactly as it stood in the file.
+ */
 function saveValueMap() {
   if (editingValueMapIndex.value === null) return
   const map: Record<string, string> = {}
   for (const e of editingValueMapEntries.value) {
-    if (e.from && e.to) map[e.from] = e.to
+    const from = e.from.trim()
+    const to = e.to.trim()
+    if (from && to) map[from] = to
   }
   updateMapping(editingValueMapIndex.value, { valueMap: map })
   editingValueMapIndex.value = null
@@ -181,6 +200,7 @@ function addValueMapEntry() {
     <ValueMapEditorModal
       v-if="editingValueMapIndex !== null"
       :entries="editingValueMapEntries"
+      :target-values="editingTargetValues"
       @close="editingValueMapIndex = null"
       @save="saveValueMap"
       @add="addValueMapEntry"

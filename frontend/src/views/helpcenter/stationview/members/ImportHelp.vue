@@ -129,6 +129,14 @@ const dummySeparator = ref(';')
       <p>{{ t('helpCenter.membersImport.previewText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.membersImport.skipRowTitle')">
+      <p>{{ t('helpCenter.membersImport.skipRowText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersImport.duplicatesTitle')">
+      <p>{{ t('helpCenter.membersImport.duplicatesText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.membersImport.step3')">
       <p>{{ t('helpCenter.membersImport.step3Text') }}</p>
     </HelpSection>

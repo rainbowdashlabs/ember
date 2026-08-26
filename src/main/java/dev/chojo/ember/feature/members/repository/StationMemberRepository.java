@@ -129,6 +129,37 @@ public class StationMemberRepository {
     }
 
     /**
+     * Finds a member of a station by the name on their account, ignoring case and outer spaces.
+     *
+     * <p>What an import falls back on when a row carries no address. Two people of that name at one
+     * station cannot be told apart by anything the row holds, so the first is answered and the row is
+     * taken to be about somebody already here: importing the same list twice should leave one of
+     * each, and inventing a second Max Müller because the list came round again is the worse mistake.
+     *
+     * <p>Former members count. Somebody who left is still recorded, and an import that overlooked
+     * them would put a second row next to the first.
+     *
+     * @param stationId the station
+     * @param firstName the given name as the row spells it
+     * @param lastName  the surname as the row spells it
+     * @return the member, or empty when nobody of that name is here
+     */
+    public Optional<StationMember> findByStationAndName(int stationId, String firstName, String lastName) {
+        return query("""
+                SELECT %s FROM station_member sm
+                JOIN account a ON a.id = sm.account_id
+                WHERE sm.station_id = :station_id
+                  AND lower(btrim(a.first_name)) = lower(btrim(:first_name))
+                  AND lower(btrim(a.last_name)) = lower(btrim(:last_name))
+                ORDER BY sm.id;""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
+                .single(call().bind("station_id", stationId)
+                        .bind("first_name", firstName)
+                        .bind("last_name", lastName))
+                .map(StationMember.map())
+                .first();
+    }
+
+    /**
      * Find active (non-former) members of a station.
      */
     public List<StationMember> findByStation(int stationId) {

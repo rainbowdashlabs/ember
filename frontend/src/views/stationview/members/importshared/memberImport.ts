@@ -27,6 +27,10 @@ export interface MemberPreview {
     group: string
     profileFields: Record<string, string>
     contacts: ContactPreview[]
+    /** Where the row came from in the file, which is what striking one out refers to. */
+    row: number
+    /** Whether it is struck out, in which case the import walks past it. */
+    ignored: boolean
 }
 
 export interface PreviewResult {

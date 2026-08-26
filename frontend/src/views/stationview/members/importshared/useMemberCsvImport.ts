@@ -6,12 +6,19 @@
 import {computed, onMounted, ref, watch, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import client from '@/api/client'
-import {profileFields as profileFieldsApi} from '@/api'
+import {memberGroups as memberGroupsApi, profileFields as profileFieldsApi} from '@/api'
 import type {ParsedCsv} from '@/api/util'
-import type {ProfileField} from '@/api/profileFields'
+import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import type {MemberGroup} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useCsvImport} from '@/composables/useCsvImport'
 import {createColumnMapping, SKIP_TARGET, type ColumnMapping, type PreviewResult} from './memberImport'
+
+/** One answer a target allows: what is stored, and what the reader picks it by. */
+export interface TargetValue {
+    value: string
+    label: string
+}
 
 export interface MemberCsvImportOptions {
     /** Backend route the mapped CSV is previewed against. */
@@ -37,7 +44,24 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
     const {loaded} = useSession()
 
     const fields = ref<ProfileField[]>([])
+    const groups = ref<MemberGroup[]>([])
     const managerCount = options.managerCount ?? ref(0)
+
+    /**
+     * The rows struck out in the preview, by where they came from in the file.
+     *
+     * <p>A list always holds somebody who does not belong in this import: the person who left, the
+     * duplicate line, the row that is really a heading. Striking that one out beats editing the file
+     * and starting again.
+     */
+    const ignoredRows = ref<number[]>([])
+
+    async function toggleRow(row: number) {
+        ignoredRows.value = ignoredRows.value.includes(row)
+            ? ignoredRows.value.filter(candidate => candidate !== row)
+            : [...ignoredRows.value, row]
+        await importer.showPreview()
+    }
 
     const importer = useCsvImport<ColumnMapping[], PreviewResult, TResult>({
         parse: async ({text, separator}) => {
@@ -50,11 +74,13 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
         },
         createMapping: headers => headers.map((header, index) => createColumnMapping(header, guessTarget(header), index)),
         loadPreview: async ({text, separator, mapping}) => {
-            const response = await client.post<PreviewResult>(options.previewPath, {csv: text, separator, mappings: mapping})
+            const response = await client.post<PreviewResult>(options.previewPath,
+                {csv: text, separator, mappings: mapping, ignoredRows: ignoredRows.value})
             return response.data
         },
         commit: async ({text, separator, mapping}) => {
-            const response = await client.post<TResult>(options.importPath, {csv: text, separator, mappings: mapping})
+            const response = await client.post<TResult>(options.importPath,
+                {csv: text, separator, mappings: mapping, ignoredRows: ignoredRows.value})
             return response.data
         },
     })
@@ -114,15 +140,62 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
         return field ? `field:${field.id}` : SKIP_TARGET
     }
 
+    /**
+     * Whether a column is worth translating value by value.
+     *
+     * <p>Everything with a fixed set of answers is: a yes-or-no question, an enumeration, and the
+     * group column, where the file says "JF 1" and the station calls it "Jugendfeuerwehr". Without
+     * the group in that list, a file whose names differ from the station's silently created a second
+     * set of groups beside the ones that were already there.
+     */
     function needsValueMap(mapping: ColumnMapping): boolean {
+        if (mapping.target === 'group') return true
         if (!mapping.target.startsWith('field:')) return false
         const fieldId = parseInt(mapping.target.substring(6))
         const field = fields.value.find(candidate => candidate.id === fieldId)
         return field?.fieldType === 'BOOLEAN' || field?.fieldType === 'ENUM'
     }
 
+    /**
+     * The answers a target allows, for the editor that says what a value in the file becomes.
+     *
+     * <p>A yes-or-no question allows exactly those two, an enumeration the options it was written
+     * with, and a group column the groups the station keeps. Offering them beats typing them: a
+     * target spelled even slightly differently matches no answer, and the value then arrives as it
+     * stood in the file with nothing to say why. Everything else allows anything at all.
+     */
+    function valuesForTarget(target: string): TargetValue[] {
+        if (target === 'group') {
+            return groups.value
+                .filter(group => !!group.name)
+                .map(group => ({value: String(group.name), label: String(group.name)}))
+        }
+        if (!target.startsWith('field:')) return []
+        const field = fields.value.find(candidate => candidate.id === parseInt(target.substring(6)))
+        if (field?.fieldType === 'BOOLEAN') {
+            return [
+                {value: 'true', label: t('memberImport.valueYes')},
+                {value: 'false', label: t('memberImport.valueNo')},
+            ]
+        }
+        if (field?.fieldType !== 'ENUM') return []
+        const options = parseFieldConfig(field.config).options
+        return Array.isArray(options) ? options.map(option => ({value: String(option), label: String(option)})) : []
+    }
+
+    /** What a question is called, for the preview, which carries identifiers rather than names. */
+    function fieldLabel(fieldId: string): string {
+        const field = fields.value.find(candidate => String(candidate.id) === fieldId)
+        return field?.name ?? `#${fieldId}`
+    }
+
     async function loadFields() {
-        fields.value = await profileFieldsApi.listFields()
+        const [loadedFields, loadedGroups] = await Promise.all([
+            profileFieldsApi.listFields(),
+            memberGroupsApi.listGroups(),
+        ])
+        fields.value = loadedFields
+        groups.value = loadedGroups
     }
 
     onMounted(() => {
@@ -133,5 +206,5 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
         if (isLoaded) loadFields()
     })
 
-    return {importer, targetOptions, fieldScopeGroups, needsValueMap}
+    return {importer, targetOptions, fieldScopeGroups, needsValueMap, valuesForTarget, ignoredRows, toggleRow, fieldLabel}
 }
