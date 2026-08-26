@@ -329,7 +329,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventTemplateService,
                 eventServices.restriction(),
                 new EventRegistrationFieldService(new EventRegistrationFieldRepository()));
-        var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo);
+        var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo, stationMemberRepo);
         var containerSvc =
                 new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService);
         var fieldDefSvc = new InventoryFieldDefinitionService(fieldDefinitionRepo);
@@ -367,8 +367,8 @@ class DemoServiceTest extends RepositoryTestBase {
         var formSeeder = new DemoFormSeeder(formRepo, restrictionService);
         var notificationSeeder = new DemoNotificationSeeder(
                 notificationRepo, inventoryRepo, boardService, boardTicketService, procedureService, lendingService);
-        var waitingListSeeder = new DemoWaitingListSeeder(
-                waitingListRepo, memberGroupRepo, stationMemberRepo, attendanceRepo, accountRepo);
+        var waitingListSeeder =
+                new DemoWaitingListSeeder(waitingListRepo, memberGroupRepo, stationMemberRepo, accountRepo);
         var quizSeeder = new DemoQuizSeeder(quizCatalogRepo, quizTestRepo, quizService, quizImageService);
         var kbSeeder = new DemoKnowledgeBaseSeeder(kbService, kbContentService, knowledgeBaseRepo);
         var protocolSeeder = new DemoProtocolSeeder(testProtocolRepo);
@@ -489,6 +489,25 @@ class DemoServiceTest extends RepositoryTestBase {
     @Order(1)
     void seedDataWithoutErrors() {
         demoService.resetAndSeed();
+    }
+
+    /**
+     * Nothing that changes who is a member may run in the band that reads the roster.
+     *
+     * <p>Everything in {@link DemoSeeder#MODULES} runs at the same time. The waiting list ends with a
+     * withdrawn applicant being deleted again, member and account both, and beside a seeder listing
+     * the station's members that deletion lands between the listing and the write that follows it.
+     * The write then points at somebody who is no longer there and the whole seed fails, which is
+     * what it did: rarely, on whichever machine happened to interleave them that way.
+     */
+    @Test
+    @Order(1)
+    void theRosterSettlesBeforeTheParallelBand() {
+        assertTrue(
+                DemoSeeder.WAITING_LIST < DemoSeeder.MODULES,
+                "the waiting list changes the roster, so it belongs before everything that reads it");
+        var seeder = new DemoWaitingListSeeder(waitingListRepo, memberGroupRepo, stationMemberRepo, accountRepo);
+        assertEquals(DemoSeeder.WAITING_LIST, seeder.order());
     }
 
     @Test

@@ -8,8 +8,6 @@ package dev.chojo.ember.feature.system.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
-import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
@@ -23,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.node.StringNode;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,7 +33,6 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
     private final WaitingListRepository waitingListRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final StationMemberRepository stationMemberRepository;
-    private final AttendanceRepository attendanceRepository;
     private final AccountRepository accountRepository;
 
     @Inject
@@ -44,18 +40,23 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
             WaitingListRepository waitingListRepository,
             MemberGroupRepository memberGroupRepository,
             StationMemberRepository stationMemberRepository,
-            AttendanceRepository attendanceRepository,
             AccountRepository accountRepository) {
         this.waitingListRepository = waitingListRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.stationMemberRepository = stationMemberRepository;
-        this.attendanceRepository = attendanceRepository;
         this.accountRepository = accountRepository;
     }
 
+    /**
+     * Before the parallel band, because this is where the roster stops moving.
+     *
+     * <p>An applicant who withdrew after being invited is deleted again, member and account both. Run
+     * beside a seeder that lists the station's members, that deletion lands between the listing and
+     * the write that follows it, and the write points at somebody who is no longer there.
+     */
     @Override
     public int order() {
-        return MODULES;
+        return WAITING_LIST;
     }
 
     @Override
@@ -222,9 +223,6 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                         "Anfänger",
                         WaitingListEntryStatus.PENDING));
 
-        // Collect testing member IDs to add attendance later
-        var testingMemberIds = new ArrayList<Integer>();
-
         for (var kid : kids) {
             var entry = waitingListRepository.createEntry(
                     list.id(),
@@ -279,7 +277,6 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                         memberGroupRepository.addMember(gaesteGroup.id(), member.id());
                         waitingListRepository.updateEntryStatusWithTimestamp(
                                 entry.id(), WaitingListEntryStatus.TESTING, "testing_at");
-                        testingMemberIds.add(member.id());
                     }
                     case JOINED -> {
                         // The applicant first goes through the TRIAL phase like a real waiting-list
@@ -303,20 +300,6 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                                 entry.id(), WaitingListEntryStatus.WITHDRAWN, "withdrawn_at");
                     }
                     default -> {}
-                }
-            }
-        }
-
-        // Add testing members to recent attendance sessions as guests
-        if (!testingMemberIds.isEmpty()) {
-            var sessions = attendanceRepository.findRecentSessions(stationId, 10);
-            for (var session : sessions) {
-                for (int memberId : testingMemberIds) {
-                    attendanceRepository.createEntry(
-                            session.id(),
-                            memberId,
-                            AttendanceEntry.AttendanceStatus.PRESENT,
-                            AttendanceEntry.EntrySource.EXTRA);
                 }
             }
         }

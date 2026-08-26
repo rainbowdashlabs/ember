@@ -5,11 +5,13 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -33,10 +35,13 @@ public class DemoAttendanceSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoAttendanceSeeder.class);
 
     private final AttendanceRepository attendanceRepository;
+    private final StationMemberRepository stationMemberRepository;
 
     @Inject
-    public DemoAttendanceSeeder(AttendanceRepository attendanceRepository) {
+    public DemoAttendanceSeeder(
+            AttendanceRepository attendanceRepository, StationMemberRepository stationMemberRepository) {
         this.attendanceRepository = attendanceRepository;
+        this.stationMemberRepository = stationMemberRepository;
     }
 
     @Override
@@ -57,7 +62,33 @@ public class DemoAttendanceSeeder implements DemoPerStationSeeder {
                 members.anfaenger(),
                 members.fortgeschritten(),
                 members.betreuer());
+        addTrialMembersAsGuests(station.stationId());
         log.info("Demo: Created attendance sessions");
+    }
+
+    /**
+     * Puts everybody on trial into the recent sessions, as the guests they are.
+     *
+     * <p>Somebody carried over from the waiting list attends before they have joined, and a station
+     * that records attendance records them as an extra. Written here rather than where the waiting
+     * list is seeded, because the sessions are made here: reading them from the other side meant
+     * reaching across the parallel band for rows that might not exist yet.
+     */
+    private void addTrialMembersAsGuests(int stationId) {
+        var trials = stationMemberRepository.findByStation(stationId).stream()
+                .filter(member -> member.userType() == StationUserType.TRIAL)
+                .map(StationMember::id)
+                .toList();
+        if (trials.isEmpty()) return;
+        for (var session : attendanceRepository.findRecentSessions(stationId, 10)) {
+            for (int memberId : trials) {
+                attendanceRepository.createEntry(
+                        session.id(),
+                        memberId,
+                        AttendanceEntry.AttendanceStatus.PRESENT,
+                        AttendanceEntry.EntrySource.EXTRA);
+            }
+        }
     }
 
     public void seedAttendanceSessions(
