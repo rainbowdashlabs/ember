@@ -84,7 +84,7 @@ const {t} = useI18n()
       </div>
       <div class="space-y-1">
         <FieldLabel>{{ t('events.template') }}</FieldLabel>
-        <SelectInput v-model="templateId" class="w-full">
+        <SelectInput v-model="templateId" class="w-full" data-testid="event-attendance-template">
           <option value="">-</option>
           <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
         </SelectInput>

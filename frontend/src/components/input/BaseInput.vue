@@ -27,12 +27,17 @@ const PICKER_TYPES = ['date', 'time', 'datetime-local']
 let openedAt = 0
 
 /**
- * Opens the native picker as soon as a date or time field is reached, so the reader picks a date
+ * Opens the native picker when a date or time field is first reached, so the reader picks a date
  * instead of hunting for the small icon at the field's edge.
  *
- * showPicker throws without a transient user activation, which is exactly what tabbing into the
+ * <p>On reaching the field and on nothing else. It used to open on every click as well, which meant
+ * a click meant to put the cursor on the year re-opened the calendar and threw the typing back to
+ * the first part of the date. Whoever would rather type the date can now click their way along it
+ * and do so, with the calendar still offered the moment they arrive.
+ *
+ * <p>showPicker throws without a transient user activation, which is exactly what tabbing into the
  * field is. That is the browser's answer rather than a fault: the field then behaves as it always
- * did, and the click that follows opens the picker.
+ * did, and its own icon still opens the picker.
  */
 function openPicker(event: Event) {
   if (props.disabled || !PICKER_TYPES.includes(props.type ?? 'text')) return
@@ -43,7 +48,7 @@ function openPicker(event: Event) {
     input.showPicker?.()
     openedAt = now
   } catch {
-    // No user activation yet, so the field keeps its own affordance and nothing changes.
+    openedAt = 0
   }
 }
 </script>
@@ -57,6 +62,5 @@ function openPicker(event: Event) {
       :type="type ?? 'text'"
       :class="['w-full', props.borderless ? BORDERLESS_INPUT_CLASSES : BORDERED_INPUT_CLASSES]"
       @focus="openPicker"
-      @click="openPicker"
   />
 </template>

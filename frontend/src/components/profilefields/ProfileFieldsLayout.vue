@@ -65,7 +65,7 @@ function locked(field: LaidOutField): boolean {
       <div v-if="isSection(field)" :class="spanClass(field)" class="pt-2 first:pt-0">
         <SubHeader class="text-sm">{{ field.name }}</SubHeader>
       </div>
-      <div v-else :class="spanClass(field)" class="space-y-1">
+      <div v-else :data-field="field.name" :class="spanClass(field)" class="space-y-1">
         <FieldLabel>
           {{ field.name }}
           <span v-if="parseFieldConfig(field.config).required" class="text-error">*</span>

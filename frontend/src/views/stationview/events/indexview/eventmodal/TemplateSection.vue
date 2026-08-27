@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import FieldDefaultRow from './FieldDefaultRow.vue'
+import FieldDefaultRow from '../../eventshared/FieldDefaultRow.vue'
 import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
 
 const {t} = useI18n()
@@ -15,7 +15,6 @@ const {t} = useI18n()
 defineProps<{
   templates: AttendanceTemplate[]
   currentTemplateFields: AttendanceTemplateField[]
-  sources: { value: string; label: string }[]
   getDefault: (fieldId: number) => { source: string; value: string }
 }>()
 
@@ -48,7 +47,6 @@ const emit = defineEmits<{
             :field="field"
             :source="getDefault(field.id).source"
             :value="getDefault(field.id).value"
-            :sources="sources"
             @update-source="(s) => emit('updateSource', field.id, s)"
             @update-value="(v) => emit('updateValue', field.id, v)"
         />

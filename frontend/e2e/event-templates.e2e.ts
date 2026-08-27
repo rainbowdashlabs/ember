@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, type Page} from './fixtures/auth'
+import {unique} from './fixtures/unique'
 
 /**
  * The templates a station writes its events from, and the questions on them.
@@ -130,5 +131,38 @@ test.describe('Event templates', () => {
         await page.goto('/station/events/templates')
         await expect(page.locator('[data-testid="template-row"][data-name="Standard-Übung (Kopie)"]')
             .first()).toBeVisible()
+    })
+
+    /**
+     * The attendance sheet a template names travels with it onto the appointment.
+     *
+     * <p>A template said which sheet the attendance is taken on, and applying it to an appointment
+     * left that empty, so whoever applied it set the same thing again by hand. The story sets the
+     * sheet on the template, applies the template to a new appointment, and reads the appointment's
+     * own field back.
+     */
+    test('applying a template brings its attendance sheet along', async ({managerPage: page}) => {
+        // A template of its own rather than one of the seeded ones: the story saves it, and the
+        // stories running beside it read the seeded templates as they stand.
+        const name = unique('Vorlage')
+
+        await page.goto('/station/events/templates')
+        await page.getByRole('button', {name: 'Vorlage erstellen'}).first().click()
+        await page.getByPlaceholder('z.B. Standard-Übung').fill(name)
+        await page.getByRole('button', {name: 'Vorlage erstellen'}).last().click()
+        await page.waitForURL(/\/station\/events\/templates\/\d+/)
+
+        const onTemplate = page.getByTestId('template-attendance-template')
+        await onTemplate.selectOption({index: 1})
+        const sheet = await onTemplate.inputValue()
+        const save = page.locator('.save-button').last()
+        await save.click()
+        await expect(save).toHaveClass(/bg-success/)
+
+        await page.goto('/station/events/new')
+        await page.getByTestId('apply-template').selectOption({label: name})
+
+        await expect(page.getByTestId('event-attendance-template'),
+            'the appointment takes the sheet the template named').toHaveValue(sheet)
     })
 })

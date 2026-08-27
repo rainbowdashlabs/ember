@@ -233,6 +233,54 @@ test.describe('Members', () => {
     })
 
     /**
+     * The profile as it is read, rather than as it is filled in.
+     *
+     * <p>Two things were only ever checked on the form that writes them. A heading was rendered on
+     * the reading page as though it were a question with no answer, "Ausrüstung: -", which turns the
+     * arrangement the station made into noise. And a date was shown exactly as it is stored, so a
+     * birthday read 2022-04-25 instead of the 25.04.2022 it is.
+     */
+    test('the profile of a member reads with its headings and its dates', async ({managerPage: page}) => {
+        const heading = unique('Abschnitt')
+        const dateField = unique('Eintritt')
+        const created = await createMember(page)
+
+        await page.goto('/station/members/config')
+        await page.getByRole('button', {name: 'Feld hinzufügen'}).first().click()
+        const sectionDialog = page.getByRole('dialog')
+        await sectionDialog.getByPlaceholder('Name des Feldes').fill(heading)
+        await sectionDialog.getByRole('combobox').first().selectOption('SECTION')
+        await sectionDialog.getByRole('button', {name: 'Speichern'}).click()
+
+        await page.getByRole('button', {name: 'Feld hinzufügen'}).first().click()
+        const dateDialog = page.getByRole('dialog')
+        await dateDialog.getByPlaceholder('Name des Feldes').fill(dateField)
+        await dateDialog.getByRole('combobox').first().selectOption('DATE')
+        await dateDialog.getByRole('button', {name: 'Speichern'}).click()
+        await expect(page.getByText(dateField).first()).toBeVisible()
+
+        await page.goto('/station/members/list')
+        await page.getByPlaceholder(/Suche/).first().fill(created)
+        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.waitForURL(/\/station\/members\/detail\/(\d+)/)
+        const id = page.url().match(/detail\/(\d+)/)?.[1]
+
+        await page.goto(`/station/members/edit/${id}`)
+        await page.locator(`[data-field="${dateField}"] input`).fill('2022-04-25')
+        const save = page.locator('.save-button').last()
+        await save.click()
+        await expect(save, 'the answer was kept before the page is left').toHaveClass(/bg-success/)
+
+        await page.goto(`/station/members/detail/${id}`)
+        await expect(page.getByTestId('field-section').filter({hasText: heading}),
+            'the heading stands as one').toHaveCount(1)
+        await expect(page.getByTestId('field-entry').filter({hasText: heading}),
+            'and not as a question nobody answered').toHaveCount(0)
+        await expect(page.locator(`[data-testid="field-entry"][data-field="${dateField}"]`),
+            'a date reads the way a date is written here').toContainText('25.04.2022')
+    })
+
+    /**
      * A field of group scope is listed at its group and nowhere else, so the group it was made for
      * has to survive being saved. It travels as one opaque lump of configuration, which no type on
      * either side describes, so only walking both ends says whether it arrived.

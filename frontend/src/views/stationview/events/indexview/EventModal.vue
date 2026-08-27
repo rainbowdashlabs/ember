@@ -115,13 +115,6 @@ watch(modelValue, (open) => {
   }
 })
 
-const EVENT_SOURCES = [
-  { value: 'EVENT_NAME', label: 'Terminname' },
-  { value: 'EVENT_DESCRIPTION', label: 'Beschreibung' },
-  { value: 'EVENT_START_TIME', label: 'Startzeit' },
-  { value: 'EVENT_END_TIME', label: 'Endzeit' },
-]
-
 const currentTemplateFields = computed(() => {
   if (!eventTemplateId.value) return []
   return props.templateFields.filter(f => f.templateId === Number(eventTemplateId.value))
@@ -177,7 +170,7 @@ function submit() {
       <SubHeader>{{ event ? t('events.editEvent') : t('events.addEvent') }}</SubHeader>
       <BasicInfoFields v-model:event-name="eventName" v-model:event-description="eventDescription" v-model:event-type="eventType" v-model:event-day-of-week="eventDayOfWeek"/>
       <ScheduleFields v-model:event-start-time="eventStartTime" v-model:event-end-time="eventEndTime"/>
-      <TemplateSection v-model:event-template-id="eventTemplateId" :templates="templates" :current-template-fields="currentTemplateFields" :sources="EVENT_SOURCES" :get-default="getFieldDefault" @update-source="setFieldDefaultSource" @update-value="setFieldDefaultValue"/>
+      <TemplateSection v-model:event-template-id="eventTemplateId" :templates="templates" :current-template-fields="currentTemplateFields" :get-default="getFieldDefault" @update-source="setFieldDefaultSource" @update-value="setFieldDefaultValue"/>
       <CategorySelect v-model:event-category-id="eventCategoryId" :categories="categories"/>
       <RegistrationFields v-model:event-requires-registration="eventRequiresRegistration" v-model:event-requires-confirmation="eventRequiresConfirmation" v-model:event-has-deadline="eventHasDeadline" v-model:event-registration-deadline="eventRegistrationDeadline"/>
       <RestrictionsFields v-model="restriction" :groups="groups" :tags="tags"/>

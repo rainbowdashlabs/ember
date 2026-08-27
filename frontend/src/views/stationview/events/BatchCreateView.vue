@@ -77,6 +77,7 @@ async function applyTemplate() {
     if (tpl.title) eventName.value = tpl.title
     if (tpl.description) eventDescription.value = tpl.description
     if (tpl.categoryId) selectedCategoryId.value = String(tpl.categoryId)
+    if (tpl.attendanceTemplateId) selectedTemplateId.value = String(tpl.attendanceTemplateId)
     if (tpl.requiresRegistration != null) requiresRegistration.value = tpl.requiresRegistration
     if (tpl.requiresConfirmation != null) requiresConfirmation.value = tpl.requiresConfirmation
     fieldDefs.value = detail.fields.map(f => ({

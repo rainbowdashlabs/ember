@@ -35,7 +35,10 @@ const eventId = computed(() => route.params.id ? Number(route.params.id) : null)
 const isEdit = computed(() => eventId.value !== null)
 
 const form = useEventForm()
-const data = useEventEditData(() => form.state.templateId)
+const data = useEventEditData(
+    () => form.state.templateId,
+    () => form.state.fields.map(f => f.attendanceFieldId).filter((id): id is number => id != null),
+)
 const fieldDefaults = useEventFieldDefaults()
 const federationShare = useEventFederationShare(canFederate)
 
