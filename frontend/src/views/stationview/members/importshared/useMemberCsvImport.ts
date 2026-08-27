@@ -12,6 +12,7 @@ import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
 import type {MemberGroup} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useCsvImport} from '@/composables/useCsvImport'
+import {fieldTypeLabel} from '@/views/stationview/manage/membersconfig/fieldTypes'
 import {createColumnMapping, SKIP_TARGET, type ColumnMapping, type PreviewResult} from './memberImport'
 
 /** One answer a target allows: what is stored, and what the reader picks it by. */
@@ -114,7 +115,8 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
             result.push({value: `manager:${manager}:email`, label: t('memberImport.managerEmail'), group: managerGroup})
         }
         for (const field of fields.value) {
-            result.push({value: `field:${field.id}`, label: `${field.name} (${field.fieldType})`, group: scopeLabel(field)})
+            const kind = field.fieldType ? ` (${fieldTypeLabel(t, field.fieldType)})` : ''
+            result.push({value: `field:${field.id}`, label: `${field.name}${kind}`, group: scopeLabel(field)})
         }
         return result
     })

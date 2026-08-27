@@ -381,8 +381,8 @@ test.describe('Members', () => {
 
         await mapColumn(page, 'Vorname', 'firstName')
         await mapColumn(page, 'Nachname', 'lastName')
-        await mapColumn(page, 'Allergie', {label: 'Allergien (TEXT)'})
-        await mapColumn(page, 'Geburtstag', {label: 'Geburtstag (DATE)'})
+        await mapColumn(page, 'Allergie', {label: 'Allergien (Text)'})
+        await mapColumn(page, 'Geburtstag', {label: 'Geburtstag (Datum)'})
         await mapColumn(page, 'Kontakt', 'manager:1:firstName')
         await mapColumn(page, 'Telefon', 'manager:1:phone')
         await mapColumn(page, 'Kontakt Email', 'manager:1:email')
@@ -442,7 +442,7 @@ test.describe('Members', () => {
         await uploadCsv(page, 'Vorname;Nachname;Geschlecht\n'
             + 'Eine;Person;m\nZweite;Person;m\nDritte;Person;w\nVierte;Person;m\n')
 
-        await mapColumn(page, 'Geschlecht', {label: 'Geschlecht (ENUM)'})
+        await mapColumn(page, 'Geschlecht', {label: 'Geschlecht (Auswahl)'})
         await page.locator('[data-testid="mapping-row"][data-column="Geschlecht"]')
             .getByRole('button', {name: 'Werte zuordnen'}).click()
 
