@@ -50,7 +50,7 @@ const attendanceTemplateId = defineModel<string>('attendanceTemplateId', {requir
     </div>
     <div class="space-y-1">
       <FieldLabel>{{ t('eventTemplates.attendanceTemplate') }}</FieldLabel>
-      <SelectInput v-model="attendanceTemplateId" class="w-full">
+      <SelectInput v-model="attendanceTemplateId" class="w-full" data-testid="template-attendance-template">
         <option value="">{{ t('eventTemplates.noDefault') }}</option>
         <option v-for="tpl in attendanceTemplates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
       </SelectInput>

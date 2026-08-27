@@ -22,10 +22,9 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationContractRefreshService;
 import dev.chojo.ember.feature.federation.service.FederationReplayCache;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
-import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberPermissionResolver;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.Context;
@@ -52,28 +51,28 @@ public class AccessManager {
 
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
-    private final MemberGroupRepository memberGroupRepository;
     private final FederationRepository federationRepository;
     private final FederationSigningService signingService;
     private final FederationReplayCache replayCache;
     private final StationRepository stationRepository;
     private final ClusterRepository clusterRepository;
     private final FederationContractRefreshService contractRefreshService;
+    private final MemberPermissionResolver permissionResolver;
 
     @Inject
     public AccessManager(
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
-            MemberGroupRepository memberGroupRepository,
             FederationRepository federationRepository,
             FederationSigningService signingService,
             FederationReplayCache replayCache,
             StationRepository stationRepository,
             ClusterRepository clusterRepository,
-            FederationContractRefreshService contractRefreshService) {
+            FederationContractRefreshService contractRefreshService,
+            MemberPermissionResolver permissionResolver) {
+        this.permissionResolver = permissionResolver;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
-        this.memberGroupRepository = memberGroupRepository;
         this.federationRepository = federationRepository;
         this.signingService = signingService;
         this.replayCache = replayCache;
@@ -255,38 +254,14 @@ public class AccessManager {
      * Resolves the expanded permissions for a station member.
      */
     public Set<StationPermission> resolveExpandedMemberPermissions(StationMember member) {
-        Set<StationPermission> permissions = EnumSet.noneOf(StationPermission.class);
-
-        // 1. Default permissions from user type (hardcoded in enum)
-        permissions.addAll(Arrays.asList(member.userType().defaultPermissions()));
-
-        // 2. Station-level user type permissions (configured per station)
-        stationMemberRepository.findUserTypePermissions(member.stationId(), member.userType()).stream()
-                .map(Permission::permission)
-                .forEach(permissions::add);
-
-        // 3. Direct permission grants
-        stationMemberRepository.findPermissions(member.id()).stream()
-                .map(Permission::permission)
-                .forEach(permissions::add);
-
-        // 4. Group-inherited permissions
-        memberGroupRepository.findPermissionsForMemberViaGroups(member.id()).stream()
-                .map(Permission::permission)
-                .forEach(permissions::add);
-
-        // 5. Expand hierarchy
-        return StationPermission.expand(permissions);
+        return permissionResolver.resolve(member);
     }
 
     /**
      * Resolves the expanded permissions for a station member by their member ID.
      */
     public Set<StationPermission> resolveExpandedMemberPermissions(int memberId) {
-        return stationMemberRepository
-                .findById(memberId)
-                .map(this::resolveExpandedMemberPermissions)
-                .orElse(EnumSet.noneOf(StationPermission.class));
+        return permissionResolver.resolve(memberId);
     }
 
     public Optional<FederationSession> resolveFederationSession(Context ctx) {

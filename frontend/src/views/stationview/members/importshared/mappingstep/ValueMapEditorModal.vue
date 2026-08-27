@@ -41,7 +41,7 @@ defineEmits<{
       <SubHeader>{{ t('memberImport.valueMapTitle') }}</SubHeader>
       <p class="text-xs text-(--text-muted)">{{ t('memberImport.valueMapHint') }}</p>
       <div class="space-y-2">
-        <div v-for="(entry, ei) in entries" :key="ei" class="grid grid-cols-2 gap-2">
+        <div v-for="(entry, ei) in entries" :key="ei" data-testid="value-map-row" class="grid grid-cols-2 gap-2">
           <TextInput v-model="entry.from" :placeholder="t('memberImport.csvValue')" />
           <SelectInput v-if="targetValues.length > 0" v-model="entry.to" data-testid="value-map-target">
             <option value="">{{ t('memberImport.targetValueNone') }}</option>

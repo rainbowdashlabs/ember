@@ -19,6 +19,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import tools.jackson.databind.node.StringNode;
 
 import java.util.List;
 
@@ -171,7 +172,7 @@ class ProfileFieldRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void setAndFindValue() {
-        profileFieldRepo.setValue(member.id(), fieldId, "\"test@test.com\"");
+        profileFieldRepo.setValue(member.id(), fieldId, StringNode.valueOf("test@test.com"));
         var values = profileFieldRepo.findValues(member.id());
         assertEquals(1, values.size());
         assertEquals("\"test@test.com\"", values.getFirst().value());
@@ -187,7 +188,7 @@ class ProfileFieldRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(12)
     void upsertValue() {
-        profileFieldRepo.setValue(member.id(), fieldId, "\"updated@test.com\"");
+        profileFieldRepo.setValue(member.id(), fieldId, StringNode.valueOf("updated@test.com"));
         assertEquals(
                 "\"updated@test.com\"",
                 profileFieldRepo.findValue(member.id(), fieldId).orElseThrow().value());

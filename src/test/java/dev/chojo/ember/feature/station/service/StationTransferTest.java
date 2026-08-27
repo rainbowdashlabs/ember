@@ -37,6 +37,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import tools.jackson.databind.node.StringNode;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -205,10 +206,10 @@ class StationTransferTest extends RepositoryTestBase {
                 ProfileFieldConfig.parse("{}"),
                 0,
                 ProfileFieldScope.TEAM);
-        profileFieldRepo.setValue(manager.id(), fieldTelefon.id(), "\"0151-11111\"");
-        profileFieldRepo.setValue(trainer.id(), fieldTelefon.id(), "\"0151-22222\"");
-        profileFieldRepo.setValue(child.id(), fieldGeburtstag.id(), "\"2012-05-15\"");
-        profileFieldRepo.setValue(trainer.id(), fieldNotizen.id(), "\"Sehr zuverlässig\"");
+        profileFieldRepo.setValue(manager.id(), fieldTelefon.id(), StringNode.valueOf("0151-11111"));
+        profileFieldRepo.setValue(trainer.id(), fieldTelefon.id(), StringNode.valueOf("0151-22222"));
+        profileFieldRepo.setValue(child.id(), fieldGeburtstag.id(), StringNode.valueOf("2012-05-15"));
+        profileFieldRepo.setValue(trainer.id(), fieldNotizen.id(), StringNode.valueOf("Sehr zuverlässig"));
 
         // --- Attendance templates ---
         var templateStandard = attendanceRepo.createTemplate(sourceStationId, "Standard-Übung");

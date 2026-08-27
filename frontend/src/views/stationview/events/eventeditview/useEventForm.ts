@@ -6,6 +6,7 @@
 import {reactive, watch} from 'vue'
 import {events} from '@/api'
 import {EventTypes, needsDayOfWeek, type EventField, type EventFieldEntry, type EventTemplateDetail, type StationEvent} from '@/api/events'
+import {emptyRestriction} from '@/components/input/restriction'
 import {createEventFormState} from './eventFormState'
 import {modelBindings} from './modelBindings'
 
@@ -30,12 +31,21 @@ export function useEventForm() {
     }
   })
 
+  /**
+   * Fills the form from an event template.
+   *
+   * <p>The attendance template comes with it. A template that says which sheet the attendance is
+   * taken on and then leaves the appointment without one makes whoever applied it set the same thing
+   * again by hand, which is the one thing a template is for.
+   */
   function applyTemplate(detail: EventTemplateDetail) {
     const tpl = detail.template
     if (tpl.title) state.name = tpl.title
     if (tpl.description) state.description = tpl.description
     if (tpl.categoryId) state.categoryId = String(tpl.categoryId)
+    if (tpl.attendanceTemplateId) state.templateId = String(tpl.attendanceTemplateId)
     if (tpl.eventType) state.eventType = tpl.eventType
+    if (detail.restriction) state.restriction = {...emptyRestriction(), ...detail.restriction}
     if (tpl.requiresRegistration != null) state.requiresRegistration = tpl.requiresRegistration
     if (tpl.requiresConfirmation != null) state.requiresConfirmation = tpl.requiresConfirmation
     if (detail.fields.length > 0) {

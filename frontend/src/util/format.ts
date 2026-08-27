@@ -19,12 +19,14 @@ export function formatTime(iso?: string | null): string {
 
 /**
  * Formats an ISO timestamp as `dd.MM.yyyy` for display. Returns an empty string when the input
- * is missing. Use this for date-only output where the locale's German `de-DE` format is wanted
- * without time components.
+ * is missing or is not a date at all. Use this for date-only output where the locale's German
+ * `de-DE` format is wanted without time components.
  */
 export function formatDate(iso?: string | null): string {
     if (!iso) return ''
-    return new Date(iso).toLocaleDateString('de-DE', {
+    const date = new Date(iso)
+    if (Number.isNaN(date.getTime())) return ''
+    return date.toLocaleDateString('de-DE', {
         day: '2-digit', month: '2-digit', year: 'numeric',
     })
 }

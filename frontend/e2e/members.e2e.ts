@@ -233,6 +233,54 @@ test.describe('Members', () => {
     })
 
     /**
+     * The profile as it is read, rather than as it is filled in.
+     *
+     * <p>Two things were only ever checked on the form that writes them. A heading was rendered on
+     * the reading page as though it were a question with no answer, "Ausrüstung: -", which turns the
+     * arrangement the station made into noise. And a date was shown exactly as it is stored, so a
+     * birthday read 2019-11-03 instead of the 03.11.2019 it is.
+     */
+    test('the profile of a member reads with its headings and its dates', async ({managerPage: page}) => {
+        const heading = unique('Abschnitt')
+        const dateField = unique('Eintritt')
+        const created = await createMember(page)
+
+        await page.goto('/station/members/config')
+        await page.getByRole('button', {name: 'Feld hinzufügen'}).first().click()
+        const sectionDialog = page.getByRole('dialog')
+        await sectionDialog.getByPlaceholder('Name des Feldes').fill(heading)
+        await sectionDialog.getByRole('combobox').first().selectOption('SECTION')
+        await sectionDialog.getByRole('button', {name: 'Speichern'}).click()
+
+        await page.getByRole('button', {name: 'Feld hinzufügen'}).first().click()
+        const dateDialog = page.getByRole('dialog')
+        await dateDialog.getByPlaceholder('Name des Feldes').fill(dateField)
+        await dateDialog.getByRole('combobox').first().selectOption('DATE')
+        await dateDialog.getByRole('button', {name: 'Speichern'}).click()
+        await expect(page.getByText(dateField).first()).toBeVisible()
+
+        await page.goto('/station/members/list')
+        await page.getByPlaceholder(/Suche/).first().fill(created)
+        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.waitForURL(/\/station\/members\/detail\/(\d+)/)
+        const id = page.url().match(/detail\/(\d+)/)?.[1]
+
+        await page.goto(`/station/members/edit/${id}`)
+        await page.locator(`[data-field="${dateField}"] input`).fill('2019-11-03')
+        const save = page.locator('.save-button').last()
+        await save.click()
+        await expect(save, 'the answer was kept before the page is left').toHaveClass(/bg-success/)
+
+        await page.goto(`/station/members/detail/${id}`)
+        await expect(page.getByTestId('field-section').filter({hasText: heading}),
+            'the heading stands as one').toHaveCount(1)
+        await expect(page.getByTestId('field-entry').filter({hasText: heading}),
+            'and not as a question nobody answered').toHaveCount(0)
+        await expect(page.locator(`[data-testid="field-entry"][data-field="${dateField}"]`),
+            'a date reads the way a date is written here').toContainText('03.11.2019')
+    })
+
+    /**
      * A field of group scope is listed at its group and nowhere else, so the group it was made for
      * has to survive being saved. It travels as one opaque lump of configuration, which no type on
      * either side describes, so only walking both ends says whether it arrived.
@@ -263,20 +311,13 @@ test.describe('Members', () => {
     test('members are imported from a file', async ({managerPage: page}) => {
         const surname = unique('Importiert')
 
-        await page.goto('/station/members/import')
-
-        await page.setInputFiles('input[type="file"]', {
-            name: 'mitglieder.csv',
-            mimeType: 'text/csv',
-            // Semicolons, because that is the separator the member wizard starts with.
-            buffer: Buffer.from(`Vorname;Nachname\nTestperson;${surname}\n`, 'utf-8'),
-        })
-        await page.getByRole('button', {name: 'Weiter'}).click()
+        // Semicolons, because that is the separator the member wizard starts with.
+        await uploadCsv(page, `Vorname;Nachname\nTestperson;${surname}\n`)
 
         // Each column of the file is pointed at what it holds; the wizard refuses to go on until at
         // least the name is answered for.
-        await page.locator('select:has(option:text-is("Vorname"))').first().selectOption({label: 'Vorname'})
-        await page.locator('select:has(option:text-is("Nachname"))').last().selectOption({label: 'Nachname'})
+        await mapColumn(page, 'Vorname', 'firstName')
+        await mapColumn(page, 'Nachname', 'lastName')
 
         await page.getByRole('button', {name: 'Vorschau'}).click()
         await expect(page.getByText(/1 Mitglieder erkannt/)).toBeVisible()
@@ -307,12 +348,9 @@ test.describe('Members', () => {
         const csv = `Vorname;Nachname\nTestperson;${stays}\nTestperson;${struck}\n`
 
         async function walkTheWizard() {
-            await page.goto('/station/members/import')
-            await page.setInputFiles('input[type="file"]',
-                {name: 'mitglieder.csv', mimeType: 'text/csv', buffer: Buffer.from(csv, 'utf-8')})
-            await page.getByRole('button', {name: 'Weiter'}).click()
-            await page.locator('select:has(option:text-is("Vorname"))').first().selectOption({label: 'Vorname'})
-            await page.locator('select:has(option:text-is("Nachname"))').last().selectOption({label: 'Nachname'})
+            await uploadCsv(page, csv)
+            await mapColumn(page, 'Vorname', 'firstName')
+            await mapColumn(page, 'Nachname', 'lastName')
             await page.getByRole('button', {name: 'Vorschau'}).click()
             await expect(page.getByTestId('preview-row')).toHaveCount(2)
         }
@@ -339,6 +377,128 @@ test.describe('Members', () => {
         await expect(page.getByTestId('member-row'), 'nobody was doubled').toHaveCount(1)
         await page.getByPlaceholder(/Suche/).first().fill(struck)
         await expect(page.getByTestId('member-row')).toHaveCount(1)
+    })
+
+    /**
+     * Points one column of the file at what it holds, found by the heading it carries.
+     *
+     * <p>By what the target is worth rather than by what it is called: every column offers "Vorname"
+     * twice over, once for the member and once for each of their guardians, and a story picking by
+     * name would take whichever came first.
+     */
+    async function mapColumn(page: Page, column: string, target: string | {label: string}) {
+        await page.locator(`[data-testid="mapping-row"][data-column="${column}"]`).first()
+            .locator('select').first()
+            .selectOption(target)
+    }
+
+    /** Puts a file in front of the wizard and carries it to the mapping step. */
+    async function uploadCsv(page: Page, csv: string) {
+        await page.goto('/station/members/import')
+        await page.setInputFiles('input[type="file"]',
+            {name: 'mitglieder.csv', mimeType: 'text/csv', buffer: Buffer.from(csv, 'utf-8')})
+        await page.getByRole('button', {name: 'Weiter'}).click()
+        await expect(page.getByTestId('mapping-row').first()).toBeVisible()
+    }
+
+    /** Opens the imported person, found by the surname they were read in under. */
+    async function openImported(page: Page, surname: string) {
+        await page.goto('/station/members/list')
+        await page.getByPlaceholder(/Suche/).first().fill(surname)
+        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.waitForURL(/\/station\/members\/detail\/\d+/)
+    }
+
+    /**
+     * A youth list as a station actually keeps one: names, answers to the station's own questions,
+     * a group, and a parent on every row. Everything the reading is for at once, because each part
+     * of it broke on its own while the parts beside it went on working.
+     *
+     * <p>The answers are read back off the member rather than off the report the import writes: a
+     * count of what was set says nothing about whether it reached the person it was set on, which is
+     * exactly how a mapped question came to be dropped while the wizard said it had been kept.
+     */
+    test('a list with questions, a group and a parent is read in whole', async ({managerPage: page}) => {
+        const surname = unique('Vollstaendig')
+        const parent = unique('Elternteil')
+        const allergy = unique('Heuschnupfen')
+
+        await uploadCsv(page, 'Vorname;Nachname;Allergie;Geburtstag;Kontakt;Telefon;Kontakt Email\n'
+            + `Testperson;${surname};${allergy};04.03.2011;Anja ${parent};01700000000;`
+            + `${parent.toLowerCase()}@example.test\n`)
+
+        await mapColumn(page, 'Vorname', 'firstName')
+        await mapColumn(page, 'Nachname', 'lastName')
+        await mapColumn(page, 'Allergie', {label: 'Allergien (Text)'})
+        await mapColumn(page, 'Geburtstag', {label: 'Geburtstag (Datum)'})
+        await mapColumn(page, 'Kontakt', 'manager:1:firstName')
+        await mapColumn(page, 'Telefon', 'manager:1:phone')
+        await mapColumn(page, 'Kontakt Email', 'manager:1:email')
+
+        await page.getByRole('button', {name: 'Vorschau'}).click()
+        await expect(page.getByText(/1 Mitglieder erkannt/)).toBeVisible()
+        await page.getByRole('button', {name: 'Importieren'}).click()
+        await expect(page.getByText('Import abgeschlossen')).toBeVisible()
+
+        await openImported(page, surname)
+        await expect(page.getByText(allergy).first(), 'the answer reached the member').toBeVisible()
+
+        await page.getByRole('button', {name: 'Erziehungsberechtigte'}).click()
+        await expect(page.getByTestId('guardian-row'), 'the parent was written down and linked').toHaveCount(1)
+        await expect(page.getByTestId('guardian-row').first()).toContainText(parent)
+    })
+
+    /**
+     * A parent the list gives no address for is still a parent.
+     *
+     * <p>A youth list carries a telephone number far more often than an address, and a contact
+     * without one used to be dropped where it stood: no guardian, no link, and nothing said. An
+     * address is made up for them the same way it is for a member who arrives without one.
+     */
+    test('a parent without an address is written down all the same', async ({managerPage: page}) => {
+        const surname = unique('Ohnemail')
+        const parent = unique('Namenlos')
+
+        await uploadCsv(page, `Vorname;Nachname;Kontakt;Telefon\nTestperson;${surname};Bea ${parent};01700000000\n`)
+
+        await mapColumn(page, 'Vorname', 'firstName')
+        await mapColumn(page, 'Nachname', 'lastName')
+        await mapColumn(page, 'Kontakt', 'manager:1:firstName')
+        await mapColumn(page, 'Telefon', 'manager:1:phone')
+
+        await page.getByRole('button', {name: 'Vorschau'}).click()
+        await page.getByRole('button', {name: 'Importieren'}).click()
+        await expect(page.getByText('Import abgeschlossen')).toBeVisible()
+
+        await openImported(page, surname)
+        await page.getByRole('button', {name: 'Erziehungsberechtigte'}).click()
+        await expect(page.getByTestId('guardian-row')).toHaveCount(1)
+        await expect(page.getByTestId('guardian-row').first()).toContainText(parent)
+    })
+
+    /**
+     * The editor that maps a column's answers onto the station's own offers each answer once.
+     *
+     * <p>A column of thirty rows answered in three ways is three things to map, not thirty. It used
+     * to list the first few rows as they stood, so the same answer arrived several times over and
+     * the ones further down the file never arrived at all.
+     *
+     * <p>The question has its own answers, so the target is picked from them rather than typed: one
+     * spelled by hand matches nothing, and the value then arrives exactly as the file had it.
+     */
+    test('the value editor offers every answer of a column once', async ({managerPage: page}) => {
+        await uploadCsv(page, 'Vorname;Nachname;Geschlecht\n'
+            + 'Eine;Person;m\nZweite;Person;m\nDritte;Person;w\nVierte;Person;m\n')
+
+        await mapColumn(page, 'Geschlecht', {label: 'Geschlecht (Auswahl)'})
+        await page.locator('[data-testid="mapping-row"][data-column="Geschlecht"]')
+            .getByRole('button', {name: 'Werte zuordnen'}).click()
+
+        await expect(page.getByTestId('value-map-row'), 'm and w, each once').toHaveCount(2)
+
+        const target = page.getByTestId('value-map-target').first()
+        await target.selectOption({label: 'männlich'})
+        await expect(target).toHaveValue('männlich')
     })
 
     /**

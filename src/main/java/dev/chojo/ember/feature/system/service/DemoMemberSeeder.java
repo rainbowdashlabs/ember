@@ -25,6 +25,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.node.BooleanNode;
+import tools.jackson.databind.node.StringNode;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -337,18 +339,18 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
 
             // Profile data
             boolean hasJuleica = rng.nextBoolean();
-            profileFieldRepository.setValue(m.id(), fieldJuleica.id(), Boolean.toString(hasJuleica));
+            profileFieldRepository.setValue(m.id(), fieldJuleica.id(), BooleanNode.valueOf(hasJuleica));
             if (hasJuleica) {
                 profileFieldRepository.setValue(
                         m.id(),
                         fieldJuleicaAblauf.id(),
-                        jsonStr(LocalDate.now().plusMonths(rng.nextInt(24)).toString()));
+                        text(LocalDate.now().plusMonths(rng.nextInt(24)).toString()));
             }
-            profileFieldRepository.setValue(m.id(), fieldFuehrerschein.id(), "true");
+            profileFieldRepository.setValue(m.id(), fieldFuehrerschein.id(), BooleanNode.TRUE);
             profileFieldRepository.setValue(
                     m.id(),
                     fieldFuehrerscheinAblauf.id(),
-                    jsonStr(LocalDate.now().plusYears(rng.nextInt(5) + 1).toString()));
+                    text(LocalDate.now().plusYears(rng.nextInt(5) + 1).toString()));
         }
 
         // Create Eltern (member managers -- GUARDIAN role, not MEMBER)
@@ -368,12 +370,12 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             // Profile data -- skip Mobilnummer for first member manager (incomplete profile)
             if (!firstEltern) {
                 profileFieldRepository.setValue(
-                        m.id(), fieldTelefon.id(), jsonStr("0151 " + (10000000 + rng.nextInt(90000000))));
+                        m.id(), fieldTelefon.id(), text("0151 " + (10000000 + rng.nextInt(90000000))));
             }
             firstEltern = false;
             profileFieldRepository.setValue(
-                    m.id(), fieldFestnetz.id(), jsonStr("0208 " + (1000000 + rng.nextInt(9000000))));
-            profileFieldRepository.setValue(m.id(), fieldNewsletter.id(), Boolean.toString(rng.nextBoolean()));
+                    m.id(), fieldFestnetz.id(), text("0208 " + (1000000 + rng.nextInt(9000000))));
+            profileFieldRepository.setValue(m.id(), fieldNewsletter.id(), BooleanNode.valueOf(rng.nextBoolean()));
         }
 
         // Create Anfaenger
@@ -386,14 +388,14 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             anfaengerMembers.add(m);
 
             // Personalnummer
-            profileFieldRepository.setValue(m.id(), fieldPersonalnummer.id(), jsonStr(String.valueOf(personalNr++)));
+            profileFieldRepository.setValue(m.id(), fieldPersonalnummer.id(), text(String.valueOf(personalNr++)));
 
             // Geburtstag -- skip first Anfaenger (incomplete profile)
             if (!firstAnfaenger) {
                 profileFieldRepository.setValue(
                         m.id(),
                         fieldGeburtstag.id(),
-                        jsonStr(LocalDate.now()
+                        text(LocalDate.now()
                                 .minusYears(10 + rng.nextInt(6))
                                 .minusDays(rng.nextInt(365))
                                 .toString()));
@@ -402,18 +404,18 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
 
             // Geschlecht
             profileFieldRepository.setValue(
-                    m.id(), fieldGeschlecht.id(), jsonStr(rng.nextBoolean() ? "männlich" : "weiblich"));
+                    m.id(), fieldGeschlecht.id(), text(rng.nextBoolean() ? "männlich" : "weiblich"));
 
             // Some have Jugendflamme 1
             if (rng.nextInt(3) == 0) {
-                profileFieldRepository.setValue(m.id(), fieldJF1.id(), "true");
+                profileFieldRepository.setValue(m.id(), fieldJF1.id(), BooleanNode.TRUE);
                 profileFieldRepository.setValue(
                         m.id(),
                         fieldJF1Datum.id(),
-                        jsonStr(LocalDate.now().minusMonths(rng.nextInt(12)).toString()));
+                        text(LocalDate.now().minusMonths(rng.nextInt(12)).toString()));
             }
             if (rng.nextBoolean()) {
-                profileFieldRepository.setValue(m.id(), fieldAllergien.id(), jsonStr(randomAllergy(rng)));
+                profileFieldRepository.setValue(m.id(), fieldAllergien.id(), text(randomAllergy(rng)));
             }
         }
 
@@ -425,48 +427,48 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             fortgeschrittenMembers.add(m);
 
             // Personalnummer
-            profileFieldRepository.setValue(m.id(), fieldPersonalnummer.id(), jsonStr(String.valueOf(personalNr++)));
+            profileFieldRepository.setValue(m.id(), fieldPersonalnummer.id(), text(String.valueOf(personalNr++)));
 
             // Geburtstag
             profileFieldRepository.setValue(
                     m.id(),
                     fieldGeburtstag.id(),
-                    jsonStr(LocalDate.now()
+                    text(LocalDate.now()
                             .minusYears(12 + rng.nextInt(6))
                             .minusDays(rng.nextInt(365))
                             .toString()));
 
             // Geschlecht
             profileFieldRepository.setValue(
-                    m.id(), fieldGeschlecht.id(), jsonStr(rng.nextBoolean() ? "männlich" : "weiblich"));
+                    m.id(), fieldGeschlecht.id(), text(rng.nextBoolean() ? "männlich" : "weiblich"));
 
             // Most have JF1, some JF2, few JF3
-            profileFieldRepository.setValue(m.id(), fieldJF1.id(), "true");
+            profileFieldRepository.setValue(m.id(), fieldJF1.id(), BooleanNode.TRUE);
             profileFieldRepository.setValue(
                     m.id(),
                     fieldJF1Datum.id(),
-                    jsonStr(LocalDate.now().minusMonths(rng.nextInt(24) + 6).toString()));
+                    text(LocalDate.now().minusMonths(rng.nextInt(24) + 6).toString()));
             if (rng.nextInt(3) != 0) {
-                profileFieldRepository.setValue(m.id(), fieldJF2.id(), "true");
+                profileFieldRepository.setValue(m.id(), fieldJF2.id(), BooleanNode.TRUE);
                 profileFieldRepository.setValue(
                         m.id(),
                         fieldJF2Datum.id(),
-                        jsonStr(LocalDate.now().minusMonths(rng.nextInt(12)).toString()));
+                        text(LocalDate.now().minusMonths(rng.nextInt(12)).toString()));
             }
             if (rng.nextInt(5) == 0) {
-                profileFieldRepository.setValue(m.id(), fieldJF3.id(), "true");
+                profileFieldRepository.setValue(m.id(), fieldJF3.id(), BooleanNode.TRUE);
                 profileFieldRepository.setValue(
                         m.id(),
                         fieldJF3Datum.id(),
-                        jsonStr(LocalDate.now().minusMonths(rng.nextInt(6)).toString()));
-                profileFieldRepository.setValue(m.id(), fieldLeistungsspange.id(), "true");
+                        text(LocalDate.now().minusMonths(rng.nextInt(6)).toString()));
+                profileFieldRepository.setValue(m.id(), fieldLeistungsspange.id(), BooleanNode.TRUE);
                 profileFieldRepository.setValue(
                         m.id(),
                         fieldLeistungsspangeDatum.id(),
-                        jsonStr(LocalDate.now().minusMonths(rng.nextInt(3)).toString()));
+                        text(LocalDate.now().minusMonths(rng.nextInt(3)).toString()));
             }
             if (rng.nextBoolean()) {
-                profileFieldRepository.setValue(m.id(), fieldAllergien.id(), jsonStr(randomAllergy(rng)));
+                profileFieldRepository.setValue(m.id(), fieldAllergien.id(), text(randomAllergy(rng)));
             }
         }
 
@@ -682,8 +684,8 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         return member;
     }
 
-    private String jsonStr(String value) {
-        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+    private StringNode text(String value) {
+        return StringNode.valueOf(value);
     }
 
     private String randomAllergy(Random rng) {

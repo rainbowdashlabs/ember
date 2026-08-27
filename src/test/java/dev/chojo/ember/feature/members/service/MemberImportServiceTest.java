@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -17,6 +18,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -77,6 +81,14 @@ class MemberImportServiceTest extends RepositoryTestBase {
                 .map(value -> value.value())
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("nothing was written for field " + fieldId));
+    }
+
+    private int guardian() {
+        return stationMemberRepo.findByStation(station.id()).stream()
+                .filter(member -> member.userType() == StationUserType.GUARDIAN)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("nobody joined as a guardian"))
+                .id();
     }
 
     private int onlyMember() {
@@ -216,6 +228,128 @@ class MemberImportServiceTest extends RepositoryTestBase {
         var members = stationMemberRepo.findByStation(station.id());
         var account = accountRepo.findById(members.getFirst().accountId()).orElseThrow();
         assertEquals("Lena", account.firstName(), "the first row was the one struck out");
+    }
+
+    /**
+     * The telephone number of a parent is text as much as the member's own is.
+     *
+     * <p>The reported fault, and the second of its kind: the member's own answers were put through
+     * the conversion, the parent's telephone number was written straight to the database and ended
+     * the reading in an error. A youth list carries a parent on nearly every row, so this was the
+     * common case rather than the rare one.
+     */
+    @Test
+    void theTelephoneNumberOfAParentSurvivesToo() {
+        int phone = profileFieldRepo
+                .create(
+                        station.id(),
+                        "Mobilnummer",
+                        ProfileFieldType.TEXT,
+                        ProfileFieldConfig.empty(),
+                        99,
+                        ProfileFieldScope.GUARDIAN)
+                .id();
+        String csv = "Vorname;Name;Kontakt;Telefon;Kontakt Email\n"
+                + "Lena;Sommer;Rita Sommer;01700000000;rita@example.com\n";
+
+        var result = service.importMembers(
+                station.id(),
+                csv,
+                ";",
+                List.of(
+                        map("Vorname", "firstName"),
+                        map("Name", "lastName"),
+                        map("Kontakt", "manager:1:firstName"),
+                        map("Telefon", "manager:1:phone"),
+                        map("Kontakt Email", "manager:1:email")),
+                List.of());
+
+        assertEquals(1, result.membersCreated());
+        assertEquals(1, result.managersCreated(), "the parent joined as a guardian");
+        assertEquals("\"01700000000\"", storedValue(guardian(), phone), "kept as the text it is");
+        assertEquals(1, result.managersLinked(), "and was linked to their child");
+    }
+
+    /**
+     * A parent the list gives no address for is a parent all the same.
+     *
+     * <p>A contact without one used to be dropped where it stood: nobody written down, nobody linked,
+     * and nothing said about it. A youth list gives a telephone number far more often than an address.
+     */
+    @Test
+    void aParentWithoutAnAddressIsStillWrittenDown() {
+        String csv = "Vorname;Name;Kontakt;Telefon\nLena;Sommer;Rita Sommer;01700000000\n";
+
+        var result = service.importMembers(
+                station.id(),
+                csv,
+                ";",
+                List.of(
+                        map("Vorname", "firstName"),
+                        map("Name", "lastName"),
+                        map("Kontakt", "manager:1:firstName"),
+                        map("Telefon", "manager:1:phone")),
+                List.of());
+
+        assertEquals(1, result.managersCreated());
+        assertEquals(1, result.managersLinked());
+    }
+
+    /**
+     * A contact given in one column is two names, not one.
+     *
+     * <p>The wizard points a column headed "Kontakt" at the given name by itself, which left the
+     * surname empty and the child's standing in for it: "Rita Sommer Sommer".
+     */
+    @Test
+    void aWholeNameInOneColumnIsReadAsTwo() {
+        String csv = "Vorname;Name;Kontakt\nLena;Sommer;Rita Sommer\n";
+
+        service.importMembers(
+                station.id(),
+                csv,
+                ";",
+                List.of(map("Vorname", "firstName"), map("Name", "lastName"), map("Kontakt", "manager:1:firstName")),
+                List.of());
+
+        var account = accountRepo
+                .findById(stationMemberRepo.findById(guardian()).orElseThrow().accountId())
+                .orElseThrow();
+        assertEquals("Rita", account.firstName());
+        assertEquals("Sommer", account.lastName());
+    }
+
+    /**
+     * Whatever a question is for, the cell answering it reaches the database.
+     *
+     * <p>An answer is held as JSON and a cell is not JSON, so every kind of question has to be
+     * converted before it is stored. This walks all of them with a cell that is awkward for each: a
+     * leading zero is not a JSON number, and it is neither a date nor a yes.
+     */
+    @Test
+    void everyKindOfQuestionTakesAnAwkwardCell() {
+        var types = Arrays.stream(ProfileFieldType.values())
+                .filter(ProfileFieldType::holdsValue)
+                .toList();
+        var mappings = new ArrayList<ColumnMapping>(List.of(map("Vorname", "firstName"), map("Name", "lastName")));
+        var fieldsByType = new LinkedHashMap<ProfileFieldType, Integer>();
+        var header = new StringBuilder("Vorname;Name");
+        var row = new StringBuilder("Max;Müller");
+        for (var type : types) {
+            int id = field(type.name(), type);
+            fieldsByType.put(type, id);
+            header.append(';').append(type.name());
+            row.append(";01700000000");
+            mappings.add(map(type.name(), "field:" + id));
+        }
+
+        var result = service.importMembers(station.id(), header + "\n" + row + "\n", ";", mappings, List.of());
+
+        assertEquals(1, result.membersCreated());
+        int member = onlyMember();
+        for (var entry : fieldsByType.entrySet()) {
+            assertNotNull(storedValue(member, entry.getValue()), "a " + entry.getKey() + " question kept its answer");
+        }
     }
 
     /** The preview says where each row came from, which is what striking one out refers to. */

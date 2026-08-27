@@ -33,7 +33,7 @@ const { importer, targetOptions, fieldScopeGroups, needsValueMap, valuesForTarge
   managerCount,
 })
 
-const { step, mapping, headers, sampleRows, preview, result } = importer
+const { step, mapping, headers, rows, preview, result } = importer
 
 function leaveImport() {
   const returnTo = typeof route.query.returnTo === 'string' ? route.query.returnTo : null
@@ -60,7 +60,7 @@ function leaveImport() {
           <MappingStep
               v-model:mappings="mapping"
               :headers="headers"
-              :sample-rows="sampleRows"
+              :rows="rows"
               :target-options="targetOptions"
               :field-scope-groups="fieldScopeGroups"
               :primary-group-label="t('memberImport.groupMember')"

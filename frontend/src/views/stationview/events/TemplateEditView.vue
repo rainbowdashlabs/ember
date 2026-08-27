@@ -20,6 +20,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import EventFieldList from './eventshared/EventFieldList.vue'
 import EventReminderEditor from './eventshared/EventReminderEditor.vue'
 import EventDefaultsSection from './templateeditview/EventDefaultsSection.vue'
+import TemplateAudienceSection from './templateeditview/TemplateAudienceSection.vue'
+import {emptyRestriction, type RestrictionSelection} from '@/components/input/restriction'
 import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
 import type {EventCategory, EventFieldEntry, EventTemplateDetail} from '@/api/events'
 import type {MemberGroup, UserTag} from '@/api/types'
@@ -52,6 +54,7 @@ const registrationLimit = ref<number | undefined>(undefined)
 const attendanceTemplateId = ref('')
 const fields = ref<EventFieldEntry[]>([])
 const reminderDays = ref<number[]>([])
+const restriction = ref<RestrictionSelection>(emptyRestriction())
 
 onMounted(() => { if (loaded.value) loadData() })
 watch(loaded, (v) => { if (v && loading.value) loadData() })
@@ -68,6 +71,9 @@ function seedForm(detail: EventTemplateDetail) {
   registrationLimit.value = tpl.registrationLimit ?? undefined
   attendanceTemplateId.value = tpl.attendanceTemplateId ? String(tpl.attendanceTemplateId) : ''
   reminderDays.value = detail.reminderDays ?? []
+  restriction.value = detail.restriction
+      ? {...emptyRestriction(), ...detail.restriction}
+      : emptyRestriction()
   fields.value = detail.fields.map(f => ({
     name: f.name,
     fieldType: f.fieldType,
@@ -122,6 +128,7 @@ async function save() {
       attendanceTemplateId: attendanceTemplateId.value ? Number(attendanceTemplateId.value) : null,
     })
     await events.setTemplateReminders(templateId.value, reminderDays.value)
+    await events.setTemplateRestrictions(templateId.value, restriction.value)
     await events.setTemplateFields(templateId.value, {
       fields: fields.value.map((f, i) => ({
         name: f.name,
@@ -173,6 +180,8 @@ async function save() {
             :categories="categories"
             :attendance-templates="attendanceTemplates"
         />
+
+        <TemplateAudienceSection v-model="restriction" :groups="groups" :tags="tags"/>
 
         <NeutralContainer>
           <EventReminderEditor v-model="reminderDays" />

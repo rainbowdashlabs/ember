@@ -21,6 +21,9 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.BooleanNode;
+import tools.jackson.databind.node.DecimalNode;
 import tools.jackson.databind.node.StringNode;
 
 import java.math.BigDecimal;
@@ -89,10 +92,6 @@ public class MemberImportService {
         }
         return new ParseResult(headers, rows);
     }
-    // target values: "skip", "firstName", "lastName", "email", "group",
-    //   "contact1Name", "contact1Phone", "contact1Email",
-    //   "contact2Name", "contact2Phone", "contact2Email",
-    //   "field:<fieldId>" (profile field by id)
 
     /**
      * The fields of a station that hold an answer, which are the only ones a column can be mapped
@@ -206,20 +205,16 @@ public class MemberImportService {
                 groupsAssigned++;
             }
 
-            // Profile fields
             for (var entry : mapped.profileFields().entrySet()) {
                 var field = profileFields.stream()
                         .filter(f -> String.valueOf(f.id()).equals(entry.getKey()))
                         .findFirst();
                 if (field.isPresent() && !entry.getValue().isBlank()) {
-                    String value =
-                            toStoredJson(entry.getValue().trim(), field.get().fieldType());
-                    profileFieldRepository.setValue(member.id(), field.get().id(), value);
+                    storeAnswer(member.id(), field.get(), entry.getValue());
                     profileFieldsSet++;
                 }
             }
 
-            // Contacts → managers
             for (var contact : mapped.contacts()) {
                 if (contact.name().isBlank()) continue;
                 String mgrKey =
@@ -269,7 +264,7 @@ public class MemberImportService {
                                     .filter(f ->
                                             f.name().equals("Mobilnummer") && f.scope() == ProfileFieldScope.GUARDIAN)
                                     .findFirst()
-                                    .ifPresent(f -> profileFieldRepository.setValue(mgrId, f.id(), contact.phone()));
+                                    .ifPresent(f -> storeAnswer(mgrId, f, contact.phone()));
                         }
                     }
                     managerCache.put(mgrKey, manager);
@@ -345,15 +340,12 @@ public class MemberImportService {
                 groupsAssigned++;
             }
 
-            // Profile fields
             for (var entry : mapped.profileFields().entrySet()) {
                 var field = profileFields.stream()
                         .filter(f -> String.valueOf(f.id()).equals(entry.getKey()))
                         .findFirst();
                 if (field.isPresent() && !entry.getValue().isBlank()) {
-                    String value =
-                            toStoredJson(entry.getValue().trim(), field.get().fieldType());
-                    profileFieldRepository.setValue(member.id(), field.get().id(), value);
+                    storeAnswer(member.id(), field.get(), entry.getValue());
                     profileFieldsSet++;
                 }
             }
@@ -415,20 +407,40 @@ public class MemberImportService {
             }
         }
 
-        // Build contacts - skip if no name or no email (managers need email to log in)
         var contacts = new ArrayList<ContactPreview>();
         managerData.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
-            String mgrFirst = entry.getValue()[0];
-            String mgrLast = entry.getValue()[1];
+            String[] named = splitContactName(entry.getValue()[0], entry.getValue()[1]);
             String mgrPhone = entry.getValue()[2];
             String mgrEmail = entry.getValue()[3];
-            String mgrName = (mgrFirst + " " + mgrLast).trim();
-            if (!mgrName.isBlank() && !mgrEmail.isBlank()) {
-                contacts.add(new ContactPreview(mgrName, mgrFirst, mgrLast, mgrPhone, mgrEmail));
+            String mgrName = (named[0] + " " + named[1]).trim();
+            if (!mgrName.isBlank()) {
+                contacts.add(new ContactPreview(mgrName, named[0], named[1], mgrPhone, mgrEmail));
             }
         });
 
         return new MemberPreview(firstName, lastName, email, group, profileFieldValues, contacts);
+    }
+
+    /**
+     * The given name and surname of a contact, out of however many columns the file spends on them.
+     *
+     * <p>A youth list usually spends one, headed "Kontakt 1" and holding a whole name. Pointed at the
+     * given name, as the wizard does by itself, it left the surname empty and the parent was written
+     * down as "Rita Sommer Sommer", the child's surname standing in for the missing one. The last word
+     * of a whole name is the surname it already carries, so it is read as one. A file that does spend
+     * two columns is left exactly as it is, and so is a name of one word.
+     *
+     * @param first what was pointed at the given name
+     * @param last  what was pointed at the surname, often nothing
+     * @return the given name and the surname, in that order
+     */
+    private String[] splitContactName(String first, String last) {
+        if (!last.isBlank()) return new String[] {first, last};
+        int lastSpace = first.trim().lastIndexOf(' ');
+        if (lastSpace < 0) return new String[] {first, last};
+        return new String[] {
+            first.trim().substring(0, lastSpace).trim(), first.trim().substring(lastSpace + 1)
+        };
     }
 
     private String buildMergedValue(Map<String, String> row, List<ColumnMapping> mappingsForTarget) {
@@ -530,30 +542,38 @@ public class MemberImportService {
     }
 
     /**
-     * Turns a cell into the JSON document a profile answer is stored as.
+     * Writes one cell of the file into the answer a person gives to one of the station's questions.
      *
-     * <p>The column holds JSON, so a bare cell cannot go in as it stands: a telephone number written
-     * as 01700000000 is not a JSON value, and neither is a surname. Every import that mapped a
-     * column onto a question therefore ended in an error from the database rather than in an imported
-     * member. What a cell means follows the kind of question it answers, and anything else becomes a
-     * string, which is what a spreadsheet cell is.
+     * <p>The one way the import stores an answer, and it exists to be the only one. An answer is held
+     * as JSON, so a cell never reaches the database as it stands: a telephone number reads as a
+     * number with a leading zero, which JSON does not have, and the database refuses the entire
+     * reading over the one cell. That went unnoticed twice because two places wrote answers.
+     *
+     * @param memberId the person the answer belongs to, who may be the member or a guardian of theirs
+     * @param field    the question being answered
+     * @param cell     the cell as it stands in the file
+     */
+    private void storeAnswer(int memberId, ProfileField field, String cell) {
+        profileFieldRepository.setValue(memberId, field.id(), asAnswer(cell.trim(), field.fieldType()));
+    }
+
+    /**
+     * Turns a cell into the answer a profile holds.
+     *
+     * <p>What a cell means follows the kind of question it answers. Anything the question does not
+     * ask a particular shape of becomes text, which is what a spreadsheet cell is to begin with.
      *
      * @param value     the cell, already trimmed
      * @param fieldType the kind of question it answers
-     * @return the answer as JSON text
+     * @return the answer
      */
-    private String toStoredJson(String value, ProfileFieldType fieldType) {
+    private JsonNode asAnswer(String value, ProfileFieldType fieldType) {
         return switch (fieldType) {
-            case DATE, BIRTH_DATE -> jsonText(asIsoDate(value));
+            case DATE, BIRTH_DATE -> StringNode.valueOf(asIsoDate(value));
             case NUMBER, AGE -> asNumber(value);
             case BOOLEAN -> asBoolean(value);
-            default -> jsonText(value);
+            default -> StringNode.valueOf(value);
         };
-    }
-
-    /** A cell as a JSON string, with everything in it that JSON insists on escaping. */
-    private String jsonText(String value) {
-        return StringNode.valueOf(value).toString();
     }
 
     /**
@@ -577,24 +597,22 @@ public class MemberImportService {
     }
 
     /** A number where the cell is one, and otherwise the cell as text, so nothing is thrown away. */
-    private String asNumber(String value) {
+    private JsonNode asNumber(String value) {
         try {
-            return new BigDecimal(value.replace(',', '.')).toPlainString();
+            return DecimalNode.valueOf(new BigDecimal(value.replace(',', '.')));
         } catch (NumberFormatException notANumber) {
             log.debug("A number cell did not read as a number and was kept as text", notANumber);
-            return jsonText(value);
+            return StringNode.valueOf(value);
         }
     }
 
     /** The words a spreadsheet says yes and no with, in both languages a station is likely to use. */
-    private String asBoolean(String value) {
+    private JsonNode asBoolean(String value) {
         String said = value.toLowerCase();
-        if (Set.of("ja", "yes", "true", "wahr", "x", "1").contains(said)) return "true";
-        if (Set.of("nein", "no", "false", "falsch", "0", "").contains(said)) return "false";
-        return jsonText(value);
+        if (Set.of("ja", "yes", "true", "wahr", "x", "1").contains(said)) return BooleanNode.TRUE;
+        if (Set.of("nein", "no", "false", "falsch", "0", "").contains(said)) return BooleanNode.FALSE;
+        return StringNode.valueOf(value);
     }
-
-    // -- Import with mapping --
 
     private MemberGroup findOrCreateGroup(List<MemberGroup> groups, int stationId, String name) {
         for (var g : groups) {
@@ -630,6 +648,10 @@ public class MemberImportService {
 
     /**
      * Maps a CSV column to a target field with optional value transformation, merging, and splitting.
+     *
+     * <p>What a column can be pointed at: {@code skip}, {@code firstName}, {@code lastName},
+     * {@code email}, {@code group}, {@code field:<fieldId>} for one of the station's questions, and
+     * {@code manager:<n>:firstName|lastName|phone|email} for the nth guardian on the row.
      */
     public record ColumnMapping(
             String csvColumn,

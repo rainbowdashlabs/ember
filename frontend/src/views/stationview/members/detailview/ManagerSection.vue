@@ -13,7 +13,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SingleSelectDropdown from '@/components/input/select/SingleSelectDropdown.vue'
-import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
+import ProfileFieldsDisplay from '@/components/profilefields/ProfileFieldsDisplay.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type { ProfileField } from '@/api/profileFields'
@@ -98,7 +98,7 @@ function doCreateManager() {
     </MutedText>
 
     <div class="space-y-3">
-      <div v-for="mgr in managers" :key="mgr.id" class="rounded-lg px-4 py-3 bg-bg-light-accent/30 dark:bg-bg-dark-accent/30 space-y-2">
+      <div v-for="mgr in managers" :key="mgr.id" data-testid="guardian-row" class="rounded-lg px-4 py-3 bg-bg-light-accent/30 dark:bg-bg-dark-accent/30 space-y-2">
         <div class="flex items-center justify-between">
           <div>
             <span class="font-semibold">{{ memberDisplayNameFn(mgr) }}</span>
@@ -109,12 +109,11 @@ function doCreateManager() {
             <DeleteButton @click="emit('removeManager', mgr.id)" />
           </div>
         </div>
-        <div v-if="getManagerFieldsFn(mgr.id).length > 0" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          <div v-for="field in getManagerFieldsFn(mgr.id)" :key="field.id" class="text-sm">
-            <span class="text-(--text-muted)">{{ field.name }}:</span>
-            <span class="ml-1 font-medium"><FieldValueDisplay :value="getManagerFieldValueFn(mgr.id, field.id)" :field-type="field.fieldType"/></span>
-          </div>
-        </div>
+        <ProfileFieldsDisplay
+            v-if="getManagerFieldsFn(mgr.id).length > 0"
+            :fields="getManagerFieldsFn(mgr.id)"
+            :get-value="field => getManagerFieldValueFn(mgr.id, field.id)"
+        />
       </div>
     </div>
 

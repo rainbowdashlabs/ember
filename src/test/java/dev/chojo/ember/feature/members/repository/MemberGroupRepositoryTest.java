@@ -5,12 +5,12 @@
  */
 package dev.chojo.ember.feature.members.repository;
 
-import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.MemberPermissionResolver;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -112,10 +112,9 @@ class MemberGroupRepositoryTest extends RepositoryTestBase {
                 stationMemberRepo.findPermissionByName(StationPermission.LOGIN).orElseThrow();
         memberGroupRepo.addGroupPermission(groupId, loginPerm.id());
 
-        // Resolve effective permissions through AccessManager (the same path used for session resolution)
-        var accessManager =
-                new AccessManager(accountRepo, stationMemberRepo, memberGroupRepo, null, null, null, null, null, null);
-        Set<StationPermission> resolved = accessManager.resolveExpandedMemberPermissions(member.id());
+        // The same resolution the session goes through, which is where a group's permissions have to arrive
+        Set<StationPermission> resolved =
+                new MemberPermissionResolver(stationMemberRepo, memberGroupRepo).resolve(member.id());
 
         assertTrue(
                 resolved.contains(StationPermission.LOGIN),

@@ -46,7 +46,7 @@ const hasValueMap = computed(() => Object.keys(props.mapping.valueMap || {}).len
 </script>
 
 <template>
-  <div class="rounded-lg px-3 py-2" :class="rowClass">
+  <div data-testid="mapping-row" :data-column="mapping.csvColumn" class="rounded-lg px-3 py-2" :class="rowClass">
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
       <MappingRowSource
         :csv-column="mapping.csvColumn"

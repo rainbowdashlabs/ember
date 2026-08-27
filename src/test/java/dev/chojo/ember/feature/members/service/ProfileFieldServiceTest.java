@@ -5,10 +5,12 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
+import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
@@ -45,7 +47,8 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 mock(NotificationService.class),
                 stationMemberRepo,
                 accountRepo,
-                clusterProfileFieldRepo);
+                clusterProfileFieldRepo,
+                memberPermissionResolver);
         station = stationRepo.create("ProfileField Station");
         account = accountRepo.create("pfield-svc@test.com", "Profile", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -452,6 +455,49 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         service.delete(tmpField.id());
         stationMemberRepo.delete(member5.id());
         accountRepo.delete(account5.id());
+    }
+
+    /**
+     * What the station changed itself is not put back in front of the station to confirm.
+     *
+     * <p>Acknowledging exists so that what a member alters about themselves is seen by somebody who
+     * looks after the roll. Where that person made the change, it has already been seen, and the list
+     * of things to look at filled up with entries whose only reader was the one who wrote them.
+     */
+    @Test
+    @Order(24)
+    void whatAManagerChangesNeedsNoAcknowledgement() {
+        var watched = service.create(
+                station.id(),
+                "SelbstGeaendert",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{\"notifyOnChange\":true}"),
+                41,
+                ProfileFieldScope.MEMBER);
+        var changesRole = stationMemberRepo
+                .findPermissionByName(StationPermission.MEMBER_CHANGES)
+                .orElseThrow();
+        var managerAccount = accountRepo.create("pfield-manager@test.com", "Rolle", "Fuehrung");
+        var manager = stationMemberRepo.create(station.id(), managerAccount.id());
+        stationMemberRepo.grantPermission(manager.id(), changesRole.id());
+
+        service.setValues(member.id(), List.of(new FieldValueEntry(watched.id(), "\"vom Mitglied\"")), member.id());
+        service.setValues(member.id(), List.of(new FieldValueEntry(watched.id(), "\"vom Vorstand\"")), manager.id());
+
+        var changes = service.findChanges(member.id()).stream()
+                .filter(change -> change.fieldId() == watched.id())
+                .toList();
+        assertEquals(2, changes.size(), "both are still recorded, which is what the history is for");
+        assertTrue(
+                changes.stream().anyMatch(ProfileFieldChange::requiresAcknowledgement),
+                "the member's own change still waits to be seen");
+        assertTrue(
+                changes.stream().anyMatch(change -> !change.requiresAcknowledgement()),
+                "and the one the manager made does not");
+
+        service.delete(watched.id());
+        stationMemberRepo.delete(manager.id());
+        accountRepo.delete(managerAccount.id());
     }
 
     @Test

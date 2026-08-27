@@ -14,16 +14,25 @@ import {useEventEditDeps} from '@/composables/useEventEditDeps'
  * Reference data the event editor offers for selection: categories, event and
  * attendance templates, audiences and the members behind each group.
  */
-export function useEventEditData(selectedTemplateId: () => string) {
+export function useEventEditData(selectedTemplateId: () => string, answeredFieldIds: () => number[]) {
   const {categories, templates, groups, tags, members: allMembers, reload: reloadDeps} = useEventEditDeps({withMembers: true, autoLoad: false})
   const eventTemplates = ref<EventTemplate[]>([])
   const allTemplateFields = ref<AttendanceTemplateField[]>([])
   const groupMembersMap = ref(new Map<number, StationMember[]>())
 
+  /**
+   * The fields of the chosen attendance sheet that still need a value from the appointment.
+   *
+   * <p>A question of the appointment can be tied to one of these, and then it is the question that
+   * fills it in. Asking for that same field again below, under a heading about prefilling, offered
+   * two answers to one field: whichever was set last won, and neither said so. A field answered by a
+   * question is not shown here at all.
+   */
   const currentTemplateFields = computed(() => {
     const id = selectedTemplateId()
     if (!id) return []
-    return allTemplateFields.value.filter(f => f.templateId === Number(id))
+    const answered = new Set(answeredFieldIds())
+    return allTemplateFields.value.filter(f => f.templateId === Number(id) && !answered.has(f.id))
   })
 
   async function load() {

@@ -114,7 +114,7 @@ function removeRelation(targetId: number) {
       <NeutralContainer v-if="canHaveGuardian" class="space-y-4">
         <SubHeader>{{ t('memberEdit.relations.guardians') }}</SubHeader>
         <EmptyState v-if="managers.length === 0" compact>{{ t('memberEdit.relations.noGuardians') }}</EmptyState>
-        <div v-for="mgr in managers" :key="mgr.id" class="flex items-center justify-between rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40">
+        <div v-for="mgr in managers" :key="mgr.id" data-testid="guardian-row" class="flex items-center justify-between rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40">
           <div>
             <span class="font-medium">{{ displayName(mgr) }}</span>
             <InlineDetail v-if="mgr.email">{{ mgr.email }}</InlineDetail>

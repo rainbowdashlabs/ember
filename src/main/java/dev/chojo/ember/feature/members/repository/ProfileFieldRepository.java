@@ -13,6 +13,8 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
+import tools.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.Optional;
@@ -201,8 +203,16 @@ public class ProfileFieldRepository {
 
     /**
      * Sets a profile field value for a member, inserting or updating as needed.
+     *
+     * <p>The answer arrives as a JSON document rather than as text, and that is the point: the column
+     * is JSONB, and a bare {@code 0170...} or {@code Müller} handed over as a string is not JSON and
+     * ends the whole statement in an error. Taking a node instead leaves no caller a way to write one.
+     *
+     * @param memberId the member the answer belongs to
+     * @param fieldId  the field being answered
+     * @param value    the answer, or null to record no answer at all
      */
-    public void setValue(int memberId, int fieldId, String value) {
+    public void setValue(int memberId, int fieldId, @Nullable JsonNode value) {
         query("""
                 INSERT
                 INTO
@@ -213,7 +223,7 @@ public class ProfileFieldRepository {
                     value = excluded.value;""")
                 .single(call().bind("member_id", memberId)
                         .bind("field_id", fieldId)
-                        .bind("value", value))
+                        .bind("value", value == null ? null : value.toString()))
                 .insert();
     }
 

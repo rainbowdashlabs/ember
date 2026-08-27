@@ -5,15 +5,12 @@
  */
 package dev.chojo.ember.feature.events.repository;
 
-import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
-import dev.chojo.ember.feature.restriction.RestrictionSelection;
-import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -30,8 +27,6 @@ public class EventTemplateRepository {
             id, station_id, name, title, description, category_id, event_type,
             requires_registration, registration_deadline_offset, requires_confirmation,
             restriction_mode, attendance_template_id, registration_limit""";
-    private static final String RESTRICTION_TABLE = "event_template_restriction";
-    private static final String TEMPLATE_FK = "template_id";
 
     public List<EventTemplate> findByStation(int stationId) {
         return query("""
@@ -100,6 +95,19 @@ public class EventTemplateRepository {
                 .changed();
     }
 
+    /**
+     * Sets how the audiences of a template combine, without touching anything else it holds.
+     *
+     * <p>Apart from the general update because the audience is saved on its own: the editor writes
+     * the template and its audience in two steps, and the second must not undo the first.
+     */
+    public boolean updateRestrictionMode(int id, RestrictionMode mode) {
+        return query("UPDATE event_template SET restriction_mode = :mode WHERE id = :id;")
+                .single(call().bind("mode", mode).bind("id", id))
+                .update()
+                .changed();
+    }
+
     public boolean delete(int id) {
         return SqlSupport.deleteById("event_template", id);
     }
@@ -133,21 +141,6 @@ public class EventTemplateRepository {
                             .bind("attendance_field_id", f.attendanceFieldId()))
                     .insert();
         }
-    }
-
-    public List<String> findRestrictions(int templateId) {
-        return query("SELECT user_type FROM %s WHERE %s = :template_id;", RESTRICTION_TABLE, TEMPLATE_FK)
-                .single(call().bind("template_id", templateId))
-                .map(row -> row.getString("user_type"))
-                .all();
-    }
-
-    public void setRestrictions(int templateId, List<StationUserType> userTypes) {
-        RestrictionSql.replace(
-                RESTRICTION_TABLE,
-                TEMPLATE_FK,
-                templateId,
-                new RestrictionSelection(userTypes, List.of(), List.of(), List.of(), null));
     }
 
     public List<Integer> findReminderDays(int templateId) {

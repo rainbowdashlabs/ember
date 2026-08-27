@@ -79,7 +79,8 @@ export interface EventRestrictions {
     groupIds: number[]
     tagIds: number[]
     memberIds: number[]
-    mode?: string
+    /** How the named kinds combine. Absent where nothing was ever said, which reads as AND. */
+    mode?: 'AND' | 'OR'
 }
 
 export interface AllEventRestrictions {
@@ -191,7 +192,8 @@ export interface EventTemplateField {
 export interface EventTemplateDetail {
     template: EventTemplate
     fields: EventTemplateField[]
-    restrictionUserTypes: string[]
+    /** Who the appointments written from this template are for, handed over when it is applied. */
+    restriction: EventRestrictions
     reminderDays: number[]
 }
 
@@ -625,8 +627,9 @@ export async function setTemplateFields(id: number, data: { fields: EventTemplat
     await client.put(`/event-templates/${id}/fields`, data)
 }
 
-export async function setTemplateRestrictions(id: number, data: { userTypes: string[] }): Promise<void> {
-    await client.put(`/event-templates/${id}/restrictions`, data)
+export async function setTemplateRestrictions(id: number, data: EventRestrictions): Promise<EventRestrictions> {
+    const res = await client.put<EventRestrictions>(`/event-templates/${id}/restrictions`, data)
+    return res.data
 }
 
 // -- Reminders --

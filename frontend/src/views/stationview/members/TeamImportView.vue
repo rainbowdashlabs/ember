@@ -23,7 +23,7 @@ const { importer, targetOptions, fieldScopeGroups, needsValueMap, valuesForTarge
   primaryGroup: () => t('teamImport.groupTeam'),
 })
 
-const { mapping, headers, sampleRows, preview, result } = importer
+const { mapping, headers, rows, preview, result } = importer
 </script>
 
 <template>
@@ -39,7 +39,7 @@ const { mapping, headers, sampleRows, preview, result } = importer
           <MappingStep
               v-model:mappings="mapping"
               :headers="headers"
-              :sample-rows="sampleRows"
+              :rows="rows"
               :target-options="targetOptions"
               :field-scope-groups="fieldScopeGroups"
               :primary-group-label="t('teamImport.groupTeam')"
