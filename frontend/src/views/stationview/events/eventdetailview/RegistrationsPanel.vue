@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -18,6 +18,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import RegistrationStatsTable from './RegistrationStatsTable.vue'
 import RegistrationFieldAnswers from './RegistrationFieldAnswers.vue'
+import MemberPickerFilter from '@/views/stationview/members/MemberPickerFilter.vue'
 import {EventFieldTypes, RegistrationStatus, type EventRegistrationEntry, type EventRegistrationField, type MemberRegistrationStats, type StationEvent} from '@/api/events'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
@@ -31,7 +32,7 @@ const props = defineProps<{
   pendingRegistrations: EventRegistrationEntry[]
   nonPendingRegistrations: StatusGroup[]
   registrationStats: MemberRegistrationStats[]
-  unregisteredMembers: { id: number; name: string }[]
+  unregisteredMembers: { id: number; name: string; userType?: string | null }[]
   registrationFields?: EventRegistrationField[]
 }>()
 
@@ -42,6 +43,62 @@ const fields = computed(() => props.registrationFields ?? [])
 
 /** Whoever runs the event sees every answer and the totals; everyone else sees the list columns. */
 const runsEvent = computed(() => hasPermission(StationPermission.EVENT_EDIT))
+
+/**
+ * Whether the reader may put somebody on the list themselves.
+ *
+ * <p>Which is also what keeps the panel on screen while the list is still empty. It used to appear
+ * only once somebody had registered, so the one person who is allowed to enter the first name had
+ * nowhere to enter it and had to wait for a member to register themselves first.
+ *
+ * <p>An event nobody registers for is not offered either: the server refuses a registration on one,
+ * so a form for it would be a form that always fails.
+ */
+const canRegisterOthers = computed(
+    () => !!props.event.requiresRegistration
+        && hasPermission(StationPermission.EVENT_REGISTRATION)
+        && props.unregisteredMembers.length > 0,
+)
+
+/**
+ * Whether this entry is one to say yes or no to.
+ *
+ * <p>Somebody who has said they are not coming is not asking to be let in, so offering to accept or
+ * to refuse them asked the station to rule on a question nobody put. Only an entry that wants a
+ * place is decided.
+ */
+function decidable(registration: EventRegistrationEntry): boolean {
+  return hasPermission(StationPermission.EVENT_REGISTRATION)
+      && registration.status !== RegistrationStatus.DECLINED
+}
+
+/** What the reader typed to find the person they want to put on the list. */
+const pickerSearch = ref('')
+
+/** The kind of member they are looking for, or the empty string for every kind. */
+const pickerUserType = ref('')
+
+/** The kinds present among those not on the list yet, so choosing one never empties it by itself. */
+const offeredUserTypes = computed(() => {
+  const kinds = new Set<string>()
+  for (const member of props.unregisteredMembers) {
+    if (member.userType) kinds.add(member.userType)
+  }
+  return [...kinds].sort()
+})
+
+/**
+ * Those not on the list yet, narrowed to what the reader is looking for.
+ *
+ * <p>A station of three hundred offers three hundred names in one dropdown, and the person being
+ * entered is known by name or by what kind of member they are.
+ */
+const pickableMembers = computed(() => {
+  const needle = pickerSearch.value.trim().toLowerCase()
+  return props.unregisteredMembers
+      .filter(member => !pickerUserType.value || member.userType === pickerUserType.value)
+      .filter(member => !needle || member.name.toLowerCase().includes(needle))
+})
 
 function answersOf(fieldId: number): string[] {
   return props.registrations
@@ -109,7 +166,7 @@ function statusLabel(status: string): string {
 </script>
 
 <template>
-  <NeutralContainer v-if="registrations.length > 0" class="space-y-4">
+  <NeutralContainer v-if="registrations.length > 0 || canRegisterOthers" class="space-y-4">
     <SubHeader>{{ t('eventDetail.registrations') }}</SubHeader>
 
     <div v-if="summaries.length > 0" class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
@@ -168,7 +225,7 @@ function statusLabel(status: string): string {
             <MemberName :identity="reg.memberIdentity ?? null"/>
             <span v-if="reg.eventDate" class="text-xs text-(--text-muted)">{{ formatDate(reg.eventDate) }}</span>
           </div>
-          <div v-if="hasPermission(StationPermission.EVENT_REGISTRATION)" class="flex items-center gap-2">
+          <div v-if="decidable(reg)" class="flex items-center gap-2">
             <PrimaryButton v-if="reg.status !== RegistrationStatus.ACCEPTED" @click="emit('accept', reg.id)">
               <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
               {{ t('eventsRegistrations.accept') }}
@@ -183,12 +240,17 @@ function statusLabel(status: string): string {
       </NeutralContainer>
     </div>
 
-    <div v-if="hasPermission(StationPermission.EVENT_REGISTRATION) && unregisteredMembers.length > 0" class="pt-2">
+    <div v-if="canRegisterOthers" data-testid="manual-register" class="space-y-2 pt-2">
       <SubHeader>{{ t('eventDetail.manualRegister') }}</SubHeader>
+      <MemberPickerFilter
+          v-model:search="pickerSearch"
+          v-model:user-type="pickerUserType"
+          :user-types="offeredUserTypes"
+      />
       <div class="flex items-center gap-2">
         <SelectInput v-model="manualRegisterMemberId" class="flex-1">
           <option value="">{{ t('eventDetail.selectMember') }}</option>
-          <option v-for="m in unregisteredMembers" :key="m.id" :value="String(m.id)">{{ m.name }}</option>
+          <option v-for="m in pickableMembers" :key="m.id" :value="String(m.id)">{{ m.name }}</option>
         </SelectInput>
         <PrimaryButton :disabled="!manualRegisterMemberId" @click="emit('manualRegister')">
           <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>

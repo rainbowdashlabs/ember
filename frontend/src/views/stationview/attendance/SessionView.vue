@@ -23,6 +23,7 @@ import {useSessionMeta} from './sessionview/useSessionMeta'
 import {useCheckMode} from './sessionview/useCheckMode'
 import {useSessionFields} from './sessionview/useSessionFields'
 import SessionContent from './sessionview/SessionContent.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {saveBlob} from '@/util/downloadAuthed'
 import {reportCaughtError} from '@/util/devErrorReporter'
 
@@ -35,6 +36,7 @@ const canEdit = computed(() => hasPermission(StationPermission.ATTENDANCE_EDIT))
 
 const sessionId = computed(() => Number(route.params.id))
 
+const showDeleteConfirm = ref(false)
 const session = ref<AttendanceSession | null>(null)
 const sessionFields = ref<AttendanceSessionField[]>([])
 const templateFields = ref<AttendanceTemplateField[]>([])
@@ -240,6 +242,23 @@ function goBack() {
   router.push({name: 'attendance-past'})
 }
 
+/**
+ * Throws the whole attendance away, once it has been asked about.
+ *
+ * <p>Everything taken on it goes with it, which is why it is asked about: a sheet opened for the
+ * wrong evening is undone here, and one filled in for the right one is not.
+ */
+async function removeSession() {
+  error.value = ''
+  try {
+    await attendance.deleteSession(sessionId.value)
+    showDeleteConfirm.value = false
+    router.push({name: 'attendance-past'})
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
 onMounted(() => {
   if (loaded.value) loadData()
 })
@@ -276,6 +295,7 @@ watch(loaded, (isLoaded) => {
         @export="exportPdf"
         @sync="syncFromEvent"
         @start-check-mode="startCheckMode"
+        @remove="showDeleteConfirm = true"
         @update-title="setSessionTitle"
         @update-start-time="setSessionStartTime"
         @update-end-time="setSessionEndTime"
@@ -289,6 +309,12 @@ watch(loaded, (isLoaded) => {
         @check-out="setCheckOut"
         @reset-times="resetEntryTimes"
         @add-member="addMember"
+    />
+
+    <ConfirmDeleteModal
+        v-model="showDeleteConfirm"
+        :message="t('attendanceSession.deleteConfirm')"
+        @confirm="removeSession"
     />
   </ViewContent>
 </template>

@@ -30,6 +30,37 @@ export function renderMarkdown(markdown: string | null | undefined): string {
 }
 
 /**
+ * The opening words of some markdown, as plain text.
+ *
+ * <p>For a row in a list, where the description is a hint at what the entry is rather than the entry
+ * itself. Printed as markdown source it showed its own asterisks and hashes; rendered in full it
+ * turned a row into a page. The text is what markdown was going to say, cut at a word.
+ *
+ * <p>It comes back as text, never as markup, so the caller prints it and nothing of what an organiser
+ * wrote can act as HTML. Where there is no browser to read the rendering with, the source is
+ * collapsed instead, which reads the same for the plain descriptions that make up nearly all of them.
+ *
+ * @param markdown what was written, or nothing
+ * @param limit    how many characters to keep before cutting
+ * @return the text, cut with an ellipsis where it was longer
+ */
+export function markdownSnippet(markdown: string | null | undefined, limit = 160): string {
+    if (!markdown) return ''
+    const text = plainText(markdown)
+    if (text.length <= limit) return text
+    const cut = text.slice(0, limit)
+    const lastSpace = cut.lastIndexOf(' ')
+    return `${(lastSpace > limit / 2 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`
+}
+
+function plainText(markdown: string): string {
+    if (typeof window === 'undefined') return markdown.replace(/\s+/g, ' ').trim()
+    const holder = document.createElement('div')
+    holder.innerHTML = renderMarkdown(markdown)
+    return (holder.textContent ?? '').replace(/\s+/g, ' ').trim()
+}
+
+/**
  * Markdown for a page, with the images it embeds pointed at the width the page files endpoint
  * serves. The rewrite runs after sanitising, so it only ever sees tags that survived it.
  */

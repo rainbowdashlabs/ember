@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { computed, type Ref } from 'vue'
+import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AssignableMember } from '@/composables/useGroupsConfig'
 import { memberDisplayName } from './listview/useMemberData'
@@ -28,11 +28,43 @@ export function useMemberAssignment(
 ) {
   const { t } = useI18n()
 
+  /** What the reader typed to narrow the list of people they can still add. */
+  const search = ref('')
+
+  /** The kind of member they are looking for, or the empty string for every kind. */
+  const userType = ref('')
+
+  function matchesSearch(member: AssignableMember): boolean {
+    const needle = search.value.trim().toLowerCase()
+    if (!needle) return true
+    return memberDisplayName(member).toLowerCase().includes(needle)
+      || (member.email ?? '').toLowerCase().includes(needle)
+  }
+
+  /**
+   * Everyone not assigned yet, narrowed to what the reader is looking for.
+   *
+   * <p>A station with hundreds of members offers hundreds of rows to scroll, and the one being looked
+   * for is usually known by name or by what kind of member they are. Both narrow the same list, and
+   * neither touches who is already assigned: that list is short by nature.
+   */
   const availableMembers = computed(() => {
     const assigned = new Set(members.value.map(m => m.id))
     return allMembers.value
       .filter(m => !assigned.has(m.id))
+      .filter(m => !userType.value || m.userType === userType.value)
+      .filter(matchesSearch)
       .sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
+  })
+
+  /** The kinds actually present among the people who can still be added, so the filter offers no dead ends. */
+  const offeredUserTypes = computed(() => {
+    const assigned = new Set(members.value.map(m => m.id))
+    const kinds = new Set<string>()
+    for (const member of allMembers.value) {
+      if (!assigned.has(member.id) && member.userType) kinds.add(member.userType)
+    }
+    return [...kinds].sort()
   })
 
   async function apply(memberIds: number[]) {
@@ -51,5 +83,5 @@ export function useMemberAssignment(
     await apply(members.value.filter(m => m.id !== member.id).map(m => m.id))
   }
 
-  return {availableMembers, addMember, removeMember}
+  return {availableMembers, offeredUserTypes, search, userType, addMember, removeMember}
 }

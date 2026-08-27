@@ -503,15 +503,20 @@ public class EventRegistrationRoutes implements Routes {
         if (!event.requiresRegistration()) {
             throw new BadRequestResponse("Event does not require registration");
         }
-        if (event.registrationDeadline() != null && Instant.now().isAfter(event.registrationDeadline())) {
+
+        // Whoever runs the event is not answering it, they are keeping its list: somebody who rang up
+        // after the deadline is still somebody who is coming, and the list has to be able to say so.
+        boolean runsTheEvent = session.hasPermission(StationPermission.EVENT_MANAGER);
+        if (!runsTheEvent
+                && event.registrationDeadline() != null
+                && Instant.now().isAfter(event.registrationDeadline())) {
             throw new BadRequestResponse("Registration deadline has passed");
         }
 
         int memberId = resolveTargetMemberId(session, req);
 
-        boolean isManagerRegistration = req.memberId() != null
-                && req.memberId() != session.member().id()
-                && session.hasPermission(StationPermission.EVENT_MANAGER);
+        boolean isManagerRegistration =
+                req.memberId() != null && req.memberId() != session.member().id() && runsTheEvent;
         if (!isManagerRegistration && !restrictionService.isMemberEligible(eventId, memberId, session.permissions())) {
             throw new BadRequestResponse("Member is not eligible for this event");
         }

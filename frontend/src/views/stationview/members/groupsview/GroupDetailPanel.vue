@@ -24,6 +24,8 @@ const props = defineProps<{
   groupLoading: boolean
   sortedGroupMembers: AssignableMember[]
   availableMembers: AssignableMember[]
+  /** The kinds of member still on offer, for the filter above the picker. */
+  offeredUserTypes: string[]
   groupRoles: PermissionGrant[]
   allRoles: PermissionGrant[]
   groupRoleIds: Set<number>
@@ -35,6 +37,9 @@ const emit = defineEmits<{
   (e: 'remove-member', member: AssignableMember): void
   (e: 'update:groupRoleIds', ids: Set<number>): void
 }>()
+
+const memberSearch = defineModel<string>('memberSearch', {required: true})
+const memberUserType = defineModel<string>('memberUserType', {required: true})
 
 /** A group that grants nothing has one tab, and one tab is no tab bar at all. */
 const capabilities = useGroupsCapabilities()
@@ -61,6 +66,9 @@ const roleIdsModel = useModelProxy(() => props.groupRoleIds, emit, 'groupRoleIds
         <GroupMembersTab
             :sorted-group-members="sortedGroupMembers"
             :available-members="availableMembers"
+            :offered-user-types="offeredUserTypes"
+            v-model:search="memberSearch"
+            v-model:user-type="memberUserType"
             @add="(m) => emit('add-member', m)"
             @remove="(m) => emit('remove-member', m)"
         />

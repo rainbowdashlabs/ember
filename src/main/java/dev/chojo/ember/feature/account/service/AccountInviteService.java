@@ -31,8 +31,10 @@ public class AccountInviteService {
     /**
      * What an address ends in when it was made up for somebody who is not meant to sign in.
      *
-     * <p>Such an address may only ever belong to the person it was made up for, so finding one already
-     * taken is a collision rather than somebody who already has an account.
+     * <p>Nothing makes one any more: somebody without an address of their own is given none at all,
+     * because an address that looks real and cannot be written to only has to be explained. Accounts
+     * carrying one from before are still read, and finding one already taken is a collision rather
+     * than somebody who already has an account.
      */
     public static final String SYNTHETIC_EMAIL_SUFFIX = ".local";
 
@@ -74,6 +76,26 @@ public class AccountInviteService {
             authService.sendPasswordSetup(account.id());
         }
         return new Invited(account, created);
+    }
+
+    /**
+     * The account for somebody entered without an address of their own.
+     *
+     * <p>No address at all, rather than one made up to look like one. A made-up address is shown in
+     * the member list as though somebody could write to it, is offered a setup mail that can only
+     * fail, and has to be explained to whoever reads it. An account without one says the same thing
+     * and says it plainly: this person has no address, and whatever concerns them goes to whoever
+     * looks after them.
+     *
+     * @param stationId the station entering them
+     * @param firstName their first name
+     * @param lastName  their surname
+     * @return the account, always newly made
+     */
+    public Invited createWithoutAddress(int stationId, String firstName, String lastName) {
+        var account = accountRepository.create(null, firstName, lastName, stationId);
+        log.info("Account {} created without an address by invitation from station {}", account.id(), stationId);
+        return new Invited(account, true);
     }
 
     /** Nobody is sent a setup mail for an account they have already set up. */

@@ -11,9 +11,6 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import EventAnswerDialog, {type PersonAnswer} from
-    '@/views/stationview/events/eventshared/EventAnswerDialog.vue'
 import {events} from '@/api'
 import type {AwaitingAnswer} from '@/api/events'
 
@@ -22,6 +19,11 @@ import type {AwaitingAnswer} from '@/api/events'
  *
  * <p>One row per event, naming who still owes an answer, because a household usually answers the same way
  * for everyone and reading the event once is how somebody decides that.
+ *
+ * <p>The row leads to the event and nothing else. An event that has to be registered for in advance
+ * takes one answer, which is the registration: whoever is not down for it is not coming, and there is
+ * nothing to say beyond that. The row used to offer a refusal, which wrote down a no that changed
+ * nothing anybody reads.
  *
  * <p>Only events open to the person and still open for answers appear, which is the same question the
  * warning notification asks, so a reader who acts on the notification finds the row gone.
@@ -38,40 +40,6 @@ function daysLeft(entry: AwaitingAnswer): number {
 }
 
 const soonest = computed(() => awaiting.value.length > 0 ? daysLeft(awaiting.value[0]!) : 0)
-
-const declining = ref<AwaitingAnswer | null>(null)
-const showDeclineDialog = ref(false)
-const declineError = ref('')
-
-/**
- * Declining straight from the row, without opening the event.
- *
- * <p>Where the row covers one person it is a click, and where it covers several it opens the dialog
- * first: a guardian declining for one child and not the other has to be able to say so.
- */
-function decline(entry: AwaitingAnswer) {
-  declining.value = entry
-  declineError.value = ''
-  if (entry.members.length > 1) {
-    showDeclineDialog.value = true
-    return
-  }
-  void sendDeclines([{memberId: entry.members[0]!.memberId, fields: []}])
-}
-
-async function sendDeclines(answers: PersonAnswer[]) {
-  const entry = declining.value
-  if (!entry) return
-  showDeclineDialog.value = false
-  try {
-    for (const answer of answers) {
-      await events.declineEvent(entry.eventId, {memberId: answer.memberId})
-    }
-    await loadData()
-  } catch {
-    declineError.value = t('common.error')
-  }
-}
 
 async function loadData() {
   try {
@@ -104,23 +72,10 @@ onMounted(loadData)
             {{ entry.members.map(m => m.name).join(', ') }}
           </p>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-          <span class="text-xs text-(--text-muted)">
-            {{ t('dashboard.awaitingDaysLeft', {days: daysLeft(entry)}) }}
-          </span>
-          <ErrorButton data-testid="awaiting-decline" @click.stop="decline(entry)">
-            {{ t('eventsUpcoming.decline') }}
-          </ErrorButton>
-        </div>
+        <span class="text-xs text-(--text-muted) shrink-0">
+          {{ t('dashboard.awaitingDaysLeft', {days: daysLeft(entry)}) }}
+        </span>
       </NeutralContainer>
     </div>
-    <EventAnswerDialog
-        v-model="showDeclineDialog"
-        :people="declining?.members.map(m => ({memberId: m.memberId, name: m.name})) ?? []"
-        :fields="[]"
-        :attending="false"
-        :error="declineError"
-        @confirm="sendDeclines"
-    />
   </NeutralContainer>
 </template>

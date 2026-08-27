@@ -19,6 +19,8 @@ const props = defineProps<{
   eligibleMembers: { id: number; name: string }[]
   registrations: EventRegistrationEntry[]
   requiresRegistration: boolean
+  /** When answers stop being taken, or nothing where they are taken until the event itself. */
+  registrationDeadline?: string | null
   hasManagedMembers: boolean
   registering: boolean
 }>()
@@ -45,6 +47,26 @@ const selectedId = computed((): number | null => {
   return selectedMemberId.value ? Number(selectedMemberId.value) : null
 })
 
+/**
+ * Whether an answer is still being taken.
+ *
+ * <p>The server refuses one once the deadline has passed, and the buttons offering to give one stayed
+ * where they were, so the only thing pressing them produced was an error.
+ */
+const stillOpen = computed(() => {
+  if (!props.registrationDeadline) return true
+  return new Date(props.registrationDeadline).getTime() > Date.now()
+})
+
+/**
+ * Whether saying no is a thing to say at all.
+ *
+ * <p>Where the event has to be registered for in advance, not registering is the no: an extra button
+ * for it wrote down a refusal of something nobody was down for. Where it does not, everybody is
+ * expected and saying no is the only way to say it.
+ */
+const canDecline = computed(() => !props.requiresRegistration && stillOpen.value)
+
 function handleRegister() { if (selectedId.value != null) emit('register', selectedId.value) }
 function handleDecline() { if (selectedId.value != null) emit('decline', selectedId.value) }
 </script>
@@ -64,7 +86,7 @@ function handleDecline() { if (selectedId.value != null) emit('decline', selecte
           </template>
           <template v-else>
             <ErrorBadge>{{ t('eventsUpcoming.statusDeclined') }}</ErrorBadge>
-            <PrimaryButton v-if="requiresRegistration" :disabled="registering" class="text-sm" @click="emit('register', m.id)">
+            <PrimaryButton v-if="requiresRegistration && stillOpen" :disabled="registering" class="text-sm" @click="emit('register', m.id)">
               <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>{{ t('eventsUpcoming.register') }}
             </PrimaryButton>
             <SecondaryButton v-else :disabled="registering" class="text-sm" @click="emit('withdraw', getRegistration(m.id)!.id)">
@@ -76,19 +98,19 @@ function handleDecline() { if (selectedId.value != null) emit('decline', selecte
       </template>
     </template>
 
-    <template v-if="membersWithoutRegistration.length > 0">
+    <template v-if="membersWithoutRegistration.length > 0 && ((requiresRegistration && stillOpen) || canDecline)">
       <SelectInput v-if="membersWithoutRegistration.length > 1" v-model="selectedMemberId"
                    data-onboarding="events.item.member-select" class="text-sm w-40">
         <option disabled value="">{{ t('eventsUpcoming.selectMember') }}</option>
         <option v-for="m in membersWithoutRegistration" :key="m.id" :value="String(m.id)">{{ m.name }}</option>
       </SelectInput>
 
-      <PrimaryButton v-if="requiresRegistration" :disabled="registering || selectedId == null" class="text-sm" @click="handleRegister">
+      <PrimaryButton v-if="requiresRegistration && stillOpen" :disabled="registering || selectedId == null" class="text-sm" @click="handleRegister">
         <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
         {{ selectedId != null && membersWithoutRegistration.length > 1 ? t('eventsUpcoming.registerFor', {name: membersWithoutRegistration.find(m => m.id === selectedId)?.name ?? ''}) : t('eventsUpcoming.register') }}
       </PrimaryButton>
 
-      <ErrorButton :disabled="selectedId == null" class="text-sm" @click="handleDecline">
+      <ErrorButton v-if="canDecline" :disabled="selectedId == null" class="text-sm" @click="handleDecline">
         <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>
         {{ selectedId != null && membersWithoutRegistration.length > 1 ? t('eventsUpcoming.declineFor', {name: membersWithoutRegistration.find(m => m.id === selectedId)?.name ?? ''}) : t('eventsUpcoming.decline') }}
       </ErrorButton>

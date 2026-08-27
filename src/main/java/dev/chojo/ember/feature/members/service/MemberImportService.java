@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -27,11 +27,9 @@ import tools.jackson.databind.node.DecimalNode;
 import tools.jackson.databind.node.StringNode;
 
 import java.math.BigDecimal;
-import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -54,7 +52,7 @@ public class MemberImportService {
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final ProfileFieldRepository profileFieldRepository;
-    private final PasswordHasher passwordHasher;
+    private final AccountInviteService accountInviteService;
 
     @Inject
     public MemberImportService(
@@ -62,12 +60,12 @@ public class MemberImportService {
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
             ProfileFieldRepository profileFieldRepository,
-            PasswordHasher passwordHasher) {
+            AccountInviteService accountInviteService) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.profileFieldRepository = profileFieldRepository;
-        this.passwordHasher = passwordHasher;
+        this.accountInviteService = accountInviteService;
     }
 
     // -- API records --
@@ -186,15 +184,20 @@ public class MemberImportService {
                 continue;
             }
 
-            String email = mapped.email().isBlank()
-                    ? generateEmail(mapped.firstName(), mapped.lastName())
-                    : mapped.email().trim();
+            String email = mapped.email().trim();
 
-            var account = accountRepository.create(email, mapped.firstName(), mapped.lastName(), true, stationId);
-            accountRepository.createCredential(account.id(), passwordHasher.hash(generatePassword()));
-            var member = stationMemberRepository.create(stationId, account.id());
+            AccountInviteService.Invited invited;
+            try {
+                invited = email.isBlank()
+                        ? accountInviteService.createWithoutAddress(stationId, mapped.firstName(), mapped.lastName())
+                        : accountInviteService.resolveOrCreate(stationId, email, mapped.firstName(), mapped.lastName());
+            } catch (AccountInviteService.EmailInUseException e) {
+                warnings.add("Zeile " + (i + 2) + ": " + email + " gehört bereits jemand anderem, übersprungen");
+                continue;
+            }
+            var member =
+                    stationMemberRepository.create(stationId, invited.account().id());
             stationMemberRepository.setUserType(member.id(), StationUserType.MEMBER);
-            stationMemberRepository.grantPermission(member.id(), loginRole.id());
             stationMemberRepository.grantPermission(member.id(), memberRole.id());
             membersCreated++;
 
@@ -233,15 +236,15 @@ public class MemberImportService {
                 if (manager == null) {
                     String mgrFirst = contact.firstName().isBlank() ? contact.name() : contact.firstName();
                     String mgrLast = contact.lastName().isBlank() ? mapped.lastName() : contact.lastName();
-                    String mgrEmail = contact.email().isBlank()
-                            ? generateEmail(mgrFirst, mgrLast)
-                            : contact.email().trim();
+                    String mgrEmail = contact.email().trim();
 
-                    var mgrExisting = accountRepository.findByEmail(mgrEmail);
-                    if (mgrExisting.isPresent()) {
-                        var mgrMember = stationMemberRepository.findByStationAndAccount(
-                                stationId, mgrExisting.get().id());
-                        if (mgrMember.isPresent()) manager = mgrMember.get();
+                    if (!mgrEmail.isBlank()) {
+                        var mgrExisting = accountRepository.findByEmail(mgrEmail);
+                        if (mgrExisting.isPresent()) {
+                            var mgrMember = stationMemberRepository.findByStationAndAccount(
+                                    stationId, mgrExisting.get().id());
+                            if (mgrMember.isPresent()) manager = mgrMember.get();
+                        }
                     }
                     if (manager == null) {
                         manager = stationMemberRepository
@@ -250,9 +253,18 @@ public class MemberImportService {
                     }
 
                     if (manager == null) {
-                        var mgrAccount = accountRepository.create(mgrEmail, mgrFirst, mgrLast, true, stationId);
-                        accountRepository.createCredential(mgrAccount.id(), passwordHasher.hash(generatePassword()));
-                        manager = stationMemberRepository.create(stationId, mgrAccount.id());
+                        AccountInviteService.Invited mgrInvited;
+                        try {
+                            mgrInvited = mgrEmail.isBlank()
+                                    ? accountInviteService.createWithoutAddress(stationId, mgrFirst, mgrLast)
+                                    : accountInviteService.resolveOrCreate(stationId, mgrEmail, mgrFirst, mgrLast);
+                        } catch (AccountInviteService.EmailInUseException e) {
+                            warnings.add("Zeile " + (i + 2) + ": " + mgrEmail
+                                    + " gehört bereits jemand anderem, Kontaktperson übersprungen");
+                            continue;
+                        }
+                        manager = stationMemberRepository.create(
+                                stationId, mgrInvited.account().id());
                         stationMemberRepository.setUserType(manager.id(), StationUserType.GUARDIAN);
                         stationMemberRepository.grantPermission(manager.id(), loginRole.id());
                         stationMemberRepository.grantPermission(manager.id(), guardianRole.id());
@@ -322,13 +334,19 @@ public class MemberImportService {
                 continue;
             }
 
-            String email = mapped.email().isBlank()
-                    ? generateEmail(mapped.firstName(), mapped.lastName())
-                    : mapped.email().trim();
+            String email = mapped.email().trim();
 
-            var account = accountRepository.create(email, mapped.firstName(), mapped.lastName(), true, stationId);
-            accountRepository.createCredential(account.id(), passwordHasher.hash(generatePassword()));
-            var member = stationMemberRepository.create(stationId, account.id());
+            AccountInviteService.Invited invited;
+            try {
+                invited = email.isBlank()
+                        ? accountInviteService.createWithoutAddress(stationId, mapped.firstName(), mapped.lastName())
+                        : accountInviteService.resolveOrCreate(stationId, email, mapped.firstName(), mapped.lastName());
+            } catch (AccountInviteService.EmailInUseException e) {
+                warnings.add("Zeile " + (i + 2) + ": " + email + " gehört bereits jemand anderem, übersprungen");
+                continue;
+            }
+            var member =
+                    stationMemberRepository.create(stationId, invited.account().id());
             stationMemberRepository.setUserType(member.id(), StationUserType.TEAM);
             stationMemberRepository.grantPermission(member.id(), loginRole.id());
             membersCreated++;
@@ -625,24 +643,7 @@ public class MemberImportService {
 
     // -- Team Import --
 
-    private String generateEmail(String firstName, String lastName) {
-        return (firstName + "." + lastName)
-                        .toLowerCase()
-                        .replace("ä", "ae")
-                        .replace("ö", "oe")
-                        .replace("ü", "ue")
-                        .replace("ß", "ss")
-                        .replaceAll("[^a-z0-9.@]", "")
-                + "@import.local";
-    }
-
     // -- Mapping logic --
-
-    private String generatePassword() {
-        byte[] bytes = new byte[16];
-        new SecureRandom().nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
 
     // -- Helpers --
 

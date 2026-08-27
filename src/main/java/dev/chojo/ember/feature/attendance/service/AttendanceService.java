@@ -24,6 +24,8 @@ import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -55,6 +57,7 @@ public class AttendanceService {
     private final EventRegistrationRepository eventRegistrationRepository;
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
+    private final RestrictionService restrictionService;
 
     @Inject
     public AttendanceService(
@@ -64,7 +67,8 @@ public class AttendanceService {
             EventFieldDefaultRepository eventFieldDefaultRepository,
             EventRegistrationRepository eventRegistrationRepository,
             StationMemberRepository stationMemberRepository,
-            MemberGroupRepository memberGroupRepository) {
+            MemberGroupRepository memberGroupRepository,
+            RestrictionService restrictionService) {
         this.attendanceRepository = attendanceRepository;
         this.eventRepository = eventRepository;
         this.eventFieldRepository = eventFieldRepository;
@@ -72,6 +76,7 @@ public class AttendanceService {
         this.eventRegistrationRepository = eventRegistrationRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
+        this.restrictionService = restrictionService;
     }
 
     private static String toJsonValue(Object value) {
@@ -373,6 +378,43 @@ public class AttendanceService {
     }
 
     /**
+     * Writes down as declined everybody the event was never open to.
+     *
+     * <p>An event addressed to one group is invisible to everybody else, and somebody who could not
+     * see it could not answer it either. Left undetermined they would arrive on the attendance list
+     * as people to decide about, and whoever fills it in would be ruling on people who were never
+     * asked.
+     *
+     * <p>Somebody who could see the event and said nothing is not touched. Their answer is the
+     * attendance itself, taken on the day, and that is what leaving them undetermined is for.
+     *
+     * <p>An event open to everybody excludes nobody, and the restrictions then name nobody either, so
+     * there is nothing to write down.
+     *
+     * @param sessionId      the attendance being filled in
+     * @param eventId        the event it was made from
+     * @param alreadyEntered who is on the list already, extended by everybody added here
+     */
+    private void markUnreachedAsDeclined(int sessionId, int eventId, Set<Integer> alreadyEntered) {
+        var event = eventRepository.findById(eventId).orElse(null);
+        if (event == null) return;
+
+        var reached =
+                restrictionService.findMembersPassingRestriction(RestrictionType.EVENT, eventId, event.stationId());
+        if (reached.isEmpty()) return;
+
+        for (var member : stationMemberRepository.findByStation(event.stationId(), false)) {
+            if (reached.contains(member.id()) || alreadyEntered.contains(member.id())) continue;
+            attendanceRepository.createEntry(
+                    sessionId,
+                    member.id(),
+                    AttendanceEntry.AttendanceStatus.DECLINED,
+                    AttendanceEntry.EntrySource.EXPECTED);
+            alreadyEntered.add(member.id());
+        }
+    }
+
+    /**
      * Sync attendance entries from event registrations, absence data, and autoAttend template fields.
      * - ACCEPTED registrations → PRESENT (or ABSENT if member has active absence)
      * - DECLINED registrations → DECLINED
@@ -414,6 +456,8 @@ public class AttendanceService {
                     existingMemberIds.add(reg.memberId());
                 }
             }
+
+            markUnreachedAsDeclined(sessionId, eventId, existingMemberIds);
         }
 
         // Sync absence status for existing PRESENT/UNCONFIRMED entries

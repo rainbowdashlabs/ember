@@ -45,6 +45,8 @@ const federatedRegs = ref<FederatedEventRegistration[]>([])
 interface MemberOption {
   id: number
   name: string
+  /** What kind of member they are, so the picker can be narrowed to one kind. */
+  userType?: string | null
 }
 
 const allMembers = ref<MemberOption[]>([])
@@ -110,7 +112,11 @@ async function loadRegistrations() {
     if (hasPermission(StationPermission.EVENT_REGISTRATION)) {
       federatedRegs.value = await events.listFederationRegistrations(props.eventId).catch(() => [])
       const members = await stationMembersApi.listMembers().catch(() => [])
-      allMembers.value = members.map(m => ({id: m.id, name: m.name ?? m.email ?? `#${m.id}`}))
+      allMembers.value = members.map(m => ({
+        id: m.id,
+        name: m.name ?? m.email ?? `#${m.id}`,
+        userType: m.userType ?? null,
+      }))
     }
   } catch {
     error.value = t('common.error')

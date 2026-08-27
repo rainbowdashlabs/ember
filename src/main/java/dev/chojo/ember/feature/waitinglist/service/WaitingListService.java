@@ -7,12 +7,13 @@ package dev.chojo.ember.feature.waitinglist.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.WaitlistPublicRegistration;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -39,12 +40,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,7 +65,7 @@ public class WaitingListService {
     private final AccountRepository accountRepository;
     private final EmailService emailService;
     private final NotificationService notificationService;
-    private final PasswordHasher passwordHasher;
+    private final AccountInviteService accountInviteService;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -78,7 +77,7 @@ public class WaitingListService {
             AccountRepository accountRepository,
             EmailService emailService,
             NotificationService notificationService,
-            PasswordHasher passwordHasher,
+            AccountInviteService accountInviteService,
             DomainEventBus eventBus) {
         this.repository = repository;
         this.stationRepository = stationRepository;
@@ -87,7 +86,7 @@ public class WaitingListService {
         this.accountRepository = accountRepository;
         this.emailService = emailService;
         this.notificationService = notificationService;
-        this.passwordHasher = passwordHasher;
+        this.accountInviteService = accountInviteService;
         this.eventBus = eventBus;
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "waitlist-confirmation-checker");
@@ -98,12 +97,6 @@ public class WaitingListService {
     }
 
     // --- List CRUD (delegates) ---
-
-    private static String generatePassword() {
-        byte[] bytes = new byte[16];
-        new SecureRandom().nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
 
     public List<WaitingList> findByStation(int stationId) {
         return repository.findByStation(stationId);
@@ -1016,32 +1009,48 @@ public class WaitingListService {
         var guardianRole = stationMemberRepository.findPermissionByName(StationPermission.MEMBER_GUARDIAN);
 
         for (var guardian : guardians) {
-            if (guardian.email().isBlank()) continue;
+            String address = guardian.email().trim();
 
-            // Reuse existing account if email already registered
-            var existingAccount = accountRepository.findByEmail(guardian.email());
-            if (existingAccount.isPresent()) {
-                var existingMember = stationMemberRepository.findByStationAndAccount(
-                        stationId, existingAccount.get().id());
-                if (existingMember.isPresent()) {
-                    stationMemberRepository.addManager(existingMember.get().id(), entry.memberId());
-                    continue;
-                }
+            var known = address.isBlank()
+                    ? Optional.<StationMember>empty()
+                    : accountRepository
+                            .findByEmail(address)
+                            .flatMap(account ->
+                                    stationMemberRepository.findByStationAndAccount(stationId, account.id()));
+            if (known.isPresent()) {
+                stationMemberRepository.addManager(known.get().id(), entry.memberId());
+                log.info(
+                        "Guardian {} already at station {}, linked to member {}",
+                        known.get().id(),
+                        stationId,
+                        entry.memberId());
+                continue;
             }
 
-            var account = existingAccount.orElseGet(() -> accountRepository.create(
-                    guardian.email(), guardian.firstname(), guardian.lastname(), true, stationId));
-            if (existingAccount.isEmpty()) {
-                String password = generatePassword();
-                accountRepository.createCredential(account.id(), passwordHasher.hash(password));
+            AccountInviteService.Invited invited;
+            try {
+                invited = address.isBlank()
+                        ? accountInviteService.createWithoutAddress(
+                                stationId, guardian.firstname(), guardian.lastname())
+                        : accountInviteService.resolveOrCreate(
+                                stationId, address, guardian.firstname(), guardian.lastname());
+            } catch (AccountInviteService.EmailInUseException e) {
+                log.warn("Guardian of member {} was not taken on: {} is somebody else's", entry.memberId(), address);
+                continue;
             }
 
-            var member = stationMemberRepository.create(stationId, account.id());
+            var member =
+                    stationMemberRepository.create(stationId, invited.account().id());
             stationMemberRepository.setUserType(member.id(), StationUserType.GUARDIAN);
             loginRole.ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
             guardianRole.ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
 
             stationMemberRepository.addManager(member.id(), entry.memberId());
+            log.info(
+                    "Guardian {} joined station {} and answers for member {}",
+                    member.id(),
+                    stationId,
+                    entry.memberId());
         }
     }
 

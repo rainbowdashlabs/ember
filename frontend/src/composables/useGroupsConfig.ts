@@ -25,6 +25,8 @@ export interface AssignableMember {
     name?: string | null
     email?: string | null
     identity?: MemberIdentity | null
+    /** What kind of member they are, where the list knows. Absent for a list of stations. */
+    userType?: string | null
 }
 
 /**

@@ -141,7 +141,9 @@ public class AttendanceRoutes implements Routes {
                 StationPermission.ATTENDANCE_EDIT);
         routes.get(prefix + "/attendance/sessions/{id}", this::getSession, StationPermission.ATTENDANCE_READ);
         routes.put(prefix + "/attendance/sessions/{id}", this::updateSession, StationPermission.ATTENDANCE_EDIT);
-        routes.delete(prefix + "/attendance/sessions/{id}", this::deleteSession, StationPermission.ATTENDANCE_MANAGER);
+        // Whoever may take an attendance may throw one away again: a sheet opened for the wrong
+        // evening is a mistake made while taking it, and is undone by the same person on the spot.
+        routes.delete(prefix + "/attendance/sessions/{id}", this::deleteSession, StationPermission.ATTENDANCE_EDIT);
 
         routes.get(
                 prefix + "/attendance/sessions/{sessionId}/fields",

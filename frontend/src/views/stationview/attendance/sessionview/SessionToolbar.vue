@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
 
 const {t} = useI18n()
 
@@ -21,6 +22,7 @@ defineEmits<{
   export: []
   sync: []
   startCheckMode: []
+  remove: []
 }>()
 </script>
 
@@ -44,6 +46,9 @@ defineEmits<{
       >
         {{ t('attendanceSession.checkMode') }} ({{ uncheckedCount }})
       </PrimaryButton>
+      <ErrorButton data-testid="delete-session" :icon="['fas', 'trash']" @click="$emit('remove')">
+        {{ t('attendanceSession.delete') }}
+      </ErrorButton>
     </div>
   </div>
 </template>

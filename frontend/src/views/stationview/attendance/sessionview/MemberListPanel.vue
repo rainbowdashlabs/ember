@@ -4,12 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import MemberEntry from './MemberEntry.vue'
+import MemberPickerFilter from '@/views/stationview/members/MemberPickerFilter.vue'
 import type {AttendanceEntry, AttendanceStatus} from '@/api/attendance'
 import type {MemberGroup, StationMember} from '@/api/types'
 
@@ -35,6 +36,34 @@ const emit = defineEmits<{
 const membersNotInSession = computed(() => {
   const entryMemberIds = new Set(props.entries.map(e => e.memberId))
   return props.allMembers.filter(m => !entryMemberIds.has(m.id) && !m.formerAt)
+})
+
+/** What the reader typed to find the person they want to add to the sheet. */
+const search = ref('')
+
+/** The kind of member they are looking for, or the empty string for every kind. */
+const userType = ref('')
+
+/** The kinds present among those not on the sheet, so choosing one never empties the list by itself. */
+const offeredUserTypes = computed(() => {
+  const kinds = new Set<string>()
+  for (const member of membersNotInSession.value) {
+    if (member.userType) kinds.add(member.userType)
+  }
+  return [...kinds].sort()
+})
+
+/**
+ * Those not on the sheet yet, narrowed to what the reader is looking for.
+ *
+ * <p>Somebody who turns up unannounced is added here, and a station of three hundred offered three
+ * hundred names in one dropdown to find them in.
+ */
+const addableMembers = computed(() => {
+  const needle = search.value.trim().toLowerCase()
+  return membersNotInSession.value
+      .filter(member => !userType.value || member.userType === userType.value)
+      .filter(member => !needle || (member.name ?? member.email ?? '').toLowerCase().includes(needle))
 })
 
 function getMemberName(memberId: number): string {
@@ -68,15 +97,18 @@ function getEntry(memberId: number): AttendanceEntry | undefined {
   </div>
 
   <!-- Add member -->
-  <div v-if="!readonly && membersNotInSession.length > 0" class="flex items-center gap-2">
-    <SelectInput v-model="selectedMemberId" class="flex-1">
-      <option disabled value="">{{ t('attendanceSession.addMember') }}</option>
-      <option v-for="m in membersNotInSession" :key="m.id" :value="String(m.id)">
-        {{ m.name ?? m.email }}
-      </option>
-    </SelectInput>
-    <PrimaryButton :icon="['fas', 'plus']" :disabled="!selectedMemberId" @click="emit('addMember')">
-      {{ t('attendanceSession.add') }}
-    </PrimaryButton>
+  <div v-if="!readonly && membersNotInSession.length > 0" class="space-y-2">
+    <MemberPickerFilter v-model:search="search" v-model:user-type="userType" :user-types="offeredUserTypes"/>
+    <div class="flex items-center gap-2">
+      <SelectInput v-model="selectedMemberId" class="flex-1">
+        <option disabled value="">{{ t('attendanceSession.addMember') }}</option>
+        <option v-for="m in addableMembers" :key="m.id" :value="String(m.id)">
+          {{ m.name ?? m.email }}
+        </option>
+      </SelectInput>
+      <PrimaryButton :icon="['fas', 'plus']" :disabled="!selectedMemberId" @click="emit('addMember')">
+        {{ t('attendanceSession.add') }}
+      </PrimaryButton>
+    </div>
   </div>
 </template>
