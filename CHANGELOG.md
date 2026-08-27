@@ -15,7 +15,7 @@
 
 - **Nobody could be put on an appointment by hand until somebody had signed up.** The whole registration section only appeared once the first entry existed, so the one person allowed to enter the first name had nowhere to enter it.
 - **The sign-up button stayed after the deadline had passed.** Pressing it produced an error and nothing else.
-- **An appointment that has to be signed up for offered to decline it.** Not signing up is the answer there, so a separate refusal wrote down a no about something nobody was down for. It is gone from the appointment list and from the dashboard.
+- **An appointment offered two answers where it only takes one.** An appointment that has to be signed up for now offers signing up, and once there is a place, giving it back. One that expects everybody offers only the refusal, and once refused, taking that back. Giving either back removes the answer instead of writing down the opposite, so nobody is recorded as refusing something they were never down for.
 - **Somebody who had declined was offered a place or a refusal.** They are not asking to come, so there is nothing to decide about them.
 - **The description in the appointment list showed its own markdown.** Asterisks and hashes appeared as written; the opening words are now shown as the text they were meant to be.
 - **The onboarding lists stayed on the dashboard after everything was settled.** A list where everything is done or thrown away asks nothing and now goes away.

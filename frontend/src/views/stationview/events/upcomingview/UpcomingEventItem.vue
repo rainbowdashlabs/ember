@@ -49,7 +49,7 @@ const containerClass = computed(() => [
 </script>
 
 <template>
-  <NeutralContainer :class="containerClass">
+  <NeutralContainer data-testid="upcoming-event" :data-event="event.id" :class="containerClass">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
         <span v-if="endDate" :title="t('eventsUpcoming.multiDay')" class="mr-1 inline-block">

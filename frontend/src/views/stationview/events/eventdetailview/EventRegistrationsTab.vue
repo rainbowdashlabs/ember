@@ -7,7 +7,7 @@
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
@@ -181,12 +181,20 @@ async function confirmRegistrationFields(values: RegistrationFieldValue[]) {
   await runRegistration('register', memberId, values)
 }
 
-function declineMember(memberId: number) {
-  return runRegistration('decline', memberId)
+/**
+ * Gives up the place somebody was given, by deleting it.
+ *
+ * <p>Not a refusal written down in its place: this event has to be signed up for, so having no place
+ * already says everything a refusal would, and two rows saying the same thing is one too many.
+ */
+async function undoAnswerFor(memberId: number) {
+  const registration = getRegistrationForMember(memberId)
+  if (!registration) return
+  await events.withdrawRegistration(registration.id)
+  await reloadAndRefresh()
 }
 
 const showAnswerDialog = ref(false)
-const answeringAttending = ref(true)
 
 /**
  * Everyone this reader answers for. Offered as one dialog only when there is more than one of them: a
@@ -198,32 +206,41 @@ const household = computed(() => props.registrableMembers.map(member => ({
 })))
 
 /**
- * One pair of buttons for however many people the reader answers for. Answering for yourself alone acts
- * at once, and asks the event's questions on the way if it has any; answering for several opens the
- * dialog, where they are ticked and each gets their own questions.
+ * Signs the household up. One of them acts at once, and asks the event's questions on the way if it
+ * has any; several open the dialog, where they are ticked and each gets their own questions.
  */
-function answerForHousehold(attending: boolean) {
+function answerForHousehold() {
   if (household.value.length === 1) {
-    const only = household.value[0]!.memberId
-    return attending ? registerMember(only) : declineMember(only)
+    return registerMember(household.value[0]!.memberId)
   }
-  answeringAttending.value = attending
   showAnswerDialog.value = true
 }
 
-const answerLabel = computed(() =>
-    household.value.length > 1 ? t('events.answerForAll') : t('eventsUpcoming.register'))
+/** Everyone in the household who has a place, which is who there is something to give up for. */
+const withPlace = computed(() =>
+    household.value.filter(person => getRegistrationForMember(person.memberId) !== undefined))
 
-const declineLabel = computed(() =>
-    household.value.length > 1 ? t('events.declineForAll') : t('eventsUpcoming.decline'))
+/** Everyone still to answer, which is who the sign-up button is for. */
+const withoutPlace = computed(() =>
+    household.value.filter(person => getRegistrationForMember(person.memberId) === undefined))
+
+const answerLabel = computed(() =>
+    withoutPlace.value.length > 1 ? t('events.answerForAll') : t('eventsUpcoming.register'))
+
+const withdrawLabel = computed(() =>
+    withPlace.value.length > 1 ? t('events.declineForAll') : t('eventsUpcoming.unregister'))
+
+/** Gives up every place the household holds, which is what the one button beside them offers. */
+async function withdrawHousehold() {
+  for (const person of withPlace.value) {
+    await undoAnswerFor(person.memberId)
+  }
+}
 
 async function confirmHouseholdAnswer(answers: PersonAnswer[]) {
   showAnswerDialog.value = false
   for (const answer of answers) {
-    await runRegistration(
-        answeringAttending.value ? 'register' : 'decline',
-        answer.memberId,
-        answeringAttending.value ? answer.fields : undefined)
+    await runRegistration('register', answer.memberId, answer.fields)
   }
 }
 
@@ -274,14 +291,14 @@ onMounted(loadRegistrations)
     <NeutralContainer v-if="event.requiresRegistration && !canManageEvents()" class="space-y-3">
       <SubHeader>{{ t('eventDetail.myRegistration') }}</SubHeader>
       <div class="flex items-center gap-2 flex-wrap">
-        <PrimaryButton :disabled="registering" data-testid="answer-household"
-                       @click="answerForHousehold(true)">
+        <PrimaryButton v-if="withoutPlace.length > 0" :disabled="registering" data-testid="answer-household"
+                       @click="answerForHousehold()">
           <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>{{ answerLabel }}
         </PrimaryButton>
-        <ErrorButton :disabled="registering" data-testid="decline-household"
-                     @click="answerForHousehold(false)">
-          <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>{{ declineLabel }}
-        </ErrorButton>
+        <SecondaryButton v-if="withPlace.length > 0" :disabled="registering" data-testid="withdraw-household"
+                         @click="withdrawHousehold()">
+          <font-awesome-icon :icon="['fas', 'rotate-left']" class="mr-1"/>{{ withdrawLabel }}
+        </SecondaryButton>
       </div>
       <div v-for="member in registrableMembers" :key="member.id" class="flex items-center gap-3 flex-wrap">
         <span v-if="hasManagedMembers" class="text-sm font-medium min-w-24">{{ member.name }}</span>
@@ -299,7 +316,7 @@ onMounted(loadRegistrations)
         v-model="showAnswerDialog"
         :people="household"
         :fields="registrationFields"
-        :attending="answeringAttending"
+        :attending="true"
         :busy="registering"
         :error="registrationError"
         @confirm="confirmHouseholdAnswer"

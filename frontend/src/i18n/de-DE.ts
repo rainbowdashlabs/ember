@@ -2068,6 +2068,7 @@ export default {
         selectMember: 'Mitglied wählen',
         registerFor: '{name} anmelden',
         remove: 'Entfernen',
+        unregister: 'Abmelden',
         decline: 'Absagen',
         declineFor: '{name} absagen',
         statusDeclined: 'Abgesagt',
