@@ -23,6 +23,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import tools.jackson.databind.node.StringNode;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -59,7 +60,7 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
                 ProfileFieldConfig.parse("{}"),
                 0,
                 ProfileFieldScope.MEMBER);
-        profileFieldRepo.setValue(member.id(), field.id(), "\"0123456789\"");
+        profileFieldRepo.setValue(member.id(), field.id(), StringNode.valueOf("0123456789"));
 
         // Add to a group
         var group = memberGroupRepo.create(station.id(), "TestGroup");

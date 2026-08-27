@@ -98,7 +98,7 @@ function doCreateManager() {
     </MutedText>
 
     <div class="space-y-3">
-      <div v-for="mgr in managers" :key="mgr.id" class="rounded-lg px-4 py-3 bg-bg-light-accent/30 dark:bg-bg-dark-accent/30 space-y-2">
+      <div v-for="mgr in managers" :key="mgr.id" data-testid="guardian-row" class="rounded-lg px-4 py-3 bg-bg-light-accent/30 dark:bg-bg-dark-accent/30 space-y-2">
         <div class="flex items-center justify-between">
           <div>
             <span class="font-semibold">{{ memberDisplayNameFn(mgr) }}</span>

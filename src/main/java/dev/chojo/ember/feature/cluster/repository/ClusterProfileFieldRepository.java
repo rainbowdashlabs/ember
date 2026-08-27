@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
+import tools.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.Optional;
@@ -193,14 +195,21 @@ public class ClusterProfileFieldRepository {
                 .all();
     }
 
-    public void setValue(int memberId, int fieldId, String value) {
+    /**
+     * Sets the answer a member gave to one of the cluster's questions.
+     *
+     * @param memberId the member the answer belongs to
+     * @param fieldId  the question being answered
+     * @param value    the answer as a JSON document, or null to record no answer at all
+     */
+    public void setValue(int memberId, int fieldId, @Nullable JsonNode value) {
         query("""
                 INSERT INTO cluster_profile_field_value(member_id, field_id, value)
                 VALUES (:member_id, :field_id, :value::JSONB)
                 ON CONFLICT (member_id, field_id) DO UPDATE SET value = EXCLUDED.value;""")
                 .single(call().bind("member_id", memberId)
                         .bind("field_id", fieldId)
-                        .bind("value", value))
+                        .bind("value", value == null ? null : value.toString()))
                 .update();
     }
 

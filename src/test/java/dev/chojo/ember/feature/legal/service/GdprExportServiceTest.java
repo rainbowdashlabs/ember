@@ -20,6 +20,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import tools.jackson.databind.node.StringNode;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -76,7 +77,7 @@ class GdprExportServiceTest extends RepositoryTestBase {
                 ProfileFieldConfig.parse("{}"),
                 0,
                 ProfileFieldScope.MEMBER);
-        profileFieldRepo.setValue(member.id(), field.id(), "\"0151 12345678\"");
+        profileFieldRepo.setValue(member.id(), field.id(), StringNode.valueOf("0151 12345678"));
 
         // Create group + assign member
         var group = memberGroupRepo.create(stationId, "Anfänger");

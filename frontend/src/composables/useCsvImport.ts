@@ -50,7 +50,6 @@ export interface CsvImportOptions<TMapping, TPreview, TResult> {
     formatError?: (error: unknown) => string
     separator?: string
     maxFileSize?: number
-    sampleRowCount?: number
 }
 
 /** The entity agnostic part of the import state, consumed by {@link CsvImportWizard}. */
@@ -91,7 +90,6 @@ export function useCsvImport<TMapping, TPreview = unknown, TResult = unknown>(
     const {t} = useI18n()
 
     const maxFileSize = options.maxFileSize ?? DEFAULT_MAX_FILE_SIZE
-    const sampleRowCount = options.sampleRowCount ?? 3
 
     const step = ref<CsvImportStepName>(CsvImportSteps.UPLOAD)
     const file = shallowRef<File | null>(null)
@@ -113,7 +111,6 @@ export function useCsvImport<TMapping, TPreview = unknown, TResult = unknown>(
     const fileName = computed(() => file.value?.name ?? '')
     const hasFile = computed(() => file.value !== null || text.value.length > 0)
     const rowCount = computed(() => rows.value.length)
-    const sampleRows = computed(() => rows.value.slice(0, sampleRowCount))
     const lineCount = computed(() => {
         const lines = text.value.split('\n').filter(line => line.trim().length > 0)
         return Math.max(lines.length - 1, 0)
@@ -218,7 +215,6 @@ export function useCsvImport<TMapping, TPreview = unknown, TResult = unknown>(
         separator,
         headers,
         rows,
-        sampleRows,
         rowCount,
         lineCount,
         fileName,

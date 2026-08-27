@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -358,7 +359,7 @@ public class ProfileFieldService {
             }
 
             String oldValue = oldStation.getOrDefault(entry.fieldId(), "null");
-            profileFieldRepository.setValue(memberId, entry.fieldId(), entry.value());
+            profileFieldRepository.setValue(memberId, entry.fieldId(), Json.document(entry.value()));
 
             if (!Objects.equals(oldValue, newValue)) {
                 recordChange(entry.fieldId(), memberId, oldValue, newValue, changedBy);
@@ -407,7 +408,7 @@ public class ProfileFieldService {
         String oldValue = oldValues.getOrDefault(field.id(), "null");
         if (Objects.equals(oldValue, newValue)) return;
 
-        clusterFieldRepository.setValue(memberId, field.id(), entry.value());
+        clusterFieldRepository.setValue(memberId, field.id(), Json.document(entry.value()));
         changeRepository.createForClusterField(
                 field.id(),
                 memberId,

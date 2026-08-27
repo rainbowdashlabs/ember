@@ -4479,7 +4479,7 @@ export default {
         managerFirstName: 'Vorname',
         managerLastName: 'Nachname',
         managerPhone: 'Telefon',
-        managerEmail: 'E-Mail (Pflicht)',
+        managerEmail: 'E-Mail',
         splitAction: 'Spalte aufteilen',
         addSplitPart: 'Weiteren Teil hinzufügen',
         unsplit: 'Aufteilung aufheben',

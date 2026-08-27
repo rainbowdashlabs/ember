@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
@@ -208,7 +209,7 @@ public class ClusterProfileFieldService {
             String newValue = entry.getValue() != null ? entry.getValue() : "null";
             if (Objects.equals(oldValue, newValue)) continue;
 
-            fieldRepository.setValue(memberId, field.id(), entry.getValue());
+            fieldRepository.setValue(memberId, field.id(), Json.document(entry.getValue()));
             changeRepository.createForClusterField(
                     field.id(),
                     memberId,

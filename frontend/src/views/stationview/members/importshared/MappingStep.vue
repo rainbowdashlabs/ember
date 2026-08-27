@@ -18,9 +18,12 @@ const { t } = useI18n()
 
 const mappings = defineModel<ColumnMapping[]>('mappings', {required: true})
 
+/** How many of a column's answers the row itself shows, before the reader opens the editor. */
+const PREVIEW_VALUES = 3
+
 const props = defineProps<{
   headers: string[]
-  sampleRows: string[][]
+  rows: string[][]
   targetOptions: { value: string; label: string; group?: string }[]
   fieldScopeGroups: string[]
   primaryGroupLabel: string
@@ -33,8 +36,21 @@ const props = defineProps<{
 const editingValueMapIndex = ref<number | null>(null)
 const editingValueMapEntries = ref<Array<{ from: string; to: string }>>([])
 
-function getSampleValues(colIndex: number): string[] {
-  return props.sampleRows.map(row => row[colIndex] ?? '').filter(v => v)
+/**
+ * The answers a column holds, each one once, in the order the file first gives them.
+ *
+ * <p>The whole file rather than a taste of it, and each answer once rather than as often as it
+ * occurs: this is what the value editor offers as the things to map, and a column of thirty rows
+ * answered yes or no is two answers to map, not thirty.
+ */
+function distinctValues(colIndex: number): string[] {
+  if (colIndex < 0) return []
+  const seen = new Set<string>()
+  for (const row of props.rows) {
+    const value = row[colIndex]?.trim() ?? ''
+    if (value) seen.add(value)
+  }
+  return [...seen]
 }
 
 function isMerged(target: string): boolean {
@@ -55,10 +71,7 @@ function getSplitSiblings(csvColumn: string): number[] {
 function getSplitPreview(mapping: ColumnMapping): string[] {
   if (!mapping.splitChar) return []
   const colIdx = props.headers.indexOf(mapping.csvColumn)
-  if (colIdx < 0) return []
-  return props.sampleRows.map(row => {
-    const val = row[colIdx]?.trim() ?? ''
-    if (!val) return ''
+  return distinctValues(colIdx).map(val => {
     const parts = val.split(mapping.splitChar)
     const idx = mapping.splitIndex < 0 ? parts.length + mapping.splitIndex : mapping.splitIndex
     return parts[idx]?.trim() ?? ''
@@ -66,8 +79,10 @@ function getSplitPreview(mapping: ColumnMapping): string[] {
 }
 
 function previewTextFor(mapping: ColumnMapping, index: number): string {
-  if (isSplit(index)) return getSplitPreview(mapping).join(', ')
-  return getSampleValues(props.headers.indexOf(mapping.csvColumn)).join(', ')
+  const values = isSplit(index)
+    ? getSplitPreview(mapping)
+    : distinctValues(props.headers.indexOf(mapping.csvColumn))
+  return values.slice(0, PREVIEW_VALUES).join(', ')
 }
 
 function updateMapping(index: number, partial: Partial<ColumnMapping>) {
@@ -128,11 +143,13 @@ function updateSplitChar(csvColumn: string, char: string) {
 function openValueMapEditor(index: number) {
   const m = mappings.value[index]
   if (!m) return
-  const existing = Object.entries(m.valueMap || {})
-  const colIdx = props.headers.indexOf(m.csvColumn)
-  editingValueMapEntries.value = existing.length > 0
-    ? existing.map(([from, to]) => ({ from, to }))
-    : getSampleValues(colIdx >= 0 ? colIdx : index).map(v => ({ from: v, to: '' }))
+  const existing = new Map(Object.entries(m.valueMap || {}))
+  const found = distinctValues(props.headers.indexOf(m.csvColumn))
+  const entries = found.map(from => ({ from, to: existing.get(from) ?? '' }))
+  for (const [from, to] of existing) {
+    if (!found.includes(from)) entries.push({ from, to })
+  }
+  editingValueMapEntries.value = entries
   editingValueMapIndex.value = index
 }
 

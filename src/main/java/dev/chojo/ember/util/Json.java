@@ -6,7 +6,11 @@
 package dev.chojo.ember.util;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import io.javalin.http.BadRequestResponse;
+import org.jspecify.annotations.Nullable;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
@@ -39,6 +43,27 @@ public final class Json {
     public static final ObjectMapper EMPTY_TOLERANT_CONFIG_MAPPER = configMapperBuilder()
             .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
             .build();
+
+    /**
+     * Reads text a client sent as the JSON document it claims to be.
+     *
+     * <p>Anything held in a JSONB column travels through the API as text, and nothing between the
+     * browser and the database looks at it. Reading it here is what keeps text that is not a document
+     * from reaching the column, where it ends the whole statement in an error the caller cannot act
+     * on. A bad request is what it is, so a bad request is what comes back.
+     *
+     * @param value the text as it arrived, or null where there is none
+     * @return the document, or null where there is none
+     * @throws BadRequestResponse when the text is not a JSON document
+     */
+    public static @Nullable JsonNode document(@Nullable String value) {
+        if (value == null) return null;
+        try {
+            return MAPPER.readTree(value);
+        } catch (JacksonException notADocument) {
+            throw new BadRequestResponse("The value is not a valid answer for this field");
+        }
+    }
 
     private static JsonMapper.Builder configMapperBuilder() {
         return JsonMapper.builder()

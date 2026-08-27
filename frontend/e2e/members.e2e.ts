@@ -263,20 +263,13 @@ test.describe('Members', () => {
     test('members are imported from a file', async ({managerPage: page}) => {
         const surname = unique('Importiert')
 
-        await page.goto('/station/members/import')
-
-        await page.setInputFiles('input[type="file"]', {
-            name: 'mitglieder.csv',
-            mimeType: 'text/csv',
-            // Semicolons, because that is the separator the member wizard starts with.
-            buffer: Buffer.from(`Vorname;Nachname\nTestperson;${surname}\n`, 'utf-8'),
-        })
-        await page.getByRole('button', {name: 'Weiter'}).click()
+        // Semicolons, because that is the separator the member wizard starts with.
+        await uploadCsv(page, `Vorname;Nachname\nTestperson;${surname}\n`)
 
         // Each column of the file is pointed at what it holds; the wizard refuses to go on until at
         // least the name is answered for.
-        await page.locator('select:has(option:text-is("Vorname"))').first().selectOption({label: 'Vorname'})
-        await page.locator('select:has(option:text-is("Nachname"))').last().selectOption({label: 'Nachname'})
+        await mapColumn(page, 'Vorname', 'firstName')
+        await mapColumn(page, 'Nachname', 'lastName')
 
         await page.getByRole('button', {name: 'Vorschau'}).click()
         await expect(page.getByText(/1 Mitglieder erkannt/)).toBeVisible()
@@ -307,12 +300,9 @@ test.describe('Members', () => {
         const csv = `Vorname;Nachname\nTestperson;${stays}\nTestperson;${struck}\n`
 
         async function walkTheWizard() {
-            await page.goto('/station/members/import')
-            await page.setInputFiles('input[type="file"]',
-                {name: 'mitglieder.csv', mimeType: 'text/csv', buffer: Buffer.from(csv, 'utf-8')})
-            await page.getByRole('button', {name: 'Weiter'}).click()
-            await page.locator('select:has(option:text-is("Vorname"))').first().selectOption({label: 'Vorname'})
-            await page.locator('select:has(option:text-is("Nachname"))').last().selectOption({label: 'Nachname'})
+            await uploadCsv(page, csv)
+            await mapColumn(page, 'Vorname', 'firstName')
+            await mapColumn(page, 'Nachname', 'lastName')
             await page.getByRole('button', {name: 'Vorschau'}).click()
             await expect(page.getByTestId('preview-row')).toHaveCount(2)
         }
@@ -339,6 +329,128 @@ test.describe('Members', () => {
         await expect(page.getByTestId('member-row'), 'nobody was doubled').toHaveCount(1)
         await page.getByPlaceholder(/Suche/).first().fill(struck)
         await expect(page.getByTestId('member-row')).toHaveCount(1)
+    })
+
+    /**
+     * Points one column of the file at what it holds, found by the heading it carries.
+     *
+     * <p>By what the target is worth rather than by what it is called: every column offers "Vorname"
+     * twice over, once for the member and once for each of their guardians, and a story picking by
+     * name would take whichever came first.
+     */
+    async function mapColumn(page: Page, column: string, target: string | {label: string}) {
+        await page.locator(`[data-testid="mapping-row"][data-column="${column}"]`).first()
+            .locator('select').first()
+            .selectOption(target)
+    }
+
+    /** Puts a file in front of the wizard and carries it to the mapping step. */
+    async function uploadCsv(page: Page, csv: string) {
+        await page.goto('/station/members/import')
+        await page.setInputFiles('input[type="file"]',
+            {name: 'mitglieder.csv', mimeType: 'text/csv', buffer: Buffer.from(csv, 'utf-8')})
+        await page.getByRole('button', {name: 'Weiter'}).click()
+        await expect(page.getByTestId('mapping-row').first()).toBeVisible()
+    }
+
+    /** Opens the imported person, found by the surname they were read in under. */
+    async function openImported(page: Page, surname: string) {
+        await page.goto('/station/members/list')
+        await page.getByPlaceholder(/Suche/).first().fill(surname)
+        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.waitForURL(/\/station\/members\/detail\/\d+/)
+    }
+
+    /**
+     * A youth list as a station actually keeps one: names, answers to the station's own questions,
+     * a group, and a parent on every row. Everything the reading is for at once, because each part
+     * of it broke on its own while the parts beside it went on working.
+     *
+     * <p>The answers are read back off the member rather than off the report the import writes: a
+     * count of what was set says nothing about whether it reached the person it was set on, which is
+     * exactly how a mapped question came to be dropped while the wizard said it had been kept.
+     */
+    test('a list with questions, a group and a parent is read in whole', async ({managerPage: page}) => {
+        const surname = unique('Vollstaendig')
+        const parent = unique('Elternteil')
+        const allergy = unique('Pollen')
+
+        await uploadCsv(page, 'Vorname;Nachname;Allergie;Geburtstag;Kontakt;Telefon;Kontakt Email\n'
+            + `Testperson;${surname};${allergy};04.03.2011;Anja ${parent};01700000000;`
+            + `${parent.toLowerCase()}@example.test\n`)
+
+        await mapColumn(page, 'Vorname', 'firstName')
+        await mapColumn(page, 'Nachname', 'lastName')
+        await mapColumn(page, 'Allergie', {label: 'Allergien (TEXT)'})
+        await mapColumn(page, 'Geburtstag', {label: 'Geburtstag (DATE)'})
+        await mapColumn(page, 'Kontakt', 'manager:1:firstName')
+        await mapColumn(page, 'Telefon', 'manager:1:phone')
+        await mapColumn(page, 'Kontakt Email', 'manager:1:email')
+
+        await page.getByRole('button', {name: 'Vorschau'}).click()
+        await expect(page.getByText(/1 Mitglieder erkannt/)).toBeVisible()
+        await page.getByRole('button', {name: 'Importieren'}).click()
+        await expect(page.getByText('Import abgeschlossen')).toBeVisible()
+
+        await openImported(page, surname)
+        await expect(page.getByText(allergy).first(), 'the answer reached the member').toBeVisible()
+
+        await page.getByRole('button', {name: 'Erziehungsberechtigte'}).click()
+        await expect(page.getByTestId('guardian-row'), 'the parent was written down and linked').toHaveCount(1)
+        await expect(page.getByTestId('guardian-row').first()).toContainText(parent)
+    })
+
+    /**
+     * A parent the list gives no address for is still a parent.
+     *
+     * <p>A youth list carries a telephone number far more often than an address, and a contact
+     * without one used to be dropped where it stood: no guardian, no link, and nothing said. An
+     * address is made up for them the same way it is for a member who arrives without one.
+     */
+    test('a parent without an address is written down all the same', async ({managerPage: page}) => {
+        const surname = unique('Ohnemail')
+        const parent = unique('Namenlos')
+
+        await uploadCsv(page, `Vorname;Nachname;Kontakt;Telefon\nTestperson;${surname};Bea ${parent};01700000000\n`)
+
+        await mapColumn(page, 'Vorname', 'firstName')
+        await mapColumn(page, 'Nachname', 'lastName')
+        await mapColumn(page, 'Kontakt', 'manager:1:firstName')
+        await mapColumn(page, 'Telefon', 'manager:1:phone')
+
+        await page.getByRole('button', {name: 'Vorschau'}).click()
+        await page.getByRole('button', {name: 'Importieren'}).click()
+        await expect(page.getByText('Import abgeschlossen')).toBeVisible()
+
+        await openImported(page, surname)
+        await page.getByRole('button', {name: 'Erziehungsberechtigte'}).click()
+        await expect(page.getByTestId('guardian-row')).toHaveCount(1)
+        await expect(page.getByTestId('guardian-row').first()).toContainText(parent)
+    })
+
+    /**
+     * The editor that maps a column's answers onto the station's own offers each answer once.
+     *
+     * <p>A column of thirty rows answered in three ways is three things to map, not thirty. It used
+     * to list the first few rows as they stood, so the same answer arrived several times over and
+     * the ones further down the file never arrived at all.
+     *
+     * <p>The question has its own answers, so the target is picked from them rather than typed: one
+     * spelled by hand matches nothing, and the value then arrives exactly as the file had it.
+     */
+    test('the value editor offers every answer of a column once', async ({managerPage: page}) => {
+        await uploadCsv(page, 'Vorname;Nachname;Geschlecht\n'
+            + 'Eine;Person;m\nZweite;Person;m\nDritte;Person;w\nVierte;Person;m\n')
+
+        await mapColumn(page, 'Geschlecht', {label: 'Geschlecht (ENUM)'})
+        await page.locator('[data-testid="mapping-row"][data-column="Geschlecht"]')
+            .getByRole('button', {name: 'Werte zuordnen'}).click()
+
+        await expect(page.getByTestId('value-map-row'), 'm and w, each once').toHaveCount(2)
+
+        const target = page.getByTestId('value-map-target').first()
+        await target.selectOption({label: 'männlich'})
+        await expect(target).toHaveValue('männlich')
     })
 
     /**
