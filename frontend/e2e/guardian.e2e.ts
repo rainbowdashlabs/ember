@@ -262,7 +262,7 @@ test.describe('Guardian', () => {
             const confirm = page.getByTestId('answer-confirm')
             await expect(confirm).toBeVisible({timeout: 15000})
             await confirm.click()
-            await expect(page.getByTestId(`my-answer-${gives}`)).toHaveText(/Bestätigt|Offen/, {timeout: 15000})
+            await expect(page.getByTestId(`my-answer-${gives}`)).toHaveText(/Bestätigt|Ausstehend/, {timeout: 15000})
 
             // One of them gives their place back, which deletes it rather than refusing the event.
             // The row is picked by the event, because the household answers several at once.

@@ -84,6 +84,48 @@ test.describe('Events', () => {
     })
 
     /**
+     * A place that is still waiting to be confirmed can be given back like any other.
+     *
+     * <p>An appointment that confirms its sign-ups leaves the member in between for a while: they have
+     * said they are coming and nobody has said yes yet. That is still a place taken, so it can be
+     * given back, and giving it back removes it rather than turning it into a refusal.
+     */
+    test('a place still waiting to be confirmed can be given back',
+        async ({managerPage, memberPage}) => {
+            const managerHeaders = await apiHeaders(managerPage)
+            const name = `Bestätigung ${test.info().workerIndex}-${Date.now()}`
+
+            const created = await managerPage.request.post('/api/v1/events', {
+                headers: managerHeaders,
+                data: {
+                    name,
+                    description: 'Warten auf Zusage',
+                    eventType: 'ONE_TIME',
+                    startTime: new Date(Date.now() + 15 * 86400000).toISOString(),
+                    endTime: new Date(Date.now() + 15 * 86400000 + 3600000).toISOString(),
+                    requiresRegistration: true,
+                    requiresConfirmation: true,
+                },
+            })
+            expect(created.ok(), `the organiser made an event (${await created.text()})`).toBeTruthy()
+            const eventId = (await created.json()).id
+
+            await memberPage.goto(`/station/events/${eventId}`)
+            await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+
+            const myAnswer = memberPage.locator('[data-testid^="my-answer-"]').first()
+
+            await memberPage.getByTestId('answer-household').click()
+            await expect(myAnswer, 'nobody has said yes to them yet').toHaveText('Ausstehend', {timeout: 15000})
+
+            await memberPage.getByTestId('withdraw-household').click()
+            await expect(myAnswer, 'the place is gone rather than refused')
+                .toHaveText('Noch keine Antwort', {timeout: 15000})
+
+            await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})
+        })
+
+    /**
      * An answer can be changed while registration is open and not afterwards, when the list has been
      * counted on. After that it is the event's to change: whoever runs it still can, and the member
      * cannot. The deadline is moved underneath a standing registration, because that is the only way to
