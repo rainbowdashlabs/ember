@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -102,8 +104,29 @@ class StorageUsageRepositoryTest extends RepositoryTestBase {
         assertTrue(all.size() >= 3);
     }
 
+    /**
+     * A row counting a category this version no longer knows does not take the overview with it.
+     *
+     * <p>The reported fault. Page files became the media library and the enum was renamed; the rows
+     * counting them kept the old name, and reading the first one ended the operator's whole storage
+     * page in an error. The migration renames what is there, and this is the guard for the next
+     * rename somebody forgets.
+     */
     @Test
     @Order(9)
+    void aCategoryThisVersionDoesNotKnowIsPassedOver() {
+        query("""
+                INSERT INTO station_storage_usage (station_id, category, total_bytes, file_count)
+                VALUES (:station_id, 'LANGST_VERGESSEN', 4096, 2);""").single(call().bind("station_id", station.id())).insert();
+
+        var all = assertDoesNotThrow(() -> storageUsageRepo.findAll(), "the overview still reads");
+        assertTrue(
+                all.stream().noneMatch(usage -> usage.stationId() == station.id() && usage.totalBytes() == 4096),
+                "and the row nobody can name is not among them");
+    }
+
+    @Test
+    @Order(10)
     void findByStationAndCategoryReturnsEmptyForMissing() {
         assertTrue(storageUsageRepo
                 .findByStationAndCategory(station.id(), StorageCategory.IMAGE_QUIZ_QUESTION)

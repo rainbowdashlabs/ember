@@ -1,5 +1,11 @@
 # Changelog
 
+## v26.13.3
+
+### Fixes
+
+- **The instance-wide storage overview would not load.** Where a station had files from before the media library existed, the page counting what every station uses ended in an error instead of showing the list. Those counts are added to the media library's own, and a count that cannot be attributed to anything is now left out of the page rather than taking it down.
+
 ## v26.13.2
 
 ### Improvements

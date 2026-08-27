@@ -1,7 +1,7 @@
 {
   "version" : 1,
   "schemaHash" : "sha256:0e694791b5e05489d8ed4499ee2f4af5fc17d1f92df5c769d89cc984fddba894",
-  "generatedAt" : "2026-08-27T10:40:15Z",
+  "generatedAt" : "2026-08-27T14:18:52Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -5880,7 +5880,7 @@
         "type" : "text",
         "nullable" : true,
         "verified" : true,
-        "description" : "Required member type."
+        "description" : "Required member type. Exactly one of user_type/group_id/tag_id/member_id must be set."
       }, {
         "name" : "id",
         "type" : "int4",
@@ -5938,7 +5938,7 @@
         "status" : "IGNORED",
         "reason" : "Event structure/template data, not per-member"
       },
-      "description" : "Role restrictions for event templates."
+      "description" : "Who the appointments written from an event template are for. Not a restriction on the template itself: it is copied onto every appointment made from it, and the appointment owns it from there."
     },
     "federation_board_bookmark" : {
       "feature" : "federation",
@@ -15712,7 +15712,7 @@
         "type" : "text",
         "nullable" : false,
         "verified" : true,
-        "description" : "Storage category enum value (KB_FILES, BOARD_ATTACHMENTS, PAGE_IMAGES, AVATARS, IMAGES)"
+        "description" : "Storage category, named exactly as the StorageCategory the application knows. A row naming anything else is left out of the overview rather than read."
       }, {
         "name" : "total_bytes",
         "type" : "int8",
