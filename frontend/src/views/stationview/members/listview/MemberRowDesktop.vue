@@ -48,6 +48,15 @@ const extras = useMemberRowExtras()
 const rowNote = computed(() => extras.note(props.member.id))
 const blockedReason = computed(() => extras.blockedReason(props.member.id))
 
+/**
+ * Whether sending the setup mail again could reach anybody at all.
+ *
+ * <p>A member entered without an address carries one that was made up for them, ending in
+ * {@code .local}, and nothing can be delivered to it. Offering to send to it produced an error and
+ * nothing else, so the button is not offered. Where a guardian can be written to instead, it is.
+ */
+const canBeWrittenTo = computed(() => props.member.mailReachable !== false)
+
 const pendingTitle = computed(() => {
   const base = t('membersList.accountPending')
   if (!props.member.setupMailExpiresAt) return base
@@ -85,7 +94,7 @@ const pendingTitle = computed(() => {
         <MutedText v-if="rowNote" data-testid="member-note" size="sm">{{ rowNote }}</MutedText>
         <ErrorBadge v-if="member.profileComplete === false" class="ml-1.5 text-[10px]">{{ t('membersList.incomplete') }}</ErrorBadge>
         <IconButton
-            v-if="member.accountSetupPending && canEdit"
+            v-if="member.accountSetupPending && canEdit && canBeWrittenTo"
             :icon="['fas', 'paper-plane']"
             :title="pendingTitle"
             :label="t('membersList.accountPendingResend')"

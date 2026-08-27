@@ -52,25 +52,78 @@ test.describe('Events', () => {
     })
 
     /**
-     * Registering and withdrawing in one walk, which is how a member uses this in practice.
+     * Registering and giving the place back in one walk, which is how a member uses this in practice.
      *
-     * <p>Both answers are always offered, so what changes is the state rather than which button is
-     * on screen: asserting on the buttons would pass whatever happened. The badge read is the one
-     * beside the member's own name, because the seeded event is answered by other stories at the
-     * same time and the word alone appears wherever any of them has just declined.
+     * <p>An event that has to be signed up for takes one answer, so the buttons swap rather than sit
+     * beside each other: signing up while there is no place, giving it back while there is one. The
+     * badge read is the one beside the member's own name, because the seeded event is answered by
+     * other stories at the same time.
+     *
+     * <p>Giving the place back leaves no answer at all rather than a refusal. Not being signed up is
+     * already how somebody says they are not coming, and writing that down a second time would say it
+     * twice.
      */
-    test('a member registers for an event and withdraws again', async ({memberPage: page}) => {
+    test('a member registers for an event and gives the place back', async ({memberPage: page}) => {
         await openEventWithRegistration(page)
         await page.getByRole('button', {name: 'Anmeldungen'}).click()
 
         const myAnswer = page.locator('[data-testid^="my-answer-"]').first()
 
+        // The event is shared with the other stories, so this one starts by putting it back as it found it
+        const withdraw = page.getByTestId('withdraw-household')
+        if (await withdraw.isVisible().catch(() => false)) {
+            await withdraw.click()
+            await expect(myAnswer).toHaveText('Noch keine Antwort', {timeout: 15000})
+        }
+
         await page.getByTestId('answer-household').click()
         await expect(myAnswer).toHaveText('Bestätigt', {timeout: 15000})
 
-        await page.getByTestId('decline-household').click()
-        await expect(myAnswer).toHaveText('Abgesagt', {timeout: 15000})
+        await withdraw.click()
+        await expect(myAnswer).toHaveText('Noch keine Antwort', {timeout: 15000})
     })
+
+    /**
+     * A place that is still waiting to be confirmed can be given back like any other.
+     *
+     * <p>An appointment that confirms its sign-ups leaves the member in between for a while: they have
+     * said they are coming and nobody has said yes yet. That is still a place taken, so it can be
+     * given back, and giving it back removes it rather than turning it into a refusal.
+     */
+    test('a place still waiting to be confirmed can be given back',
+        async ({managerPage, memberPage}) => {
+            const managerHeaders = await apiHeaders(managerPage)
+            const name = `Bestätigung ${test.info().workerIndex}-${Date.now()}`
+
+            const created = await managerPage.request.post('/api/v1/events', {
+                headers: managerHeaders,
+                data: {
+                    name,
+                    description: 'Warten auf Zusage',
+                    eventType: 'ONE_TIME',
+                    startTime: new Date(Date.now() + 15 * 86400000).toISOString(),
+                    endTime: new Date(Date.now() + 15 * 86400000 + 3600000).toISOString(),
+                    requiresRegistration: true,
+                    requiresConfirmation: true,
+                },
+            })
+            expect(created.ok(), `the organiser made an event (${await created.text()})`).toBeTruthy()
+            const eventId = (await created.json()).id
+
+            await memberPage.goto(`/station/events/${eventId}`)
+            await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+
+            const myAnswer = memberPage.locator('[data-testid^="my-answer-"]').first()
+
+            await memberPage.getByTestId('answer-household').click()
+            await expect(myAnswer, 'nobody has said yes to them yet').toHaveText('Ausstehend', {timeout: 15000})
+
+            await memberPage.getByTestId('withdraw-household').click()
+            await expect(myAnswer, 'the place is gone rather than refused')
+                .toHaveText('Noch keine Antwort', {timeout: 15000})
+
+            await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})
+        })
 
     /**
      * An answer can be changed while registration is open and not afterwards, when the list has been

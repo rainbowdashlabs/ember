@@ -119,14 +119,20 @@ public class StorageUsageRepository {
 
     /**
      * Returns all usage records across all stations (for admin overview).
+     *
+     * <p>A row counting a category this version no longer knows is passed over rather than read. The
+     * page is an overview of what is stored, and one row nobody can name is not worth the whole page.
      */
     public List<StorageUsage> findAll() {
         return query(
                         "SELECT %s FROM station_storage_usage ORDER BY station_id, category;",
                         STATION_STORAGE_USAGE_COLUMNS)
                 .single(call())
-                .map(StorageUsage.map())
-                .all();
+                .map(StorageUsage.mapKnown())
+                .all()
+                .stream()
+                .flatMap(Optional::stream)
+                .toList();
     }
 
     /**

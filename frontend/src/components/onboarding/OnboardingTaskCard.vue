@@ -41,6 +41,15 @@ const open = computed(() => tasks.value.filter(task => task.state === Onboarding
 const settled = computed(() => tasks.value.filter(task => task.state !== OnboardingTaskState.OPEN))
 const skipped = computed(() => tasks.value.filter(task => task.state === OnboardingTaskState.SKIPPED))
 const shared = computed(() => props.level !== 'MEMBER')
+
+/**
+ * Whether anything here still asks something of the reader.
+ *
+ * <p>An open task does, and so does a skipped one: it waits to be taken back up or thrown away. A
+ * task that is done or thrown away asks nothing, and the card used to stay on the dashboard for
+ * those too, so somebody who had settled every one of them kept a panel that only said so.
+ */
+const anythingLeft = computed(() => open.value.length > 0 || skipped.value.length > 0)
 const logo = computed(() => emberGuide(open.value.length === 0 ? 'cheer' : 'plain'))
 
 /** Whether Ember can walk somebody through this, or whether it happens outside the application. */
@@ -71,7 +80,7 @@ onMounted(() => load(props.level))
 </script>
 
 <template>
-  <NeutralContainer v-if="tasks.length > 0" class="space-y-4">
+  <NeutralContainer v-if="anythingLeft" class="space-y-4">
     <div class="flex items-start gap-3">
       <LayeredEmberLogo
           :layers="logo.layers"

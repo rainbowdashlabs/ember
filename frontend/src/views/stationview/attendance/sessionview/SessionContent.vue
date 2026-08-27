@@ -51,6 +51,7 @@ const emit = defineEmits<{
   export: []
   sync: []
   startCheckMode: []
+  remove: []
   updateTitle: [value: string]
   updateStartTime: [value: string]
   updateEndTime: [value: string]
@@ -77,6 +78,7 @@ const emit = defineEmits<{
         @export="emit('export')"
         @sync="emit('sync')"
         @start-check-mode="emit('startCheckMode')"
+        @remove="emit('remove')"
     />
 
     <Spinner v-if="loading" size="lg"/>

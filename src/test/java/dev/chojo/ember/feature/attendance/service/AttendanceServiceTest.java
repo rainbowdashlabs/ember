@@ -17,6 +17,8 @@ import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -53,7 +55,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 eventFieldDefaultRepo,
                 eventRegistrationRepo,
                 stationMemberRepo,
-                memberGroupRepo);
+                memberGroupRepo,
+                restrictionService);
         station = stationRepo.create("AttendanceSvc Station");
         account = accountRepo.create("attend-svc@test.com", "Attend", "User");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -431,6 +434,65 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 templateId, Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "Custom Title");
         assertEquals("Custom Title", session.title());
         service.deleteSession(session.id());
+    }
+
+    /**
+     * Somebody the event was never open to arrives on the sheet already declined.
+     *
+     * <p>An event addressed to one group is invisible to everybody else, and an attendance list that
+     * left them undetermined asked whoever fills it in to rule on people who were never invited.
+     * Somebody who could see the event and simply said nothing is not touched: the attendance itself
+     * is their answer.
+     */
+    @Test
+    @Order(54)
+    void whoeverCouldNotSeeTheEventIsAlreadyDeclined() {
+        var invitedGroup = memberGroupRepo.create(station.id(), "Eingeladen");
+        memberGroupRepo.addMember(invitedGroup.id(), member.id());
+
+        var outsiderAccount = accountRepo.create("attend-outsider@test.com", "Drau", "Ssen");
+        var outsider = stationMemberRepo.create(station.id(), outsiderAccount.id());
+
+        var event = eventRepo.create(
+                station.id(),
+                "Nur für eine Gruppe",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(1, ChronoUnit.DAYS),
+                Instant.now().plus(1, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        restrictionService.setRestrictions(
+                RestrictionType.EVENT,
+                event.id(),
+                new RestrictionSelection(List.of(), List.of(invitedGroup.id()), List.of(), List.of(), null));
+
+        var session = service.createSession(templateId, null, null, event.id(), null);
+        service.syncFromEvent(session.id());
+
+        var entries = service.findEntries(session.id());
+        var forOutsider = entries.stream()
+                .filter(entry -> entry.memberId() == outsider.id())
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("the outsider is not on the sheet at all"));
+        assertEquals(AttendanceEntry.AttendanceStatus.DECLINED, forOutsider.status());
+        assertTrue(
+                entries.stream().noneMatch(entry -> entry.memberId() == member.id()),
+                "the one who was invited and said nothing is left undetermined");
+
+        service.deleteSession(session.id());
+        eventRepo.delete(event.id());
+        stationMemberRepo.delete(outsider.id());
+        accountRepo.delete(outsiderAccount.id());
+        memberGroupRepo.delete(invitedGroup.id());
     }
 
     @Test

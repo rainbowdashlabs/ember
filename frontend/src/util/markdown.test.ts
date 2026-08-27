@@ -5,7 +5,7 @@
  */
 // @vitest-environment jsdom
 import {describe, expect, it} from 'vitest'
-import {renderMarkdown, renderPageMarkdown} from './markdown'
+import {markdownSnippet, renderMarkdown, renderPageMarkdown} from './markdown'
 
 /**
  * jsdom rather than the happy-dom the other unit tests use. happy-dom serialises nodes DOMPurify
@@ -51,6 +51,36 @@ describe('renderMarkdown', () => {
         expect(renderMarkdown('')).toBe('')
         expect(renderMarkdown(null)).toBe('')
         expect(renderMarkdown(undefined)).toBe('')
+    })
+})
+
+describe('markdownSnippet', () => {
+    it('says what the markdown says, without the markdown', () => {
+        expect(markdownSnippet('**Treffpunkt** am *Gerätehaus*')).toBe('Treffpunkt am Gerätehaus')
+    })
+
+    it('reads a heading and a list as the words they are', () => {
+        expect(markdownSnippet('# Übung\n\n- Schlauch\n- Leiter')).toBe('Übung Schlauch Leiter')
+    })
+
+    it('cuts a long description at a word', () => {
+        const long = `${'wort '.repeat(60)}ende`
+
+        const snippet = markdownSnippet(long, 40)
+
+        expect(snippet.length).toBeLessThanOrEqual(41)
+        expect(snippet.endsWith('…')).toBe(true)
+        expect(snippet).not.toContain('wor…')
+    })
+
+    it('hands back text rather than markup, so nothing an organiser wrote can act', () => {
+        expect(markdownSnippet('<img src=x onerror="alert(1)"> hallo')).not.toContain('<')
+    })
+
+    it('answers with nothing for nothing', () => {
+        expect(markdownSnippet('')).toBe('')
+        expect(markdownSnippet(null)).toBe('')
+        expect(markdownSnippet(undefined)).toBe('')
     })
 })
 

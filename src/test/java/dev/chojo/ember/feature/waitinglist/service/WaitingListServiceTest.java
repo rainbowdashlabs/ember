@@ -7,8 +7,10 @@ package dev.chojo.ember.feature.waitinglist.service;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.api.query.Query;
-import dev.chojo.ember.auth.PasswordHasher;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.account.service.AccountInviteService;
+import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
@@ -41,6 +43,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     private static WaitingListService service;
     private static Station station;
+    private static AuthService authService;
     private int listId;
 
     private static List<GuardianInput> guardians(String name, String email) {
@@ -51,8 +54,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     static void setup() {
         var emailService = mock(EmailService.class);
         var notificationService = mock(NotificationService.class);
-        var passwordHasher = mock(PasswordHasher.class);
-        when(passwordHasher.hash(anyString())).thenReturn("$test$hash");
+        authService = mock(AuthService.class);
         service = new WaitingListService(
                 waitingListRepo,
                 stationRepo,
@@ -61,7 +63,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 accountRepo,
                 emailService,
                 notificationService,
-                passwordHasher,
+                new AccountInviteService(accountRepo, authService),
                 new DomainEventBus(Set.of()));
         station = stationRepo.create("WaitlistStation");
     }
@@ -347,6 +349,48 @@ class WaitingListServiceTest extends RepositoryTestBase {
         // Join: TESTING -> JOINED
         var joined = service.moveToJoined(testing.id());
         assertEquals(WaitingListEntryStatus.JOINED, joined.status());
+    }
+
+    /**
+     * The parent who answers for a child is a member like any other, and joins the same way.
+     *
+     * <p>The waiting list used to write the account and a random password itself, so no setup mail
+     * ever went out and the parent could not sign in at all.
+     */
+    @Test
+    void aGuardianJoiningIsInvitedAndCarriesNoPassword() {
+        var list = service.create(station.id(), "Guardian Invite", "", null, 180, null, null, 5, false, null, null);
+        var entry = service.createEntry(
+                list.id(), "Kind", "Mustermann", guardians("Mutter", "mutter@test.com"), Map.of(), "");
+        var joined = service.moveToJoined(
+                service.moveToTesting(service.inviteEntry(entry.id()).id()).id());
+
+        var managers = stationMemberRepo.findManagers(joined.memberId());
+        assertEquals(1, managers.size(), "the child has exactly one guardian");
+        var guardian = managers.getFirst();
+        assertEquals(StationUserType.GUARDIAN, guardian.userType());
+        assertTrue(
+                accountRepo.findCredential(guardian.accountId()).isEmpty(),
+                "the waiting list must not set a password nobody knows");
+        verify(authService).sendPasswordSetup(guardian.accountId());
+    }
+
+    /**
+     * A parent who gave no address still answers for their child.
+     *
+     * <p>They used to be skipped outright, which left the child on the list with nobody linked to
+     * them. Nowhere to write to is a reason not to write, not a reason not to exist.
+     */
+    @Test
+    void aGuardianWithoutAnAddressIsStillLinkedToTheChild() {
+        var list = service.create(station.id(), "Guardian Silent", "", null, 180, null, null, 5, false, null, null);
+        var entry = service.createEntry(list.id(), "Kind", "Ohnemail", guardians("Vater", ""), Map.of(), "");
+        var joined = service.moveToJoined(
+                service.moveToTesting(service.inviteEntry(entry.id()).id()).id());
+
+        var managers = stationMemberRepo.findManagers(joined.memberId());
+        assertEquals(1, managers.size(), "the child still has a guardian");
+        assertEquals(StationUserType.GUARDIAN, managers.getFirst().userType());
     }
 
     @Test

@@ -1,5 +1,26 @@
 # Changelog
 
+## v26.13.3
+
+### Improvements
+
+- **Members and trials no longer arrive with the right to sign in.** Signing in is something a guardian hands a child, so an import and a return from the former list leave it off. Team members, guardians and managers are unaffected.
+- **Somebody entered without an address now has none.** An address was made up for them ending in `.local`, which looked like something that could be written to and could not be. The member list, the setup mail and every other place that asks whether somebody can be reached now get a straight answer.
+- **Picking a member out of a long list can be searched and narrowed.** Groups, tags, the attendance sheet and the manual registration of an appointment all offer a name search and a filter by kind of member above the picker.
+- **An event manager can still put somebody on the list after the deadline.** Whoever runs the event is keeping its list rather than answering it, so somebody who rang up late can still be entered.
+- **An attendance made from an event starts with the people it was never open to already marked off.** They could not see the event and so could not answer it, and having them appear as undecided asked whoever fills the sheet in to rule on people who were never invited. Somebody who could see it and said nothing stays undecided, which is what the attendance itself answers.
+- **An attendance sheet can be deleted again.** Whoever may take one may throw one away, and everything recorded on it goes with it.
+
+### Fixes
+
+- **Nobody could be put on an appointment by hand until somebody had signed up.** The whole registration section only appeared once the first entry existed, so the one person allowed to enter the first name had nowhere to enter it.
+- **The sign-up button stayed after the deadline had passed.** Pressing it produced an error and nothing else.
+- **An appointment offered two answers where it only takes one.** An appointment that has to be signed up for now offers signing up, and once there is a place, giving it back. One that expects everybody offers only the refusal, and once refused, taking that back. Giving either back removes the answer instead of writing down the opposite, so nobody is recorded as refusing something they were never down for.
+- **Somebody who had declined was offered a place or a refusal.** They are not asking to come, so there is nothing to decide about them.
+- **The description in the appointment list showed its own markdown.** Asterisks and hashes appeared as written; the opening words are now shown as the text they were meant to be.
+- **The onboarding lists stayed on the dashboard after everything was settled.** A list where everything is done or thrown away asks nothing and now goes away.
+- **The instance-wide storage overview would not load.** Where a station had files from before the media library existed, the page counting what every station uses ended in an error instead of showing the list. Those counts are added to the media library's own, and a count that cannot be attributed to anything is now left out of the page rather than taking it down.
+
 ## v26.13.2
 
 ### Improvements

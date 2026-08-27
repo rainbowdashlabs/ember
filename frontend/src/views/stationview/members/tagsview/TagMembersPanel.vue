@@ -11,6 +11,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
+import MemberPickerFilter from '../MemberPickerFilter.vue'
 import type {UserTag} from '@/api/types'
 import type {AssignableMember} from '@/composables/useGroupsConfig'
 
@@ -21,7 +22,12 @@ defineProps<{
   tagLoading: boolean
   tagMembers: AssignableMember[]
   availableMembers: AssignableMember[]
+  /** The kinds of member still on offer, for the filter above the picker. */
+  offeredUserTypes: string[]
 }>()
+
+const search = defineModel<string>('search', {required: true})
+const userType = defineModel<string>('userType', {required: true})
 
 const emit = defineEmits<{
   (e: 'add-member', member: AssignableMember): void
@@ -55,6 +61,7 @@ const emit = defineEmits<{
 
       <div class="space-y-1">
         <FieldLabel class="text-(--text-muted)">{{ t('userTags.addMembers') }}</FieldLabel>
+        <MemberPickerFilter v-model:search="search" v-model:user-type="userType" :user-types="offeredUserTypes"/>
         <MutedText tag="div" size="sm" class="py-2" v-if="availableMembers.length === 0">
           {{ t('userTags.allAdded') }}
         </MutedText>

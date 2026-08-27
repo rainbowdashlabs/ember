@@ -251,6 +251,11 @@ export interface StationMember {
     identity?: MemberIdentity | null
     accountSetupPending?: boolean
     setupMailExpiresAt?: string | null
+    /**
+     * Whether anything written about this member would reach anybody: their own address where it is a
+     * real one, a guardian's where it is not. Absent on the lists that do not ask.
+     */
+    mailReachable?: boolean
     /** ISO yyyy-MM-dd date when the member joined the station. */
     joinDate?: string | null
 }

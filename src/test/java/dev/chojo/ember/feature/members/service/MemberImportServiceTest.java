@@ -6,7 +6,8 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.auth.PasswordHasher;
+import dev.chojo.ember.feature.account.service.AccountInviteService;
+import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
@@ -26,6 +27,11 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
 
 /**
  * Reading a list of people out of a spreadsheet.
@@ -41,16 +47,23 @@ class MemberImportServiceTest extends RepositoryTestBase {
 
     private static MemberImportService service;
     private static Station station;
+    private static AuthService authService;
 
     @BeforeAll
     static void setup() {
+        authService = mock(AuthService.class);
         service = new MemberImportService(
-                accountRepo, stationMemberRepo, memberGroupRepo, profileFieldRepo, new PasswordHasher());
+                accountRepo,
+                stationMemberRepo,
+                memberGroupRepo,
+                profileFieldRepo,
+                new AccountInviteService(accountRepo, authService));
         station = stationRepo.create("ImportStation");
     }
 
     @BeforeEach
     void clean() {
+        reset(authService);
         for (var member : stationMemberRepo.findByStation(station.id(), true)) {
             var account = member.accountId();
             stationMemberRepo.delete(member.id());
@@ -61,6 +74,41 @@ class MemberImportServiceTest extends RepositoryTestBase {
     @AfterEach
     void tidy() {
         clean();
+    }
+
+    /**
+     * Somebody read in from a list is somebody who was invited.
+     *
+     * <p>The import used to write the account and a random password itself, which meant no setup mail
+     * ever went out and, worse, that none could be sent afterwards either: the invite path refuses an
+     * account that already carries a password, so those people were left with no way in at all.
+     */
+    @Test
+    void anImportedMemberIsInvitedAndCarriesNoPassword() {
+        String csv = "Vorname;Name;Mail\nMax;Müller;max.mueller@example.org\n";
+
+        var result = service.importMembers(
+                station.id(),
+                csv,
+                ";",
+                List.of(map("Vorname", "firstName"), map("Name", "lastName"), map("Mail", "email")),
+                List.of());
+
+        assertEquals(1, result.membersCreated());
+        int accountId = stationMemberRepo.findById(onlyMember()).orElseThrow().accountId();
+        assertTrue(accountRepo.findCredential(accountId).isEmpty(), "the import must not set a password nobody knows");
+        verify(authService).sendPasswordSetup(accountId);
+    }
+
+    /** Somebody without an address of their own is not written to, because there is nowhere to write. */
+    @Test
+    void aMemberWithoutAnAddressIsNotWrittenTo() {
+        String csv = "Vorname;Name\nErika;Musterfrau\n";
+
+        service.importMembers(
+                station.id(), csv, ";", List.of(map("Vorname", "firstName"), map("Name", "lastName")), List.of());
+
+        verify(authService, never()).sendPasswordSetup(anyInt());
     }
 
     private ColumnMapping map(String column, String target) {

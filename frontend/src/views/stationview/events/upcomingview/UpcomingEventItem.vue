@@ -16,6 +16,7 @@ import MutedIcon from '@/components/display/MutedIcon.vue'
 import EventFieldValue from '../eventshared/EventFieldValue.vue'
 import EventRegistrationActions from './EventRegistrationActions.vue'
 import type {EventField, EventRegistrationEntry, StationEvent} from '@/api/events'
+import {markdownSnippet} from '@/util/markdown'
 
 const props = defineProps<{
   event: StationEvent
@@ -48,7 +49,7 @@ const containerClass = computed(() => [
 </script>
 
 <template>
-  <NeutralContainer :class="containerClass">
+  <NeutralContainer data-testid="upcoming-event" :data-event="event.id" :class="containerClass">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
         <span v-if="endDate" :title="t('eventsUpcoming.multiDay')" class="mr-1 inline-block">
@@ -62,7 +63,9 @@ const containerClass = computed(() => [
         </MutedText>
         <MutedText class="ml-2">{{ formatTime(event.startTime) }} – {{ formatTime(event.endTime) }}</MutedText>
         <MutedText v-if="event.requiresRegistration && event.registrationDeadline" class="ml-2 text-xs text-(--text-muted)">({{ t('eventsUpcoming.deadline') }}: {{ formatDeadline(event.registrationDeadline) }})</MutedText>
-        <p v-if="event.description" class="text-sm text-(--text-muted) mt-0.5">{{ event.description }}</p>
+        <p v-if="event.description" class="text-sm text-(--text-muted) mt-0.5">
+          {{ markdownSnippet(event.description) }}
+        </p>
         <div v-if="overviewFields.length" class="flex flex-wrap gap-3 text-xs mt-1">
           <span v-for="f in overviewFields" :key="f.id" class="text-(--text-muted)"><span class="font-medium">{{ f.name }}:</span> <EventFieldValue :field-type="f.fieldType" :value="f.value"/></span>
         </div>
@@ -77,6 +80,7 @@ const containerClass = computed(() => [
         :eligible-members="eligibleMembers"
         :registrations="registrations"
         :requires-registration="!!event.requiresRegistration"
+        :registration-deadline="event.registrationDeadline"
         :has-managed-members="hasManagedMembers"
         :registering="registering"
         @register="emit('register', $event)"

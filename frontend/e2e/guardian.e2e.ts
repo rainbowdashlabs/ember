@@ -218,11 +218,17 @@ test.describe('Guardian', () => {
     })
 
     /**
-     * A guardian answering for a household says it once. The dialog appears only where there is more than
-     * one person to answer for, ticks everyone by default, and lets one be left out: declining for one
-     * child and not the other is the whole reason it exists.
+     * A guardian answering for a household says it once, and can take one place back without taking
+     * the others with it.
+     *
+     * <p>The dialog appears only where there is more than one person to answer for, ticks everyone by
+     * default, and lets one be left out: giving up the place of one child and not the other is the
+     * whole reason it exists.
+     *
+     * <p>Giving a place up, not refusing one. An event that has to be signed up for takes one answer,
+     * and not signing up is already the no, so there is nothing to refuse until a place has been taken.
      */
-    test('a guardian declines for part of the household in one dialog',
+    test('a guardian gives up the place of part of the household in one dialog',
         async ({browser, request, managerPage}) => {
             const page = await guardianPage(browser, request)
             const managed = await managedMembers(page)
@@ -244,21 +250,31 @@ test.describe('Guardian', () => {
             expect(created.ok(), `the organiser made an event (${await created.text()})`).toBeTruthy()
             const eventId = (await created.json()).id
 
-            await page.goto('/station/dashboard/overview')
-            const row = page.getByTestId('awaiting-answer').filter({hasText: name})
-            await expect(row).toHaveCount(1, {timeout: 15000})
+            await page.goto(`/station/events/${eventId}`)
+            await page.getByRole('button', {name: 'Anmeldungen'}).click()
 
-            await row.getByTestId('awaiting-decline').click()
+            const gives = managed[0]!.id
 
-            // More than one person owes an answer, so the row asks who it is about
+            // Nobody has a place yet, so there is nothing to give up
+            await expect(page.getByTestId('withdraw-household')).toHaveCount(0)
+
+            await page.getByTestId('answer-household').click()
             const confirm = page.getByTestId('answer-confirm')
             await expect(confirm).toBeVisible({timeout: 15000})
-            await page.getByTestId(`answer-for-${managed[0]!.id}`).uncheck()
             await confirm.click()
+            await expect(page.getByTestId(`my-answer-${gives}`)).toHaveText(/Bestätigt|Ausstehend/, {timeout: 15000})
 
-            // The one left out still owes an answer, so the event stays on the dashboard
-            await expect(page.getByTestId('awaiting-answer').filter({hasText: name}))
-                .toHaveCount(1, {timeout: 15000})
+            // One of them gives their place back, which deletes it rather than refusing the event.
+            // The row is picked by the event, because the household answers several at once.
+            await page.goto('/station/events/upcoming')
+            const row = page.locator(`[data-testid="upcoming-event"][data-event="${eventId}"]`)
+            await expect(row).toHaveCount(1, {timeout: 15000})
+            await row.getByTestId(`undo-answer-${gives}`).click()
+
+            await page.goto(`/station/events/${eventId}`)
+            await page.getByRole('button', {name: 'Anmeldungen'}).click()
+            await expect(page.getByTestId(`my-answer-${gives}`), 'the place is gone, not turned into a refusal')
+                .toHaveText('Noch keine Antwort', {timeout: 15000})
 
             await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})
             await page.context().close()

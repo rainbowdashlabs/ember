@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
@@ -18,6 +19,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 /**
  * Service for managing former members including converting active members to former status,
@@ -153,7 +156,12 @@ public class FormerMemberService {
     }
 
     /**
-     * Reactivate a former member. Assigns LOGIN and MEMBER roles.
+     * Takes a former member back on.
+     *
+     * <p>They are given back the right to be a member and, where their kind of membership signs in of
+     * its own accord, the right to sign in. A member or somebody on a trial does not: signing in is
+     * something their guardian hands them, and handing it back on a return nobody asked about would
+     * give a child an account their family never set up.
      */
     public void reactivate(int memberId) {
         var member = memberRepository.findById(memberId).orElse(null);
@@ -164,14 +172,20 @@ public class FormerMemberService {
 
         memberRepository.setFormer(memberId, false);
 
-        // Assign LOGIN and MEMBER roles
-        memberRepository
-                .findPermissionByName(StationPermission.LOGIN)
-                .ifPresent(r -> memberRepository.grantPermission(memberId, r.id()));
+        if (signsInOfItsOwnAccord(member.userType())) {
+            memberRepository
+                    .findPermissionByName(StationPermission.LOGIN)
+                    .ifPresent(r -> memberRepository.grantPermission(memberId, r.id()));
+        }
         memberRepository
                 .findPermissionByName(StationPermission.USER)
                 .ifPresent(r -> memberRepository.grantPermission(memberId, r.id()));
 
         log.info("Former member {} reactivated", memberId);
+    }
+
+    /** Whether this kind of membership carries the right to sign in without anybody granting it. */
+    private static boolean signsInOfItsOwnAccord(StationUserType userType) {
+        return userType != null && List.of(userType.defaultPermissions()).contains(StationPermission.LOGIN);
     }
 }

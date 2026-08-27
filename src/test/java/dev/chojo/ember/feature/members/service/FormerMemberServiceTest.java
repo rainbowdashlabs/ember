@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -99,15 +100,40 @@ class FormerMemberServiceTest extends RepositoryTestBase {
         assertEquals("Former Member", updated.displayName());
     }
 
+    /**
+     * A member taken back on is a member again, but not somebody who signs in.
+     *
+     * <p>Signing in is something a guardian hands a child, so handing it back on a return nobody
+     * asked about would give them an account their family never set up. Being a member is given back,
+     * because that is what being taken back on means.
+     */
     @Test
     @Order(20)
-    void reactivateRestoresRoles() {
+    void reactivateRestoresBeingAMemberButNotSigningIn() {
         service.reactivate(member.id());
         var updated = stationMemberRepo.findById(member.id()).orElseThrow();
         assertFalse(updated.former());
         var roles = stationMemberRepo.findPermissions(member.id());
-        assertTrue(roles.stream().anyMatch(r -> r.permission() == StationPermission.LOGIN));
         assertTrue(roles.stream().anyMatch(r -> r.permission() == StationPermission.USER));
+        assertTrue(roles.stream().noneMatch(r -> r.permission() == StationPermission.LOGIN));
+    }
+
+    /** Somebody whose kind of membership signs in of its own accord gets that back with it. */
+    @Test
+    @Order(23)
+    void reactivateGivesTheTeamTheirSignInBack() {
+        var teamAccount = accountRepo.create("former-team@test.com", "Former", "Team");
+        var teamMember = stationMemberRepo.create(station.id(), teamAccount.id());
+        stationMemberRepo.setUserType(teamMember.id(), StationUserType.TEAM);
+        service.markFormer(teamMember.id());
+
+        service.reactivate(teamMember.id());
+
+        var roles = stationMemberRepo.findPermissions(teamMember.id());
+        assertTrue(roles.stream().anyMatch(r -> r.permission() == StationPermission.LOGIN));
+
+        stationMemberRepo.delete(teamMember.id());
+        accountRepo.delete(teamAccount.id());
     }
 
     @Test

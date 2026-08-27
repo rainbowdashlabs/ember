@@ -86,6 +86,9 @@ const {
 
 const {
   availableMembers,
+  offeredUserTypes,
+  search: memberSearch,
+  userType: memberUserType,
   addMember: addMemberToTag,
   removeMember: removeMemberFromTag,
 } = useMemberAssignment(
@@ -164,6 +167,8 @@ const {
                       @delete="requestDelete" @convert="requestConvert"/>
         <TagMembersPanel v-if="selectedTag" :selected-tag="selectedTag" :tag-loading="tagLoading"
                          :tag-members="tagMembers" :available-members="availableMembers"
+                         :offered-user-types="offeredUserTypes"
+                         v-model:search="memberSearch" v-model:user-type="memberUserType"
                          @add-member="addMemberToTag" @remove-member="removeMemberFromTag"/>
         <div v-else class="flex items-center justify-center text-(--text-muted) py-12">
           {{ t('userTags.selectHint') }}
