@@ -2,15 +2,20 @@
 
 ## v26.13.2
 
+### Improvements
+
+- **An event template says who its appointments are for.** A template can now name groups, tags and individual members as well as the kinds of member it could always name, and applying it hands that audience to the appointment, where it can still be widened or narrowed. A station running one evening for the youngest group picks that group once rather than on every date of the year.
+
 ### Fixes
 
 - **A heading in a member's profile was shown as a question nobody had answered.** The page that reads a profile listed every heading as a name with a dash beside it, so the arrangement the station made turned into noise. Headings now stand as headings there too, and short questions stand beside each other the way they do on the form.
-- **A date in a profile was shown the way it is stored.** A birthday read 2022-04-25 instead of 25.04.2022, wherever a profile is read rather than filled in.
+- **A date in a profile was shown the way it is stored.** A birthday read 2019-11-03 instead of 03.11.2019, wherever a profile is read rather than filled in.
 - **A date field opened its calendar on every click, so the date could not be typed.** Clicking to put the cursor on the year opened the calendar again and threw the typing back to the start. The calendar now opens once, when the field is reached, and typing carries on from there.
 - **Applying an event template left the appointment without an attendance sheet.** A template naming the sheet the attendance is taken on handed nothing over, so it had to be set again by hand on every appointment made from it.
 - **A new appointment asked twice for the same answer.** A field of the attendance sheet already filled in by one of the appointment's own questions was asked for again under the prefill heading, where whichever was set last quietly won. Such a field is no longer offered there.
 - **The prefill section named the kind of each field in English shorthand.** It showed the raw wording the sheet stores rather than the German names the rest of the product uses for the same kinds.
 - **The explanation of a question's width crowded the setting beside it.** In the event template editor the sentence under the width pushed the neighbouring selection out of line; it now sits behind an information icon next to the label.
+- **A manager's own edit waited for their own confirmation.** Changing a watched profile question on somebody else's profile put the change on the list of things to be acknowledged, where the only person it was ever shown to was the one who made it. Only what a member changes about themselves waits there now; the history keeps both.
 
 ## v26.13.1
 

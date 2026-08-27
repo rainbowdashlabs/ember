@@ -109,6 +109,7 @@ function reset() {
 
     <MultiSelectDropdown
         v-if="showGroups && groupOptions.length > 0"
+        data-testid="restriction-groups"
         :options="groupOptions"
         :model-value="selectedGroupValues"
         :placeholder="t('restriction.groups')"

@@ -6,6 +6,7 @@
 import {reactive, watch} from 'vue'
 import {events} from '@/api'
 import {EventTypes, needsDayOfWeek, type EventField, type EventFieldEntry, type EventTemplateDetail, type StationEvent} from '@/api/events'
+import {emptyRestriction} from '@/components/input/restriction'
 import {createEventFormState} from './eventFormState'
 import {modelBindings} from './modelBindings'
 
@@ -44,6 +45,7 @@ export function useEventForm() {
     if (tpl.categoryId) state.categoryId = String(tpl.categoryId)
     if (tpl.attendanceTemplateId) state.templateId = String(tpl.attendanceTemplateId)
     if (tpl.eventType) state.eventType = tpl.eventType
+    if (detail.restriction) state.restriction = {...emptyRestriction(), ...detail.restriction}
     if (tpl.requiresRegistration != null) state.requiresRegistration = tpl.requiresRegistration
     if (tpl.requiresConfirmation != null) state.requiresConfirmation = tpl.requiresConfirmation
     if (detail.fields.length > 0) {

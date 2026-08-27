@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:0989b453642cbf686729d499edf3398c662dc0cec09414a1dd1e769b77579889",
-  "generatedAt" : "2026-08-26T00:33:10Z",
+  "schemaHash" : "sha256:0e694791b5e05489d8ed4499ee2f4af5fc17d1f92df5c769d89cc984fddba894",
+  "generatedAt" : "2026-08-27T10:40:15Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -5868,7 +5868,7 @@
     "event_template_restriction" : {
       "feature" : "events",
       "scope" : "STATION",
-      "tableHash" : "sha256:1dcfd2378ede25f5c3080fa7871221588cdc11b82dd2fa477fe344a40ef4fb50",
+      "tableHash" : "sha256:25c6cb36b35dfb9a98bcf5359b64d89294dcc07f278520f3b7b035e1f1e29253",
       "columns" : [ {
         "name" : "template_id",
         "type" : "int4",
@@ -5878,10 +5878,50 @@
       }, {
         "name" : "user_type",
         "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Required member type."
+      }, {
+        "name" : "id",
+        "type" : "int4",
         "nullable" : false,
-        "verified" : true
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "group_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Required group membership."
+      }, {
+        "name" : "tag_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Required tag."
+      }, {
+        "name" : "member_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Specific member (always OR-connected, bypasses AND/OR mode)."
       } ],
       "foreignKeys" : [ {
+        "column" : "group_id",
+        "refTable" : "member_group",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "member_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "tag_id",
+        "refTable" : "user_tag",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
         "column" : "template_id",
         "refTable" : "event_template",
         "refColumn" : "id",

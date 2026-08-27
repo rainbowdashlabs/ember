@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -29,12 +30,15 @@ import static org.junit.jupiter.api.Assertions.*;
 class EventTemplateServiceTest extends RepositoryTestBase {
 
     private static EventTemplateService service;
+    private static EventTemplateRestrictionService restrictions;
     private static Station station;
     private static int templateId;
 
     @BeforeAll
     static void setup() {
-        service = new EventTemplateService(new EventTemplateRepository());
+        var repository = new EventTemplateRepository();
+        service = new EventTemplateService(repository);
+        restrictions = new EventTemplateRestrictionService(repository, restrictionService);
         station = stationRepo.create("EventTemplateServiceStation");
     }
 
@@ -133,31 +137,76 @@ class EventTemplateServiceTest extends RepositoryTestBase {
         assertTrue(service.findFields(templateId).isEmpty());
     }
 
+    /** Who a template hands its appointments to, in every kind it can be said. */
     @Test
     @Order(20)
     void setAndFindRestrictions() {
-        service.setRestrictions(
-                templateId, List.of(StationUserType.MEMBER, StationUserType.TEAM, StationUserType.MANAGER));
-        var restrictions = service.findRestrictions(templateId);
-        assertEquals(3, restrictions.size());
-        assertTrue(restrictions.containsAll(List.of("MEMBER", "TEAM", "MANAGER")));
+        restrictions.setRestrictions(
+                templateId,
+                new RestrictionSelection(
+                        List.of(StationUserType.MEMBER, StationUserType.TEAM, StationUserType.MANAGER),
+                        List.of(),
+                        List.of(),
+                        List.of(),
+                        RestrictionMode.OR));
+
+        var set = restrictions.findRestrictions(templateId);
+        assertEquals(3, set.userTypes().size());
+        assertTrue(set.userTypes().containsAll(List.of(StationUserType.MEMBER, StationUserType.TEAM)));
     }
 
+    /**
+     * A group is an audience a template can name, which it could not before.
+     *
+     * <p>The point of the whole thing: a station running one evening for the youngest group used to
+     * pick that group again on every date of the year, because a template could only say what kind
+     * of member somebody is.
+     */
     @Test
     @Order(21)
-    void setRestrictionsReplaces() {
-        service.setRestrictions(templateId, List.of(StationUserType.GUARDIAN));
-        var restrictions = service.findRestrictions(templateId);
-        assertEquals(1, restrictions.size());
-        assertEquals("GUARDIAN", restrictions.getFirst());
+    void aTemplateCanNameAGroup() {
+        var group = memberGroupRepo.create(station.id(), "Vorlagengruppe");
+
+        restrictions.setRestrictions(
+                templateId,
+                new RestrictionSelection(List.of(), List.of(group.id()), List.of(), List.of(), RestrictionMode.AND));
+
+        var set = restrictions.findRestrictions(templateId);
+        assertEquals(List.of(group.id()), set.groupIds());
+        assertTrue(set.userTypes().isEmpty(), "and the kinds it named before are gone");
+        assertEquals(RestrictionMode.AND, set.mode(), "the mode is kept on the template itself");
+    }
+
+    /**
+     * How the named audiences combine lives on the template, not among them.
+     *
+     * <p>Which is why it survives the audience being rewritten, and why setting it is its own step.
+     */
+    @Test
+    @Order(22)
+    void theModeIsKeptOnTheTemplateItself() {
+        restrictions.updateRestrictionMode(templateId, RestrictionMode.OR);
+        assertEquals(
+                RestrictionMode.OR, restrictions.findRestrictions(templateId).mode());
+
+        restrictions.updateRestrictionMode(templateId, RestrictionMode.AND);
+        assertEquals(
+                RestrictionMode.AND, restrictions.findRestrictions(templateId).mode());
+    }
+
+    /** A template that is not there names nobody, rather than falling over. */
+    @Test
+    @Order(23)
+    void anUnknownTemplateNamesNobody() {
+        assertFalse(restrictions.findRestrictions(999999).hasRestrictions());
     }
 
     @Test
-    @Order(22)
+    @Order(24)
     void setRestrictionsEmpty() {
-        service.setRestrictions(templateId, List.of());
-        var restrictions = service.findRestrictions(templateId);
-        assertTrue(restrictions.isEmpty());
+        restrictions.setRestrictions(
+                templateId, new RestrictionSelection(List.of(), List.of(), List.of(), List.of(), null));
+        assertFalse(restrictions.findRestrictions(templateId).hasRestrictions());
     }
 
     @Test

@@ -165,4 +165,36 @@ test.describe('Event templates', () => {
         await expect(page.getByTestId('event-attendance-template'),
             'the appointment takes the sheet the template named').toHaveValue(sheet)
     })
+
+    /**
+     * A template says who its appointments are for, and applying it says so on the appointment.
+     *
+     * <p>A template could only ever name a kind of member, so a station running one evening for the
+     * youngest group picked that group again on every date of the year. Naming it once on the
+     * template is the whole point, and the appointment can still be widened afterwards.
+     */
+    test('a template names the group its appointments are for', async ({managerPage: page}) => {
+        const name = unique('Zielgruppe')
+
+        await page.goto('/station/events/templates')
+        await page.getByRole('button', {name: 'Vorlage erstellen'}).first().click()
+        await page.getByPlaceholder('z.B. Standard-Übung').fill(name)
+        await page.getByRole('button', {name: 'Vorlage erstellen'}).last().click()
+        await page.waitForURL(/\/station\/events\/templates\/\d+/)
+
+        const onTemplate = page.getByTestId('restriction-groups')
+        await onTemplate.getByRole('button').first().click()
+        await onTemplate.getByRole('button', {name: 'Anfänger'}).click()
+        await expect(onTemplate.getByRole('button').first()).toHaveText(/Anfänger/)
+
+        const save = page.locator('.save-button').last()
+        await save.click()
+        await expect(save).toHaveClass(/bg-success/)
+
+        await page.goto('/station/events/new')
+        await page.getByTestId('apply-template').selectOption({label: name})
+
+        await expect(page.getByTestId('restriction-groups').getByRole('button').first(),
+            'the appointment starts with the group the template named').toHaveText(/Anfänger/)
+    })
 })

@@ -58,6 +58,7 @@ public class ProfileFieldService {
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final ClusterProfileFieldRepository clusterFieldRepository;
+    private final MemberPermissionResolver permissionResolver;
 
     @Inject
     public ProfileFieldService(
@@ -66,13 +67,15 @@ public class ProfileFieldService {
             NotificationService notificationService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
-            ClusterProfileFieldRepository clusterFieldRepository) {
+            ClusterProfileFieldRepository clusterFieldRepository,
+            MemberPermissionResolver permissionResolver) {
         this.profileFieldRepository = profileFieldRepository;
         this.changeRepository = changeRepository;
         this.notificationService = notificationService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.clusterFieldRepository = clusterFieldRepository;
+        this.permissionResolver = permissionResolver;
     }
 
     // -- Field Definitions --
@@ -415,7 +418,7 @@ public class ProfileFieldService {
                 oldValue,
                 newValue,
                 changedBy,
-                field.config().notifyOnChange());
+                field.config().notifyOnChange() && !acknowledgesTheirOwn(changedBy));
         changedFieldNames.add(field.name());
     }
 
@@ -578,11 +581,23 @@ public class ProfileFieldService {
      * Merges with recent changes from the same person within the 5-minute window.
      * The notify flag is set based on the field's notifyOnChange config.
      */
+    /**
+     * Whether this person is one of those a change would be put in front of.
+     *
+     * <p>Acknowledging exists so that what a member alters about themselves is seen by somebody at
+     * the station. Where the station made the change itself, it has already been seen by the person
+     * who would confirm it, and the list of things to look at filled up with entries whose only
+     * reader was the one who wrote them.
+     */
+    private boolean acknowledgesTheirOwn(int changedBy) {
+        return permissionResolver.resolve(changedBy).contains(StationPermission.MEMBER_CHANGES);
+    }
+
     private void recordChange(int fieldId, int memberId, String oldValue, String newValue, int changedBy) {
         var field = profileFieldRepository.findById(fieldId).orElse(null);
         if (field == null) return;
 
-        boolean requiresAcknowledgement = field.config().notifyOnChange();
+        boolean requiresAcknowledgement = field.config().notifyOnChange() && !acknowledgesTheirOwn(changedBy);
 
         Instant cutoff = Instant.now().minus(MERGE_WINDOW);
         var recent = changeRepository.findRecentChange(fieldId, memberId, changedBy, cutoff);

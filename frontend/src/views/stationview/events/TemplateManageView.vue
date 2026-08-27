@@ -60,7 +60,7 @@ async function createTemplate() {
  */
 async function duplicateTemplate(id: number) {
   try {
-    const {template, fields, restrictionUserTypes, reminderDays} = await events.getTemplate(id)
+    const {template, fields, restriction, reminderDays} = await events.getTemplate(id)
     const {id: _id, stationId: _stationId, name, ...settings} = template
     const copyName = t('eventTemplates.copyOf', {name})
     const copy = await events.createTemplate({name: copyName})
@@ -78,9 +78,7 @@ async function duplicateTemplate(id: number) {
         })),
       })
     }
-    if (restrictionUserTypes.length > 0) {
-      await events.setTemplateRestrictions(copy.id, {userTypes: restrictionUserTypes})
-    }
+    await events.setTemplateRestrictions(copy.id, restriction)
     if (reminderDays.length > 0) {
       await events.setTemplateReminders(copy.id, reminderDays)
     }

@@ -104,6 +104,7 @@ import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.MemberPermissionResolver;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
@@ -193,6 +194,7 @@ public abstract class RepositoryTestBase {
     protected static InventoryService inventoryService;
 
     protected static ProfileFieldService profileFieldService;
+    protected static MemberPermissionResolver memberPermissionResolver;
 
     /** Shared, because its dependency list grows with every step and no test cares about it. */
     protected static ClusterService clusterService;
@@ -391,13 +393,15 @@ public abstract class RepositoryTestBase {
         lostAndFoundRepo = new LostAndFoundRepository();
         emailQueueRepo = new EmailQueueRepository();
         profileFieldChangeRepo = new ProfileFieldChangeRepository();
+        memberPermissionResolver = new MemberPermissionResolver(stationMemberRepo, memberGroupRepo);
         profileFieldService = new ProfileFieldService(
                 profileFieldRepo,
                 profileFieldChangeRepo,
                 org.mockito.Mockito.mock(dev.chojo.ember.feature.notifications.service.NotificationService.class),
                 stationMemberRepo,
                 accountRepo,
-                clusterProfileFieldRepo);
+                clusterProfileFieldRepo,
+                memberPermissionResolver);
         clusterStationGroupRepo = new ClusterStationGroupRepository();
         inventoryService =
                 new InventoryService(inventoryRepo, itemCustodyService, clusterRepo, clusterStationGroupRepo);

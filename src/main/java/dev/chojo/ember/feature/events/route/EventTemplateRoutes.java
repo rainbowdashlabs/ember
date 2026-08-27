@@ -19,8 +19,10 @@ import dev.chojo.ember.feature.events.entity.EventTemplateRegistrationField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
+import dev.chojo.ember.feature.events.service.EventTemplateRestrictionService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -44,12 +46,16 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 public class EventTemplateRoutes implements Routes {
     private final EventTemplateService eventTemplateService;
     private final EventRegistrationFieldService registrationFieldService;
+    private final EventTemplateRestrictionService restrictionService;
 
     @Inject
     public EventTemplateRoutes(
-            EventTemplateService eventTemplateService, EventRegistrationFieldService registrationFieldService) {
+            EventTemplateService eventTemplateService,
+            EventRegistrationFieldService registrationFieldService,
+            EventTemplateRestrictionService restrictionService) {
         this.eventTemplateService = eventTemplateService;
         this.registrationFieldService = registrationFieldService;
+        this.restrictionService = restrictionService;
     }
 
     @Override
@@ -128,10 +134,20 @@ public class EventTemplateRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var template = requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var fields = eventTemplateService.findFields(id);
-        var restrictionUserTypes = eventTemplateService.findRestrictions(id);
         var reminderDays = eventTemplateService.findReminderDays(id);
         var registrationFields = registrationFieldService.findByTemplate(id);
-        ctx.json(new TemplateDetailResponse(template, fields, restrictionUserTypes, reminderDays, registrationFields));
+        ctx.json(new TemplateDetailResponse(template, fields, restrictionsOf(id), reminderDays, registrationFields));
+    }
+
+    /** Who the template hands its appointments to, as the editor and the appointment both read it. */
+    private TemplateRestrictions restrictionsOf(int templateId) {
+        var restrictions = restrictionService.findRestrictions(templateId);
+        return new TemplateRestrictions(
+                restrictions.userTypes(),
+                restrictions.groupIds(),
+                restrictions.tagIds(),
+                restrictions.memberIds(),
+                restrictions.mode());
     }
 
     @OpenApi(
@@ -234,20 +250,25 @@ public class EventTemplateRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/event-templates/{id}/restrictions",
             methods = HttpMethod.PUT,
-            summary = "Set role restrictions for an event template",
+            summary = "Set who the appointments written from an event template are for",
             tags = {"Event Templates"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetRestrictionsRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TemplateRestrictions.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = TemplateRestrictions.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
-        var req = ctx.bodyAsClass(SetRestrictionsRequest.class);
-        eventTemplateService.setRestrictions(id, req.userTypes());
-        ctx.json(eventTemplateService.findRestrictions(id));
+        var req = ctx.bodyAsClass(TemplateRestrictions.class);
+        restrictionService.setRestrictions(
+                id,
+                new RestrictionSelection(req.userTypes(), req.groupIds(), req.tagIds(), req.memberIds(), req.mode()));
+        if (req.mode() != null) {
+            restrictionService.updateRestrictionMode(id, req.mode());
+        }
+        ctx.json(restrictionsOf(id));
     }
 
     private void getReminders(Context ctx) {
@@ -282,9 +303,22 @@ public class EventTemplateRoutes implements Routes {
     public record TemplateDetailResponse(
             EventTemplate template,
             List<EventTemplateField> fields,
-            List<String> restrictionUserTypes,
+            TemplateRestrictions restriction,
             List<Integer> reminderDays,
             List<EventTemplateRegistrationField> registrationFields) {}
+
+    /**
+     * Who a template says its appointments are for, in the shape the audience editor speaks.
+     *
+     * <p>The same four kinds an appointment names, because applying the template hands exactly this
+     * over to the appointment being written.
+     */
+    public record TemplateRestrictions(
+            List<StationUserType> userTypes,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds,
+            RestrictionMode mode) {}
 
     public record SetFieldsRequest(List<EventTemplateFieldData> fields) {}
 
@@ -295,8 +329,6 @@ public class EventTemplateRoutes implements Routes {
      */
     public record RegistrationFieldDefinition(
             String name, EventFieldType fieldType, EventRegistrationFieldConfig config, boolean overview) {}
-
-    public record SetRestrictionsRequest(List<StationUserType> userTypes) {}
 
     public record SetRemindersRequest(List<Integer> daysBefore) {}
 }

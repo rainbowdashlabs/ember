@@ -7713,6 +7713,9 @@ export default {
         empty: 'Keine Vorlagen vorhanden.',
         eventDefaults: 'Termin-Voreinstellungen',
         attendanceTemplate: 'Anwesenheitsvorlage',
+        restriction: 'Zielgruppe',
+        restrictionHint: 'Wer für Termine aus dieser Vorlage eingeplant wird. Beim Anwenden der Vorlage wird die '
+            + 'Auswahl in den Termin übernommen und kann dort noch geändert werden.',
         applied: 'Vorlage angewendet.',
         loadTemplate: 'Vorlage laden...',
     },

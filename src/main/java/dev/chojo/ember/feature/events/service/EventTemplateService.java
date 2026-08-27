@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.events.service;
 
-import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
@@ -94,15 +93,6 @@ public class EventTemplateService {
     public void replaceFields(int templateId, List<EventTemplateFieldData> fields) {
         repository.replaceFields(templateId, fields);
         log.info("Replaced fields for event template {} ({} fields)", templateId, fields.size());
-    }
-
-    public List<String> findRestrictions(int templateId) {
-        return repository.findRestrictions(templateId);
-    }
-
-    public void setRestrictions(int templateId, List<StationUserType> userTypes) {
-        repository.setRestrictions(templateId, userTypes);
-        log.info("Set restrictions for event template {} ({} user types)", templateId, userTypes.size());
     }
 
     public List<Integer> findReminderDays(int templateId) {

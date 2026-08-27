@@ -22,7 +22,7 @@ const isDate = computed(() =>
  * The answer as a station reads it.
  *
  * <p>A date is stored the way a database wants one and was shown that way too, so a birthday read
- * as 2022-04-25 rather than as the 25.04.2022 it is. A date nobody can parse is left as written,
+ * as 2019-11-03 rather than as the 03.11.2019 it is. A date nobody can parse is left as written,
  * because showing nothing at all would lose it.
  */
 const displayValue = computed(() => {

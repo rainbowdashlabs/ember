@@ -238,7 +238,7 @@ test.describe('Members', () => {
      * <p>Two things were only ever checked on the form that writes them. A heading was rendered on
      * the reading page as though it were a question with no answer, "Ausrüstung: -", which turns the
      * arrangement the station made into noise. And a date was shown exactly as it is stored, so a
-     * birthday read 2022-04-25 instead of the 25.04.2022 it is.
+     * birthday read 2019-11-03 instead of the 03.11.2019 it is.
      */
     test('the profile of a member reads with its headings and its dates', async ({managerPage: page}) => {
         const heading = unique('Abschnitt')
@@ -266,7 +266,7 @@ test.describe('Members', () => {
         const id = page.url().match(/detail\/(\d+)/)?.[1]
 
         await page.goto(`/station/members/edit/${id}`)
-        await page.locator(`[data-field="${dateField}"] input`).fill('2022-04-25')
+        await page.locator(`[data-field="${dateField}"] input`).fill('2019-11-03')
         const save = page.locator('.save-button').last()
         await save.click()
         await expect(save, 'the answer was kept before the page is left').toHaveClass(/bg-success/)
@@ -277,7 +277,7 @@ test.describe('Members', () => {
         await expect(page.getByTestId('field-entry').filter({hasText: heading}),
             'and not as a question nobody answered').toHaveCount(0)
         await expect(page.locator(`[data-testid="field-entry"][data-field="${dateField}"]`),
-            'a date reads the way a date is written here').toContainText('25.04.2022')
+            'a date reads the way a date is written here').toContainText('03.11.2019')
     })
 
     /**
@@ -421,7 +421,7 @@ test.describe('Members', () => {
     test('a list with questions, a group and a parent is read in whole', async ({managerPage: page}) => {
         const surname = unique('Vollstaendig')
         const parent = unique('Elternteil')
-        const allergy = unique('Pollen')
+        const allergy = unique('Heuschnupfen')
 
         await uploadCsv(page, 'Vorname;Nachname;Allergie;Geburtstag;Kontakt;Telefon;Kontakt Email\n'
             + `Testperson;${surname};${allergy};04.03.2011;Anja ${parent};01700000000;`

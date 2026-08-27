@@ -16,6 +16,8 @@ import dev.chojo.ember.api.auth.StationPermission;
  */
 public enum RestrictionType {
     EVENT("event_restriction", "event_id", "station_event", "id", StationPermission.EVENT_MANAGER),
+    EVENT_TEMPLATE(
+            "event_template_restriction", "template_id", "event_template", "id", StationPermission.EVENT_MANAGER),
     QUIZ_TEST("quiz_test_restriction", "test_id", "quiz_test", "id", StationPermission.TEST_MANAGER),
     FORM("form_restriction", "form_id", "form", "id", StationPermission.POLL_MANAGER),
     NEWS("news_restriction", "news_id", "news", "id", StationPermission.NEWS_MANAGER),
