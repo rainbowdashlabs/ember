@@ -1,5 +1,15 @@
 # Changelog
 
+## v26.13.5
+
+### New Features
+
+- **A whole inventory is written down in one pass.** Gear the station has long owned no longer has to be entered one window at a time: a new page opens a table with a row per member, chosen by kind of member, by group or all of them, and one save writes every piece and hands each to the member on its line. A size picked once fills every row that has none, a number is optional, and a row left empty is passed over.
+
+### Improvements
+
+- **A new container is named after what it is.** Choosing the kind of a container fills an empty name with that kind, so a shelf is called "Regal" without typing the word twice. A name already written is left alone.
+
 ## v26.13.4
 
 ### New Features

@@ -303,4 +303,37 @@ test.describe('Inventory', () => {
             .then(r => r.json())
         expect(raised.length, 'the exchange is on the station\'s list').toBeGreaterThan(0)
     })
+
+    /**
+     * An inventory the station already owns is written down from the member list rather than one
+     * window at a time: a row per member, a size for all of them, one save.
+     */
+    test('a whole inventory is written down and handed out in one pass', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const stamp = Date.now()
+        const made = await page.request.post('/api/v1/inventories',
+            {headers, data: {name: `Aufnahme ${stamp}`, inventoryType: 'INTERNAL', hasSizes: true}})
+        const inventoryId = (await made.json()).id
+        await page.request.post(`/api/v1/inventories/${inventoryId}/sizes`, {headers, data: {label: 'M', position: 0}})
+
+        await page.goto(`/station/inventory/intake/${inventoryId}`)
+        await page.getByTestId('intake-load').click()
+
+        const rows = page.getByTestId('intake-row')
+        await expect(rows.first()).toBeVisible()
+
+        await page.getByTestId('intake-bulk-size').selectOption({index: 1})
+        await page.getByTestId('intake-apply-size').click()
+        await page.getByTestId('intake-number-0').fill(`A-${stamp}`)
+        await page.getByTestId('intake-save').click()
+
+        await page.waitForURL(new RegExp(`/station/inventory/detail/${inventoryId}$`))
+
+        const written = await page.request.get(`/api/v1/inventories/${inventoryId}/items`, {headers})
+            .then(r => r.json())
+        expect(written.length, 'every line of the table became a piece').toBeGreaterThan(1)
+        expect(written.filter((item: {assignedTo?: number}) => item.assignedTo).length,
+            'and each piece is in the hands of the member on its line').toBe(written.length)
+        expect(written.some((item: {internalId?: string}) => item.internalId === `A-${stamp}`)).toBeTruthy()
+    })
 })

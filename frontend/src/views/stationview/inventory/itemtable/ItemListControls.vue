@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
 import type { ItemTableApi } from './useItemTable'
@@ -16,12 +17,15 @@ defineProps<{
   count: number
   showQuickAssign: boolean
   showAdd: boolean
+  /** Whether this screen offers writing a whole inventory down at once. The association's does not. */
+  showIntake?: boolean
   showSearch: boolean
 }>()
 
 const emit = defineEmits<{
   quickAssign: []
   add: []
+  intake: []
 }>()
 
 const { t } = useI18n()
@@ -30,7 +34,11 @@ const { t } = useI18n()
 <template>
   <div class="flex flex-wrap items-center justify-between gap-2">
     <SubHeader>{{ t('inventory.edit.itemsTitle') }} ({{ count }})</SubHeader>
-    <div v-if="showQuickAssign || showAdd" class="flex items-center gap-2">
+    <div v-if="showQuickAssign || showAdd || showIntake" class="flex items-center gap-2">
+      <SecondaryButton v-if="showIntake" :icon="['fas', 'table-columns']" data-testid="open-intake"
+                       @click="emit('intake')">
+        {{ t('inventory.intake.open') }}
+      </SecondaryButton>
       <PrimaryButton v-if="showQuickAssign" :icon="['fas', 'user-plus']" @click="emit('quickAssign')">
         {{ t('inventory.edit.quickAssign') }}
       </PrimaryButton>

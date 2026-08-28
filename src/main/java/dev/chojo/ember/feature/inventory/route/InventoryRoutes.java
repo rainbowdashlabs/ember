@@ -16,6 +16,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.inventory.entity.ContainerPath;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventoryIntakeRow;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
@@ -26,6 +27,7 @@ import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
+import dev.chojo.ember.feature.inventory.service.InventoryIntakeService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -67,6 +69,7 @@ public class InventoryRoutes implements Routes {
     private final StationRepository stationRepository;
     private final StationMemberRepository stationMemberRepository;
     private final LossReportService lossReportService;
+    private final InventoryIntakeService intakeService;
 
     @Inject
     public InventoryRoutes(
@@ -77,7 +80,9 @@ public class InventoryRoutes implements Routes {
             MemberIdentityFactory memberIdentityFactory,
             StationRepository stationRepository,
             StationMemberRepository stationMemberRepository,
-            LossReportService lossReportService) {
+            LossReportService lossReportService,
+            InventoryIntakeService intakeService) {
+        this.intakeService = intakeService;
         this.inventoryService = inventoryService;
         this.checkService = checkService;
         this.inventoryExportService = inventoryExportService;
@@ -126,6 +131,11 @@ public class InventoryRoutes implements Routes {
         routes.post(
                 prefix + "/inventories/{inventoryId}/items",
                 this::createItem,
+                StationPermission.INVENTORY_CREATE_EXTERNAL,
+                StationPermission.INVENTORY_CREATE_INTERNAL);
+        routes.post(
+                prefix + "/inventories/{inventoryId}/items/batch",
+                this::takeStock,
                 StationPermission.INVENTORY_CREATE_EXTERNAL,
                 StationPermission.INVENTORY_CREATE_INTERNAL);
         routes.get(
@@ -203,6 +213,17 @@ public class InventoryRoutes implements Routes {
      * Loads an inventory and asserts it belongs to the caller's station, returning it. Answers
      * 404 both when absent and when owned by another station.
      */
+    /** Whose gear somebody may write down: their own station's, the association's, or both. */
+    private void requireMayCreate(UserSession session, ItemOwner owner) {
+        StationPermission required = owner == ItemOwner.CLUSTER
+                ? StationPermission.INVENTORY_CREATE_EXTERNAL
+                : StationPermission.INVENTORY_CREATE_INTERNAL;
+        if (!session.hasPermission(required)) {
+            throw new ForbiddenResponse("Missing permission " + required.name() + " to create items owned by "
+                    + owner.name().toLowerCase());
+        }
+    }
+
     private Inventory requireOwnedInventory(int inventoryId, UserSession session) {
         var inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
         RouteSupport.requireSameStation(session, inventory.stationId());
@@ -567,13 +588,7 @@ public class InventoryRoutes implements Routes {
             throw new BadRequestResponse("name is required");
         }
         ItemOwner owner = request.ownerKind() != null ? request.ownerKind() : ItemOwner.STATION;
-        StationPermission required = owner == ItemOwner.CLUSTER
-                ? StationPermission.INVENTORY_CREATE_EXTERNAL
-                : StationPermission.INVENTORY_CREATE_INTERNAL;
-        if (!session.hasPermission(required)) {
-            throw new ForbiddenResponse("Missing permission " + required.name() + " to create items owned by "
-                    + owner.name().toLowerCase());
-        }
+        requireMayCreate(session, owner);
         ctx.status(HttpStatus.CREATED)
                 .json(inventoryService.createItem(
                         inventoryId,
@@ -583,6 +598,39 @@ public class InventoryRoutes implements Routes {
                         request.metadata(),
                         owner,
                         request.ownerClusterId()));
+    }
+
+    /**
+     * Writes down an inventory the station already owns, one line per piece, and hands each piece to
+     * the member on its line.
+     */
+    @OpenApi(
+            path = "/api/v1/inventories/{inventoryId}/items/batch",
+            methods = HttpMethod.POST,
+            summary = "Write down several pieces at once and assign them",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "inventoryId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = IntakeRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventoryItem[].class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void takeStock(Context ctx) {
+        int inventoryId = pathInt(ctx, "inventoryId");
+        UserSession session = UserSession.from(ctx);
+        var inventory = requireOwnedInventory(inventoryId, session);
+        var request = ctx.bodyAsClass(IntakeRequest.class);
+        var rows = request.rows() != null ? request.rows() : List.<InventoryIntakeRow>of();
+        for (InventoryIntakeRow row : rows) {
+            requireMayCreate(session, row.ownerKind() != null ? row.ownerKind() : ItemOwner.STATION);
+        }
+        if (!session.hasPermission(StationPermission.INVENTORY_ASSIGN)
+                && !session.hasPermission(StationPermission.INVENTORY_EDIT)
+                && rows.stream().anyMatch(row -> row.memberId() != null)) {
+            throw new ForbiddenResponse("Missing permission to hand a piece to a member");
+        }
+        ctx.status(HttpStatus.CREATED)
+                .json(intakeService.takeStock(inventoryId, session.stationId(), inventory.name(), rows));
     }
 
     @OpenApi(
@@ -1137,6 +1185,13 @@ public class InventoryRoutes implements Routes {
             InventoryItemMetadata metadata,
             ItemOwner ownerKind,
             Integer ownerClusterId) {}
+
+    /**
+     * @param rows the lines of a stock-taking, in the order they were shown. A line that names no
+     *             piece is passed over, so a table opened with a row per member needs no tidying up
+     *             before it is saved
+     */
+    public record IntakeRequest(List<InventoryIntakeRow> rows) {}
 
     public record AssignRequest(Integer memberId, String memberName) {}
 

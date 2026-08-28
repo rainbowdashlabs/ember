@@ -4778,6 +4778,33 @@ volumes:
         eventDetailDate: {},
         eventNew: {},
         formsListRow: {},
+        inventoryIntake: {
+            title: 'Bestand aufnehmen',
+            subtitle: 'Vorhandene Ausrüstung in einem Durchgang eintragen und zuweisen.',
+            permissionText: 'Zum Eintragen brauchst du das Recht, Gegenstände anzulegen. Sollen die Stücke '
+                + 'gleich jemandem gehören, brauchst du zusätzlich das Recht, Inventar zuzuweisen.',
+            whatIs: 'Wofür ist die Seite?',
+            whatIsText: 'Wenn eure Ausrüstung längst in den Spinden hängt, ist der Weg über einzelne Gegenstände '
+                + 'zäh: anlegen, Größe wählen, Nummer tippen, Fenster schließen, zuweisen. Hier geht es andersherum, '
+                + 'von der Mitgliederliste zu den Stücken: eine Zeile je Mitglied, einmal ausfüllen, einmal speichern.',
+            notAMovementText: 'Die Aufnahme trägt nur ein, was ohnehin da ist. Sie startet keine Bewegung und keinen '
+                + 'Ablauf, denn übergeben wurde nichts.',
+            whoTitle: 'Schritt 1: Wer kommt in die Liste',
+            whoText: 'Alle Mitglieder, ein Mitgliedstyp oder eine Gruppe. Das ist nur der Anfang: einzelne Zeilen '
+                + 'kannst du streichen, und wer fehlt, lässt sich unter der Tabelle nachtragen.',
+            tableTitle: 'Schritt 2: Die Tabelle',
+            tableText: 'Je Zeile trägst du Größe, Nummer und die eigenen Felder des Inventars ein. Eine Zeile ohne '
+                + 'jede Angabe wird beim Speichern übersprungen, du musst also nichts vorher aufräumen.',
+            bulkTitle: 'Größe für alle',
+            bulkText: 'Über der Tabelle wählst du eine Größe und schreibst sie mit einem Klick in jede Zeile, die '
+                + 'noch keine hat. Bei dreißig gleichen Jacken ist das der ganze Vorgang.',
+            saveTitle: 'Schritt 3: Speichern',
+            saveText: 'Ein Klick legt alle Stücke an und weist jedes dem Mitglied seiner Zeile zu. Stimmt eine Zeile '
+                + 'nicht, etwa weil eine Nummer schon vergeben ist, wird nichts eingetragen und die Meldung nennt die '
+                + 'Zeile.',
+            tip: 'Nummern sind freiwillig. Ohne Nummer landet das Stück genauso in der Liste, es lässt sich nur nicht '
+                + 'über die Nummer suchen.',
+        },
         inventoryAssignHelp: {
             title: 'Items zuweisen',
             subtitle: 'Items an Mitglieder ausgeben und wieder zurücknehmen.',

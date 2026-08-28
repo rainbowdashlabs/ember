@@ -321,6 +321,26 @@ export async function findByInternalId(internalId: string): Promise<InventoryIte
     }
 }
 
+/**
+ * One line of a stock-taking: a piece the station already owns, and who holds it.
+ *
+ * <p>A line that names no piece at all is passed over by the server, so a table opened with a row
+ * per member needs no tidying up before it is saved.
+ */
+export interface IntakeRow {
+    memberId?: number | null
+    internalId?: string | null
+    sizeId?: number | null
+    ownerKind?: ItemOwnerName
+    metadata?: ItemMetadata
+}
+
+/** Writes down several pieces at once and hands each one to the member on its line. */
+export async function takeStock(inventoryId: number, rows: IntakeRow[]): Promise<InventoryItem[]> {
+    const res = await client.post<InventoryItem[]>(`/inventories/${inventoryId}/items/batch`, {rows})
+    return res.data
+}
+
 export async function createItem(inventoryId: number, data: ItemRequest): Promise<InventoryItem> {
     const res = await client.post<InventoryItem>(`/inventories/${inventoryId}/items`, data)
     return res.data

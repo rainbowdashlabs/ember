@@ -51,6 +51,11 @@ export interface InventoryRoutes {
      */
     memberGroups?: string
     exchanges?: string
+    /**
+     * Where a station writes down an inventory it already owns, member by member. Absent at an
+     * association: its store holds gear rather than handing it to people it keeps a list of.
+     */
+    intake?: string
     /** Absent at an association: it issues gear rather than lending it. */
     lending?: string
     lendingBlocks?: string
@@ -77,6 +82,7 @@ export const STATION_INVENTORY_ROUTES: InventoryRoutes = {
     member: 'inventory-member',
     memberGroups: 'members-groups',
     exchanges: 'inventory-exchanges',
+    intake: 'inventory-intake',
     lending: 'inventory-lending',
     lendingBlocks: 'inventory-lending-blocks',
     lendingBlocksCreate: 'inventory-lending-blocks-create',
