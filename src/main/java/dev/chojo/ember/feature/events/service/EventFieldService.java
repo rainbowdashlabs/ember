@@ -5,9 +5,13 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
+import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.MemberFieldValue;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -25,6 +29,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Singleton
 public class EventFieldService {
@@ -34,17 +40,23 @@ public class EventFieldService {
     private final StationMemberRepository memberRepository;
     private final MemberGroupRepository groupRepository;
     private final UserTagService tagService;
+    private final EventRepository eventRepository;
+    private final AttendanceRepository attendanceRepository;
 
     @Inject
     public EventFieldService(
             EventFieldRepository repository,
             StationMemberRepository memberRepository,
             MemberGroupRepository groupRepository,
-            UserTagService tagService) {
+            UserTagService tagService,
+            EventRepository eventRepository,
+            AttendanceRepository attendanceRepository) {
         this.repository = repository;
         this.memberRepository = memberRepository;
         this.groupRepository = groupRepository;
         this.tagService = tagService;
+        this.eventRepository = eventRepository;
+        this.attendanceRepository = attendanceRepository;
     }
 
     public List<String> findDistinctFieldNames(int stationId) {
@@ -64,9 +76,51 @@ public class EventFieldService {
         return result;
     }
 
+    /**
+     * Replaces the questions an appointment asks, keeping only the ties that lead somewhere.
+     *
+     * <p>A question can be tied to a field of the attendance sheet the appointment is taken on, so
+     * that answering the question fills the sheet in. A tie to a field of some other sheet writes the
+     * answer into a sheet nobody opens, where it is never seen again, so it is dropped rather than
+     * stored. The editor only offers the right sheet's fields; what arrives here otherwise is a stale
+     * value left behind when the sheet was changed, or a caller that is not the editor.
+     */
     public void replaceFields(int eventId, List<EventFieldRepository.FieldEntry> fields) {
-        repository.replaceFields(eventId, fields);
-        log.info("Replaced {} fields for event {}", fields.size(), eventId);
+        var sheetFieldIds = sheetFieldIds(eventId);
+        var kept = fields.stream()
+                .map(field -> field.attendanceFieldId() == null || sheetFieldIds.contains(field.attendanceFieldId())
+                        ? field
+                        : dropTie(eventId, field))
+                .toList();
+        repository.replaceFields(eventId, kept);
+        log.info("Replaced {} fields for event {}", kept.size(), eventId);
+    }
+
+    /** The fields of the sheet this appointment is taken on, empty where it is taken on none. */
+    private Set<Integer> sheetFieldIds(int eventId) {
+        return eventRepository
+                .findById(eventId)
+                .map(StationEvent::templateId)
+                .map(sheetId -> attendanceRepository.findTemplateFields(sheetId).stream()
+                        .map(AttendanceTemplateField::id)
+                        .collect(Collectors.toSet()))
+                .orElse(Set.of());
+    }
+
+    private EventFieldRepository.FieldEntry dropTie(int eventId, EventFieldRepository.FieldEntry field) {
+        log.info(
+                "Dropped the tie of question \"{}\" to attendance field {}: it is not on the sheet event {} uses",
+                field.name(),
+                field.attendanceFieldId(),
+                eventId);
+        return new EventFieldRepository.FieldEntry(
+                field.name(),
+                field.fieldType(),
+                field.config(),
+                field.value(),
+                field.overview(),
+                null,
+                field.isPublic());
     }
 
     /**

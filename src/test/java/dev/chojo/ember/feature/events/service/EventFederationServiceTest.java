@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +70,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     private static int eventId;
     private static FederationPartner localPartner;
     private static MemberIdentity testMemberIdentity;
+    private static EventCrudService crudService;
 
     @BeforeAll
     static void setup() {
@@ -76,7 +79,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
         var eventBus = new DomainEventBus(Set.of());
-        var crudService = newEventServices(eventBus).crud();
+        crudService = newEventServices(eventBus).crud();
         var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));
         commentService = new CommentService(eventCommentRepo, eventBus, memberSvc, stationRepo);
         service = new EventFederationService(
@@ -347,7 +350,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         var items = service.browseFederatedEvents(stationB.id());
         assertFalse(items.isEmpty(), "Should find shared events");
         assertTrue(items.stream().anyMatch(item -> {
-            if (item.event() instanceof EventFederationService.RemoteEventSummary re) {
+            if (item.event() instanceof SharedEvent re) {
                 return eventId == re.id();
             }
             return false;
@@ -360,7 +363,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         service.removeShare(eventId);
         var items = service.browseFederatedEvents(stationB.id());
         assertTrue(items.stream().noneMatch(item -> {
-            if (item.event() instanceof EventFederationService.RemoteEventSummary re) {
+            if (item.event() instanceof SharedEvent re) {
                 return eventId == re.id();
             }
             return false;
@@ -373,7 +376,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         service.setShare(eventId, ShareScope.ALL_PARTNERS, List.of());
         var result = service.getFederatedEvent(stationB.id(), stationA.uid(), eventId);
         assertNotNull(result);
-        var event = (EventFederationService.RemoteEventSummary) result;
+        var event = (SharedEvent) result;
         assertEquals(eventId, event.id());
         assertEquals("Federated Event", event.name());
     }
@@ -407,7 +410,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         service.setShare(eventId, ShareScope.ALL_PARTNERS, List.of());
 
         // Mock HTTP response for remote partner (stationC)
-        var remoteEvent = new EventFederationService.RemoteFederatedEvent(
+        var remoteEvent = new SharedEvent(
                 9999,
                 "Remote Event",
                 "Remote desc",
@@ -416,14 +419,16 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 Instant.now().toString(),
                 Instant.now().plus(2, ChronoUnit.HOURS).toString(),
                 true,
-                false);
+                false,
+                null,
+                null);
         when(httpClient.getList(
                         eq("https://remote-event.example.com"),
                         pathIs("/remote/events"),
                         any(),
                         eq(stationA.id()),
                         any(),
-                        eq(EventFederationService.RemoteFederatedEvent.class)))
+                        eq(SharedEvent.class)))
                 .thenReturn(List.of(remoteEvent));
 
         // browseFederatedEvents(stationA.id()) finds partners: stationB (local) and stationC (remote)
@@ -438,12 +443,12 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         any(),
                         eq(stationA.id()),
                         any(),
-                        eq(EventFederationService.RemoteFederatedEvent.class));
+                        eq(SharedEvent.class));
 
         // Should contain the remote event
         assertTrue(
                 items.stream().anyMatch(i -> {
-                    if (i.event() instanceof EventFederationService.RemoteFederatedEvent re) {
+                    if (i.event() instanceof SharedEvent re) {
                         return re.id() == 9999 && re.name().equals("Remote Event");
                     }
                     return false;
@@ -457,8 +462,18 @@ class EventFederationServiceTest extends RepositoryTestBase {
         // stationA sees stationC as remote partner
         // getFederatedEvent(stationA.id(), stationC.uid(), eventId) should call HTTP
 
-        var remoteEvent = new EventFederationService.RemoteEventSummary(
-                eventId, "Remote Event", "desc", StationEvent.EventType.RECURRING, 1, "10:00", "12:00", false, false);
+        var remoteEvent = new SharedEvent(
+                eventId,
+                "Remote Event",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                1,
+                "10:00",
+                "12:00",
+                false,
+                false,
+                LocalDate.parse("2026-12-31"),
+                null);
         when(httpClient.get(
                         eq("https://remote-event.example.com"),
                         pathIs("/remote/events/" + eventId),
@@ -470,7 +485,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
 
         var result = service.getFederatedEvent(stationA.id(), stationC.uid(), eventId);
         assertNotNull(result);
-        var event = (EventFederationService.RemoteEventSummary) result;
+        var event = (SharedEvent) result;
         assertEquals(eventId, event.id());
         assertEquals("Remote Event", event.name());
 
@@ -512,7 +527,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         // The local partner (stationA) has the shared event
         assertTrue(
                 items.stream().anyMatch(i -> {
-                    if (i.event() instanceof EventFederationService.RemoteEventSummary re) {
+                    if (i.event() instanceof SharedEvent re) {
                         return eventId == re.id();
                     }
                     return false;
@@ -531,7 +546,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         any(),
                         eq(stationA.id()),
                         any(),
-                        eq(EventFederationService.RemoteFederatedEvent.class)))
+                        eq(SharedEvent.class)))
                 .thenReturn(List.of());
 
         var items = service.browseFederatedEvents(stationA.id());
@@ -987,8 +1002,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(90)
     void fetchFederatedEvents() {
-        var remoteEvent = new EventFederationService.RemoteFederatedEvent(
-                1, "Test Event", "desc", StationEvent.EventType.ONE_TIME, 0, "10:00", "12:00", true, false);
+        var remoteEvent = new SharedEvent(
+                1, "Test Event", "desc", StationEvent.EventType.ONE_TIME, 0, "10:00", "12:00", true, false, null, null);
         UUID partnerUid = UUID.randomUUID();
         when(httpClient.getList(
                         eq("https://example.com"),
@@ -996,7 +1011,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         eq(partnerUid),
                         eq(1),
                         eq("key123"),
-                        eq(EventFederationService.RemoteFederatedEvent.class)))
+                        eq(SharedEvent.class)))
                 .thenReturn(List.of(remoteEvent));
 
         var result = service.fetchFederatedEvents("https://example.com", partnerUid, 1, "key123");
@@ -1099,13 +1114,11 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         .content());
     }
 
-    // -- RemoteFederatedEvent record --
-
     @Test
     @Order(97)
-    void remoteFederatedEventRecord() {
-        var event = new EventFederationService.RemoteFederatedEvent(
-                1, "Name", "Description", StationEvent.EventType.RECURRING, 3, "09:00", "11:00", false, true);
+    void whatOneStationShowsAnother() {
+        var event = new SharedEvent(
+                1, "Name", "Description", StationEvent.EventType.RECURRING, 3, "09:00", "11:00", false, true, null, 8);
         assertEquals(1, event.id());
         assertEquals("Name", event.name());
         assertEquals("Description", event.description());
@@ -1115,5 +1128,36 @@ class EventFederationServiceTest extends RepositoryTestBase {
         assertEquals("11:00", event.endTime());
         assertFalse(event.requiresRegistration());
         assertTrue(event.requiresConfirmation());
+        assertEquals(8, event.repeatCount());
+    }
+
+    /** A series that ends says so to a partner as well, or it repeats for ever on their screen. */
+    @Test
+    @Order(98)
+    void aSharedSeriesCarriesItsEnd() {
+        Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
+        var series = crudService.create(
+                stationA.id(),
+                "Geteilte Reihe",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                start.atZone(ZoneOffset.UTC).getDayOfWeek().getValue(),
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        var ends = crudService.setRepeatEnd(series.id(), null, 4).orElseThrow();
+        var shared = SharedEvent.of(ends);
+
+        assertEquals(4, shared.repeatCount());
+        assertNull(shared.repeatUntil());
     }
 }

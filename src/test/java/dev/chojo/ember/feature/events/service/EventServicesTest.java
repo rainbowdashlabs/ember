@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -1948,6 +1949,87 @@ class EventServicesTest extends RepositoryTestBase {
 
         var noMembers = crudService.findFilteredForMembers(station.id(), List.of(), null, null);
         assertTrue(noMembers.isEmpty());
+    }
+
+    /**
+     * A series that ends stops turning up, and says so in one way at a time.
+     *
+     * <p>Before this, a repeating appointment ran for ever and the only way to end it was to delete
+     * it on the day, which nobody remembers to do.
+     */
+    @Test
+    @Order(213)
+    void aRepeatingEventEndsOnADayOrAfterANumberOfTimes() {
+        var start = Instant.parse("2026-09-02T18:00:00Z");
+        var event = crudService.create(
+                station.id(),
+                "Kurs mit Ende",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                3,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        var counted = crudService.setRepeatEnd(event.id(), null, 3).orElseThrow();
+        assertEquals(3, counted.repeatCount());
+        assertEquals(LocalDate.parse("2026-09-16"), counted.lastDate().orElseThrow());
+        assertFalse(counted.occursOn(LocalDate.parse("2026-09-23")));
+
+        var dated = crudService
+                .setRepeatEnd(event.id(), LocalDate.parse("2026-10-07"), null)
+                .orElseThrow();
+        assertEquals(LocalDate.parse("2026-10-07"), dated.repeatUntil());
+        assertNull(dated.repeatCount(), "the two ways of saying it never stand together");
+
+        var open = crudService.setRepeatEnd(event.id(), null, null).orElseThrow();
+        assertTrue(open.lastDate().isEmpty(), "an end can be taken off again");
+    }
+
+    @Test
+    @Order(214)
+    void anEndThatMakesNoSenseIsRefused() {
+        var start = Instant.parse("2026-09-02T18:00:00Z");
+        var recurring = crudService.create(
+                station.id(),
+                "Kurs ohne Ende",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                3,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var once = createPickerEvent("Einmalig mit Ende", start, start.plus(2, ChronoUnit.HOURS));
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> crudService.setRepeatEnd(recurring.id(), LocalDate.parse("2026-10-07"), 3),
+                "a day and a number of times are two ways of saying the same thing");
+        assertThrows(
+                BadRequestResponse.class,
+                () -> crudService.setRepeatEnd(recurring.id(), LocalDate.parse("2026-08-01"), null),
+                "a series cannot end before it starts");
+        assertThrows(BadRequestResponse.class, () -> crudService.setRepeatEnd(recurring.id(), null, 0));
+        assertThrows(
+                BadRequestResponse.class,
+                () -> crudService.setRepeatEnd(once.id(), null, 3),
+                "a one-off appointment has nothing to repeat");
     }
 
     private static StationEvent createPickerEvent(String name, Instant start, Instant end) {

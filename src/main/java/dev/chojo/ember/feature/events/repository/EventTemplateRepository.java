@@ -114,7 +114,8 @@ public class EventTemplateRepository {
 
     public List<EventTemplateField> findFields(int templateId) {
         return query("""
-                SELECT id, template_id, name, field_type, config, position, overview, public, attendance_field_id
+                SELECT id, template_id, name, field_type, config, position, overview, public, attendance_field_id,
+                       default_value
                 FROM event_template_field
                 WHERE template_id = :template_id
                 ORDER BY position;""")
@@ -129,8 +130,8 @@ public class EventTemplateRepository {
                 .delete();
         for (EventTemplateFieldData f : fields) {
             query("""
-                    INSERT INTO event_template_field(template_id, name, field_type, config, position, overview, public, attendance_field_id)
-                    VALUES (:template_id, :name, :field_type, :config::JSONB, :position, :overview, :public, :attendance_field_id);""")
+                    INSERT INTO event_template_field(template_id, name, field_type, config, position, overview, public, attendance_field_id, default_value)
+                    VALUES (:template_id, :name, :field_type, :config::JSONB, :position, :overview, :public, :attendance_field_id, :default_value);""")
                     .single(call().bind("template_id", templateId)
                             .bind("name", f.name())
                             .bind("field_type", f.fieldType() != null ? f.fieldType() : EventFieldType.STRING)
@@ -138,7 +139,8 @@ public class EventTemplateRepository {
                             .bind("position", f.position())
                             .bind("overview", f.overview())
                             .bind("public", f.isPublic())
-                            .bind("attendance_field_id", f.attendanceFieldId()))
+                            .bind("attendance_field_id", f.attendanceFieldId())
+                            .bind("default_value", f.defaultValue()))
                     .insert();
         }
     }

@@ -23,6 +23,7 @@ const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
 defineProps<{
   attendanceFields?: AttendanceTemplateField[]
   showValue?: boolean
+  valueLabel?: string
   allMembers?: StationMember[]
   groups?: MemberGroup[]
   groupMembers?: Map<number, StationMember[]>
@@ -100,6 +101,7 @@ function moveField(fromIndex: number, toIndex: number) {
           :model-value="fields[index]!"
           :attendance-fields="attendanceFields"
           :show-value="showValue"
+          :value-label="valueLabel"
           :all-members="allMembers"
           :groups="groups"
           :group-members="groupMembers"

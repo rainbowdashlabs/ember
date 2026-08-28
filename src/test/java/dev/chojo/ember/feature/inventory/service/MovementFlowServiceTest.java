@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.inventory.entity.FlowProblem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -21,6 +22,7 @@ import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -72,16 +74,22 @@ class MovementFlowServiceTest extends RepositoryTestBase {
                 "a retired flow is still listed, because movements walked it");
     }
 
+    /** A refusal names the rule in the way, so the reader is told in their own words. */
+    private static void refusedWith(FlowProblem.Code code, Executable call) {
+        assertEquals(
+                code, assertThrows(FlowRefusedException.class, call).problem().code());
+    }
+
     @Test
     void aFlowAndItsStepsNeedNames() {
-        assertThrows(
-                BadRequestResponse.class,
+        refusedWith(
+                FlowProblem.Code.FLOW_NAME_REQUIRED,
                 () -> movementFlowService.createFlow(station.id(), " ", MovementPurpose.RETURN));
 
         MovementFlow flow = freshFlow(MovementPurpose.RETURN);
-        assertThrows(BadRequestResponse.class, () -> movementFlowService.renameFlow(flow.id(), ""));
-        assertThrows(
-                BadRequestResponse.class,
+        refusedWith(FlowProblem.Code.FLOW_NAME_REQUIRED, () -> movementFlowService.renameFlow(flow.id(), ""));
+        refusedWith(
+                FlowProblem.Code.STEP_LABEL_REQUIRED,
                 () -> movementFlowService.addStep(
                         flow.id(), "", StepActor.STATION, StepSubject.OUTGOING, ItemCustody.AT_STATION, false));
     }
@@ -120,12 +128,12 @@ class MovementFlowServiceTest extends RepositoryTestBase {
     @Test
     void aStepCannotLeaveAnItemSomewhereAMovementDoesNotPutIt() {
         MovementFlow flow = freshFlow(MovementPurpose.RETURN);
-        assertThrows(
-                BadRequestResponse.class,
+        refusedWith(
+                FlowProblem.Code.ILLEGAL_STEP_CUSTODY,
                 () -> movementFlowService.addStep(
                         flow.id(), "Verloren", StepActor.STATION, StepSubject.OUTGOING, ItemCustody.LOST, false));
-        assertThrows(
-                BadRequestResponse.class,
+        refusedWith(
+                FlowProblem.Code.ILLEGAL_STEP_CUSTODY,
                 () -> movementFlowService.addStep(
                         flow.id(),
                         "Verliehen",
@@ -141,14 +149,13 @@ class MovementFlowServiceTest extends RepositoryTestBase {
         movementFlowService.addStep(
                 flow.id(), "Verschickt", StepActor.OWNER, StepSubject.INCOMING, ItemCustody.IN_TRANSIT, true);
 
-        assertThrows(
-                BadRequestResponse.class,
+        refusedWith(
+                FlowProblem.Code.ITEM_ALREADY_NAMED,
                 () -> movementFlowService.addStep(
                         flow.id(), "Nochmal", StepActor.STATION, StepSubject.INCOMING, ItemCustody.AT_STATION, true));
 
-        // And the step doing the naming has to be about the arriving item in the first place
-        assertThrows(
-                BadRequestResponse.class,
+        refusedWith(
+                FlowProblem.Code.ONLY_ARRIVAL_NAMES_ITEM,
                 () -> movementFlowService.addStep(
                         flow.id(),
                         "Falsch herum",
@@ -187,8 +194,8 @@ class MovementFlowServiceTest extends RepositoryTestBase {
                 step.custodyAfter(),
                 step.picksItem()));
 
-        var refused = assertThrows(
-                BadRequestResponse.class,
+        refusedWith(
+                FlowProblem.Code.FLOW_IN_USE,
                 () -> movementFlowService.updateStep(
                         step.id(),
                         "Beim Träger angekommen",
@@ -196,11 +203,10 @@ class MovementFlowServiceTest extends RepositoryTestBase {
                         step.subject(),
                         step.custodyAfter(),
                         step.picksItem()));
-        assertTrue(refused.getMessage().contains("still walking"));
-        assertThrows(BadRequestResponse.class, () -> movementFlowService.archiveStep(step.id()));
-        assertThrows(BadRequestResponse.class, () -> movementFlowService.archiveFlow(flowId));
-        assertThrows(
-                BadRequestResponse.class,
+        refusedWith(FlowProblem.Code.FLOW_IN_USE, () -> movementFlowService.archiveStep(step.id()));
+        refusedWith(FlowProblem.Code.FLOW_IN_USE, () -> movementFlowService.archiveFlow(flowId));
+        refusedWith(
+                FlowProblem.Code.FLOW_IN_USE,
                 () -> movementFlowService.addStep(
                         flowId, "Noch einer", StepActor.STATION, StepSubject.OUTGOING, ItemCustody.AT_STATION, false));
 

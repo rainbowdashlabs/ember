@@ -25,6 +25,7 @@ const modelValue = defineModel<EventFieldEntry>({required: true})
 const props = defineProps<{
   attendanceFields?: AttendanceTemplateField[]
   showValue?: boolean
+  valueLabel?: string
   allMembers?: StationMember[]
   groups?: MemberGroup[]
   groupMembers?: Map<number, StationMember[]>
@@ -115,6 +116,17 @@ function buildConfig(): Record<string, unknown> {
 
 const configString = computed(() => buildConfig())
 
+/**
+ * Whether this row offers a value at all.
+ *
+ * <p>A question that names a member can only be answered where the members are known. The template
+ * editor knows the questions but not who is in the station, and a person is not something a template
+ * should answer with anyway, so such a question is left without one there.
+ */
+const offersValue = computed(() => Boolean(props.showValue)
+    && name.value.trim() !== ''
+    && (!isMemberFieldType(fieldType.value) || Boolean(props.allMembers?.length)))
+
 const matchingAttendanceFields = computed(() =>
     (props.attendanceFields ?? []).filter(af => af.fieldType === fieldType.value)
 )
@@ -189,7 +201,7 @@ watch(modelValue, incoming => {
 
       <div v-if="attendanceFields && matchingAttendanceFields.length > 0" class="w-48 space-y-1">
         <FieldLabel>{{ t('eventFields.attendanceLink') }}</FieldLabel>
-        <SelectInput :model-value="String(attendanceFieldId ?? '')"
+        <SelectInput class="w-full" :model-value="String(attendanceFieldId ?? '')"
                      @update:model-value="attendanceFieldId = $event ? Number($event) : null">
           <option value="">-</option>
           <option v-for="af in matchingAttendanceFields" :key="af.id" :value="String(af.id)">{{ af.name }}</option>
@@ -205,8 +217,8 @@ watch(modelValue, incoming => {
       </div>
     </div>
 
-    <div v-if="showValue && name.trim()" class="space-y-1">
-      <FieldLabel>{{ t('eventFields.value') }}</FieldLabel>
+    <div v-if="offersValue" class="space-y-1" data-testid="event-field-value">
+      <FieldLabel>{{ props.valueLabel ?? t('eventFields.value') }}</FieldLabel>
       <EventFieldValueInput
           :field-type="fieldType"
           :config="configString"

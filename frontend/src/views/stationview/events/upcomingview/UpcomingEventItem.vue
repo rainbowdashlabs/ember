@@ -13,15 +13,18 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+import ColorBadge from '@/components/badge/ColorBadge.vue'
 import EventFieldValue from '../eventshared/EventFieldValue.vue'
 import EventRegistrationActions from './EventRegistrationActions.vue'
-import type {EventField, EventRegistrationEntry, StationEvent} from '@/api/events'
+import type {EventCategory, EventField, EventRegistrationEntry, StationEvent} from '@/api/events'
 import {markdownSnippet} from '@/util/markdown'
 
 const props = defineProps<{
   event: StationEvent
   date: string
   endDate: string | null
+  /** What kind of appointment this is, absent where it was put in no category. */
+  category?: EventCategory | null
   overviewFields: EventField[]
   registrationSummary: { accepted: number; pending: number; declined: number; total: number }
   detailRoute: RouteLocationRaw
@@ -56,6 +59,9 @@ const containerClass = computed(() => [
           <MutedIcon :icon="['fas', 'calendar-days']"/>
         </span>
         <router-link :to="detailRoute" class="font-medium text-primary hover:underline">{{ event.name }}</router-link>
+        <ColorBadge v-if="category" :color="category.color" class="ml-2" data-testid="upcoming-event-category">
+          {{ category.name }}
+        </ColorBadge>
         <MutedIcon v-if="event.restricted" :icon="['fas', 'lock']" class="ml-1"/>
         <MutedText size="sm" class="ml-2">
           <template v-if="endDate">{{ dayLabel(date) }}, {{ date }} – {{ dayLabel(endDate) }}, {{ endDate }}</template>

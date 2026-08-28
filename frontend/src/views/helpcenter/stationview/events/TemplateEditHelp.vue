@@ -23,8 +23,8 @@ const {t} = useI18n()
 const CATEGORIES = [{id: 1, stationId: 'demo', name: 'Übung', position: 0}]
 const ATTENDANCE_TEMPLATES = [{id: 1, stationId: 'demo', name: 'Übungsabend'}]
 const FIELDS = [
-  {name: 'Ort', fieldType: 'STRING', overview: true, isPublic: true},
-  {name: 'Treffpunkt', fieldType: 'STRING', overview: true, isPublic: false},
+  {name: 'Ort', fieldType: 'STRING', overview: true, isPublic: true, value: 'Gerätehaus'},
+  {name: 'Treffpunkt', fieldType: 'STRING', overview: true, isPublic: false, value: 'Fahrzeughalle'},
 ]
 const REMINDERS = [7, 1]
 
@@ -63,7 +63,7 @@ const noop = () => undefined
           <EventReminderEditor :model-value="REMINDERS"/>
         </NeutralContainer>
         <NeutralContainer class="space-y-4">
-          <EventFieldList :fields="FIELDS"/>
+          <EventFieldList :fields="FIELDS" :value-label="t('eventFields.defaultValue')" show-value/>
         </NeutralContainer>
         <SaveButton :action="noop"/>
       </div>
@@ -79,6 +79,10 @@ const noop = () => undefined
 
     <HelpSection :title="t('helpCenter.eventTemplateEdit.fieldsTitle')">
       <p>{{ t('helpCenter.eventTemplateEdit.fieldsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventTemplateEdit.fieldValueTitle')">
+      <p>{{ t('helpCenter.eventTemplateEdit.fieldValueText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventTemplateEdit.fieldOrderTitle')">

@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
@@ -30,6 +31,10 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param registrationDeadline the deadline for registration, or null if no deadline
  * @param requiresConfirmation whether registrations must be confirmed by a manager
  * @param categoryId           the optional category this event is assigned to
+ * @param repeatUntil          the last day a recurring event may fall on, or null where it has no end
+ * @param repeatCount          how many times a recurring event takes place in total, counted from its
+ *                             first date, or null where it has no end. Never set together with
+ *                             {@code repeatUntil}: they are two ways of saying the same thing
  */
 public record StationEvent(
         int id,
@@ -55,7 +60,9 @@ public record StationEvent(
         Integer minRegistrations,
         Instant thresholdDate,
         boolean thresholdNotified,
-        Integer registrationCloseDays) {
+        Integer registrationCloseDays,
+        LocalDate repeatUntil,
+        Integer repeatCount) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -85,7 +92,9 @@ public record StationEvent(
                 row.getObject("min_registrations", Integer.class),
                 row.get("threshold_date", INSTANT_TIMESTAMP),
                 row.getBoolean("threshold_notified"),
-                row.getObject("registration_close_days", Integer.class));
+                row.getObject("registration_close_days", Integer.class),
+                row.getObject("repeat_until", LocalDate.class),
+                row.getObject("repeat_count", Integer.class));
     }
 
     /**
@@ -105,19 +114,72 @@ public record StationEvent(
      * @return true if the event recurs on that date
      */
     public boolean occursOn(LocalDate date) {
-        if (dayOfWeek == null || dayOfWeek != date.getDayOfWeek().getValue()) {
-            return false;
-        }
-        return switch (eventType) {
-            case RECURRING -> true;
-            case MONTHLY_FIRST -> date.getDayOfMonth() <= 7;
-            case QUARTERLY -> date.getDayOfMonth() <= 7 && (date.getMonthValue() - 1) % 3 == 0;
-            case YEARLY ->
-                startTime != null
-                        && startTime.atZone(ZoneOffset.UTC).getMonthValue() == date.getMonthValue()
-                        && startTime.atZone(ZoneOffset.UTC).getDayOfMonth() == date.getDayOfMonth();
-            default -> false;
-        };
+        boolean matchesPattern =
+                switch (eventType) {
+                    case RECURRING -> onTheWeekday(date);
+                    case MONTHLY_FIRST -> onTheWeekday(date) && date.getDayOfMonth() <= 7;
+                    case QUARTERLY ->
+                        onTheWeekday(date) && date.getDayOfMonth() <= 7 && (date.getMonthValue() - 1) % 3 == 0;
+                    case YEARLY ->
+                        startTime != null
+                                && startTime.atZone(ZoneOffset.UTC).getMonthValue() == date.getMonthValue()
+                                && startTime.atZone(ZoneOffset.UTC).getDayOfMonth() == date.getDayOfMonth();
+                    default -> false;
+                };
+        return matchesPattern && !isAfterLastDate(date);
+    }
+
+    /** A yearly event falls on a date rather than on a weekday, which is why it does not ask this. */
+    private boolean onTheWeekday(LocalDate date) {
+        return dayOfWeek != null && dayOfWeek == date.getDayOfWeek().getValue();
+    }
+
+    /** Whether this date lies past the end of the repetition, where an end was given at all. */
+    public boolean isAfterLastDate(LocalDate date) {
+        return lastDate().map(date::isAfter).orElse(false);
+    }
+
+    /**
+     * The last day this event may fall on, where it has an end at all.
+     *
+     * <p>Said as a day or as a number of times, and the number is worked out here rather than written
+     * down as a date: a series moved to another weekday still runs the number of times it was given,
+     * which is what somebody who wrote "eight times" meant.
+     *
+     * @return the last day, or empty where the event is one-off or repeats without an end
+     */
+    public Optional<LocalDate> lastDate() {
+        if (!isRecurring()) return Optional.empty();
+        if (repeatUntil != null) return Optional.of(repeatUntil);
+        if (repeatCount == null || startTime == null) return Optional.empty();
+
+        LocalDate first = firstDate();
+        long steps = repeatCount - 1L;
+        return Optional.of(
+                switch (eventType) {
+                    case RECURRING -> first.plusWeeks(steps);
+                    case MONTHLY_FIRST -> weekdayInFirstWeekOf(first.plusMonths(steps));
+                    case QUARTERLY -> weekdayInFirstWeekOf(first.plusMonths(steps * 3));
+                    case YEARLY -> first.plusYears(steps);
+                    default -> first;
+                });
+    }
+
+    /**
+     * The first day this event falls on, which is the start date or the first matching weekday after
+     * it. The two differ where the weekday was changed without moving the start.
+     */
+    private LocalDate firstDate() {
+        LocalDate start = startTime.atZone(ZoneOffset.UTC).toLocalDate();
+        if (eventType == EventType.YEARLY || dayOfWeek == null) return start;
+        return start.plusDays(Math.floorMod(dayOfWeek - start.getDayOfWeek().getValue(), 7));
+    }
+
+    /** The configured weekday within the first seven days of that month, which is what these patterns mean. */
+    private LocalDate weekdayInFirstWeekOf(LocalDate month) {
+        LocalDate first = month.withDayOfMonth(1);
+        if (dayOfWeek == null) return first;
+        return first.plusDays(Math.floorMod(dayOfWeek - first.getDayOfWeek().getValue(), 7));
     }
 
     /**

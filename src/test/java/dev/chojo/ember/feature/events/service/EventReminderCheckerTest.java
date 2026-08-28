@@ -84,6 +84,8 @@ class EventReminderCheckerTest {
                 null,
                 null,
                 false,
+                null,
+                null,
                 null);
     }
 
@@ -112,6 +114,8 @@ class EventReminderCheckerTest {
                 null,
                 null,
                 false,
+                null,
+                null,
                 null);
     }
 
@@ -140,6 +144,8 @@ class EventReminderCheckerTest {
                 null,
                 null,
                 false,
+                null,
+                null,
                 null);
     }
 
@@ -355,6 +361,8 @@ class EventReminderCheckerTest {
                 null,
                 null,
                 false,
+                null,
+                null,
                 null);
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
         when(reminderRepository.findDays(42)).thenReturn(List.of(1));
@@ -390,6 +398,8 @@ class EventReminderCheckerTest {
                 null,
                 null,
                 false,
+                null,
+                null,
                 null);
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
         when(reminderRepository.findDays(42)).thenReturn(List.of(1));

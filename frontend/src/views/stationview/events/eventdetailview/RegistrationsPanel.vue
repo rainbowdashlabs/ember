@@ -14,11 +14,10 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import RegistrationStatsTable from './RegistrationStatsTable.vue'
 import RegistrationFieldAnswers from './RegistrationFieldAnswers.vue'
-import MemberPickerFilter from '@/views/stationview/members/MemberPickerFilter.vue'
+import MemberPicker, {type PickableMember} from '@/views/stationview/members/MemberPicker.vue'
 import {EventFieldTypes, RegistrationStatus, type EventRegistrationEntry, type EventRegistrationField, type MemberRegistrationStats, type StationEvent} from '@/api/events'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
@@ -32,7 +31,7 @@ const props = defineProps<{
   pendingRegistrations: EventRegistrationEntry[]
   nonPendingRegistrations: StatusGroup[]
   registrationStats: MemberRegistrationStats[]
-  unregisteredMembers: { id: number; name: string; userType?: string | null }[]
+  unregisteredMembers: PickableMember[]
   registrationFields?: EventRegistrationField[]
 }>()
 
@@ -72,12 +71,6 @@ function decidable(registration: EventRegistrationEntry): boolean {
       && registration.status !== RegistrationStatus.DECLINED
 }
 
-/** What the reader typed to find the person they want to put on the list. */
-const pickerSearch = ref('')
-
-/** The kind of member they are looking for, or the empty string for every kind. */
-const pickerUserType = ref('')
-
 /** The kinds present among those not on the list yet, so choosing one never empties it by itself. */
 const offeredUserTypes = computed(() => {
   const kinds = new Set<string>()
@@ -87,18 +80,11 @@ const offeredUserTypes = computed(() => {
   return [...kinds].sort()
 })
 
-/**
- * Those not on the list yet, narrowed to what the reader is looking for.
- *
- * <p>A station of three hundred offers three hundred names in one dropdown, and the person being
- * entered is known by name or by what kind of member they are.
- */
-const pickableMembers = computed(() => {
-  const needle = pickerSearch.value.trim().toLowerCase()
-  return props.unregisteredMembers
-      .filter(member => !pickerUserType.value || member.userType === pickerUserType.value)
-      .filter(member => !needle || member.name.toLowerCase().includes(needle))
-})
+/** Picking somebody out of the list puts them on it, which is the only thing this picker is for. */
+function registerByHand(memberId: number) {
+  manualRegisterMemberId.value = String(memberId)
+  emit('manualRegister')
+}
 
 function answersOf(fieldId: number): string[] {
   return props.registrations
@@ -242,21 +228,12 @@ function statusLabel(status: string): string {
 
     <div v-if="canRegisterOthers" data-testid="manual-register" class="space-y-2 pt-2">
       <SubHeader>{{ t('eventDetail.manualRegister') }}</SubHeader>
-      <MemberPickerFilter
-          v-model:search="pickerSearch"
-          v-model:user-type="pickerUserType"
+      <MemberPicker
+          :members="unregisteredMembers"
           :user-types="offeredUserTypes"
+          :placeholder="t('eventDetail.selectMember')"
+          @select="registerByHand"
       />
-      <div class="flex items-center gap-2">
-        <SelectInput v-model="manualRegisterMemberId" class="flex-1">
-          <option value="">{{ t('eventDetail.selectMember') }}</option>
-          <option v-for="m in pickableMembers" :key="m.id" :value="String(m.id)">{{ m.name }}</option>
-        </SelectInput>
-        <PrimaryButton :disabled="!manualRegisterMemberId" @click="emit('manualRegister')">
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
-          {{ t('eventsUpcoming.register') }}
-        </PrimaryButton>
-      </div>
     </div>
   </NeutralContainer>
 </template>

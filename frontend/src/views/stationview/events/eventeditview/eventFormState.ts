@@ -20,6 +20,8 @@ export function createEventFormState() {
     dayOfWeek: '1',
     startTime: '',
     endTime: '',
+    repeatUntil: '',
+    repeatCount: undefined as number | undefined,
     requiresRegistration: false,
     requiresConfirmation: false,
     hasDeadline: false,

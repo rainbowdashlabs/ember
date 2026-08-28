@@ -10,10 +10,17 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import UpcomingEventItem from './UpcomingEventItem.vue'
-import type {EventField, EventRegistrationEntry, StationEvent, UpcomingEventOccurrence} from '@/api/events'
+import type {
+  EventCategory,
+  EventField,
+  EventRegistrationEntry,
+  StationEvent,
+  UpcomingEventOccurrence,
+} from '@/api/events'
 
 defineProps<{
   items: UpcomingEventOccurrence[]
+  categories: EventCategory[]
   overviewFields: Record<number, EventField[]>
   myRegistrations: EventRegistrationEntry[]
   managedMembersCount: number
@@ -49,6 +56,7 @@ const {t} = useI18n()
           :event="item.event"
           :date="item.date"
           :end-date="multiDayEndDate(item.event, item.date)"
+          :category="categories.find(c => c.id === item.event.categoryId)"
           :overview-fields="overviewFields[item.event.id] ?? []"
           :registration-summary="getRegistrationSummary(item.event.id, item.date)"
           :detail-route="detailRoute(item.event, item.date)"

@@ -17,6 +17,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import type {RestrictionSelection} from '@/components/input/restriction'
 import EventFieldList from './EventFieldList.vue'
+import RepeatEndField from './RepeatEndField.vue'
 import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
 import {EventTypes, needsDayOfWeek, type EventCategory, type EventFieldEntry} from '@/api/events'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
@@ -44,6 +45,8 @@ const eventType = defineModel<string>('eventType')
 const dayOfWeek = defineModel<string>('dayOfWeek')
 const startTime = defineModel<string>('startTime')
 const endTime = defineModel<string>('endTime')
+const repeatUntil = defineModel<string>('repeatUntil')
+const repeatCount = defineModel<number>('repeatCount')
 
 const requiresRegistration = defineModel<boolean>('requiresRegistration')
 const requiresConfirmation = defineModel<boolean>('requiresConfirmation')
@@ -102,6 +105,7 @@ const {t} = useI18n()
             option-b="recurring"
             :label-a="t('events.typeOneTime')"
             :label-b="t('events.typeRecurringShort')"
+            data-testid="event-type-toggle"
             @update:model-value="eventType = $event === 'onetime' ? EventTypes.ONE_TIME : EventTypes.RECURRING"
         />
         <SelectInput v-if="eventType !== EventTypes.ONE_TIME" v-model="eventType" class="w-full">
@@ -124,6 +128,12 @@ const {t} = useI18n()
           <option value="7">Sonntag</option>
         </SelectInput>
       </div>
+
+      <RepeatEndField
+          v-if="eventType !== EventTypes.ONE_TIME && repeatUntil !== undefined"
+          v-model:until="repeatUntil"
+          v-model:count="repeatCount"
+      />
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div class="space-y-1">

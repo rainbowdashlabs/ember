@@ -75,6 +75,7 @@ async function duplicateTemplate(id: number) {
           overview: field.overview,
           isPublic: field.isPublic,
           attendanceFieldId: field.attendanceFieldId ?? null,
+          defaultValue: field.defaultValue ?? null,
         })),
       })
     }

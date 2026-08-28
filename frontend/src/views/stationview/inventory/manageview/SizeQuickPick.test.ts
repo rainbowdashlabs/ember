@@ -15,6 +15,14 @@ import SizeQuickPick from './SizeQuickPick.vue'
  * write their sizes down backwards and every exchange after that would offer a smaller one.
  */
 describe('SizeQuickPick', () => {
+    /** A press on a size, in the order a browser sends it: the click arrives last and must change nothing. */
+    async function pick(field: Awaited<ReturnType<typeof mountSuspended>>, label: string) {
+        const box = field.get(`[data-testid="size-box-${label}"]`)
+        await box.trigger('mousedown')
+        window.dispatchEvent(new MouseEvent('mouseup'))
+        await box.trigger('click')
+    }
+
     it('offers the four ranges a station stocks', async () => {
         const field = await mountSuspended(SizeQuickPick)
         const labels = field.findAll('button').map(button => button.text())
@@ -32,7 +40,7 @@ describe('SizeQuickPick', () => {
         const field = await mountSuspended(SizeQuickPick)
 
         for (const label of ['L', 'S', 'XL']) {
-            await field.get(`[data-testid="size-box-${label}"]`).trigger('click')
+            await pick(field, label)
         }
         await field.get('[data-testid="size-quick-add"]').trigger('click')
 
@@ -42,13 +50,13 @@ describe('SizeQuickPick', () => {
     it('names a size that two rows share only once', async () => {
         const field = await mountSuspended(SizeQuickPick)
 
-        await field.get('[data-testid="size-box-122"]').trigger('click')
+        await pick(field, '122')
         await field.get('[data-testid="size-quick-add"]').trigger('click')
 
         expect(field.emitted('add')?.[0], '122 is both a body height and a short size').toEqual([['122']])
     })
 
-    it('takes everything a drag crosses and lets a click take one back', async () => {
+    it('takes everything a drag crosses and lets a press take one back', async () => {
         const field = await mountSuspended(SizeQuickPick)
 
         await field.get('[data-testid="size-box-116"]').trigger('mousedown')
@@ -56,9 +64,19 @@ describe('SizeQuickPick', () => {
         await field.get('[data-testid="size-box-128"]').trigger('mouseenter')
         window.dispatchEvent(new MouseEvent('mouseup'))
 
-        await field.get('[data-testid="size-box-122"]').trigger('click')
+        await pick(field, '122')
         await field.get('[data-testid="size-quick-add"]').trigger('click')
 
         expect(field.emitted('add')?.[0]).toEqual([['116', '128']])
+    })
+
+    /** One size, pressed once, the way it is picked when nothing is dragged. */
+    it('keeps a size that was pressed on its own', async () => {
+        const field = await mountSuspended(SizeQuickPick)
+
+        await pick(field, 'M')
+        await field.get('[data-testid="size-quick-add"]').trigger('click')
+
+        expect(field.emitted('add')?.[0]).toEqual([['M']])
     })
 })

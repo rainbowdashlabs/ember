@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.EventRecurrence;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -247,20 +248,9 @@ public class PublicEventRoutes implements Routes {
                 vevent.add(new Categories(cat.name()));
             }
         }
-        if (event.isRecurring() && event.dayOfWeek() != null) {
-            String[] days = {"", "MO", "TU", "WE", "TH", "FR", "SA", "SU"};
-            String day = days[event.dayOfWeek()];
-            String rrule =
-                    switch (event.eventType()) {
-                        case RECURRING -> "FREQ=WEEKLY;BYDAY=" + day;
-                        case MONTHLY_FIRST -> "FREQ=MONTHLY;BYDAY=1" + day;
-                        case QUARTERLY -> "FREQ=MONTHLY;INTERVAL=3;BYDAY=1" + day;
-                        case YEARLY -> "FREQ=YEARLY";
-                        default -> null;
-                    };
-            if (rrule != null) {
-                vevent.add(new RRule<>(rrule));
-            }
+        String rrule = EventRecurrence.rule(event);
+        if (rrule != null) {
+            vevent.add(new RRule<>(rrule));
         }
         return vevent;
     }

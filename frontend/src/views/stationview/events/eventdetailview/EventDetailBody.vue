@@ -65,6 +65,7 @@ function onCancelled() {
     <EventDetailHeader
         :event="event"
         :can-manage-events="canManageEvents"
+        :category-name="categoryName"
         @cancel="showCancelModal = true"
     />
 
@@ -95,7 +96,6 @@ function onCancelled() {
         :focused-date="focusedDate"
         :start-formatted="startFormatted"
         :end-formatted="endFormatted"
-        :category-name="categoryName"
         :template-name="templateName"
         :can-manage-events="canManageEvents"
         :can-manage-attendance="canManageAttendance"

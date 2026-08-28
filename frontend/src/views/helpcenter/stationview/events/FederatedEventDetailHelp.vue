@@ -10,13 +10,16 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import HeaderCard from '@/views/stationview/events/federatedeventdetailview/HeaderCard.vue'
+import type {SharedEvent} from '@/api/events'
 
 const {t} = useI18n()
 
-const EVENT = {
+const EVENT: SharedEvent = {
+  id: 1,
   name: 'Gemeinsame Übung mit der Nachbarwache',
   eventType: 'ONE_TIME',
   requiresRegistration: true,
+  requiresConfirmation: false,
   dayOfWeek: 6,
   startTime: '09:00:00',
   endTime: '12:00:00',

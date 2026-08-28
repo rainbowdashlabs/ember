@@ -17,6 +17,7 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
+import RepeatEndField from '@/views/stationview/events/eventshared/RepeatEndField.vue'
 
 const {t} = useI18n()
 </script>
@@ -65,6 +66,13 @@ const {t} = useI18n()
             <DateTimeInput model-value="2026-05-25T20:00" disabled/>
           </div>
         </div>
+      </NeutralContainer>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventEdit.repeatEndTitle')">
+      <p>{{ t('helpCenter.eventEdit.repeatEndText') }}</p>
+      <NeutralContainer class="mt-3">
+        <RepeatEndField :count="8" until=""/>
       </NeutralContainer>
     </HelpSection>
 

@@ -5,8 +5,9 @@
  */
 /**
  * Error payload the backend sends with a failed request. `message` comes from the
- * plain message envelope, `title` from the problem-detail envelope; `error` and
- * `category` are only populated by the step-up challenge.
+ * plain message envelope, `title` from the problem-detail envelope; `error` names
+ * the kind of refusal where the backend raised one of its own, and `category` is
+ * only populated by the step-up challenge.
  */
 export interface ApiErrorBody {
     message?: string

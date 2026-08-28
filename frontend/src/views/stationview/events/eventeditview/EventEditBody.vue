@@ -58,6 +58,8 @@ const eventType = defineModel<string>('eventType', {required: true})
 const dayOfWeek = defineModel<string>('dayOfWeek', {required: true})
 const startTime = defineModel<string>('startTime', {required: true})
 const endTime = defineModel<string>('endTime', {required: true})
+const repeatUntil = defineModel<string>('repeatUntil', {required: true})
+const repeatCount = defineModel<number | undefined>('repeatCount')
 const requiresRegistration = defineModel<boolean>('requiresRegistration', {required: true})
 const registrationFields = defineModel<EventRegistrationFieldDefinition[]>('registrationFields', {required: true})
 const requiresConfirmation = defineModel<boolean>('requiresConfirmation', {required: true})
@@ -96,6 +98,8 @@ const canSubmit = computed(() => !props.saving && !!name.value && !!startTime.va
       v-model:day-of-week="dayOfWeek"
       v-model:start-time="startTime"
       v-model:end-time="endTime"
+      v-model:repeat-until="repeatUntil"
+      v-model:repeat-count="repeatCount"
       v-model:requires-registration="requiresRegistration"
       v-model:requires-confirmation="requiresConfirmation"
       v-model:has-deadline="hasDeadline"

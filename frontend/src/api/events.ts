@@ -52,6 +52,10 @@ export interface StationEvent {
     thresholdDate?: string | null
     thresholdNotified?: boolean
     registrationCloseDays?: number | null
+    /** The last day a repeating appointment falls on, or null where it repeats without an end. */
+    repeatUntil?: string | null
+    /** How many times a repeating appointment takes place in total, or null where it has no end. */
+    repeatCount?: number | null
 }
 
 export interface EventRequest {
@@ -72,6 +76,10 @@ export interface EventRequest {
     minRegistrations?: number | null
     thresholdDate?: string | null
     registrationCloseDays?: number | null
+    /** The last day the repetition may reach, as a plain date. Never sent together with a count. */
+    repeatUntil?: string | null
+    /** How many times the appointment takes place in total. Never sent together with a last day. */
+    repeatCount?: number | null
 }
 
 export interface EventRestrictions {
@@ -187,6 +195,8 @@ export interface EventTemplateField {
     overview: boolean
     isPublic: boolean
     attendanceFieldId?: number | null
+    /** What an appointment made from this template starts this question off with. */
+    defaultValue?: string | null
 }
 
 export interface EventTemplateDetail {
@@ -206,6 +216,8 @@ export interface EventTemplateFieldEntry {
     isPublic?: boolean
     registrationLimit?: number | null
     attendanceFieldId?: number | null
+    /** What an appointment made from this template starts this question off with. */
+    defaultValue?: string | null
 }
 
 export const RegistrationStatus = {
@@ -718,17 +730,24 @@ export interface FederatedEvent {
     partnerId: number
     partnerStationName: string
     partnerStationUid: string
-    event: {
-        id: number
-        name: string
-        description: string
-        eventType: string
-        dayOfWeek: number
-        startTime: string
-        endTime: string
-        requiresRegistration: boolean
-        requiresConfirmation: boolean
-    }
+    event: SharedEvent
+}
+
+/** An appointment as a partner station shows it, which is less than its own station sees. */
+export interface SharedEvent {
+    id: number
+    name: string
+    description: string
+    eventType: string
+    dayOfWeek: number
+    startTime: string
+    endTime: string
+    requiresRegistration: boolean
+    requiresConfirmation: boolean
+    /** The last day the repetition reaches, or null where the series has no end. */
+    repeatUntil?: string | null
+    /** How many times it takes place in total, or null where the series has no end. */
+    repeatCount?: number | null
 }
 
 export async function listFederatedEvents(): Promise<FederatedEvent[]> {
@@ -737,7 +756,7 @@ export async function listFederatedEvents(): Promise<FederatedEvent[]> {
 }
 
 export interface FederatedEventDetail {
-    event: Record<string, unknown>
+    event: SharedEvent
     publicFields: { id: number; name: string; value: string; fieldType: string; isPublic: boolean }[]
 }
 

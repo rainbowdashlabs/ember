@@ -315,6 +315,8 @@ class IcalEventRendererTest {
                 null,
                 null,
                 false,
+                null,
+                null,
                 null);
     }
 
@@ -343,6 +345,8 @@ class IcalEventRendererTest {
                 null,
                 null,
                 false,
+                null,
+                null,
                 null);
     }
 
@@ -371,6 +375,8 @@ class IcalEventRendererTest {
                 null,
                 null,
                 false,
+                null,
+                null,
                 null);
     }
 }

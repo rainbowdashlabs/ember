@@ -39,7 +39,8 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         UserTagService tagService = new UserTagService(userTagRepo, memberGroupRepo);
-        service = new EventFieldService(eventFieldRepo, stationMemberRepo, memberGroupRepo, tagService);
+        service = new EventFieldService(
+                eventFieldRepo, stationMemberRepo, memberGroupRepo, tagService, eventRepo, attendanceRepo);
 
         Station station = stationRepo.create("SelfReg Station");
 

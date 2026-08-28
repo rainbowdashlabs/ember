@@ -11,7 +11,7 @@ import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
-import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
@@ -44,7 +44,7 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
 public class RemoteEventRoutes implements Routes {
 
     public static final FederationEndpoint LIST_EVENTS =
-            FederationEndpoint.getList(FederationSurface.EVENT_SHARE, "/remote/events", RemoteEvent.class);
+            FederationEndpoint.getList(FederationSurface.EVENT_SHARE, "/remote/events", SharedEvent.class);
     public static final FederationEndpoint GET_EVENT =
             FederationEndpoint.get(FederationSurface.EVENT_SHARE, "/remote/events/{id}", RemoteEventDetail.class);
     public static final FederationEndpoint REGISTER = FederationEndpoint.post(
@@ -130,7 +130,7 @@ public class RemoteEventRoutes implements Routes {
         var events = eventIds.stream()
                 .map(id -> crudService.findById(id).orElse(null))
                 .filter(Objects::nonNull)
-                .map(this::toRemoteEvent)
+                .map(SharedEvent::of)
                 .toList();
         ctx.json(events);
     }
@@ -143,7 +143,7 @@ public class RemoteEventRoutes implements Routes {
         var fields = eventFieldService.findByEvent(eventId).stream()
                 .filter(EventField::isPublic)
                 .toList();
-        ctx.json(new RemoteEventDetail(toRemoteEvent(event), fields));
+        ctx.json(new RemoteEventDetail(SharedEvent.of(event), fields));
     }
 
     private void remoteRegister(Context ctx) {
@@ -269,31 +269,7 @@ public class RemoteEventRoutes implements Routes {
         }
     }
 
-    private RemoteEvent toRemoteEvent(StationEvent e) {
-        return new RemoteEvent(
-                e.id(),
-                e.name(),
-                e.description() != null ? e.description() : "",
-                e.eventType(),
-                e.dayOfWeek() != null ? e.dayOfWeek() : 0,
-                e.startTime() != null ? e.startTime().toString() : "",
-                e.endTime() != null ? e.endTime().toString() : "",
-                e.requiresRegistration(),
-                true);
-    }
-
-    public record RemoteEvent(
-            int id,
-            String name,
-            String description,
-            StationEvent.EventType eventType,
-            int dayOfWeek,
-            String startTime,
-            String endTime,
-            boolean requiresRegistration,
-            boolean requiresConfirmation) {}
-
-    public record RemoteEventDetail(RemoteEvent event, List<EventField> publicFields) {}
+    public record RemoteEventDetail(SharedEvent event, List<EventField> publicFields) {}
 
     public record RemoteMemberRegistration(
             int eventId, String remoteMemberId, String eventDate, RegistrationStatus status, int partnerId) {}

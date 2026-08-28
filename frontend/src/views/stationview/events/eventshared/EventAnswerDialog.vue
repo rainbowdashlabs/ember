@@ -106,7 +106,10 @@ function confirm() {
         <SubHeader class="mb-1">
             {{ attending ? t('events.answerFor') : t('events.declineFor') }}
         </SubHeader>
-        <p class="mb-3 text-xs text-(--text-muted)">{{ t('events.answerForHint') }}</p>
+        <p class="mb-3 text-xs text-(--text-muted)">
+            {{ t('events.answerForHint') }}
+            <template v-if="asksQuestions"> {{ t('events.answerForFieldsHint') }}</template>
+        </p>
 
         <Alert v-if="error" variant="error" class="mb-3">{{ error }}</Alert>
 

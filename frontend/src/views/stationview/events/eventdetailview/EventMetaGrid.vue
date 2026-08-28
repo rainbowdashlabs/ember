@@ -24,9 +24,9 @@ const props = defineProps<{
   currentMemberId: number
   startFormatted: string
   endFormatted: string
-  categoryName: string
   templateName: string
-  canManageEvents: boolean
+  /** Which sheet the attendance is taken on is a setting, so only whoever sets it is shown it. */
+  canEditEvent: boolean
 }>()
 
 const emit = defineEmits<{
@@ -130,19 +130,15 @@ async function toggle(field: EventField) {
 
 <template>
   <div class="grid grid-cols-6 gap-4">
-    <div class="col-span-6 sm:col-span-3">
-      <DetailLabel>{{ t('events.category') }}</DetailLabel>
-      <p class="text-sm">{{ categoryName }}</p>
-    </div>
-    <div class="col-span-6 sm:col-span-3">
+    <div class="col-span-3">
       <DetailLabel>{{ t('events.startTime') }}</DetailLabel>
       <p class="text-sm">{{ startFormatted }}</p>
     </div>
-    <div class="col-span-6 sm:col-span-3">
+    <div class="col-span-3">
       <DetailLabel>{{ t('events.endTime') }}</DetailLabel>
       <p class="text-sm">{{ endFormatted }}</p>
     </div>
-    <div v-if="canManageEvents" class="col-span-6 sm:col-span-3">
+    <div v-if="canEditEvent" class="col-span-6 sm:col-span-3">
       <DetailLabel>{{ t('events.template') }}</DetailLabel>
       <p class="text-sm">{{ templateName }}</p>
     </div>

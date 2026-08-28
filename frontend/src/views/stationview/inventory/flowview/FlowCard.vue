@@ -15,12 +15,16 @@ import Alert from '@/components/feedback/Alert.vue'
 import type {MovementFlow, StepRequest} from '@/api/movements'
 import FlowStepRow from './FlowStepRow.vue'
 import AddStepForm from './AddStepForm.vue'
+import {useFlowProblems} from '@/composables/useFlowProblems'
 
 const {t} = useI18n()
+const {problemText} = useFlowProblems()
 
 const props = defineProps<{
   flow: MovementFlow
   busy: boolean
+  /** Why the last change to this chain was refused, shown where the change was made. */
+  error?: string
 }>()
 
 const emit = defineEmits<{
@@ -85,7 +89,11 @@ const editable = computed(() => !props.flow.ownedByCluster && !props.flow.archiv
       </div>
     </div>
 
-    <Alert v-if="props.flow.problem && !props.flow.archived" variant="error">{{ props.flow.problem }}</Alert>
+    <Alert v-if="props.error" variant="error" data-testid="flow-error">{{ props.error }}</Alert>
+
+    <Alert v-if="props.flow.problem && !props.flow.archived" variant="error" data-testid="flow-problem">
+      {{ problemText(props.flow.problem) }}
+    </Alert>
 
     <MutedText v-if="!expanded" size="sm" tag="div">
       {{ t('flows.stepCount', {count: props.flow.steps.filter(s => !s.archived).length}) }}

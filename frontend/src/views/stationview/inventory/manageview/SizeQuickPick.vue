@@ -58,22 +58,26 @@ const dragging = ref(false)
  */
 const inOrder = computed(() => [...new Set(ROWS.flatMap(row => row.labels))].filter(label => picked.value.has(label)))
 
-function toggle(label: string) {
-  const next = new Set(picked.value)
-  if (next.has(label)) next.delete(label)
-  else next.add(label)
-  picked.value = next
-}
-
 /** Dragging adds rather than toggles, so crossing the same box twice does not undo it. */
 function touch(label: string) {
   if (!dragging.value || picked.value.has(label)) return
   picked.value = new Set(picked.value).add(label)
 }
 
-function startDrag(label: string) {
+/**
+ * Takes the size that was pressed and lets a drag from it carry on.
+ *
+ * <p>The whole picking happens here rather than on the click that follows: the press already picked
+ * the size, and the click arrived after the drag had ended, so it read as a second press and took
+ * the size straight back off. Pressing a single size did nothing at all, and the only way to pick
+ * one was to press beside it and drag across.
+ */
+function press(label: string) {
+  const next = new Set(picked.value)
+  if (next.has(label)) next.delete(label)
+  else next.add(label)
+  picked.value = next
   dragging.value = true
-  touch(label)
 }
 
 function stopDrag() {
@@ -94,7 +98,6 @@ function confirm() {
   <div
       class="space-y-2 rounded-lg border border-(--border) bg-(--bg) p-3 shadow-lg"
       data-testid="size-quick-pick"
-      @mouseleave="stopDrag"
   >
     <MutedText size="sm" tag="p">{{ t('inventory.manage.quickSizesHint') }}</MutedText>
 
@@ -108,9 +111,8 @@ function confirm() {
               ? 'border-primary bg-primary text-white'
               : 'border-(--border) hover:bg-(--bg-accent)'"
           :data-testid="`size-box-${label}`"
-          @mousedown.prevent="startDrag(label)"
+          @mousedown.prevent="press(label)"
           @mouseenter="touch(label)"
-          @click="dragging || toggle(label)"
       >
         {{ label }}
       </button>

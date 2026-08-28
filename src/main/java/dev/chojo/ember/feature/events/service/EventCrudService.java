@@ -11,12 +11,15 @@ import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -280,6 +283,44 @@ public class EventCrudService {
         }
         log.warn("Cannot update event: event {} not found", id);
         return Optional.empty();
+    }
+
+    /**
+     * Says when a repeating event stops repeating, or takes the end off again.
+     *
+     * <p>A last day and a number of times are two ways of saying the same thing, so only one of them
+     * is ever set. A one-off appointment has nothing to repeat and is refused rather than quietly
+     * given an end nobody would ever see.
+     *
+     * @param id    the event
+     * @param until the last day it may fall on, or null
+     * @param count how many times it takes place in total, or null
+     * @return the event as it now stands, or empty when there is no such event
+     */
+    public Optional<StationEvent> setRepeatEnd(int id, LocalDate until, Integer count) {
+        var event = eventRepository.findById(id).orElse(null);
+        if (event == null) {
+            log.warn("Cannot set the repeat end: event {} not found", id);
+            return Optional.empty();
+        }
+        if (until != null && count != null) {
+            throw new BadRequestResponse("A series ends on a day or after a number of times, not both");
+        }
+        if ((until != null || count != null) && !event.isRecurring()) {
+            throw new BadRequestResponse("Only a repeating appointment has an end to its repetition");
+        }
+        if (count != null && count < 1) {
+            throw new BadRequestResponse("A series that repeats takes place at least once");
+        }
+        if (until != null
+                && event.startTime() != null
+                && until.isBefore(event.startTime().atZone(ZoneOffset.UTC).toLocalDate())) {
+            throw new BadRequestResponse("A series cannot end before it starts");
+        }
+
+        eventRepository.updateRepeatEnd(id, until, count);
+        log.info("Event {} now repeats until {} or {} times", id, until, count);
+        return eventRepository.findById(id);
     }
 
     /**

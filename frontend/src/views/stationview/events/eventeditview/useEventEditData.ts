@@ -21,6 +21,20 @@ export function useEventEditData(selectedTemplateId: () => string, answeredField
   const groupMembersMap = ref(new Map<number, StationMember[]>())
 
   /**
+   * The fields of the attendance sheet this appointment is taken on, and of no other.
+   *
+   * <p>What a question of the appointment may be tied to. Every sheet of the station used to be
+   * offered at once, with nothing to tell two identically named fields of two different sheets
+   * apart, so a question could be tied to a field of a sheet the appointment does not use. Such a
+   * tie writes its answer into a sheet nobody opens, where it is never seen again.
+   */
+  const sheetFields = computed(() => {
+    const id = selectedTemplateId()
+    if (!id) return []
+    return allTemplateFields.value.filter(f => f.templateId === Number(id))
+  })
+
+  /**
    * The fields of the chosen attendance sheet that still need a value from the appointment.
    *
    * <p>A question of the appointment can be tied to one of these, and then it is the question that
@@ -29,10 +43,8 @@ export function useEventEditData(selectedTemplateId: () => string, answeredField
    * question is not shown here at all.
    */
   const currentTemplateFields = computed(() => {
-    const id = selectedTemplateId()
-    if (!id) return []
     const answered = new Set(answeredFieldIds())
-    return allTemplateFields.value.filter(f => f.templateId === Number(id) && !answered.has(f.id))
+    return sheetFields.value.filter(f => !answered.has(f.id))
   })
 
   async function load() {
@@ -57,7 +69,7 @@ export function useEventEditData(selectedTemplateId: () => string, answeredField
     eventTemplates: eventTemplates.value,
     categories: categories.value,
     templates: templates.value,
-    attendanceFields: allTemplateFields.value,
+    attendanceFields: sheetFields.value,
     groups: groups.value,
     tags: tags.value,
     allMembers: allMembers.value,

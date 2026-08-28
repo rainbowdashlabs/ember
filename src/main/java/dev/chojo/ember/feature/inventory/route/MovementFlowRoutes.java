@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.inventory.entity.FlowProblem;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementFlow;
@@ -55,6 +56,7 @@ public class MovementFlowRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/movement-flows", this::list, StationPermission.INVENTORY_MANAGER);
+        routes.get(prefix + "/movement-flows/{id}", this::getFlow, StationPermission.INVENTORY_MANAGER);
         routes.post(prefix + "/movement-flows", this::createFlow, StationPermission.INVENTORY_MANAGER);
         routes.put(prefix + "/movement-flows/{id}", this::renameFlow, StationPermission.INVENTORY_MANAGER);
         routes.delete(prefix + "/movement-flows/{id}", this::archiveFlow, StationPermission.INVENTORY_MANAGER);
@@ -77,6 +79,21 @@ public class MovementFlowRoutes implements Routes {
         ctx.json(flowService.findFlows(session.stationId()).stream()
                 .map(this::toResponse)
                 .toList());
+    }
+
+    @OpenApi(
+            path = "/api/v1/movement-flows/{id}",
+            methods = HttpMethod.GET,
+            summary = "Read one flow with its steps",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FlowResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void getFlow(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(flowAsItStands(requireOwnFlow(pathInt(ctx, "id"), session)));
     }
 
     @OpenApi(
@@ -119,12 +136,12 @@ public class MovementFlowRoutes implements Routes {
             summary = "Retire a flow, which keeps it readable for the movements that walked it",
             tags = {"Inventory"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "204"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FlowResponse.class)))
     private void archiveFlow(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = requireOwnFlow(pathInt(ctx, "id"), session);
         if (!flowService.archiveFlow(id)) throw new NotFoundResponse();
-        ctx.status(HttpStatus.NO_CONTENT);
+        ctx.json(flowAsItStands(id));
     }
 
     @OpenApi(
@@ -157,11 +174,11 @@ public class MovementFlowRoutes implements Routes {
             tags = {"Inventory"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = StepRequest.class)),
-            responses = @OpenApiResponse(status = "204"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FlowResponse.class)))
     private void updateStep(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int stepId = pathInt(ctx, "id");
-        requireOwnStep(stepId, session);
+        int flowId = requireOwnStep(stepId, session);
         var request = ctx.bodyAsClass(StepRequest.class);
         requireStepFields(request);
         if (!flowService.updateStep(
@@ -173,7 +190,7 @@ public class MovementFlowRoutes implements Routes {
                 request.picksItem())) {
             throw new NotFoundResponse();
         }
-        ctx.status(HttpStatus.NO_CONTENT);
+        ctx.json(flowAsItStands(flowId));
     }
 
     @OpenApi(
@@ -182,13 +199,13 @@ public class MovementFlowRoutes implements Routes {
             summary = "Retire a step, which keeps it readable for the movements that passed it",
             tags = {"Inventory"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "204"))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FlowResponse.class)))
     private void archiveStep(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int stepId = pathInt(ctx, "id");
-        requireOwnStep(stepId, session);
+        int flowId = requireOwnStep(stepId, session);
         if (!flowService.archiveStep(stepId)) throw new NotFoundResponse();
-        ctx.status(HttpStatus.NO_CONTENT);
+        ctx.json(flowAsItStands(flowId));
     }
 
     @OpenApi(
@@ -241,7 +258,7 @@ public class MovementFlowRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = StepOrderRequest.class)),
             responses = {
-                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FlowResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void reorderSteps(Context ctx) {
@@ -252,7 +269,7 @@ public class MovementFlowRoutes implements Routes {
             throw new BadRequestResponse("Name the steps in the order they are to be walked");
         }
         flowService.reorderSteps(flowId, request.stepIds());
-        ctx.status(HttpStatus.NO_CONTENT);
+        ctx.json(flowAsItStands(flowId));
     }
 
     private void requireStepFields(StepRequest request) {
@@ -273,9 +290,15 @@ public class MovementFlowRoutes implements Routes {
         return flowId;
     }
 
-    private void requireOwnStep(int stepId, UserSession session) {
+    /** The chain a step belongs to, once it is established that the station may touch it. */
+    private int requireOwnStep(int stepId, UserSession session) {
         MovementFlowStep step = flowService.findStep(stepId).orElseThrow(NotFoundResponse::new);
-        requireOwnFlow(step.flowId(), session);
+        return requireOwnFlow(step.flowId(), session);
+    }
+
+    /** The chain as it now stands, which is what every change to it answers with. */
+    private FlowResponse flowAsItStands(int flowId) {
+        return toResponse(flowService.findFlow(flowId).orElseThrow(NotFoundResponse::new));
     }
 
     private FlowResponse toResponse(MovementFlow flow) {
@@ -317,10 +340,10 @@ public class MovementFlowRoutes implements Routes {
     /**
      * @param ownedByCluster whether the flow belongs to the body above the station rather than to
      *                       the station, in which case it is shown and named but not edited here
-     */
-    /**
-     * @param problem what stops this chain from being walked, or null when nothing does. A chain
-     *                under construction says so here rather than only when somebody tries to use it
+     * @param problem        what stops this chain from being walked, or null when nothing does. A
+     *                       chain under construction says so here rather than only when somebody
+     *                       tries to use it, and it is named rather than worded so the reader is
+     *                       told in their own language
      */
     public record FlowResponse(
             int id,
@@ -328,7 +351,7 @@ public class MovementFlowRoutes implements Routes {
             MovementPurpose purpose,
             boolean archived,
             boolean ownedByCluster,
-            String problem,
+            FlowProblem problem,
             List<StepResponse> steps) {}
 
     public record StepResponse(

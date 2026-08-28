@@ -10,7 +10,7 @@ import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarSubGroup from '@/components/navigation/SidebarSubGroup.vue'
 import QuizSidebarLinks from '@/views/dashboardview/quizsidebargroup/QuizSidebarLinks.vue'
 import ProtocolSidebarLinks from '@/views/dashboardview/quizsidebargroup/ProtocolSidebarLinks.vue'
-import {StationModules} from '@/api/types'
+import {StationModules, StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 
 defineProps<{
@@ -24,10 +24,20 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const {isModuleEnabled} = useSession()
+const {isModuleEnabled, hasPermission, canTestProtocol} = useSession()
 
 const quiz = computed(() => isModuleEnabled(StationModules.QUIZ))
-const protocols = computed(() => isModuleEnabled(StationModules.TEST_PROTOCOL))
+
+/**
+ * Whether tests are part of this group at all.
+ *
+ * <p>Not only whether the station runs them, but whether this reader has anything to do with them.
+ * Somebody who may neither write a test sheet nor sit one was shown a heading called "Prüfungen"
+ * with nothing under it, and the group was named after a half of it they could not open. For them
+ * the whole thing now reads exactly as it does at a station that does not run tests.
+ */
+const protocols = computed(() => isModuleEnabled(StationModules.TEST_PROTOCOL)
+    && (hasPermission(StationPermission.PROTOCOL_CREATE) || canTestProtocol()))
 
 /**
  * One group carries two features, so it is named after the ones it still carries: a station that
@@ -51,7 +61,7 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :icon="['fas', 'graduation-cap']" :label="label" :prefix="['/station/quiz', '/station/protocols']" group-key="quiz-protocols">
+  <SidebarGroup v-if="quiz || protocols" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :icon="['fas', 'graduation-cap']" :label="label" :prefix="['/station/quiz', '/station/protocols']" group-key="quiz-protocols">
     <template v-if="sectioned">
       <SidebarSubGroup :icon="['fas', 'graduation-cap']" :label="t('sidebar.quiz')" prefix="/station/quiz">
         <QuizSidebarLinks @navigate="close"/>

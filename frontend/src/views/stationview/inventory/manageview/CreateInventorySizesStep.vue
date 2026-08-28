@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref} from 'vue'
+import {onBeforeUnmount, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -27,6 +27,34 @@ const {t} = useI18n()
 
 const newSizeLabel = ref('')
 const showQuickPick = ref(false)
+const quickPickRef = ref<HTMLElement | null>(null)
+
+/**
+ * Closes the size list when the pointer lands somewhere else.
+ *
+ * <p>It used to close as soon as the pointer left the row it hangs under, and the few pixels between
+ * the button and the list are outside that row, so reaching the list at all meant chasing it. It
+ * stays open now until it is used, cancelled, or left alone.
+ */
+function onClickOutside(event: MouseEvent) {
+  if (quickPickRef.value && !quickPickRef.value.contains(event.target as Node)) {
+    showQuickPick.value = false
+  }
+}
+
+function onEscape(event: KeyboardEvent) {
+  if (event.key === 'Escape') showQuickPick.value = false
+}
+
+onMounted(() => {
+  document.addEventListener('click', onClickOutside)
+  document.addEventListener('keydown', onEscape)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onClickOutside)
+  document.removeEventListener('keydown', onEscape)
+})
 
 /**
  * Adds a run of sizes at once, keeping the order the field showed them in and skipping any the
@@ -52,12 +80,12 @@ function removeSize(index: number) {
 <template>
   <p class="text-sm text-(--text-muted)">{{ t('inventory.manage.sizesHint') }}</p>
 
-  <div class="relative flex items-center gap-2" @mouseleave="showQuickPick = false">
+  <div ref="quickPickRef" class="relative flex items-center gap-2">
     <TextInput v-model="newSizeLabel" :placeholder="t('inventory.manage.sizeLabel')" class="flex-1" @keyup.enter="addSize" />
     <SecondaryButton :disabled="!newSizeLabel.trim()" @click="addSize">
       <font-awesome-icon :icon="['fas', 'plus']" />
     </SecondaryButton>
-    <SecondaryButton data-testid="size-quick-open" @mouseenter="showQuickPick = true" @click="showQuickPick = true">
+    <SecondaryButton data-testid="size-quick-open" @click="showQuickPick = !showQuickPick">
       {{ t('inventory.manage.quickSizes') }}
     </SecondaryButton>
 

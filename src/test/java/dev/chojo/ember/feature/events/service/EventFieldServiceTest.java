@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -36,7 +38,12 @@ class EventFieldServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         service = new EventFieldService(
-                eventFieldRepo, stationMemberRepo, memberGroupRepo, new UserTagService(userTagRepo, memberGroupRepo));
+                eventFieldRepo,
+                stationMemberRepo,
+                memberGroupRepo,
+                new UserTagService(userTagRepo, memberGroupRepo),
+                eventRepo,
+                attendanceRepo);
         station = stationRepo.create("EventFieldServiceStation");
 
         Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
@@ -126,6 +133,80 @@ class EventFieldServiceTest extends RepositoryTestBase {
         var found = service.findByEvent(eventId);
         assertEquals(1, found.size());
         assertEquals("SingleField", found.getFirst().name());
+    }
+
+    /**
+     * A question of an appointment can only be tied to a field of the sheet it is taken on.
+     *
+     * <p>Two sheets can carry fields of the same name, and a tie into the wrong one writes the answer
+     * into a sheet nobody opens. The appointment inherits its ties from the template it was made
+     * from, so a template that was wrong once would keep handing the fault on.
+     */
+    @Test
+    @Order(4)
+    void aTieToAnotherSheetIsNotKept() {
+        var ours = attendanceRepo.createTemplate(station.id(), "Bogen des Termins");
+        attendanceRepo.createTemplateField(
+                ours.id(), "Ausbilder", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+        int mine = attendanceRepo.findTemplateFields(ours.id()).getFirst().id();
+
+        var theirs = attendanceRepo.createTemplate(station.id(), "Ein anderer Bogen");
+        attendanceRepo.createTemplateField(
+                theirs.id(), "Ausbilder", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);
+        int foreign = attendanceRepo.findTemplateFields(theirs.id()).getFirst().id();
+
+        var onOurSheet = eventRepo.create(
+                station.id(),
+                "Termin mit Bogen",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(3, ChronoUnit.DAYS),
+                Instant.now().plus(3, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
+                ours.id(),
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        service.replaceFields(
+                onOurSheet.id(),
+                List.of(
+                        new EventFieldRepository.FieldEntry(
+                                "Eigene", EventFieldType.STRING, EventFieldConfig.parse("{}"), "", false, mine, false),
+                        new EventFieldRepository.FieldEntry(
+                                "Fremde",
+                                EventFieldType.STRING,
+                                EventFieldConfig.parse("{}"),
+                                "",
+                                false,
+                                foreign,
+                                false)));
+
+        var stored = service.findByEvent(onOurSheet.id());
+        assertEquals(
+                mine,
+                stored.stream()
+                        .filter(f -> f.name().equals("Eigene"))
+                        .findFirst()
+                        .orElseThrow()
+                        .attendanceFieldId(),
+                "the tie into the sheet this appointment uses is kept");
+        assertNull(
+                stored.stream()
+                        .filter(f -> f.name().equals("Fremde"))
+                        .findFirst()
+                        .orElseThrow()
+                        .attendanceFieldId(),
+                "and the one into another sheet is not");
+
+        eventRepo.delete(onOurSheet.id());
+        attendanceRepo.deleteTemplate(ours.id());
+        attendanceRepo.deleteTemplate(theirs.id());
     }
 
     @Test

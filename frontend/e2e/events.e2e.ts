@@ -245,6 +245,33 @@ test.describe('Events', () => {
     })
 
     /**
+     * A course of a few evenings is a repeating appointment that stops. Before it could be said, a
+     * series ran for ever and had to be deleted by hand on the day it ended.
+     */
+    test('a repeating appointment is given an end', async ({managerPage: page}) => {
+        const name = `Lehrgang-${Date.now()}`
+
+        await page.goto('/station/events/new')
+        await page.getByPlaceholder('Name des Termins').fill(name)
+
+        const times = page.locator('input[type="datetime-local"]')
+        await times.first().fill('2026-12-03T18:00')
+        if (await times.count() > 1) await times.nth(1).fill('2026-12-03T20:00')
+
+        await page.getByTestId('event-type-toggle').getByRole('switch').click()
+        await page.getByTestId('repeat-end-kind').selectOption('afterCount')
+        await page.getByTestId('repeat-end-count').fill('8')
+
+        await page.getByRole('button', {name: /Speichern|Erstellen/}).last().click()
+
+        await page.waitForURL(/\/station\/events$/)
+        await page.getByText(name).first().click()
+        await page.waitForURL(/\/station\/events\/\d+/)
+
+        await expect(page.getByTestId('event-repeat-end')).toHaveText(/8 Mal/)
+    })
+
+    /**
      * A season of weekly evenings is entered once rather than fifty times. The story generates the
      * dates, creates them in one go, and finds one of them in the planner afterwards.
      */

@@ -14,7 +14,7 @@ import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
-import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -344,7 +344,7 @@ public class EventFederationService {
                 localStationId,
                 partnerStationUid,
                 RemoteEventRoutes.GET_EVENT.at(eventId),
-                RemoteEventSummary.class,
+                SharedEvent.class,
                 "event",
                 partner -> {
                     int partnerStationId = stationRepository
@@ -355,7 +355,7 @@ public class EventFederationService {
                     if (!eventIds.contains(eventId)) {
                         throw new BadRequestResponse("Event not shared with this partner");
                     }
-                    return crudService.findById(eventId).map(this::toEventMap).orElseThrow();
+                    return crudService.findById(eventId).map(SharedEvent::of).orElseThrow();
                 });
     }
 
@@ -541,7 +541,7 @@ public class EventFederationService {
         }
     }
 
-    public List<RemoteFederatedEvent> fetchFederatedEvents(
+    public List<SharedEvent> fetchFederatedEvents(
             String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
         return httpClient.getList(
                 remoteHost,
@@ -549,7 +549,7 @@ public class EventFederationService {
                 partnerStationUid,
                 localStationId,
                 localPrivateKeyBase64,
-                RemoteFederatedEvent.class);
+                SharedEvent.class);
     }
 
     public boolean registerForFederatedEvent(
@@ -608,7 +608,7 @@ public class EventFederationService {
                             partner.id(),
                             partnerStationName(partner),
                             partner.partnerStationId().toString(),
-                            toEventMap(e))));
+                            SharedEvent.of(e))));
         }
         return items;
     }
@@ -632,19 +632,6 @@ public class EventFederationService {
         return FederationDisplayNames.partnerName(stationRepository, partner, "?");
     }
 
-    private RemoteEventSummary toEventMap(StationEvent e) {
-        return new RemoteEventSummary(
-                e.id(),
-                e.name(),
-                e.description() != null ? e.description() : "",
-                e.eventType(),
-                e.dayOfWeek() != null ? e.dayOfWeek() : 0,
-                e.startTime() != null ? e.startTime().toString() : "",
-                e.endTime() != null ? e.endTime().toString() : "",
-                e.requiresRegistration(),
-                true);
-    }
-
     /**
      * Result wrapper for federated comment operations.
      * Contains typed response objects for both local and remote partners.
@@ -666,19 +653,6 @@ public class EventFederationService {
     public record MyFederatedRegistration(
             int eventId, String remoteMemberId, String eventDate, RegistrationStatus status, int partnerId) {}
 
-    public record RemoteEventSummary(
-            int id,
-            String name,
-            String description,
-            StationEvent.EventType eventType,
-            int dayOfWeek,
-            String startTime,
-            String endTime,
-            boolean requiresRegistration,
-            boolean requiresConfirmation) {}
-
-    // -- Federation HTTP convenience methods --
-
     public record FederatedEventItem(
             int partnerId, String partnerStationName, String partnerStationUid, Object event) {}
 
@@ -692,17 +666,6 @@ public class EventFederationService {
             String remoteMemberUid, String displayName, int parentId, String content, String eventDate) {}
 
     private record RemoteCommentUpdateRequest(String remoteMemberUid, String content) {}
-
-    public record RemoteFederatedEvent(
-            int id,
-            String name,
-            String description,
-            StationEvent.EventType eventType,
-            int dayOfWeek,
-            String startTime,
-            String endTime,
-            boolean requiresRegistration,
-            boolean requiresConfirmation) {}
 
     private record FederatedRegBody(UUID remoteMemberId, String eventDate) {}
 }

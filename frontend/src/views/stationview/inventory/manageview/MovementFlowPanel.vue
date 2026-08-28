@@ -23,16 +23,18 @@ import {
   type StepRequest,
 } from '@/api/movements'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {apiErrorMessage} from '@/util/apiError'
+import {useFlowProblems} from '@/composables/useFlowProblems'
 import FlowCard from '../flowview/FlowCard.vue'
 import FlowBindingTable from '../flowview/FlowBindingTable.vue'
 
 const {t} = useI18n()
+const {refusalText} = useFlowProblems()
 
 const flows = ref<MovementFlow[]>([])
 const bindings = ref<MovementFlowBinding[]>([])
 const busy = ref(false)
 const actionError = ref('')
+const flowErrors = ref<Record<number, string>>({})
 
 const newName = ref('')
 const newPurpose = ref<MovementPurposeName>(MovementPurpose.EXCHANGE)
@@ -42,9 +44,45 @@ const {loading, error, reload} = useAsyncLoader(async () => {
 })
 
 /**
- * Runs one change and reloads. Refusals are shown rather than swallowed: a step cannot be edited
- * while a movement is walking the flow, and the reader needs to be told which is in the way.
+ * Runs one change to one chain and puts the answer in its place.
+ *
+ * <p>The chain comes back as it now stands, so the card is replaced and nothing else on the page
+ * moves. Fetching the whole page after every saved step threw the reader back to the top with every
+ * chain closed again, which made editing a chain of eight steps a page load per step.
+ *
+ * <p>A refusal is shown on the chain it was about rather than at the top of the page, where the
+ * reader is not looking: a step cannot be edited while a movement is walking the chain, and that
+ * belongs next to the step.
  */
+async function runOnFlow(flowId: number, action: () => Promise<MovementFlow>) {
+  busy.value = true
+  flowErrors.value = {...flowErrors.value, [flowId]: ''}
+  try {
+    replace(await action())
+  } catch (e) {
+    flowErrors.value = {...flowErrors.value, [flowId]: refusalText(e)}
+  } finally {
+    busy.value = false
+  }
+}
+
+function replace(flow: MovementFlow) {
+  flows.value = flows.value.map(known => (known.id === flow.id ? flow : known))
+}
+
+/**
+ * Adds a step and reads the chain back.
+ *
+ * <p>Two calls because adding answers with the step that was created, which is what a caller asking
+ * for a step is owed. What the card shows is the whole chain, including whether it can be walked at
+ * all, and that is only known once the step is in it.
+ */
+async function addStep(flowId: number, step: StepRequest): Promise<MovementFlow> {
+  await movements.addStep(flowId, step)
+  return movements.getFlow(flowId)
+}
+
+/** A change that is not about one chain: creating one, or pointing a binding somewhere else. */
 async function run(action: () => Promise<unknown>) {
   busy.value = true
   actionError.value = ''
@@ -52,7 +90,7 @@ async function run(action: () => Promise<unknown>) {
     await action()
     await reload()
   } catch (e) {
-    actionError.value = apiErrorMessage(e) ?? t('common.error')
+    actionError.value = refusalText(e)
   } finally {
     busy.value = false
   }
@@ -91,12 +129,13 @@ function createFlow() {
             v-for="flow in flows"
             :key="flow.id"
             :busy="busy"
+            :error="flowErrors[flow.id]"
             :flow="flow"
-            @add-step="(flowId: number, step: StepRequest) => run(() => movements.addStep(flowId, step))"
-            @archive-step="(stepId: number) => run(() => movements.archiveStep(stepId))"
-            @archive-flow="(flowId: number) => run(() => movements.archiveFlow(flowId))"
-            @save-step="(stepId: number, step: StepRequest) => run(() => movements.updateStep(stepId, step))"
-            @reorder="(flowId: number, stepIds: number[]) => run(() => movements.reorderSteps(flowId, stepIds))"
+            @add-step="(flowId: number, step: StepRequest) => runOnFlow(flowId, () => addStep(flowId, step))"
+            @archive-step="(stepId: number) => runOnFlow(flow.id, () => movements.archiveStep(stepId))"
+            @archive-flow="(flowId: number) => runOnFlow(flowId, () => movements.archiveFlow(flowId))"
+            @save-step="(stepId: number, step: StepRequest) => runOnFlow(flow.id, () => movements.updateStep(stepId, step))"
+            @reorder="(flowId: number, stepIds: number[]) => runOnFlow(flowId, () => movements.reorderSteps(flowId, stepIds))"
         />
       </div>
 

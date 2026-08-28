@@ -80,6 +80,8 @@ class EventRegistrationStatsRouteTest {
                 null,
                 null,
                 false,
+                null,
+                null,
                 null);
     }
 

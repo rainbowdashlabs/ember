@@ -182,7 +182,7 @@ public class EventExportService {
                                                     .getDayOfMonth();
                         default -> false;
                     };
-            if (matches) result.add(new ExpandedEvent(event, d));
+            if (matches && !event.isAfterLastDate(d)) result.add(new ExpandedEvent(event, d));
         }
     }
 
