@@ -12,6 +12,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AccountEmailService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.LoginNameService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -46,6 +47,7 @@ public class MemberRoutes implements Routes {
     private final StationMemberRepository stationMemberRepository;
     private final StationMemberInviteService inviteService;
     private final LoginNameService loginNameService;
+    private final AccountEmailService accountEmailService;
 
     @Inject
     public MemberRoutes(
@@ -53,12 +55,14 @@ public class MemberRoutes implements Routes {
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
             StationMemberInviteService inviteService,
-            LoginNameService loginNameService) {
+            LoginNameService loginNameService,
+            AccountEmailService accountEmailService) {
         this.authService = authService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.inviteService = inviteService;
         this.loginNameService = loginNameService;
+        this.accountEmailService = accountEmailService;
     }
 
     private static boolean isBlank(String s) {
@@ -104,7 +108,8 @@ public class MemberRoutes implements Routes {
     private void updateAccount(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int accountId = pathInt(ctx, "accountId");
-        if (session.accountId() != accountId) {
+        boolean actsForSomebodyElse = session.accountId() != accountId;
+        if (actsForSomebodyElse) {
             if (!session.hasPermission(StationPermission.MEMBER_EDIT)) {
                 throw new ForbiddenResponse("Updating another account requires the member edit permission");
             }
@@ -113,12 +118,12 @@ public class MemberRoutes implements Routes {
         var request = ctx.bodyAsClass(UpdateAccountRequest.class);
         var existing = accountRepository.findById(accountId).orElseThrow(NotFoundResponse::new);
 
-        // If email changed, send confirmation to the new address instead of applying immediately
         boolean emailChanged = request.email() != null
                 && !request.email().isBlank()
                 && !request.email().equalsIgnoreCase(existing.email());
 
-        // Update name fields immediately
+        // Written with the address it already has, so that the two ways of changing one below are the
+        // only things that ever move it
         if (!accountRepository.update(accountId, existing.email(), request.firstName(), request.lastName())) {
             throw new NotFoundResponse();
         }
@@ -127,12 +132,22 @@ public class MemberRoutes implements Routes {
             accountRepository.updateUsername(accountId, loginNameService.validatedFor(existing, request.username()));
         }
 
-        if (emailChanged) {
-            authService.requestEmailChange(accountId, request.email());
-            ctx.json(new MessageResponse("Name updated. A confirmation email has been sent to the new address."));
-        } else {
+        if (!emailChanged) {
             ctx.json(new MessageResponse("Account updated"));
+            return;
         }
+
+        // Somebody putting their own address right confirms it from both ends, which is what stops a
+        // stolen session walking off with the account. An administrator is asked to do this precisely
+        // where that cannot work: the address to be corrected is the wrong one, and it is the address
+        // half of that confirmation would go to.
+        if (actsForSomebodyElse) {
+            accountEmailService.setEmail(accountId, request.email());
+            ctx.json(new MessageResponse("Account updated"));
+            return;
+        }
+        authService.requestEmailChange(accountId, request.email());
+        ctx.json(new MessageResponse("Name updated. A confirmation email has been sent to the new address."));
     }
 
     @OpenApi(

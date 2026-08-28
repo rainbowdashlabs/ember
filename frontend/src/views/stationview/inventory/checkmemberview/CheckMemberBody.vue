@@ -42,6 +42,7 @@ defineEmits<{
   submit: []
   rapidSetResult: [result: CheckResult]
   rapidExchange: [kind: RapidExchangeKind, entry: CheckEntry]
+  rapidCorrect: [entry: CheckEntry]
   rapidMarkNotInPossession: []
   rapidAssign: [itemIdStr: string]
   rapidCreateAndAssign: [sizeIdStr: string]
@@ -50,8 +51,7 @@ defineEmits<{
   setNote: [itemId: number, note: string]
   unassign: [itemId: number]
   createProcurement: [item: InventoryItem]
-  changeItem: [currentItemId: number]
-  createAndChange: [currentItemId: number, req: RequiredInventoryItem]
+  correct: [item: InventoryItem, req: RequiredInventoryItem]
   toggleNotInPossession: [inventoryId: number, slotIndex: number]
   assignToSlot: [inventoryId: number, slotIndex: number]
   createAndAssignToSlot: [req: RequiredInventoryItem, slotIndex: number]
@@ -93,6 +93,7 @@ defineExpose({ getCurrentRapidEntry })
     :size-label="sizeLabel"
     @set-result="(r) => $emit('rapidSetResult', r)"
     @exchange="(kind, entry) => $emit('rapidExchange', kind, entry)"
+    @correct="(entry) => $emit('rapidCorrect', entry)"
     @mark-not-in-possession="$emit('rapidMarkNotInPossession')"
     @assign="(id) => $emit('rapidAssign', id)"
     @create-and-assign="(id) => $emit('rapidCreateAndAssign', id)"
@@ -118,8 +119,7 @@ defineExpose({ getCurrentRapidEntry })
       @set-note="(id, n) => $emit('setNote', id, n)"
       @unassign="(id) => $emit('unassign', id)"
       @create-procurement="(item) => $emit('createProcurement', item)"
-      @change-item="id => $emit('changeItem', id)"
-      @create-and-change="(id, r) => $emit('createAndChange', id, r)"
+      @correct="(item, r) => $emit('correct', item, r)"
       @toggle-not-in-possession="(invId, slotIdx) => $emit('toggleNotInPossession', invId, slotIdx)"
       @assign-to-slot="(invId, slotIdx) => $emit('assignToSlot', invId, slotIdx)"
       @create-and-assign-to-slot="(r, slotIdx) => $emit('createAndAssignToSlot', r, slotIdx)"

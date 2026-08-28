@@ -51,7 +51,8 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
                 accountRepo,
                 memberIdentityFactory,
                 containerService,
-                itemCustodyService);
+                itemCustodyService,
+                inventoryService);
         station = stationRepo.create("CheckSvcStation");
         checkerAccount = accountRepo.create("checker-svc@test.com", "Check", "Er");
         targetAccount = accountRepo.create("target-svc@test.com", "Target", "Member");

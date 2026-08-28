@@ -41,7 +41,7 @@ public class InventoryRepository {
     private static final String INVENTORY_ITEM_COLUMNS =
             "id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, lost_note, lost_note_by, owner_kind, owner_cluster_id, custody, custody_station_id, custody_movement_id, container_id";
     private static final String INVENTORY_ITEM_HISTORY_COLUMNS =
-            "id, item_id, member_id, member_name, given_out, returned";
+            "id, item_id, member_id, member_name, given_out, returned, corrected";
     private static final String INVENTORY_REQUIREMENT_COLUMNS =
             "id, inventory_id, user_type, group_id, station_group_id, quantity, position";
 
@@ -855,6 +855,24 @@ public class InventoryRepository {
     public boolean returnHistory(int itemId, int memberId) {
         return query(
                         "UPDATE inventory_item_history SET returned = now() WHERE item_id = :itemId AND member_id = :memberId AND returned IS NULL;")
+                .single(call().bind("itemId", itemId).bind("memberId", memberId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Marks the open history entry for an item and member as a correction, so that closing it reads
+     * as putting the record right rather than as the member handing the item back.
+     *
+     * <p>Written before the spell is closed, while there is still exactly one open entry to hit.
+     *
+     * @param itemId   the item ID
+     * @param memberId the member ID
+     * @return {@code true} if a history entry was updated
+     */
+    public boolean markSpellCorrected(int itemId, int memberId) {
+        return query(
+                        "UPDATE inventory_item_history SET corrected = TRUE WHERE item_id = :itemId AND member_id = :memberId AND returned IS NULL;")
                 .single(call().bind("itemId", itemId).bind("memberId", memberId))
                 .update()
                 .changed();

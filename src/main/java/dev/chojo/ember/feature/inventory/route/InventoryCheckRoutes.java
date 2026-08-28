@@ -13,6 +13,11 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCorrection;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.MemberCheckSummary;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
@@ -82,6 +87,14 @@ public class InventoryCheckRoutes implements Routes {
     }
 
     /**
+     * Asserts the given inventory belongs to the caller's station.
+     */
+    private void verifyInventoryInStation(int inventoryId, UserSession session) {
+        var inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
+        RouteSupport.requireSameStation(session, inventory.stationId());
+    }
+
+    /**
      * Asserts the given member belongs to the caller's station.
      */
     private void verifyMemberInStation(int memberId, UserSession session) {
@@ -109,6 +122,8 @@ public class InventoryCheckRoutes implements Routes {
                 prefix + "/inventory-checks/{memberId}/create-assign",
                 this::createAndAssign,
                 StationPermission.INVENTORY_CHECK);
+        routes.post(
+                prefix + "/inventory-checks/{memberId}/correct", this::correctItem, StationPermission.INVENTORY_CHECK);
         routes.get(prefix + "/inventory-checks/next", this::nextMember, StationPermission.INVENTORY_CHECK);
         routes.get(
                 prefix + "/inventory-checks/container/{containerId}/expected",
@@ -344,19 +359,40 @@ public class InventoryCheckRoutes implements Routes {
         String memberName =
                 session.account().firstName() + " " + session.account().lastName();
 
-        // Unassign old item if swapping
         if (request.oldItemId() != null && request.oldItemId() > 0) {
             inventoryService.assignItem(request.oldItemId(), null, null);
         }
 
-        // Create a new item and assign it
         var inv = inventoryService.findById(request.inventoryId()).orElseThrow();
-        var item = inventoryService.createItem(request.inventoryId(), null, inv.name(), request.sizeId(), null);
+        var item = inventoryService.createItem(
+                request.inventoryId(), null, inv.name(), request.sizeId(), null, ownerOf(inv), null);
         inventoryService.assignItem(item.id(), memberId, memberName);
 
         var state = checkService.startCheck(
                 session.stationId(), memberId, session.member().id());
         ctx.status(HttpStatus.CREATED).json(state);
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-checks/{memberId}/correct",
+            methods = HttpMethod.POST,
+            summary = "Correct which piece a member is recorded as holding",
+            tags = {"Inventory Checks"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CorrectItemRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
+    private void correctItem(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int memberId = pathInt(ctx, "memberId");
+        verifyMemberInStation(memberId, session);
+        var request = ctx.bodyAsClass(CorrectItemRequest.class);
+        verifyInventoryInStation(request.inventoryId(), session);
+
+        checkService.correct(memberId, request.toCorrection());
+
+        var state = checkService.startCheck(
+                session.stationId(), memberId, session.member().id());
+        ctx.json(state);
     }
 
     @OpenApi(
@@ -415,7 +451,43 @@ public class InventoryCheckRoutes implements Routes {
 
     public record UnassignItemRequest(int itemId) {}
 
+    /**
+     * Who owns a piece made during a check.
+     *
+     * <p>The inventory says it: one that holds the association's gear cannot hold the station's, and
+     * a piece made with the wrong owner is refused. Taking the station as the silent answer left the
+     * button on every association inventory doing nothing but showing an error.
+     */
+    private static ItemOwner ownerOf(Inventory inventory) {
+        return inventory.inventoryType() == InventoryType.EXTERNAL ? ItemOwner.CLUSTER : ItemOwner.STATION;
+    }
+
     public record CreateAndAssignRequest(int inventoryId, Integer sizeId, Integer oldItemId) {}
+
+    /**
+     * What a check found the member holding, as it arrives over the wire.
+     *
+     * @param inventoryId  the inventory both pieces sit in
+     * @param oldItemId    the piece wrongly on the member's record, or {@code null} where they were
+     *                     recorded as holding nothing
+     * @param pickedItemId a piece from the free stock, or {@code null} to make a new one
+     * @param sizeId       the size of a new piece
+     * @param ownerKind    who owns a new piece, which only a mixed inventory has to be told
+     * @param internalId   the number on a new piece
+     * @param metadata     the inventory's own fields for a new piece
+     */
+    public record CorrectItemRequest(
+            int inventoryId,
+            Integer oldItemId,
+            Integer pickedItemId,
+            Integer sizeId,
+            ItemOwner ownerKind,
+            String internalId,
+            InventoryItemMetadata metadata) {
+        ItemCorrection toCorrection() {
+            return new ItemCorrection(inventoryId, oldItemId, pickedItemId, sizeId, ownerKind, internalId, metadata);
+        }
+    }
 
     public record NextMemberResponse(Integer memberId) {}
 }

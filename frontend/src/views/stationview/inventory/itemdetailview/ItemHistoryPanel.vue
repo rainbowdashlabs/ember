@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
 import type {InventoryItemHistory} from '@/api/inventory'
 import {formatDate} from '@/util/format'
 
@@ -33,7 +34,10 @@ const {t} = useI18n()
         <tr v-for="h in props.entries" :key="h.id" class="border-b border-(--border) last:border-0">
           <td class="p-2">{{ h.memberName || '-' }}</td>
           <td class="p-2 text-(--text-muted)">{{ h.givenOut ? formatDate(h.givenOut) : '-' }}</td>
-          <td class="p-2 text-(--text-muted)">{{ h.returned ? formatDate(h.returned) : t('itemDetail.current') }}</td>
+          <td class="p-2 text-(--text-muted)">
+            {{ h.returned ? formatDate(h.returned) : t('itemDetail.current') }}
+            <InfoBadge v-if="h.corrected">{{ t('itemDetail.corrected') }}</InfoBadge>
+          </td>
         </tr>
       </tbody>
     </table>

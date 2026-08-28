@@ -3979,8 +3979,12 @@ volumes:
             rapidCheckTitle: 'Schnellprüfung',
             rapidCheckText: 'Die Schnellprüfung zeigt dir Gegenstände einzeln nacheinander an.',
             rapidCheckText2: 'Pro Gegenstand wählst du nur den Status - dann springt die Ansicht automatisch zum nächsten.',
-            changeItemTitle: 'Gegenstand tauschen',
-            changeItemText: 'Wenn ein Mitglied einen anderen Gegenstand hat, kannst du ihn direkt tauschen oder einen neuen zuweisen.',
+            correctTitle: 'Eintrag korrigieren',
+            correctText: 'Hält das Mitglied etwas anderes als eingetragen ist, öffnet „Korrigieren" ein Fenster, in dem du festhältst, was es wirklich hat. Bewegt wird dabei nichts: die Ausrüstung liegt schon in den richtigen Händen, nur der Eintrag zieht nach.',
+            correctNewText: 'Du wählst entweder einen freien Gegenstand aus dem Bestand der Wache oder legst einen neuen an, mit Größe, Nummer und den Feldern des Inventars. Führt das Inventar Ausrüstung von Wache und Träger nebeneinander, wirst du einmal gefragt, wem der neue Gegenstand gehört.',
+            correctOldText: 'Was mit dem bisher eingetragenen Gegenstand passiert, richtet sich danach, wem er gehört: Ausrüstung der Wache geht zurück in deren Lager, Ausrüstung des Trägers zurück an den Träger. Führt der Träger hier kein Lager, wird der Gegenstand entfernt. Im Verlauf des Gegenstands steht die Abgabe danach als Korrektur.',
+            noSizeEditTitle: 'Warum sich die Größe nicht ändern lässt',
+            noSizeEditText: 'Wir gehen davon aus, dass jeder Gegenstand richtig erfasst ist. Stimmt die Größe nicht, ist es der falsche Gegenstand, und dann gehört ein anderer Gegenstand in den Eintrag und nicht eine andere Zahl.',
             emptySlotText: 'Kein Gegenstand zugewiesen - du kannst hier einen zuweisen oder als fehlend markieren.',
             tip: 'Nutze die Schnellprüfung für große Gruppen - so geht die Prüfung viel schneller.',
         },
@@ -4778,6 +4782,33 @@ volumes:
         eventDetailDate: {},
         eventNew: {},
         formsListRow: {},
+        inventoryIntake: {
+            title: 'Bestand aufnehmen',
+            subtitle: 'Vorhandene Ausrüstung in einem Durchgang eintragen und zuweisen.',
+            permissionText: 'Zum Eintragen brauchst du das Recht, Gegenstände anzulegen. Sollen die Stücke '
+                + 'gleich jemandem gehören, brauchst du zusätzlich das Recht, Inventar zuzuweisen.',
+            whatIs: 'Wofür ist die Seite?',
+            whatIsText: 'Wenn eure Ausrüstung längst in den Spinden hängt, ist der Weg über einzelne Gegenstände '
+                + 'zäh: anlegen, Größe wählen, Nummer tippen, Fenster schließen, zuweisen. Hier geht es andersherum, '
+                + 'von der Mitgliederliste zu den Stücken: eine Zeile je Mitglied, einmal ausfüllen, einmal speichern.',
+            notAMovementText: 'Die Aufnahme trägt nur ein, was ohnehin da ist. Sie startet keine Bewegung und keinen '
+                + 'Ablauf, denn übergeben wurde nichts.',
+            whoTitle: 'Schritt 1: Wer kommt in die Liste',
+            whoText: 'Alle Mitglieder, ein Mitgliedstyp oder eine Gruppe. Das ist nur der Anfang: einzelne Zeilen '
+                + 'kannst du streichen, und wer fehlt, lässt sich unter der Tabelle nachtragen.',
+            tableTitle: 'Schritt 2: Die Tabelle',
+            tableText: 'Je Zeile trägst du Größe, Nummer und die eigenen Felder des Inventars ein. Eine Zeile ohne '
+                + 'jede Angabe wird beim Speichern übersprungen, du musst also nichts vorher aufräumen.',
+            bulkTitle: 'Größe für alle',
+            bulkText: 'Über der Tabelle wählst du eine Größe und schreibst sie mit einem Klick in jede Zeile, die '
+                + 'noch keine hat. Bei dreißig gleichen Jacken ist das der ganze Vorgang.',
+            saveTitle: 'Schritt 3: Speichern',
+            saveText: 'Ein Klick legt alle Stücke an und weist jedes dem Mitglied seiner Zeile zu. Stimmt eine Zeile '
+                + 'nicht, etwa weil eine Nummer schon vergeben ist, wird nichts eingetragen und die Meldung nennt die '
+                + 'Zeile.',
+            tip: 'Nummern sind freiwillig. Ohne Nummer landet das Stück genauso in der Liste, es lässt sich nur nicht '
+                + 'über die Nummer suchen.',
+        },
         inventoryAssignHelp: {
             title: 'Items zuweisen',
             subtitle: 'Items an Mitglieder ausgeben und wieder zurücknehmen.',

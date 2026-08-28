@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {InventoryItem, InventorySize} from './inventory'
+import type {InventoryItem, InventorySize, ItemMetadata, ItemOwnerName} from './inventory'
 import type {MemberIdentity} from './types'
 
 export interface MemberCheckSummary {
@@ -126,6 +126,28 @@ export async function createAndAssign(memberId: number, inventoryId: number, siz
         sizeId,
         oldItemId
     })
+    return res.data
+}
+
+/**
+ * What a check found the member holding, where that is not what the record says.
+ *
+ * <p>Naming a piece from the free stock takes that one; naming none makes a new piece from the size,
+ * number and fields given here. The owner only has to be named in an inventory that holds both.
+ */
+export interface CorrectItemRequest {
+    inventoryId: number
+    oldItemId?: number | null
+    pickedItemId?: number | null
+    sizeId?: number | null
+    ownerKind?: ItemOwnerName | null
+    internalId?: string | null
+    metadata?: ItemMetadata | null
+}
+
+/** Puts the record right about which piece a member holds, without moving anything. */
+export async function correctItem(memberId: number, data: CorrectItemRequest): Promise<MemberCheckState> {
+    const res = await client.post<MemberCheckState>(`/inventory-checks/${memberId}/correct`, data)
     return res.data
 }
 

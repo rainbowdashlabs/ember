@@ -87,7 +87,12 @@ async function save() {
       </div>
       <div class="flex flex-col gap-1 text-sm">
         <span>{{ t('inventory.storage.fields.kind') }}</span>
-        <ContainerKindPicker ref="kindPicker" :kinds="kinds" v-model="kindId" />
+        <ContainerKindPicker
+            ref="kindPicker"
+            v-model="kindId"
+            :kinds="kinds"
+            @picked="kind => { if (!name.trim()) name = kind.label }"
+        />
       </div>
       <label class="flex flex-col gap-1 text-sm">
         <span>{{ t('inventory.storage.fields.internalId') }}</span>

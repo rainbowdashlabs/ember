@@ -45,6 +45,8 @@ type Permissions = {
   canCreateItem: boolean
   canQuickAssign: boolean
   canAddInternal: boolean
+  /** Whether this screen offers writing a whole inventory down at once, which the association's does not. */
+  canTakeStock: boolean
 }
 
 defineProps<{
@@ -68,6 +70,7 @@ defineEmits<InventoryItemActionEmits & {
   openProcurementModal: []
   openQuickAssign: []
   openAdd: []
+  openIntake: []
   assignFree: [itemId: number]
 }>()
 
@@ -100,6 +103,8 @@ const { t } = useI18n()
       :table="itemTable"
       :count="items.length"
       :show-quick-assign="permissions.canCreateItem && permissions.canQuickAssign"
+      :show-intake="permissions.canCreateItem && permissions.canTakeStock"
+      @intake="$emit('openIntake')"
       :show-add="permissions.canCreateItem && permissions.canAddInternal"
       :show-search="items.length > 0"
       @quick-assign="$emit('openQuickAssign')"

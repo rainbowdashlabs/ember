@@ -88,8 +88,36 @@ const permissions = computed(() => {
     canCreateItem,
     canQuickAssign: (type === InventoryTypes.EXTERNAL || type === InventoryTypes.MIXED) && canCreateExternal.value,
     canAddInternal: type !== InventoryTypes.EXTERNAL && canCreateInternal.value,
+    canTakeStock: routes.intake !== undefined,
   }
 })
+
+/** Writing the whole inventory down at once is a screen of its own rather than a dialog. */
+function openIntake() {
+  if (routes.intake) router.push({name: routes.intake, params: {id: inventoryId.value}})
+}
+
+/**
+ * What the stock screen does when something is asked of a piece.
+ *
+ * <p>Every one of them opens a dialog, and the dialogs live in one component, so they are handed
+ * over as a set rather than written out one line per action.
+ */
+const actions = computed(() => ({
+  fulfillProcurement: (id: number) => modals.value?.fulfillProcurement(id),
+  openProcurementModal: () => modals.value?.openProcurement(),
+  openQuickAssign: () => modals.value?.openQuickAssign(),
+  openAdd: () => modals.value?.openAdd(),
+  openIntake,
+  assign: (item: InventoryItem) => modals.value?.openAssign(item.id),
+  unassign: (item: InventoryItem) => modals.value?.unassign(item),
+  edit: (item: InventoryItem) => modals.value?.openEdit(item),
+  markLost: (item: InventoryItem) => modals.value?.markLost(item),
+  markFound: (item: InventoryItem) => modals.value?.markFound(item),
+  history: (item: InventoryItem) => modals.value?.openHistory(item),
+  delete: (item: InventoryItem) => modals.value?.openDelete(item),
+  assignFree: (itemId: number) => modals.value?.openAssign(itemId),
+}))
 
 const activeLendingStatuses = new Set(['APPROVED', 'LENT'])
 
@@ -207,18 +235,7 @@ function goBack() { router.push({ name: routes.manage }) }
         :all-size-stats="allSizeStats"
         :permissions="permissions"
         :item-table="itemTable"
-        @fulfill-procurement="modals?.fulfillProcurement($event)"
-        @open-procurement-modal="modals?.openProcurement()"
-        @open-quick-assign="modals?.openQuickAssign()"
-        @open-add="modals?.openAdd()"
-        @assign="modals?.openAssign($event.id)"
-        @unassign="modals?.unassign($event)"
-        @edit="modals?.openEdit($event)"
-        @mark-lost="modals?.markLost($event)"
-        @mark-found="modals?.markFound($event)"
-        @history="modals?.openHistory($event)"
-        @delete="modals?.openDelete($event)"
-        @assign-free="modals?.openAssign($event)"
+        v-on="actions"
       />
 
       <DetailViewModals

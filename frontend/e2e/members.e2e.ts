@@ -161,6 +161,31 @@ test.describe('Members', () => {
     })
 
     /**
+     * An address is corrected precisely when it is wrong, so waiting for the wrong address to confirm
+     * the change would mean it never happens. Whoever may edit members writes it, and it stands.
+     */
+    test('a manager puts a wrong address right', async ({managerPage: page}) => {
+        const created = await createMember(page)
+        const address = `${unique('neu').toLowerCase()}@test.example`
+
+        await page.goto('/station/members/list')
+        await page.getByPlaceholder(/Suche/).first().fill(created)
+        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.waitForURL(/\/station\/members\/detail\/(\d+)/)
+        const id = page.url().match(/detail\/(\d+)/)?.[1]
+
+        await page.goto(`/station/members/edit/${id}`)
+        // First name, surname and address, in that order: the labels above them are text rather than
+        // labels an input is tied to.
+        await page.getByRole('textbox').nth(2).fill(address)
+        await page.getByRole('button', {name: 'Speichern'}).first().click()
+
+        await page.goto(`/station/members/edit/${id}`)
+        await expect(page.getByRole('textbox').nth(2), 'the new address is the one on the account')
+            .toHaveValue(address)
+    })
+
+    /**
      * A tag is how a station marks a handful of people as belonging together without giving them a
      * group. The story makes one and puts somebody in it.
      */

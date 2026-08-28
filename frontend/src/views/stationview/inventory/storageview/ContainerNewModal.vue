@@ -59,6 +59,16 @@ const {running: submitting, error: createError, run: runCreate} = useAsyncAction
 
 const error = computed(() => validationError.value || createError.value)
 
+/**
+ * A container that has not been named yet takes the name of what it is.
+ *
+ * <p>Most of them are called exactly that: a shelf is "Regal" and a locker is "Spind", and typing
+ * the word again after choosing it is work for nothing. A name somebody wrote is never touched.
+ */
+function nameAfterKind(kind: InventoryContainerKind) {
+  if (!name.value.trim()) name.value = kind.label
+}
+
 async function submit() {
   validationError.value = ''
   if (!name.value.trim()) {
@@ -91,7 +101,13 @@ function onClose() {
       </div>
       <div class="flex flex-col gap-1 text-sm">
         <span>{{ t('inventory.storage.fields.kind') }}</span>
-        <ContainerKindPicker ref="kindPicker" :kinds="kinds" v-model="kindId" @kind-created="(k) => emit('kind-created', k)"/>
+        <ContainerKindPicker
+            ref="kindPicker"
+            v-model="kindId"
+            :kinds="kinds"
+            @kind-created="(k) => emit('kind-created', k)"
+            @picked="nameAfterKind"
+        />
       </div>
       <label class="flex flex-col gap-1 text-sm">
         <span>{{ t('inventory.storage.fields.internalId') }}</span>

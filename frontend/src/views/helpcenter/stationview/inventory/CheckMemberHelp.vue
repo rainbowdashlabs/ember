@@ -53,8 +53,14 @@ const {t} = useI18n()
       </NeutralContainer>
     </HelpSection>
 
-    <HelpSection :title="t('helpCenter.inventoryCheckMember.changeItemTitle')">
-      <p>{{ t('helpCenter.inventoryCheckMember.changeItemText') }}</p>
+    <HelpSection :title="t('helpCenter.inventoryCheckMember.correctTitle')">
+      <p>{{ t('helpCenter.inventoryCheckMember.correctText') }}</p>
+      <p>{{ t('helpCenter.inventoryCheckMember.correctNewText') }}</p>
+      <p>{{ t('helpCenter.inventoryCheckMember.correctOldText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.inventoryCheckMember.noSizeEditTitle')">
+      <p>{{ t('helpCenter.inventoryCheckMember.noSizeEditText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryCheckMember.actionsTitle')">

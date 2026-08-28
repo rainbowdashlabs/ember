@@ -1,5 +1,25 @@
 # Changelog
 
+## v26.13.5
+
+### New Features
+
+- **A whole inventory is written down in one pass.** Gear the station has long owned no longer has to be entered one window at a time: a new page opens a table with a row per member, chosen by kind of member, by group or all of them, and one save writes every piece and hands each to the member on its line. A size picked once fills every row that has none, a number is optional, and a row left empty is passed over.
+- **A gear check can put right what it finds.** Where a member turns out to be holding something other than what is written down, a correction button opens a window that records what they really have: a free piece from the station's own store, or a new one with its size, number and the inventory's own fields. Nothing changes hands, because the gear is already in the right ones, and the piece coming off the record goes back to whoever owns it.
+
+### Improvements
+
+- **A new container is named after what it is.** Choosing the kind of a container fills an empty name with that kind, so a shelf is called "Regal" without typing the word twice. A name already written is left alone.
+
+### Changes
+
+- **A gear check no longer offers to change a piece's size.** The two loose fields on every item, one to swap in another piece and one to make a new piece in another size, are replaced by the correction window. A piece with the wrong size is the wrong piece, so it is replaced rather than resized.
+
+### Fixes
+
+- **Changing a member's email address did nothing.** Typing a new address on the member's page and saving only sent out confirmation links, one of them to the address being replaced, so a wrong or dead address could never be put right. Somebody with the right to edit members now sets the address directly, which signs that member out everywhere and tells both addresses.
+- **Creating a replacement piece during a gear check did nothing.** On an inventory that holds the association's gear the new piece was always made as the station's own, which such an inventory refuses, so the button only produced an error. A piece made during a check now belongs to whoever the inventory belongs to.
+
 ## v26.13.4
 
 ### New Features

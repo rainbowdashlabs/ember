@@ -13,7 +13,7 @@ import EmptySlotCard from './EmptySlotCard.vue'
 import type { InventoryItem } from '@/api/inventory'
 import type { CheckResult, RequiredInventoryItem } from '@/api/inventoryCheck'
 
-const props = defineProps<{
+defineProps<{
   req: RequiredInventoryItem
   assignedItems: InventoryItem[]
   availableItems: InventoryItem[]
@@ -32,8 +32,7 @@ const emit = defineEmits<{
   setNote: [itemId: number, note: string]
   unassign: [itemId: number]
   createProcurement: [item: InventoryItem]
-  changeItem: [currentItemId: number]
-  createAndChange: [currentItemId: number, req: RequiredInventoryItem]
+  correct: [item: InventoryItem, req: RequiredInventoryItem]
   toggleNotInPossession: [inventoryId: number, slotIndex: number]
   assignToSlot: [inventoryId: number, slotIndex: number]
   createAndAssignToSlot: [req: RequiredInventoryItem, slotIndex: number]
@@ -68,17 +67,12 @@ const {t} = useI18n()
         :result="itemResults.get(item.id)"
         :note="itemNotes.get(item.id) ?? ''"
         :procurement-created="procurementCreated.has(item.id)"
-        :available-items="availableItems"
-        :slot-selections="slotSelections"
         :size-label="sizeLabel(req, item.sizeId)"
-        :item-label="itemLabel"
         @set-result="(id, r) => emit('setResult', id, r)"
         @set-note="(id, n) => emit('setNote', id, n)"
         @unassign="id => emit('unassign', id)"
         @create-procurement="item => emit('createProcurement', item)"
-        @change-item="id => emit('changeItem', id)"
-        @create-and-change="(id, r) => emit('createAndChange', id, r)"
-        @update-selection="(k, v) => emit('updateSelection', k, v)"
+        @correct="(item, r) => emit('correct', item, r)"
       />
     </div>
 

@@ -59,7 +59,10 @@ watch(show, (visible) => {
             <span class="text-sm font-medium"><MemberName :identity="entry.memberIdentity ?? null"/></span>
             <div class="text-xs text-(--text-muted) text-right">
               <div>{{ t('inventory.edit.givenOut') }}: {{ formatDate(entry.givenOut) }}</div>
-              <div v-if="entry.returned">{{ t('inventory.edit.returned') }}: {{ formatDate(entry.returned) }}</div>
+              <div v-if="entry.returned">
+                {{ t('inventory.edit.returned') }}: {{ formatDate(entry.returned) }}
+                <span v-if="entry.corrected">({{ t('inventory.edit.corrected') }})</span>
+              </div>
               <div v-else class="text-primary font-medium">{{ t('inventory.edit.currentlyAssigned') }}</div>
             </div>
           </div>
