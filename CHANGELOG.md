@@ -17,6 +17,7 @@
 
 ### Fixes
 
+- **Changing a member's email address did nothing.** Typing a new address on the member's page and saving only sent out confirmation links, one of them to the address being replaced, so a wrong or dead address could never be put right. Somebody with the right to edit members now sets the address directly, which signs that member out everywhere and tells both addresses.
 - **Creating a replacement piece during a gear check did nothing.** On an inventory that holds the association's gear the new piece was always made as the station's own, which such an inventory refuses, so the button only produced an error. A piece made during a check now belongs to whoever the inventory belongs to.
 
 ## v26.13.4

@@ -1762,6 +1762,9 @@ export default {
         username: 'Benutzername',
         usernameHint: 'Optional. Damit meldet sich das Mitglied statt mit seiner E-Mail-Adresse an; beides '
             + 'funktioniert. Leer bedeutet: Es meldet sich mit seiner Adresse an.',
+        emailConfirmationPending: 'Deine eigene Adresse ändert sich erst, wenn du die Links bestätigst, die an '
+            + 'die alte und die neue Adresse geschickt wurden.',
+        emailHint: 'Die Änderung gilt sofort. Das Mitglied wird abgemeldet und beide Adressen werden benachrichtigt.',
         permissions: 'Berechtigungen',
         userType: 'Mitgliedstyp',
         joinDate: 'Beigetreten am',

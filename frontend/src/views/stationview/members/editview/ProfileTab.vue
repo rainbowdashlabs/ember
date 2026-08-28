@@ -18,8 +18,10 @@ import {valueFields} from '@/components/profilefields/fieldLayout'
 import {profileKey, type MergedProfileField} from '@/util/profileFields'
 import type {StationMember} from '@/api/types'
 import {profileFields, members, stationMembers} from '@/api'
+import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
+const {sessionInfo} = useSession()
 
 const props = defineProps<{
   member: StationMember
@@ -35,6 +37,15 @@ const editUsername = ref(props.member.username ?? '')
 const editValues = ref(new Map(props.initialValues))
 const editJoinDate = ref(props.member.joinDate ?? '')
 const error = ref('')
+const notice = ref('')
+
+/**
+ * Somebody putting their own address right confirms it from both ends before it takes effect, so
+ * saying "saved" would be a lie on this one screen. Doing it for somebody else takes effect at once.
+ */
+function ownAccount(): boolean {
+  return sessionInfo.value?.account?.id === props.member.accountId
+}
 
 async function onJoinDateChange(value: string | undefined) {
   if (!value) return
@@ -58,6 +69,8 @@ function setEditValue(field: LaidOutField, val: string) {
 
 async function save() {
   error.value = ''
+  notice.value = ''
+  const addressChanged = editEmail.value.trim().toLowerCase() !== (props.member.email ?? '').toLowerCase()
   try {
     await members.updateAccount(props.member.accountId, {
       email: editEmail.value,
@@ -75,6 +88,7 @@ async function save() {
           origin: (f as MergedProfileField).origin,
         }))
     await profileFields.setValues(props.memberId, {values: entries})
+    if (addressChanged && ownAccount()) notice.value = t('memberEdit.emailConfirmationPending')
   } catch (e) {
     error.value = t('common.error')
     throw e
@@ -85,6 +99,7 @@ async function save() {
 <template>
   <div class="space-y-6">
     <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <Alert v-if="notice" variant="info">{{ notice }}</Alert>
 
     <!-- Base fields -->
     <NeutralContainer class="space-y-4">
@@ -101,6 +116,7 @@ async function save() {
         <div class="space-y-1">
           <FieldLabel hint>{{ t('memberEdit.email') }}</FieldLabel>
           <TextInput v-model="editEmail"/>
+          <p v-if="!ownAccount()" class="text-xs text-(--text-muted)">{{ t('memberEdit.emailHint') }}</p>
         </div>
       </div>
       <div class="space-y-1">
