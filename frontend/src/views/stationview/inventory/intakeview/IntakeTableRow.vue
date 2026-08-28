@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import FieldValueInput from '@/views/stationview/inventory/detailview/FieldValueInput.vue'
 import type {InventorySize} from '@/api/inventory'
@@ -36,6 +37,14 @@ function setField(key: string, value: unknown) {
 
 <template>
   <tr data-testid="intake-row">
+    <td class="py-1 pr-3">
+      <CheckboxInput
+          :model-value="line.askedFor"
+          :title="t('inventory.intake.askedForHint')"
+          :data-testid="`intake-asked-${props.index}`"
+          @update:model-value="value => line = {...line, askedFor: value}"
+      />
+    </td>
     <td class="py-1 pr-3">{{ line.memberName }}</td>
     <td v-if="props.hasSizes" class="py-1 pr-3">
       <SelectInput

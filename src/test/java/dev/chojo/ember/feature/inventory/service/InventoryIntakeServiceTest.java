@@ -61,7 +61,7 @@ class InventoryIntakeServiceTest extends RepositoryTestBase {
     }
 
     private static InventoryIntakeRow row(Integer memberId, String number, Integer size) {
-        return new InventoryIntakeRow(memberId, number, size, ItemOwner.STATION, InventoryItemMetadata.empty());
+        return new InventoryIntakeRow(memberId, number, size, ItemOwner.STATION, InventoryItemMetadata.empty(), false);
     }
 
     @Test
@@ -86,6 +86,22 @@ class InventoryIntakeServiceTest extends RepositoryTestBase {
 
         assertEquals(1, written.size());
         assertEquals("H-1", written.getFirst().internalId());
+    }
+
+    /**
+     * Gear nobody ever wrote a number on, in an inventory that keeps no sizes and no fields of its
+     * own. There is nothing to fill in, so the line has to say outright that it is a piece.
+     */
+    @Test
+    void aLineAskedForIsWrittenDownWithNothingOnIt() {
+        var asked = new InventoryIntakeRow(member.id(), null, null, ItemOwner.STATION, null, true);
+
+        var written = intake.takeStock(inventoryId, station.id(), "Gürtel", List.of(asked));
+
+        assertEquals(1, written.size());
+        assertNull(written.getFirst().internalId(), "with no number");
+        assertNull(written.getFirst().sizeId(), "and no size");
+        assertEquals(member.id(), written.getFirst().assignedTo(), "but in the hands of its member");
     }
 
     @Test

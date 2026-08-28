@@ -401,6 +401,7 @@ public abstract class RepositoryTestBase {
                 stationMemberRepo,
                 accountRepo,
                 clusterProfileFieldRepo,
+                memberGroupRepo,
                 memberPermissionResolver);
         clusterStationGroupRepo = new ClusterStationGroupRepository();
         inventoryService =

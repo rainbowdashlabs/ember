@@ -24,6 +24,7 @@ const state = vi.hoisted(() => ({
     sessionLoads: 0,
     clusters: [] as {uid: string}[],
     clustersLoaded: false,
+    needsReconsent: false,
 }))
 
 mockNuxtImport('navigateTo', () => (target: unknown) => {
@@ -36,7 +37,7 @@ vi.mock('~/api/storage', () => ({
 }))
 
 vi.mock('~/composables/useConsentGuard', () => ({
-    useConsentGuard: () => ({needsReconsent: {value: false}}),
+    useConsentGuard: () => ({needsReconsent: {value: state.needsReconsent}}),
 }))
 
 vi.mock('~/composables/useSession', () => ({
@@ -104,6 +105,7 @@ describe('auth route guard', () => {
         state.sessionLoads = 0
         state.clusters = []
         state.clustersLoaded = false
+        state.needsReconsent = false
         localStorage.clear()
     })
 
@@ -149,6 +151,33 @@ describe('auth route guard', () => {
         await run(route('/station/requirements'))
 
         expect(state.navigations).toEqual([])
+    })
+
+    /**
+     * The reported hang: consent out of date and an idle session set the two gates on each other.
+     * Consent sent every page to {@code /reconsent}, the idle check sent that to the requirements,
+     * consent sent it back, and neither writes the activity stamp, so nothing ever closed the idle
+     * window. The tab spun until the browser called the page unresponsive, and only a reload broke
+     * it, because the consent flag lives no longer than the page does.
+     */
+    it('lets an idle session reach the consent page instead of bouncing it away', async () => {
+        state.store.set('station_id', STATION)
+        state.needsReconsent = true
+        idleForAnHour()
+
+        await run(route('/reconsent'))
+
+        expect(state.navigations, 'the consent page is where it was sent, so it is left alone').toEqual([])
+    })
+
+    it('still sends an idle session with stale consent to the consent page', async () => {
+        state.store.set('station_id', STATION)
+        state.needsReconsent = true
+        idleForAnHour()
+
+        await run(route('/station/dashboard/overview'))
+
+        expect(state.navigations).toEqual(['/reconsent'])
     })
 
     /**

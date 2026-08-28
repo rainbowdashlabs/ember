@@ -1,5 +1,18 @@
 # Changelog
 
+## v26.13.7
+
+### Improvements
+
+- **A piece with nothing to write down can still be taken into stock.** Where an inventory keeps no sizes and no fields of its own, and the gear carries no number, a line of the stock-taking table had nothing in it and was passed over. A tick in the first column now takes that piece anyway and hands it to the member on its line.
+
+### Fixes
+
+- **Signing in could leave the button turning until the browser gave up on the page.** Where the terms had changed and the session had been idle for an hour, two checks sent each other back and forth without end, so the page froze even though the sign-in itself had worked and a reload showed it. Each of the two now lets the other's page through.
+- **A question asked of one group reached nobody.** A profile field set up for a group was stored and listed in the configuration, but never appeared on the profile of the members of that group. It now stands on their profile beside the questions their kind of member is asked.
+- **The type of a date-of-birth field was shown as empty.** A station may ask for a date of birth once per kind of member, but the configuration only ever looked at the first of them, so opening any other offered every type except the one it already had. Each tab now reads the date of birth of the members it is about.
+- **After an update the footer kept naming the previous version.** The answer that carries it was held in the browser for an hour, so a fresh version looked as though it had not arrived until the hour was out. It is now checked on every visit, which costs nothing on the days nothing changed.
+
 ## v26.13.6
 
 ### Security

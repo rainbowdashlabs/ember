@@ -48,6 +48,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 accountRepo,
                 clusterProfileFieldRepo,
+                memberGroupRepo,
                 memberPermissionResolver);
         station = stationRepo.create("ProfileField Station");
         account = accountRepo.create("pfield-svc@test.com", "Profile", "Tester");
@@ -246,6 +247,49 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         var fields = service.findApplicableFields(member.id());
         assertNotNull(fields);
         // Should return MEMBER-scope fields since member has MEMBER user type
+    }
+
+    /**
+     * A station can ask something of one group alone: whoever drives is asked for a licence class,
+     * and nobody else is asked at all. Such a field was declared, stored and listed in the
+     * configuration screen, and then reached nobody, because only the member's kind was read.
+     */
+    @Test
+    @Order(23)
+    void aFieldAskedOfAGroupReachesTheMembersOfThatGroup() {
+        stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
+        var drivers = memberGroupRepo.create(station.id(), "Fahrer " + member.id());
+        var others = memberGroupRepo.create(station.id(), "Andere " + member.id());
+        var forDrivers = service.create(
+                station.id(),
+                "Führerscheinklasse",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{\"groupId\": " + drivers.id() + "}"),
+                30,
+                ProfileFieldScope.GROUP);
+        var forOthers = service.create(
+                station.id(),
+                "Etwas anderes",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{\"groupId\": " + others.id() + "}"),
+                31,
+                ProfileFieldScope.GROUP);
+
+        assertTrue(
+                service.findApplicableFields(member.id()).stream().noneMatch(f -> f.id() == forDrivers.id()),
+                "outside the group it is asked of nobody");
+
+        memberGroupRepo.addMember(drivers.id(), member.id());
+        var asked = service.findApplicableFields(member.id());
+
+        assertTrue(asked.stream().anyMatch(f -> f.id() == forDrivers.id()), "in the group it is asked");
+        assertTrue(
+                asked.stream().noneMatch(f -> f.id() == forOthers.id()), "and another group's question still is not");
+
+        service.delete(forDrivers.id());
+        service.delete(forOthers.id());
+        memberGroupRepo.delete(drivers.id());
+        memberGroupRepo.delete(others.id());
     }
 
     @Test

@@ -416,7 +416,7 @@ public class ApiServer {
             config.routes.after(this::applyBrowserSecurityHeaders);
 
             // Cache-control headers
-            config.routes.after(this::applyCacheHeaders);
+            config.routes.after(ApiServer::applyCacheHeaders);
 
             // Federation response headers
             config.routes.after(this::applyFederationHeaders);
@@ -1046,8 +1046,9 @@ public class ApiServer {
     /**
      * After-handler that sets Cache-Control and ETag headers based on the request path.
      *
-     * <p>Ordering matters: content-hashed page files get an immutable year-long cache;
-     * everything under {@code /public/} is publicly cacheable; only then are non-public
+     * <p>Ordering matters: content-hashed page files get an immutable year-long cache; the public
+     * configuration is revalidated every time because it names the running version;
+     * everything else under {@code /public/} is publicly cacheable; only then are non-public
      * binary resources given a short private cache. Error responses receive no caching
      * headers, and the binary-resource match is segment-precise so an authenticated path
      * that merely contains {@code image}/{@code logo} as a substring (e.g. the logout
@@ -1091,7 +1092,7 @@ public class ApiServer {
         return "https".equalsIgnoreCase(ctx.scheme());
     }
 
-    private void applyCacheHeaders(@NotNull Context ctx) {
+    private static void applyCacheHeaders(@NotNull Context ctx) {
         if (ctx.method() != HandlerType.GET) return;
         if (ctx.statusCode() >= 400) return;
 
@@ -1100,6 +1101,15 @@ public class ApiServer {
         if (path.startsWith(API_PREFIX + "/public/pages/") && path.contains("/files/")) {
             ctx.header("Cache-Control", "public, max-age=31536000, immutable");
             ctx.header("Vary", "Accept");
+            return;
+        }
+
+        // What this one says is the version that is running, which is the one thing a deployment
+        // changes. Held for an hour it made every deployment look as though it had not happened.
+        // The tag is still written, so asking again costs a 304 on all the days nothing changed.
+        if (path.equals(API_PREFIX + "/public/config")) {
+            ctx.header("Cache-Control", "public, no-cache");
+            addETag(ctx);
             return;
         }
 
@@ -1166,7 +1176,7 @@ public class ApiServer {
      * attacker cannot craft a different body that produces the same ETag the way
      * a {@code String.hashCode()}-based tag would have allowed.
      */
-    private void addETag(@NotNull Context ctx) {
+    private static void addETag(@NotNull Context ctx) {
         String body = ctx.result();
         if (body == null || body.isEmpty()) return;
 

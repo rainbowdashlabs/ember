@@ -129,6 +129,9 @@ test.describe('Cluster fields and groups', () => {
 
         await page.getByTestId('field-add').first().click({timeout: 15000})
         const types = page.getByTestId('field-type').locator('option')
+        // Reading the options does not wait for them, and an empty list reads as a passing
+        // "no date of birth" while saying nothing about what is on offer.
+        await expect(types.first()).toBeAttached()
         const offered = await types.allTextContents()
         expect(offered.join(' '), 'a heading is on offer').toContain('Überschrift')
         expect(offered.join(' '), 'a date of birth is not').not.toContain('Geburtsdatum')
