@@ -13,6 +13,9 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.MemberCheckSummary;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
@@ -344,14 +347,13 @@ public class InventoryCheckRoutes implements Routes {
         String memberName =
                 session.account().firstName() + " " + session.account().lastName();
 
-        // Unassign old item if swapping
         if (request.oldItemId() != null && request.oldItemId() > 0) {
             inventoryService.assignItem(request.oldItemId(), null, null);
         }
 
-        // Create a new item and assign it
         var inv = inventoryService.findById(request.inventoryId()).orElseThrow();
-        var item = inventoryService.createItem(request.inventoryId(), null, inv.name(), request.sizeId(), null);
+        var item = inventoryService.createItem(
+                request.inventoryId(), null, inv.name(), request.sizeId(), null, ownerOf(inv), null);
         inventoryService.assignItem(item.id(), memberId, memberName);
 
         var state = checkService.startCheck(
@@ -414,6 +416,17 @@ public class InventoryCheckRoutes implements Routes {
     public record AssignItemRequest(int newItemId, Integer oldItemId) {}
 
     public record UnassignItemRequest(int itemId) {}
+
+    /**
+     * Who owns a piece made during a check.
+     *
+     * <p>The inventory says it: one that holds the association's gear cannot hold the station's, and
+     * a piece made with the wrong owner is refused. Taking the station as the silent answer left the
+     * button on every association inventory doing nothing but showing an error.
+     */
+    private static ItemOwner ownerOf(Inventory inventory) {
+        return inventory.inventoryType() == InventoryType.EXTERNAL ? ItemOwner.CLUSTER : ItemOwner.STATION;
+    }
 
     public record CreateAndAssignRequest(int inventoryId, Integer sizeId, Integer oldItemId) {}
 

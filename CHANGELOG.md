@@ -10,6 +10,10 @@
 
 - **A new container is named after what it is.** Choosing the kind of a container fills an empty name with that kind, so a shelf is called "Regal" without typing the word twice. A name already written is left alone.
 
+### Fixes
+
+- **Creating a replacement piece during a gear check did nothing.** On an inventory that holds the association's gear the new piece was always made as the station's own, which such an inventory refuses, so the button only produced an error. A piece made during a check now belongs to whoever the inventory belongs to.
+
 ## v26.13.4
 
 ### New Features
