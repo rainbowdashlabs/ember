@@ -169,7 +169,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         var procurementService = new ProcurementService(
                 procurementRepo, inventoryService, inventoryRepo, clusterRepo, itemCustodyService, noOpBus);
-        var eventTemplateService = new EventTemplateService(eventTemplateRepo);
+        var eventTemplateService = new EventTemplateService(eventTemplateRepo, attendanceRepo);
         var feedTokenService = new FeedTokenService(feedTokenRepo);
 
         var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));

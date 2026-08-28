@@ -175,6 +175,7 @@ const activeView = ref('')
 
     <HelpSection :title="t('helpCenter.dashboard.upcomingEventsTitle')">
       <p>{{ t('helpCenter.dashboard.upcomingEventsText') }}</p>
+      <p>{{ t('helpCenter.dashboard.upcomingEventsAnswerText') }}</p>
     </HelpSection>
 
     <template v-if="activeView === 'team' || activeView === 'manager'">

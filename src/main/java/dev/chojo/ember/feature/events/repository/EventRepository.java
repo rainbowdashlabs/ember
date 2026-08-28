@@ -16,6 +16,7 @@ import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -35,7 +36,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class EventRepository {
 
     private static final String EVENT_COLUMNS =
-            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, \"public\", registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_date, threshold_notified, registration_close_days";
+            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, \"public\", registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_date, threshold_notified, registration_close_days, repeat_until, repeat_count";
     private static final String EVENT_RESTRICTED_COLUMN = RestrictionSql.restrictedFlag(RestrictionType.EVENT, "e.id");
     private static final String EVENT_RESTRICTED_COLUMN_BARE =
             RestrictionSql.restrictedFlag(RestrictionType.EVENT, "id");
@@ -325,6 +326,31 @@ public class EventRepository {
                         .bind("min_registrations", minRegistrations)
                         .bind("threshold_date", thresholdDate, INSTANT_TIMESTAMP)
                         .bind("registration_close_days", registrationCloseDays)
+                        .bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Says when a repeating event stops repeating, as a last day or as a number of times.
+     *
+     * <p>Written on its own rather than as two more arguments of the general update, which every
+     * caller that has nothing to say about repetition would have to carry.
+     *
+     * @param id    the event
+     * @param until the last day it may fall on, or null
+     * @param count how many times it takes place in total, or null
+     * @return true if a row was updated
+     */
+    public boolean updateRepeatEnd(int id, LocalDate until, Integer count) {
+        return query("""
+                UPDATE station_event
+                SET repeat_until = :repeat_until,
+                    repeat_count = :repeat_count,
+                    updated_at   = now()
+                WHERE id = :id;""")
+                .single(call().bind("repeat_until", until)
+                        .bind("repeat_count", count)
                         .bind("id", id))
                 .update()
                 .changed();

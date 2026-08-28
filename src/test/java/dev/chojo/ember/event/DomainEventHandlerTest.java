@@ -171,6 +171,8 @@ class DomainEventHandlerTest {
                 null,
                 null,
                 false,
+                null,
+                null,
                 null);
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
@@ -209,6 +211,8 @@ class DomainEventHandlerTest {
                 null,
                 null,
                 false,
+                null,
+                null,
                 null);
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
@@ -246,6 +250,8 @@ class DomainEventHandlerTest {
                 null,
                 null,
                 false,
+                null,
+                null,
                 null);
         handler.handle(new EventCreated(STATION_ID, stationEvent));
 
@@ -329,6 +335,8 @@ class DomainEventHandlerTest {
                 null,
                 null,
                 false,
+                null,
+                null,
                 null);
     }
 

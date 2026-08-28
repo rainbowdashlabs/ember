@@ -324,6 +324,41 @@ public class MovementFlowRepository {
     }
 
     /**
+     * Points a binding at a flow only where nothing points there yet.
+     *
+     * <p>What the seeding uses. Two requests arriving together both find a combination unbound and
+     * both write it, and the second one used to end the request with an error the reader could do
+     * nothing about. The one that gets there second is told so here instead.
+     *
+     * @return whether this call is the one that bound it
+     */
+    public boolean bindIfAbsent(
+            int stationId,
+            Integer inventoryId,
+            ItemOwner ownerKind,
+            MovementPurpose purpose,
+            MovementParty party,
+            int flowId) {
+        return query("""
+                INSERT INTO movement_flow_binding(station_id, inventory_id, owner_kind, purpose, party, flow_id)
+                VALUES (:station_id, :inventory_id, :owner_kind, :purpose, :party, :flow_id)
+                ON CONFLICT DO NOTHING;""")
+                .single(call().bind("station_id", stationId)
+                        .bind("inventory_id", inventoryId)
+                        .bind("owner_kind", ownerKind)
+                        .bind("purpose", purpose)
+                        .bind("party", party)
+                        .bind("flow_id", flowId))
+                .insert()
+                .changed();
+    }
+
+    /** Removes a flow and its steps outright, which is only ever a seeding that lost a race. */
+    public boolean deleteFlow(int id) {
+        return SqlSupport.deleteById("movement_flow", id);
+    }
+
+    /**
      * Points a binding at a flow, replacing whatever it pointed at before.
      */
     public void bind(

@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.feature.inventory.entity.FlowProblem;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
-import io.javalin.http.BadRequestResponse;
 
 import java.util.List;
 import java.util.Optional;
@@ -37,16 +37,16 @@ final class MovementFlowValidation {
      *
      * @param purpose what the chain is for, which decides whether both directions have to appear
      * @param steps   the active steps in the order they would be walked
-     * @throws BadRequestResponse naming the one thing that is wrong, in the words the editor shows
+     * @throws FlowRefusedException naming the one thing that is wrong
      */
     static void requireWalkable(MovementPurpose purpose, List<MovementFlowStep> steps) {
         problemOf(purpose, steps).ifPresent(problem -> {
-            throw new BadRequestResponse(problem);
+            throw new FlowRefusedException(problem);
         });
     }
 
     /**
-     * The one thing that stops this chain from being walked, in the words the editor shows.
+     * The one thing that stops this chain from being walked.
      *
      * <p>Reported rather than only thrown, because a chain under construction is briefly unwalkable
      * on the way to being finished. The editor says what is still missing while somebody builds it,
@@ -56,15 +56,13 @@ final class MovementFlowValidation {
      * @param steps   the active steps in the order they would be walked
      * @return the problem, or empty when the chain can be walked from end to end
      */
-    static Optional<String> problemOf(MovementPurpose purpose, List<MovementFlowStep> steps) {
+    static Optional<FlowProblem> problemOf(MovementPurpose purpose, List<MovementFlowStep> steps) {
         if (steps.size() < 2) {
-            return Optional.of(
-                    "A chain needs at least two steps: one that asks for the gear and one that confirms it arrived");
+            return Optional.of(FlowProblem.of(FlowProblem.Code.TOO_SHORT));
         }
 
         if (steps.getLast().custodyAfter() == ItemCustody.IN_TRANSIT) {
-            return Optional.of("The last step leaves the gear in the post. End the chain where somebody has it: "
-                    + "with the owner, at the station or with a member");
+            return Optional.of(FlowProblem.of(FlowProblem.Code.ENDS_IN_TRANSIT));
         }
 
         var namesOutgoing = steps.stream()
@@ -72,18 +70,18 @@ final class MovementFlowValidation {
                 .filter(step -> step.subject() != StepSubject.INCOMING)
                 .findFirst();
         if (namesOutgoing.isPresent()) {
-            return Optional.of("'%s' names the arriving piece, so it has to be about the one coming in"
-                    .formatted(namesOutgoing.get().label()));
+            return Optional.of(new FlowProblem(
+                    FlowProblem.Code.OUTGOING_NAMES_ITEM, namesOutgoing.get().label()));
         }
 
         boolean goes = steps.stream().anyMatch(step -> step.subject() == StepSubject.OUTGOING);
         boolean comes = steps.stream().anyMatch(step -> step.subject() == StepSubject.INCOMING);
         if (purpose == MovementPurpose.EXCHANGE && (!goes || !comes)) {
-            return Optional.of("An exchange has one piece going and one coming, so the chain needs a step for each");
+            return Optional.of(FlowProblem.of(FlowProblem.Code.EXCHANGE_NEEDS_BOTH_DIRECTIONS));
         }
 
         if (comes && steps.stream().noneMatch(MovementFlowStep::picksItem)) {
-            return Optional.of("Something arrives in this chain, so one step has to name which piece it is");
+            return Optional.of(FlowProblem.of(FlowProblem.Code.ARRIVAL_UNNAMED));
         }
 
         return Optional.empty();

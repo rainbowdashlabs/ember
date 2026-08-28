@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.inventory.entity.FlowProblem;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementFlow;
@@ -378,13 +379,23 @@ public class MovementFlowService {
         int added = 0;
         for (Preset preset : PRESETS) {
             if (bound.contains(combinationOf(preset.ownerKind(), preset.purpose(), preset.party()))) continue;
-            writePreset(stationId, preset);
-            added++;
+            if (writePreset(stationId, preset)) added++;
         }
         if (added > 0) log.info("Seeded {} movement flow preset(s) for station {}", added, stationId);
     }
 
-    private void writePreset(int stationId, Preset preset) {
+    /**
+     * Writes one preset and binds it, unless somebody bound that combination first.
+     *
+     * <p>The flows page asks for the chains and the bindings at once, and both answers seed. Each
+     * request read the same combination as unbound and both wrote it, so whichever arrived second
+     * ended in an error the reader could do nothing about and the page would not load at all. The
+     * binding decides who won, and the chain of the request that lost is taken away again rather
+     * than left behind as a second copy nothing points at.
+     *
+     * @return whether this call is the one that wrote it
+     */
+    private boolean writePreset(int stationId, Preset preset) {
         MovementFlow flow = flowRepository.createFlow(stationId, preset.name(), preset.purpose());
         int position = 0;
         for (PresetStep step : preset.steps()) {
@@ -397,7 +408,12 @@ public class MovementFlowService {
                     step.custodyAfter(),
                     step.picksItem());
         }
-        flowRepository.bind(stationId, null, preset.ownerKind(), preset.purpose(), preset.party(), flow.id());
+        if (flowRepository.bindIfAbsent(
+                stationId, null, preset.ownerKind(), preset.purpose(), preset.party(), flow.id())) {
+            return true;
+        }
+        flowRepository.deleteFlow(flow.id());
+        return false;
     }
 
     private static String combinationOf(ItemOwner ownerKind, MovementPurpose purpose, MovementParty party) {
@@ -536,14 +552,14 @@ public class MovementFlowService {
      * @return the flow
      */
     public MovementFlow createClusterFlow(int clusterId, String name, MovementPurpose purpose) {
-        if (name == null || name.isBlank()) throw new BadRequestResponse("A flow needs a name");
+        if (name == null || name.isBlank()) throw new FlowRefusedException(FlowProblem.Code.FLOW_NAME_REQUIRED);
         MovementFlow flow = flowRepository.createClusterFlow(clusterId, name.trim(), purpose);
         log.info("Created movement flow {} ('{}', {}) for cluster {}", flow.id(), name, purpose, clusterId);
         return flow;
     }
 
     public MovementFlow createFlow(int stationId, String name, MovementPurpose purpose) {
-        if (name == null || name.isBlank()) throw new BadRequestResponse("A flow needs a name");
+        if (name == null || name.isBlank()) throw new FlowRefusedException(FlowProblem.Code.FLOW_NAME_REQUIRED);
         // Before this one, so that writing a flow of your own is not what stops the presets arriving
         ensurePresets(stationId);
         MovementFlow flow = flowRepository.createFlow(stationId, name, purpose);
@@ -552,7 +568,7 @@ public class MovementFlowService {
     }
 
     public boolean renameFlow(int flowId, String name) {
-        if (name == null || name.isBlank()) throw new BadRequestResponse("A flow needs a name");
+        if (name == null || name.isBlank()) throw new FlowRefusedException(FlowProblem.Code.FLOW_NAME_REQUIRED);
         boolean renamed = flowRepository.renameFlow(flowId, name);
         if (renamed) log.info("Movement flow {} is now called '{}'", flowId, name);
         else log.warn("Rename for movement flow {} affected zero rows", flowId);
@@ -671,11 +687,11 @@ public class MovementFlowService {
         var active = flowRepository.findActiveSteps(flowId);
         var wanted = Set.copyOf(stepIds);
         if (stepIds.size() != wanted.size() || wanted.size() != active.size()) {
-            throw new BadRequestResponse("Naming an order means naming every step of the chain exactly once");
+            throw new FlowRefusedException(FlowProblem.Code.ORDER_MUST_NAME_EVERY_STEP);
         }
         var known = active.stream().map(MovementFlowStep::id).collect(Collectors.toSet());
         if (!known.equals(wanted)) {
-            throw new BadRequestResponse("Naming an order means naming every step of the chain exactly once");
+            throw new FlowRefusedException(FlowProblem.Code.ORDER_MUST_NAME_EVERY_STEP);
         }
 
         var byId = active.stream().collect(Collectors.toMap(MovementFlowStep::id, step -> step));
@@ -694,7 +710,7 @@ public class MovementFlowService {
      * @param flowId the chain
      * @return the problem, or empty when it can be walked
      */
-    public Optional<String> problemOf(int flowId) {
+    public Optional<FlowProblem> problemOf(int flowId) {
         return MovementFlowValidation.problemOf(purposeOf(flowId), flowRepository.findActiveSteps(flowId));
     }
 
@@ -726,17 +742,17 @@ public class MovementFlowService {
 
     private void requireNoOpenMovement(int flowId) {
         if (movementRepository.hasOpenMovementOnFlow(flowId)) {
-            throw new BadRequestResponse("A movement is still walking this flow, so its steps cannot change");
+            throw new FlowRefusedException(FlowProblem.Code.FLOW_IN_USE);
         }
     }
 
     private void requireLabel(String label) {
-        if (label == null || label.isBlank()) throw new BadRequestResponse("A step needs a label");
+        if (label == null || label.isBlank()) throw new FlowRefusedException(FlowProblem.Code.STEP_LABEL_REQUIRED);
     }
 
     private void requireStepCustody(ItemCustody custodyAfter) {
         if (!ItemMovementService.legalStepCustody(custodyAfter)) {
-            throw new BadRequestResponse("A step cannot leave an item %s".formatted(custodyAfter));
+            throw new FlowRefusedException(new FlowProblem(FlowProblem.Code.ILLEGAL_STEP_CUSTODY, custodyAfter.name()));
         }
     }
 
@@ -746,12 +762,12 @@ public class MovementFlowService {
      */
     private void requirePicksItemFree(int flowId, StepSubject subject, Integer exceptStepId) {
         if (subject != StepSubject.INCOMING) {
-            throw new BadRequestResponse("Only a step about the arriving item can name it");
+            throw new FlowRefusedException(FlowProblem.Code.ONLY_ARRIVAL_NAMES_ITEM);
         }
         boolean taken = flowRepository.findAllSteps(flowId).stream()
                 .filter(s -> exceptStepId == null || s.id() != exceptStepId)
                 .anyMatch(s -> s.picksItem() && !s.archived());
-        if (taken) throw new BadRequestResponse("Another step of this flow already names the replacement");
+        if (taken) throw new FlowRefusedException(FlowProblem.Code.ITEM_ALREADY_NAMED);
     }
 
     private record Preset(

@@ -213,6 +213,18 @@ export interface MovementFlowStep {
     archived: boolean
 }
 
+/**
+ * What is wrong with a chain, named rather than worded.
+ *
+ * <p>The backend sends the rule that is broken and the frontend supplies the sentence, which is what
+ * puts the fault in the reader's language. The same shape answers a refused change.
+ */
+export interface FlowProblem {
+    code: string
+    /** What the fault is about where naming it helps, a step's label for instance. */
+    detail?: string | null
+}
+
 export interface MovementFlow {
     id: number
     name: string
@@ -221,7 +233,7 @@ export interface MovementFlow {
     /** Flows the body above the station owns are shown and named here, but not edited. */
     ownedByCluster: boolean
     /** What stops this chain from being walked, or null when nothing does. */
-    problem?: string | null
+    problem?: FlowProblem | null
     steps: MovementFlowStep[]
 }
 
@@ -262,6 +274,12 @@ export async function listFlows(): Promise<MovementFlow[]> {
     return res.data
 }
 
+/** One chain as it now stands, which is how the editor picks up a change it did not get back whole. */
+export async function getFlow(id: number): Promise<MovementFlow> {
+    const res = await client.get<MovementFlow>(`/movement-flows/${id}`)
+    return res.data
+}
+
 export async function createFlow(data: FlowRequest): Promise<MovementFlow> {
     const res = await client.post<MovementFlow>('/movement-flows', data)
     return res.data
@@ -272,9 +290,15 @@ export async function renameFlow(id: number, data: FlowRequest): Promise<Movemen
     return res.data
 }
 
-/** Retires a flow. It stays readable for the movements that walked it. */
-export async function archiveFlow(id: number): Promise<void> {
-    await client.delete(`/movement-flows/${id}`)
+/**
+ * Retires a flow. It stays readable for the movements that walked it.
+ *
+ * <p>Answers with the chain as it now stands, which is what every change to a chain does: the editor
+ * replaces the one card that changed instead of fetching the page again.
+ */
+export async function archiveFlow(id: number): Promise<MovementFlow> {
+    const res = await client.delete<MovementFlow>(`/movement-flows/${id}`)
+    return res.data
 }
 
 export async function addStep(flowId: number, data: StepRequest): Promise<MovementFlowStep> {
@@ -282,18 +306,21 @@ export async function addStep(flowId: number, data: StepRequest): Promise<Moveme
     return res.data
 }
 
-export async function updateStep(stepId: number, data: StepRequest): Promise<void> {
-    await client.put(`/movement-flow-steps/${stepId}`, data)
+export async function updateStep(stepId: number, data: StepRequest): Promise<MovementFlow> {
+    const res = await client.put<MovementFlow>(`/movement-flow-steps/${stepId}`, data)
+    return res.data
 }
 
 /** Retires a step. It stays readable for the movements that passed it. */
-export async function archiveStep(stepId: number): Promise<void> {
-    await client.delete(`/movement-flow-steps/${stepId}`)
+export async function archiveStep(stepId: number): Promise<MovementFlow> {
+    const res = await client.delete<MovementFlow>(`/movement-flow-steps/${stepId}`)
+    return res.data
 }
 
 /** Puts the steps in the order they are to be walked, the whole order in one call. */
-export async function reorderSteps(flowId: number, stepIds: number[]): Promise<void> {
-    await client.put(`/movement-flows/${flowId}/step-order`, {stepIds})
+export async function reorderSteps(flowId: number, stepIds: number[]): Promise<MovementFlow> {
+    const res = await client.put<MovementFlow>(`/movement-flows/${flowId}/step-order`, {stepIds})
+    return res.data
 }
 
 export async function listBindings(): Promise<MovementFlowBinding[]> {

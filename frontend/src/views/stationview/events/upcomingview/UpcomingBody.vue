@@ -104,6 +104,7 @@ defineEmits<{
 
     <UpcomingEventsSection
         :items="filteredUpcoming"
+        :categories="categories"
         :overview-fields="overviewFields"
         :my-registrations="myRegistrations"
         :managed-members-count="managedMembersCount"

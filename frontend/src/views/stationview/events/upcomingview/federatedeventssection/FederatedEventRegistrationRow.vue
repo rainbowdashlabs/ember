@@ -53,7 +53,7 @@ function onSelect(event: Event) {
     <template v-if="membersWithoutRegistration.length > 0">
       <SelectInput
           v-if="membersWithoutRegistration.length > 1"
-          :model-value="selectedMemberUid"
+          :model-value="selectedUid ?? ''"
           class="text-sm w-40"
           @click.stop
           @change="onSelect"

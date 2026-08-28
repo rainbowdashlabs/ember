@@ -7,6 +7,13 @@ package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
+/**
+ * One question an event template asks.
+ *
+ * @param defaultValue what an appointment made from this template starts the question off with, or
+ *                     null where it starts empty. Kept apart from the answer the appointment ends up
+ *                     with, so changing the template leaves appointments already written alone
+ */
 public record EventTemplateField(
         int id,
         int templateId,
@@ -16,7 +23,8 @@ public record EventTemplateField(
         int position,
         boolean overview,
         boolean isPublic,
-        Integer attendanceFieldId) {
+        Integer attendanceFieldId,
+        String defaultValue) {
 
     public static RowMapping<EventTemplateField> map() {
         return row -> new EventTemplateField(
@@ -28,6 +36,7 @@ public record EventTemplateField(
                 row.getInt("position"),
                 row.getBoolean("overview"),
                 row.getBoolean("public"),
-                row.getObject("attendance_field_id", Integer.class));
+                row.getObject("attendance_field_id", Integer.class),
+                row.getString("default_value"));
     }
 }

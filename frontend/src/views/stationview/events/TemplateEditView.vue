@@ -38,6 +38,17 @@ const templateId = computed(() => Number(route.params.id))
 const categories = ref<EventCategory[]>([])
 const attendanceTemplates = ref<AttendanceTemplate[]>([])
 const attendanceFields = ref<AttendanceTemplateField[]>([])
+
+/**
+ * The fields of the attendance sheet this template names, and of no other.
+ *
+ * <p>What a question of the template may be tied to. Every sheet of the station used to be offered
+ * at once, and two sheets that both carry a field called "Ausbilder Anfänger" were indistinguishable
+ * in the list, so a template could end up tied to a sheet it does not use. The answer then goes to a
+ * sheet nobody opens.
+ */
+const sheetFields = computed(() => attendanceFields.value
+    .filter(field => String(field.templateId) === attendanceTemplateId.value))
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
 const loading = ref(true)
@@ -78,7 +89,7 @@ function seedForm(detail: EventTemplateDetail) {
     name: f.name,
     fieldType: f.fieldType,
     config: typeof f.config === 'string' ? (f.config ? JSON.parse(f.config) : {}) : (f.config ?? {}),
-    value: '',
+    value: f.defaultValue ?? '',
     overview: f.overview,
     attendanceFieldId: f.attendanceFieldId ?? null,
     isPublic: f.isPublic,
@@ -138,6 +149,7 @@ async function save() {
         overview: f.overview,
         isPublic: f.isPublic,
         attendanceFieldId: f.attendanceFieldId,
+        defaultValue: f.value?.trim() ? f.value : null,
       })),
     })
   } catch (e) {
@@ -190,9 +202,11 @@ async function save() {
         <NeutralContainer class="space-y-4">
           <EventFieldList
               v-model:fields="fields"
-              :attendance-fields="attendanceFields"
+              :attendance-fields="sheetFields"
               :groups="groups"
               :tags="tags"
+              :value-label="t('eventFields.defaultValue')"
+              show-value
           />
         </NeutralContainer>
 

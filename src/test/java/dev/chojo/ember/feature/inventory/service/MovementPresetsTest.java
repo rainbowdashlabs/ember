@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.feature.inventory.entity.FlowProblem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -15,13 +16,15 @@ import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -59,6 +62,14 @@ class MovementPresetsTest extends RepositoryTestBase {
             new Combination(MovementPurpose.REQUEST, ItemOwner.CLUSTER, MovementParty.MEMBER));
 
     private record Combination(MovementPurpose purpose, ItemOwner ownerKind, MovementParty party) {}
+
+    /** A refusal names the rule in the way, so the reader is told in their own words. */
+    private static void refusedWith(FlowProblem.Code code, Executable call, String why) {
+        assertEquals(
+                code,
+                assertThrows(FlowRefusedException.class, call, why).problem().code(),
+                why);
+    }
 
     @BeforeAll
     static void setup() {
@@ -140,7 +151,10 @@ class MovementPresetsTest extends RepositoryTestBase {
                     "%s cannot be walked: %s"
                             .formatted(
                                     combination,
-                                    movementFlowService.problemOf(flowId).orElse("")));
+                                    movementFlowService
+                                            .problemOf(flowId)
+                                            .map(problem -> problem.code().name())
+                                            .orElse("")));
         }
     }
 
@@ -162,6 +176,46 @@ class MovementPresetsTest extends RepositoryTestBase {
             assertEquals(1, naming.size(), "%s names the arriving piece exactly once".formatted(combination));
             assertEquals(StepSubject.INCOMING, naming.getFirst().subject());
         }
+    }
+
+    /**
+     * Two answers seeding a station at the same moment leave one chain per combination.
+     *
+     * <p>The flows page asks for the chains and the bindings at once. Both answers seed, both used
+     * to read the same combination as unbound, and the one that wrote second ended the request with
+     * an error: the page would not load at all the first time anybody opened it.
+     */
+    @Test
+    void seedingTwiceAtOnceLeavesOneChainPerCombination() {
+        var fresh = stationRepo.create("PresetRaceStation" + NAMES.incrementAndGet());
+        var pool = Executors.newFixedThreadPool(2);
+        try {
+            var start = new CountDownLatch(1);
+            var runs = List.of(
+                    pool.submit(() -> seedWhenReleased(start, fresh.id())),
+                    pool.submit(() -> seedWhenReleased(start, fresh.id())));
+            start.countDown();
+            for (var run : runs) {
+                assertDoesNotThrow(() -> run.get(), "seeding a station twice at once must not fail");
+            }
+
+            var bindings = movementFlowService.findBindings(fresh.id());
+            var flows = movementFlowService.findFlows(fresh.id());
+            assertTrue(bindings.size() >= COMBINATIONS.size(), "every combination is bound");
+            assertEquals(
+                    bindings.size(),
+                    flows.size(),
+                    "the chain of the seeding that lost the race is taken away rather than left behind");
+        } finally {
+            pool.shutdownNow();
+            stationRepo.delete(fresh.id());
+        }
+    }
+
+    private Object seedWhenReleased(CountDownLatch start, int stationId) throws InterruptedException {
+        start.await();
+        movementFlowService.ensurePresets(stationId);
+        return null;
     }
 
     /** A station that wrote its own chain keeps it, and is given only what it has no chain for. */
@@ -200,8 +254,8 @@ class MovementPresetsTest extends RepositoryTestBase {
         movementFlowService.addStep(
                 flow.id(), "Nur einer", StepActor.STATION, StepSubject.OUTGOING, ItemCustody.AT_STATION, false);
 
-        assertThrows(
-                BadRequestResponse.class,
+        refusedWith(
+                FlowProblem.Code.TOO_SHORT,
                 () -> movementFlowService.bind(
                         station.id(), null, ItemOwner.STATION, MovementPurpose.RETURN, MovementParty.STORE, flow.id()),
                 "a chain of one step asks for gear and never says it arrived");
@@ -216,8 +270,8 @@ class MovementPresetsTest extends RepositoryTestBase {
         movementFlowService.addStep(
                 flow.id(), "Abgeschickt", StepActor.STATION, StepSubject.OUTGOING, ItemCustody.IN_TRANSIT, false);
 
-        assertThrows(
-                BadRequestResponse.class,
+        refusedWith(
+                FlowProblem.Code.ENDS_IN_TRANSIT,
                 () -> movementFlowService.bind(
                         station.id(), null, ItemOwner.STATION, MovementPurpose.RETURN, MovementParty.STORE, flow.id()),
                 "a chain that ends in the post never says where the gear is");
@@ -232,8 +286,8 @@ class MovementPresetsTest extends RepositoryTestBase {
         movementFlowService.addStep(
                 flow.id(), "Erhalten", StepActor.STATION, StepSubject.INCOMING, ItemCustody.AT_STATION, false);
 
-        assertThrows(
-                BadRequestResponse.class,
+        refusedWith(
+                FlowProblem.Code.ARRIVAL_UNNAMED,
                 () -> movementFlowService.bind(
                         station.id(), null, ItemOwner.STATION, MovementPurpose.ISSUE, MovementParty.STORE, flow.id()),
                 "something arrives and nothing says which piece it was");
@@ -248,8 +302,8 @@ class MovementPresetsTest extends RepositoryTestBase {
         movementFlowService.addStep(
                 flow.id(), "Erhalten", StepActor.MEMBER, StepSubject.INCOMING, ItemCustody.WITH_MEMBER, true);
 
-        assertThrows(
-                BadRequestResponse.class,
+        refusedWith(
+                FlowProblem.Code.EXCHANGE_NEEDS_BOTH_DIRECTIONS,
                 () -> movementFlowService.bind(
                         station.id(),
                         null,
@@ -276,8 +330,8 @@ class MovementPresetsTest extends RepositoryTestBase {
         assertEquals(second.id(), steps.getFirst().id());
         assertEquals(first.id(), steps.getLast().id());
 
-        assertThrows(
-                BadRequestResponse.class,
+        refusedWith(
+                FlowProblem.Code.ORDER_MUST_NAME_EVERY_STEP,
                 () -> movementFlowService.reorderSteps(flow.id(), List.of(second.id())),
                 "naming an order means naming every step");
     }
@@ -290,8 +344,8 @@ class MovementPresetsTest extends RepositoryTestBase {
         movementFlowService.addStep(
                 flow.id(), "Erstes", StepActor.STATION, StepSubject.INCOMING, ItemCustody.AT_STATION, true);
 
-        assertThrows(
-                BadRequestResponse.class,
+        refusedWith(
+                FlowProblem.Code.ITEM_ALREADY_NAMED,
                 () -> movementFlowService.addStep(
                         flow.id(), "Zweites", StepActor.STATION, StepSubject.INCOMING, ItemCustody.AT_STATION, true),
                 "only one step says which piece arrived");
@@ -309,8 +363,8 @@ class MovementPresetsTest extends RepositoryTestBase {
         movementFlowService.bind(
                 station.id(), null, ItemOwner.STATION, MovementPurpose.RETURN, MovementParty.STORE, flow.id());
 
-        assertThrows(
-                BadRequestResponse.class,
+        refusedWith(
+                FlowProblem.Code.TOO_SHORT,
                 () -> movementFlowService.archiveStep(first.id()),
                 "one step left is not a chain anybody can walk");
     }

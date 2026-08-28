@@ -12,20 +12,35 @@ import InfoContainer from '@/components/container/InfoContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import {EventTypes, isRecurringEvent, type EventBreak, type StationEvent} from '@/api/events'
-import {events} from '@/api'
+import RegistrationStatusBadge from '@/views/stationview/events/eventshared/RegistrationStatusBadge.vue'
+import EventAnswerDialog from '@/views/stationview/events/eventshared/EventAnswerDialog.vue'
+import {
+  EventTypes,
+  isRecurringEvent,
+  type EventBreak,
+  type EventRegistrationEntry,
+  type StationEvent,
+} from '@/api/events'
+import type {StationMember} from '@/api/types'
+import {events, managedMembers as managedMembersApi} from '@/api'
 import {getFeedStatus, type FeedStatusResponse} from '@/api/feedToken'
 import {useSession} from '@/composables/useSession'
 import {formatDate, formatTime} from '@/util/format'
+import {answerableMembers} from '@/util/eventAnswers'
 
 const {t} = useI18n()
 const router = useRouter()
-const {sessionInfo} = useSession()
+const {sessionInfo, isGuardian} = useSession()
 
 const allEvents = ref<StationEvent[]>([])
 const eventBreaks = ref<EventBreak[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
 const feedStatus = ref<FeedStatusResponse | null>(null)
+const myRegistrations = ref<EventRegistrationEntry[]>([])
+const managed = ref<StationMember[]>([])
+const declining = ref<UpcomingEvent | null>(null)
+const decliningBusy = ref(false)
+const declineError = ref('')
 
 const showFeedCta = computed(() => {
   if (!feedStatus.value) return false
@@ -110,17 +125,102 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
 
 async function loadData() {
   try {
-    const [ev, br, elig, fs] = await Promise.all([
+    const [ev, br, elig, fs, regs, mine] = await Promise.all([
       events.listEvents(),
       events.listBreaks().catch(() => []),
       events.listEligibleMembers().catch(() => ({})),
       getFeedStatus().catch(() => null),
+      events.listMyRegistrations().catch(() => []),
+      isGuardian() ? managedMembersApi.listManaged().catch(() => []) : Promise.resolve([]),
     ])
     allEvents.value = ev
     eventBreaks.value = br
     eligibleMembers.value = elig
     feedStatus.value = fs
+    myRegistrations.value = regs
+    managed.value = mine
   } catch { /* ignore */ }
+}
+
+/** The dialog is open exactly while an appointment is waiting to be refused for somebody. */
+const declineDialogOpen = computed({
+  get: () => declining.value !== null,
+  set: (open: boolean) => {
+    if (!open) declining.value = null
+  },
+})
+
+/** Who the open dialog offers, empty while none is open: the dialog stays mounted and reads this. */
+const decliningPeople = computed(() => (declining.value
+    ? withoutAnswer(declining.value).map(member => ({memberId: member.id, name: member.name}))
+    : []))
+
+/** Everybody this member answers for on that appointment, themselves first. */
+function answerableFor(item: UpcomingEvent) {
+  return answerableMembers(
+      item.event.id,
+      eligibleMembers.value,
+      sessionInfo.value?.member?.id ?? 0,
+      managed.value,
+      t('eventsUpcoming.myself'))
+}
+
+/**
+ * What has been answered for this date, one entry per person who answered.
+ *
+ * <p>An appointment repeats, so an answer belongs to a date rather than to the appointment: last
+ * week's refusal says nothing about next week.
+ */
+function answersOn(item: UpcomingEvent) {
+  const answerable = answerableFor(item)
+  return myRegistrations.value
+      .filter(reg => reg.eventId === item.event.id && reg.eventDate === item.date)
+      .map(reg => ({
+        registration: reg,
+        name: answerable.find(member => member.id === reg.memberId)?.name ?? reg.memberName,
+      }))
+}
+
+/** Who has not said anything yet, which is who a refusal can still be given for. */
+function withoutAnswer(item: UpcomingEvent) {
+  const answered = new Set(answersOn(item).map(entry => entry.registration.memberId))
+  return answerableFor(item).filter(member => !answered.has(member.id))
+}
+
+/**
+ * Refuses the appointment for one person, or asks which of them where there is more than one.
+ *
+ * <p>A guardian answers for a household, and the household rarely refuses as a whole: one child is
+ * ill while the other goes. Which is why the choice is asked rather than assumed.
+ */
+function decline(item: UpcomingEvent) {
+  const open = withoutAnswer(item)
+  if (open.length === 1) {
+    void sendDecline(item, [open[0]!.id])
+    return
+  }
+  declineError.value = ''
+  declining.value = item
+}
+
+async function sendDecline(item: UpcomingEvent, memberIds: number[]) {
+  decliningBusy.value = true
+  declineError.value = ''
+  try {
+    const me = sessionInfo.value?.member?.id ?? 0
+    for (const memberId of memberIds) {
+      await events.declineEvent(item.event.id, {
+        eventDate: item.date,
+        memberId: memberId === me ? undefined : memberId,
+      })
+    }
+    myRegistrations.value = await events.listMyRegistrations()
+    declining.value = null
+  } catch {
+    declineError.value = t('common.error')
+  } finally {
+    decliningBusy.value = false
+  }
 }
 
 onMounted(loadData)
@@ -152,18 +252,48 @@ onMounted(loadData)
                         @click="router.push(isRecurringEvent(item.event.eventType)
                           ? { name: 'event-detail-date', params: { id: item.event.id, date: item.date } }
                           : { name: 'event-detail', params: { id: item.event.id } })">
-        <div class="flex items-center justify-between gap-2">
-          <div>
-            <p class="text-sm font-medium">{{ item.event.name }}</p>
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <p class="truncate text-sm font-medium">{{ item.event.name }}</p>
             <p class="text-xs text-(--text-muted)">
               {{ item.dayLabel }}, {{ formatDate(item.date + 'T00:00:00') }}
               <template v-if="item.event.startTime"> · {{ formatTime(item.event.startTime) }}</template>
               <template v-if="item.event.endTime"> – {{ formatTime(item.event.endTime) }}</template>
             </p>
           </div>
-          <InfoBadge v-if="item.event.requiresRegistration">{{ t('dashboard.registrationRequired') }}</InfoBadge>
+
+          <InfoBadge v-if="item.event.requiresRegistration && answersOn(item).length === 0" class="shrink-0">
+            {{ t('dashboard.registrationRequired') }}
+          </InfoBadge>
+          <SecondaryButton
+              v-else-if="!item.event.requiresRegistration && withoutAnswer(item).length > 0"
+              :disabled="decliningBusy"
+              :data-testid="`dashboard-decline-${item.event.id}`"
+              class="shrink-0"
+              compact
+              @click.stop="decline(item)"
+          >
+            {{ t('eventsUpcoming.decline') }}
+          </SecondaryButton>
+        </div>
+
+        <div v-if="answersOn(item).length > 0" class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span v-for="answer in answersOn(item)" :key="answer.registration.id" class="flex items-center gap-1">
+            <span v-if="managed.length > 0" class="text-xs text-(--text-muted)">{{ answer.name }}</span>
+            <RegistrationStatusBadge :status="answer.registration.status"/>
+          </span>
         </div>
       </NeutralContainer>
     </div>
+
+    <EventAnswerDialog
+        v-model="declineDialogOpen"
+        :people="decliningPeople"
+        :fields="[]"
+        :attending="false"
+        :busy="decliningBusy"
+        :error="declineError"
+        @confirm="answers => declining && sendDecline(declining, answers.map(a => a.memberId))"
+    />
   </NeutralContainer>
 </template>

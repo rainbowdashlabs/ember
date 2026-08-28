@@ -14,6 +14,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import FederatedEventRegistrationRow from '@/views/stationview/events/upcomingview/federatedeventssection/FederatedEventRegistrationRow.vue'
 import type {FederatedEvent, FederatedRegistration} from '@/api/events'
 import {formatTime} from '@/util/format'
+import {chosenIfStillOffered} from '@/util/eventAnswers'
 
 const props = defineProps<{
   fed: FederatedEvent
@@ -41,11 +42,9 @@ const membersWithoutRegistration = computed(() =>
 
 const selectedMemberUid = ref('')
 
-const selectedUid = computed((): string | null => {
-  const single = membersWithoutRegistration.value.length === 1 ? membersWithoutRegistration.value[0] : undefined
-  if (single) return single.uid
-  return selectedMemberUid.value || null
-})
+const selectedUid = computed(() => chosenIfStillOffered(
+    selectedMemberUid.value || null,
+    membersWithoutRegistration.value.map(member => member.uid)))
 
 function openDetail() {
   router.push({
@@ -55,7 +54,10 @@ function openDetail() {
 }
 
 function handleRegister() {
-  if (selectedUid.value) emit('register', props.fed, selectedUid.value)
+  if (!selectedUid.value) return
+  const uid = selectedUid.value
+  selectedMemberUid.value = ''
+  emit('register', props.fed, uid)
 }
 </script>
 

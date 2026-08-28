@@ -53,7 +53,7 @@ export function useEventForm() {
         name: f.name,
         fieldType: f.fieldType ?? 'STRING',
         config: typeof f.config === 'string' ? (f.config ? JSON.parse(f.config) : {}) : (f.config ?? {}),
-        value: '',
+        value: f.defaultValue ?? '',
         overview: f.overview ?? false,
         attendanceFieldId: f.attendanceFieldId ?? null,
         isPublic: f.isPublic ?? false,
@@ -94,6 +94,8 @@ export function useEventForm() {
     state.hasThreshold = !!ev.thresholdDate
     state.thresholdDate = ev.thresholdDate ? toLocalDateTime(ev.thresholdDate) : ''
     state.registrationCloseDays = ev.registrationCloseDays ?? undefined
+    state.repeatUntil = ev.repeatUntil ?? ''
+    state.repeatCount = ev.repeatCount ?? undefined
   }
 
   async function loadEvent(id: number) {
@@ -139,7 +141,14 @@ export function useEventForm() {
           ? new Date(state.thresholdDate).toISOString() : undefined,
       restriction: state.restriction,
       registrationCloseDays: state.registrationCloseDays ?? undefined,
+      repeatUntil: repeats() && state.repeatUntil ? state.repeatUntil : null,
+      repeatCount: repeats() && !state.repeatUntil ? state.repeatCount ?? null : null,
     }
+  }
+
+  /** Only a repeating appointment has an end to its repetition, so a one-off never sends one. */
+  function repeats(): boolean {
+    return state.eventType !== EventTypes.ONE_TIME
   }
 
   function namedFields(): EventFieldEntry[] {

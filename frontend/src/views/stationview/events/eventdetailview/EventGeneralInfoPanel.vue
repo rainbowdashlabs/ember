@@ -22,9 +22,8 @@ defineProps<{
   currentMemberId: number
   startFormatted: string
   endFormatted: string
-  categoryName: string
   templateName: string
-  canManageEvents: boolean
+  canEditEvent: boolean
 }>()
 
 const emit = defineEmits<{
@@ -49,9 +48,8 @@ const {t} = useI18n()
         :current-member-id="currentMemberId"
         :start-formatted="startFormatted"
         :end-formatted="endFormatted"
-        :category-name="categoryName"
         :template-name="templateName"
-        :can-manage-events="canManageEvents"
+        :can-edit-event="canEditEvent"
         @field-updated="(f) => emit('field-updated', f)"
     />
   </NeutralContainer>

@@ -17,6 +17,7 @@ import {isRecurringEvent, RegistrationStatus, type StationEvent} from '@/api/eve
 import {useSession} from '@/composables/useSession'
 import {useUpcomingEvents} from '@/composables/useUpcomingEvents'
 import {formatTime} from '@/util/format'
+import {answerableMembers} from '@/util/eventAnswers'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -83,18 +84,12 @@ function todayIsoDate(): string {
 }
 
 function getEligibleMembers(eventId: number): { id: number; name: string }[] {
-  const eligible = eligibleMembers.value[eventId]
-  const ids = eligible ?? [currentMemberId.value, ...managedMembers.value.map(m => m.id)]
-  const result: { id: number; name: string }[] = []
-  for (const id of ids) {
-    if (id === currentMemberId.value) {
-      result.push({id, name: t('eventsUpcoming.myself')})
-      continue
-    }
-    const m = managedMembers.value.find(mm => mm.id === id)
-    if (m) result.push({id, name: m.name ?? m.email ?? `#${id}`})
-  }
-  return result
+  return answerableMembers(
+      eventId,
+      eligibleMembers.value,
+      currentMemberId.value,
+      managedMembers.value,
+      t('eventsUpcoming.myself'))
 }
 
 function getRegistrationSummary(eventId: number, date: string) {

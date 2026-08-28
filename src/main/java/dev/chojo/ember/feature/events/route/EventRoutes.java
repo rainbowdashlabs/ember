@@ -277,8 +277,11 @@ public class EventRoutes implements Routes {
         if (req.templateId() != null) {
             registrationFieldService.copyTemplateFields(req.templateId(), event.id());
         }
+        var withEnd = crudService
+                .setRepeatEnd(event.id(), req.repeatUntil(), req.repeatCount())
+                .orElse(event);
 
-        ctx.status(HttpStatus.CREATED).json(event);
+        ctx.status(HttpStatus.CREATED).json(withEnd);
     }
 
     @OpenApi(
@@ -342,7 +345,9 @@ public class EventRoutes implements Routes {
                             if (req.restriction() != null) {
                                 restrictionService.updateRestrictionMode(id, restriction.mode());
                             }
-                            ctx.json(event);
+                            ctx.json(crudService
+                                    .setRepeatEnd(id, req.repeatUntil(), req.repeatCount())
+                                    .orElse(event));
                         },
                         () -> {
                             throw new NotFoundResponse();
@@ -626,7 +631,9 @@ public class EventRoutes implements Routes {
             Integer registrationLimit,
             Integer minRegistrations,
             Instant thresholdDate,
-            Integer registrationCloseDays) {}
+            Integer registrationCloseDays,
+            LocalDate repeatUntil,
+            Integer repeatCount) {}
 
     public record CancelEventRequest(String reason) {}
 

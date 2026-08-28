@@ -19,7 +19,7 @@ import {clusterInventory} from '@/api'
 import type {ClusterFlow} from '@/api/clusterInventory'
 import {MovementPurpose, type MovementFlow, type StepRequest} from '@/api/movements'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {apiErrorMessage} from '@/util/apiError'
+import {useFlowProblems} from '@/composables/useFlowProblems'
 
 /**
  * The chains the association's own gear walks.
@@ -30,10 +30,12 @@ import {apiErrorMessage} from '@/util/apiError'
  * purpose before it ever looks at a binding.
  */
 const {t} = useI18n()
+const {refusalText} = useFlowProblems()
 
 const flows = ref<ClusterFlow[]>([])
 const busy = ref(false)
 const actionError = ref('')
+const flowErrors = ref<Record<number, string>>({})
 
 const newName = ref('')
 const newPurpose = ref<string>(MovementPurpose.ISSUE)
@@ -53,14 +55,17 @@ const cards = computed<MovementFlow[]>(() => flows.value.map(flow => ({...flow, 
  * a movement is walking the chain, and a second chain for a purpose already covered is refused naming
  * the one in the way.
  */
-async function run(action: () => Promise<unknown>) {
+async function run(action: () => Promise<unknown>, flowId?: number) {
   busy.value = true
   actionError.value = ''
+  if (flowId !== undefined) flowErrors.value = {...flowErrors.value, [flowId]: ''}
   try {
     await action()
     await reload()
   } catch (e) {
-    actionError.value = apiErrorMessage(e) ?? t('common.error')
+    const message = refusalText(e)
+    if (flowId === undefined) actionError.value = message
+    else flowErrors.value = {...flowErrors.value, [flowId]: message}
   } finally {
     busy.value = false
   }
@@ -89,10 +94,11 @@ function createFlow() {
           :key="flow.id"
           :busy="busy"
           :data-testid="`cluster-flow-${flow.id}`"
+          :error="flowErrors[flow.id]"
           :flow="flow"
-          @add-step="(flowId: number, step: StepRequest) => run(() => clusterInventory.addStep(flowId, step))"
-          @archive-step="(stepId: number) => run(() => clusterInventory.archiveStep(stepId))"
-          @archive-flow="(flowId: number) => run(() => clusterInventory.archiveFlow(flowId))"
+          @add-step="(flowId: number, step: StepRequest) => run(() => clusterInventory.addStep(flowId, step), flowId)"
+          @archive-step="(stepId: number) => run(() => clusterInventory.archiveStep(stepId), flow.id)"
+          @archive-flow="(flowId: number) => run(() => clusterInventory.archiveFlow(flowId), flowId)"
       />
     </div>
 

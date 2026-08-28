@@ -47,7 +47,12 @@ class BatchEventServiceTest extends RepositoryTestBase {
         var domainEventBus = new DomainEventBus(Set.of());
         var eventServices = newEventServices(domainEventBus);
         var fieldService = new EventFieldService(
-                eventFieldRepo, stationMemberRepo, memberGroupRepo, new UserTagService(userTagRepo, memberGroupRepo));
+                eventFieldRepo,
+                stationMemberRepo,
+                memberGroupRepo,
+                new UserTagService(userTagRepo, memberGroupRepo),
+                eventRepo,
+                attendanceRepo);
         batchService = new BatchEventService(
                 eventServices.crud(), eventServices.restriction(), fieldService, eventBreakRepo, domainEventBus);
 

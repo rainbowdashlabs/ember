@@ -33,9 +33,11 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -176,6 +178,26 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 null,
                 null,
                 null);
+
+        LocalDate firstThursday = LocalDate.now().with(TemporalAdjusters.nextOrSame(DayOfWeek.THURSDAY));
+        var grundlehrgang = crudService.create(
+                stationId,
+                "Grundlehrgang",
+                "Acht Abende Grundausbildung für die Neuen",
+                StationEvent.EventType.RECURRING,
+                DayOfWeek.THURSDAY.getValue(),
+                firstThursday.atTime(18, 0).toInstant(ZoneOffset.UTC),
+                firstThursday.atTime(20, 0).toInstant(ZoneOffset.UTC),
+                null,
+                false,
+                null,
+                false,
+                catUebung.id(),
+                null,
+                null,
+                null,
+                null);
+        crudService.setRepeatEnd(grundlehrgang.id(), null, 8);
 
         // Monthly: first Saturday = Elternabend
         crudService.create(
@@ -698,7 +720,14 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 tplStandard.id(),
                 List.of(
                         new EventTemplateFieldData(
-                                "Ort", EventFieldType.LOCATION, EventFieldConfig.parse("{}"), 0, true, true, null),
+                                "Ort",
+                                EventFieldType.LOCATION,
+                                EventFieldConfig.parse("{}"),
+                                0,
+                                true,
+                                true,
+                                null,
+                                "Gerätehaus"),
                         new EventTemplateFieldData(
                                 "Treffpunkt",
                                 EventFieldType.STRING,
@@ -706,7 +735,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                                 1,
                                 true,
                                 true,
-                                null)));
+                                null,
+                                "Fahrzeughalle")));
         var tplWettbewerb = eventTemplateService.create(stationId, "Wettbewerb");
         eventTemplateService.update(
                 tplWettbewerb.id(),
@@ -725,9 +755,23 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 tplWettbewerb.id(),
                 List.of(
                         new EventTemplateFieldData(
-                                "Ort", EventFieldType.LOCATION, EventFieldConfig.parse("{}"), 0, true, true, null),
+                                "Ort",
+                                EventFieldType.LOCATION,
+                                EventFieldConfig.parse("{}"),
+                                0,
+                                true,
+                                true,
+                                null,
+                                null),
                         new EventTemplateFieldData(
-                                "Thema", EventFieldType.STRING, EventFieldConfig.parse("{}"), 1, true, false, null)));
+                                "Thema",
+                                EventFieldType.STRING,
+                                EventFieldConfig.parse("{}"),
+                                1,
+                                true,
+                                false,
+                                null,
+                                null)));
         log.info("Demo: Created event templates");
     }
 

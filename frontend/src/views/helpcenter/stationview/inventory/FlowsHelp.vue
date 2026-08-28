@@ -29,6 +29,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryFlows.orderText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.inventoryFlows.problemsTitle')">
+      <p>{{ t('helpCenter.inventoryFlows.problemsText') }}</p>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.inventoryFlows.tip') }}</HelpTip>
   </HelpArticle>
 </template>

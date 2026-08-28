@@ -85,7 +85,7 @@ async function applyTemplate() {
       name: f.name,
       fieldType: f.fieldType ?? 'STRING',
       config: typeof f.config === 'string' ? (f.config ? JSON.parse(f.config) : {}) : (f.config ?? {}),
-      value: '',
+      value: f.defaultValue ?? '',
       overview: f.overview ?? false,
       attendanceFieldId: f.attendanceFieldId ?? null,
       isPublic: f.isPublic ?? false,
@@ -95,8 +95,19 @@ async function applyTemplate() {
   }
 }
 
+/**
+ * Takes over the dates and starts every one of them off with the values the fields carry.
+ *
+ * <p>A series made from a template asks the same questions with the same answers on most of its
+ * dates, so the table opens filled in rather than empty. A date that brought its own value, from an
+ * imported file, keeps it.
+ */
 function onScheduleDone(newRows: BatchRow[]) {
-  rows.value = newRows
+  const defaults: Record<string, string> = {}
+  for (const field of fieldDefs.value) {
+    if (field.name.trim() && field.value) defaults[field.name] = field.value
+  }
+  rows.value = newRows.map(row => ({...row, fieldValues: {...defaults, ...(row.fieldValues ?? {})}}))
   step.value = 3
 }
 

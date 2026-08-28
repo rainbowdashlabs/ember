@@ -7,13 +7,12 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import {RegistrationStatus, type EventRegistrationEntry} from '@/api/events'
+import RegistrationStatusBadge from '../eventshared/RegistrationStatusBadge.vue'
+import type {EventRegistrationEntry} from '@/api/events'
+import {chosenIfStillOffered} from '@/util/eventAnswers'
 
 /**
  * Answering an appointment, for oneself and for whoever one answers for.
@@ -53,10 +52,25 @@ function getRegistration(memberId: number): EventRegistrationEntry | undefined {
 const membersWithoutAnswer = computed(() =>
     props.eligibleMembers.filter(m => !getRegistration(m.id)))
 
-const selectedId = computed((): number | null => {
-  const single = membersWithoutAnswer.value.length === 1 ? membersWithoutAnswer.value[0] : undefined
-  if (single) return single.id
-  return selectedMemberId.value ? Number(selectedMemberId.value) : null
+/** Everybody who has answered, one row each rather than all of them across one wrapping line. */
+const answeredMembers = computed(() =>
+    props.eligibleMembers.filter(m => getRegistration(m.id)))
+
+const selectedId = computed(() => chosenIfStillOffered(
+    selectedMemberId.value ? Number(selectedMemberId.value) : null,
+    membersWithoutAnswer.value.map(m => m.id)))
+
+/**
+ * What the select shows, which is the person the button would answer for.
+ *
+ * <p>Reading the raw choice back left the box blank once that person had answered and was off the
+ * list, with a button beside it offering to answer for nobody.
+ */
+const chosenMember = computed({
+  get: () => (selectedId.value != null ? String(selectedId.value) : ''),
+  set: (value: string) => {
+    selectedMemberId.value = value
+  },
 })
 
 /**
@@ -77,7 +91,12 @@ const canAnswer = computed(() => !props.requiresRegistration || stillOpen.value)
 const answerLabel = computed(() =>
     props.requiresRegistration ? t('eventsUpcoming.register') : t('eventsUpcoming.decline'))
 
+/** What taking an answer back is called, which depends on what the answer was. */
+const undoLabel = computed(() =>
+    props.requiresRegistration ? t('eventsUpcoming.unregister') : t('eventsUpcoming.register'))
+
 function answerFor(memberId: number) {
+  selectedMemberId.value = ''
   if (props.requiresRegistration) emit('register', memberId)
   else emit('decline', memberId)
 }
@@ -94,39 +113,30 @@ function namedFor(label: string, forLabel: string): string {
 </script>
 
 <template>
-  <div data-onboarding="events.item.pending" class="flex items-center gap-2 flex-wrap">
-    <template v-for="m in eligibleMembers" :key="`reg-${m.id}`">
-      <div v-if="getRegistration(m.id)" class="flex items-center gap-1">
-        <span v-if="hasManagedMembers" class="text-xs text-(--text-muted)">{{ m.name }}:</span>
-        <SuccessBadge v-if="getRegistration(m.id)!.status === RegistrationStatus.ACCEPTED">
-          {{ t('eventsUpcoming.statusAccepted') }}
-        </SuccessBadge>
-        <InfoBadge v-else-if="getRegistration(m.id)!.status === RegistrationStatus.PENDING">
-          {{ t('eventsUpcoming.statusPending') }}
-        </InfoBadge>
-        <ErrorBadge v-else-if="getRegistration(m.id)!.status === RegistrationStatus.DENIED">
-          {{ t('eventsUpcoming.statusDenied') }}
-        </ErrorBadge>
-        <ErrorBadge v-else>{{ t('eventsUpcoming.statusDeclined') }}</ErrorBadge>
+  <div data-onboarding="events.item.pending" class="space-y-1">
+    <div
+        v-for="m in answeredMembers"
+        :key="`reg-${m.id}`"
+        class="flex flex-wrap items-center gap-2"
+    >
+      <span v-if="hasManagedMembers" class="min-w-28 truncate text-xs text-(--text-muted)">{{ m.name }}</span>
+      <RegistrationStatusBadge :status="getRegistration(m.id)!.status"/>
 
-        <SecondaryButton
-            :disabled="registering"
-            :data-testid="`undo-answer-${m.id}`"
-            class="text-sm"
-            @click="emit('withdraw', getRegistration(m.id)!.id)"
-        >
-          <font-awesome-icon :icon="['fas', 'rotate-left']" class="mr-1"/>
-          {{ requiresRegistration ? t('eventsUpcoming.unregister') : t('eventsUpcoming.register') }}
-        </SecondaryButton>
+      <IconButton
+          :disabled="registering"
+          :icon="['fas', 'rotate-left']"
+          :label="undoLabel"
+          :data-testid="`undo-answer-${m.id}`"
+          @click="emit('withdraw', getRegistration(m.id)!.id)"
+      />
 
-        <span v-if="getRegistration(m.id)?.createdByName" class="text-xs text-(--text-muted) italic">
-          {{ t('common.createdBy', {name: getRegistration(m.id)!.createdByName}) }}
-        </span>
-      </div>
-    </template>
+      <span v-if="getRegistration(m.id)?.createdByName" class="text-xs text-(--text-muted) italic">
+        {{ t('common.createdBy', {name: getRegistration(m.id)!.createdByName}) }}
+      </span>
+    </div>
 
-    <template v-if="membersWithoutAnswer.length > 0 && canAnswer">
-      <SelectInput v-if="membersWithoutAnswer.length > 1" v-model="selectedMemberId"
+    <div v-if="membersWithoutAnswer.length > 0 && canAnswer" class="flex flex-wrap items-center gap-2">
+      <SelectInput v-if="membersWithoutAnswer.length > 1" v-model="chosenMember"
                    data-onboarding="events.item.member-select" class="text-sm w-40">
         <option disabled value="">{{ t('eventsUpcoming.selectMember') }}</option>
         <option v-for="m in membersWithoutAnswer" :key="m.id" :value="String(m.id)">{{ m.name }}</option>
@@ -152,6 +162,6 @@ function namedFor(label: string, forLabel: string): string {
         <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>
         {{ namedFor(answerLabel, 'eventsUpcoming.declineFor') }}
       </ErrorButton>
-    </template>
+    </div>
   </div>
 </template>

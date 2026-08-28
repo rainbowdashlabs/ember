@@ -16,7 +16,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {RegistrationStatus, type EventRegistrationEntry, type EventRegistrationField, type FederatedEventRegistration, type MemberRegistrationStats, type RegistrationFieldValue, type StationEvent} from '@/api/events'
-import {StationPermission} from '@/api/types'
+import {StationPermission, type MemberIdentity} from '@/api/types'
 import {events, stationMembers as stationMembersApi} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
@@ -45,6 +45,9 @@ const federatedRegs = ref<FederatedEventRegistration[]>([])
 interface MemberOption {
   id: number
   name: string
+  email?: string | null
+  /** Their face and colours, so the picker shows a person rather than a line of text. */
+  identity?: MemberIdentity | null
   /** What kind of member they are, so the picker can be narrowed to one kind. */
   userType?: string | null
 }
@@ -115,6 +118,8 @@ async function loadRegistrations() {
       allMembers.value = members.map(m => ({
         id: m.id,
         name: m.name ?? m.email ?? `#${m.id}`,
+        email: m.email ?? null,
+        identity: m.identity ?? null,
         userType: m.userType ?? null,
       }))
     }

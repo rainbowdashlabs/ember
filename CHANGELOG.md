@@ -1,5 +1,36 @@
 # Changelog
 
+## v26.13.4
+
+### New Features
+
+- **A repeating appointment can be given an end.** A series now either runs without an end as before, stops on a day you name, or stops after a number of times counted from its first date. After the last one it is gone from the calendar, the reminders and the subscribed calendar file, instead of having to be deleted on the day. An appointment shared with partner stations carries its end to them as well.
+
+### Improvements
+
+- **A question in an event template can start with an answer.** Every question of a template takes a standard value, and an appointment made from the template opens with it already filled in, where it can still be changed. A weekly drill whose meeting point is the same every time is written down once instead of on every date.
+- **Picking somebody now shows faces rather than a list of names.** Entering a member on an appointment or on an attendance sheet offers a proper list with their picture and their name, the way a group shows its members, instead of a dropdown of every name in the station. It opens as soon as anything is typed and otherwise waits behind an arrow, so it does not push the page around, and picking somebody enters them straight away.
+- **Editing a chain of steps no longer reloads the page around it.** Saving, adding, retiring or moving a step now updates only the chain it was about, so everything else stays open and in place.
+- **The dashboard says what you answered, and takes a refusal.** The list of upcoming appointments shows your answer where you gave one instead of the reminder that one is needed, and an appointment that expects everybody carries a small refusal button. Whoever answers for others is asked who the refusal is for.
+- **The appointment list says what kind each appointment is.** A badge in the category's own colour stands beside the name, so a drill and an open day are told apart at a glance instead of by reading the description.
+- **A sidebar group no longer names a half nobody can open.** Somebody who may neither write a test sheet nor sit one is shown the quiz entries on their own, without an empty tests heading above them, exactly as at a station that runs no tests. A member whose only entry under the inventory's management heading was the exchange now reaches it directly, at the same level as their own gear.
+- **A chain says what is wrong with it in German, where the change was made.** What a chain is missing stands on the chain itself, and a refused change is explained there too instead of at the top of the page, in plain German rather than in English.
+
+### Changes
+
+- **The answers of a household stand one per line.** In the appointment list every person the reader answers for has a row of their own with their answer and a button to take it back, instead of all of them running across one line that wrapped wherever it ran out of room.
+- **An appointment's page leads with what it is.** The category stands as a badge beside the name instead of as the first entry of the list below, beginning and end always sit side by side, and which attendance sheet the appointment writes into is shown only to those who may edit it.
+- **Sharing appointments with a partner station pauses until both sides run this version.** What a shared appointment says now includes when its repetition ends, which both instances have to agree on. Everything else keeps working, and sharing resumes on its own once the partner has updated; nothing has to be paired again.
+
+### Fixes
+
+- **After answering for one child, the appointment offered a button with no name on it.** The choice of who the answer was for stayed on somebody who had just answered and was no longer on the list, so the box beside the button went blank and pressing it answered for them a second time. The choice now falls back to nobody, and the button waits until somebody is picked.
+- **The chains page could fail to load the very first time it was opened.** A station being set up wrote its starting chains twice at once and the second attempt ended in an error, leaving the page empty. Chains and their assignments are now written once whatever the timing.
+- **Two of the chains a station started with could not be walked to the end.** The return to the association ended with the gear still in the post, and the issue from the association was a single step that asked for gear and never confirmed it arrived, so both were reported as broken on the first day. Both are completed on upgrade, leaving any chain a station has changed itself alone.
+- **A single size could not be picked from the quick selection, and the list ran away from the pointer.** Clicking a size took it and gave it straight back, so the only way to pick one was to press beside it and drag across, and the list closed as soon as the pointer left the row it hangs under. A size is now taken by pressing it, and the list stays open until it is used, cancelled, or clicked away from.
+- **A question could be tied to a field of an attendance sheet the appointment does not use.** Every sheet of the station was offered at once, so two sheets each carrying a field called "Ausbilder Anfänger" were impossible to tell apart in the list. The answer was then written into a sheet nobody opens, and the field on the sheet actually in use kept asking to be prefilled. Only the fields of the sheet in use are offered now, and a tie into any other is dropped when the appointment or the template is saved.
+- **A dropdown for the attendance field ran into the width beside it.** It took its width from its longest entry instead of from the box it sits in.
+
 ## v26.13.3
 
 ### Improvements

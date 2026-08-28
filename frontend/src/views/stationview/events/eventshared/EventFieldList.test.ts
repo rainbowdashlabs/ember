@@ -32,4 +32,24 @@ describe('EventFieldList', () => {
         const handedBack = list.emitted('update:fields')?.at(-1)?.[0] as EventFieldEntry[]
         expect(handedBack.map(field => field.name)).toEqual(['Treffpunkt', 'Ort'])
     })
+
+    it('shows the value a question starts off with, under the label it was given', async () => {
+        const list = await mountSuspended(EventFieldList, {
+            props: {fields: twoFields().slice(0, 1), showValue: true, valueLabel: 'Standardwert'},
+        })
+
+        const value = list.find('[data-testid="event-field-value"]')
+        expect(value.exists()).toBe(true)
+        expect(value.text()).toContain('Standardwert')
+    })
+
+    it('asks for no value where the answer would be a member nobody handed over', async () => {
+        const fields: EventFieldEntry[] = [
+            {name: 'Ausbilder', fieldType: 'MEMBER', config: {}, value: '', overview: false, attendanceFieldId: null},
+        ]
+
+        const list = await mountSuspended(EventFieldList, {props: {fields, showValue: true}})
+
+        expect(list.find('[data-testid="event-field-value"]').exists()).toBe(false)
+    })
 })

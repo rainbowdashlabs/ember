@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -12,7 +13,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {FederatedEventDetail} from '@/api/events'
-import {formatTime} from '@/util/format'
+import {formatDate, formatTime} from '@/util/format'
 
 const props = defineProps<{
   event: NonNullable<FederatedEventDetail['event']>
@@ -28,6 +29,13 @@ function eventTypeBadge(type?: string): string {
   if (type === 'ONE_TIME') return t('federatedEventDetail.oneTime')
   return ''
 }
+
+/** How long the partner's series runs, where they gave it an end. */
+const repeatEnd = computed(() => {
+  if (props.event.repeatUntil) return t('events.repeatUntilLabel', {date: formatDate(props.event.repeatUntil)})
+  if (props.event.repeatCount) return t('events.repeatCountLabel', {count: props.event.repeatCount})
+  return ''
+})
 </script>
 
 <template>
@@ -42,6 +50,7 @@ function eventTypeBadge(type?: string): string {
         <InfoBadge v-if="props.event.requiresRegistration">
           {{ t('eventsUpcoming.registrationRequired') }}
         </InfoBadge>
+        <SecondaryBadge v-if="repeatEnd" data-testid="federated-repeat-end">{{ repeatEnd }}</SecondaryBadge>
       </div>
     </div>
 

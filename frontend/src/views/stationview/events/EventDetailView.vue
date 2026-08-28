@@ -110,9 +110,10 @@ const registrableMembers = computed((): { id: number; name: string }[] => {
 
 const hasManagedMembers = computed(() => managedMembers.value.length > 0)
 
+/** What the event is called a kind of, empty where it is called nothing: the badge then stays away. */
 const currentCategoryName = computed(() => {
   const id = event.value?.categoryId
-  if (!id) return t('events.noCategory')
+  if (!id) return ''
   return categories.value.find(c => c.id === id)?.name ?? ''
 })
 

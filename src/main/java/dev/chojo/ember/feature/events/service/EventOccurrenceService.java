@@ -44,38 +44,26 @@ public class EventOccurrenceService {
      */
     public List<StationEvent> findTodayEvents(int stationId) {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        int dayOfWeek = today.getDayOfWeek().getValue();
-        int dayOfMonth = today.getDayOfMonth();
-        int monthValue = today.getMonthValue();
         boolean inBreak = breakService.isDateInBreak(stationId, today);
 
         return eventCrudService.findByStation(stationId).stream()
-                .filter(e -> occursToday(e, today, dayOfWeek, dayOfMonth, monthValue, inBreak))
+                .filter(e -> occursToday(e, today, inBreak))
                 .toList();
     }
 
-    private boolean occursToday(
-            StationEvent event, LocalDate today, int dayOfWeek, int dayOfMonth, int monthValue, boolean inBreak) {
+    /**
+     * Whether this event takes place today.
+     *
+     * <p>The recurrence itself is answered by the event, so that a series which has run its course is
+     * over everywhere at once rather than in the places that remembered to ask.
+     */
+    private boolean occursToday(StationEvent event, LocalDate today, boolean inBreak) {
         if (event.eventType() == StationEvent.EventType.ONE_TIME) {
             if (event.startTime() == null) return false;
             LocalDate eventDateUtc = event.startTime().atZone(ZoneOffset.UTC).toLocalDate();
             return today.equals(eventDateUtc);
         }
-        if (inBreak) return false;
-        return switch (event.eventType()) {
-            case RECURRING -> event.dayOfWeek() != null && event.dayOfWeek() == dayOfWeek;
-            case MONTHLY_FIRST -> event.dayOfWeek() != null && event.dayOfWeek() == dayOfWeek && dayOfMonth <= 7;
-            case QUARTERLY ->
-                event.dayOfWeek() != null
-                        && event.dayOfWeek() == dayOfWeek
-                        && dayOfMonth <= 7
-                        && (monthValue - 1) % 3 == 0;
-            case YEARLY ->
-                event.startTime() != null
-                        && event.startTime().atZone(ZoneOffset.UTC).getMonthValue() == monthValue
-                        && event.startTime().atZone(ZoneOffset.UTC).getDayOfMonth() == dayOfMonth;
-            default -> false;
-        };
+        return !inBreak && event.occursOn(today);
     }
 
     /**

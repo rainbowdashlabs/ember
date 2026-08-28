@@ -14,10 +14,14 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import {isRecurringEvent, type StationEvent} from '@/api/events'
+import {formatDate} from '@/util/format'
+import {computed} from 'vue'
 
 const props = defineProps<{
   event: StationEvent
   canManageEvents: boolean
+  /** What the event is called a kind of, shown beside its name. Absent where it has no category. */
+  categoryName?: string
 }>()
 
 const emit = defineEmits<{
@@ -27,6 +31,14 @@ const emit = defineEmits<{
 const {t} = useI18n()
 const router = useRouter()
 const eventRoutes = useEventRoutes()
+
+/** How long the series runs, where it was given an end. A series without one says nothing. */
+const repeatEnd = computed(() => {
+  if (!isRecurringEvent(props.event.eventType)) return ''
+  if (props.event.repeatUntil) return t('events.repeatUntilLabel', {date: formatDate(props.event.repeatUntil)})
+  if (props.event.repeatCount) return t('events.repeatCountLabel', {count: props.event.repeatCount})
+  return ''
+})
 
 function goBack() {
   router.push({name: props.canManageEvents ? 'events' : 'events-upcoming'})
@@ -41,10 +53,14 @@ function goEdit() {
   <div class="flex items-center justify-between flex-wrap gap-3">
     <div class="flex items-center gap-3">
       <SubHeader>{{ event.name }}</SubHeader>
+      <SecondaryBadge v-if="event.categoryId && props.categoryName" data-testid="event-category">
+        {{ props.categoryName }}
+      </SecondaryBadge>
       <SecondaryBadge v-if="isRecurringEvent(event.eventType)">
         <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>{{ t('events.typeRecurring') }}
       </SecondaryBadge>
       <SecondaryBadge v-else>{{ t('events.typeOneTime') }}</SecondaryBadge>
+      <SecondaryBadge v-if="repeatEnd" data-testid="event-repeat-end">{{ repeatEnd }}</SecondaryBadge>
       <ErrorBadge v-if="event.cancelled">{{ t('events.cancelled') }}</ErrorBadge>
     </div>
     <div class="flex items-center gap-2">

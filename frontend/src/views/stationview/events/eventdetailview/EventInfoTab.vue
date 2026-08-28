@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -24,7 +25,6 @@ const props = defineProps<{
   focusedDate: string | null
   startFormatted: string
   endFormatted: string
-  categoryName: string
   templateName: string
   canManageEvents: boolean
   canManageAttendance: boolean
@@ -36,6 +36,14 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+/**
+ * Whoever writes the event, which is more than whoever runs it.
+ *
+ * <p>What decides where the attendance is taken is a setting rather than a piece of information
+ * about the appointment, so it is shown to the people who set it and to nobody else.
+ */
+const canEditEvent = computed(() => props.canManageEvents || props.hasPermission(StationPermission.EVENT_EDIT))
 </script>
 
 <template>
@@ -48,9 +56,8 @@ const {t} = useI18n()
         :current-member-id="currentMemberId"
         :start-formatted="startFormatted"
         :end-formatted="endFormatted"
-        :category-name="categoryName"
         :template-name="templateName"
-        :can-manage-events="canManageEvents"
+        :can-edit-event="canEditEvent"
         @field-updated="(f) => emit('field-updated', f)"
     />
 
