@@ -305,6 +305,37 @@ test.describe('Inventory', () => {
     })
 
     /**
+     * A correction is not a movement. The member is already holding the piece named in the window,
+     * and pressing save only makes the record say so.
+     */
+    test('a check corrects which piece a member is holding', async ({managerPage: page}) => {
+        await page.goto('/station/inventory/checks/member')
+        await page.getByRole('button', {name: 'Prüfung starten'}).first().click()
+        await page.waitForURL(/\/station\/inventory\/checks\/(\d+)/)
+
+        const correct = page.locator('[data-testid^="correct-item-"]').first()
+        await expect(correct).toBeVisible({timeout: 15000})
+        const replaced = (await correct.getAttribute('data-testid')) ?? ''
+        await correct.click()
+
+        await expect(page.getByTestId('correct-old-piece'), 'the window says where the old piece goes')
+            .not.toBeEmpty()
+
+        const source = page.getByTestId('correct-source')
+        if (await source.count() > 0) await source.selectOption('NEW')
+        const size = page.getByTestId('correct-size')
+        if (await size.count() > 0) await size.selectOption({index: 1})
+
+        const stamp = Date.now()
+        await page.getByTestId('correct-number').fill(`K-${stamp}`)
+        await page.getByTestId('correct-confirm').click()
+
+        await expect(page.getByTestId('correct-confirm')).toBeHidden({timeout: 15000})
+        await expect(page.getByText(`K-${stamp}`), 'the member now holds what they really have').toBeVisible()
+        await expect(page.getByTestId(replaced), 'and no longer what they never had').toBeHidden()
+    })
+
+    /**
      * An inventory the station already owns is written down from the member list rather than one
      * window at a time: a row per member, a size for all of them, one save.
      */

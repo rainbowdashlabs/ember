@@ -5,10 +5,15 @@
 ### New Features
 
 - **A whole inventory is written down in one pass.** Gear the station has long owned no longer has to be entered one window at a time: a new page opens a table with a row per member, chosen by kind of member, by group or all of them, and one save writes every piece and hands each to the member on its line. A size picked once fills every row that has none, a number is optional, and a row left empty is passed over.
+- **A gear check can put right what it finds.** Where a member turns out to be holding something other than what is written down, a correction button opens a window that records what they really have: a free piece from the station's own store, or a new one with its size, number and the inventory's own fields. Nothing changes hands, because the gear is already in the right ones, and the piece coming off the record goes back to whoever owns it.
 
 ### Improvements
 
 - **A new container is named after what it is.** Choosing the kind of a container fills an empty name with that kind, so a shelf is called "Regal" without typing the word twice. A name already written is left alone.
+
+### Changes
+
+- **A gear check no longer offers to change a piece's size.** The two loose fields on every item, one to swap in another piece and one to make a new piece in another size, are replaced by the correction window. A piece with the wrong size is the wrong piece, so it is replaced rather than resized.
 
 ### Fixes
 

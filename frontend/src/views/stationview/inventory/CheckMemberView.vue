@@ -13,13 +13,15 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import { useConfirmAction } from '@/composables/useConfirmAction'
-import type { CheckItemResult, CheckResult, MemberCheckState } from '@/api/inventoryCheck'
+import type { CheckItemResult, CheckResult, CorrectItemRequest, MemberCheckState, RequiredInventoryItem } from '@/api/inventoryCheck'
+import type { InventoryItem } from '@/api/inventory'
 import { exchanges, inventoryCheck } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useMemberCheck, type CheckEntry } from '@/composables/useMemberCheck'
 import { apiErrorMessage } from '@/util/apiError'
 import RapidExchangeModal, {type RapidExchangeKind} from './checkmemberview/RapidExchangeModal.vue'
+import CorrectItemModal from './checkmemberview/CorrectItemModal.vue'
 import CheckMemberBody from './checkmemberview/CheckMemberBody.vue'
 import { apiErrorStatus } from '@/util/apiError'
 import { reportCaughtError } from '@/util/devErrorReporter'
@@ -49,6 +51,12 @@ const exchangeKind = ref<RapidExchangeKind>('size')
 const exchangeEntry = ref<CheckEntry | null>(null)
 const exchangeBusy = ref(false)
 const exchangeError = ref('')
+
+const showCorrect = ref(false)
+const correctItem = ref<InventoryItem | null>(null)
+const correctReq = ref<RequiredInventoryItem | null>(null)
+const correctBusy = ref(false)
+const correctError = ref('')
 
 function startCheckMode() {
   checkMode.value = true
@@ -97,6 +105,39 @@ async function createRapidExchange(payload: {newSizeId: number | null; reason: s
     exchangeError.value = apiErrorMessage(e) ?? t('common.error')
   } finally {
     exchangeBusy.value = false
+  }
+}
+
+/**
+ * The correction the check raises about the piece in front of whoever is walking it.
+ *
+ * <p>Opened rather than written straight away: what the member really holds has a size, a number and
+ * whatever else the inventory keeps, and none of that can be guessed from the piece being replaced.
+ */
+function openCorrection(item: InventoryItem, req: RequiredInventoryItem) {
+  correctItem.value = item
+  correctReq.value = req
+  correctError.value = ''
+  showCorrect.value = true
+}
+
+function onRapidCorrect(entry: CheckEntry) {
+  if (entry.type !== 'item') return
+  openCorrection(entry.item, entry.req)
+}
+
+async function applyCorrection(payload: CorrectItemRequest) {
+  correctBusy.value = true
+  correctError.value = ''
+  try {
+    await check.correctItem(payload)
+    if (error.value) {
+      correctError.value = error.value
+      return
+    }
+    showCorrect.value = false
+  } finally {
+    correctBusy.value = false
   }
 }
 
@@ -208,6 +249,7 @@ async function cancel() {
         @submit="submit"
         @rapid-set-result="onRapidSetResult"
         @rapid-exchange="onRapidExchange"
+        @rapid-correct="onRapidCorrect"
         @rapid-mark-not-in-possession="onRapidMarkNotInPossession"
         @rapid-assign="onRapidAssign"
         @rapid-create-and-assign="onRapidCreateAndAssign"
@@ -216,8 +258,7 @@ async function cancel() {
         @set-note="check.setNote"
         @unassign="unassign.request"
         @create-procurement="check.createProcurementForItem"
-        @change-item="check.changeItem"
-        @create-and-change="check.createAndChangeItem"
+        @correct="openCorrection"
         @toggle-not-in-possession="check.toggleNotInPossession"
         @assign-to-slot="check.assignToSlot"
         @create-and-assign-to-slot="check.createAndAssignToSlot"
@@ -239,6 +280,17 @@ async function cancel() {
         :kind="exchangeKind"
         :sizes="exchangeEntry?.type === 'item' ? exchangeEntry.req.sizes : []"
         @confirm="createRapidExchange"
+    />
+
+    <CorrectItemModal
+        v-model="showCorrect"
+        :available-items="correctReq ? check.availableForInventory(correctReq.inventoryId) : []"
+        :busy="correctBusy"
+        :error="correctError"
+        :item="correctItem"
+        :item-label="check.itemLabel"
+        :req="correctReq"
+        @confirm="applyCorrection"
     />
   </ViewContent>
 </template>

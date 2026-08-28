@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
@@ -20,7 +21,9 @@ import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCheckHistoryEntry;
+import dev.chojo.ember.feature.inventory.entity.ItemCorrection;
 import dev.chojo.ember.feature.inventory.entity.ItemLastCheck;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.MemberCheckSummary;
@@ -29,7 +32,9 @@ import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
+import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -63,6 +68,7 @@ public class InventoryCheckService {
     private final MemberIdentityFactory memberIdentityFactory;
     private final InventoryContainerService containerService;
     private final ItemCustodyService custodyService;
+    private final InventoryService inventoryService;
 
     @Inject
     public InventoryCheckService(
@@ -73,7 +79,8 @@ public class InventoryCheckService {
             AccountRepository accountRepository,
             MemberIdentityFactory memberIdentityFactory,
             InventoryContainerService containerService,
-            ItemCustodyService custodyService) {
+            ItemCustodyService custodyService,
+            InventoryService inventoryService) {
         this.checkRepository = checkRepository;
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -82,6 +89,7 @@ public class InventoryCheckService {
         this.memberIdentityFactory = memberIdentityFactory;
         this.containerService = containerService;
         this.custodyService = custodyService;
+        this.inventoryService = inventoryService;
     }
 
     /**
@@ -404,6 +412,117 @@ public class InventoryCheckService {
                     inExchangeByInventory.getOrDefault(inventoryId, 0)));
         }
         return result;
+    }
+
+    /**
+     * Puts right what a check found: the member is holding something other than what the record says.
+     *
+     * <p>Nothing changes hands here. The piece named in the correction is already in the member's
+     * hands, so this is one write of the truth and not a movement: no exchange is raised, no chain is
+     * walked, and the piece coming off the record was never really out.
+     *
+     * <p>Where the old piece goes follows from who owns it, and the caller is not asked. The station's
+     * own goes back into the station's store. The owner's goes back to the owner where the owner runs
+     * on this instance and so has a store of its own. Where it does not, there is no store to go back
+     * to and nobody who could ever tidy the row up, so the piece is deleted rather than left standing
+     * as a record of something that, as the correction says, was never there.
+     *
+     * @param memberId   the member being checked
+     * @param correction what the member actually holds
+     * @return the piece the member holds once the record agrees with them
+     * @throws NotFoundResponse   if the inventory or either piece is unknown
+     * @throws BadRequestResponse if the old piece is not the member's, the new one is not free, or a
+     *                            mixed inventory was not told who owns the new piece
+     */
+    public InventoryItem correct(int memberId, ItemCorrection correction) {
+        Inventory inventory = inventoryRepository
+                .findById(correction.inventoryId())
+                .orElseThrow(() -> new NotFoundResponse("This inventory does not exist"));
+        ItemOwner owner = ownerOfNewPiece(inventory, correction);
+        InventoryItem replacement = correction.picksFromStock()
+                ? fromStock(correction.pickedItemId(), inventory.id())
+                : inventoryService.createItem(
+                        inventory.id(),
+                        correction.internalId(),
+                        inventory.name(),
+                        correction.sizeId(),
+                        correction.metadata(),
+                        owner,
+                        null);
+
+        if (correction.replacesAPiece()) release(correction.oldItemId(), memberId);
+        custodyService.assignToMember(replacement.id(), memberId, nameOf(memberId));
+        log.info(
+                "Check corrected member {}: piece {} replaced by {}",
+                memberId,
+                correction.oldItemId(),
+                replacement.id());
+        return inventoryRepository.findItemById(replacement.id()).orElse(replacement);
+    }
+
+    /**
+     * The name the history keeps for a member, which is the member's own and not the checker's.
+     */
+    private String nameOf(int memberId) {
+        return stationMemberRepository
+                .findById(memberId)
+                .flatMap(member -> accountRepository.findById(member.accountId()))
+                .map(Account::fullName)
+                .orElse("");
+    }
+
+    /**
+     * Who owns a piece a correction makes. Only an inventory that holds both owners has to be told;
+     * anywhere else the inventory itself is the answer and asking would be a question with one option.
+     */
+    private static ItemOwner ownerOfNewPiece(Inventory inventory, ItemCorrection correction) {
+        return switch (inventory.inventoryType()) {
+            case INTERNAL -> ItemOwner.STATION;
+            case EXTERNAL -> ItemOwner.CLUSTER;
+            case MIXED -> {
+                if (correction.ownerKind() == null) {
+                    throw new BadRequestResponse("This inventory holds both owners, so the new piece needs one named");
+                }
+                yield correction.ownerKind();
+            }
+        };
+    }
+
+    /**
+     * The free piece a correction picked, once it is certain it is free and belongs to the inventory
+     * the correction is about.
+     */
+    private InventoryItem fromStock(int itemId, int inventoryId) {
+        InventoryItem item = inventoryRepository
+                .findItemById(itemId)
+                .orElseThrow(() -> new NotFoundResponse("This piece does not exist"));
+        if (item.inventoryId() != inventoryId) {
+            throw new BadRequestResponse("This piece sits in another inventory");
+        }
+        if (item.assignedTo() != null) {
+            throw new BadRequestResponse("This piece is already with somebody");
+        }
+        return item;
+    }
+
+    /**
+     * Takes the wrongly recorded piece off the member and sends it where its owner keeps it, or ends
+     * it where nobody keeps it.
+     */
+    private void release(int itemId, int memberId) {
+        InventoryItem item = inventoryRepository
+                .findItemById(itemId)
+                .orElseThrow(() -> new NotFoundResponse("This piece does not exist"));
+        if (item.assignedTo() == null || item.assignedTo() != memberId) {
+            throw new BadRequestResponse("This piece is not on this member's record");
+        }
+        if (item.ownerKind() == ItemOwner.CLUSTER && item.ownerClusterId() == null) {
+            inventoryService.deleteItem(itemId, null);
+            return;
+        }
+        inventoryRepository.markSpellCorrected(itemId, memberId);
+        if (item.ownedByStation()) custodyService.takeBack(itemId);
+        else custodyService.returnToOwner(itemId);
     }
 
     /**

@@ -20,9 +20,17 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param memberName the name of the member at the time of assignment
  * @param givenOut   when the item was given out
  * @param returned   when the item was returned, or {@code null} if still assigned
+ * @param corrected  whether the spell ended because a check put the record right rather than because
+ *                   the member handed the item back
  */
 public record InventoryItemHistory(
-        int id, int itemId, Integer memberId, String memberName, Instant givenOut, Instant returned) {
+        int id,
+        int itemId,
+        Integer memberId,
+        String memberName,
+        Instant givenOut,
+        Instant returned,
+        boolean corrected) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -33,6 +41,7 @@ public record InventoryItemHistory(
                 row.getObject("member_id", Integer.class),
                 row.getString("member_name"),
                 row.get("given_out", INSTANT_TIMESTAMP),
-                row.get("returned", INSTANT_TIMESTAMP));
+                row.get("returned", INSTANT_TIMESTAMP),
+                row.getBoolean("corrected"));
     }
 }

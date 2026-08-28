@@ -6,7 +6,7 @@
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { InventoryItem } from '@/api/inventory'
-import type { CheckResult, MemberCheckState, RequiredInventoryItem } from '@/api/inventoryCheck'
+import type { CheckResult, CorrectItemRequest, MemberCheckState, RequiredInventoryItem } from '@/api/inventoryCheck'
 import { inventoryCheck, procurement } from '@/api'
 import { reportCaughtError } from '@/util/devErrorReporter'
 
@@ -159,31 +159,15 @@ export function useMemberCheck(
     await apply(() => inventoryCheck.assignItem(memberId.value, Number(selected)), () => takeSelection(key))
   }
 
-  async function changeItem(currentItemId: number) {
-    const key = `change-${currentItemId}`
-    const selected = slotSelections.value.get(key)
-    if (!selected) return
-    forgetResult(currentItemId)
-    await apply(
-      () => inventoryCheck.assignItem(memberId.value, Number(selected), currentItemId),
-      () => takeSelection(key),
-    )
-  }
-
-  async function createAndChangeItem(currentItemId: number, req: RequiredInventoryItem) {
-    const key = `create-change-${currentItemId}`
-    const sizeId = slotSelections.value.get(key)
-    forgetResult(currentItemId)
-    await apply(
-      () =>
-        inventoryCheck.createAndAssign(
-          memberId.value,
-          req.inventoryId,
-          sizeId ? Number(sizeId) : null,
-          currentItemId,
-        ),
-      () => takeSelection(key),
-    )
+  /**
+   * Writes down what the member is really holding, in place of what the record said.
+   *
+   * <p>The mark on the piece coming off the record goes with it: it was a mark about something the
+   * member never had, and leaving it behind would count a piece nobody is looking at any more.
+   */
+  async function correctItem(payload: CorrectItemRequest) {
+    if (payload.oldItemId) forgetResult(payload.oldItemId)
+    await apply(() => inventoryCheck.correctItem(memberId.value, payload))
   }
 
   async function createAndAssignToSlot(req: RequiredInventoryItem, slotIndex: number) {
@@ -258,8 +242,7 @@ export function useMemberCheck(
     assignItem,
     createAndAssign,
     assignToSlot,
-    changeItem,
-    createAndChangeItem,
+    correctItem,
     createAndAssignToSlot,
     unassignItem,
     createProcurementForItem,

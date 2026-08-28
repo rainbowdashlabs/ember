@@ -14,7 +14,9 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCorrection;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.MemberCheckSummary;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
@@ -85,6 +87,14 @@ public class InventoryCheckRoutes implements Routes {
     }
 
     /**
+     * Asserts the given inventory belongs to the caller's station.
+     */
+    private void verifyInventoryInStation(int inventoryId, UserSession session) {
+        var inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
+        RouteSupport.requireSameStation(session, inventory.stationId());
+    }
+
+    /**
      * Asserts the given member belongs to the caller's station.
      */
     private void verifyMemberInStation(int memberId, UserSession session) {
@@ -112,6 +122,8 @@ public class InventoryCheckRoutes implements Routes {
                 prefix + "/inventory-checks/{memberId}/create-assign",
                 this::createAndAssign,
                 StationPermission.INVENTORY_CHECK);
+        routes.post(
+                prefix + "/inventory-checks/{memberId}/correct", this::correctItem, StationPermission.INVENTORY_CHECK);
         routes.get(prefix + "/inventory-checks/next", this::nextMember, StationPermission.INVENTORY_CHECK);
         routes.get(
                 prefix + "/inventory-checks/container/{containerId}/expected",
@@ -362,6 +374,28 @@ public class InventoryCheckRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/inventory-checks/{memberId}/correct",
+            methods = HttpMethod.POST,
+            summary = "Correct which piece a member is recorded as holding",
+            tags = {"Inventory Checks"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CorrectItemRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
+    private void correctItem(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int memberId = pathInt(ctx, "memberId");
+        verifyMemberInStation(memberId, session);
+        var request = ctx.bodyAsClass(CorrectItemRequest.class);
+        verifyInventoryInStation(request.inventoryId(), session);
+
+        checkService.correct(memberId, request.toCorrection());
+
+        var state = checkService.startCheck(
+                session.stationId(), memberId, session.member().id());
+        ctx.json(state);
+    }
+
+    @OpenApi(
             path = "/api/v1/inventory-checks/next",
             methods = HttpMethod.GET,
             summary = "Get the next member for an inventory check",
@@ -429,6 +463,31 @@ public class InventoryCheckRoutes implements Routes {
     }
 
     public record CreateAndAssignRequest(int inventoryId, Integer sizeId, Integer oldItemId) {}
+
+    /**
+     * What a check found the member holding, as it arrives over the wire.
+     *
+     * @param inventoryId  the inventory both pieces sit in
+     * @param oldItemId    the piece wrongly on the member's record, or {@code null} where they were
+     *                     recorded as holding nothing
+     * @param pickedItemId a piece from the free stock, or {@code null} to make a new one
+     * @param sizeId       the size of a new piece
+     * @param ownerKind    who owns a new piece, which only a mixed inventory has to be told
+     * @param internalId   the number on a new piece
+     * @param metadata     the inventory's own fields for a new piece
+     */
+    public record CorrectItemRequest(
+            int inventoryId,
+            Integer oldItemId,
+            Integer pickedItemId,
+            Integer sizeId,
+            ItemOwner ownerKind,
+            String internalId,
+            InventoryItemMetadata metadata) {
+        ItemCorrection toCorrection() {
+            return new ItemCorrection(inventoryId, oldItemId, pickedItemId, sizeId, ownerKind, internalId, metadata);
+        }
+    }
 
     public record NextMemberResponse(Integer memberId) {}
 }

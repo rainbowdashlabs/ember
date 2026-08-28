@@ -177,6 +177,8 @@ export interface InventoryItemHistory {
     memberName?: string
     givenOut?: string
     returned?: string | null
+    /** Whether a check ended the spell by putting the record right rather than by a hand-back. */
+    corrected?: boolean
     memberIdentity?: MemberIdentity | null
 }
 

@@ -32,6 +32,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   setResult: [result: CheckResult]
   exchange: [kind: RapidExchangeKind, entry: CheckEntry]
+  correct: [entry: CheckEntry]
   markNotInPossession: []
   assign: [itemId: string]
   createAndAssign: [sizeId: string]
@@ -165,6 +166,13 @@ defineExpose({ currentEntry })
       >
         {{ t('inventory.check.exchangeDamaged') }}
       </InfoButton>
+      <SecondaryButton
+          :icon="['fas', 'pen']"
+          data-testid="rapid-correct"
+          @click="emit('correct', currentEntry)"
+      >
+        {{ t('inventory.check.correct.action') }}
+      </SecondaryButton>
     </div>
     <div class="flex justify-center gap-2">
       <SecondaryButton @click="skip">
