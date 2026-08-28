@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
+import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.PagedChanges;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
@@ -20,6 +21,7 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -58,6 +60,7 @@ public class ProfileFieldService {
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final ClusterProfileFieldRepository clusterFieldRepository;
+    private final MemberGroupRepository memberGroupRepository;
     private final MemberPermissionResolver permissionResolver;
 
     @Inject
@@ -68,6 +71,7 @@ public class ProfileFieldService {
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             ClusterProfileFieldRepository clusterFieldRepository,
+            MemberGroupRepository memberGroupRepository,
             MemberPermissionResolver permissionResolver) {
         this.profileFieldRepository = profileFieldRepository;
         this.changeRepository = changeRepository;
@@ -75,6 +79,7 @@ public class ProfileFieldService {
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.clusterFieldRepository = clusterFieldRepository;
+        this.memberGroupRepository = memberGroupRepository;
         this.permissionResolver = permissionResolver;
     }
 
@@ -98,12 +103,42 @@ public class ProfileFieldService {
         return profileFieldRepository.findByStationAndScope(stationId, scope);
     }
 
+    /**
+     * The questions one member's profile asks them.
+     *
+     * <p>Two things decide it, and for a while only one of them was read. What kind of member
+     * somebody is picks one scope, which is most of the form. On top of that a station can ask
+     * something of one group alone: whoever drives asks for a licence class, and nobody else is
+     * asked at all. Those were declared, stored and shown in the configuration screen, and then
+     * reached nobody, because this looked at the member's kind and never at the groups they are in.
+     *
+     * @param memberId the member whose profile is being filled in
+     * @return the fields of their kind, followed by the ones their groups are asked
+     */
     public List<MergedField> findApplicableFields(int memberId) {
         var member = stationMemberRepository.findById(memberId).orElse(null);
         if (member == null) return List.of();
         var scope = scopeForUserType(member.userType());
         if (scope == null) return List.of();
-        return findMergedFields(member.stationId(), scope);
+        List<MergedField> fields = new ArrayList<>(findMergedFields(member.stationId(), scope));
+        fields.addAll(fieldsOfTheirGroups(member.id(), member.stationId()));
+        return fields;
+    }
+
+    /**
+     * The group-scoped fields that reach this member, which are the ones asked of a group they are
+     * in. A field of that scope naming no group is asked of nobody: it is half-configured rather
+     * than universal, and the configuration screen lists it separately for exactly that reason.
+     */
+    private List<MergedField> fieldsOfTheirGroups(int memberId, int stationId) {
+        var groupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
+                .map(MemberGroup::id)
+                .collect(Collectors.toSet());
+        if (groupIds.isEmpty()) return List.of();
+        return findMergedFields(stationId, ProfileFieldScope.GROUP).stream()
+                .filter(field -> field.config() != null
+                        && groupIds.contains(field.config().groupId()))
+                .toList();
     }
 
     /**

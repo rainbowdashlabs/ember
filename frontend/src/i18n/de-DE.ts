@@ -3287,6 +3287,9 @@ export default {
                 firstName: 'Vorname',
                 lastName: 'Nachname',
             },
+            askedFor: 'Aufnehmen',
+            askedForHint: 'Nimmt den Gegenstand auch dann auf, wenn nichts einzutragen ist. '
+                + 'Zeilen mit Größe, Nummer oder Feldern werden ohnehin aufgenommen.',
             save: 'Bestand eintragen',
         },
         detail: {

@@ -58,6 +58,10 @@ const bulkSize = ref('1')
       </NeutralContainer>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.inventoryIntake.askedForTitle')">
+      <p>{{ t('helpCenter.inventoryIntake.askedForText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.inventoryIntake.sortTitle')">
       <p>{{ t('helpCenter.inventoryIntake.sortText') }}</p>
     </HelpSection>

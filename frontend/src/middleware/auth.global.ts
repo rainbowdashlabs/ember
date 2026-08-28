@@ -16,6 +16,19 @@ import {useStations} from '~/composables/useStations'
 const IDLE_LIMIT_MS = 3600000
 
 /**
+ * The pages the idle check leaves alone, because they are the gates it would send somebody to.
+ *
+ * <p>Every other gate here turns a navigation away without stamping the session as active, which is
+ * deliberate: a stamp written ahead of a redirect would spend the idle window before the
+ * requirements were ever seen. That leaves the window open, so a gate that is itself sent away
+ * bounces for ever. Consent, once out of date, redirected to {@code /reconsent}, the idle check sent
+ * that to the requirements, consent sent it back, and neither ever wrote the stamp: the tab spun
+ * until the browser called the page unresponsive, and only a reload broke out of it, because the
+ * consent flag lives no longer than the page does.
+ */
+const IDLE_EXEMPT = new Set(['/station/requirements', '/reconsent'])
+
+/**
  * Order matters here. The active station is resolved first, so a link arriving with
  * {@code ?station=} hands its station over before anything else can redirect and drop the
  * parameter. The idle check runs afterwards and only once a station is known - the requirements
@@ -81,7 +94,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
     const lastActivity = localStorage.getItem('ember_last_activity')
     const now = Date.now()
-    if (lastActivity && now - Number(lastActivity) > IDLE_LIMIT_MS && to.path !== '/station/requirements') {
+    if (lastActivity && now - Number(lastActivity) > IDLE_LIMIT_MS && !IDLE_EXEMPT.has(to.path)) {
         return navigateTo({path: '/station/requirements', query: {redirect: to.fullPath}})
     }
     localStorage.setItem('ember_last_activity', String(now))

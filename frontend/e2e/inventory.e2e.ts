@@ -367,4 +367,32 @@ test.describe('Inventory', () => {
             'and each piece is in the hands of the member on its line').toBe(written.length)
         expect(written.some((item: {internalId?: string}) => item.internalId === `A-${stamp}`)).toBeTruthy()
     })
+
+    /**
+     * An inventory that keeps no sizes and no fields of its own, holding gear nobody ever wrote a
+     * number on. There is nothing to fill in, so the line has to be asked for outright.
+     */
+    test('a piece with nothing to write down is taken into stock all the same', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const stamp = Date.now()
+        const made = await page.request.post('/api/v1/inventories',
+            {headers, data: {name: `Ohne Angaben ${stamp}`, inventoryType: 'INTERNAL', hasSizes: false}})
+        const inventoryId = (await made.json()).id
+
+        await page.goto(`/station/inventory/intake/${inventoryId}`)
+        await page.getByTestId('intake-load').click()
+        await expect(page.getByTestId('intake-row').first()).toBeVisible()
+
+        await expect(page.getByTestId('intake-save'), 'an untouched table writes nothing').toBeDisabled()
+        await page.getByTestId('intake-asked-0').check()
+        await page.getByTestId('intake-save').click()
+
+        await page.waitForURL(new RegExp(`/station/inventory/detail/${inventoryId}$`))
+
+        const written = await page.request.get(`/api/v1/inventories/${inventoryId}/items`, {headers})
+            .then(r => r.json())
+        expect(written.length, 'the ticked line became a piece').toBe(1)
+        expect(written[0].internalId ?? null, 'with no number on it').toBeNull()
+        expect(written[0].assignedTo, 'in the hands of the member on its line').toBeTruthy()
+    })
 })

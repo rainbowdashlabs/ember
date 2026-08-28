@@ -19,6 +19,19 @@ import {moveWithin} from '@/util/reorder'
 export const GROUP_SCOPE = 'GROUP'
 
 /**
+ * Whether two dates of birth could be put to the same person, which is the rule the server keeps
+ * and this screen has to agree with or it offers what would be refused.
+ *
+ * <p>A field aimed at a kind of member is met only by that kind, and nobody is two kinds at once. A
+ * group is the exception: a member belongs to any number of groups and to a kind besides, so one
+ * asked of a group meets people who are asked elsewhere too.
+ */
+function birthDatesCollide(scope: string, other: string | undefined): boolean {
+    if (scope === GROUP_SCOPE || other === GROUP_SCOPE) return true
+    return scope === other
+}
+
+/**
  * Where a set of profile fields lives, and which choices whoever owns them may make.
  *
  * <p>A station declares fields for its own members. An association declares fields that are asked of
@@ -184,9 +197,19 @@ export function useFieldsConfig(port: FieldsPort) {
     const dateFields = computed(() =>
         currentFields.value.filter(f => DATE_FIELD_TYPES.includes(f.fieldType ?? '')))
 
-    /** One per owner, not per scope: a member has one date of birth however the tabs are arranged. */
-    const birthDateField = computed(() =>
-        allFields.value.find(f => f.fieldType === FieldTypes.BIRTH_DATE) ?? null)
+    /**
+     * The date of birth already asked of the members this tab is about, which is what decides
+     * whether another may be added.
+     *
+     * <p>One per kind of member rather than one per owner, which is the rule the server keeps:
+     * nobody is two kinds at once, so asking the team and asking the guardians are two questions no
+     * single member answers twice. Taking the first one anywhere told the tabs that a station with
+     * a date of birth for its members could have none for its team, and worse, opening the team's
+     * own one for editing offered every type except the one it already had, leaving the type
+     * blank.
+     */
+    const birthDateField = computed(() => allFields.value.find(
+        f => f.fieldType === FieldTypes.BIRTH_DATE && birthDatesCollide(activeTab.value, f.scope)) ?? null)
 
     function openAddField() {
         editingField.value = null

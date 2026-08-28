@@ -91,6 +91,9 @@ function update(index: number, line: IntakeLine) {
       <table class="w-full text-sm">
         <thead>
           <tr class="text-left text-(--text-muted)">
+            <th class="py-1 pr-3 font-medium" :title="t('inventory.intake.askedForHint')">
+              {{ t('inventory.intake.askedFor') }}
+            </th>
             <IntakeMemberHeader :active-key="sortKey" :direction="direction" @sort="sortBy"/>
             <th v-if="props.hasSizes" class="py-1 pr-3 font-medium">{{ t('inventory.intake.size') }}</th>
             <th class="py-1 pr-3 font-medium">{{ t('inventory.intake.number') }}</th>

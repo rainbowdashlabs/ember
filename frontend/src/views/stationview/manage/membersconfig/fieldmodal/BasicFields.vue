@@ -33,6 +33,9 @@ const capabilities = useFieldsCapabilities()
 const availableOptions = computed(() => FIELD_TYPE_ORDER
     .filter(type => capabilities.types.includes(type))
     .filter((type) => {
+      // What the field already is stays on the list whatever else rules it out. A select whose
+      // value has no option shows nothing at all, which reads as a field with no type.
+      if (type === fieldType.value) return true
       if (type === FieldTypes.AGE) return props.scope === 'MEMBER'
       if (type === FieldTypes.BIRTH_DATE) return props.birthDateAvailable
       return true

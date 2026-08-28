@@ -335,6 +335,8 @@ export interface IntakeRow {
     sizeId?: number | null
     ownerKind?: ItemOwnerName
     metadata?: ItemMetadata
+    /** Written down even with nothing on it, for gear there is nothing to record about. */
+    askedFor?: boolean
 }
 
 /** Writes down several pieces at once and hands each one to the member on its line. */

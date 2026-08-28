@@ -24,6 +24,11 @@ export interface IntakeLine {
     sizeId: string
     internalId: string
     fields: Record<string, unknown>
+    /**
+     * Whether this line was asked for outright. Gear nobody ever wrote a number on, in an inventory
+     * that keeps no sizes and no fields, leaves nothing to fill in, so the line says so itself.
+     */
+    askedFor: boolean
 }
 
 /** A line for somebody, with nothing written on it yet. */
@@ -36,12 +41,14 @@ export function lineFor(member: StationMember): IntakeLine {
         sizeId: '',
         internalId: '',
         fields: {},
+        askedFor: false,
     }
 }
 
 /** Whether this line describes a piece, which is what decides whether it is sent at all. */
 export function namesAPiece(line: IntakeLine): boolean {
-    return line.sizeId !== ''
+    return line.askedFor
+        || line.sizeId !== ''
         || line.internalId.trim() !== ''
         || Object.values(line.fields).some(value => value !== undefined && value !== null && value !== '')
 }
@@ -63,5 +70,6 @@ export function rowsOf(
         sizeId: line.sizeId ? Number(line.sizeId) : null,
         ownerKind,
         metadata: buildItemMetadata(fields, line.fields),
+        askedFor: line.askedFor,
     }))
 }
