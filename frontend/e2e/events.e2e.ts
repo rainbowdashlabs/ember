@@ -40,6 +40,22 @@ test.describe('Events', () => {
     })
 
     /**
+     * The list of what is coming up reads from the nearest date to the furthest. It used to hoist
+     * every event running over several days to the front, which put one months away above
+     * tomorrow's drill and made the whole list read as unsorted.
+     */
+    test('the upcoming list reads from the nearest date to the furthest', async ({memberPage: page}) => {
+        await page.goto('/station/events/upcoming')
+
+        const rows = page.getByTestId('upcoming-event')
+        await expect(rows.first()).toBeVisible()
+
+        const dates = await rows.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-date') ?? ''))
+        expect(dates.length, 'there is something to put in order').toBeGreaterThan(1)
+        expect(dates, 'every row is on or after the one above it').toEqual([...dates].sort())
+    })
+
+    /**
      * The registrations of an event load when the tab is opened. This is the story behind a fix
      * that shipped: the tab stayed empty because the list was asked for while the page was still
      * loading, and nothing asked again afterwards.

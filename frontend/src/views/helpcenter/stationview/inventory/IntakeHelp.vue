@@ -22,10 +22,15 @@ const SIZES = [
   {id: 2, inventoryId: 1, label: '164', position: 1},
 ]
 
+/** A made-up member for the example table, named the way the real one is. */
+function someone(id: number, name: string): IntakeLine {
+  return lineFor({id, stationId: '1', accountId: id, name})
+}
+
 const lines = ref<IntakeLine[]>([
-  {...lineFor(1, 'Tim Berger'), sizeId: '1', internalId: 'J-114'},
-  {...lineFor(2, 'Lena Berger'), sizeId: '2'},
-  lineFor(3, 'Mia Berger'),
+  {...someone(1, 'Tim Berger'), sizeId: '1', internalId: 'J-114'},
+  {...someone(2, 'Lena Berger'), sizeId: '2'},
+  someone(3, 'Mia Berger'),
 ])
 const bulkSize = ref('1')
 </script>
@@ -51,6 +56,10 @@ const bulkSize = ref('1')
       <NeutralContainer class="mt-3">
         <IntakeTable v-model:lines="lines" v-model:bulk-size="bulkSize" :sizes="SIZES" :fields="[]" has-sizes/>
       </NeutralContainer>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.inventoryIntake.sortTitle')">
+      <p>{{ t('helpCenter.inventoryIntake.sortText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryIntake.bulkTitle')">

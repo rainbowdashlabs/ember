@@ -61,7 +61,7 @@ test.describe('Cluster content', () => {
 
         const written = await page.request.post('/api/v1/news', {
             headers,
-            data: {title, contentMarkdown: 'Alle Wachen sind gemeint.', contentHtml: '<p>Alle Wachen sind gemeint.</p>'},
+            data: {title, contentMarkdown: 'Alle Wachen sind gemeint.'},
         })
         expect(written.ok()).toBeTruthy()
 
@@ -131,7 +131,7 @@ test.describe('Cluster content', () => {
 
         const written = await page.request.post('/api/v1/news', {
             headers: own.contentHeaders,
-            data: {title, contentMarkdown: 'Für alle.', contentHtml: '<p>Für alle.</p>'},
+            data: {title, contentMarkdown: 'Für alle.'},
         })
         expect(written.ok()).toBeTruthy()
 

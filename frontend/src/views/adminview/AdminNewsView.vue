@@ -20,7 +20,6 @@ import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import SystemNewsList from './adminnewsview/SystemNewsList.vue'
 import SystemNewsEditor from './adminnewsview/SystemNewsEditor.vue'
-import {renderMarkdown} from '@/util/markdown'
 
 const {t} = useI18n()
 
@@ -70,9 +69,6 @@ async function save(payload: EditorPayload) {
     const data: SystemNewsRequest = {
       title: payload.title,
       contentMarkdown: payload.contentMarkdown,
-      // What a reader is shown is the rendered body, not the markdown. Sending nothing here left
-      // the notice blank for everyone it reached.
-      contentHtml: renderMarkdown(payload.contentMarkdown),
       userTypes: payload.userTypes,
       publish: true,
       notifyMembers: payload.notifyMembers,

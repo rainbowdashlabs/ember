@@ -63,7 +63,6 @@ class NewsServiceTest extends RepositoryTestBase {
                 station.id(),
                 "Test News",
                 "Content of the news article",
-                "<p>Content of the news article</p>",
                 authorIdentity,
                 List.of(),
                 List.of(),
@@ -72,6 +71,31 @@ class NewsServiceTest extends RepositoryTestBase {
         assertNotNull(news);
         assertEquals("Test News", news.title());
         newsId = news.id();
+    }
+
+    /**
+     * The HTML a reader is served is rendered here, from the Markdown, and never taken from
+     * whoever asked for the entry. A browser's rendering is a convenience; this is the copy that
+     * every reader is handed as markup, so it comes from a renderer and a sanitiser we control.
+     */
+    @Test
+    @Order(7)
+    void theBodyIsRenderedFromTheMarkdownAndSanitised() {
+        var written = service.create(
+                station.id(),
+                "Mitbringen",
+                "Bitte mitbringen:\n\n- Helm\n- Parka\n\n<script>alert(1)</script>",
+                stationMemberRepo.resolveIdentity(member.id()),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of());
+
+        String html = service.findById(written.id()).orElseThrow().contentHtml();
+        assertTrue(html.contains("<ul>") && html.contains("<li>Helm</li>"), "the list is a list: " + html);
+        assertFalse(html.contains("<script"), "and nothing that could run came with it: " + html);
+
+        service.delete(written.id());
     }
 
     @Test
@@ -90,15 +114,8 @@ class NewsServiceTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void update() {
-        var result = service.update(
-                newsId,
-                "Updated News",
-                "Updated content",
-                "<p>Updated content</p>",
-                List.of(),
-                List.of(),
-                List.of(),
-                List.of());
+        var result =
+                service.update(newsId, "Updated News", "Updated content", List.of(), List.of(), List.of(), List.of());
         assertTrue(result.isPresent());
         assertEquals("Updated News", result.get().title());
     }
@@ -280,13 +297,8 @@ class NewsServiceTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void aSystemEntryBelongsToNoStationAndIsReadInOne() {
-        var entry = service.createSystem(
-                "Wartungsarbeiten",
-                "Am Freitag kurz nicht erreichbar.",
-                "<p>Kurz nicht erreichbar.</p>",
-                List.of(),
-                true,
-                false);
+        var entry =
+                service.createSystem("Wartungsarbeiten", "Am Freitag kurz nicht erreichbar.", List.of(), true, false);
         try {
             assertTrue(entry.systemEntry());
             assertNull(entry.author());
@@ -310,13 +322,8 @@ class NewsServiceTest extends RepositoryTestBase {
     @Test
     @Order(41)
     void aSystemEntryRestrictedToAnotherUserTypeIsNotVisible() {
-        var entry = service.createSystem(
-                "Nur Betreuer",
-                "Für die Leitung.",
-                "<p>Für die Leitung.</p>",
-                List.of(StationUserType.MANAGER),
-                true,
-                false);
+        var entry =
+                service.createSystem("Nur Betreuer", "Für die Leitung.", List.of(StationUserType.MANAGER), true, false);
         try {
             assertFalse(
                     service.isVisibleForMember(entry.id(), member.id()),
@@ -336,7 +343,7 @@ class NewsServiceTest extends RepositoryTestBase {
         var otherStation = stationRepo.create("Other System Station");
         var otherAccount = accountRepo.create("other-system@test.com", "Other", "Commenter");
         var otherMember = stationMemberRepo.create(otherStation.id(), otherAccount.id());
-        var entry = service.createSystem("Frage", "Was denn?", "<p>Was denn?</p>", List.of(), true, false);
+        var entry = service.createSystem("Frage", "Was denn?", List.of(), true, false);
         try {
             service.createComment(
                     station.id(), entry.id(), null, stationMemberRepo.resolveIdentity(member.id()), "Hier", "Von uns");
@@ -383,9 +390,9 @@ class NewsServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 memberLookupService,
                 accountRepo);
-        var quiet = notifyingService.createSystem("Leise", "Nichts.", "<p>Nichts.</p>", List.of(), true, false);
+        var quiet = notifyingService.createSystem("Leise", "Nichts.", List.of(), true, false);
         int afterQuiet = published.size();
-        var loud = notifyingService.createSystem("Laut", "Etwas.", "<p>Etwas.</p>", List.of(), true, true);
+        var loud = notifyingService.createSystem("Laut", "Etwas.", List.of(), true, true);
         try {
             assertEquals(0, afterQuiet, "a quiet entry tells nobody");
             assertTrue(published.size() >= 1, "a loud one tells the stations");

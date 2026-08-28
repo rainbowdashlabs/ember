@@ -67,10 +67,13 @@ export interface NewsEntry {
     systemEntry: boolean
 }
 
+/**
+ * What is sent when an entry is written. The body goes as Markdown alone: the HTML that is served
+ * back to readers is rendered and sanitised on the server, so a browser's rendering is never stored.
+ */
 export interface NewsRequest {
     title: string
     contentMarkdown: string
-    contentHtml: string
     userTypes: string[]
     groupIds: number[]
     tagIds: number[]

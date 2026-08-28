@@ -625,7 +625,6 @@ public class DemoClusterSeeder implements DemoSeeder {
                 cluster.homeStationId(),
                 "Kreisübung im Herbst",
                 "Alle Wachen des Kreisverbands sind eingeladen.",
-                "<p>Alle Wachen des Kreisverbands sind eingeladen.</p>",
                 contentService.authorIdentity(cluster.id(), accountId),
                 List.of(),
                 List.of(),

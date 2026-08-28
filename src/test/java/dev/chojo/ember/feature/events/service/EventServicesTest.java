@@ -30,6 +30,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.EnumSet;
@@ -953,6 +954,52 @@ class EventServicesTest extends RepositoryTestBase {
         breakService.delete(brk.id());
         breakService.delete(breakBreak.id());
         stationRepo.delete(breakStation.id());
+    }
+
+    /**
+     * The list answers "what is coming up", so it reads from the nearest date to the furthest, and
+     * within one date from the earliest hour. It runs on a station of its own because the order is
+     * the whole assertion, and every other event of the shared station would stand in it.
+     */
+    @Test
+    @Order(1290)
+    void upcomingOccurrencesReadFromTheNearestToTheFurthest() {
+        var sortStation = stationRepo.create("SortStation");
+        var day = LocalDate.now(ZoneOffset.UTC).plusDays(9);
+
+        int evening = oneTimeAt(sortStation.id(), "Abends", day.atTime(19, 0)).id();
+        int nextMorning = oneTimeAt(
+                        sortStation.id(), "Tags darauf", day.plusDays(1).atTime(9, 0))
+                .id();
+        int morning = oneTimeAt(sortStation.id(), "Morgens", day.atTime(8, 0)).id();
+
+        var order = occurrenceService.findUpcomingOccurrences(sortStation.id(), null, null, null, null, 100, 0).stream()
+                .map(occurrence -> occurrence.event().id())
+                .toList();
+
+        assertEquals(List.of(morning, evening, nextMorning), order, "nearest date first, and one date by the clock");
+        stationRepo.delete(sortStation.id());
+    }
+
+    private static StationEvent oneTimeAt(int stationId, String name, LocalDateTime at) {
+        var start = at.toInstant(ZoneOffset.UTC);
+        return crudService.create(
+                stationId,
+                name,
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
     }
 
     @Test

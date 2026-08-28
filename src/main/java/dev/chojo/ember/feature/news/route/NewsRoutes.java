@@ -228,7 +228,6 @@ public class NewsRoutes implements Routes {
                 session.stationId(),
                 request.title(),
                 request.contentMarkdown(),
-                request.contentHtml() != null ? request.contentHtml() : "",
                 authorIdentity,
                 request.userTypes() != null ? request.userTypes() : List.of(),
                 request.groupIds() != null ? request.groupIds() : List.of(),
@@ -266,7 +265,6 @@ public class NewsRoutes implements Routes {
                         id,
                         request.title(),
                         request.contentMarkdown(),
-                        request.contentHtml() != null ? request.contentHtml() : "",
                         request.userTypes() != null ? request.userTypes() : List.of(),
                         request.groupIds() != null ? request.groupIds() : List.of(),
                         request.tagIds() != null ? request.tagIds() : List.of(),
@@ -828,10 +826,13 @@ public class NewsRoutes implements Routes {
         }
     }
 
+    /**
+     * What an author sends. The body arrives as Markdown only: the HTML that goes with it is
+     * rendered and sanitised on this side, because it is served back to every reader as markup.
+     */
     public record NewsRequest(
             String title,
             String contentMarkdown,
-            String contentHtml,
             List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,

@@ -89,7 +89,7 @@ const offeredUserTypes = computed(() =>
 /** Loads the chosen audience into the table, replacing whatever was there. */
 async function openTable() {
   const chosen = await membersOfAudience()
-  lines.value = chosen.map(member => lineFor(member.id, memberDisplayName(member)))
+  lines.value = chosen.map(lineFor)
   loaded.value = true
 }
 
@@ -107,7 +107,7 @@ async function membersOfAudience(): Promise<StationMember[]> {
 function addByHand(memberId: number) {
   const member = members.value.find(candidate => candidate.id === memberId)
   if (!member) return
-  lines.value = [...lines.value, lineFor(member.id, memberDisplayName(member))]
+  lines.value = [...lines.value, lineFor(member)]
 }
 
 /** Writes the chosen size into every line that has none, which is what a uniform issue looks like. */

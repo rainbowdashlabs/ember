@@ -221,13 +221,8 @@ class NewsBlockServiceTest extends RepositoryTestBase {
      */
     @Test
     void aSystemEntryIsBuiltFromBlocksThatBelongToNoStation() {
-        var entry = service.createSystem(
-                "Wartungsarbeiten",
-                "Am Freitag kurz nicht erreichbar.",
-                "<p>Kurz nicht erreichbar.</p>",
-                List.of(),
-                true,
-                false);
+        var entry =
+                service.createSystem("Wartungsarbeiten", "Am Freitag kurz nicht erreichbar.", List.of(), true, false);
         try {
             var switched = service.switchToRich(entry.id()).orElseThrow();
             assertNull(

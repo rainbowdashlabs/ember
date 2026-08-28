@@ -33,7 +33,6 @@ export interface SystemNewsEntry {
 export interface SystemNewsRequest {
     title: string
     contentMarkdown: string
-    contentHtml: string
     userTypes: string[]
     publish?: boolean
     /**

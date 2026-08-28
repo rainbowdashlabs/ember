@@ -38,6 +38,7 @@
     "@fortawesome/vue-fontawesome": "^3.2.0",
     "@nuxtjs/i18n": "^10.4.0",
     "@nuxtjs/sitemap": "^8.1.0",
+    "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.2.4",
     "@tiptap/extension-code-block-lowlight": "^3.23.6",
     "@tiptap/extension-color": "^3.23.6",

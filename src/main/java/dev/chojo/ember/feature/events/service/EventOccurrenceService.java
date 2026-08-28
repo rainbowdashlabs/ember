@@ -12,7 +12,9 @@ import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -103,8 +105,22 @@ public class EventOccurrenceService {
             }
         }
 
-        occurrences.sort(Comparator.comparing(UpcomingEventOccurrence::date));
+        occurrences.sort(Comparator.comparing(UpcomingEventOccurrence::date)
+                .thenComparing(EventOccurrenceService::timeOfDay)
+                .thenComparing(occurrence -> occurrence.event().id()));
         return occurrences.stream().skip(offset).limit(limit).toList();
+    }
+
+    /**
+     * When in the day an occurrence starts, which is what orders the several that share a date.
+     *
+     * <p>A repeating event carries the clock time of its first date rather than of this one, and
+     * that clock time is the same on every date it repeats onto, so reading it off the start is
+     * right for both kinds. An event with no start time at all sorts to the top of its day.
+     */
+    private static LocalTime timeOfDay(UpcomingEventOccurrence occurrence) {
+        Instant start = occurrence.event().startTime();
+        return start == null ? LocalTime.MIN : start.atZone(ZoneOffset.UTC).toLocalTime();
     }
 
     private List<StationEvent> matchingEvents(

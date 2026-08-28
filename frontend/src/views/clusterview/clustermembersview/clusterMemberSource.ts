@@ -41,6 +41,7 @@ function toRich(member: ManagedMember): RichMember {
         email: member.email,
         accountSetupPending: false,
         setupMailExpiresAt: null,
+        mailReachable: true,
         former: member.former,
         userType: member.userType,
         roles: [],

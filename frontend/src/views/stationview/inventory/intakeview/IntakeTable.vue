@@ -4,12 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import IntakeMemberHeader from './IntakeMemberHeader.vue'
 import IntakeTableRow from './IntakeTableRow.vue'
+import {compareSortValues, type SortDirection} from '@/composables/useSortable'
 import type {InventorySize} from '@/api/inventory'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 import type {IntakeLine} from './intakeLines'
@@ -35,6 +38,28 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+const sortKey = ref<'firstName' | 'lastName'>('lastName')
+const direction = ref<SortDirection>('asc')
+
+/**
+ * Puts the table in order there and then, rather than rendering a sorted view of it.
+ *
+ * <p>Every row is a form the reader is filling in, and a view that re-sorts itself while they type
+ * would move the row under their hands the moment a name changed. Reordering the lines themselves
+ * happens once, when the button is pressed, and stays put afterwards.
+ */
+function sortBy(key: 'firstName' | 'lastName') {
+  if (sortKey.value === key) direction.value = direction.value === 'asc' ? 'desc' : 'asc'
+  else {
+    sortKey.value = key
+    direction.value = 'asc'
+  }
+  const factor = direction.value === 'asc' ? 1 : -1
+  lines.value = [...lines.value].sort((a, b) =>
+      (compareSortValues(a[sortKey.value], b[sortKey.value])
+          || compareSortValues(a.memberName, b.memberName)) * factor)
+}
 
 function remove(index: number) {
   lines.value = lines.value.filter((_, at) => at !== index)
@@ -66,7 +91,7 @@ function update(index: number, line: IntakeLine) {
       <table class="w-full text-sm">
         <thead>
           <tr class="text-left text-(--text-muted)">
-            <th class="py-1 pr-3 font-medium">{{ t('inventory.intake.member') }}</th>
+            <IntakeMemberHeader :active-key="sortKey" :direction="direction" @sort="sortBy"/>
             <th v-if="props.hasSizes" class="py-1 pr-3 font-medium">{{ t('inventory.intake.size') }}</th>
             <th class="py-1 pr-3 font-medium">{{ t('inventory.intake.number') }}</th>
             <th v-for="field in props.fields" :key="field.id" class="py-1 pr-3 font-medium">{{ field.label }}</th>

@@ -81,20 +81,21 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
   }
 
   /**
-   * The occurrences to render: one entry per event, multi-day ones first so they read as the
-   * banner rows above the single-day list.
+   * The occurrences to render: one entry per event, in the order the server put them, which is
+   * the nearest date first.
+   *
+   * <p>A repeating event reaches here once per date it falls on, and only its next one is worth a
+   * row: the list answers "what is coming up", not "how often does this happen". Nothing is
+   * reordered on top of that. Multi-day events used to be hoisted to the front as banner rows,
+   * which put an event months away above tomorrow's drill and made the list read as unsorted.
    */
   const filteredUpcoming = computed(() => {
     const seen = new Set<number>()
-    const multiDay: UpcomingEventOccurrence[] = []
-    const singleDay: UpcomingEventOccurrence[] = []
-    for (const item of upcomingOccurrences.value) {
-      if (seen.has(item.event.id)) continue
+    return upcomingOccurrences.value.filter(item => {
+      if (seen.has(item.event.id)) return false
       seen.add(item.event.id)
-      if (multiDayEndDate(item.event, item.date)) multiDay.push(item)
-      else singleDay.push(item)
-    }
-    return [...multiDay, ...singleDay]
+      return true
+    })
   })
 
   function buildUpcomingParams(offset = 0) {

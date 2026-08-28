@@ -151,6 +151,8 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
         userType: rm.userType,
         identity: rm.identity,
         accountSetupPending: rm.accountSetupPending,
+        setupMailExpiresAt: rm.setupMailExpiresAt,
+        mailReachable: rm.mailReachable,
       })
 
       rolesMap.set(rm.id, rm.roles)

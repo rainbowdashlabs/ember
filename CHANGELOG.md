@@ -1,5 +1,21 @@
 # Changelog
 
+## v26.13.6
+
+### Security
+
+- **The body of a news entry is now written by the server.** What a browser sent as formatted markup was stored and served back to every reader unchecked, so anybody able to reach the interface directly could have put arbitrary markup into an entry. The formatted body is rendered from the text of the entry and cleaned on the server, and what a browser sends is no longer read at all.
+
+### Improvements
+
+- **The stock-taking table can be put in either order of name.** The member column now offers first name and surname, and a second press on the same one turns the order round. The table then lies in the order of whatever list is on the desk beside it.
+
+### Fixes
+
+- **The list of upcoming appointments was not in date order.** Every appointment running over more than one day was pulled to the top, so one months away stood above tomorrow's drill. The list now reads from the nearest date to the furthest, and several on the same day in the order of the clock.
+- **Formatted text was shown without any of its formatting.** Lists lost their bullets, headings read like ordinary text and paragraphs ran together, so a news entry written with a list arrived as a wall of words. Every place that shows written text now reads as it was written: news entries, ticket descriptions, appointment details, help articles and the public calendar.
+- **The member list still offered to send a setup mail that could not arrive.** Somebody entered without an address carries one that was made up for them, and the button beside their name was offered all the same, producing an error when pressed. It now appears only where the mail would reach the member or one of their guardians, and the note beside it says when the current link runs out.
+
 ## v26.13.5
 
 ### New Features

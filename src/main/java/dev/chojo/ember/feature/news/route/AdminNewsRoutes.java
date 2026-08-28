@@ -132,7 +132,6 @@ public class AdminNewsRoutes implements Routes {
         var news = newsService.createSystem(
                 request.title(),
                 request.contentMarkdown() != null ? request.contentMarkdown() : "",
-                request.contentHtml() != null ? request.contentHtml() : "",
                 request.userTypes() != null ? request.userTypes() : List.of(),
                 request.publish() == null || request.publish(),
                 Boolean.TRUE.equals(request.notifyMembers()));
@@ -161,7 +160,6 @@ public class AdminNewsRoutes implements Routes {
                         id,
                         request.title(),
                         request.contentMarkdown() != null ? request.contentMarkdown() : "",
-                        request.contentHtml() != null ? request.contentHtml() : "",
                         request.userTypes() != null ? request.userTypes() : List.of(),
                         List.of(),
                         List.of(),
@@ -346,7 +344,6 @@ public class AdminNewsRoutes implements Routes {
     public record SystemNewsRequest(
             String title,
             String contentMarkdown,
-            String contentHtml,
             List<StationUserType> userTypes,
             Boolean publish,
             Boolean notifyMembers,
