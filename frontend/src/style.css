@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @import "./views/homeview/landing-shared.css";
 
+/*
+ * The typography plugin is what the `prose` classes on every rendered body mean. Without it the
+ * classes name nothing, and the reset underneath takes the markers off every list and the spacing
+ * off every heading, so an article reads as one wall of text.
+ */
+@plugin "@tailwindcss/typography";
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {

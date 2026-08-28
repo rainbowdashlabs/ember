@@ -5,12 +5,21 @@
  */
 import type {IntakeRow, ItemOwnerName} from '@/api/inventory'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import type {StationMember} from '@/api/types'
 import {buildItemMetadata} from '@/views/stationview/inventory/detailview/itemMetadata'
+import {
+    getMemberFirstName,
+    getMemberLastName,
+    memberDisplayName,
+} from '@/views/stationview/members/listview/useMemberData'
 
 /** One line of the stock-taking table, as the editor holds it. */
 export interface IntakeLine {
     memberId: number | null
     memberName: string
+    /** The two halves of the name, kept apart so the table can be put in either order. */
+    firstName: string
+    lastName: string
     /** The size as the select holds it, which is a string or nothing chosen. */
     sizeId: string
     internalId: string
@@ -18,8 +27,16 @@ export interface IntakeLine {
 }
 
 /** A line for somebody, with nothing written on it yet. */
-export function lineFor(memberId: number | null, memberName: string): IntakeLine {
-    return {memberId, memberName, sizeId: '', internalId: '', fields: {}}
+export function lineFor(member: StationMember): IntakeLine {
+    return {
+        memberId: member.id,
+        memberName: memberDisplayName(member),
+        firstName: getMemberFirstName(member),
+        lastName: getMemberLastName(member),
+        sizeId: '',
+        internalId: '',
+        fields: {},
+    }
 }
 
 /** Whether this line describes a piece, which is what decides whether it is sent at all. */

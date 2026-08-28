@@ -520,7 +520,6 @@ public class DemoFederationSeeder implements DemoSeeder {
 
                         Wir freuen uns auf euren Besuch! 🚒
                         """,
-                "<p>Wir haben eine neue <strong>Drehleiter DLA(K) 23/12</strong> erhalten! Das Fahrzeug wird in den nächsten Wochen in den Dienst gestellt.</p><h2>Besichtigung</h2><p>Alle Partnereinheiten sind herzlich eingeladen, sich das Fahrzeug bei der nächsten gemeinsamen Übung anzuschauen.</p><p>Wir freuen uns auf euren Besuch! 🚒</p>",
                 stationMemberRepository.resolveIdentity(partnerMember.id()),
                 List.of(),
                 List.of(),

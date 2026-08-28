@@ -74,7 +74,6 @@ public class DemoNewsSeeder implements DemoPerStationSeeder {
 
                         Wir freuen uns auf eine tolle Zeit! \uD83D\uDE92
                         """,
-                "<p>Herzlich willkommen auf unserer neuen Plattform! Hier findet ihr alle wichtigen Informationen rund um unsere <strong>Jugendfeuerwehr</strong>.</p><h2>Was ist neu?</h2><p>Wir haben viele neue Funktionen für euch:</p><ul><li><strong>Terminübersicht</strong> - Alle Übungen, Veranstaltungen und Wettbewerbe auf einen Blick</li><li><strong>Anwesenheitsverwaltung</strong> - Schnelles Ein- und Auschecken bei Übungen</li><li><strong>Inventarverwaltung</strong> - Eure Ausrüstung immer im Blick</li><li><strong>Wiki</strong> - Lernmaterial und Protokolle</li></ul><h2>Erste Schritte</h2><ol><li>Prüft euer <strong>Profil</strong> und ergänzt fehlende Daten</li><li>Schaut euch die <strong>kommenden Termine</strong> an</li><li>Meldet euch für den nächsten <strong>Wettbewerb</strong> an</ol><blockquote><p><strong>Tipp:</strong> Bei Fragen könnt ihr jederzeit die Betreuer ansprechen oder die Hilfe-Seite nutzen.</p></blockquote><p>Wir freuen uns auf eine tolle Zeit! \uD83D\uDE92</p>",
                 stationMemberRepository.resolveIdentity(adminMemberId),
                 List.of(),
                 List.of(),
@@ -105,7 +104,6 @@ public class DemoNewsSeeder implements DemoPerStationSeeder {
 
                         > *Teilnehmen dürfen alle Fortgeschrittenen.*
                         """,
-                "<p>Die Anmeldung zum <strong>Kreiswettbewerb</strong> am 20. des übernächsten Monats ist jetzt geöffnet!</p><h2>Wichtige Infos</h2><table><tr><td></td><td>Details</td></tr><tr><td><strong>Datum</strong></td><td>20. des übernächsten Monats</td></tr><tr><td><strong>Ort</strong></td><td>Sportplatz Nachbarstadt</td></tr><tr><td><strong>Treffpunkt</strong></td><td>Feuerwehrgerätehaus, 07:30 Uhr</td></tr></table><h3>Was wird bewertet?</h3><ul><li>Löschangriff</li><li>Staffellauf</li><li>Knotenkunde</li><li>Erste Hilfe</li></ul><p>Bitte meldet euch <strong>bis spätestens nächste Woche</strong> über die Terminseite an. Die Plätze sind begrenzt.</p><blockquote><p><em>Teilnehmen dürfen alle Fortgeschrittenen.</em></p></blockquote>",
                 stationMemberRepository.resolveIdentity(
                         betreuerMembers.getFirst().id()),
                 List.of(),
@@ -180,7 +178,6 @@ public class DemoNewsSeeder implements DemoPerStationSeeder {
 
                         > Die neuen Helme entsprechen der aktuellen **DIN EN 443** Norm und bieten verbesserten Schutz.
                         """,
-                "<p>Die bestellten <strong>Helme und Handschuhe</strong> sind eingetroffen! \uD83C\uDF89</p><h2>Verteilung</h2><p>Die Verteilung findet bei der <strong>nächsten Übung</strong> statt. Bitte beachtet:</p><ol><li>Prüft eure <strong>Größen im Inventar</strong> vorab</li><li>Meldet euch bei Unstimmigkeiten bei den Betreuern</li><li>Bringt eure <strong>alten Helme</strong> zur Rückgabe mit</li></ol><blockquote><p>Die neuen Helme entsprechen der aktuellen <strong>DIN EN 443</strong> Norm und bieten verbesserten Schutz.</p></blockquote>",
                 stationMemberRepository.resolveIdentity(betreuerMembers.get(1).id()),
                 List.of(),
                 List.of(),
@@ -205,7 +202,6 @@ public class DemoNewsSeeder implements DemoPerStationSeeder {
 
                         Wir wünschen allen **schöne und erholsame Ferien**! ☀️
                         """,
-                "<p>Während der <strong>Sommerferien</strong> finden keine regulären Übungen statt.</p><h2>Zeitraum</h2><p>Der Übungsbetrieb <strong>pausiert</strong> während der gesamten Schulferien. Wir starten wieder am <strong>ersten Montag nach den Ferien</strong>.</p><h3>Trotzdem aktiv bleiben?</h3><ul><li>Das <strong>Wissenscenter</strong> bleibt verfügbar - nutzt die Zeit zum Lernen</li><li>Prüft eure <strong>Ausrüstung</strong> und meldet Mängel vorab</li><li>Die <strong>Anmeldung</strong> für den Herbst-Wettbewerb öffnet in den Ferien</li></ul><p>Wir wünschen allen <strong>schöne und erholsame Ferien</strong>! ☀️</p>",
                 stationMemberRepository.resolveIdentity(adminMemberId),
                 List.of(),
                 List.of(),

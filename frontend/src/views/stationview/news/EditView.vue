@@ -8,7 +8,6 @@ import { ref, computed, watch } from 'vue'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
-import { renderMarkdown } from '@/util/markdown'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -121,7 +120,6 @@ const canSave = computed(() =>
     !!title.value.trim() && (contentMode.value === ContentMode.RICH || !!contentMarkdown.value.trim()),
 )
 
-const contentHtml = computed(() => renderMarkdown(contentMarkdown.value))
 
 const { loading, error, reload } = useAsyncLoader(async () => {
   const [groupList, tagList] = await Promise.all([
@@ -166,7 +164,6 @@ async function save() {
     const data = {
       title: title.value,
       contentMarkdown: contentMarkdown.value,
-      contentHtml: contentHtml.value,
       userTypes: selectedUserTypes.value,
       groupIds: selectedGroupIds.value,
       tagIds: selectedTagIds.value,

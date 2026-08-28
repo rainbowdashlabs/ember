@@ -4799,6 +4799,10 @@ volumes:
             tableTitle: 'Schritt 2: Die Tabelle',
             tableText: 'Je Zeile trägst du Größe, Nummer und die eigenen Felder des Inventars ein. Eine Zeile ohne '
                 + 'jede Angabe wird beim Speichern übersprungen, du musst also nichts vorher aufräumen.',
+            sortTitle: 'Reihenfolge der Namen',
+            sortText: 'In der Kopfzeile der Mitgliederspalte stehen "Vorname" und "Nachname". Ein Klick sortiert die '
+                + 'Tabelle danach, ein zweiter dreht die Richtung um. So liegt die Tabelle in derselben Reihenfolge '
+                + 'wie die Liste, die du danebenliegen hast.',
             bulkTitle: 'Größe für alle',
             bulkText: 'Über der Tabelle wählst du eine Größe und schreibst sie mit einem Klick in jede Zeile, die '
                 + 'noch keine hat. Bei dreißig gleichen Jacken ist das der ganze Vorgang.',

@@ -61,6 +61,11 @@ export interface RichMember {
     email: string
     accountSetupPending: boolean
     setupMailExpiresAt: string | null
+    /**
+     * Whether anything written to this member would reach anybody: their own address where it is a
+     * real one, a guardian's where it is not.
+     */
+    mailReachable: boolean
     former: boolean
     userType: string
     roles: string[]

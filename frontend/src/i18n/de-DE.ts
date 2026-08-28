@@ -3283,6 +3283,10 @@ export default {
             owner: 'Eigentümer',
             ownerStation: 'Wache',
             ownerCluster: 'Träger',
+            sortBy: {
+                firstName: 'Vorname',
+                lastName: 'Nachname',
+            },
             save: 'Bestand eintragen',
         },
         detail: {

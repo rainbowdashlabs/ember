@@ -145,7 +145,6 @@ public class NewsService {
      * @param stationId       the station to publish in
      * @param title           article title
      * @param contentMarkdown article body in Markdown
-     * @param contentHtml     article body as HTML
      * @param author          identity of the author
      * @param groupIds        group IDs to restrict visibility to (empty for unrestricted)
      * @return the newly created news entry
@@ -154,13 +153,12 @@ public class NewsService {
             int stationId,
             String title,
             String contentMarkdown,
-            String contentHtml,
             MemberIdentity author,
             List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
-        var news = newsRepository.create(stationId, title, contentMarkdown, contentHtml, author);
+        var news = newsRepository.create(stationId, title, contentMarkdown, Markdown.toHtml(contentMarkdown), author);
         setRestrictions(news.id(), new RestrictionSelection(userTypes, groupIds, tagIds, memberIds, null));
         String authorName = resolveAuthorName(stationId, author);
         eventBus.publish(new NewsCreated(stationId, news.id(), title, authorName, previewOf(contentMarkdown)));
@@ -181,20 +179,14 @@ public class NewsService {
      *
      * @param title           entry title
      * @param contentMarkdown entry body in Markdown
-     * @param contentHtml     entry body as HTML
      * @param userTypes       the user types that may read it, or empty for everyone
      * @param publish         whether it is published straight away
      * @param notify          whether members are notified of it
      * @return the newly created entry
      */
     public News createSystem(
-            String title,
-            String contentMarkdown,
-            String contentHtml,
-            List<StationUserType> userTypes,
-            boolean publish,
-            boolean notify) {
-        var news = newsRepository.createSystem(title, contentMarkdown, contentHtml, publish);
+            String title, String contentMarkdown, List<StationUserType> userTypes, boolean publish, boolean notify) {
+        var news = newsRepository.createSystem(title, contentMarkdown, Markdown.toHtml(contentMarkdown), publish);
         setRestrictions(news.id(), new RestrictionSelection(userTypes, List.of(), List.of(), List.of(), null));
         if (publish && notify) {
             notifySystemEntry(news, title, contentMarkdown);
@@ -286,10 +278,14 @@ public class NewsService {
     /**
      * Updates a news article's content and group restrictions.
      *
+     * <p>The HTML is rendered here from the Markdown rather than taken from whoever asked for the
+     * change. A browser's rendering is a convenience, not evidence: the stored HTML is served back
+     * to every reader as markup, so it has to come from a renderer this application controls and a
+     * sanitiser it trusts.
+     *
      * @param id              the news article ID
      * @param title           new title
      * @param contentMarkdown new Markdown content
-     * @param contentHtml     new HTML content
      * @param groupIds        new group restriction IDs
      * @return the updated news article, or empty if the article was not found
      */
@@ -297,12 +293,11 @@ public class NewsService {
             int id,
             String title,
             String contentMarkdown,
-            String contentHtml,
             List<StationUserType> userTypes,
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
-        if (newsRepository.update(id, title, contentMarkdown, contentHtml)) {
+        if (newsRepository.update(id, title, contentMarkdown, Markdown.toHtml(contentMarkdown))) {
             setRestrictions(id, new RestrictionSelection(userTypes, groupIds, tagIds, memberIds, null));
             log.info("Updated news {}", id);
             return newsRepository.findById(id);
