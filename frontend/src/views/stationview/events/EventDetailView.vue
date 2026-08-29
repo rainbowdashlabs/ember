@@ -11,12 +11,14 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {AttendanceTemplate} from '@/api/attendance'
-import {isRecurringEvent, type AbsentMember, type EventCategory, type EventField, type StationEvent} from '@/api/events'
+import {isRecurringEvent, type AbsentMember, type EventCategory, type EventField, type EventRegistrationEntry, type StationEvent} from '@/api/events'
 import type {StationMember} from '@/api/types'
 import {attendance, events, managedMembers as managedMembersApi, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import EventDetailBody from './eventdetailview/EventDetailBody.vue'
+import RegistrationFieldsModal from './eventshared/RegistrationFieldsModal.vue'
+import {useEventAnswer} from '@/composables/useEventAnswer'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -40,6 +42,16 @@ const absentMembers = ref<AbsentMember[]>([])
 const managedMembers = ref<StationMember[]>([])
 const allMembers = ref<StationMember[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
+const allMyRegistrations = ref<EventRegistrationEntry[]>([])
+
+/** The answers given for this appointment on the date being looked at, and no other. */
+const myRegistrations = computed(() => allMyRegistrations.value.filter(
+    (registration: EventRegistrationEntry) =>
+        registration.eventId === eventId.value && registration.eventDate === effectiveDate.value))
+
+async function reloadMyRegistrations() {
+  allMyRegistrations.value = await events.listMyRegistrations().catch(() => [])
+}
 
 function nextOccurrence(dayOfWeek: number): string {
   const now = new Date()
@@ -140,6 +152,7 @@ const {loading, error, reload} = useAsyncLoader(async () => {
     name: c.name,
   }))
   try { reminders.value = await events.getEventReminders(eventId.value) } catch { reminders.value = [] }
+  if (ev.requiresRegistration) await reloadMyRegistrations()
   if (canManageEvents()) {
     templates.value = await attendance.listTemplates()
   }
@@ -163,6 +176,19 @@ async function loadAbsences() {
   try {
     absentMembers.value = await events.listAbsencesForDate(eventId.value, effectiveDate.value)
   } catch { absentMembers.value = [] }
+}
+
+const answer = useEventAnswer(currentMemberId, reloadMyRegistrations, error)
+
+/** Signing up and refusing both need the appointment and the date they are about. */
+async function onRegister(memberId: number) {
+  if (!event.value || !effectiveDate.value) return
+  await answer.registerForEvent(event.value, effectiveDate.value, memberId)
+}
+
+async function onDecline(memberId: number) {
+  if (!event.value || !effectiveDate.value) return
+  await answer.declineEvent(event.value, effectiveDate.value, memberId)
 }
 
 async function onEventCancelled() {
@@ -202,8 +228,20 @@ function onFieldUpdated(field: EventField) {
         :can-manage-events="canManageEvents()"
         :can-manage-attendance="canManageAttendance()"
         :has-permission="hasPermission"
+        :my-registrations="myRegistrations"
+        :registering="answer.registering.value !== null"
         @cancelled="onEventCancelled"
         @field-updated="onFieldUpdated"
+        @register="onRegister"
+        @decline="onDecline"
+        @withdraw="answer.withdrawRegistration"
+    />
+
+    <RegistrationFieldsModal
+        :model-value="answer.fieldPrompt.value !== null"
+        :fields="answer.fieldPrompt.value?.fields ?? []"
+        @update:model-value="shown => { if (!shown) answer.cancelFieldPrompt() }"
+        @confirm="answer.confirmFieldPrompt"
     />
   </ViewContent>
 </template>

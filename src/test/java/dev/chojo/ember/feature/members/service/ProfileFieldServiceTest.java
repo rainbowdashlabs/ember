@@ -337,9 +337,23 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 ProfileFieldConfig.parse("{}"),
                 20,
                 ProfileFieldScope.MANAGER);
+        var teamField = service.create(
+                station.id(),
+                "TeamFieldForManager",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                21,
+                ProfileFieldScope.TEAM);
+
         var fields = service.findApplicableFields(member.id());
+
         assertTrue(fields.stream().anyMatch(f -> f.id() == mgrField.id()));
+        assertTrue(
+                fields.stream().anyMatch(f -> f.id() == teamField.id()),
+                "a manager is staff first, so the team's questions are put to them too");
+
         service.delete(mgrField.id());
+        service.delete(teamField.id());
         stationMemberRepo.setUserType(member.id(), StationUserType.MEMBER);
     }
 

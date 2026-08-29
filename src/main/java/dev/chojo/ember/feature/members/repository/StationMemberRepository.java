@@ -193,6 +193,8 @@ public class StationMemberRepository {
         return query("""
                 SELECT sm.id, sm.station_id, sm.uid, sm.account_id, sm.former, sm.user_type, sm.join_date,
                        coalesce(a.full_name, sm.display_name, '') AS name,
+                       coalesce(a.first_name, sm.display_name, '') AS first_name,
+                       coalesce(a.last_name, '') AS last_name,
                        coalesce(a.email, '') AS email,
                        (a.id IS NOT NULL AND a.setup_completed_at IS NULL) AS account_setup_pending,
                        (SELECT max(at.expires_at) FROM account_token at WHERE at.account_id = a.id AND at.token_type = 'SET_PASSWORD') AS setup_mail_expires_at,
@@ -244,6 +246,8 @@ public class StationMemberRepository {
                 SELECT sm.id, sm.uid, sm.station_id, s.uid AS station_uid, s.name AS station_name,
                        sm.former, sm.user_type, sm.join_date,
                        coalesce(a.full_name, sm.display_name, '') AS name,
+                       coalesce(a.first_name, sm.display_name, '') AS first_name,
+                       coalesce(a.last_name, '') AS last_name,
                        coalesce(a.email, '') AS email,
                        (s.owner_member_id = sm.id) AS station_owner,
                        coalesce((SELECT string_agg(DISTINCT s2.name, ', ' ORDER BY s2.name)

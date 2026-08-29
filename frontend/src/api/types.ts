@@ -242,6 +242,13 @@ export interface StationMember {
     stationId: string
     accountId: number
     name?: string
+    /**
+     * The two halves of the name as they are stored. A screen that lets somebody correct a name
+     * needs these: splitting the whole at the first space guesses, and guesses wrongly for anybody
+     * with two given names or two surnames.
+     */
+    firstName?: string
+    lastName?: string
     email?: string
     /** The name this member signs in with, absent when their address is the only way in. */
     username?: string | null

@@ -1,5 +1,20 @@
 # Changelog
 
+## v26.13.8
+
+### Improvements
+
+- **An appointment can be answered from its own page.** Signing up, refusing and taking either back stood only in the list of what is coming up, so anybody who had opened the appointment itself had to go back to answer it. The same answer, with the same questions where the appointment asks any, now stands on the page too.
+- **A dialog can be answered from the keyboard.** Opening one puts the cursor straight on the button that confirms it, so the enter key is enough. Inside a text field, where the enter key belongs to the field, holding shift with it confirms the dialog instead.
+- **Holding shift skips the safety question.** Clearing out a row after row means answering the same question over and over, which teaches nobody to read it. Holding shift while pressing delete, or any other action that asks first, carries it out at once.
+- **The menu of a row is no longer cut off by the list it sits in.** On a wide table the menu opened inside the scrolling area and was clipped at its edge, so reading one's own menu meant scrolling sideways. It now lies over the page, opens upwards where there is no room below, and stays inside the window.
+
+### Fixes
+
+- **A question asked of one group still reached nobody.** The last version put such a question on the member's page in the editing screen, but the reader's own profile worked the rule out for itself and threw away everything of group scope, so somebody in the instructors' group was never shown what the instructors are asked. The profile now asks which questions apply to it rather than deciding again. A manager is also shown the questions put to the team, which is what a complete profile already expected of them.
+- **A member's name could not be corrected.** The editing screen guessed the two halves by splitting the whole name at the first space, so somebody stored as "Millie Jo" and "Harnack" was offered a surname of "Jo Harnack". Correcting it saved the right thing and the next visit showed the guess again, which read as a change that had not been kept.
+- **The totals under an appointment counted people who are not coming.** An answer stays on file after the place it was given with is gone, so somebody turned away or who called off still counted towards the catering. Only people with a place are counted now, which is the same set the appointment already uses to decide whether it takes place.
+
 ## v26.13.7
 
 ### Improvements

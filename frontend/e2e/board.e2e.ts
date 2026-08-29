@@ -115,7 +115,10 @@ test.describe('Boards', () => {
         await candidate.click()
 
         await page.reload()
-        await expect(page.getByText(name).first()).toBeVisible()
+        // The board is drawn from several requests, and under load the default wait ran out before
+        // the last of them landed, which read as an assignment that had not been kept.
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+        await expect(page.getByText(name).first()).toBeVisible({timeout: 30000})
         await expect(page.getByText('Nicht zugewiesen')).toHaveCount(0)
     })
 

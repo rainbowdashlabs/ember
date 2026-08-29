@@ -285,6 +285,13 @@ export default {
                 },
             },
             otherPages: 'Weitere Hilfe-Seiten',
+            shortcutsTitle: 'Mit der Tastatur schneller',
+            shortcutsConfirm: 'In jedem Dialog liegt der Fokus schon auf dem bestätigenden Knopf, die Eingabetaste '
+                + 'löst ihn also direkt aus. Bist du in einem Textfeld, wo die Eingabetaste dem Feld gehört, '
+                + 'bestätigt Umschalt zusammen mit der Eingabetaste.',
+            shortcutsSkip: 'Hältst du beim Klick auf Löschen oder eine andere Rückfrage die Umschalttaste, wird die '
+                + 'Frage übersprungen und die Aktion sofort ausgeführt. Praktisch, wenn du mehrere Einträge '
+                + 'nacheinander wegräumst.',
             otherPagesText: 'Neben den Grundlagen gibt es detaillierte Hilfe-Seiten zu jedem Bereich der Anwendung:',
             goToStation: 'Wachen-Hilfe',
             goToAdmin: 'Admin-Hilfe',

@@ -20,7 +20,7 @@ import {
 import type { StationMember } from '@/api/types'
 import { events, managedMembers as managedMembersApi } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-import { useSidebarCounts } from '@/composables/useSidebarCounts'
+import { useEventAnswer } from '@/composables/useEventAnswer'
 
 const PAGE_SIZE = 10
 const SEARCH_DEBOUNCE_MS = 250
@@ -38,7 +38,6 @@ const SEARCH_DEBOUNCE_MS = 250
  */
 export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () => boolean) {
   const { t } = useI18n()
-  const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
   const allEvents = ref<StationEvent[]>([])
   const eventBreaks = ref<EventBreak[]>([])
@@ -57,18 +56,6 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
 
   const loadingMore = ref(false)
   const hasMore = ref(true)
-  const registering = ref<string | null>(null)
-
-  /**
-   * A registration waiting for its answers. Set when the event asks questions, cleared once the
-   * dialog the view renders for it is confirmed or dismissed.
-   */
-  const fieldPrompt = ref<{
-    event: StationEvent
-    date: string
-    memberId: number
-    fields: EventRegistrationField[]
-  } | null>(null)
 
   /**
    * The end date of an event that spans more than its start day, or {@code null} when it does
@@ -152,78 +139,12 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     ])
     myRegistrations.value = regs
     registrationCounts.value = counts
-    refreshSidebarCounts()
   }
 
-  /**
-   * Runs a registration change and refreshes the registrations it affected, reporting failure on
-   * the shared error channel rather than throwing.
-   */
-  async function changeRegistration(action: () => Promise<unknown>) {
-    error.value = ''
-    try {
-      await action()
-      await reloadRegistrations()
-    } catch {
-      error.value = t('common.error')
-    }
-  }
-
-  /**
-   * The member id to send: omitted for the acting member, explicit for a managed one.
-   */
-  function memberIdParam(memberId: number): number | undefined {
-    return memberId !== currentMemberId.value ? memberId : undefined
-  }
-
-  /**
-   * Signing up from the list. When the event asks questions, the answers have to be collected
-   * first, so the request is parked in {@link fieldPrompt} for the view to render a dialog for and
-   * completed by {@link confirmFieldPrompt}.
-   */
-  async function registerForEvent(ev: StationEvent, date: string, memberId: number) {
-    const fields = await events.listRegistrationFields(ev.id).catch(() => [])
-    if (fields.length > 0) {
-      fieldPrompt.value = {event: ev, date, memberId, fields}
-      return
-    }
-    await sendRegistration(ev, date, memberId)
-  }
-
-  async function sendRegistration(
-    ev: StationEvent,
-    date: string,
-    memberId: number,
-    fields?: RegistrationFieldValue[],
-  ) {
-    registering.value = `${ev.id}-${date}-${memberId}`
-    try {
-      await changeRegistration(() =>
-        events.registerForEvent(ev.id, {eventDate: date, memberId: memberIdParam(memberId), fields}))
-    } finally {
-      registering.value = null
-    }
-  }
-
-  async function confirmFieldPrompt(values: RegistrationFieldValue[]) {
-    const prompt = fieldPrompt.value
-    if (!prompt) return
-    fieldPrompt.value = null
-    await sendRegistration(prompt.event, prompt.date, prompt.memberId, values)
-  }
-
-  function cancelFieldPrompt() {
-    fieldPrompt.value = null
-  }
-
-  async function declineEvent(ev: StationEvent, date: string, memberId: number) {
-    await changeRegistration(() =>
-      events.declineEvent(ev.id, {eventDate: date, memberId: memberIdParam(memberId)}))
-  }
-
-  async function withdrawRegistration(regId: number) {
-    await changeRegistration(() => events.withdrawRegistration(regId))
-  }
+  const {
+    registering, fieldPrompt, registerForEvent, declineEvent, withdrawRegistration,
+    confirmFieldPrompt, cancelFieldPrompt,
+  } = useEventAnswer(currentMemberId, reloadRegistrations, error)
 
   async function reloadUpcoming() {
     if (loading.value) return

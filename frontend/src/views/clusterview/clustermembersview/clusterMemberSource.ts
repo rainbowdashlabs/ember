@@ -38,6 +38,8 @@ function toRich(member: ManagedMember): RichMember {
         stationId: 0,
         accountId: null,
         name: member.name,
+        firstName: member.name,
+        lastName: '',
         email: member.email,
         accountSetupPending: false,
         setupMailExpiresAt: null,

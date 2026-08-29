@@ -14,7 +14,10 @@ import EventCancelModal from './EventCancelModal.vue'
 import EventRegistrationsTab from './EventRegistrationsTab.vue'
 import EventDetailHeader from './EventDetailHeader.vue'
 import EventInfoTab from './EventInfoTab.vue'
-import type {AbsentMember, EventField, StationEvent} from '@/api/events'
+import EventRegistrationActions from '../eventshared/EventRegistrationActions.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import type {AbsentMember, EventField, EventRegistrationEntry, StationEvent} from '@/api/events'
 import type {StationMember} from '@/api/types'
 import {formatDateTime} from '@/util/format'
 
@@ -37,11 +40,17 @@ const props = defineProps<{
   canManageEvents: boolean
   canManageAttendance: boolean
   hasPermission: (perm: string) => boolean
+  /** The reader's own answers to this date, and those of anybody they answer for. */
+  myRegistrations: EventRegistrationEntry[]
+  registering: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'cancelled'): void
   (e: 'field-updated', field: EventField): void
+  (e: 'register', memberId: number): void
+  (e: 'decline', memberId: number): void
+  (e: 'withdraw', registrationId: number): void
 }>()
 
 const {t} = useI18n()
@@ -76,6 +85,21 @@ function onCancelled() {
       <span v-if="event.minRegistrations" class="text-(--text-muted)">{{ t('events.minRegistrations') }}: {{ event.minRegistrations }}</span>
       <span v-if="event.thresholdDate" class="text-(--text-muted)">{{ t('events.thresholdDate') }}: {{ formatDateTime(event.thresholdDate) }}</span>
     </div>
+
+    <NeutralContainer v-if="event.requiresRegistration && effectiveDate" class="space-y-2">
+      <SubHeader>{{ t('eventDetail.yourAnswer') }}</SubHeader>
+      <EventRegistrationActions
+          :eligible-members="registrableMembers"
+          :registrations="myRegistrations"
+          :requires-registration="!!event.requiresRegistration"
+          :registration-deadline="event.registrationDeadline"
+          :has-managed-members="hasManagedMembers"
+          :registering="registering"
+          @register="memberId => emit('register', memberId)"
+          @decline="memberId => emit('decline', memberId)"
+          @withdraw="registrationId => emit('withdraw', registrationId)"
+      />
+    </NeutralContainer>
 
     <div v-if="reminders.length > 0" class="flex flex-wrap gap-2 text-sm">
       <span class="text-(--text-muted)">{{ t('eventEdit.reminders') }}:</span>

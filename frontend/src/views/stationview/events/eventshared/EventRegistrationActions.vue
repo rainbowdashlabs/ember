@@ -10,7 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import RegistrationStatusBadge from '../eventshared/RegistrationStatusBadge.vue'
+import RegistrationStatusBadge from './RegistrationStatusBadge.vue'
 import type {EventRegistrationEntry} from '@/api/events'
 import {chosenIfStillOffered} from '@/util/eventAnswers'
 

@@ -2016,6 +2016,7 @@ export default {
     },
     eventDetail: {
         tabInfo: 'Informationen',
+        yourAnswer: 'Deine Antwort',
         tabRegistrations: 'Anmeldungen',
         registrations: 'Anmeldungen',
         absentMembers: 'Abwesend',

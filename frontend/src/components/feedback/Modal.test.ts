@@ -5,6 +5,7 @@
  */
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
+import {nextTick} from 'vue'
 import Modal from './Modal.vue'
 
 /**
@@ -38,5 +39,81 @@ describe('Modal', () => {
         const wrapper = mountModal(true)
         await wrapper.find('.absolute.inset-0').trigger('click')
         expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([false])
+    })
+
+    /**
+     * A dialog is answered from the keyboard: the button it is answered with holds the focus when
+     * it opens, so the enter key alone is enough.
+     */
+    it('puts the focus on the button the dialog is answered with', async () => {
+        const wrapper = mount(Modal, {
+            props: {modelValue: false},
+            slots: {default: '<button data-cancel>Abbrechen</button><button id="ok">Speichern</button>'},
+            attachTo: document.body,
+        })
+
+        await wrapper.setProps({modelValue: true})
+        await nextTick()
+
+        expect(document.activeElement?.id).toBe('ok')
+        wrapper.unmount()
+    })
+
+    /**
+     * Where a dialog names its button outright, that one wins over the guess, whatever order the
+     * buttons happen to be in.
+     */
+    it('prefers the button a dialog names over the last one', async () => {
+        const wrapper = mount(Modal, {
+            props: {modelValue: false},
+            slots: {default: '<button id="named" data-confirm>Ja</button><button id="last">Nein</button>'},
+            attachTo: document.body,
+        })
+
+        await wrapper.setProps({modelValue: true})
+        await nextTick()
+
+        expect(document.activeElement?.id).toBe('named')
+        wrapper.unmount()
+    })
+
+    /**
+     * Shift and enter answer it from anywhere inside, which is what a text field needs: there the
+     * enter key belongs to the field.
+     */
+    it('answers on shift and enter from inside a text field', async () => {
+        let answered = 0
+        const wrapper = mount(Modal, {
+            props: {modelValue: true},
+            slots: {default: '<input id="text"><button id="ok">Speichern</button>'},
+            attachTo: document.body,
+        })
+        document.querySelector('#ok')?.addEventListener('click', () => {
+            answered++
+        })
+
+        document.querySelector('#text')?.dispatchEvent(
+            new KeyboardEvent('keydown', {key: 'Enter', shiftKey: true, bubbles: true}))
+
+        expect(answered, 'the dialog was answered').toBe(1)
+        wrapper.unmount()
+    })
+
+    it('leaves a plain enter to whatever has the focus', async () => {
+        let answered = 0
+        const wrapper = mount(Modal, {
+            props: {modelValue: true},
+            slots: {default: '<input id="text"><button id="ok">Speichern</button>'},
+            attachTo: document.body,
+        })
+        document.querySelector('#ok')?.addEventListener('click', () => {
+            answered++
+        })
+
+        document.querySelector('#text')?.dispatchEvent(
+            new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}))
+
+        expect(answered).toBe(0)
+        wrapper.unmount()
     })
 })

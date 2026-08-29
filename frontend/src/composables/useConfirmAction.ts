@@ -5,6 +5,7 @@
  */
 import {ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {shiftIsHeld} from '@/util/modifierKeys'
 
 /**
  * Reactive state returned by {@link useConfirmAction}. Views typically bind `show`
@@ -16,7 +17,10 @@ export interface ConfirmActionState<T> {
     show: Ref<boolean>
     /** The item the user asked to act on, or `null` when no request is active. */
     target: Ref<T | null>
-    /** Stores `item` as the pending target and opens the modal. */
+    /**
+     * Stores `item` as the pending target and opens the modal, or carries the action out at once
+     * while shift is held.
+     */
     request: (item: T) => void
     /**
      * Runs the configured action against `target.value`, closes the modal on success,
@@ -58,8 +62,19 @@ export function useConfirmAction<T>(options: UseConfirmActionOptions<T>): Confir
     const target = ref<T | null>(null) as Ref<T | null>
     const error = options.error ?? ref('')
 
+    /**
+     * Shift skips the question, everywhere one is asked.
+     *
+     * <p>Somebody clearing out twenty rows knows what the dialog is going to say by the third one,
+     * and answering it nineteen more times teaches them to answer without reading. Holding shift
+     * says they have read it, and the action happens on the spot.
+     */
     function request(item: T) {
         target.value = item
+        if (shiftIsHeld()) {
+            void confirm()
+            return
+        }
         show.value = true
     }
 

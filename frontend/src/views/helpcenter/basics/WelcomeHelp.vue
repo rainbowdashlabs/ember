@@ -57,6 +57,11 @@ const sections = [
       </div>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.welcome.shortcutsTitle')">
+      <p>{{ t('helpCenter.welcome.shortcutsConfirm') }}</p>
+      <p>{{ t('helpCenter.welcome.shortcutsSkip') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.welcome.otherPages')">
       <p>{{ t('helpCenter.welcome.otherPagesText') }}</p>
       <div class="flex flex-wrap gap-3 mt-3">

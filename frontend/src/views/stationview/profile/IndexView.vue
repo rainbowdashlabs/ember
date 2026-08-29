@@ -10,7 +10,6 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
-import { StationUserType } from '@/api/types'
 import { profileFields } from '@/api'
 import { decodeProfileValues, getFieldValue, setFieldValue } from '@/util/profileFields'
 import { useSession } from '@/composables/useSession'
@@ -23,21 +22,6 @@ import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vu
 import {valueFields} from '@/components/profilefields/fieldLayout'
 import {usePermissions} from '@/composables/usePermissions'
 import {StationPermission} from '@/api/types'
-
-function getUserScopes(userType?: string): string[] {
-  const scopes: string[] = []
-  if (!userType) return scopes
-  if (userType === StationUserType.MEMBER || userType === StationUserType.TRIAL) {
-    scopes.push(StationUserType.MEMBER)
-  }
-  if (userType === StationUserType.TEAM || userType === StationUserType.MANAGER) {
-    scopes.push(StationUserType.TEAM)
-  }
-  if (userType === StationUserType.GUARDIAN) {
-    scopes.push(StationUserType.GUARDIAN)
-  }
-  return scopes
-}
 
 const { t } = useI18n()
 const { sessionInfo } = useSession()
@@ -53,8 +37,6 @@ const {hasPermission} = usePermissions()
 
 const canUploadOwn = computed(() => hasPermission(StationPermission.MEMBER_SELF_UPLOAD))
 
-const userScopes = computed(() => getUserScopes(sessionInfo.value?.userType))
-
 const fullName = computed(() => {
   const account = sessionInfo.value?.account
   if (!account) return ''
@@ -63,12 +45,15 @@ const fullName = computed(() => {
 
 const accountEmail = computed(() => sessionInfo.value?.account?.email ?? '')
 
-const editableFields = computed(() => {
-  return fields.value.filter(f => {
-    if (f.scope === 'GROUP') return false
-    return userScopes.value.includes(f.scope ?? StationUserType.MEMBER)
-  })
-})
+/**
+ * The questions this profile asks, as the server works them out.
+ *
+ * <p>Which questions reach whom is one rule, and it used to be written twice: once here and once on
+ * the server, from where the editing screen reads it. They drifted, and the copy here threw away
+ * every question a station asks of one group, so somebody in the instructors' group was never shown
+ * what the instructors are asked. Asked for rather than worked out again.
+ */
+const editableFields = computed(() => fields.value)
 
 const incompleteFields = computed(() => {
   return editableFields.value.filter(f => {
@@ -90,7 +75,7 @@ function setValue(fieldId: number, val: string) {
 const { loading, error, reload } = useAsyncLoader(async () => {
   if (!memberId.value) return
   const [allFields, profileValues] = await Promise.all([
-    profileFields.listFields(),
+    profileFields.getMemberFields(memberId.value),
     profileFields.getValues(memberId.value),
   ])
   fields.value = allFields
