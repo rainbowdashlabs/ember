@@ -29,14 +29,21 @@ export function memberDisplayName(m: {id: number; name?: string | null; email?: 
   return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
 }
 
+/**
+ * The two halves of a name, taken as they are stored where the server sends them.
+ *
+ * <p>Splitting the whole at the first space is a guess, and it is wrong for anybody with two given
+ * names or two surnames: "Millie Jo Harnack" reads as a surname of "Jo Harnack". It stays as the
+ * fallback for the lists that do not carry the halves.
+ */
 export function getMemberFirstName(m: StationMember): string {
-  const name = m.name ?? ''
-  return name.split(' ')[0] ?? ''
+  if (m.firstName !== undefined) return m.firstName
+  return (m.name ?? '').split(' ')[0] ?? ''
 }
 
 export function getMemberLastName(m: StationMember): string {
-  const name = m.name ?? ''
-  return name.split(' ').slice(1).join(' ') ?? ''
+  if (m.lastName !== undefined) return m.lastName
+  return (m.name ?? '').split(' ').slice(1).join(' ')
 }
 
 /**
@@ -147,6 +154,8 @@ export function useMemberData(source: MemberDataSource = STATION_MEMBER_SOURCE) 
         stationId: String(rm.stationId),
         accountId: rm.accountId ?? 0,
         name: rm.name,
+        firstName: rm.firstName,
+        lastName: rm.lastName,
         email: rm.email,
         userType: rm.userType,
         identity: rm.identity,

@@ -3,6 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {
+    EventFieldTypes,
+    RegistrationStatus,
+    type EventRegistrationEntry,
+    type EventRegistrationField,
+} from '@/api/events'
+
 /** Somebody an answer to an appointment can be given for. */
 export interface AnswerableMember {
     id: number
@@ -67,4 +74,54 @@ export function answerableMembers(
         if (member) answerable.push({id, name: member.name ?? member.email ?? `#${id}`})
     }
     return answerable
+}
+
+/** One line of the totals: the question, and what the answers to it add up to. */
+export interface AnswerTotal {
+    label: string
+    text: string
+}
+
+/**
+ * What a station plans from: the answers to the countable questions, added up.
+ *
+ * <p>A number question is summed and a choice question is counted per option. Free text has no
+ * total worth showing, so it gets none.
+ *
+ * <p>Only the people who have a place are counted. An answer outlives the place it was given with:
+ * somebody turned away or who called off still has their catering choice on file, and counting
+ * those left a station ordering food for people who were told not to come. A place is the same
+ * thing here as everywhere else in the product, down to the count that decides whether the event
+ * happens at all: accepted, and nothing else. Somebody still waiting on an answer has asked for a
+ * place rather than been given one.
+ */
+export function answerTotals(
+    fields: EventRegistrationField[],
+    registrations: EventRegistrationEntry[],
+): AnswerTotal[] {
+    const counted = registrations.filter(registration => registration.status === RegistrationStatus.ACCEPTED)
+    const answersOf = (fieldId: number) => counted
+        .map(registration => registration.fields?.find(value => value.fieldId === fieldId)?.value)
+        .filter((value): value is string => value != null && value !== '')
+
+    const totals: AnswerTotal[] = []
+    for (const field of fields) {
+        if (field.fieldType === EventFieldTypes.NUMBER) {
+            const sum = answersOf(field.id)
+                .map(Number)
+                .filter(value => !Number.isNaN(value))
+                .reduce((running, value) => running + value, 0)
+            totals.push({label: field.name, text: String(sum)})
+            continue
+        }
+        if (field.fieldType !== EventFieldTypes.ENUM) continue
+        const answers = answersOf(field.id)
+        const perOption = (field.config?.options ?? [])
+            .map(option => ({option, count: answers.filter(answer => answer === option).length}))
+            .filter(entry => entry.count > 0)
+        if (perOption.length > 0) {
+            totals.push({label: field.name, text: perOption.map(e => `${e.option} ${e.count}`).join(', ')})
+        }
+    }
+    return totals
 }

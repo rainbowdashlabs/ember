@@ -8,7 +8,7 @@ import {mount} from '@vue/test-utils'
 import {defineComponent} from 'vue'
 import {describe, expect, it} from 'vitest'
 import type {RichMember} from '@/api/stationMembers'
-import {useMemberData, type MemberDataSource} from './useMemberData'
+import {getMemberFirstName, getMemberLastName, useMemberData, type MemberDataSource} from './useMemberData'
 
 function richMember(id: number, name: string, mailReachable: boolean): RichMember {
   return {
@@ -16,6 +16,8 @@ function richMember(id: number, name: string, mailReachable: boolean): RichMembe
     stationId: 1,
     accountId: id,
     name,
+    firstName: name.split(' ')[0] ?? '',
+    lastName: name.split(' ').slice(1).join(' '),
     email: `member-${id}@example.test`,
     accountSetupPending: true,
     setupMailExpiresAt: '2026-09-01T10:00:00Z',
@@ -61,6 +63,22 @@ describe('useMemberData', () => {
     await data.reload()
 
     expect(data.members.value.map(member => member.mailReachable)).toEqual([true, false])
+  })
+
+  /**
+   * The reported bug: the edit screen split the whole name at the first space, so somebody stored
+   * as "Millie Jo" and "Harnack" was offered a surname of "Jo Harnack". Correcting that saved the
+   * right thing and the next load split the whole name again, which read as a change not kept.
+   */
+  it('carries the two halves of a name as they are stored', async () => {
+    const stored = {...richMember(1, 'Millie Jo Harnack', true), firstName: 'Millie Jo', lastName: 'Harnack'}
+    const data = dataFor([stored])
+
+    await data.reload()
+
+    const member = data.members.value[0]!
+    expect(getMemberFirstName(member)).toBe('Millie Jo')
+    expect(getMemberLastName(member), 'rather than the guess "Jo Harnack"').toBe('Harnack')
   })
 
   it('carries when the setup mail runs out', async () => {

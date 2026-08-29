@@ -18,10 +18,11 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import RegistrationStatsTable from './RegistrationStatsTable.vue'
 import RegistrationFieldAnswers from './RegistrationFieldAnswers.vue'
 import MemberPicker, {type PickableMember} from '@/views/stationview/members/MemberPicker.vue'
-import {EventFieldTypes, RegistrationStatus, type EventRegistrationEntry, type EventRegistrationField, type MemberRegistrationStats, type StationEvent} from '@/api/events'
+import {RegistrationStatus, type EventRegistrationEntry, type EventRegistrationField, type MemberRegistrationStats, type StationEvent} from '@/api/events'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {formatDate} from '@/util/format'
+import {answerTotals} from '@/util/eventAnswers'
 
 interface StatusGroup { status: string; entries: EventRegistrationEntry[] }
 
@@ -86,41 +87,7 @@ function registerByHand(memberId: number) {
   emit('manualRegister')
 }
 
-function answersOf(fieldId: number): string[] {
-  return props.registrations
-      .map(registration => registration.fields?.find(value => value.fieldId === fieldId)?.value)
-      .filter((value): value is string => value != null && value !== '')
-}
-
-/**
- * Totals for the questions that have a countable answer, which is what a station plans from: a
- * number question is summed, a choice question is counted per option. Free text has no total worth
- * showing, so it gets none.
- */
-const summaries = computed(() => {
-  if (!runsEvent.value) return []
-  const result: { label: string; text: string }[] = []
-  for (const field of fields.value) {
-    if (field.fieldType === EventFieldTypes.NUMBER) {
-      const total = answersOf(field.id)
-          .map(Number)
-          .filter(value => !Number.isNaN(value))
-          .reduce((sum, value) => sum + value, 0)
-      result.push({label: field.name, text: String(total)})
-      continue
-    }
-    if (field.fieldType === EventFieldTypes.ENUM) {
-      const answers = answersOf(field.id)
-      const counts = (field.config?.options ?? [])
-          .map(option => ({option, count: answers.filter(answer => answer === option).length}))
-          .filter(entry => entry.count > 0)
-      if (counts.length > 0) {
-        result.push({label: field.name, text: counts.map(e => `${e.option} ${e.count}`).join(', ')})
-      }
-    }
-  }
-  return result
-})
+const summaries = computed(() => (runsEvent.value ? answerTotals(fields.value, props.registrations) : []))
 
 const manualRegisterMemberId = defineModel<string>('manualRegisterMemberId', {default: ''})
 

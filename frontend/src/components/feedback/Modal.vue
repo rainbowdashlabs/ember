@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, nextTick, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 
@@ -31,6 +31,45 @@ const sizeClass = computed(() => {
     default: return 'max-w-lg'
   }
 })
+
+const dialog = ref<HTMLElement | null>(null)
+
+/**
+ * The button this dialog is answered with.
+ *
+ * <p>Named outright where a dialog marks it, and otherwise the last button in it that is not a way
+ * out. Every footer here reads the same way round, cancel and then the thing being confirmed, so
+ * the last one is it. Guessing rather than requiring the mark is what makes the rule true in every
+ * dialog on the first day instead of in the ones somebody remembered to go back to.
+ */
+function confirmButton(): HTMLElement | null {
+  const root = dialog.value
+  if (!root) return null
+  const named = root.querySelector<HTMLElement>('[data-confirm]')
+  if (named) return named
+  const answers = [...root.querySelectorAll<HTMLButtonElement>('button')]
+      .filter(button => !button.disabled && !button.hasAttribute('data-cancel'))
+  return answers.at(-1) ?? null
+}
+
+watch(model, async (open) => {
+  if (!open) return
+  await nextTick()
+  const target = confirmButton() ?? dialog.value
+  target?.focus()
+})
+
+/**
+ * Shift and enter answer the dialog from anywhere inside it, including from a text field, where
+ * the enter key belongs to the field itself.
+ */
+function onKeydown(e: KeyboardEvent) {
+  if (e.key !== 'Enter' || !e.shiftKey) return
+  const target = confirmButton()
+  if (!target) return
+  e.preventDefault()
+  target.click()
+}
 </script>
 
 <template>
@@ -47,9 +86,12 @@ const sizeClass = computed(() => {
         />
         <!-- Content -->
         <div
+            ref="dialog"
             data-testid="modal"
             role="dialog"
             aria-modal="true"
+            tabindex="-1"
+            @keydown="onKeydown"
             :class="[
               'relative z-10 w-full mx-4 rounded-theme border border-bg-light-accent bg-bg-light p-6 shadow-xl dark:border-bg-dark-accent dark:bg-bg-dark',
               sizeClass,
@@ -59,6 +101,7 @@ const sizeClass = computed(() => {
               :icon="['fas', 'xmark']"
               :label="t('common.close')"
               class="absolute top-3 right-3 text-[var(--text-muted)] hover:text-[var(--text)]"
+              data-cancel
               @click="model = false"
           >
             <font-awesome-icon :icon="['fas', 'xmark']" class="h-5 w-5"/>

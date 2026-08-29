@@ -58,6 +58,9 @@ export interface RichMember {
     stationId: number
     accountId: number | null
     name: string
+    /** The two halves of the name as they are stored, rather than guessed out of the whole. */
+    firstName: string
+    lastName: string
     email: string
     accountSetupPending: boolean
     setupMailExpiresAt: string | null

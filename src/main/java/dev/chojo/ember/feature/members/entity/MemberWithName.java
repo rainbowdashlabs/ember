@@ -16,12 +16,19 @@ import java.time.LocalDate;
 /**
  * Enriched member representation for API responses.
  * Always includes the resolved identity with display metadata.
+ *
+ * <p>The name travels whole and in halves. A screen that lets somebody correct a name needs the
+ * halves as they are stored: guessing them back out of the whole splits at the first space, so
+ * "Millie Jo Harnack" reads as a surname of "Jo Harnack", and correcting that saved the right thing
+ * and then showed the wrong thing again on the next load.
  */
 public record MemberWithName(
         int id,
         int stationId,
         int accountId,
         String name,
+        String firstName,
+        String lastName,
         String email,
         String username,
         StationUserType userType,
@@ -51,6 +58,8 @@ public record MemberWithName(
                     m.stationId(),
                     0,
                     m.displayName(),
+                    m.displayName(),
+                    "",
                     "",
                     null,
                     m.userType(),
@@ -68,6 +77,8 @@ public record MemberWithName(
                 m.stationId(),
                 m.accountId(),
                 name,
+                account != null ? account.firstName() : "",
+                account != null ? account.lastName() : "",
                 email,
                 username,
                 m.userType(),

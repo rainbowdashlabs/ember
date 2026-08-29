@@ -15,7 +15,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import EventFieldValue from '../eventshared/EventFieldValue.vue'
-import EventRegistrationActions from './EventRegistrationActions.vue'
+import EventRegistrationActions from '../eventshared/EventRegistrationActions.vue'
 import type {EventCategory, EventField, EventRegistrationEntry, StationEvent} from '@/api/events'
 import {markdownSnippet} from '@/util/markdown'
 

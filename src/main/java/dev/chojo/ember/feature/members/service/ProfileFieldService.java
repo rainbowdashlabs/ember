@@ -85,13 +85,21 @@ public class ProfileFieldService {
 
     // -- Field Definitions --
 
-    private static ProfileFieldScope scopeForUserType(StationUserType userType) {
-        if (userType == null) return ProfileFieldScope.MEMBER;
+    /**
+     * Which scopes a kind of member is asked.
+     *
+     * <p>One each, except a manager: they are staff before they are a manager, so the questions put
+     * to the team are put to them as well. That is already how a complete profile is judged, and a
+     * manager who is marked incomplete over a question their own profile never showed them has been
+     * asked something in secret.
+     */
+    private static List<ProfileFieldScope> scopesForUserType(StationUserType userType) {
+        if (userType == null) return List.of(ProfileFieldScope.MEMBER);
         return switch (userType) {
-            case TRIAL, MEMBER -> ProfileFieldScope.MEMBER;
-            case GUARDIAN -> ProfileFieldScope.GUARDIAN;
-            case TEAM -> ProfileFieldScope.TEAM;
-            case MANAGER -> ProfileFieldScope.MANAGER;
+            case TRIAL, MEMBER -> List.of(ProfileFieldScope.MEMBER);
+            case GUARDIAN -> List.of(ProfileFieldScope.GUARDIAN);
+            case TEAM -> List.of(ProfileFieldScope.TEAM);
+            case MANAGER -> List.of(ProfileFieldScope.TEAM, ProfileFieldScope.MANAGER);
         };
     }
 
@@ -118,9 +126,10 @@ public class ProfileFieldService {
     public List<MergedField> findApplicableFields(int memberId) {
         var member = stationMemberRepository.findById(memberId).orElse(null);
         if (member == null) return List.of();
-        var scope = scopeForUserType(member.userType());
-        if (scope == null) return List.of();
-        List<MergedField> fields = new ArrayList<>(findMergedFields(member.stationId(), scope));
+        List<MergedField> fields = new ArrayList<>();
+        for (ProfileFieldScope scope : scopesForUserType(member.userType())) {
+            fields.addAll(findMergedFields(member.stationId(), scope));
+        }
         fields.addAll(fieldsOfTheirGroups(member.id(), member.stationId()));
         return fields;
     }

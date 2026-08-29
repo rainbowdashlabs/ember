@@ -27,8 +27,8 @@ const emit = defineEmits<{
     <div class="space-y-4">
       <p>{{ message }}</p>
       <div class="flex justify-end gap-3">
-        <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
-        <ErrorButton @click="emit('confirm')">{{ t('common.delete') }}</ErrorButton>
+        <SecondaryButton data-cancel @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
+        <ErrorButton data-confirm @click="emit('confirm')">{{ t('common.delete') }}</ErrorButton>
       </div>
     </div>
   </Modal>
