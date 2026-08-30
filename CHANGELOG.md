@@ -17,6 +17,7 @@
 
 ### Fixes
 
+- **An appointment nobody signs up for did not show who had signed off.** Everybody is expected at such an appointment and the only answer anybody gives is a refusal, but its page had no second tab at all, so the refusals could be given and never read. The page now carries an Attendance tab listing who is not coming.
 - **A question asking for a member could not be answered properly.** Where an appointment asks which member is driving or who brings the trailer, the window that answers for a whole household offered a plain text box instead of the list of members, so what was stored was the text somebody typed and every list read it back as a stray number. That window now offers the same picker as the one used elsewhere, and it shows the starting value a question was given instead of leaving the field empty.
 - **A question put to a group was never counted as missing.** Somebody in the instructors' group could leave an answer the instructors are required to give empty and still be told their profile was complete, so the gap reached neither the task list, nor the number beside it, nor the reminder on the dashboard. What counts as missing is now read off the same list the profile screen shows, so anything asked of somebody is asked of them everywhere.
 

@@ -16,6 +16,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import RegistrationStatsTable from './RegistrationStatsTable.vue'
 import RegistrationFieldAnswers from './RegistrationFieldAnswers.vue'
 import MemberPicker, {type PickableMember} from '@/views/stationview/members/MemberPicker.vue'
@@ -129,8 +130,13 @@ function statusLabel(status: string): string {
 </script>
 
 <template>
-  <NeutralContainer v-if="registrations.length > 0 || canRegisterOthers" class="space-y-4">
-    <SubHeader>{{ t('eventDetail.registrations') }}</SubHeader>
+  <NeutralContainer v-if="registrations.length > 0 || canRegisterOthers || !event.requiresRegistration" class="space-y-4">
+    <SubHeader>{{ event.requiresRegistration ? t('eventDetail.registrations') : t('eventDetail.attendanceTitle') }}</SubHeader>
+
+    <template v-if="!event.requiresRegistration">
+      <MutedText size="sm" tag="p">{{ t('eventDetail.attendanceHint') }}</MutedText>
+      <MutedText v-if="registrations.length === 0" size="sm" tag="p">{{ t('eventDetail.noSignOffs') }}</MutedText>
+    </template>
 
     <div v-if="summaries.length > 0" class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
       <span v-for="summary in summaries" :key="summary.label" class="text-(--text-muted)">
