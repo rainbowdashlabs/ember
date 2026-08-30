@@ -71,6 +71,7 @@ class EventRegistrationStatsRouteTest {
                 true,
                 categoryId,
                 RestrictionMode.OR,
+                RestrictionMode.AND,
                 false,
                 null,
                 null,

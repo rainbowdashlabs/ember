@@ -5,6 +5,7 @@
  */
 import client from './client'
 import {apiErrorStatus} from '@/util/apiError'
+import type {MemberIdentity} from '@/api/types'
 
 export interface FeedTokenResponse {
     token: string
@@ -45,6 +46,23 @@ export async function revokeFeedToken(): Promise<void> {
 
 export async function getFeedStatus(): Promise<FeedStatusResponse> {
     const res = await client.get<FeedStatusResponse>('/feed/token/status')
+    return res.data
+}
+
+/**
+ * One member's standing subscription as the station's monitoring page sees it. Never carries the
+ * token: that is the whole key to one person's calendar.
+ */
+export interface FeedUse {
+    memberId: number
+    identity: MemberIdentity
+    createdAt: string
+    icalPolledAt?: string | null
+    notificationPolledAt?: string | null
+}
+
+export async function getStationFeedUse(): Promise<FeedUse[]> {
+    const res = await client.get<FeedUse[]>('/station/monitoring/feeds')
     return res.data
 }
 

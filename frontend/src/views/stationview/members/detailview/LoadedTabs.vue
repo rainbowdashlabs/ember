@@ -18,7 +18,7 @@ import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vu
 import type { ProfileFieldChange } from '@/api/profileFieldChanges'
 import type { ProfileField } from '@/api/profileFields'
 import type { StationMember, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
-import type { MyInventoryItem } from '@/api/inventory'
+import type { MemberRequirements, MyInventoryItem } from '@/api/inventory'
 import type { ExchangeRequestEntry } from '@/api/exchanges'
 
 defineProps<{
@@ -46,6 +46,7 @@ defineProps<{
   getManagerFields: (id: number) => ProfileField[]
   getManagerFieldValue: (mgrId: number, fieldId: number) => unknown
   memberInventory: MyInventoryItem[]
+  memberRequirements: MemberRequirements
   memberExchanges: ExchangeRequestEntry[]
   showInventoryManagement: boolean
   canManageInventory: boolean
@@ -57,6 +58,8 @@ defineEmits<{
   (e: 'remove-manager', id: number): void
   (e: 'create-manager', data: { firstName: string; lastName: string; email: string }): void
   (e: 'assign-item'): void
+  (e: 'hand-out', itemId: number): void
+  (e: 'hand-out-new', inventoryId: number, sizeId: number | null): void
   (e: 'request-exchange', item: MyInventoryItem): void
   (e: 'unassign', item: MyInventoryItem): void
   (e: 'reassign', item: MyInventoryItem): void
@@ -102,12 +105,15 @@ const activeTab = ref('profile')
   <InventoryTab
     v-if="activeTab === 'inventory'"
     :member-inventory="memberInventory" :member-exchanges="memberExchanges"
+    :member-requirements="memberRequirements"
     :show-inventory-management="showInventoryManagement"
     :can-manage-inventory="canManageInventory" :can-edit="canEdit"
     @assign-item="$emit('assign-item')"
     @request-exchange="$emit('request-exchange', $event)"
     @unassign="$emit('unassign', $event)"
     @reassign="$emit('reassign', $event)"
+    @hand-out="$emit('hand-out', $event)"
+    @hand-out-new="(inventoryId, sizeId) => $emit('hand-out-new', inventoryId, sizeId)"
   />
 
   <MemberDocumentsPanel

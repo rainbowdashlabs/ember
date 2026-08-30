@@ -9,13 +9,14 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type { InventoryItem } from '@/api/inventory'
-import type { RequiredInventoryItem } from '@/api/inventoryCheck'
+import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
 
 const props = defineProps<{
   req: RequiredInventoryItem
   slotIndex: number
   isNotInPossession: boolean
+  /** Whether a procurement has already been noted for this slot during this check. */
+  procurementNoted: boolean
   availableItems: InventoryItem[]
   slotSelections: Map<string, string>
   itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
@@ -25,6 +26,7 @@ const emit = defineEmits<{
   toggleNotInPossession: [inventoryId: number, slotIndex: number]
   assignToSlot: [inventoryId: number, slotIndex: number]
   createAndAssign: [req: RequiredInventoryItem, slotIndex: number]
+  createProcurement: [req: RequiredInventoryItem, slotIndex: number]
   updateSelection: [key: string, value: string]
 }>()
 
@@ -89,6 +91,19 @@ const { t } = useI18n()
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
         {{ t('inventory.check.create') }}
       </SecondaryButton>
+      <SecondaryButton
+        v-if="!procurementNoted"
+        class="text-sm"
+        :data-testid="`slot-procurement-${req.inventoryId}-${slotIndex}`"
+        @click="emit('createProcurement', req, slotIndex)"
+      >
+        <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-1" />
+        {{ t('inventory.check.createProcurement') }}
+      </SecondaryButton>
+      <span v-else class="text-xs text-success self-center">
+        <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />
+        {{ t('inventory.check.procurementNoted') }}
+      </span>
     </div>
   </div>
 </template>

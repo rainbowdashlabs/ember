@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import PageLeaderboardTable from '@/views/stationview/manage/manageStationInsightsView/PageLeaderboardTable.vue'
+import PageLeaderboardTable from '@/views/stationview/monitoring/stationInsightsView/PageLeaderboardTable.vue'
 import type {PageLeaderboardEntry} from '@/api/insights'
 
 defineProps<{

@@ -54,7 +54,8 @@ class EventReminderCheckerTest {
         notificationService = mock(NotificationService.class);
         memberNameResolver = mock(MemberNameResolver.class);
         restrictionService = mock(EventRestrictionService.class);
-        when(restrictionService.isMemberEligible(anyInt(), anyInt(), any())).thenReturn(true);
+        when(restrictionService.canRegister(anyInt(), anyInt(), any())).thenReturn(true);
+        when(restrictionService.canView(anyInt(), anyInt(), any())).thenReturn(true);
         readOnlyGuard = mock(StationReadOnlyGuard.class);
         when(readOnlyGuard.isWritable(anyInt())).thenReturn(true);
     }
@@ -75,6 +76,7 @@ class EventReminderCheckerTest {
                 false,
                 null,
                 RestrictionMode.OR,
+                RestrictionMode.AND,
                 false,
                 null,
                 null,
@@ -105,6 +107,7 @@ class EventReminderCheckerTest {
                 false,
                 null,
                 RestrictionMode.OR,
+                RestrictionMode.AND,
                 false,
                 null,
                 null,
@@ -135,6 +138,7 @@ class EventReminderCheckerTest {
                 false,
                 null,
                 RestrictionMode.OR,
+                RestrictionMode.AND,
                 false,
                 null,
                 null,
@@ -175,6 +179,29 @@ class EventReminderCheckerTest {
         var audience = ArgumentCaptor.forClass(Collection.class);
         verify(notificationService).notifyMembers(audience.capture(), eq(NotificationType.REGISTRATION_CLOSING), any());
         assertTrue(audience.getValue().containsAll(List.of(10, 11)), "the member and their guardian both hear");
+        verify(reminderRepository).markDeadlineWarningSent(7, 3);
+    }
+
+    /**
+     * Somebody the appointment is not open to owes no answer, so no deadline is warned about.
+     *
+     * <p>The list of unanswered members is everybody at the station without a registration, which
+     * says nothing about whether they were ever allowed to give one. The warning is still marked as
+     * sent, because there is nothing left to warn about on a later pass either.
+     */
+    @Test
+    void nobodyIsWarnedAboutADeadlineTheyCannotMeet() {
+        var closing = new EventRepository.ClosingEvent(7, STATION_ID, "Übung", Instant.now(), 3);
+        when(eventRepository.findEventsClosingIn(3)).thenReturn(List.of(closing));
+        when(eventRepository.findEventsClosingIn(1)).thenReturn(List.of());
+        when(eventRepository.findEventsWithReminders()).thenReturn(List.of());
+        when(readOnlyGuard.isWritable(STATION_ID)).thenReturn(true);
+        when(registrationRepository.findUnansweredMemberIds(7, STATION_ID)).thenReturn(List.of(10));
+        when(restrictionService.canRegister(eq(7), eq(10), any())).thenReturn(false);
+
+        invokeCheck();
+
+        verify(notificationService, never()).notifyMembers(any(), eq(NotificationType.REGISTRATION_CLOSING), any());
         verify(reminderRepository).markDeadlineWarningSent(7, 3);
     }
 
@@ -352,6 +379,7 @@ class EventReminderCheckerTest {
                 false,
                 null,
                 RestrictionMode.OR,
+                RestrictionMode.AND,
                 false,
                 null,
                 null,
@@ -389,6 +417,7 @@ class EventReminderCheckerTest {
                 false,
                 null,
                 RestrictionMode.OR,
+                RestrictionMode.AND,
                 false,
                 null,
                 null,

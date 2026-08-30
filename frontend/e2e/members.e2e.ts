@@ -579,7 +579,10 @@ test.describe('Members', () => {
         await managerPage.getByRole('button', {name: 'Notizen'}).click()
         await expect(managerPage.getByPlaceholder(/Notiz schreiben/)).toHaveValue(note)
 
-        const helper = await accountWithout(request, 'TEAM', 'MEMBER_NOTES')
+        // The endpoint reports what was granted, not what those grants imply, and the right to manage
+        // members carries the right to read notes. Asking only about the note right picks somebody
+        // who can read them after all.
+        const helper = await accountWithout(request, 'TEAM', 'MEMBER_NOTES', 'MEMBER_MANAGER')
         const helperPage = await pageAsThrowaway(browser, request, [], helper)
 
         await helperPage.goto(`/station/members/detail/${id}`)

@@ -270,6 +270,8 @@ test.describe('Guardian', () => {
             const row = page.locator(`[data-testid="upcoming-event"][data-event="${eventId}"]`)
             await expect(row).toHaveCount(1, {timeout: 15000})
             await row.getByTestId(`undo-answer-${gives}`).click()
+            // Giving a place up asks first, because the place is gone once it is given back.
+            await page.getByTestId('confirm-sign-off').click()
 
             await page.goto(`/station/events/${eventId}`)
             await page.getByRole('button', {name: 'Anmeldungen'}).click()

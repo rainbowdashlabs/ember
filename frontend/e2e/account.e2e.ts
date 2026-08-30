@@ -165,7 +165,9 @@ test.describe('Account & session', () => {
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
         await page.getByTestId('account-menu').click()
-        await page.getByRole('button', {name: 'Abmelden'}).click()
+        // Scoped to the header: signing off an appointment is called the same thing, and the
+        // dashboard behind the menu is full of those buttons.
+        await page.getByRole('banner').getByRole('button', {name: 'Abmelden'}).click()
 
         await page.waitForURL(/\/login/)
         await page.goto('/station/dashboard/overview')

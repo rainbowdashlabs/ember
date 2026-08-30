@@ -12,12 +12,12 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import UpcomingBody from './upcomingview/UpcomingBody.vue'
-import RegistrationFieldsModal from './eventshared/RegistrationFieldsModal.vue'
+import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
 import {isRecurringEvent, RegistrationStatus, type StationEvent} from '@/api/events'
 import {useSession} from '@/composables/useSession'
 import {useUpcomingEvents} from '@/composables/useUpcomingEvents'
 import {formatTime} from '@/util/format'
-import {answerableMembers} from '@/util/eventAnswers'
+import {answerableMembers, type AnswerablePerson} from '@/util/eventAnswers'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -33,7 +33,7 @@ const {
   selectedCategoryId, searchQuery, showNeedsAction,
   loadingMore, hasMore, registering, filteredUpcoming, multiDayEndDate,
   loading, error,
-  fieldPrompt, confirmFieldPrompt, cancelFieldPrompt,
+  answerPrompt, confirmAnswerPrompt, cancelAnswerPrompt,
 } = upcoming
 
 const VIEW_MODE_STORAGE_KEY = 'eventsUpcoming.viewMode'
@@ -51,7 +51,6 @@ watch(viewMode, (mode) => {
   }
 })
 
-const dayNames = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
 const pad2 = (n: number) => String(n).padStart(2, '0')
 
 /**
@@ -67,12 +66,6 @@ function matchesTextSearch(ev: StationEvent): boolean {
 
 const filteredTodayEvents = computed(() => todayEvents.value.filter(ev => matchesTextSearch(ev)))
 
-function dayLabel(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00Z')
-  const dow = d.getUTCDay() === 0 ? 7 : d.getUTCDay()
-  return dayNames[dow] ?? ''
-}
-
 function formatDeadline(iso: string): string {
   const d = new Date(iso)
   return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
@@ -83,7 +76,7 @@ function todayIsoDate(): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
 }
 
-function getEligibleMembers(eventId: number): { id: number; name: string }[] {
+function getEligibleMembers(eventId: number): AnswerablePerson[] {
   return answerableMembers(
       eventId,
       eligibleMembers.value,
@@ -150,9 +143,6 @@ watch(loaded, (isLoaded) => {
           :categories="categories"
           :all-events="allEvents"
           :event-breaks="eventBreaks"
-          :eligible-members="eligibleMembers"
-          :current-member-id="currentMemberId"
-          :managed-member-ids="managedMembers.map(m => m.id)"
           :filtered-today-events="filteredTodayEvents"
           :filtered-upcoming="filteredUpcoming"
           :overview-fields="overviewFields"
@@ -166,7 +156,6 @@ watch(loaded, (isLoaded) => {
           :get-eligible-members="getEligibleMembers"
           :today-detail-route="todayDetailRoute"
           :event-detail-route="eventDetailRoute"
-          :day-label="dayLabel"
           :format-time="formatTime"
           :format-deadline="formatDeadline"
           @update:view-mode="viewMode = $event"
@@ -175,18 +164,21 @@ watch(loaded, (isLoaded) => {
           @update:needs-action="showNeedsAction = $event"
           @create="openCreateEvent"
           @attendance="goToAttendance"
-          @register="upcoming.registerForEvent"
-          @decline="upcoming.declineEvent"
+          @register="upcoming.registerFor"
+          @decline="upcoming.declineFor"
           @withdraw="upcoming.withdrawRegistration"
           @load-more="upcoming.loadMore"
       />
     </div>
 
-    <RegistrationFieldsModal
-        :model-value="fieldPrompt !== null"
-        :fields="fieldPrompt?.fields ?? []"
-        @update:model-value="v => { if (!v) cancelFieldPrompt() }"
-        @confirm="confirmFieldPrompt"
+    <EventAnswerDialog
+        :model-value="answerPrompt !== null"
+        :people="answerPrompt?.people ?? []"
+        :fields="answerPrompt?.fields ?? []"
+        :attending="answerPrompt?.attending ?? true"
+        :busy="!!registering"
+        @update:model-value="shown => { if (!shown) cancelAnswerPrompt() }"
+        @confirm="confirmAnswerPrompt"
     />
   </ViewContent>
 </template>

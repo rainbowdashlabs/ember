@@ -25,9 +25,6 @@ import {formatTime} from '@/util/format'
 const props = defineProps<{
   allEvents: StationEvent[]
   eventBreaks: EventBreak[]
-  eligibleMemberIds: Record<number, number[]>
-  currentMemberId: number
-  managedMemberIds: number[]
   selectedCategoryId: string
   searchQuery: string
   categories?: EventCategory[]
@@ -41,9 +38,6 @@ const {viewYear, viewMonth, weeks, prevMonth, nextMonth, goToToday} = useEventCa
     computed(() => ({
       allEvents: props.allEvents,
       eventBreaks: props.eventBreaks,
-      eligibleMemberIds: props.eligibleMemberIds,
-      currentMemberId: props.currentMemberId,
-      managedMemberIds: props.managedMemberIds,
       selectedCategoryId: props.selectedCategoryId,
       searchQuery: props.searchQuery,
     })),

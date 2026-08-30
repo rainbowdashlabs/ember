@@ -15,6 +15,8 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestSection;
 import dev.chojo.ember.feature.quiz.entity.QuizTestSectionSource;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSql;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -37,6 +39,8 @@ public class QuizTestRepository {
             "t.id, t.station_id, t.title, t.description, t.status, t.time_limit, t.shuffle, t.forced, t.start_at, t.end_at, t.created_by, t.created_at, t.updated_at, t.restriction_mode, EXISTS(SELECT 1 FROM quiz_test_restriction r WHERE r.test_id = t.id) AS restricted";
     private static final String TEST_COLUMNS_BARE =
             "id, station_id, title, description, status, time_limit, shuffle, forced, start_at, end_at, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM quiz_test_restriction r WHERE r.test_id = id) AS restricted";
+    private static final String TEST_VISIBLE_FOR_MEMBER =
+            RestrictionSql.visibleFor(RestrictionType.QUIZ_TEST, "t.id", ":member_id");
     private static final String QUIZ_TEST_SECTION_COLUMNS = "id, test_id, title, description, position";
     private static final String QUIZ_TEST_SECTION_SOURCE_COLUMNS =
             "id, section_id, catalog_id, category_id, question_count";
@@ -66,8 +70,8 @@ public class QuizTestRepository {
                 SELECT %s
                 FROM quiz_test t
                 WHERE t.station_id = :station_id
-                  AND check_restriction('quiz_test_restriction', 'test_id', 'quiz_test', 'id', t.id, :member_id, 'TEST_MANAGER')
-                ORDER BY t.created_at DESC;""", TEST_COLUMNS)
+                  AND %s
+                ORDER BY t.created_at DESC;""", TEST_COLUMNS, TEST_VISIBLE_FOR_MEMBER)
                 .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(QuizTest.map())
                 .all();

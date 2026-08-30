@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
@@ -91,9 +92,19 @@ public class EventSharingRoutes implements Routes {
         ctx.json(new FederationShareResponse(true, share.get().scope(), targets));
     }
 
+    /**
+     * Hands one of this station's events to partner stations.
+     *
+     * <p>An event that not every member here may know about is not handed over. The audiences name
+     * groups, tags and members of this station, and none of those mean anything at the partner, so a
+     * shared event would stand open to everybody there: the opposite of what restricting it said.
+     */
     private void setFederationShare(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
+        var event = requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
+        if (event.restricted()) {
+            throw new BadRequestResponse("An event with a restricted audience cannot be shared with partners");
+        }
         var req = ctx.bodyAsClass(SetFederationShareRequest.class);
         eventFederationService.setShare(id, req.scope(), req.partnerIds() != null ? req.partnerIds() : List.of());
         ctx.json(new FederationShareResponse(true, req.scope(), null));

@@ -33,6 +33,11 @@ async function fieldNames(page: Page): Promise<string[]> {
 }
 
 test.describe('Event templates', () => {
+    // Three of these stories edit the same template the station starts with: one reorders its
+    // questions, one changes the width of the first, and one copies it and compares. Run side by
+    // side they read each other's edits, so they go in order.
+    test.describe.configure({mode: 'serial'})
+
     /**
      * A question moves past its neighbour and stays there.
      *

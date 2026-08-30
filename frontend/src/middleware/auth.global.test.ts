@@ -25,6 +25,10 @@ const state = vi.hoisted(() => ({
     clusters: [] as {uid: string}[],
     clustersLoaded: false,
     needsReconsent: false,
+    demo: {demo: false, dev: false},
+    demoLogins: [] as string[],
+    demoLoginFails: false,
+    sessionCleared: 0,
 }))
 
 mockNuxtImport('navigateTo', () => (target: unknown) => {
@@ -34,6 +38,20 @@ mockNuxtImport('navigateTo', () => (target: unknown) => {
 
 vi.mock('~/api/storage', () => ({
     getItem: (key: string) => state.store.get(key) ?? null,
+    removeItem: (key: string) => {
+        state.store.delete(key)
+    },
+}))
+
+vi.mock('~/api/demo', () => ({
+    getDemoStatus: async () => state.demo,
+}))
+
+vi.mock('~/api/auth', () => ({
+    demoLogin: async (email: string) => {
+        if (state.demoLoginFails) throw new Error('no such account')
+        state.demoLogins.push(email)
+    },
 }))
 
 vi.mock('~/composables/useConsentGuard', () => ({
@@ -48,6 +66,9 @@ vi.mock('~/composables/useSession', () => ({
             state.sessionLoaded = true
         },
         isAdmin: () => state.admin,
+        clear: () => {
+            state.sessionCleared++
+        },
     }),
 }))
 
@@ -106,7 +127,57 @@ describe('auth route guard', () => {
         state.clusters = []
         state.clustersLoaded = false
         state.needsReconsent = false
+        state.demo = {demo: false, dev: false}
+        state.demoLogins = []
+        state.demoLoginFails = false
+        state.sessionCleared = 0
         localStorage.clear()
+    })
+
+    describe('signing in through a link', () => {
+        it('becomes the named account on a development instance and drops the parameter', async () => {
+            state.demo = {demo: false, dev: true}
+            state.store.set('station_id', 'somebody-elses-station')
+
+            await run(route('/station/events/upcoming', {as: 'tim@berger.local', station: STATION}))
+
+            expect(state.demoLogins).toEqual(['tim@berger.local'])
+            expect(state.sessionCleared).toBe(1)
+            expect(state.store.has('station_id')).toBe(false)
+            expect(state.navigations).toEqual([
+                {path: '/station/events/upcoming', query: {station: STATION}, hash: undefined, replace: true},
+            ])
+        })
+
+        it('leaves a production instance alone and still drops the parameter', async () => {
+            state.demo = {demo: false, dev: false}
+
+            await run(route('/station/dashboard/overview', {as: 'tim@berger.local', station: STATION}))
+
+            expect(state.demoLogins).toEqual([])
+            expect(state.navigations).toEqual([
+                {path: '/station/dashboard/overview', query: {station: STATION}, hash: undefined, replace: true},
+            ])
+        })
+
+        it('sends somebody to the login page when the account is not there', async () => {
+            state.demo = {demo: true, dev: false}
+            state.demoLoginFails = true
+
+            await run(route('/station/dashboard/overview', {as: 'niemand@nirgends.local'}))
+
+            expect(state.navigations).toEqual([
+                {path: '/login', query: {redirect: '/station/dashboard/overview'}},
+            ])
+        })
+
+        it('does nothing at all without the parameter', async () => {
+            state.demo = {demo: false, dev: true}
+
+            await run(route('/station/dashboard/overview', {station: STATION}))
+
+            expect(state.demoLogins).toEqual([])
+        })
     })
 
     /**

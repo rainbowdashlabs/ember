@@ -55,15 +55,6 @@ function close() {
     <SidebarLink v-if="hasPermission(StationPermission.STATION_IMPORT_EXPORT)" :icon="['fas', 'file-import']" name="station-import" to="/station/manage/import" @navigate="close">
       {{ t('sidebar.stationImport') }}
     </SidebarLink>
-    <SidebarLink v-if="hasPermission(StationPermission.STATION_MANAGER)" :icon="['fas', 'hard-drive']" name="station-storage" to="/station/manage/storage" @navigate="close">
-      {{ t('sidebar.storage') }}
-    </SidebarLink>
-    <SidebarLink v-if="hasPermission(StationPermission.STATION_ADMINISTRATOR)" :icon="['fas', 'tower-broadcast']" name="station-traffic" to="/station/manage/traffic" @navigate="close">
-      {{ t('sidebar.stationTraffic') }}
-    </SidebarLink>
-    <SidebarLink v-if="hasPermission(StationPermission.STATION_ADMINISTRATOR)" :icon="['fas', 'chart-pie']" name="station-insights" to="/station/manage/insights" @navigate="close">
-      {{ t('sidebar.stationInsights') }}
-    </SidebarLink>
     <SidebarLink v-if="hasPermission(StationPermission.STATION_ADMINISTRATOR)" :icon="['fas', 'shield']" name="station-security" to="/station/manage/security" @navigate="close">
       {{ t('sidebar.stationSecurity') }}
     </SidebarLink>

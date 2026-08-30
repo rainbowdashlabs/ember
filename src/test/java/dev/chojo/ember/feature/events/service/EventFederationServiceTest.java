@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -28,6 +29,8 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.ForbiddenResponse;
@@ -204,6 +207,27 @@ class EventFederationServiceTest extends RepositoryTestBase {
         service.setShare(eventId, ShareScope.ALL_PARTNERS, List.of());
         var sharedIds = service.findSharedEventIds(partnerId, stationA.id());
         assertTrue(sharedIds.contains(eventId));
+    }
+
+    /**
+     * An appointment not every member here may know about is withdrawn from the partners, and the
+     * order the two settings were made in does not matter. The audience names groups of this station,
+     * which mean nothing at the partner, so a shared one would stand open to everybody there.
+     */
+    @Test
+    @Order(5)
+    void restrictingVisibilityWithdrawsAShare() {
+        service.setShare(eventId, ShareScope.ALL_PARTNERS, List.of());
+        var eventRestrictions = newEventServices(new DomainEventBus(Set.of())).restriction();
+        eventRestrictions.setViewRestrictions(
+                eventId,
+                new RestrictionSelection(
+                        List.of(StationUserType.GUARDIAN), List.of(), List.of(), List.of(), RestrictionMode.AND));
+
+        assertFalse(service.findSharedEventIds(partnerId, stationA.id()).contains(eventId));
+
+        eventRestrictions.setViewRestrictions(eventId, RestrictionSelection.empty());
+        assertTrue(service.findSharedEventIds(partnerId, stationA.id()).contains(eventId));
     }
 
     @Test

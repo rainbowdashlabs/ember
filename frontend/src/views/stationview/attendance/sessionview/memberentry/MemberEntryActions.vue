@@ -10,6 +10,8 @@ import type {AttendanceEntry, AttendanceStatus} from '@/api/attendance'
 
 defineProps<{
   entry: AttendanceEntry
+  sessionStart?: string
+  sessionEnd?: string
 }>()
 
 const emit = defineEmits<{
@@ -27,6 +29,8 @@ const emit = defineEmits<{
         v-if="entry.status === 'PRESENT'"
         :check-in="entry.checkIn"
         :check-out="entry.checkOut"
+        :session-end="sessionEnd"
+        :session-start="sessionStart"
         @check-in="emit('checkIn', $event)"
         @check-out="emit('checkOut', $event)"
         @reset-times="emit('resetTimes')"

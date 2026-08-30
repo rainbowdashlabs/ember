@@ -59,6 +59,7 @@ const thresholdDate = defineModel<string>('thresholdDate')
 const registrationCloseDays = defineModel<number>('registrationCloseDays')
 
 const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
+const viewRestriction = defineModel<RestrictionSelection>('viewRestriction', {required: true})
 
 const {t} = useI18n()
 </script>
@@ -211,11 +212,21 @@ const {t} = useI18n()
     <template v-if="groups && tags">
       <hr class="border-(--border)"/>
       <SubHeader>{{ t('events.restrictions') }}</SubHeader>
+
+      <FieldLabel>{{ t('events.restrictToRoles') }}</FieldLabel>
       <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
       <RestrictionsField
           :groups="groups"
           :tags="tags"
           v-model="restriction"
+      />
+
+      <FieldLabel>{{ t('events.restrictVisibility') }}</FieldLabel>
+      <p class="text-xs text-(--text-muted)">{{ t('events.restrictVisibilityHint') }}</p>
+      <RestrictionsField
+          :groups="groups"
+          :tags="tags"
+          v-model="viewRestriction"
       />
     </template>
 

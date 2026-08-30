@@ -203,6 +203,22 @@ function escapeHtml(text: string): string {
       </SidebarExpandableLink>
     </SidebarGroup>
 
+    <SidebarGroup :icon="['fas', 'chart-line']" :label="t('sidebar.monitoring')"
+                  to="/helpcenter/station/monitoring/traffic" name="help-station-traffic" @navigate="close">
+      <SidebarLink :icon="['fas', 'chart-pie']" name="help-station-insights"
+                   to="/helpcenter/station/monitoring/insights" @navigate="close">
+        {{ t('sidebar.stationInsights') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'rss']" name="help-station-feeds"
+                   to="/helpcenter/station/monitoring/feeds" @navigate="close">
+        {{ t('sidebar.stationFeeds') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'hard-drive']" name="help-station-storage"
+                   to="/helpcenter/station/monitoring/storage" @navigate="close">
+        {{ t('sidebar.storage') }}
+      </SidebarLink>
+    </SidebarGroup>
+
     <MembersSidebarGroup :close="close"/>
 
     <InventorySidebarGroup :close="close"/>

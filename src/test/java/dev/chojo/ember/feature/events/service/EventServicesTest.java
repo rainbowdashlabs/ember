@@ -506,6 +506,137 @@ class EventServicesTest extends RepositoryTestBase {
         eventRestrictionService.updateRestrictionMode(event.id(), RestrictionMode.AND);
     }
 
+    /** An audience naming one kind of member and nothing else. */
+    private static RestrictionSelection onlyType(StationUserType type) {
+        return new RestrictionSelection(List.of(type), List.of(), List.of(), List.of(), RestrictionMode.AND);
+    }
+
+    private static StationEvent openEvent(String name) {
+        var start = Instant.now().plus(30, ChronoUnit.DAYS);
+        return crudService.create(
+                station.id(),
+                name,
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null,
+                null,
+                null,
+                null);
+    }
+
+    @Test
+    @Order(73)
+    void narrowingRegistrationLeavesTheEventVisible() {
+        var event = openEvent("Registration Narrowed");
+        eventRestrictionService.setRestrictions(event.id(), onlyType(StationUserType.GUARDIAN));
+
+        var none = EnumSet.noneOf(StationPermission.class);
+        assertTrue(eventRestrictionService.canView(event.id(), member.id(), none));
+        assertFalse(eventRestrictionService.canRegister(event.id(), member.id(), none));
+        assertFalse(eventRestrictionService.hasViewRestrictions(event.id()));
+    }
+
+    @Test
+    @Order(74)
+    void narrowingVisibilityHidesTheEvent() {
+        var event = openEvent("Visibility Narrowed");
+        eventRestrictionService.setViewRestrictions(event.id(), onlyType(StationUserType.GUARDIAN));
+
+        var none = EnumSet.noneOf(StationPermission.class);
+        assertFalse(eventRestrictionService.canView(event.id(), member.id(), none));
+        assertTrue(eventRestrictionService.hasViewRestrictions(event.id()));
+    }
+
+    /**
+     * Seeing contains registering. An event whose registration audience names this member but whose
+     * view audience does not is closed to them, because there is nothing to answer about something
+     * they never meet.
+     */
+    @Test
+    @Order(75)
+    void registeringNeedsSeeing() {
+        var event = openEvent("Open To Register Only");
+        eventRestrictionService.setRestrictions(event.id(), onlyType(StationUserType.MEMBER));
+        eventRestrictionService.setViewRestrictions(event.id(), onlyType(StationUserType.GUARDIAN));
+
+        var none = EnumSet.noneOf(StationPermission.class);
+        assertFalse(eventRestrictionService.canRegister(event.id(), member.id(), none));
+    }
+
+    @Test
+    @Order(76)
+    void theTwoAudiencesAreStoredApart() {
+        var event = openEvent("Two Audiences");
+        eventRestrictionService.setRestrictions(event.id(), onlyType(StationUserType.MEMBER));
+        eventRestrictionService.setViewRestrictions(event.id(), onlyType(StationUserType.GUARDIAN));
+
+        assertEquals(
+                List.of(StationUserType.MEMBER),
+                eventRestrictionService.findRestrictions(event.id()).userTypes());
+        assertEquals(
+                List.of(StationUserType.GUARDIAN),
+                eventRestrictionService.findViewRestrictions(event.id()).userTypes());
+    }
+
+    /**
+     * What the lists hand out, which is the difference the whole split is for. An appointment
+     * narrowed for registration stays in the member's calendar and carries no lock; one narrowed for
+     * visibility is not handed over at all.
+     */
+    @Test
+    @Order(78)
+    void onlyVisibilityKeepsAnEventOutOfTheList() {
+        var openToAll = openEvent("Everyone Sees This");
+        var registerNarrowed = openEvent("Register Narrowed In List");
+        eventRestrictionService.setRestrictions(registerNarrowed.id(), onlyType(StationUserType.GUARDIAN));
+        var hidden = openEvent("Hidden From List");
+        eventRestrictionService.setViewRestrictions(hidden.id(), onlyType(StationUserType.GUARDIAN));
+
+        var visible = crudService.findByStationForMember(station.id(), member.id()).stream()
+                .map(StationEvent::id)
+                .toList();
+
+        assertTrue(visible.contains(openToAll.id()));
+        assertTrue(visible.contains(registerNarrowed.id()), "narrowing registration must not hide the appointment");
+        assertFalse(visible.contains(hidden.id()));
+    }
+
+    /** The lock stands for visibility alone, so an appointment only closed to answers carries none. */
+    @Test
+    @Order(79)
+    void theLockFollowsVisibilityOnly() {
+        var registerNarrowed = openEvent("No Lock Here");
+        eventRestrictionService.setRestrictions(registerNarrowed.id(), onlyType(StationUserType.MEMBER));
+        var hidden = openEvent("Lock Here");
+        eventRestrictionService.setViewRestrictions(hidden.id(), onlyType(StationUserType.MEMBER));
+
+        assertFalse(crudService.findById(registerNarrowed.id()).orElseThrow().restricted());
+        assertTrue(crudService.findById(hidden.id()).orElseThrow().restricted());
+    }
+
+    @Test
+    @Order(77)
+    void theTwoModesAreStoredApart() {
+        var event = openEvent("Two Modes");
+        eventRestrictionService.updateRestrictionMode(event.id(), RestrictionMode.OR);
+        eventRestrictionService.updateViewRestrictionMode(event.id(), RestrictionMode.AND);
+
+        assertEquals(
+                RestrictionMode.OR,
+                eventRestrictionService.findRestrictions(event.id()).mode());
+        assertEquals(
+                RestrictionMode.AND,
+                eventRestrictionService.findViewRestrictions(event.id()).mode());
+    }
+
     @Test
     @Order(72)
     void isMemberEligibleNoRestrictions() {
@@ -530,8 +661,8 @@ class EventServicesTest extends RepositoryTestBase {
                 null);
 
         // No restrictions set - member should be eligible
-        assertTrue(eventRestrictionService.isMemberEligible(
-                event.id(), member.id(), EnumSet.noneOf(StationPermission.class)));
+        assertTrue(
+                eventRestrictionService.canRegister(event.id(), member.id(), EnumSet.noneOf(StationPermission.class)));
     }
 
     // -- Field defaults --

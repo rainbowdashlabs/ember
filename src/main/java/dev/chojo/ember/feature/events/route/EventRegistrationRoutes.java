@@ -279,7 +279,7 @@ public class EventRegistrationRoutes implements Routes {
 
         var byEvent = new LinkedHashMap<Integer, AwaitingAnswer>();
         for (var row : registrationService.findAwaitingAnswer(household)) {
-            if (!restrictionService.isMemberEligible(row.eventId(), row.memberId(), session.permissions())) {
+            if (!restrictionService.canRegister(row.eventId(), row.memberId(), session.permissions())) {
                 continue;
             }
             var entry = byEvent.computeIfAbsent(
@@ -517,7 +517,7 @@ public class EventRegistrationRoutes implements Routes {
 
         boolean isManagerRegistration =
                 req.memberId() != null && req.memberId() != session.member().id() && runsTheEvent;
-        if (!isManagerRegistration && !restrictionService.isMemberEligible(eventId, memberId, session.permissions())) {
+        if (!isManagerRegistration && !restrictionService.canRegister(eventId, memberId, session.permissions())) {
             throw new BadRequestResponse("Member is not eligible for this event");
         }
 

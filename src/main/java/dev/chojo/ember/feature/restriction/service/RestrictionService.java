@@ -80,6 +80,13 @@ public class RestrictionService {
     }
 
     /**
+     * Whether an entity carries any restriction at all.
+     */
+    public boolean hasRestrictions(RestrictionType type, int entityId) {
+        return restrictionRepository.hasRestrictions(type, entityId);
+    }
+
+    /**
      * Returns the IDs of the station's members that pass the restrictions of an entity, including
      * the members holding the manager permission of the entity type, who bypass restrictions.
      * An unrestricted entity yields an empty set.

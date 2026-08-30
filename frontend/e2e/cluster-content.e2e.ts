@@ -112,9 +112,10 @@ test.describe('Cluster content', () => {
         await expect(tile).toBeVisible({timeout: 15000})
         await expect(tile.getByText(cluster.name)).toBeVisible()
 
-        // Registering is the member's act and the appointment is the association's: one row, both ends
-        await tile.getByTestId('federated-event-register').click()
-        await expect(tile.getByTestId('federated-event-registration')).toBeVisible({timeout: 15000})
+        // Registering is the member's act and the appointment is the association's: one row, both ends.
+        // The partner's appointment is answered with the same controls the station's own use.
+        await tile.getByTestId('answer-selected').click()
+        await expect(tile.locator('[data-testid^="undo-answer-"]').first()).toBeVisible({timeout: 15000})
 
         await station.context().close()
     })

@@ -83,6 +83,9 @@ public class BatchEventService {
             if (request.restriction() != null) {
                 restrictionService.setRestrictions(event.id(), request.restriction());
             }
+            if (request.viewRestriction() != null) {
+                restrictionService.setViewRestrictions(event.id(), request.viewRestriction());
+            }
 
             var fieldEntries = fieldDefs.stream()
                     .map(def -> new EventFieldRepository.FieldEntry(

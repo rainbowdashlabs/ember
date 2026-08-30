@@ -34,7 +34,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  * @param accountSetupPending  {@code true} when the linked account has never been logged into; flagged in the
  *                             member list so managers can chase the recipient or resend the setup mail
  * @param setupMailExpiresAt   when the most recent password-setup link expires, or null when none was sent
- * @param mailReachable        whether anything written about this member would reach anybody: their own address
+ * @param mailReaches          who a letter about this member actually arrives at: their own address
  *                             where it is a real one, or a guardian's where it is not. The member list offers to
  *                             send the setup mail only where it does, because sending it otherwise cannot work
  * @param former               whether this member has been marked as a former member
@@ -55,7 +55,7 @@ public record RichMember(
         String email,
         boolean accountSetupPending,
         Instant setupMailExpiresAt,
-        boolean mailReachable,
+        MailReaches mailReaches,
         boolean former,
         StationUserType userType,
         LocalDate joinDate,
@@ -86,7 +86,7 @@ public record RichMember(
                 row.getString("email"),
                 row.getBoolean("account_setup_pending"),
                 row.get("setup_mail_expires_at", StandardValueConverter.INSTANT_TIMESTAMP),
-                row.getBoolean("mail_reachable"),
+                row.getEnum("mail_reaches", MailReaches.class),
                 row.getBoolean("former"),
                 row.getEnum("user_type", StationUserType.class),
                 row.getDate("join_date") != null ? row.getDate("join_date").toLocalDate() : null,
@@ -122,7 +122,7 @@ public record RichMember(
                 email,
                 accountSetupPending,
                 setupMailExpiresAt,
-                mailReachable,
+                mailReaches,
                 former,
                 userType,
                 joinDate,

@@ -70,7 +70,10 @@ export interface EventRequest {
     registrationDeadline?: string | null
     requiresConfirmation?: boolean
     categoryId?: number | null
+    /** Who the appointment is for. Everybody else sees it and cannot answer it. */
     restriction?: RestrictionSelection
+    /** Who may know the appointment exists. Everybody else never meets it anywhere. */
+    viewRestriction?: RestrictionSelection
     isPublic?: boolean
     registrationLimit?: number | null
     minRegistrations?: number | null
@@ -82,13 +85,26 @@ export interface EventRequest {
     repeatCount?: number | null
 }
 
-export interface EventRestrictions {
+/** One named audience, as the shared audience editor reads and writes it. */
+export interface RestrictionAudience {
     userTypes: string[]
     groupIds: number[]
     tagIds: number[]
     memberIds: number[]
     /** How the named kinds combine. Absent where nothing was ever said, which reads as AND. */
     mode?: 'AND' | 'OR'
+}
+
+/**
+ * Both audiences of an appointment.
+ *
+ * <p>`register` says who it is for, and everybody else still sees it in the calendar and simply
+ * cannot answer it. `view` says who may know it exists, and for everybody else it is absent from
+ * every list, feed and notification. Seeing contains registering, which the server enforces.
+ */
+export interface EventRestrictions {
+    register: RestrictionAudience
+    view: RestrictionAudience
 }
 
 export interface AllEventRestrictions {
@@ -180,6 +196,7 @@ export interface EventTemplate {
     registrationDeadlineOffset?: string | null
     requiresConfirmation?: boolean | null
     restrictionMode?: string | null
+    viewRestrictionMode?: string | null
     attendanceTemplateId?: number | null
     registrationLimit?: number | null
 }
@@ -202,7 +219,7 @@ export interface EventTemplateField {
 export interface EventTemplateDetail {
     template: EventTemplate
     fields: EventTemplateField[]
-    /** Who the appointments written from this template are for, handed over when it is applied. */
+    /** Both audiences the appointments written from this template start with, handed over when it is applied. */
     restriction: EventRestrictions
     reminderDays: number[]
 }
@@ -679,6 +696,7 @@ export interface BatchCreateRequest {
     requiresConfirmation?: boolean
     registrationDeadline?: string | null
     restriction?: RestrictionSelection
+    viewRestriction?: RestrictionSelection
 }
 
 export interface GenerateDatesRequest {

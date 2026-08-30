@@ -33,7 +33,6 @@ import java.time.format.FormatStyle;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Builds RFC-5545 {@link VEvent}s for the personal iCal feed.
@@ -83,8 +82,7 @@ public class IcalEventRenderer {
     }
 
     /**
-     * Personal visibility decision per the feed spec. Hides an event when every relevant
-     * registration is {@code DECLINED} / {@code DENIED}; keeps it otherwise.
+     * Whether this appointment belongs in the reader's own calendar.
      *
      * <ul>
      *   <li>Non-guardian: hide if own status is {@code DECLINED}/{@code DENIED}.</li>
@@ -92,7 +90,11 @@ public class IcalEventRenderer {
      *       registration is {@code DECLINED}/{@code DENIED}.</li>
      *   <li>Owner + guardian: hide only if both the owner and every managed member are
      *       {@code DECLINED}/{@code DENIED}.</li>
-     *   <li>Registration-required + deadline expired + nobody registered: hide.</li>
+     *   <li>Where an appointment asks to be signed up for and the closing date has passed,
+     *       only a place actually taken keeps it: an answer still outstanding at that point is
+     *       an absence, and a calendar that keeps showing it sends somebody to a drill they are
+     *       not on the list for. Until the closing date an outstanding answer keeps it, which is
+     *       what the reminder is for.</li>
      *   <li>Cancelled events are kept (with the cancel marker) so calendars stay accurate.</li>
      * </ul>
      */
@@ -102,8 +104,6 @@ public class IcalEventRenderer {
 
         boolean ownDeclined = ownStatus == RegistrationStatus.DECLINED || ownStatus == RegistrationStatus.DENIED;
 
-        boolean anyManagedActive = managed.stream()
-                .anyMatch(r -> r.status() == RegistrationStatus.ACCEPTED || r.status() == RegistrationStatus.PENDING);
         boolean allManagedRefused = !managed.isEmpty()
                 && managed.stream()
                         .allMatch(r ->
@@ -118,12 +118,14 @@ public class IcalEventRenderer {
             if (ownDeclined && managed.isEmpty()) return false;
         }
 
-        // Registration required + deadline expired + nobody (owner or managed) registered
-        return !event.requiresRegistration()
+        if (!event.requiresRegistration()
                 || event.registrationDeadline() == null
-                || !event.registrationDeadline().isBefore(Instant.now())
-                || ctx.ownerRegisteredEvents().contains(event.id())
-                || anyManagedActive;
+                || !event.registrationDeadline().isBefore(Instant.now())) {
+            return true;
+        }
+
+        return ownStatus == RegistrationStatus.ACCEPTED
+                || managed.stream().anyMatch(r -> r.status() == RegistrationStatus.ACCEPTED);
     }
 
     // -- description body --
@@ -299,7 +301,6 @@ public class IcalEventRenderer {
      * @param verbose               when {@code false} only the headline + link are rendered
      * @param categoryMap           event category lookup
      * @param ownerStatusByEvent    the feed owner's registration status per event id
-     * @param ownerRegisteredEvents event ids the owner is registered for (any status)
      * @param managedStatusByEvent  list of managed-member registrations per event id (name +
      *                              status), in display-name order
      */
@@ -310,7 +311,6 @@ public class IcalEventRenderer {
             boolean verbose,
             Map<Integer, EventCategory> categoryMap,
             Map<Integer, RegistrationStatus> ownerStatusByEvent,
-            Set<Integer> ownerRegisteredEvents,
             Map<Integer, List<ManagedRegistration>> managedStatusByEvent) {}
 
     /**

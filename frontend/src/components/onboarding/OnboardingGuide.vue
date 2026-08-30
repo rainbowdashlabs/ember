@@ -58,11 +58,26 @@ const LISTS: Record<string, string> = {
  * read again, because whether the task counts as done is the server's answer and not the last
  * click's.
  */
+/**
+ * Who the task being walked is about, by name.
+ *
+ * <p>A guardian walks the same task once per child, and the steps say which one rather than "dein
+ * Kind": with two of them that wording asks the reader to guess.
+ */
+const subjectName = computed(() => {
+  const level = activeLevel.value
+  const taskId = activeTaskId.value
+  const task = level && taskId ? (status.value[level]?.tasks ?? []).find(entry => entry.id === taskId) : undefined
+  return task?.subject ?? t('onboarding.child')
+})
+
 watch(finished, async ended => {
   if (!ended) return
   const level = activeLevel.value
   const taskId = activeTaskId.value
-  const title = activeTaskKey.value ? t(`onboarding.tasks.${activeTaskKey.value}.title`) : ''
+  const title = activeTaskKey.value
+      ? t(`onboarding.tasks.${activeTaskKey.value}.title`, {name: subjectName.value})
+      : ''
   stop()
   if (level) await load(level)
   const task = level && taskId ? (status.value[level]?.tasks ?? []).find(entry => entry.id === taskId) : undefined
@@ -105,7 +120,9 @@ const spotlight = computed(() => (ring.value ? {...ring.value, boxShadow: '0 0 0
 /** The task being walked, named above the step so a reader who looked away can pick it up again. */
 const taskTitle = computed(() => {
   if (completed.value) return completed.value.title
-  return activeTaskKey.value ? t(`onboarding.tasks.${activeTaskKey.value}.title`) : ''
+  return activeTaskKey.value
+      ? t(`onboarding.tasks.${activeTaskKey.value}.title`, {name: subjectName.value})
+      : ''
 })
 
 const bubbleText = computed(() => {
@@ -116,7 +133,7 @@ const bubbleText = computed(() => {
     return t('onboarding.guide.elsewhere', {page: t(`onboarding.routes.${step.value.route}`)})
   }
   if (blocked.value) return t('onboarding.guide.blocked')
-  return t(`onboarding.steps.${activeTaskKey.value}.${activeStep.value}`)
+  return t(`onboarding.steps.${activeTaskKey.value}.${activeStep.value}`, {name: subjectName.value})
 })
 
 const progress = computed(() => `${Math.min(activeStep.value + 1, steps.value.length)}/${steps.value.length}`)

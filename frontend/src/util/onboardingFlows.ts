@@ -89,7 +89,6 @@ export const ONBOARDING_FLOWS: Record<string, OnboardingStep[]> = {
     ],
     'guardian.eventAnswer': [
         {target: 'nav.events.upcoming', route: 'events-upcoming', advance: 'route'},
-        {target: 'events.item.member-select', advance: 'click', optional: true},
         {target: 'events.item.pending', advance: 'click'},
     ],
 

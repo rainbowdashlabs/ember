@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StationStorageView from '~/views/stationview/manage/StationStorageView.vue'
+import StationInsightsView from '~/views/stationview/monitoring/StationInsightsView.vue'
 
 definePageMeta({
   layout: 'station',
-  name: 'station-storage',
+  name: 'station-insights',
 })
 </script>
 
 <template>
-  <StationStorageView/>
+  <StationInsightsView />
 </template>

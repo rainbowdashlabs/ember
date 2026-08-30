@@ -151,6 +151,21 @@ export async function forgotPassword(data: EmailRequest): Promise<MessageRespons
     return res.data
 }
 
+/** Whether a password link may still be used, and which of the two kinds it is. */
+export interface PasswordLinkStatus {
+    standing: 'VALID' | 'EXPIRED' | 'UNKNOWN'
+    purpose: 'SETUP' | 'RESET' | 'OTHER'
+}
+
+/**
+ * Asks what a link is worth before offering the form. Spends nothing, so a reader who reloads gets
+ * the same answer.
+ */
+export async function passwordLinkStatus(token: string): Promise<PasswordLinkStatus> {
+    const res = await client.post<PasswordLinkStatus>('/auth/password-link', {token})
+    return res.data
+}
+
 export async function setPassword(data: SetPasswordRequest): Promise<MessageResponse> {
     const res = await client.post<MessageResponse>('/auth/set-password', data)
     return res.data

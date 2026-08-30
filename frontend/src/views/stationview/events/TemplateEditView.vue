@@ -9,19 +9,12 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import {reportCaughtError} from '@/util/devErrorReporter'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import EventFieldList from './eventshared/EventFieldList.vue'
-import EventReminderEditor from './eventshared/EventReminderEditor.vue'
-import EventDefaultsSection from './templateeditview/EventDefaultsSection.vue'
-import TemplateAudienceSection from './templateeditview/TemplateAudienceSection.vue'
-import {emptyRestriction, type RestrictionSelection} from '@/components/input/restriction'
+import TemplateEditBody from './templateeditview/TemplateEditBody.vue'
+import {emptyRestriction, toRestriction, type RestrictionSelection} from '@/components/input/restriction'
 import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
 import type {EventCategory, EventFieldEntry, EventTemplateDetail} from '@/api/events'
 import type {MemberGroup, UserTag} from '@/api/types'
@@ -66,6 +59,7 @@ const attendanceTemplateId = ref('')
 const fields = ref<EventFieldEntry[]>([])
 const reminderDays = ref<number[]>([])
 const restriction = ref<RestrictionSelection>(emptyRestriction())
+const viewRestriction = ref<RestrictionSelection>(emptyRestriction())
 
 onMounted(() => { if (loaded.value) loadData() })
 watch(loaded, (v) => { if (v && loading.value) loadData() })
@@ -82,9 +76,8 @@ function seedForm(detail: EventTemplateDetail) {
   registrationLimit.value = tpl.registrationLimit ?? undefined
   attendanceTemplateId.value = tpl.attendanceTemplateId ? String(tpl.attendanceTemplateId) : ''
   reminderDays.value = detail.reminderDays ?? []
-  restriction.value = detail.restriction
-      ? {...emptyRestriction(), ...detail.restriction}
-      : emptyRestriction()
+  restriction.value = toRestriction(detail.restriction?.register)
+  viewRestriction.value = toRestriction(detail.restriction?.view)
   fields.value = detail.fields.map(f => ({
     name: f.name,
     fieldType: f.fieldType,
@@ -139,7 +132,10 @@ async function save() {
       attendanceTemplateId: attendanceTemplateId.value ? Number(attendanceTemplateId.value) : null,
     })
     await events.setTemplateReminders(templateId.value, reminderDays.value)
-    await events.setTemplateRestrictions(templateId.value, restriction.value)
+    await events.setTemplateRestrictions(templateId.value, {
+      register: restriction.value,
+      view: viewRestriction.value,
+    })
     await events.setTemplateFields(templateId.value, {
       fields: fields.value.map((f, i) => ({
         name: f.name,
@@ -174,44 +170,28 @@ async function save() {
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-      <template v-if="!loading">
-        <NeutralContainer class="space-y-4">
-          <SubHeader>{{ t('eventTemplates.name') }}</SubHeader>
-          <TextInput v-model="name" :placeholder="t('eventTemplates.namePlaceholder')"/>
-        </NeutralContainer>
-
-        <EventDefaultsSection
-            v-model:title="title"
-            v-model:description="description"
-            v-model:category-id="categoryId"
-            v-model:event-type="eventType"
-            v-model:attendance-template-id="attendanceTemplateId"
-            v-model:requires-registration="requiresRegistration"
-            v-model:requires-confirmation="requiresConfirmation"
-            v-model:registration-limit="registrationLimit"
-            :categories="categories"
-            :attendance-templates="attendanceTemplates"
-        />
-
-        <TemplateAudienceSection v-model="restriction" :groups="groups" :tags="tags"/>
-
-        <NeutralContainer>
-          <EventReminderEditor v-model="reminderDays" />
-        </NeutralContainer>
-
-        <NeutralContainer class="space-y-4">
-          <EventFieldList
-              v-model:fields="fields"
-              :attendance-fields="sheetFields"
-              :groups="groups"
-              :tags="tags"
-              :value-label="t('eventFields.defaultValue')"
-              show-value
-          />
-        </NeutralContainer>
-
-        <SaveButton :disabled="!name.trim()" :action="save"/>
-      </template>
+      <TemplateEditBody
+          v-if="!loading"
+          v-model:name="name"
+          v-model:title="title"
+          v-model:description="description"
+          v-model:category-id="categoryId"
+          v-model:event-type="eventType"
+          v-model:attendance-template-id="attendanceTemplateId"
+          v-model:requires-registration="requiresRegistration"
+          v-model:requires-confirmation="requiresConfirmation"
+          v-model:registration-limit="registrationLimit"
+          v-model:restriction="restriction"
+          v-model:view-restriction="viewRestriction"
+          v-model:reminder-days="reminderDays"
+          v-model:fields="fields"
+          :categories="categories"
+          :attendance-templates="attendanceTemplates"
+          :sheet-fields="sheetFields"
+          :groups="groups"
+          :tags="tags"
+          :save="save"
+      />
     </div>
   </ViewContent>
 </template>

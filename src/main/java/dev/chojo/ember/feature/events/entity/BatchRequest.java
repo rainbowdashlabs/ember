@@ -20,4 +20,5 @@ public record BatchRequest(
         Boolean requiresRegistration,
         Boolean requiresConfirmation,
         Instant registrationDeadline,
-        RestrictionSelection restriction) {}
+        RestrictionSelection restriction,
+        RestrictionSelection viewRestriction) {}

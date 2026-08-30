@@ -8,15 +8,14 @@ import { useI18n } from 'vue-i18n'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import CheckItemActions from './CheckItemActions.vue'
-import type { InventoryItem } from '@/api/inventory'
-import type { CheckResult, RequiredInventoryItem } from '@/api/inventoryCheck'
+import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
+import type { CheckResult } from '@/api/inventoryCheck'
 
 const props = defineProps<{
   item: InventoryItem
   req: RequiredInventoryItem
   result?: CheckResult
   note: string
-  procurementCreated: boolean
   sizeLabel: string
 }>()
 
@@ -24,7 +23,6 @@ const emit = defineEmits<{
   setResult: [itemId: number, result: CheckResult]
   setNote: [itemId: number, note: string]
   unassign: [itemId: number]
-  createProcurement: [item: InventoryItem]
   correct: [item: InventoryItem, req: RequiredInventoryItem]
 }>()
 
@@ -57,12 +55,10 @@ function resultClass(): string {
       </div>
       <CheckItemActions
         :item="item"
-        :procurement-created="procurementCreated"
         :req="req"
         :result="result"
         @set-result="(id, r) => emit('setResult', id, r)"
         @unassign="id => emit('unassign', id)"
-        @create-procurement="piece => emit('createProcurement', piece)"
         @correct="(piece, r) => emit('correct', piece, r)"
       />
     </div>

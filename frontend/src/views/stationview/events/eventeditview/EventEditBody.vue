@@ -71,6 +71,7 @@ const hasThreshold = defineModel<boolean>('hasThreshold', {required: true})
 const thresholdDate = defineModel<string>('thresholdDate', {required: true})
 const registrationCloseDays = defineModel<number | undefined>('registrationCloseDays')
 const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
+const viewRestriction = defineModel<RestrictionSelection>('viewRestriction', {required: true})
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
 const reminders = defineModel<number[]>('reminders', {required: true})
 const federationShared = defineModel<boolean>('federationShared', {required: true})
@@ -110,6 +111,7 @@ const canSubmit = computed(() => !props.saving && !!name.value && !!startTime.va
       v-model:threshold-date="thresholdDate"
       v-model:registration-close-days="registrationCloseDays"
       v-model:restriction="restriction"
+      v-model:view-restriction="viewRestriction"
       v-model:fields="fields"
       v-model:reminders="reminders"
       :categories="props.categories"

@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
+import dev.chojo.ember.feature.restriction.RestrictionSql;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -113,6 +115,10 @@ public class EventFederationRepository {
      * Finds event IDs shared with a partner for a given station.
      * An event is shared if it has scope='ALL_PARTNERS', or scope='SPECIFIC' with the partner in targets.
      *
+     * <p>An event that not every member of the owning station may know about is never among them,
+     * whatever the share says. Deciding it here rather than at each caller also settles the order the
+     * two settings were made in: restricting an event that was already shared withdraws it.
+     *
      * @param partnerId the federation partner ID
      * @param stationId the station ID
      * @return the list of shared event IDs
@@ -123,10 +129,11 @@ public class EventFederationRepository {
                 FROM event_federation_share efs
                     JOIN station_event se ON se.id = efs.event_id
                 WHERE se.station_id = :station_id
+                  AND %s
                   AND (efs.scope = 'ALL_PARTNERS'
                        OR (efs.scope = 'SPECIFIC'
                            AND exists (SELECT 1 FROM event_federation_share_target efst
-                                       WHERE efst.share_id = efs.id AND efst.partner_id = :partner_id)));""")
+                                       WHERE efst.share_id = efs.id AND efst.partner_id = :partner_id)));""", RestrictionSql.unrestricted(RestrictionType.EVENT_VIEW, "se.id"))
                 .single(call().bind("station_id", stationId).bind("partner_id", partnerId))
                 .map(row -> row.getInt("event_id"))
                 .all();

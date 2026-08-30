@@ -183,9 +183,21 @@ public class EventCrudService {
     }
 
     /**
+     * Announces an event that was persisted with {@link #createWithoutEvent}.
+     *
+     * <p>Whoever hears about a new appointment depends on who may know it exists, and that is
+     * written after the row. A caller that has audiences to set therefore persists first, sets them,
+     * and announces last, so the handlers see a finished event rather than a bare one.
+     */
+    public void announceCreated(int stationId, StationEvent event) {
+        eventBus.publish(new EventCreated(stationId, event));
+    }
+
+    /**
      * Persists a new event without publishing any domain event. Reserved for callers that
      * aggregate their own domain event (e.g. {@code BatchEventService} emitting
-     * {@link dev.chojo.ember.event.events.EventsBatchCreated} once at the end).
+     * {@link dev.chojo.ember.event.events.EventsBatchCreated} once at the end), and for those that
+     * must write the event's audiences before it is announced.
      */
     public StationEvent createWithoutEvent(
             int stationId,

@@ -553,6 +553,7 @@ class NotificationFeedRendererTest {
                 false,
                 null,
                 RestrictionMode.AND,
+                RestrictionMode.AND,
                 false,
                 null,
                 null,

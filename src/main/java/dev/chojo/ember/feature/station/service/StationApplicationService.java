@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -37,6 +38,7 @@ public class StationApplicationService {
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final EmailService emailService;
+    private final Auth authConfig;
 
     @Inject
     public StationApplicationService(
@@ -44,12 +46,14 @@ public class StationApplicationService {
             StationRepository stationRepository,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
-            EmailService emailService) {
+            EmailService emailService,
+            Auth authConfig) {
         this.applicationRepository = applicationRepository;
         this.stationRepository = stationRepository;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.emailService = emailService;
+        this.authConfig = authConfig;
     }
 
     /**
@@ -153,7 +157,10 @@ public class StationApplicationService {
         // Send acceptance email and password setup email
         String token = UUID.randomUUID().toString();
         accountRepository.createToken(
-                account.id(), token, TokenType.SET_PASSWORD, Instant.now().plus(72, ChronoUnit.HOURS));
+                account.id(),
+                token,
+                TokenType.SET_PASSWORD,
+                Instant.now().plus(authConfig.setupTokenDays(), ChronoUnit.DAYS));
         emailService.sendApplicationAcceptedEmail(
                 application.email(), application.firstName(), application.stationName(), token, "de", null);
 

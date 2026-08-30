@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -20,6 +20,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import type {AbsentMember, EventField, EventRegistrationEntry, StationEvent} from '@/api/events'
 import type {StationMember} from '@/api/types'
 import {formatDateTime} from '@/util/format'
+import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
 
 const props = defineProps<{
   event: StationEvent
@@ -35,7 +36,7 @@ const props = defineProps<{
   categoryName: string
   templateName: string
   currentMemberId: number
-  registrableMembers: { id: number; name: string }[]
+  registrableMembers: AnswerablePerson[]
   hasManagedMembers: boolean
   canManageEvents: boolean
   canManageAttendance: boolean
@@ -48,10 +49,12 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'cancelled'): void
   (e: 'field-updated', field: EventField): void
-  (e: 'register', memberId: number): void
-  (e: 'decline', memberId: number): void
+  (e: 'register', people: AnswerablePerson[]): void
+  (e: 'decline', people: AnswerablePerson[]): void
   (e: 'withdraw', registrationId: number): void
 }>()
+
+const answers = computed(() => localAnswers(props.registrableMembers, props.myRegistrations))
 
 const {t} = useI18n()
 
@@ -86,17 +89,17 @@ function onCancelled() {
       <span v-if="event.thresholdDate" class="text-(--text-muted)">{{ t('events.thresholdDate') }}: {{ formatDateTime(event.thresholdDate) }}</span>
     </div>
 
-    <NeutralContainer v-if="event.requiresRegistration && effectiveDate" class="space-y-2">
+    <NeutralContainer v-if="effectiveDate" class="space-y-2">
       <SubHeader>{{ t('eventDetail.yourAnswer') }}</SubHeader>
       <EventRegistrationActions
-          :eligible-members="registrableMembers"
-          :registrations="myRegistrations"
+          :people="registrableMembers"
+          :answers="answers"
           :requires-registration="!!event.requiresRegistration"
           :registration-deadline="event.registrationDeadline"
           :has-managed-members="hasManagedMembers"
           :registering="registering"
-          @register="memberId => emit('register', memberId)"
-          @decline="memberId => emit('decline', memberId)"
+          @register="people => emit('register', people)"
+          @decline="people => emit('decline', people)"
           @withdraw="registrationId => emit('withdraw', registrationId)"
       />
     </NeutralContainer>

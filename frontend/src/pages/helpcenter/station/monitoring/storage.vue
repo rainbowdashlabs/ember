@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StationTrafficHelp from '~/views/helpcenter/stationview/manage/StationTrafficHelp.vue'
+import StorageHelp from '~/views/helpcenter/stationview/monitoring/StorageHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'help-station-traffic',
+  name: 'help-station-storage',
 })
 </script>
 
 <template>
-  <StationTrafficHelp/>
+  <StorageHelp />
 </template>

@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -168,6 +169,7 @@ public class EventReminderChecker {
                 int warned = 0;
                 for (int memberId :
                         registrationRepository.findUnansweredMemberIds(event.eventId(), event.stationId())) {
+                    if (!restrictionService.canRegister(event.eventId(), memberId, Set.of())) continue;
                     warned += warnAbout(event, memberId, daysBefore) ? 1 : 0;
                 }
                 reminderRepository.markDeadlineWarningSent(event.eventId(), daysBefore);
@@ -203,6 +205,15 @@ public class EventReminderChecker {
         return true;
     }
 
+    /**
+     * Who a reminder about one date goes to.
+     *
+     * <p>Where the appointment is signed up for, that is whoever holds a place, and holding one
+     * already means they were allowed to take it. Where it is not, it is everybody who may know the
+     * appointment exists, minus whoever has said they are not coming. Nobody is reminded of something
+     * they cannot see, and visibility is asked without permissions so that being able to override the
+     * restriction is not itself a reason to hear about it.
+     */
     private List<Integer> resolveTargetMembers(StationEvent event, LocalDate eventDate) {
         if (event.requiresRegistration()) {
             return registrationRepository.findRegisteredMemberIds(event.id());
@@ -212,6 +223,7 @@ public class EventReminderChecker {
         return allMembers.stream()
                 .map(StationMember::id)
                 .filter(id -> !declinedIds.contains(id))
+                .filter(id -> restrictionService.canView(event.id(), id, Set.of()))
                 .toList();
     }
 }

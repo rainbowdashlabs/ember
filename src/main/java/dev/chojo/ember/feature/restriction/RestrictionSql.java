@@ -122,12 +122,13 @@ public final class RestrictionSql {
      * @param memberIdExpression  the SQL expression yielding the member ID, e.g. {@code :member_id}
      */
     public static String visibleFor(RestrictionType type, String entityIdExpression, String memberIdExpression) {
-        return "check_restriction('%s', '%s', '%s', '%s', %s, %s, '%s')"
+        return "check_restriction('%s', '%s', '%s', '%s', '%s', %s, %s, '%s')"
                 .formatted(
                         type.table(),
                         type.fkColumn(),
                         type.entityTable(),
                         type.entityIdColumn(),
+                        type.modeColumn(),
                         entityIdExpression,
                         memberIdExpression,
                         type.managerPermission().name());

@@ -36,12 +36,20 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class EventRepository {
 
     private static final String EVENT_COLUMNS =
-            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, \"public\", registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_date, threshold_notified, registration_close_days, repeat_until, repeat_count";
-    private static final String EVENT_RESTRICTED_COLUMN = RestrictionSql.restrictedFlag(RestrictionType.EVENT, "e.id");
+            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, view_restriction_mode, \"public\", registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_date, threshold_notified, registration_close_days, repeat_until, repeat_count";
+
+    /**
+     * The lock the lists draw, and what decides whether an event is handed out at all: both stand
+     * for the view audience. An event narrowed only for registration stays in every list and carries
+     * no lock, which is the whole point of keeping the two apart.
+     */
+    private static final String EVENT_RESTRICTED_COLUMN =
+            RestrictionSql.restrictedFlag(RestrictionType.EVENT_VIEW, "e.id");
+
     private static final String EVENT_RESTRICTED_COLUMN_BARE =
-            RestrictionSql.restrictedFlag(RestrictionType.EVENT, "id");
+            RestrictionSql.restrictedFlag(RestrictionType.EVENT_VIEW, "id");
     private static final String EVENT_VISIBLE_FOR_MEMBER =
-            RestrictionSql.visibleFor(RestrictionType.EVENT, "e.id", ":member_id");
+            RestrictionSql.visibleFor(RestrictionType.EVENT_VIEW, "e.id", ":member_id");
     private static final String EVENT_MEMBER_PREDICATE = "AND " + EVENT_VISIBLE_FOR_MEMBER;
 
     /**
@@ -367,7 +375,7 @@ public class EventRepository {
     }
 
     /**
-     * Updates the restriction mode for an event.
+     * Updates how the parts of the registration audience combine.
      *
      * @param eventId the event ID
      * @param mode    the restriction mode
@@ -379,6 +387,25 @@ public class EventRepository {
                 SET
                     restriction_mode = :mode,
                     updated_at       = now()
+                WHERE id = :id;""")
+                .single(call().bind("mode", mode).bind("id", eventId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Updates how the parts of the view audience combine.
+     *
+     * @param eventId the event ID
+     * @param mode    the restriction mode
+     * @return true if a row was updated
+     */
+    public boolean updateViewRestrictionMode(int eventId, RestrictionMode mode) {
+        return query("""
+                UPDATE station_event
+                SET
+                    view_restriction_mode = :mode,
+                    updated_at            = now()
                 WHERE id = :id;""")
                 .single(call().bind("mode", mode).bind("id", eventId))
                 .update()

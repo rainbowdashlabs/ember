@@ -15,23 +15,27 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
-import type { InventoryItem } from '@/api/inventory'
-import type { CheckResult, RequiredInventoryItem } from '@/api/inventoryCheck'
+import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
+import type { CheckResult } from '@/api/inventoryCheck'
 import type { CheckEntry } from '@/composables/useMemberCheck'
-import type { RapidExchangeKind } from './RapidExchangeModal.vue'
 
 const props = defineProps<{
   uncheckedEntries: CheckEntry[]
   availableForInventory: (inventoryId: number) => InventoryItem[]
   itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
   sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
+  /** What has been written down about each piece so far, so the walk shows the same note the list does. */
+  itemNotes: Map<number, string>
 }>()
 
 const emit = defineEmits<{
   setResult: [result: CheckResult]
-  exchange: [kind: RapidExchangeKind, entry: CheckEntry]
+  setNote: [itemId: number, note: string]
+  createProcurement: [req: RequiredInventoryItem, slotIndex: number, sizeId: string]
+  exchange: [entry: CheckEntry]
   correct: [entry: CheckEntry]
   markNotInPossession: []
   assign: [itemId: string]
@@ -115,6 +119,37 @@ function handleCreateAndAssign() {
   resetSelections()
 }
 
+/**
+ * Ordering the piece that would fill this slot.
+ *
+ * <p>What is asked for where the store has nothing that fits. It is not about anything having been
+ * lost: the slot is simply empty and stays empty until something arrives, and the size beside it is
+ * the one being ordered.
+ */
+function handleCreateProcurement() {
+  const entry = currentEntry.value
+  if (entry?.type !== 'slot') return
+  emit('createProcurement', entry.req, entry.slotIndex, rapidCreateSizeId.value)
+  resetSelections()
+}
+
+/**
+ * What has been written down about the piece in hand.
+ *
+ * <p>The note belongs to a piece, so only an item entry has one. An empty slot is a gap rather than
+ * a thing, and the completed check has nowhere to put a note about it.
+ */
+const currentNote = computed(() => {
+  const entry = currentEntry.value
+  return entry?.type === 'item' ? props.itemNotes.get(entry.item.id) ?? '' : ''
+})
+
+function writeNote(note: string) {
+  const entry = currentEntry.value
+  if (entry?.type !== 'item') return
+  emit('setNote', entry.item.id, note)
+}
+
 function skip() {
   const entry = currentEntry.value
   if (entry) {
@@ -142,6 +177,15 @@ defineExpose({ currentEntry })
       </div>
     </div>
     <p v-if="scanError" class="text-center text-sm text-error">{{ scanError }}</p>
+    <div class="max-w-md mx-auto">
+      <TextInput
+          :model-value="currentNote"
+          :placeholder="t('inventory.check.notePlaceholder')"
+          class="w-full"
+          data-testid="rapid-note"
+          @update:model-value="writeNote(($event as string) ?? '')"
+      />
+    </div>
     <div class="flex justify-center gap-4">
       <SuccessButton :icon="['fas', 'check']" @click="handleSetResult('CONFIRMED')">
         {{ t('inventory.check.confirmed') }}
@@ -152,19 +196,11 @@ defineExpose({ currentEntry })
     </div>
     <div class="flex flex-wrap justify-center gap-2">
       <InfoButton
-          v-if="currentEntry.item.sizeId"
-          :icon="['fas', 'arrow-up-wide-short']"
-          data-testid="rapid-exchange-size"
-          @click="emit('exchange', 'size', currentEntry)"
+          :icon="['fas', 'right-left']"
+          data-testid="rapid-exchange"
+          @click="emit('exchange', currentEntry)"
       >
-        {{ t('inventory.check.exchangeSize') }}
-      </InfoButton>
-      <InfoButton
-          :icon="['fas', 'triangle-exclamation']"
-          data-testid="rapid-exchange-damaged"
-          @click="emit('exchange', 'damaged', currentEntry)"
-      >
-        {{ t('inventory.check.exchangeDamaged') }}
+        {{ t('inventory.check.exchange') }}
       </InfoButton>
       <SecondaryButton
           :icon="['fas', 'pen']"
@@ -214,6 +250,13 @@ defineExpose({ currentEntry })
       </SelectInput>
       <SecondaryButton :icon="['fas', 'plus']" :disabled="currentEntry.req.hasSizes && currentEntry.req.sizes.length > 0 && !rapidCreateSizeId" @click="handleCreateAndAssign">
         {{ t('inventory.check.create') }}
+      </SecondaryButton>
+      <SecondaryButton
+          :icon="['fas', 'folder-plus']"
+          data-testid="rapid-create-procurement"
+          @click="handleCreateProcurement"
+      >
+        {{ t('inventory.check.createProcurement') }}
       </SecondaryButton>
     </div>
 

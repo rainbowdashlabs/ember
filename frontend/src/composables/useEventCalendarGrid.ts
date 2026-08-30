@@ -41,9 +41,6 @@ export interface Week {
 export interface CalendarSource {
   allEvents: StationEvent[]
   eventBreaks: EventBreak[]
-  eligibleMemberIds: Record<number, number[]>
-  currentMemberId: number
-  managedMemberIds: number[]
   selectedCategoryId: string
   searchQuery: string
 }
@@ -87,13 +84,6 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
   const viewYear = ref(today.getFullYear())
   const viewMonth = ref(today.getMonth())
 
-  function isRelevant(eventId: number): boolean {
-    const eligible = source.value.eligibleMemberIds[eventId]
-    if (eligible === undefined) return true
-    if (eligible.includes(source.value.currentMemberId)) return true
-    return source.value.managedMemberIds.some(id => eligible.includes(id))
-  }
-
   function matchesFilters(ev: StationEvent): boolean {
     const {selectedCategoryId, searchQuery} = source.value
     if (selectedCategoryId && ev.categoryId !== Number(selectedCategoryId)) return false
@@ -102,8 +92,15 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
     return !!(ev.name?.toLowerCase().includes(q) || ev.description?.toLowerCase().includes(q))
   }
 
+  /**
+   * Whether an appointment belongs in the grid.
+   *
+   * <p>Only the reader's own filters decide that. Who may know an appointment exists is settled by
+   * the server, which does not hand over what it hides, and an appointment somebody may see but not
+   * answer belongs in the calendar as much as any other.
+   */
   function isVisible(ev: StationEvent): boolean {
-    return isRelevant(ev.id) && matchesFilters(ev)
+    return matchesFilters(ev)
   }
 
   function inBreak(iso: string): boolean {

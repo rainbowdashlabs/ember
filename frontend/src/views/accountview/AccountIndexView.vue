@@ -9,8 +9,9 @@ import {useRouter} from 'vue-router'
 
 const router = useRouter()
 
+/** The account opens on the profile, which is the first thing its sidebar offers and the first thing anybody comes here for. */
 onMounted(() => {
-  router.replace({name: 'account-theming'})
+  router.replace({name: 'account-avatar'})
 })
 </script>
 

@@ -5,7 +5,7 @@
  */
 import { ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { InventorySize, MyInventoryItem } from '@/api/inventory'
+import type { InventorySize, MemberRequirements, MyInventoryItem } from '@/api/inventory'
 import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
 import { exchanges, inventory } from '@/api'
 
@@ -19,9 +19,19 @@ export function useMemberInventory(memberId: Ref<number>, error: Ref<string>) {
   const items = ref<MyInventoryItem[]>([])
   const exchangeRequests = ref<ExchangeRequestEntry[]>([])
   const exchangeSizes = ref<InventorySize[]>([])
+  const requirements = ref<MemberRequirements>({ required: [], unassigned: {} })
+
+  async function loadRequirements() {
+    try {
+      requirements.value = await inventory.memberRequirements(memberId.value)
+    } catch {
+      requirements.value = { required: [], unassigned: {} }
+    }
+  }
 
   async function load() {
     try { items.value = await inventory.memberItems(memberId.value) } catch { items.value = [] }
+    await loadRequirements()
     try {
       const allExch = await exchanges.listExchanges()
       exchangeRequests.value = allExch.filter(e => e.memberId === memberId.value && e.status !== ExchangeStatus.DONE)
@@ -33,6 +43,17 @@ export function useMemberInventory(memberId: Ref<number>, error: Ref<string>) {
     try {
       await inventory.assignItem(itemId, { memberId: memberId.value })
       items.value = await inventory.memberItems(memberId.value)
+      await loadRequirements()
+    } catch { error.value = t('common.error') }
+  }
+
+  /** Writes a new piece down in the inventory that is short and hands it to the member at once. */
+  async function handOutNewItem(inventoryId: number, sizeId: number | null) {
+    error.value = ''
+    try {
+      await inventory.handOutNewItem(memberId.value, inventoryId, sizeId)
+      items.value = await inventory.memberItems(memberId.value)
+      await loadRequirements()
     } catch { error.value = t('common.error') }
   }
 
@@ -41,6 +62,7 @@ export function useMemberInventory(memberId: Ref<number>, error: Ref<string>) {
     try {
       await inventory.assignItem(item.id, { memberId: null })
       items.value = await inventory.memberItems(memberId.value)
+      await loadRequirements()
     } catch { error.value = t('common.error') }
   }
 
@@ -74,8 +96,10 @@ export function useMemberInventory(memberId: Ref<number>, error: Ref<string>) {
     items,
     exchangeRequests,
     exchangeSizes,
+    requirements,
     load,
     assignItem,
+    handOutNewItem,
     unassignItem,
     reassignItem,
     submitExchange,

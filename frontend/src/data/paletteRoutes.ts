@@ -107,11 +107,13 @@ export const PALETTE_ROUTES: PaletteRouteEntry[] = [
     {scope: 'station', to: '/station/manage/mailing', labelKey: 'sidebar.stationMailing', icon: 'envelope', permission: StationPermission.STATION_MAIL},
     {scope: 'station', to: '/station/manage/modules', labelKey: 'sidebar.stationModules', icon: 'puzzle-piece', permission: StationPermission.STATION_MODULES},
     {scope: 'station', to: '/station/manage/import', labelKey: 'sidebar.stationImport', icon: 'file-import', permission: StationPermission.STATION_IMPORT_EXPORT},
-    {scope: 'station', to: '/station/manage/storage', labelKey: 'sidebar.storage', icon: 'hard-drive', permission: StationPermission.STATION_MANAGER},
     {scope: 'station', to: '/station/manage/storage/backend', labelKey: 'sidebar.storageBackend', icon: 'hard-drive', permission: StationPermission.STATION_ADMINISTRATOR},
-    {scope: 'station', to: '/station/manage/traffic', labelKey: 'sidebar.stationTraffic', icon: 'tower-broadcast', permission: StationPermission.STATION_ADMINISTRATOR},
-    {scope: 'station', to: '/station/manage/insights', labelKey: 'sidebar.stationInsights', icon: 'chart-pie', permission: StationPermission.STATION_ADMINISTRATOR},
     {scope: 'station', to: '/station/manage/security', labelKey: 'sidebar.stationSecurity', icon: 'shield', permission: StationPermission.STATION_ADMINISTRATOR},
+
+    {scope: 'station', to: '/station/monitoring/traffic', labelKey: 'sidebar.stationTraffic', icon: 'tower-broadcast', permission: StationPermission.STATION_ADMINISTRATOR},
+    {scope: 'station', to: '/station/monitoring/insights', labelKey: 'sidebar.stationInsights', icon: 'chart-pie', permission: StationPermission.STATION_ADMINISTRATOR},
+    {scope: 'station', to: '/station/monitoring/feeds', labelKey: 'sidebar.stationFeeds', icon: 'rss', permission: StationPermission.STATION_ADMINISTRATOR},
+    {scope: 'station', to: '/station/monitoring/storage', labelKey: 'sidebar.storage', icon: 'hard-drive', permission: StationPermission.STATION_MANAGER},
 
     {scope: 'station', to: '/station/federate', labelKey: 'sidebar.federation', icon: 'arrow-right-arrow-left', permission: StationPermission.STATION_FEDERATION},
     {scope: 'station', to: '/station/federate/settings', labelKey: 'sidebar.federationSettings', icon: 'gear', permission: StationPermission.STATION_FEDERATION},

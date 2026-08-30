@@ -12,18 +12,20 @@ import type {RestrictionSelection} from '@/components/input/restriction'
 import type {MemberGroup, UserTag} from '@/api/types'
 
 /**
- * Who the appointments written from this template are for.
+ * What the appointments written from this template start with: who they are for, and who may know
+ * they exist.
  *
- * <p>Not a lock on the template itself: nobody attends a template. It is what every appointment made
- * from it starts with, and the appointment can be widened or narrowed afterwards without the template
- * noticing.
+ * <p>Neither is a lock on the template itself, because nobody attends a template. Both are handed to
+ * the appointment when the template is applied, and the appointment can be widened or narrowed
+ * afterwards without the template noticing.
  */
 defineProps<{
   groups: MemberGroup[]
   tags: UserTag[]
 }>()
 
-const restriction = defineModel<RestrictionSelection>({required: true})
+const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
+const viewRestriction = defineModel<RestrictionSelection>('viewRestriction', {required: true})
 
 const {t} = useI18n()
 </script>
@@ -33,5 +35,9 @@ const {t} = useI18n()
     <FieldLabel>{{ t('eventTemplates.restriction') }}</FieldLabel>
     <p class="text-xs text-(--text-muted)">{{ t('eventTemplates.restrictionHint') }}</p>
     <RestrictionsField v-model="restriction" :groups="groups" :tags="tags"/>
+
+    <FieldLabel>{{ t('eventTemplates.viewRestriction') }}</FieldLabel>
+    <p class="text-xs text-(--text-muted)">{{ t('eventTemplates.viewRestrictionHint') }}</p>
+    <RestrictionsField v-model="viewRestriction" :groups="groups" :tags="tags"/>
   </NeutralContainer>
 </template>

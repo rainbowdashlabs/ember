@@ -32,7 +32,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
             lead: 'Der Terminplan ist der Taktgeber. Anmeldung, Anwesenheit und Bericht hängen daran.',
             bullets: [
                 'Wiederkehrende Übungen und einzelne Veranstaltungen in einem Plan',
-                'Anmeldung mit Zu- und Absage, auf Wunsch mit Bestätigung durch die Leitung',
+                'An- und Abmeldung, auf Wunsch mit Bestätigung durch die Leitung',
                 'Wer teilnehmen darf, entscheiden Rolle, Gruppe oder Tag',
                 'Vorlagen tragen Kategorie, Zeiten und Fragen in jeden neuen Termin',
                 'Kalender-Abo für Outlook, Google und Apple',
@@ -55,7 +55,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     },
                     {
                         name: 'Zeltlager', meta: ['12.07. – 14.07.', '(Anmeldung bis 20.06.)'],
-                        badges: [{text: '17 zugesagt', tone: 'success'}, {text: '2 abgesagt', tone: 'error'}],
+                        badges: [{text: '17 angemeldet', tone: 'success'}, {text: '2 abgemeldet', tone: 'error'}],
                     },
                 ],
                 footer: 'Ein Schloss heißt: der Termin gilt nur für bestimmte Rollen oder Gruppen.',
@@ -79,7 +79,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                         badges: [
                             {text: '17 zugesagt', tone: 'success'},
                             {text: '3 offen', tone: 'info'},
-                            {text: '2 abgesagt', tone: 'primary'},
+                            {text: '2 abgemeldet', tone: 'primary'},
                         ],
                         section: 'Offen',
                         table: {
@@ -164,7 +164,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                     {text: '-', muted: true}, {text: '-', muted: true}],
                             ],
                         },
-                        footer: 'Absagen aus der Anmeldung stehen hier schon als entschuldigt.',
+                        footer: 'Abmeldungen aus der Anmeldung stehen hier schon als entschuldigt.',
                     },
                 ],
                 points: [
@@ -386,7 +386,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     },
                 ],
                 points: [
-                    '„Synchronisieren“ holt die Zu- und Absagen des Termins in die Liste',
+                    '„Synchronisieren“ holt die An- und Abmeldungen des Termins in die Liste',
                     'Wer als abwesend gemeldet ist, wird dabei nicht versehentlich als anwesend geführt',
                     'Ein Feld vom Typ Mitgliederliste trägt seine Leute direkt als anwesend ein',
                 ],

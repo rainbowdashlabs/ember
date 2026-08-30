@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ManageStationTrafficView from '~/views/stationview/manage/ManageStationTrafficView.vue'
+import StationFeedsHelp from '~/views/helpcenter/stationview/monitoring/StationFeedsHelp.vue'
 
 definePageMeta({
-  layout: 'station',
-  name: 'station-traffic',
+  layout: 'helpcenter',
+  name: 'help-station-feeds',
 })
 </script>
 
 <template>
-  <ManageStationTrafficView />
+  <StationFeedsHelp/>
 </template>

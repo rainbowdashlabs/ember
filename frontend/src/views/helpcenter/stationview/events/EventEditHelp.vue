@@ -139,6 +139,9 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.eventEdit.restrictionsTitle')">
       <p>{{ t('helpCenter.eventEdit.restrictionsText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.restrictionsVisibilityText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.restrictionsLockText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.restrictionsOutsideText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventEdit.federationTitle')">

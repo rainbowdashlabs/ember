@@ -56,6 +56,9 @@ const expanded = ref(false)
 /** Typing opens the list; the arrow opens it without typing, for somebody who wants to browse. */
 const open = computed(() => expanded.value || search.value.trim().length > 0)
 
+/** By name, so a reader looking for somebody can run down the list instead of reading all of it. */
+const byName = new Intl.Collator('de', {sensitivity: 'base'})
+
 const matching = computed(() => {
   const needle = search.value.trim().toLowerCase()
   return props.members
@@ -63,6 +66,7 @@ const matching = computed(() => {
       .filter(member => !needle
           || member.name.toLowerCase().includes(needle)
           || (member.email ?? '').toLowerCase().includes(needle))
+      .toSorted((one, other) => byName.compare(one.name, other.name))
 })
 
 function typeLabel(value: string): string {

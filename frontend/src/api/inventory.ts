@@ -226,6 +226,44 @@ export async function memberItems(memberId: number): Promise<MyInventoryItem[]> 
     return res.data
 }
 
+/**
+ * One inventory a member is required to hold something from, with what they hold towards it.
+ */
+export interface RequiredInventoryItem {
+    inventoryId: number
+    inventoryName: string
+    inventoryType: string
+    hasSizes: boolean
+    sizes: InventorySize[]
+    requiredQuantity: number
+    /** What the member has towards it, counting pieces away in an exchange. */
+    assignedQuantity: number
+    /** How many of those are away in an exchange rather than in their hands. */
+    inExchangeQuantity: number
+}
+
+/**
+ * What a member is expected to hold, and which pieces of those inventories are in nobody's hands.
+ *
+ * The same requirements the stock-taking works from, read without taking the member's record for a
+ * check, so their own page can show what is still missing and hand a piece over on the spot.
+ */
+export interface MemberRequirements {
+    required: RequiredInventoryItem[]
+    unassigned: Record<number, InventoryItem[]>
+}
+
+export async function memberRequirements(memberId: number): Promise<MemberRequirements> {
+    const res = await client.get<MemberRequirements>(`/station-members/${memberId}/inventory-requirements`)
+    return res.data
+}
+
+/** Takes a fresh piece into an inventory and hands it straight to the member. */
+export async function handOutNewItem(memberId: number, inventoryId: number, sizeId?: number | null): Promise<InventoryItem> {
+    const res = await client.post<InventoryItem>(`/station-members/${memberId}/inventory-items`, {inventoryId, sizeId})
+    return res.data
+}
+
 interface RequirementQuantityRequest {
     quantity: number
 }

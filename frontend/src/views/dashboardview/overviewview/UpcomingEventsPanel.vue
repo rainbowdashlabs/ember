@@ -14,6 +14,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import RegistrationStatusBadge from '@/views/stationview/events/eventshared/RegistrationStatusBadge.vue'
 import EventAnswerDialog from '@/views/stationview/events/eventshared/EventAnswerDialog.vue'
+import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
 import {
   EventTypes,
   isRecurringEvent,
@@ -24,6 +25,7 @@ import {
 import type {StationMember} from '@/api/types'
 import {events, managedMembers as managedMembersApi} from '@/api'
 import {getFeedStatus, type FeedStatusResponse} from '@/api/feedToken'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useSession} from '@/composables/useSession'
 import {formatDate, formatTime} from '@/util/format'
 import {answerableMembers} from '@/util/eventAnswers'
@@ -70,16 +72,8 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
   const now = new Date()
   const todayStr = now.toISOString().slice(0, 10)
   const upcoming: UpcomingEvent[] = []
-  const myId = sessionInfo.value?.member?.id ?? 0
-
-  function isRelevant(eventId: number): boolean {
-    const eligible = eligibleMembers.value[eventId]
-    if (eligible === undefined) return true
-    return eligible.includes(myId)
-  }
 
   for (const ev of allEvents.value) {
-    if (!isRelevant(ev.id)) continue
     if (ev.eventType === EventTypes.ONE_TIME && ev.startTime) {
       const eventDateStr = new Date(ev.startTime).toISOString().slice(0, 10)
       if (eventDateStr >= todayStr) {
@@ -101,7 +95,6 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
 
     for (const ev of allEvents.value) {
       if (!isRecurringEvent(ev.eventType)) continue
-      if (!isRelevant(ev.id)) continue
       if (!ev.dayOfWeek || ev.dayOfWeek !== dow) continue
 
       if (ev.eventType === EventTypes.RECURRING) {
@@ -152,7 +145,7 @@ const declineDialogOpen = computed({
 
 /** Who the open dialog offers, empty while none is open: the dialog stays mounted and reads this. */
 const decliningPeople = computed(() => (declining.value
-    ? withoutAnswer(declining.value).map(member => ({memberId: member.id, name: member.name}))
+    ? withoutAnswer(declining.value)
     : []))
 
 /** Everybody this member answers for on that appointment, themselves first. */
@@ -177,14 +170,14 @@ function answersOn(item: UpcomingEvent) {
       .filter(reg => reg.eventId === item.event.id && reg.eventDate === item.date)
       .map(reg => ({
         registration: reg,
-        name: answerable.find(member => member.id === reg.memberId)?.name ?? reg.memberName,
+        name: answerable.find(person => person.key === reg.memberId)?.name ?? reg.memberName,
       }))
 }
 
 /** Who has not said anything yet, which is who a refusal can still be given for. */
 function withoutAnswer(item: UpcomingEvent) {
   const answered = new Set(answersOn(item).map(entry => entry.registration.memberId))
-  return answerableFor(item).filter(member => !answered.has(member.id))
+  return answerableFor(item).filter(person => !answered.has(person.key))
 }
 
 /**
@@ -193,10 +186,22 @@ function withoutAnswer(item: UpcomingEvent) {
  * <p>A guardian answers for a household, and the household rarely refuses as a whole: one child is
  * ill while the other goes. Which is why the choice is asked rather than assumed.
  */
+/**
+ * Signing off asks first, the same question the appointment's own page asks. Answering for several
+ * at once opens the picker instead, which already takes a deliberate press of its own.
+ */
+const {
+  show: showSignOffConfirm,
+  request: requestSignOff,
+  confirm: confirmSignOff,
+} = useConfirmAction<() => Promise<void>>({
+  onConfirm: async signOff => signOff(),
+})
+
 function decline(item: UpcomingEvent) {
   const open = withoutAnswer(item)
   if (open.length === 1) {
-    void sendDecline(item, [open[0]!.id])
+    requestSignOff(() => sendDecline(item, [open[0]!.key]))
     return
   }
   declineError.value = ''
@@ -286,6 +291,8 @@ onMounted(loadData)
       </NeutralContainer>
     </div>
 
+    <SignOffConfirm v-model="showSignOffConfirm" :busy="decliningBusy" @confirm="confirmSignOff"/>
+
     <EventAnswerDialog
         v-model="declineDialogOpen"
         :people="decliningPeople"
@@ -293,7 +300,7 @@ onMounted(loadData)
         :attending="false"
         :busy="decliningBusy"
         :error="declineError"
-        @confirm="answers => declining && sendDecline(declining, answers.map(a => a.memberId))"
+        @confirm="answers => declining && sendDecline(declining, answers.map(a => a.key))"
     />
   </NeutralContainer>
 </template>

@@ -18,7 +18,7 @@ import StepProgressBar from '@/components/display/StepProgressBar.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFormPanel from './eventshared/EventFormPanel.vue'
-import {type RestrictionSelection, emptyRestriction} from '@/components/input/restriction'
+import {type RestrictionSelection, emptyRestriction, toRestriction} from '@/components/input/restriction'
 import BatchScheduleStep from './batchcreateview/BatchScheduleStep.vue'
 import BatchEditTable from './batchcreateview/BatchEditTable.vue'
 import type {AttendanceTemplateField} from '@/api/attendance'
@@ -52,6 +52,7 @@ const requiresConfirmation = ref(false)
 const hasDeadline = ref(false)
 const registrationDeadline = ref('')
 const restriction = ref<RestrictionSelection>(emptyRestriction())
+const viewRestriction = ref<RestrictionSelection>(emptyRestriction())
 
 const rows = ref<BatchRow[]>([])
 
@@ -78,7 +79,10 @@ async function applyTemplate() {
     if (tpl.description) eventDescription.value = tpl.description
     if (tpl.categoryId) selectedCategoryId.value = String(tpl.categoryId)
     if (tpl.attendanceTemplateId) selectedTemplateId.value = String(tpl.attendanceTemplateId)
-    if (detail.restriction) restriction.value = {...emptyRestriction(), ...detail.restriction}
+    if (detail.restriction) {
+      restriction.value = toRestriction(detail.restriction.register)
+      viewRestriction.value = toRestriction(detail.restriction.view)
+    }
     if (tpl.requiresRegistration != null) requiresRegistration.value = tpl.requiresRegistration
     if (tpl.requiresConfirmation != null) requiresConfirmation.value = tpl.requiresConfirmation
     fieldDefs.value = detail.fields.map(f => ({
@@ -131,6 +135,7 @@ const {running: saving, error: createError, run: createBatch} = useAsyncAction(a
     requiresConfirmation: requiresConfirmation.value,
     registrationDeadline: registrationDeadline.value || undefined,
     restriction: restriction.value,
+    viewRestriction: viewRestriction.value,
   })
   success.value = t('batchCreate.success', {count: created.length})
   setTimeout(() => router.push({name: eventRoutes.index}), 1500)
@@ -168,6 +173,7 @@ const {running: saving, error: createError, run: createBatch} = useAsyncAction(a
             v-model:has-deadline="hasDeadline"
             v-model:registration-deadline="registrationDeadline"
             v-model:restriction="restriction"
+            v-model:view-restriction="viewRestriction"
             v-model:fields="fieldDefs"
             :categories="categories"
             :templates="templates"

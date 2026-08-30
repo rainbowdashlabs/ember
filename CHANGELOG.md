@@ -1,5 +1,42 @@
 # Changelog
 
+## v26.13.9
+
+### New Features
+
+- **A station can see who subscribes to its calendar and notifications.** Members set up their own subscription in their profile, and until now nobody at the station could tell whether anybody used one. A new Monitor entry lists who has set one up, since when, and when a calendar or reader last fetched it, so a subscription nothing has touched in a week is visible as such. The key itself is never shown, and only the member can withdraw it.
+
+### Changes
+
+- **Narrowing an appointment now decides who may sign up, not who may see it.** An appointment meant for one group used to vanish from everybody else's calendar, so a Tuesday with a drill on it looked like a Tuesday with nothing on it. Such an appointment now stays in everyone's calendar and simply cannot be answered by anybody outside the group, which also means appointments that were narrowed before this version become visible to the whole station.
+- **Hiding an appointment is a setting of its own.** Where an appointment really should not be known about, a second audience under Restrictions decides who may see it at all; for everybody else it is absent from the calendar, the search, the subscribed calendar and every notification. Only these carry the lock in the lists, and they can be neither published on the station's page nor shared with partner stations. Appointment templates carry both audiences, so a series does not have to be set up again on every date.
+- **An appointment nobody signed up for leaves the calendar when the closing date passes.** A subscribed calendar kept showing an appointment that asks to be signed up for even where the answer was still outstanding after the closing date, which reads as a place held. An answer not given by then counts the same as a refusal, so only a place actually taken stays in the calendar. While the closing date is still ahead, an outstanding answer keeps the appointment where it is.
+- **A procurement now belongs to the gap it fills, not to a lost piece.** Marking something lost offered to order a replacement, although what is missing from a member and what the store has to buy are two different questions, and a piece that was never handed out got no offer at all. The offer now stands at the empty place in the stock-taking, where nothing in the store fits, and marking a piece lost only records that it is gone.
+- **The account opens on the profile.** Following the settings entry landed on the appearance settings, although the profile is what the account's own sidebar lists first and what most people go there for. It now opens on the profile, and appearance is the click below it, where it always was.
+- **Traffic, the page statistics and the storage overview have moved to Monitor.** They sat under Manage, between the things a station sets up once, although looking in on them is something one does regularly. All three now stand under a Monitor section of their own at `/station/monitoring`, together with the new feed list. The old addresses are gone; the sidebar leads to the new ones. Setting up where the files are kept stays under Manage, because that is something one configures rather than watches.
+
+### Improvements
+
+- **The list of upcoming appointments leads with when they are.** The date and the time now stand above the name rather than trailing behind it, because a list of appointments is read by date first. An appointment that asks to be signed up for also says so on the line, which until now only the dashboard did.
+- **A note can be written during the quick stock-taking.** The walk that shows one piece at a time took a decision and nothing else, so anything worth saying about a piece had to wait for the long list or go unsaid. Every piece now has a line for a note on it, the same one the list offers and the same one the finished stock-taking shows.
+- **An exchange raised during a stock-taking asks why in words.** Two buttons stood side by side for the two common reasons and left nowhere to put a third, so anything else was raised as one of them or not at all. There is now one exchange button, and the window behind it offers too small, damaged, or a reason written out, with the size it suggests still open to correction.
+- **An attendance sheet starts with the times already on it.** Somebody who was there from beginning to end had two empty boxes beside their name, and typing the same two times out once per member is work that says nothing. Every line now shows the times of the attendance itself, faintly, and only a time somebody corrects is written down.
+- **A member's page says what they are still missing.** The equipment tab listed what somebody had been given and said nothing about what they were owed, so finding a gap meant starting a stock-taking. It now names every requirement that is not covered, and offers either a free piece from the store or a new one written down on the spot, asking the size where the store keeps sizes.
+- **Handing gear out offers a search instead of one long list.** The two dialogs that give a piece to somebody listed every member of the station in whatever order they arrived. They now use the same picker as everywhere else, with a name search and a filter by kind of member, and every such picker is in alphabetical order.
+- **The member list says who a setup mail actually goes to.** A member with no address of their own is written to through their guardians, so the offer to send stood beside an address that looks undeliverable and read as a mistake. The button now says where the mail lands, and where nobody at all can be reached the hourglass beside the name explains that too, and what to do about it.
+- **The link that sets up a new account now lasts a month.** It had the same three days as an administrator's password reset, so an invitation sent before a holiday was dead before anybody read it. It has its own setting, `auth.setupTokenDays`, which starts at 30 days and is never allowed past that: it is still a link in a mailbox. The self-service reset link is untouched and stays short.
+
+### Security
+
+- **A subscribed calendar handed out appointments the subscriber was never meant to see.** The personal calendar feed carried every appointment of the station, restrictions included, with its name and description. It now carries only what the household may see.
+- **An appointment could reach the public page through its category.** Where a category is public, the appointments in it inherit that, and no restriction was consulted on the way out, so a narrowed appointment could end up readable by anyone on the internet. An appointment whose visibility is restricted is now never public, whatever the category says.
+
+### Fixes
+
+- **An expired setup link ended in a form and a shrug.** Following one that had run out showed the password form, took a password twice, and only then said the link was invalid. It now explains itself before anything is typed: that the link has run out, that the account is still there, and that the station's administration can send a new mail. A reset link explains the same and offers to send itself again.
+- **An attendance handed its hours to people who were not there.** The exported document and the report filled the session's start and end into the two time columns of every member, so somebody marked absent read as having stayed the whole evening. Only a member who was actually there is given those times now, and the hours that were counted were right throughout.
+- **Two kinds of notification arrived without their wording.** A reminder that a registration is about to close, and word that a movement was called off, reached the subscribed feed as their bare details strung together with dashes, because no sentence had ever been written for them. Both now read as sentences, in German and in English.
+
 ## v26.13.8
 
 ### Improvements

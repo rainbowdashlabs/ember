@@ -13,14 +13,15 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import { useConfirmAction } from '@/composables/useConfirmAction'
-import type { CheckItemResult, CheckResult, CorrectItemRequest, MemberCheckState, RequiredInventoryItem } from '@/api/inventoryCheck'
+import type { CheckItemResult, CheckResult, CorrectItemRequest, MemberCheckState } from '@/api/inventoryCheck'
+import type { RequiredInventoryItem } from '@/api/inventory'
 import type { InventoryItem } from '@/api/inventory'
 import { exchanges, inventoryCheck } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useMemberCheck, type CheckEntry } from '@/composables/useMemberCheck'
 import { apiErrorMessage } from '@/util/apiError'
-import RapidExchangeModal, {type RapidExchangeKind} from './checkmemberview/RapidExchangeModal.vue'
+import RapidExchangeModal from './checkmemberview/RapidExchangeModal.vue'
 import CorrectItemModal from './checkmemberview/CorrectItemModal.vue'
 import CheckMemberBody from './checkmemberview/CheckMemberBody.vue'
 import { apiErrorStatus } from '@/util/apiError'
@@ -47,7 +48,6 @@ const check = useMemberCheck(memberId, state, error)
 const checkMode = ref(false)
 
 const showExchange = ref(false)
-const exchangeKind = ref<RapidExchangeKind>('size')
 const exchangeEntry = ref<CheckEntry | null>(null)
 const exchangeBusy = ref(false)
 const exchangeError = ref('')
@@ -78,10 +78,20 @@ function onRapidSetResult(result: CheckResult) {
  * <p>The form is opened rather than the exchange written straight away: the size one up is a guess,
  * and the reason is the check's words rather than the member's. Both want a look before they stand.
  */
-function onRapidExchange(kind: RapidExchangeKind, entry: CheckEntry) {
+/** Orders the piece an empty slot is waiting for, in the size the walk picked beside it. */
+function onRapidCreateProcurement(req: RequiredInventoryItem, slotIndex: number, sizeId: string) {
+  check.createProcurementForSlot(req, slotIndex, sizeId ? Number(sizeId) : undefined)
+}
+
+/** The same order from the list, where the size sits in that slot's own picker. */
+function onSlotProcurement(req: RequiredInventoryItem, slotIndex: number) {
+  const sizeId = check.slotSelections.value.get(`create-${req.inventoryId}-${slotIndex}`)
+  check.createProcurementForSlot(req, slotIndex, sizeId ? Number(sizeId) : undefined)
+}
+
+function onRapidExchange(entry: CheckEntry) {
   if (entry.type !== 'item') return
   exchangeEntry.value = entry
-  exchangeKind.value = kind
   exchangeError.value = ''
   showExchange.value = true
 }
@@ -235,8 +245,8 @@ async function cancel() {
         :submitting="submitting"
         :item-results="check.itemResults.value"
         :item-notes="check.itemNotes.value"
-        :procurement-created="check.procurementCreated.value"
         :slots-not-in-possession="check.slotsNotInPossession.value"
+        :slot-procurements="check.slotProcurements.value"
         :slot-selections="check.slotSelections.value"
         :assigned-for-inventory="check.assignedForInventory"
         :available-for-inventory="check.availableForInventory"
@@ -249,6 +259,7 @@ async function cancel() {
         @submit="submit"
         @rapid-set-result="onRapidSetResult"
         @rapid-exchange="onRapidExchange"
+        @rapid-create-procurement="onRapidCreateProcurement"
         @rapid-correct="onRapidCorrect"
         @rapid-mark-not-in-possession="onRapidMarkNotInPossession"
         @rapid-assign="onRapidAssign"
@@ -257,11 +268,11 @@ async function cancel() {
         @set-result="check.setResult"
         @set-note="check.setNote"
         @unassign="unassign.request"
-        @create-procurement="check.createProcurementForItem"
         @correct="openCorrection"
         @toggle-not-in-possession="check.toggleNotInPossession"
         @assign-to-slot="check.assignToSlot"
         @create-and-assign-to-slot="check.createAndAssignToSlot"
+        @create-procurement-for-slot="onSlotProcurement"
         @update-selection="check.updateSelection"
       />
     </div>
@@ -277,7 +288,6 @@ async function cancel() {
         :current-size-id="exchangeEntry?.type === 'item' ? exchangeEntry.item.sizeId : null"
         :error="exchangeError"
         :item-name="exchangeEntry?.type === 'item' ? exchangeEntry.item.name : ''"
-        :kind="exchangeKind"
         :sizes="exchangeEntry?.type === 'item' ? exchangeEntry.req.sizes : []"
         @confirm="createRapidExchange"
     />

@@ -170,8 +170,8 @@ public class AttendanceReportService {
             var entryDataList = new ArrayList<SessionMemberEntry>();
             for (var entry : filteredEntries) {
                 String name = resolveMemberName(entry.memberId(), memberNames);
-                Instant checkIn = entry.checkIn() != null ? entry.checkIn() : session.startTime();
-                Instant checkOut = entry.checkOut() != null ? entry.checkOut() : session.endTime();
+                Instant checkIn = entry.shownCheckIn(session.startTime());
+                Instant checkOut = entry.shownCheckOut(session.endTime());
                 double hours = computeHours(entry, checkIn, checkOut, rounding);
 
                 LocalDate sessionDate = session.startTime() != null

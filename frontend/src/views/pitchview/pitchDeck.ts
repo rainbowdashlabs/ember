@@ -348,7 +348,7 @@ const CLOSING: PitchTrack[] = [
                     title: 'Für Mitglieder & Eltern',
                     items: [
                         'Termine im eigenen Kalender als Abo',
-                        'Zu- und Absagen mit zwei Klicks',
+                        'An- und Abmelden mit zwei Klicks',
                         'Neuigkeiten und Erinnerungen auf dem gewählten Kanal',
                         'Sorgeberechtigte verwalten das Profil ihres Kindes mit',
                     ],

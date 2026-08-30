@@ -59,7 +59,7 @@ function pickLogout() {
   <template v-else>
     <transition name="drawer">
       <div v-if="props.open" class="fixed inset-0 z-50 flex" @click.self="emit('close')">
-        <div class="absolute inset-0 bg-black/40"/>
+        <div class="absolute inset-0 bg-black/40" data-testid="account-drawer-backdrop" @click="emit('close')"/>
         <div class="relative ml-auto h-full w-72 bg-(--bg) shadow-xl flex flex-col gap-1 p-3">
           <DropdownMenuItem :icon="['fas', 'gear']" @click="pickSettings">
             {{ t('header.accountSettings') }}

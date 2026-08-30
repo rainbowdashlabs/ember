@@ -326,6 +326,18 @@ export default {
         passwordTooShort: 'Das Passwort muss mindestens 12 Zeichen lang sein.',
         passwordBreached: 'Dieses Passwort wurde in bekannten Datenlecks gefunden. Bitte wähle ein anderes.',
         tokenInvalid: 'Der Link ist ungültig oder abgelaufen. Logge dich erneut ein, um einen neuen Link zu bekommen.',
+        tokenExpired: 'Dieser Link ist abgelaufen.',
+        expiredTitle: 'Der Link ist abgelaufen',
+        expiredText: 'Ein Einrichtungslink gilt nur eine begrenzte Zeit. Deiner ist inzwischen '
+            + 'verfallen, dein Konto gibt es aber weiterhin. Du brauchst nur einen neuen Link.',
+        unknownTitle: 'Der Link führt ins Leere',
+        unknownText: 'Zu diesem Link gehört nichts mehr. Entweder wurde er bereits benutzt, oder er '
+            + 'ist beim Kopieren unvollständig geblieben.',
+        askYourStation: 'Wende dich an die Administration deiner Wache, sie kann dir eine neue '
+            + 'Einrichtungs-Mail schicken.',
+        askAgainYourself: 'Du kannst dir selbst einen neuen Link schicken lassen.',
+        requestAnother: 'Neuen Link anfordern',
+        backToLogin: 'Zur Anmeldung',
     },
     storageConsent: {
         title: 'Einwilligung zur Datenverarbeitung',
@@ -532,6 +544,7 @@ export default {
         adminTraffic: 'Traffic',
         stationTraffic: 'Traffic',
         stationInsights: 'Seiten-Statistik',
+        stationFeeds: 'Feeds',
         stationSecurity: 'Sicherheit',
         adminDiscovery: 'Discovery-Netzwerk',
         maps: 'Karten',
@@ -1398,6 +1411,10 @@ export default {
             title: 'Einblicke',
             subtitle: 'Nutzungs-Statistiken',
         },
+        'station-feeds': {
+            title: 'Feeds',
+            subtitle: 'Wer Kalender und Benachrichtigungen abonniert hat',
+        },
         'station-import': {
             title: 'Wache übertragen',
             subtitle: 'Wache auf eine andere Instanz übertragen',
@@ -1797,6 +1814,12 @@ export default {
         accountPending: 'Konto noch nicht eingerichtet - die Person hat sich noch nicht das erste Mal angemeldet.',
         accountPendingExpires: 'Der zugesendete Link ist gültig bis {date}.',
         accountPendingResend: 'Einrichtungs-Mail erneut senden',
+        setupMailToMember: 'Die Mail geht an die Adresse des Mitglieds.',
+        setupMailToGuardians: 'Das Mitglied hat keine eigene Adresse, die Mail geht an die '
+            + 'Erziehungsberechtigten.',
+        setupMailToNobody: 'Es gibt niemanden, dem die Mail zugestellt werden könnte: weder das '
+            + 'Mitglied noch eine erziehungsberechtigte Person hat eine erreichbare Adresse. Trage '
+            + 'eine Adresse ein oder ordne eine erziehungsberechtigte Person mit Adresse zu.',
         resendConfirm: 'Die Einrichtungs-Mail an {name} wird erneut versendet. Fortfahren?',
         resendAction: 'Erneut senden',
         resendSuccess: 'Einrichtungs-Mail wurde erneut versendet.',
@@ -1945,6 +1968,14 @@ export default {
         scanAlreadyAssigned: '"{name}" ist bereits einem Mitglied zugewiesen.',
         scanAlreadyHere: '"{name}" ist diesem Mitglied bereits zugewiesen.',
         noInventory: 'Keine Gegenstände zugewiesen.',
+        missingRequirements: 'Fehlende Ausstattung',
+        missingRequirementsHint: 'Diese Gegenstände sind für das Mitglied vorgesehen, aber noch nicht zugewiesen.',
+        missingCount: '({count} fehlt)',
+        pickStockItem: 'Vorhandenen Gegenstand wählen',
+        pickSize: 'Größe wählen',
+        handOut: 'Zuweisen',
+        createAndHandOut: 'Neu anlegen und zuweisen',
+        nothingInStock: 'Kein freier Gegenstand im Lager.',
         selectTargetMember: 'Neues Mitglied',
         selectTargetPlaceholder: 'Mitglied auswählen',
         formerBlocked: 'Dieses Mitglied kann derzeit nicht als ehemalig markiert werden:',
@@ -2035,7 +2066,7 @@ export default {
         pending: 'offen',
         accepted: 'bestätigt',
         denied: 'abgelehnt',
-        declined: 'abgesagt',
+        declined: 'abgemeldet',
         withdrawn: 'zurückgezogen',
         expired: 'Frist abgelaufen',
         deadline: 'Frist',
@@ -2048,7 +2079,7 @@ export default {
         groupPending: 'Ausstehend',
         groupAccepted: 'Bestätigt',
         groupDenied: 'Abgelehnt',
-        groupDeclined: 'Abgesagt',
+        groupDeclined: 'Abgemeldet',
         groupWithdrawn: 'Zurückgezogen',
     },
     eventsUpcoming: {
@@ -2073,12 +2104,15 @@ export default {
         registerFor: '{name} anmelden',
         remove: 'Entfernen',
         unregister: 'Abmelden',
-        decline: 'Absagen',
-        declineFor: '{name} absagen',
-        statusDeclined: 'Abgesagt',
+        undoDecline: 'Absage zurücknehmen',
+        decline: 'Abmelden',
+        declineFor: '{name} abmelden',
+        statusDeclined: 'Abgemeldet',
+        signOffConfirmTitle: 'Wirklich abmelden?',
+        signOffConfirmBody: 'Der Platz wird wieder freigegeben. Wer später doch teilnehmen möchte, meldet sich neu an, und bei einem vollen Termin kann der Platz dann weg sein.',
         accepted: 'zugesagt',
         pendingCount: 'ausstehend',
-        declinedCount: 'abgesagt',
+        declinedCount: 'abgemeldet',
         loadMore: 'Weitere laden',
         viewList: 'Liste',
         viewCalendar: 'Kalender',
@@ -2096,11 +2130,11 @@ export default {
     events: {
         register: 'Anmelden',
         answerFor: 'Für wen zusagen?',
-        declineFor: 'Für wen absagen?',
+        declineFor: 'Für wen abmelden?',
         answerForHint: 'Wähle aus, für wen die Antwort gilt.',
         answerForFieldsHint: 'Fragen des Termins werden je Person gestellt.',
         answerForAll: 'Für alle zusagen',
-        declineForAll: 'Für alle absagen',
+        declineForAll: 'Für alle abmelden',
         registrationFields: {
             title: 'Angaben zur Anmeldung',
             sectionTitle: 'Fragen bei der Anmeldung',
@@ -2211,8 +2245,15 @@ export default {
         general: 'Allgemein',
         registration: 'Anmeldung',
         restrictions: 'Einschränkungen',
-        restrictToRoles: 'Auf Rollen beschränken',
-        restrictToRolesHint: 'Ohne Auswahl ist der Termin für alle sichtbar.',
+        restrictToRoles: 'Anmeldung einschränken',
+        restrictToRolesHint: 'Wer sich anmelden darf. Ohne Auswahl alle. Wer nicht dazugehört, sieht den Termin '
+            + 'weiterhin im Kalender und kann ihn nur nicht beantworten.',
+        restrictVisibility: 'Sichtbarkeit einschränken',
+        restrictVisibilityHint: 'Wer überhaupt von diesem Termin erfahren darf. Ohne Auswahl alle. Für alle '
+            + 'anderen taucht er nirgends auf, weder im Kalender noch in einer Benachrichtigung. Ein so '
+            + 'eingeschränkter Termin kann weder öffentlich stehen noch mit Partnerwachen geteilt werden.',
+        notOpenToYou: 'Für dich ist hier keine Anmeldung möglich.',
+        notOpenToHousehold: 'Weder du noch die Personen, die du verwaltest, können sich hier anmelden.',
         deleteEventConfirm: 'Termin "{name}" wirklich löschen?',
         deleteBreakConfirm: 'Pause "{name}" wirklich löschen?',
         importHolidays: 'Ferien importieren',
@@ -3415,14 +3456,18 @@ export default {
             byGroup: 'Nach Gruppe',
         },
         check: {
-            exchangeSize: 'Tausch: Größe',
-            exchangeDamaged: 'Tausch: Beschädigt',
+            exchange: 'Tausch',
             inExchange: '(davon {count} im Tausch)',
-            exchangeSizeReason: 'Passt nicht, eine Größe größer nötig',
-            exchangeDamagedReason: 'Beschädigt, Ersatz in gleicher Größe nötig',
+            exchangeReasonTooSmall: 'Zu klein',
+            exchangeReasonDamaged: 'Kaputt',
+            exchangeReasonOther: 'Eigene Angabe',
+            exchangeReasonTooSmallText: 'Passt nicht, eine Größe größer nötig',
+            exchangeReasonDamagedText: 'Kaputt, Ersatz in gleicher Größe nötig',
+            exchangeOwnReason: 'Was ist mit dem Stück?',
             exchangeNewSize: 'Gewünschte Größe',
             exchangeReason: 'Grund',
             exchangeCreate: 'Tausch anfragen',
+            procurementNoted: 'Beschaffung vorgemerkt.',
             title: 'Inventarprüfung',
             tabTeam: 'Team',
             tabMember: 'Mitglieder',
@@ -5160,7 +5205,7 @@ export default {
             PENDING: 'Ausstehend',
             ACCEPTED: 'Bestätigt',
             DENIED: 'Abgelehnt',
-            DECLINED: 'Abgesagt',
+            DECLINED: 'Abgemeldet',
         },
         lendingStatus: {
             REQUESTED: 'Angefragt',
@@ -6365,6 +6410,8 @@ export default {
     },
     onboarding: {
         resume: 'Weiter mit der Einrichtung',
+        /** Stands in for the child's name where a task is about nobody in particular. */
+        child: 'dein Kind',
         card: {
             begin: 'Los geht’s',
             install: 'Ember installieren',
@@ -6440,7 +6487,7 @@ export default {
                 },
                 eventAnswer: {
                     title: 'Auf den nächsten Termin antworten',
-                    body: 'Zusagen oder absagen, beides zählt. Nach Ablauf der Frist geht es nicht mehr.',
+                    body: 'Anmelden oder abmelden, beides zählt. Nach Ablauf der Frist geht es nicht mehr.',
                 },
                 calendar: {
                     title: 'Termine in deinen Kalender holen',
@@ -6465,25 +6512,25 @@ export default {
             },
             guardian: {
                 profile: {
-                    title: 'Daten deines Kindes prüfen',
-                    body: 'Schau einmal durch, was die Wache über dein Kind hinterlegt hat.',
+                    title: 'Daten von {name} prüfen',
+                    body: 'Schau einmal durch, was die Wache über {name} hinterlegt hat.',
                 },
                 username: {
                     title: 'Benutzernamen festlegen',
-                    body: 'Damit meldet sich dein Kind an, auch ohne eigene E-Mail-Adresse.',
+                    body: 'Damit meldet sich {name} an, auch ohne eigene E-Mail-Adresse.',
                 },
                 login: {
                     title: 'Anmeldung freischalten',
-                    body: 'Du entscheidest, ab wann dein Kind selbst hereinkommt, und kannst es jederzeit '
+                    body: 'Du entscheidest, ab wann {name} selbst hereinkommt, und kannst es jederzeit '
                         + 'zurücknehmen.',
                 },
                 password: {
                     title: 'Passwort setzen',
-                    body: 'Vergib das Passwort und gib es deinem Kind zusammen mit dem Benutzernamen weiter.',
+                    body: 'Vergib das Passwort und gib es {name} zusammen mit dem Benutzernamen weiter.',
                 },
                 eventAnswer: {
-                    title: 'Für dein Kind auf einen Termin antworten',
-                    body: 'Zusagen oder absagen, direkt in der Terminliste.',
+                    title: 'Für {name} auf einen Termin antworten',
+                    body: 'Anmelden oder abmelden, direkt in der Terminliste.',
                 },
             },
             station: {
@@ -6594,12 +6641,12 @@ export default {
             guardian: {
                 profile: {
                     0: 'Die Profile, die du verwaltest, liegen hier.',
-                    1: 'Wähle dein Kind aus.',
+                    1: 'Wähle {name} aus.',
                     2: 'Prüfe die Angaben und speichere.',
                 },
                 username: {
                     0: 'Öffne die verwalteten Profile.',
-                    1: 'Wähle dein Kind aus.',
+                    1: 'Wähle {name} aus.',
                     2: 'Trag einen Benutzernamen ein. Nichts leicht Erratbares, bitte.',
                     3: 'Speichern.',
                 },
@@ -6609,13 +6656,13 @@ export default {
                 },
                 password: {
                     0: 'Öffne die verwalteten Profile.',
-                    1: 'Vergib ein Passwort für dein Kind.',
-                    2: 'Speichern, und gib es deinem Kind weiter.',
+                    1: 'Vergib ein Passwort für {name}.',
+                    2: 'Speichern, und gib es {name} weiter.',
                 },
                 eventAnswer: {
                     0: 'Hier stehen die Termine.',
-                    1: 'Wähle dein Kind aus.',
-                    2: 'Sag für dein Kind zu oder ab.',
+                    1: 'Wähle {name} aus.',
+                    2: 'Melde {name} an oder ab.',
                 },
             },
             station: {
@@ -6715,7 +6762,7 @@ export default {
             },
             events: {
                 title: 'Termine',
-                body: 'Hier siehst du alle kommenden Übungen und Veranstaltungen. Bei manchen Terminen kannst du dich anmelden oder absagen - einfach auf den entsprechenden Knopf klicken.',
+                body: 'Hier siehst du alle kommenden Übungen und Veranstaltungen. Bei manchen Terminen kannst du dich an- oder abmelden - einfach auf den entsprechenden Knopf klicken.',
             },
             inventory: {
                 title: 'Dein Inventar',
@@ -7668,6 +7715,23 @@ export default {
         noData: 'Für den gewählten Zeitraum liegen noch keine Daten vor.',
         help: 'Hilfe',
     },
+    stationFeeds: {
+        help: 'Hilfe',
+        total: 'Eingerichtete Zugänge',
+        activeLastWeek: 'In den letzten 7 Tagen abgerufen',
+        searchPlaceholder: 'Nach Namen suchen',
+        noneFound: 'Niemand hat bisher einen Zugang eingerichtet.',
+        never: 'Nie',
+        inUse: 'In Benutzung',
+        dormant: 'Ruht',
+        column: {
+            member: 'Mitglied',
+            since: 'Eingerichtet',
+            calendar: 'Kalender zuletzt',
+            notifications: 'Benachrichtigungen zuletzt',
+            state: 'Status',
+        },
+    },
     insights: {
         title: 'Öffentliche Seiten - Statistik',
         subtitle: 'Aggregierte Zugriffe pro öffentlicher Seite. Keine IPs, keine Cookies, keine eindeutigen Besucher.',
@@ -7808,6 +7872,9 @@ export default {
         restriction: 'Zielgruppe',
         restrictionHint: 'Wer für Termine aus dieser Vorlage eingeplant wird. Beim Anwenden der Vorlage wird die '
             + 'Auswahl in den Termin übernommen und kann dort noch geändert werden.',
+        viewRestriction: 'Sichtbarkeit',
+        viewRestrictionHint: 'Wer von Terminen aus dieser Vorlage überhaupt erfahren darf. Ohne Auswahl alle. '
+            + 'Wird beim Anwenden ebenfalls in den Termin übernommen.',
         applied: 'Vorlage angewendet.',
         loadTemplate: 'Vorlage laden...',
     },

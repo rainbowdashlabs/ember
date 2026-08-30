@@ -57,7 +57,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -215,6 +214,14 @@ public class UserFeedRoutes implements Routes {
         }
     }
 
+    /**
+     * Renders the household's calendar file.
+     *
+     * <p>Only appointments the household may know about go into it. A subscribed calendar is a copy
+     * of the station's appointments leaving the application, so one hidden from these members must
+     * not be in it; the union over the owner and everyone they answer for is the same set the
+     * application itself shows them.
+     */
     private int doIcalFeed(Context ctx, StationMember member) {
         tokenService.recordIcalPoll(member.id());
         var station = stationRepository.findById(member.stationId()).orElseThrow(NotFoundResponse::new);
@@ -249,7 +256,6 @@ public class UserFeedRoutes implements Routes {
 
         var allRegistrations = registrationService.findByMembers(memberIds);
         var ownerStatusByEvent = new HashMap<Integer, RegistrationStatus>();
-        var ownerRegistered = new HashSet<Integer>();
         var managedByEvent = new HashMap<Integer, List<IcalEventRenderer.ManagedRegistration>>();
         var managedNameById = new HashMap<Integer, String>();
         for (var managed : managedMembers) {
@@ -259,9 +265,6 @@ public class UserFeedRoutes implements Routes {
         for (var reg : allRegistrations) {
             if (reg.memberId() == member.id()) {
                 ownerStatusByEvent.put(reg.eventId(), reg.status());
-                if (reg.status() == RegistrationStatus.ACCEPTED || reg.status() == RegistrationStatus.PENDING) {
-                    ownerRegistered.add(reg.eventId());
-                }
             } else {
                 String name = managedNameById.getOrDefault(reg.memberId(), "Member #" + reg.memberId());
                 managedByEvent
@@ -275,14 +278,7 @@ public class UserFeedRoutes implements Routes {
         }
 
         var renderCtx = new IcalEventRenderer.Context(
-                station,
-                locale,
-                emailService.getBaseUrl(),
-                verbose,
-                categoryMap,
-                ownerStatusByEvent,
-                ownerRegistered,
-                managedByEvent);
+                station, locale, emailService.getBaseUrl(), verbose, categoryMap, ownerStatusByEvent, managedByEvent);
 
         // Body size cap: restrict events to a -7d/+365d window around now so feeds stay small
         // for stations with thousands of historical entries. Recurring events use their anchor
@@ -290,7 +286,7 @@ public class UserFeedRoutes implements Routes {
         var icalNow = Instant.now();
         var windowStart = icalNow.minus(ICAL_WINDOW_PAST);
         var windowEnd = icalNow.plus(ICAL_WINDOW_FUTURE);
-        var events = crudService.findByStation(station.id()).stream()
+        var events = crudService.findFilteredForMembers(station.id(), memberIds, null, null).stream()
                 .filter(e -> e.isRecurring()
                         || (e.startTime() != null
                                 && !e.startTime().isBefore(windowStart)

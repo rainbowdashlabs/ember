@@ -9,11 +9,11 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import {insights} from '@/api'
 import type {HourlyTotal, PageDetailResponse, PageLeaderboardEntry} from '@/api/insights'
-import InsightsWindowSelector from '@/views/stationview/manage/manageStationInsightsView/InsightsWindowSelector.vue'
-import InsightsHeader from '@/views/stationview/manage/manageStationInsightsView/InsightsHeader.vue'
-import InsightsTotalsGrid from '@/views/stationview/manage/manageStationInsightsView/InsightsTotalsGrid.vue'
-import LeaderboardPanel from '@/views/stationview/manage/manageStationInsightsView/LeaderboardPanel.vue'
-import DetailPanel from '@/views/stationview/manage/manageStationInsightsView/DetailPanel.vue'
+import InsightsWindowSelector from '@/views/stationview/monitoring/stationInsightsView/InsightsWindowSelector.vue'
+import InsightsHeader from '@/views/stationview/monitoring/stationInsightsView/InsightsHeader.vue'
+import InsightsTotalsGrid from '@/views/stationview/monitoring/stationInsightsView/InsightsTotalsGrid.vue'
+import LeaderboardPanel from '@/views/stationview/monitoring/stationInsightsView/LeaderboardPanel.vue'
+import DetailPanel from '@/views/stationview/monitoring/stationInsightsView/DetailPanel.vue'
 
 const {t} = useI18n()
 

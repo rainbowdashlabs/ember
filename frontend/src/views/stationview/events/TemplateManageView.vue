@@ -57,11 +57,22 @@ async function createTemplate() {
  * one from nothing means typing every question again. What is copied is everything the template says
  * about an event; the copy is opened straight away because the first thing anybody does with it is
  * change the part that differs.
+ *
+ * <p>The two audience modes are left out of the settings the copy is written with, because setting
+ * the audiences carries them over already. Sending them here as well would offer the server a field
+ * it does not take, and it turns an unknown field down rather than ignoring it.
  */
 async function duplicateTemplate(id: number) {
   try {
     const {template, fields, restriction, reminderDays} = await events.getTemplate(id)
-    const {id: _id, stationId: _stationId, name, ...settings} = template
+    const {
+      id: _id,
+      stationId: _stationId,
+      restrictionMode: _restrictionMode,
+      viewRestrictionMode: _viewRestrictionMode,
+      name,
+      ...settings
+    } = template
     const copyName = t('eventTemplates.copyOf', {name})
     const copy = await events.createTemplate({name: copyName})
     await events.updateTemplate(copy.id, {...settings, name: copyName})

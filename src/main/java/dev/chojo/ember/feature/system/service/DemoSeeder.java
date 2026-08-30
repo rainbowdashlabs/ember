@@ -88,6 +88,12 @@ public interface DemoSeeder {
     int PORTRAITS = 100;
 
     /**
+     * The states the explainer videos have to show. Last, because it hangs its cases on what
+     * everything before it has already built.
+     */
+    int VIDEO_CASES = 110;
+
+    /**
      * The band this seeder belongs to. Lower values run first; equal values run in parallel.
      *
      * @return the order value

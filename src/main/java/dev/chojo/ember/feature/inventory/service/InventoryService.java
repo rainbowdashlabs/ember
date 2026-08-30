@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
+import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -477,6 +478,36 @@ public class InventoryService {
         return memberId != null
                 ? custodyService.assignToMember(itemId, memberId, memberName)
                 : custodyService.takeBack(itemId);
+    }
+
+    /**
+     * Every piece of one inventory that is in nobody's hands, so a caller can offer them.
+     *
+     * @param inventoryId the inventory to look in
+     * @return the pieces currently assigned to nobody
+     */
+    public List<InventoryItem> unassignedItems(int inventoryId) {
+        return inventoryRepository.findUnassignedItems(inventoryId);
+    }
+
+    /**
+     * Takes a fresh piece into an inventory and hands it straight to a member.
+     *
+     * <p>The two steps belong together: a piece created for somebody and then left lying because the
+     * assignment failed is worse than no piece at all. Ownership follows the inventory, an external
+     * one belonging to the body above the station rather than to the station itself.
+     *
+     * @param inventoryId the inventory the piece goes into
+     * @param sizeId      the size, or {@code null} where the inventory keeps none
+     * @param memberId    who receives it
+     * @param actorName   who handed it over, for the history
+     * @return the created piece
+     */
+    public InventoryItem createAndHandOut(int inventoryId, Integer sizeId, int memberId, String actorName) {
+        Inventory inventory = findById(inventoryId).orElseThrow(() -> new NotFoundResponse("Inventory not found"));
+        ItemOwner owner = inventory.inventoryType() == InventoryType.EXTERNAL ? ItemOwner.CLUSTER : ItemOwner.STATION;
+        InventoryItem item = createItem(inventoryId, null, inventory.name(), sizeId, null, owner, null);
+        return assignItem(item.id(), memberId, actorName).orElse(item);
     }
 
     /**

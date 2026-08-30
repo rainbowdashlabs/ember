@@ -9,7 +9,6 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
@@ -29,7 +28,7 @@ import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -252,7 +251,7 @@ public class EventRoutes implements Routes {
         var req = ctx.bodyAsClass(EventRequest.class);
         validate(req);
         var eventType = req.eventType();
-        var event = crudService.create(
+        var event = crudService.createWithoutEvent(
                 session.stationId(),
                 req.name(),
                 req.description(),
@@ -269,17 +268,14 @@ public class EventRoutes implements Routes {
                 req.minRegistrations(),
                 req.thresholdDate(),
                 req.registrationCloseDays());
-        var restriction = req.restriction() != null ? req.restriction() : RestrictionSelection.empty();
-        restrictionService.setRestrictions(event.id(), restriction);
-        if (req.restriction() != null) {
-            restrictionService.updateRestrictionMode(event.id(), restriction.mode());
-        }
+        applyAudiences(event.id(), req);
         if (req.templateId() != null) {
             registrationFieldService.copyTemplateFields(req.templateId(), event.id());
         }
         var withEnd = crudService
                 .setRepeatEnd(event.id(), req.repeatUntil(), req.repeatCount())
                 .orElse(event);
+        crudService.announceCreated(session.stationId(), withEnd);
 
         ctx.status(HttpStatus.CREATED).json(withEnd);
     }
@@ -339,12 +335,7 @@ public class EventRoutes implements Routes {
                         req.registrationCloseDays())
                 .ifPresentOrElse(
                         event -> {
-                            var restriction =
-                                    req.restriction() != null ? req.restriction() : RestrictionSelection.empty();
-                            restrictionService.setRestrictions(id, restriction);
-                            if (req.restriction() != null) {
-                                restrictionService.updateRestrictionMode(id, restriction.mode());
-                            }
+                            applyAudiences(id, req);
                             ctx.json(crudService
                                     .setRepeatEnd(id, req.repeatUntil(), req.repeatCount())
                                     .orElse(event));
@@ -400,6 +391,28 @@ public class EventRoutes implements Routes {
         return ids;
     }
 
+    /**
+     * Writes both audiences of an event from a create or update request.
+     *
+     * <p>An absent selection clears the audience rather than leaving the old one standing: the
+     * editor always sends what it holds, and a request that omits an audience is saying it is empty.
+     * The combination mode is only touched where a selection came with one, because that is the only
+     * case in which the caller has an opinion about it.
+     */
+    private void applyAudiences(int eventId, EventRequest req) {
+        var register = req.restriction() != null ? req.restriction() : RestrictionSelection.empty();
+        restrictionService.setRestrictions(eventId, register);
+        if (req.restriction() != null) {
+            restrictionService.updateRestrictionMode(eventId, register.mode());
+        }
+
+        var view = req.viewRestriction() != null ? req.viewRestriction() : RestrictionSelection.empty();
+        restrictionService.setViewRestrictions(eventId, view);
+        if (req.viewRestriction() != null) {
+            restrictionService.updateViewRestrictionMode(eventId, view.mode());
+        }
+    }
+
     private void validate(EventRequest req) {
         if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
         if (req.startTime() == null || req.endTime() == null)
@@ -437,7 +450,7 @@ public class EventRoutes implements Routes {
         for (var event : allEvents) {
             var eligible = new ArrayList<Integer>();
             for (int mid : memberIds) {
-                if (restrictionService.isMemberEligible(event.id(), mid, session.permissions())) {
+                if (restrictionService.canRegister(event.id(), mid, session.permissions())) {
                     eligible.add(mid);
                 }
             }
@@ -459,13 +472,14 @@ public class EventRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedEvent(crudService, id, session);
-        var restrictions = restrictionService.findRestrictions(id);
-        ctx.json(new EventRestrictions(
-                restrictions.userTypes(),
-                restrictions.groupIds(),
-                restrictions.tagIds(),
-                restrictions.memberIds(),
-                restrictions.mode()));
+        ctx.json(audiencesOf(id));
+    }
+
+    /** Both audiences of one event, as the editor loads them. */
+    private EventRestrictions audiencesOf(int eventId) {
+        return new EventRestrictions(
+                RestrictionAudience.of(restrictionService.findRestrictions(eventId)),
+                RestrictionAudience.of(restrictionService.findViewRestrictions(eventId)));
     }
 
     @OpenApi(
@@ -481,13 +495,20 @@ public class EventRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedEvent(crudService, id, session);
         var req = ctx.bodyAsClass(EventRestrictions.class);
-        restrictionService.setRestrictions(
-                id,
-                new RestrictionSelection(req.userTypes(), req.groupIds(), req.tagIds(), req.memberIds(), req.mode()));
-        if (req.mode() != null) {
-            restrictionService.updateRestrictionMode(id, req.mode());
+
+        var register = req.register() != null ? req.register().toSelection() : RestrictionSelection.empty();
+        restrictionService.setRestrictions(id, register);
+        if (register.mode() != null) {
+            restrictionService.updateRestrictionMode(id, register.mode());
         }
-        ctx.json(req);
+
+        var view = req.view() != null ? req.view().toSelection() : RestrictionSelection.empty();
+        restrictionService.setViewRestrictions(id, view);
+        if (view.mode() != null) {
+            restrictionService.updateViewRestrictionMode(id, view.mode());
+        }
+
+        ctx.json(audiencesOf(id));
     }
 
     @OpenApi(
@@ -501,16 +522,12 @@ public class EventRoutes implements Routes {
         var events = crudService.findByStation(session.stationId());
         var restrictionsMap = new HashMap<Integer, EventRestrictions>();
         for (var event : events) {
-            var restrictions = restrictionService.findRestrictions(event.id());
-            if (restrictions.hasRestrictions()) {
+            var register = restrictionService.findRestrictions(event.id());
+            var view = restrictionService.findViewRestrictions(event.id());
+            if (register.hasRestrictions() || view.hasRestrictions()) {
                 restrictionsMap.put(
                         event.id(),
-                        new EventRestrictions(
-                                restrictions.userTypes(),
-                                restrictions.groupIds(),
-                                restrictions.tagIds(),
-                                restrictions.memberIds(),
-                                restrictions.mode()));
+                        new EventRestrictions(RestrictionAudience.of(register), RestrictionAudience.of(view)));
             }
         }
         ctx.json(restrictionsMap);
@@ -577,7 +594,8 @@ public class EventRoutes implements Routes {
                 req.requiresRegistration(),
                 req.requiresConfirmation(),
                 req.registrationDeadline(),
-                req.restriction() != null ? req.restriction() : RestrictionSelection.empty());
+                req.restriction() != null ? req.restriction() : RestrictionSelection.empty(),
+                req.viewRestriction() != null ? req.viewRestriction() : RestrictionSelection.empty());
         var created = batchEventService.createBatch(session.stationId(), batchReq);
         ctx.json(created);
     }
@@ -627,6 +645,7 @@ public class EventRoutes implements Routes {
             Boolean requiresConfirmation,
             Integer categoryId,
             RestrictionSelection restriction,
+            RestrictionSelection viewRestriction,
             Boolean isPublic,
             Integer registrationLimit,
             Integer minRegistrations,
@@ -637,12 +656,13 @@ public class EventRoutes implements Routes {
 
     public record CancelEventRequest(String reason) {}
 
-    public record EventRestrictions(
-            List<StationUserType> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds,
-            List<Integer> memberIds,
-            RestrictionMode mode) {}
+    /**
+     * Both audiences of an event, as the editor reads and writes them in one go.
+     *
+     * @param register who the appointment is for, everybody else sees it and cannot answer it
+     * @param view     who may know it exists, everybody else never meets it anywhere
+     */
+    public record EventRestrictions(RestrictionAudience register, RestrictionAudience view) {}
 
     public record SetRemindersRequest(List<Integer> daysBefore) {}
 
@@ -670,7 +690,8 @@ public class EventRoutes implements Routes {
             Boolean requiresRegistration,
             Boolean requiresConfirmation,
             Instant registrationDeadline,
-            RestrictionSelection restriction) {}
+            RestrictionSelection restriction,
+            RestrictionSelection viewRestriction) {}
 
     public record BatchFieldEntryDto(
             String name,
