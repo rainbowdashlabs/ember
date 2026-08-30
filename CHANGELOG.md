@@ -4,7 +4,12 @@
 
 ### Improvements
 
+- **Setting a password from a link signs you straight in.** An invitation ended at the sign-in form, where the password just chosen had to be typed again, and a reset did the same. Choosing it proves what typing it would prove, so the link now leads into the account rather than back to the front door.
 - **Whoever runs an appointment can correct an answer to its questions.** The answers were the member's alone to change, although the person planning from them is the one reading them, so a shirt size typed wrong meant chasing the member while the order was going out. Anybody who may edit the appointment can now put an answer right from the list of sign-ups, and the member's own answers stay theirs to change as before.
+
+### Security
+
+- **A password set from a link still asks for the second factor.** Signing in from the link would otherwise have turned an account guarded by an authenticator into one guarded by a mailbox. Where a second factor is set up it is asked for exactly as at the sign-in form, and every remembered device is revoked when the password changes, so none can vouch for the factor either.
 
 ### Fixes
 

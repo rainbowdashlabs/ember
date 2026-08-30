@@ -11,7 +11,7 @@ import {getTwoFactorStatus, verify2fa, webauthnLoginBegin, webauthnLoginFinish} 
 import {getWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
 import {getItem, setItem} from '@/api/storage'
 import {scheduleTokenRefresh} from '@/api/client'
-import {session} from '@/api'
+import {decideSignInLanding} from '@/util/signInLanding'
 import {useCluster} from '@/composables/useCluster'
 import {useStations} from '@/composables/useStations'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -29,7 +29,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 const {t} = useI18n()
 const route = useRoute()
 const {setActiveStation, clearActiveStation} = useStations()
-const {clearActiveCluster} = useCluster()
+const {setActiveCluster, clearActiveCluster} = useCluster()
 
 const preAuthToken = ref(route.query.token as string || '')
 /** Carried over from the login screen, so ticking the box there is not undone by the second factor. */
@@ -120,26 +120,10 @@ async function finalizeSession(token: string, expiresAt: string) {
   scheduleTokenRefresh(expiresAt)
   const redirect = route.query.redirect as string | undefined
   try {
-    const [stations, info] = await Promise.all([
-      session.getStations(),
-      session.getSessionInfo().catch(() => null),
-    ])
-    const isAdmin = info?.instanceUserType === 'ADMINISTRATOR'
-    const [onlyStation] = stations
-    if (stations.length === 1 && onlyStation) {
-      setActiveStation(onlyStation.stationId)
-      leaveFor(redirect || '/station/requirements')
-      return
-    }
-    if (stations.length > 1) {
-      leaveFor(redirect || '/cross-station')
-      return
-    }
-    if (isAdmin) {
-      leaveFor(redirect || '/admin/dashboard/overview')
-      return
-    }
-    leaveFor(redirect || '/account')
+    const landing = await decideSignInLanding(redirect)
+    if (landing.stationId) setActiveStation(landing.stationId)
+    if (landing.clusterUid) setActiveCluster(landing.clusterUid)
+    leaveFor(landing.path)
     return
   } catch { /* fall through to default redirect */ }
   leaveFor(redirect || '/station/requirements')

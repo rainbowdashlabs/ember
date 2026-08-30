@@ -2105,7 +2105,7 @@ export default {
         registerFor: '{name} anmelden',
         remove: 'Entfernen',
         unregister: 'Abmelden',
-        undoDecline: 'Absage zurücknehmen',
+        undoDecline: 'Abmeldung zurücknehmen',
         decline: 'Abmelden',
         declineFor: '{name} abmelden',
         statusDeclined: 'Abgemeldet',
