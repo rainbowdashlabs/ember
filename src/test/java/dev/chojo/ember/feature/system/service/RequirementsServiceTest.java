@@ -36,7 +36,7 @@ class RequirementsServiceTest {
     void getRequirementsWithEmptyLists() {
         when(formService.findForcedPending(1, 10)).thenReturn(List.of());
         when(quizService.findForcedPending(1, 10)).thenReturn(List.of());
-        when(profileFieldService.isProfileComplete(10, 1, List.of("USER"))).thenReturn(true);
+        when(profileFieldService.isProfileComplete(10)).thenReturn(true);
 
         var result = requirementsService.getRequirements(10, 1, List.of("USER"));
 
@@ -51,7 +51,7 @@ class RequirementsServiceTest {
         var quizzes = List.of(new RequirementItem(3, "Quiz C"));
         when(formService.findForcedPending(1, 10)).thenReturn(forms);
         when(quizService.findForcedPending(1, 10)).thenReturn(quizzes);
-        when(profileFieldService.isProfileComplete(10, 1, List.of("USER"))).thenReturn(false);
+        when(profileFieldService.isProfileComplete(10)).thenReturn(false);
 
         var result = requirementsService.getRequirements(10, 1, List.of("USER"));
 
@@ -66,7 +66,7 @@ class RequirementsServiceTest {
     void getRequirementsProfileComplete() {
         when(formService.findForcedPending(2, 20)).thenReturn(List.of());
         when(quizService.findForcedPending(2, 20)).thenReturn(List.of());
-        when(profileFieldService.isProfileComplete(20, 2, List.of("ADMIN"))).thenReturn(true);
+        when(profileFieldService.isProfileComplete(20)).thenReturn(true);
 
         var result = requirementsService.getRequirements(20, 2, List.of("ADMIN"));
 
@@ -77,7 +77,7 @@ class RequirementsServiceTest {
     void getRequirementsProfileIncomplete() {
         when(formService.findForcedPending(2, 20)).thenReturn(List.of());
         when(quizService.findForcedPending(2, 20)).thenReturn(List.of());
-        when(profileFieldService.isProfileComplete(20, 2, List.of("USER"))).thenReturn(false);
+        when(profileFieldService.isProfileComplete(20)).thenReturn(false);
 
         var result = requirementsService.getRequirements(20, 2, List.of("USER"));
 
@@ -115,20 +115,19 @@ class RequirementsServiceTest {
     void getRequirementsWithMultipleRoles() {
         when(formService.findForcedPending(1, 10)).thenReturn(List.of());
         when(quizService.findForcedPending(1, 10)).thenReturn(List.of());
-        when(profileFieldService.isProfileComplete(10, 1, List.of("USER", "ADMIN")))
-                .thenReturn(true);
+        when(profileFieldService.isProfileComplete(10)).thenReturn(true);
 
         var result = requirementsService.getRequirements(10, 1, List.of("USER", "ADMIN"));
 
         assertFalse(result.profileIncomplete());
-        verify(profileFieldService).isProfileComplete(10, 1, List.of("USER", "ADMIN"));
+        verify(profileFieldService).isProfileComplete(10);
     }
 
     @Test
     void countPendingZeroWhenNothingPending() {
         when(formService.findForcedPending(1, 10)).thenReturn(List.of());
         when(quizService.findForcedPending(1, 10)).thenReturn(List.of());
-        when(profileFieldService.isProfileComplete(10, 1, List.of("USER"))).thenReturn(true);
+        when(profileFieldService.isProfileComplete(10)).thenReturn(true);
 
         int count = requirementsService.countPending(10, 1, List.of("USER"));
 
@@ -141,7 +140,7 @@ class RequirementsServiceTest {
         var quizzes = List.of(new RequirementItem(3, "Quiz C"));
         when(formService.findForcedPending(1, 10)).thenReturn(forms);
         when(quizService.findForcedPending(1, 10)).thenReturn(quizzes);
-        when(profileFieldService.isProfileComplete(10, 1, List.of("USER"))).thenReturn(true);
+        when(profileFieldService.isProfileComplete(10)).thenReturn(true);
 
         int count = requirementsService.countPending(10, 1, List.of("USER"));
 
@@ -152,7 +151,7 @@ class RequirementsServiceTest {
     void countPendingWithIncompleteProfile() {
         when(formService.findForcedPending(1, 10)).thenReturn(List.of());
         when(quizService.findForcedPending(1, 10)).thenReturn(List.of());
-        when(profileFieldService.isProfileComplete(10, 1, List.of("USER"))).thenReturn(false);
+        when(profileFieldService.isProfileComplete(10)).thenReturn(false);
 
         int count = requirementsService.countPending(10, 1, List.of("USER"));
 
@@ -165,7 +164,7 @@ class RequirementsServiceTest {
         var quizzes = List.of(new RequirementItem(2, "Quiz B"), new RequirementItem(3, "Quiz C"));
         when(formService.findForcedPending(2, 20)).thenReturn(forms);
         when(quizService.findForcedPending(2, 20)).thenReturn(quizzes);
-        when(profileFieldService.isProfileComplete(20, 2, List.of("ADMIN"))).thenReturn(false);
+        when(profileFieldService.isProfileComplete(20)).thenReturn(false);
 
         int count = requirementsService.countPending(20, 2, List.of("ADMIN"));
 

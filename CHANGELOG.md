@@ -1,5 +1,11 @@
 # Changelog
 
+## v26.13.10
+
+### Fixes
+
+- **A question put to a group was never counted as missing.** Somebody in the instructors' group could leave an answer the instructors are required to give empty and still be told their profile was complete, so the gap reached neither the task list, nor the number beside it, nor the reminder on the dashboard. What counts as missing is now read off the same list the profile screen shows, so anything asked of somebody is asked of them everywhere.
+
 ## v26.13.9
 
 ### New Features

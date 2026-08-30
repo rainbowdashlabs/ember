@@ -448,10 +448,7 @@ public class StationMemberRoutes implements Routes {
     }
 
     private MemberWithName toMemberWithName(StationMember m) {
-        var roles = stationMemberRepository.findPermissions(m.id()).stream()
-                .map(r -> r.permission().name())
-                .toList();
-        boolean complete = profileFieldService.isProfileComplete(m.id(), m.stationId(), roles);
+        boolean complete = profileFieldService.isProfileComplete(m.id());
         return MemberWithName.from(m, accountRepository, memberIdentityFactory, complete);
     }
 
