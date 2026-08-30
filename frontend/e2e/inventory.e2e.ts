@@ -239,6 +239,54 @@ test.describe('Inventory', () => {
     })
 
     /**
+     * A note written while walking a check is kept with the piece it is about.
+     *
+     * <p>The walk shows one piece at a time and used to take a decision and nothing else, so whoever
+     * had something to say about a piece had to remember it until the long list. The story writes the
+     * note where it is now asked for and reads it back off the finished check, because a note that is
+     * typed and not kept is worse than no field at all.
+     */
+    test('a note written during the quick check is kept', async ({managerPage: page}) => {
+        const note = `Saum offen ${test.info().workerIndex}-${Date.now()}`
+
+        await page.goto('/station/inventory/checks/member')
+
+        // A member of this story's own where there is one: closing a check is the last thing it does,
+        // and the story that closes the first member's would be closing the same one.
+        const starts = page.getByRole('button', {name: 'Prüfung starten'})
+        await expect(starts.first()).toBeVisible({timeout: 15000})
+        await ((await starts.count()) > 1 ? starts.nth(1) : starts.first()).click()
+        await page.waitForURL(/\/station\/inventory\/checks\/(\d+)/)
+        const member = page.url().match(/checks\/(\d+)/)?.[1]
+
+        await page.getByRole('button', {name: 'Schnellprüfung'}).click()
+
+        const noteField = page.getByTestId('rapid-note')
+        await expect(noteField).toBeVisible({timeout: 15000})
+        await noteField.fill(note)
+
+        // The walk is answered to its end: a piece in hand is confirmed, an empty place is one the
+        // member never had. Only a check that is closed writes anything down.
+        const present = page.getByRole('button', {name: 'Vorhanden'})
+        const neverHeld = page.getByRole('button', {name: 'Nicht im Besitz'})
+        const done = page.getByRole('button', {name: 'Zurück zur Übersicht'})
+        for (let step = 0; step < 50; step += 1) {
+            await expect(present.or(neverHeld).or(done).first()).toBeVisible({timeout: 15000})
+            if (await done.isVisible()) break
+            if (await present.isVisible()) await present.click()
+            else await neverHeld.click()
+        }
+        await expect(done, 'the walk reaches its end').toBeVisible({timeout: 15000})
+
+        const finish = page.getByRole('button', {name: 'Prüfung abschließen'})
+        await expect(finish).toBeEnabled()
+        await finish.click()
+
+        await page.goto(`/station/inventory/checks/${member}/result`)
+        await expect(page.getByText(note)).toBeVisible({timeout: 15000})
+    })
+
+    /**
      * Procurement is the list of what the station is short of. It is read rather than filled in:
      * what stands in it follows from the requirements and the stock.
      */
@@ -273,10 +321,11 @@ test.describe('Inventory', () => {
      *
      * Whoever walks a check has the member in front of them and the piece in their hands. Sending them
      * to another screen to type in what they are looking at is how a finding ends up recorded nowhere.
-     * The two offered are the two that come up: it does not fit, and it is damaged.
      *
-     * The size exchange is offered only where the piece has a size, so the walk looks for one that has
-     * rather than assuming the first piece does.
+     * One button opens it and the window asks why, so the reason a station gives is not limited to the
+     * ones somebody thought of: the two common ones are offered, and anything else is written out. The
+     * window opens on a reason already chosen, because a check that has to be filled in before it can
+     * be saved is a check nobody raises.
      */
     test('a check raises an exchange for a piece that does not fit', async ({managerPage: page}) => {
         await page.goto('/station/inventory/checks/member')
@@ -285,19 +334,22 @@ test.describe('Inventory', () => {
 
         await page.getByRole('button', {name: 'Schnellprüfung'}).click()
 
-        const sizeExchange = page.getByTestId('rapid-exchange-size').first()
-        const damaged = page.getByTestId('rapid-exchange-damaged').first()
-        await expect(damaged).toBeVisible({timeout: 15000})
+        const exchange = page.getByTestId('rapid-exchange').first()
+        await expect(exchange).toBeVisible({timeout: 15000})
+        await exchange.click()
 
-        const offered = await sizeExchange.count()
-        await (offered > 0 ? sizeExchange : damaged).click()
+        const confirm = page.getByTestId('rapid-exchange-confirm')
+        await expect(confirm, 'a reason is chosen already').toBeEnabled()
 
-        await expect(page.getByTestId('rapid-exchange-reason')).toBeVisible()
-        await expect(page.getByTestId('rapid-exchange-reason'), 'the reason is filled in already')
-            .not.toHaveValue('')
-        await page.getByTestId('rapid-exchange-confirm').click()
+        await page.getByTestId('rapid-exchange-reason-other').click()
+        await expect(confirm, 'an own reason has to say something').toBeDisabled()
+        await page.getByTestId('rapid-exchange-reason').fill('Reißverschluss fehlt')
+        await expect(confirm).toBeEnabled()
 
-        await expect(page.getByTestId('rapid-exchange-confirm')).toBeHidden({timeout: 15000})
+        await page.getByTestId('rapid-exchange-reason-damaged').click()
+        await confirm.click()
+
+        await expect(confirm).toBeHidden({timeout: 15000})
 
         const raised = await page.request.get('/api/v1/exchanges', {headers: await apiHeaders(page)})
             .then(r => r.json())

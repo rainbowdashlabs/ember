@@ -152,6 +152,7 @@ export interface PitchRapidCheck {
     availableForInventory: (inventoryId: number) => InventoryItem[]
     sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
     itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
+    itemNotes: Map<number, string>
 }
 
 /** What the account shows about itself: its sessions, and its data export. */

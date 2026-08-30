@@ -15,6 +15,7 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
@@ -26,10 +27,13 @@ const props = defineProps<{
   availableForInventory: (inventoryId: number) => InventoryItem[]
   itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
   sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
+  /** What has been written down about each piece so far, so the walk shows the same note the list does. */
+  itemNotes: Map<number, string>
 }>()
 
 const emit = defineEmits<{
   setResult: [result: CheckResult]
+  setNote: [itemId: number, note: string]
   createProcurement: [req: RequiredInventoryItem, slotIndex: number, sizeId: string]
   exchange: [entry: CheckEntry]
   correct: [entry: CheckEntry]
@@ -129,6 +133,23 @@ function handleCreateProcurement() {
   resetSelections()
 }
 
+/**
+ * What has been written down about the piece in hand.
+ *
+ * <p>The note belongs to a piece, so only an item entry has one. An empty slot is a gap rather than
+ * a thing, and the completed check has nowhere to put a note about it.
+ */
+const currentNote = computed(() => {
+  const entry = currentEntry.value
+  return entry?.type === 'item' ? props.itemNotes.get(entry.item.id) ?? '' : ''
+})
+
+function writeNote(note: string) {
+  const entry = currentEntry.value
+  if (entry?.type !== 'item') return
+  emit('setNote', entry.item.id, note)
+}
+
 function skip() {
   const entry = currentEntry.value
   if (entry) {
@@ -156,6 +177,15 @@ defineExpose({ currentEntry })
       </div>
     </div>
     <p v-if="scanError" class="text-center text-sm text-error">{{ scanError }}</p>
+    <div class="max-w-md mx-auto">
+      <TextInput
+          :model-value="currentNote"
+          :placeholder="t('inventory.check.notePlaceholder')"
+          class="w-full"
+          data-testid="rapid-note"
+          @update:model-value="writeNote(($event as string) ?? '')"
+      />
+    </div>
     <div class="flex justify-center gap-4">
       <SuccessButton :icon="['fas', 'check']" @click="handleSetResult('CONFIRMED')">
         {{ t('inventory.check.confirmed') }}

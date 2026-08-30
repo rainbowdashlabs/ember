@@ -69,6 +69,7 @@ export const INVENTORY_RAPID: PitchRapidCheck = {
     availableForInventory: () => FREE,
     sizeLabel,
     itemLabel,
+    itemNotes: new Map([[755, 'Beim Zeltlager verloren']]),
 }
 
 export const INVENTORY_STATS: PitchStats = {

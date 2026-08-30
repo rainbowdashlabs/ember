@@ -4003,7 +4003,9 @@ volumes:
             dummyTitle: 'Beispiel: Prüfansicht',
             rapidCheckTitle: 'Schnellprüfung',
             rapidCheckText: 'Die Schnellprüfung zeigt dir Gegenstände einzeln nacheinander an.',
-            rapidCheckText2: 'Pro Gegenstand wählst du nur den Status - dann springt die Ansicht automatisch zum nächsten.',
+            rapidCheckText2: 'Pro Gegenstand wählst du nur den Status - dann springt die Ansicht automatisch zum nächsten. '
+                + 'Über dem Status steht ein Feld für eine Notiz, etwa warum etwas fehlt; sie gehört zum Gegenstand und '
+                + 'steht später im Ergebnis der Prüfung.',
             correctTitle: 'Eintrag korrigieren',
             correctText: 'Hält das Mitglied etwas anderes als eingetragen ist, öffnet „Korrigieren" ein Fenster, in dem du festhältst, was es wirklich hat. Bewegt wird dabei nichts: die Ausrüstung liegt schon in den richtigen Händen, nur der Eintrag zieht nach.',
             correctNewText: 'Du wählst entweder einen freien Gegenstand aus dem Bestand der Wache oder legst einen neuen an, mit Größe, Nummer und den Feldern des Inventars. Führt das Inventar Ausrüstung von Wache und Träger nebeneinander, wirst du einmal gefragt, wem der neue Gegenstand gehört.',
