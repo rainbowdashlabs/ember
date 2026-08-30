@@ -27,12 +27,14 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -44,13 +46,14 @@ class AuthServiceTest extends RepositoryTestBase {
     private static String verifyToken;
     private static String sessionToken;
 
+    private static EmailService emailService;
     private static TwoFactorRepository twoFactorRepoLocal;
     private static TrustedDeviceService trustedDeviceService;
 
     @BeforeAll
     static void setup() {
         var passwordHasher = new PasswordHasher();
-        var emailService = mock(EmailService.class);
+        emailService = mock(EmailService.class);
         var authConfig = new Auth();
         var demo = new Demo();
         var hibpClient = mock(HibpClient.class);
@@ -282,6 +285,157 @@ class AuthServiceTest extends RepositoryTestBase {
         assertDoesNotThrow(() -> service.requestPasswordReset(EMAIL));
     }
 
+    /**
+     * The whole way round, because only the ends of it were covered: asking is one call, the link
+     * that arrives is another, and nothing checked that the second follows from the first or that
+     * the password it sets is the one that then works.
+     */
+    @Test
+    @Order(18)
+    void aForgottenPasswordIsSetAgainFromTheLinkThatWasMailed() {
+        var forgetful = accountRepo.create("forgot-flow@test.com", "For", "Getful");
+        accountRepo.createCredential(forgetful.id(), new PasswordHasher().hash("DasAlteKennwort123!"));
+
+        service.requestPasswordReset("forgot-flow@test.com");
+
+        var mailed = ArgumentCaptor.forClass(String.class);
+        verify(emailService)
+                .sendPasswordResetEmail(eq("forgot-flow@test.com"), anyString(), mailed.capture(), anyString());
+        String link = mailed.getValue();
+
+        assertEquals(
+                AuthService.SetPasswordOutcome.OK,
+                service.setPassword(link, "DasNeueKennwort123!"),
+                "the link sets a new password");
+        assertTrue(service.verifyPassword(forgetful.id(), "DasNeueKennwort123!"), "which is the one that now works");
+        assertFalse(service.verifyPassword(forgetful.id(), "DasAlteKennwort123!"), "and the old one no longer does");
+        assertEquals(
+                AuthService.SetPasswordOutcome.TOKEN_INVALID,
+                service.setPassword(link, "EinDrittesKennwort123!"),
+                "a link is good for one reset");
+
+        accountRepo.delete(forgetful.id());
+    }
+
+    /**
+     * An invitation waits for the evening somebody next reads their mail, a reset does not. The two
+     * links are therefore given their own lifetimes, and the setup one is the long one.
+     */
+    @Test
+    @Order(18)
+    void theSetupLinkOutlivesTheResetLink() {
+        var invited = accountRepo.create("setup-window@test.com", "In", "Vited");
+
+        service.sendPasswordSetup(invited.id());
+        service.requestPasswordReset("setup-window@test.com");
+
+        var setupMail = ArgumentCaptor.forClass(String.class);
+        var resetMail = ArgumentCaptor.forClass(String.class);
+        verify(emailService)
+                .sendPasswordSetupEmail(eq("setup-window@test.com"), anyString(), setupMail.capture(), anyString());
+        verify(emailService)
+                .sendPasswordResetEmail(eq("setup-window@test.com"), anyString(), resetMail.capture(), anyString());
+
+        var setup = accountRepo.findToken(setupMail.getValue()).orElseThrow().expiresAt();
+        var reset = accountRepo.findToken(resetMail.getValue()).orElseThrow().expiresAt();
+        assertTrue(setup.isAfter(reset), "the invitation is good for longer than the reset");
+        assertTrue(setup.isAfter(Instant.now().plus(29, ChronoUnit.DAYS)), "and for the month the setting asks for");
+
+        accountRepo.delete(invited.id());
+    }
+
+    /** Whatever the configuration asks for, a link in a mailbox is not made to live for ever. */
+    @Test
+    @Order(18)
+    void theSetupWindowIsCappedAtAMonth() throws Exception {
+        assertEquals(Auth.SETUP_TOKEN_MAX_DAYS, configuredSetupDays(3650), "ten years is still a month");
+        assertEquals(1, configuredSetupDays(0), "and nothing at all is still a day");
+        assertEquals(7, configuredSetupDays(7), "anything inside the ceiling is taken as asked");
+    }
+
+    /** Reads back what an {@link Auth} configured with this many days actually hands out. */
+    private static int configuredSetupDays(int asked) throws Exception {
+        var config = new Auth();
+        var field = Auth.class.getDeclaredField("setupTokenDays");
+        field.setAccessible(true);
+        field.setInt(config, asked);
+        return config.setupTokenDays();
+    }
+
+    /**
+     * A link that ran out and a link that never existed need different words, so the two are told
+     * apart rather than both answered with "invalid". Only then can the page say what happened and
+     * who can put it right.
+     */
+    @Test
+    @Order(18)
+    void anExpiredLinkIsToldApartFromAnUnknownOne() {
+        var invited = accountRepo.create("expired-link@test.com", "Ex", "Pired");
+        accountRepo.createToken(
+                invited.id(),
+                "long-since-expired",
+                TokenType.SET_PASSWORD,
+                Instant.now().minus(1, ChronoUnit.HOURS));
+
+        assertEquals(
+                AuthService.TokenStanding.EXPIRED,
+                service.checkPasswordToken("long-since-expired").standing(),
+                "asking about it says it ran out");
+        assertEquals(
+                AuthService.TokenPurpose.SETUP,
+                service.checkPasswordToken("long-since-expired").purpose(),
+                "and that it was an invitation, which only a station can send again");
+        assertEquals(
+                AuthService.TokenStanding.UNKNOWN,
+                service.checkPasswordToken("no-such-link-was-ever-issued").standing());
+
+        assertEquals(
+                AuthService.SetPasswordOutcome.TOKEN_EXPIRED,
+                service.setPassword("long-since-expired", "EinGutesKennwort123!"),
+                "and using it says the same");
+
+        accountRepo.delete(invited.id());
+    }
+
+    /** Asking what a link is worth must not use it up: a reader who reloads sees the same answer. */
+    @Test
+    @Order(18)
+    void askingAboutALinkDoesNotSpendIt() {
+        var invited = accountRepo.create("still-good@test.com", "St", "Good");
+        accountRepo.createToken(
+                invited.id(),
+                "still-good-token",
+                TokenType.SET_PASSWORD,
+                Instant.now().plus(5, ChronoUnit.DAYS));
+
+        assertEquals(
+                AuthService.TokenStanding.VALID,
+                service.checkPasswordToken("still-good-token").standing());
+        assertEquals(
+                AuthService.TokenStanding.VALID,
+                service.checkPasswordToken("still-good-token").standing());
+        assertEquals(
+                AuthService.SetPasswordOutcome.OK,
+                service.setPassword("still-good-token", "EinGutesKennwort123!"),
+                "and it still works afterwards");
+
+        accountRepo.delete(invited.id());
+    }
+
+    /** Nobody to write to, nothing written down: a reset nobody could receive is not prepared. */
+    @Test
+    @Order(18)
+    void anAccountNobodyCanBeWrittenToAboutGetsNoResetToken() {
+        var unreachable = accountRepo.create("unreachable@import.local", "Un", "Reachable");
+
+        service.requestPasswordReset("unreachable@import.local");
+
+        verify(emailService, never())
+                .sendPasswordResetEmail(eq("unreachable@import.local"), anyString(), anyString(), anyString());
+
+        accountRepo.delete(unreachable.id());
+    }
+
     @Test
     @Order(19)
     void adminResetPasswordNotFound() {
@@ -500,8 +654,9 @@ class AuthServiceTest extends RepositoryTestBase {
                 TokenType.SET_PASSWORD,
                 Instant.now().minus(1, ChronoUnit.HOURS));
         assertEquals(
-                AuthService.SetPasswordOutcome.TOKEN_INVALID,
-                service.setPassword("expired-setpass-token", "NewPassword123!"));
+                AuthService.SetPasswordOutcome.TOKEN_EXPIRED,
+                service.setPassword("expired-setpass-token", "NewPassword123!"),
+                "a link that ran out says so, rather than being lumped in with an unknown one");
         accountRepo.delete(account2.id());
     }
 

@@ -24,6 +24,7 @@ import BoardsSidebarGroup from '@/views/dashboardview/BoardsSidebarGroup.vue'
 import ProceduresSidebarGroup from '@/views/dashboardview/ProceduresSidebarGroup.vue'
 import PagesSidebarGroup from '@/views/dashboardview/PagesSidebarGroup.vue'
 import ManageSidebarGroup from '@/views/dashboardview/ManageSidebarGroup.vue'
+import MonitoringSidebarGroup from '@/views/dashboardview/MonitoringSidebarGroup.vue'
 import FederationSidebarGroup from '@/views/dashboardview/FederationSidebarGroup.vue'
 
 const props = defineProps<{
@@ -132,6 +133,8 @@ function canBrowseMedia() {
     <PagesSidebarGroup v-if="hasPermission(StationPermission.PAGE_EDIT)" v-bind="groupBindings"/>
 
     <ManageSidebarGroup v-if="isManager()" v-bind="groupBindings"/>
+
+    <MonitoringSidebarGroup v-if="hasPermission(StationPermission.STATION_ADMINISTRATOR)" v-bind="groupBindings"/>
 
     <FederationSidebarGroup v-if="canManageFederation()" v-bind="groupBindings"/>
   </template>

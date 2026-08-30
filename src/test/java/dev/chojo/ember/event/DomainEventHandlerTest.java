@@ -144,7 +144,7 @@ class DomainEventHandlerTest {
 
     @Test
     void eventCreatedNotifiesStation() {
-        var handler = new EventCreatedHandler(notificationService);
+        var handler = new EventCreatedHandler(notificationService, restrictionService);
         assertEquals(EventCreated.class, handler.eventType());
 
         var stationEvent = new StationEvent(
@@ -162,6 +162,7 @@ class DomainEventHandlerTest {
                 false,
                 null,
                 RestrictionMode.OR,
+                RestrictionMode.AND,
                 false,
                 null,
                 null,
@@ -185,7 +186,7 @@ class DomainEventHandlerTest {
         // Handler now passes the full description through; word-boundary truncation lives in
         // the feed renderer (NotificationService.truncateSnippet) so we don't mangle text
         // mid-word at the publisher.
-        var handler = new EventCreatedHandler(notificationService);
+        var handler = new EventCreatedHandler(notificationService, restrictionService);
         String longDesc = "A".repeat(100);
         var stationEvent = new StationEvent(
                 42,
@@ -202,6 +203,7 @@ class DomainEventHandlerTest {
                 false,
                 null,
                 RestrictionMode.OR,
+                RestrictionMode.AND,
                 false,
                 null,
                 null,
@@ -225,7 +227,7 @@ class DomainEventHandlerTest {
 
     @Test
     void eventCreatedHandlesNullDescription() {
-        var handler = new EventCreatedHandler(notificationService);
+        var handler = new EventCreatedHandler(notificationService, restrictionService);
         var stationEvent = new StationEvent(
                 42,
                 STATION_ID,
@@ -241,6 +243,7 @@ class DomainEventHandlerTest {
                 false,
                 null,
                 RestrictionMode.OR,
+                RestrictionMode.AND,
                 false,
                 null,
                 null,
@@ -326,6 +329,7 @@ class DomainEventHandlerTest {
                 false,
                 null,
                 RestrictionMode.OR,
+                RestrictionMode.AND,
                 false,
                 null,
                 null,
@@ -635,7 +639,7 @@ class DomainEventHandlerTest {
         when(stationEvent.stationId()).thenReturn(STATION_ID);
         when(eventRepository.findById(42)).thenReturn(Optional.of(stationEvent));
         when(registrationRepository.findByEvent(42)).thenReturn(List.of());
-        when(restrictionService.findMembersPassingRestriction(RestrictionType.EVENT, 42, STATION_ID))
+        when(restrictionService.findMembersPassingRestriction(RestrictionType.EVENT_VIEW, 42, STATION_ID))
                 .thenReturn(Set.of());
         when(memberRepository.findByStation(STATION_ID, false)).thenReturn(List.of(member(30), member(31)));
         when(memberRepository.findManagers(30)).thenReturn(List.of());
@@ -667,7 +671,7 @@ class DomainEventHandlerTest {
         when(stationEvent.stationId()).thenReturn(STATION_ID);
         when(eventRepository.findById(42)).thenReturn(Optional.of(stationEvent));
         when(registrationRepository.findByEvent(42)).thenReturn(List.of());
-        when(restrictionService.findMembersPassingRestriction(RestrictionType.EVENT, 42, STATION_ID))
+        when(restrictionService.findMembersPassingRestriction(RestrictionType.EVENT_VIEW, 42, STATION_ID))
                 .thenReturn(Set.of(30));
         when(memberRepository.findManagers(30)).thenReturn(List.of());
 

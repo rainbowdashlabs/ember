@@ -11,6 +11,7 @@ import FederatedEventsSection from './FederatedEventsSection.vue'
 import UpcomingHeaderBar from './UpcomingHeaderBar.vue'
 import TodayEventsSection from './TodayEventsSection.vue'
 import UpcomingEventsSection from './UpcomingEventsSection.vue'
+import type {AnswerablePerson} from '@/util/eventAnswers'
 import type {EventBreak, EventCategory, EventField, EventRegistrationEntry, StationEvent, UpcomingEventOccurrence} from '@/api/events'
 
 type ViewMode = 'list' | 'calendar'
@@ -25,9 +26,6 @@ defineProps<{
   categories: EventCategory[]
   allEvents: StationEvent[]
   eventBreaks: EventBreak[]
-  eligibleMembers: Record<number, number[]>
-  currentMemberId: number
-  managedMemberIds: number[]
   filteredTodayEvents: StationEvent[]
   filteredUpcoming: UpcomingEventOccurrence[]
   overviewFields: Record<number, EventField[]>
@@ -38,10 +36,9 @@ defineProps<{
   loadingMore: boolean
   multiDayEndDate: (event: StationEvent, date: string) => string | null
   getRegistrationSummary: (eventId: number, date: string) => {accepted: number; pending: number; declined: number; total: number}
-  getEligibleMembers: (eventId: number) => {id: number; name: string}[]
+  getEligibleMembers: (eventId: number) => AnswerablePerson[]
   todayDetailRoute: (event: StationEvent) => RouteLocationRaw
   eventDetailRoute: (event: StationEvent, date: string) => RouteLocationRaw
-  dayLabel: (date: string) => string
   formatTime: (iso: string | null | undefined) => string
   formatDeadline: (iso: string) => string
 }>()
@@ -53,8 +50,8 @@ defineEmits<{
   (e: 'update:needs-action', value: boolean): void
   (e: 'create'): void
   (e: 'attendance', event: StationEvent): void
-  (e: 'register', event: StationEvent, date: string, memberId: number): void
-  (e: 'decline', event: StationEvent, date: string, memberId: number): void
+  (e: 'register', event: StationEvent, date: string, people: AnswerablePerson[]): void
+  (e: 'decline', event: StationEvent, date: string, people: AnswerablePerson[]): void
   (e: 'withdraw', regId: number): void
   (e: 'load-more'): void
 }>()
@@ -82,9 +79,6 @@ defineEmits<{
       v-if="viewMode === 'calendar'"
       :all-events="allEvents"
       :event-breaks="eventBreaks"
-      :eligible-member-ids="eligibleMembers"
-      :current-member-id="currentMemberId"
-      :managed-member-ids="managedMemberIds"
       :selected-category-id="selectedCategoryId"
       :search-query="searchQuery"
       :categories="categories"
@@ -115,11 +109,10 @@ defineEmits<{
         :get-registration-summary="getRegistrationSummary"
         :get-eligible-members="getEligibleMembers"
         :detail-route="eventDetailRoute"
-        :day-label="dayLabel"
         :format-time="formatTime"
         :format-deadline="formatDeadline"
-        @register="(event, date, memberId) => $emit('register', event, date, memberId)"
-        @decline="(event, date, memberId) => $emit('decline', event, date, memberId)"
+        @register="(event, date, people) => $emit('register', event, date, people)"
+        @decline="(event, date, people) => $emit('decline', event, date, people)"
         @withdraw="regId => $emit('withdraw', regId)"
         @load-more="$emit('load-more')"
     />

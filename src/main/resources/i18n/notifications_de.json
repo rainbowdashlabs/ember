@@ -22,7 +22,7 @@
     "status.PENDING": "Ausstehend",
     "status.ACCEPTED": "Angenommen",
     "status.DENIED": "Abgelehnt",
-    "status.DECLINED": "Abgesagt",
+    "status.DECLINED": "Abgemeldet",
     "status.WITHDRAWN": "Zurückgezogen",
     "status.NONE": "Nicht angemeldet",
     "status.ANNOUNCED": "Angekündigt",
@@ -239,6 +239,9 @@
     "notification.clusterItemIssued": "{clusterName} schickt euch {itemName}",
     "notification.clusterItemLost": "{itemName} wird bei {stationName} vermisst",
     "notification.clusterMemberRoleChanged": "Deine Rechte im Verband {clusterName} haben sich geändert",
-    "notification.clusterFieldValueChanged": "{clusterName} hat in deinem Profil {fields} geändert"
+    "notification.clusterFieldValueChanged": "{clusterName} hat in deinem Profil {fields} geändert",
+    "notification.registrationClosing.one": "{eventName}: Anmeldung schließt morgen, {memberName} hat noch nicht geantwortet",
+    "notification.registrationClosing.other": "{eventName}: Anmeldung schließt in {daysBefore} Tagen, {memberName} hat noch nicht geantwortet",
+    "notification.movementCancelled": "{inventoryName}: Bewegung von {itemName} abgebrochen - {reason}"
   }
 }

@@ -8,12 +8,45 @@ import {
     RegistrationStatus,
     type EventRegistrationEntry,
     type EventRegistrationField,
+    type RegistrationFieldValue,
+    type RegistrationStatusName,
 } from '@/api/events'
 
-/** Somebody an answer to an appointment can be given for. */
-export interface AnswerableMember {
-    id: number
+/**
+ * Somebody an appointment can be answered for, however the screen identifies them.
+ *
+ * <p>A local member is a number and a member of a partner station is a string, and the machinery
+ * that takes an answer cares about neither: it shows names and hands the key back. Keeping that open
+ * is what lets one set of controls serve both, rather than a second copy drifting away from the
+ * first.
+ */
+export interface AnswerablePerson<K extends string | number = number> {
+    key: K
     name: string
+}
+
+/**
+ * An answer somebody has given, and what taking it back refers to.
+ *
+ * @param undo what the caller needs in order to delete this answer, which is a registration id
+ *             locally and the person themselves across stations
+ */
+export interface GivenAnswer<K extends string | number = number, U = number> extends AnswerablePerson<K> {
+    status: RegistrationStatusName
+    undo: U
+    /** Who answered on this person's behalf, where somebody did. */
+    createdByName?: string | null
+}
+
+/** One person's answer to the appointment's questions, ready to be sent. */
+export interface PersonAnswer<K extends string | number = number> {
+    key: K
+    fields: RegistrationFieldValue[]
+}
+
+/** Whether an answer says somebody is not coming, which is what taking it back would undo. */
+export function isRefusal(status: RegistrationStatusName): boolean {
+    return status === RegistrationStatus.DECLINED || status === RegistrationStatus.DENIED
 }
 
 /** What is known about a member somebody answers for. */
@@ -21,26 +54,6 @@ interface ManagedMember {
     id: number
     name?: string
     email?: string
-}
-
-/**
- * The person a picker is actually pointing at.
- *
- * <p>The list of people still to answer shrinks as they answer, and the choice made before that
- * stays behind in the select. A guardian who answered for one child was then holding a choice that
- * is no longer on the list: the box went blank, the button beside it lost the name it says, and
- * pressing it would have answered a second time for somebody who had already answered.
- *
- * <p>One person left is that person, without asking: a picker with a single entry is a question
- * with one answer.
- *
- * @param chosen  what the picker holds, or null where nothing was picked
- * @param offered who is still to answer
- * @return the person to answer for, or null where the picker points at nobody
- */
-export function chosenIfStillOffered<Id>(chosen: Id | null, offered: Id[]): Id | null {
-    if (offered.length === 1) return offered[0]!
-    return chosen !== null && offered.includes(chosen) ? chosen : null
 }
 
 /**
@@ -62,18 +75,43 @@ export function answerableMembers(
     selfId: number,
     managed: ManagedMember[],
     selfLabel: string,
-): AnswerableMember[] {
+): AnswerablePerson[] {
     const ids = eligible[eventId] ?? [selfId, ...managed.map(member => member.id)]
-    const answerable: AnswerableMember[] = []
+    const answerable: AnswerablePerson[] = []
     for (const id of ids) {
         if (id === selfId) {
-            answerable.push({id, name: selfLabel})
+            answerable.push({key: id, name: selfLabel})
             continue
         }
         const member = managed.find(candidate => candidate.id === id)
-        if (member) answerable.push({id, name: member.name ?? member.email ?? `#${id}`})
+        if (member) answerable.push({key: id, name: member.name ?? member.email ?? `#${id}`})
     }
     return answerable
+}
+
+/**
+ * What each of these people has answered about one appointment on one date.
+ *
+ * <p>The station's own answers, mapped onto the shape the shared controls read. Taking one back
+ * refers to the registration row itself, which is what the server deletes.
+ */
+export function localAnswers(
+    people: AnswerablePerson[],
+    registrations: EventRegistrationEntry[],
+): GivenAnswer[] {
+    const answers: GivenAnswer[] = []
+    for (const person of people) {
+        const registration = registrations.find(entry => entry.memberId === person.key)
+        if (!registration) continue
+        answers.push({
+            key: person.key,
+            name: person.name,
+            status: registration.status as RegistrationStatusName,
+            undo: registration.id,
+            createdByName: registration.createdByName,
+        })
+    }
+    return answers
 }
 
 /** One line of the totals: the question, and what the answers to it add up to. */

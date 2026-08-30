@@ -24,13 +24,14 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import RegistrationsPanel from './RegistrationsPanel.vue'
 import FederatedRegistrationsPanel from './FederatedRegistrationsPanel.vue'
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
-import EventAnswerDialog, {type PersonAnswer} from '../eventshared/EventAnswerDialog.vue'
+import EventAnswerDialog from '../eventshared/EventAnswerDialog.vue'
+import type {AnswerablePerson, PersonAnswer} from '@/util/eventAnswers'
 
 const props = defineProps<{
   event: StationEvent
   eventId: number
   currentMemberId: number
-  registrableMembers: { id: number; name: string }[]
+  registrableMembers: AnswerablePerson[]
   hasManagedMembers: boolean
   nextOccurrenceDate: string | null
 }>()
@@ -205,10 +206,7 @@ const showAnswerDialog = ref(false)
  * Everyone this reader answers for. Offered as one dialog only when there is more than one of them: a
  * member answering for themselves is a button, and turning that into a dialog would be a step for nothing.
  */
-const household = computed(() => props.registrableMembers.map(member => ({
-  memberId: member.id,
-  name: member.name,
-})))
+const household = computed(() => props.registrableMembers)
 
 /**
  * Signs the household up. One of them acts at once, and asks the event's questions on the way if it
@@ -216,18 +214,18 @@ const household = computed(() => props.registrableMembers.map(member => ({
  */
 function answerForHousehold() {
   if (household.value.length === 1) {
-    return registerMember(household.value[0]!.memberId)
+    return registerMember(household.value[0]!.key)
   }
   showAnswerDialog.value = true
 }
 
 /** Everyone in the household who has a place, which is who there is something to give up for. */
 const withPlace = computed(() =>
-    household.value.filter(person => getRegistrationForMember(person.memberId) !== undefined))
+    household.value.filter(person => getRegistrationForMember(person.key) !== undefined))
 
 /** Everyone still to answer, which is who the sign-up button is for. */
 const withoutPlace = computed(() =>
-    household.value.filter(person => getRegistrationForMember(person.memberId) === undefined))
+    household.value.filter(person => getRegistrationForMember(person.key) === undefined))
 
 const answerLabel = computed(() =>
     withoutPlace.value.length > 1 ? t('events.answerForAll') : t('eventsUpcoming.register'))
@@ -238,14 +236,14 @@ const withdrawLabel = computed(() =>
 /** Gives up every place the household holds, which is what the one button beside them offers. */
 async function withdrawHousehold() {
   for (const person of withPlace.value) {
-    await undoAnswerFor(person.memberId)
+    await undoAnswerFor(person.key)
   }
 }
 
 async function confirmHouseholdAnswer(answers: PersonAnswer[]) {
   showAnswerDialog.value = false
   for (const answer of answers) {
-    await runRegistration('register', answer.memberId, answer.fields)
+    await runRegistration('register', answer.key, answer.fields)
   }
 }
 
@@ -305,15 +303,15 @@ onMounted(loadRegistrations)
           <font-awesome-icon :icon="['fas', 'rotate-left']" class="mr-1"/>{{ withdrawLabel }}
         </SecondaryButton>
       </div>
-      <div v-for="member in registrableMembers" :key="member.id" class="flex items-center gap-3 flex-wrap">
+      <div v-for="member in registrableMembers" :key="member.key" class="flex items-center gap-3 flex-wrap">
         <span v-if="hasManagedMembers" class="text-sm font-medium min-w-24">{{ member.name }}</span>
         <component
-            v-if="getRegistrationForMember(member.id)"
-            :data-testid="`my-answer-${member.id}`"
-            :is="getRegistrationForMember(member.id)!.status === RegistrationStatus.ACCEPTED ? SuccessBadge : getRegistrationForMember(member.id)!.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge">
-          {{ statusLabel(getRegistrationForMember(member.id)!.status) }}
+            v-if="getRegistrationForMember(member.key)"
+            :data-testid="`my-answer-${member.key}`"
+            :is="getRegistrationForMember(member.key)!.status === RegistrationStatus.ACCEPTED ? SuccessBadge : getRegistrationForMember(member.key)!.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge">
+          {{ statusLabel(getRegistrationForMember(member.key)!.status) }}
         </component>
-        <SecondaryBadge v-else :data-testid="`my-answer-${member.id}`">{{ t('eventDetail.noAnswerYet') }}</SecondaryBadge>
+        <SecondaryBadge v-else :data-testid="`my-answer-${member.key}`">{{ t('eventDetail.noAnswerYet') }}</SecondaryBadge>
       </div>
     </NeutralContainer>
 

@@ -9,8 +9,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import InsightsHourlyChart from '@/views/stationview/manage/manageStationInsightsView/InsightsHourlyChart.vue'
-import DimensionBreakdown from '@/views/stationview/manage/manageStationInsightsView/DimensionBreakdown.vue'
+import InsightsHourlyChart from '@/views/stationview/monitoring/stationInsightsView/InsightsHourlyChart.vue'
+import DimensionBreakdown from '@/views/stationview/monitoring/stationInsightsView/DimensionBreakdown.vue'
 import type {HourlyTotal, PageDetailResponse, PageLeaderboardEntry} from '@/api/insights'
 
 defineProps<{

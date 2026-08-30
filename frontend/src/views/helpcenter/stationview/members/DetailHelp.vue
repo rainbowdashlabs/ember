@@ -128,6 +128,11 @@ const tabs = [
       <p>{{ t('helpCenter.membersDetail.inventoryText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.membersDetail.missingTitle')">
+      <p>{{ t('helpCenter.membersDetail.missingText') }}</p>
+      <p>{{ t('helpCenter.membersDetail.missingHandOutText') }}</p>
+    </HelpSection>
+
     <!-- Dummy: Inventory items -->
     <HelpSection :title="t('helpCenter.membersDetail.inventoryExampleTitle')">
       <NeutralContainer class="space-y-3">

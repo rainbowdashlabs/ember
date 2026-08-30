@@ -63,6 +63,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.knowledgebase.service.TextCompressionPolicy;
+import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.media.MediaTestSupport;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
@@ -445,6 +446,19 @@ class DemoServiceTest extends RepositoryTestBase {
         when(demoInstance.dev()).thenReturn(true);
         var twoFactorSeeder = new DemoTwoFactorSeeder(
                 new TwoFactorRepository(), new TotpService(new TwoFactorSettings(), demoInstance));
+        var videoSeeder = new DemoVideoSeeder(
+                attendanceRepo,
+                inventoryRepo,
+                exchangeService,
+                eventServices.crud(),
+                stationMailProviderRepo,
+                lostAndFoundService,
+                new LostAndFoundImageService(imageVariantWriter, stationRepo),
+                formRepo,
+                quizTestRepo,
+                new QuizTestService(quizTestRepo, new QuizQuestionSelector(quizCatalogRepo, quizTestRepo)),
+                accountRepo,
+                stationMemberRepo);
 
         // -- DemoService --
         demoService = new DemoService(
@@ -479,7 +493,8 @@ class DemoServiceTest extends RepositoryTestBase {
                         notificationSeeder,
                         setupSeeder,
                         freshStationSeeder,
-                        twoFactorSeeder),
+                        twoFactorSeeder,
+                        videoSeeder),
                 stationRepo,
                 clusterRepo,
                 new StorageBackendResolver(new LocalStorageBackend()));

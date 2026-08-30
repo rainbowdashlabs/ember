@@ -9,7 +9,6 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
@@ -21,6 +20,7 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepositor
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventTemplateRestrictionService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import io.javalin.http.BadRequestResponse;
@@ -139,15 +139,11 @@ public class EventTemplateRoutes implements Routes {
         ctx.json(new TemplateDetailResponse(template, fields, restrictionsOf(id), reminderDays, registrationFields));
     }
 
-    /** Who the template hands its appointments to, as the editor and the appointment both read it. */
+    /** What the template hands its appointments, as the editor and the appointment both read it. */
     private TemplateRestrictions restrictionsOf(int templateId) {
-        var restrictions = restrictionService.findRestrictions(templateId);
         return new TemplateRestrictions(
-                restrictions.userTypes(),
-                restrictions.groupIds(),
-                restrictions.tagIds(),
-                restrictions.memberIds(),
-                restrictions.mode());
+                RestrictionAudience.of(restrictionService.findRestrictions(templateId)),
+                RestrictionAudience.of(restrictionService.findViewRestrictions(templateId)));
     }
 
     @OpenApi(
@@ -262,12 +258,19 @@ public class EventTemplateRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var req = ctx.bodyAsClass(TemplateRestrictions.class);
-        restrictionService.setRestrictions(
-                id,
-                new RestrictionSelection(req.userTypes(), req.groupIds(), req.tagIds(), req.memberIds(), req.mode()));
-        if (req.mode() != null) {
-            restrictionService.updateRestrictionMode(id, req.mode());
+
+        var register = req.register() != null ? req.register().toSelection() : RestrictionSelection.empty();
+        restrictionService.setRestrictions(id, register);
+        if (register.mode() != null) {
+            restrictionService.updateRestrictionMode(id, register.mode());
         }
+
+        var view = req.view() != null ? req.view().toSelection() : RestrictionSelection.empty();
+        restrictionService.setViewRestrictions(id, view);
+        if (view.mode() != null) {
+            restrictionService.updateViewRestrictionMode(id, view.mode());
+        }
+
         ctx.json(restrictionsOf(id));
     }
 
@@ -308,17 +311,15 @@ public class EventTemplateRoutes implements Routes {
             List<EventTemplateRegistrationField> registrationFields) {}
 
     /**
-     * Who a template says its appointments are for, in the shape the audience editor speaks.
+     * Both audiences a template hands to the appointments written from it.
      *
-     * <p>The same four kinds an appointment names, because applying the template hands exactly this
-     * over to the appointment being written.
+     * <p>The same pair an appointment carries, because applying the template hands exactly this over
+     * to the appointment being written.
+     *
+     * @param register who those appointments are for
+     * @param view     who may know those appointments exist
      */
-    public record TemplateRestrictions(
-            List<StationUserType> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds,
-            List<Integer> memberIds,
-            RestrictionMode mode) {}
+    public record TemplateRestrictions(RestrictionAudience register, RestrictionAudience view) {}
 
     public record SetFieldsRequest(List<EventTemplateFieldData> fields) {}
 

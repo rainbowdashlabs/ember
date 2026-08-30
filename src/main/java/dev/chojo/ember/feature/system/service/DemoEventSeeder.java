@@ -97,6 +97,49 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         seedTemplates(station.stationId());
     }
 
+    /**
+     * Who the drills of the youth fire brigade are for: the young people, the team running them and
+     * whoever manages the station. A guardian belongs to the evening put on for guardians, not to the
+     * Saturday drill, and a demo that restricts nothing never shows that the setting exists.
+     */
+    private static final StationUserType[] JUGENDFEUERWEHR = {
+        StationUserType.MEMBER, StationUserType.TEAM, StationUserType.MANAGER
+    };
+
+    /**
+     * Who runs the station: the ones whose own meetings nobody else attends, and mostly need not know
+     * about either.
+     */
+    private static final StationUserType[] BETREUER = {StationUserType.TEAM, StationUserType.MANAGER};
+
+    /**
+     * Narrows who may sign up for one appointment. Everybody else keeps seeing it in the calendar and
+     * simply cannot answer it, which is the common case and the one a demo should mostly show.
+     *
+     * @param eventId   the appointment
+     * @param userTypes who may sign up for it
+     */
+    private void restrictToUserTypes(int eventId, StationUserType... userTypes) {
+        restrictionService.setRestrictions(eventId, audienceOf(userTypes));
+    }
+
+    /**
+     * Narrows who may know one appointment exists at all. For everybody else it is absent from the
+     * calendar, the search and every notification, and it is the only kind that carries the lock.
+     *
+     * <p>The demo needs one, or nothing in it ever shows that the setting is there.
+     *
+     * @param eventId   the appointment
+     * @param userTypes who may see it
+     */
+    private void hideFromEveryoneBut(int eventId, StationUserType... userTypes) {
+        restrictionService.setViewRestrictions(eventId, audienceOf(userTypes));
+    }
+
+    private static RestrictionSelection audienceOf(StationUserType... userTypes) {
+        return new RestrictionSelection(List.of(userTypes), List.of(), List.of(), List.of(), RestrictionMode.OR);
+    }
+
     public SeedResult seed(
             int stationId,
             int groupAnfaengerId,
@@ -200,7 +243,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         crudService.setRepeatEnd(grundlehrgang.id(), null, 8);
 
         // Monthly: first Saturday = Elternabend
-        crudService.create(
+        var elternabend = crudService.create(
                 stationId,
                 "Elternabend",
                 "Monatliches Treffen mit den Eltern",
@@ -209,7 +252,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 satStart,
                 satEnd,
                 null,
-                false,
+                true,
                 null,
                 false,
                 catVeranstaltung.id(),
@@ -217,9 +260,12 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 null,
                 null,
                 null);
+        restrictToUserTypes(elternabend.id(), StationUserType.GUARDIAN);
+        restrictToUserTypes(evUebung.id(), JUGENDFEUERWEHR);
+        restrictToUserTypes(evGesamt.id(), JUGENDFEUERWEHR);
+        restrictToUserTypes(grundlehrgang.id(), JUGENDFEUERWEHR);
 
-        // Quarterly: first Saturday = Dienstbesprechung
-        crudService.create(
+        var dienstbesprechung = crudService.create(
                 stationId,
                 "Dienstbesprechung",
                 "Vierteljährliche Besprechung aller Betreuer",
@@ -236,6 +282,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 null,
                 null,
                 null);
+        restrictToUserTypes(dienstbesprechung.id(), BETREUER);
+        hideFromEveryoneBut(dienstbesprechung.id(), BETREUER);
 
         // Yearly: Jahreshauptversammlung on Sep 20
         Instant jhvStart =
@@ -286,6 +334,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 null,
                 null,
                 null);
+        restrictToUserTypes(theorieabend.id(), JUGENDFEUERWEHR);
         LocalDate todayDate = LocalDate.now();
         for (int i = 0; i < 5 && i < anfaengerMembers.size(); i++) {
             registrationRepository.create(
@@ -365,6 +414,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 null,
                 null,
                 null);
+        restrictToUserTypes(kreisWettbewerb.id(), JUGENDFEUERWEHR);
 
         // Add some registrations
         LocalDate tagDate = LocalDate.now().plusMonths(1).withDayOfMonth(15);

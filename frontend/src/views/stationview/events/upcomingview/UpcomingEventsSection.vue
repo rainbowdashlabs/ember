@@ -10,6 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import UpcomingEventItem from './UpcomingEventItem.vue'
+import type {AnswerablePerson} from '@/util/eventAnswers'
 import type {
   EventCategory,
   EventField,
@@ -29,16 +30,15 @@ defineProps<{
   loadingMore: boolean
   multiDayEndDate: (event: StationEvent, startDate: string) => string | null
   getRegistrationSummary: (eventId: number, date: string) => { accepted: number; pending: number; declined: number; total: number }
-  getEligibleMembers: (eventId: number) => { id: number; name: string }[]
+  getEligibleMembers: (eventId: number) => AnswerablePerson[]
   detailRoute: (event: StationEvent, date: string) => RouteLocationRaw
-  dayLabel: (date: string) => string
   formatTime: (iso?: string) => string
   formatDeadline: (iso: string) => string
 }>()
 
 const emit = defineEmits<{
-  register: [event: StationEvent, date: string, memberId: number]
-  decline: [event: StationEvent, date: string, memberId: number]
+  register: [event: StationEvent, date: string, people: AnswerablePerson[]]
+  decline: [event: StationEvent, date: string, people: AnswerablePerson[]]
   withdraw: [registrationId: number]
   loadMore: []
 }>()
@@ -64,8 +64,7 @@ const {t} = useI18n()
           :registrations="myRegistrations.filter(r => r.eventId === item.event.id && r.eventDate === item.date)"
           :has-managed-members="managedMembersCount > 0"
           :registering="registering"
-          :day-label="dayLabel"
-          :format-time="formatTime"
+            :format-time="formatTime"
           :format-deadline="formatDeadline"
           @register="emit('register', item.event, item.date, $event)"
           @decline="emit('decline', item.event, item.date, $event)"

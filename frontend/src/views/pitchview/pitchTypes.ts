@@ -4,9 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {AttendanceEntry} from '@/api/attendance'
-import type {InventoryItem, InventorySize} from '@/api/inventory'
+import type {InventoryItem, InventorySize, RequiredInventoryItem} from '@/api/inventory'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
-import type {CheckResult, RequiredInventoryItem} from '@/api/inventoryCheck'
+import type {CheckResult} from '@/api/inventoryCheck'
 import type {CheckEntry} from '@/composables/useMemberCheck'
 import type {EvaluationResponse, TestProtocolItem, TestProtocolSection} from '@/api/protocol'
 import type {Form, FormQuestion, FormQuestionAnalytics} from '@/api/forms'
@@ -141,6 +141,7 @@ export interface PitchInventoryCheck {
     itemNotes: Map<number, string>
     procurementCreated: Set<number>
     slotsNotInPossession: Set<string>
+    slotProcurements: Set<string>
     slotSelections: Map<string, string>
     sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
     itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string

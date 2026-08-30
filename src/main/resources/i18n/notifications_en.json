@@ -239,6 +239,9 @@
     "notification.clusterItemIssued": "{clusterName} is sending you {itemName}",
     "notification.clusterItemLost": "{itemName} is reported missing at {stationName}",
     "notification.clusterMemberRoleChanged": "What you may do at {clusterName} has changed",
-    "notification.clusterFieldValueChanged": "{clusterName} changed {fields} in your profile"
+    "notification.clusterFieldValueChanged": "{clusterName} changed {fields} in your profile",
+    "notification.registrationClosing.one": "{eventName}: registration closes tomorrow, {memberName} has not answered yet",
+    "notification.registrationClosing.other": "{eventName}: registration closes in {daysBefore} days, {memberName} has not answered yet",
+    "notification.movementCancelled": "{inventoryName}: movement of {itemName} called off - {reason}"
   }
 }

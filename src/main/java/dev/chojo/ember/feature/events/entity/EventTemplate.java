@@ -21,6 +21,7 @@ public record EventTemplate(
         String registrationDeadlineOffset,
         Boolean requiresConfirmation,
         RestrictionMode restrictionMode,
+        RestrictionMode viewRestrictionMode,
         Integer attendanceTemplateId,
         Integer registrationLimit) {
 
@@ -37,6 +38,7 @@ public record EventTemplate(
                 row.getString("registration_deadline_offset"),
                 row.getObject("requires_confirmation", Boolean.class),
                 row.getEnum("restriction_mode", RestrictionMode.class),
+                row.getEnum("view_restriction_mode", RestrictionMode.class),
                 row.getObject("attendance_template_id", Integer.class),
                 row.getObject("registration_limit", Integer.class));
     }

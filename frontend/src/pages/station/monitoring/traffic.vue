@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StationInsightsHelp from '~/views/helpcenter/stationview/manage/StationInsightsHelp.vue'
+import StationTrafficView from '~/views/stationview/monitoring/StationTrafficView.vue'
 
 definePageMeta({
-  layout: 'helpcenter',
-  name: 'help-station-insights',
+  layout: 'station',
+  name: 'station-traffic',
 })
 </script>
 
 <template>
-  <StationInsightsHelp/>
+  <StationTrafficView />
 </template>

@@ -6,8 +6,10 @@
 package dev.chojo.ember.feature.feed.repository;
 
 import dev.chojo.ember.feature.feed.entity.FeedToken;
+import dev.chojo.ember.feature.feed.entity.FeedUse;
 import jakarta.inject.Singleton;
 
+import java.util.List;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -24,6 +26,27 @@ public class FeedTokenRepository {
                 .single(call().bind("member_id", memberId))
                 .map(FeedToken.map())
                 .first();
+    }
+
+    /**
+     * Every standing subscription at one station, newest first.
+     *
+     * <p>The token is left out of the projection rather than dropped afterwards, so it cannot reach
+     * a response by somebody adding a field to the record it maps into.
+     *
+     * @param stationId the station whose members are asked about
+     * @return one row per member who has set a subscription up
+     */
+    public List<FeedUse> findUseByStation(int stationId) {
+        return query("""
+                        SELECT t.member_id, t.created_at, t.ical_polled_at, t.notification_polled_at
+                        FROM user_feed_token t
+                        JOIN station_member sm ON sm.id = t.member_id
+                        WHERE sm.station_id = :station_id
+                        ORDER BY t.created_at DESC;""")
+                .single(call().bind("station_id", stationId))
+                .map(FeedUse.map())
+                .all();
     }
 
     public Optional<FeedToken> findByToken(String token) {

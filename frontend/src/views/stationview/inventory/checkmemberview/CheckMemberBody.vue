@@ -7,12 +7,11 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import type { InventoryItem } from '@/api/inventory'
-import type { CheckResult, MemberCheckState, RequiredInventoryItem } from '@/api/inventoryCheck'
+import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
+import type { CheckResult, MemberCheckState } from '@/api/inventoryCheck'
 import CheckMemberHeader from './CheckMemberHeader.vue'
 import CheckMemberSubmitBar from './CheckMemberSubmitBar.vue'
 import RapidCheckMode from './RapidCheckMode.vue'
-import type {RapidExchangeKind} from './RapidExchangeModal.vue'
 import type { CheckEntry } from '@/composables/useMemberCheck'
 import InventorySection from './InventorySection.vue'
 import { formatDateTime } from '@/util/format'
@@ -27,6 +26,7 @@ defineProps<{
   itemNotes: Map<number, string>
   procurementCreated: Set<number>
   slotsNotInPossession: Set<string>
+  slotProcurements: Set<string>
   slotSelections: Map<string, string>
   assignedForInventory: (inventoryId: number) => InventoryItem[]
   availableForInventory: (inventoryId: number) => InventoryItem[]
@@ -41,7 +41,8 @@ defineEmits<{
   cancel: []
   submit: []
   rapidSetResult: [result: CheckResult]
-  rapidExchange: [kind: RapidExchangeKind, entry: CheckEntry]
+  rapidExchange: [entry: CheckEntry]
+  rapidCreateProcurement: [req: RequiredInventoryItem, slotIndex: number, sizeId: string]
   rapidCorrect: [entry: CheckEntry]
   rapidMarkNotInPossession: []
   rapidAssign: [itemIdStr: string]
@@ -55,6 +56,7 @@ defineEmits<{
   toggleNotInPossession: [inventoryId: number, slotIndex: number]
   assignToSlot: [inventoryId: number, slotIndex: number]
   createAndAssignToSlot: [req: RequiredInventoryItem, slotIndex: number]
+  createProcurementForSlot: [req: RequiredInventoryItem, slotIndex: number]
   updateSelection: [key: string, value: string]
 }>()
 
@@ -92,7 +94,8 @@ defineExpose({ getCurrentRapidEntry })
     :item-label="itemLabel"
     :size-label="sizeLabel"
     @set-result="(r) => $emit('rapidSetResult', r)"
-    @exchange="(kind, entry) => $emit('rapidExchange', kind, entry)"
+    @exchange="entry => $emit('rapidExchange', entry)"
+    @create-procurement="(req, slotIndex, sizeId) => $emit('rapidCreateProcurement', req, slotIndex, sizeId)"
     @correct="(entry) => $emit('rapidCorrect', entry)"
     @mark-not-in-possession="$emit('rapidMarkNotInPossession')"
     @assign="(id) => $emit('rapidAssign', id)"
@@ -112,6 +115,7 @@ defineExpose({ getCurrentRapidEntry })
       :item-notes="itemNotes"
       :procurement-created="procurementCreated"
       :slots-not-in-possession="slotsNotInPossession"
+      :slot-procurements="slotProcurements"
       :slot-selections="slotSelections"
       :size-label="sizeLabel"
       :item-label="itemLabel"
@@ -123,6 +127,7 @@ defineExpose({ getCurrentRapidEntry })
       @toggle-not-in-possession="(invId, slotIdx) => $emit('toggleNotInPossession', invId, slotIdx)"
       @assign-to-slot="(invId, slotIdx) => $emit('assignToSlot', invId, slotIdx)"
       @create-and-assign-to-slot="(r, slotIdx) => $emit('createAndAssignToSlot', r, slotIdx)"
+      @create-procurement-for-slot="(r, slotIdx) => $emit('createProcurementForSlot', r, slotIdx)"
       @update-selection="(key, val) => $emit('updateSelection', key, val)"
     />
   </div>

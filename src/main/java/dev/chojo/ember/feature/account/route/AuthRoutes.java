@@ -85,6 +85,7 @@ public class AuthRoutes implements Routes {
         routes.post(prefix + "/auth/resend-verification", this::resendVerification);
         routes.post(prefix + "/auth/set-password", this::setPassword);
         routes.post(prefix + "/auth/forgot-password", this::forgotPassword);
+        routes.post(prefix + "/auth/password-link", this::passwordLinkStatus);
         routes.post(prefix + "/auth/login", this::login);
         if (demo.dev() || demo.enabled()) {
             routes.post(prefix + "/demo/login", this::demoLogin);
@@ -221,7 +222,24 @@ public class AuthRoutes implements Routes {
             case PASSWORD_TOO_SHORT -> throw new BadRequestResponse("setPassword.passwordTooShort");
             case PASSWORD_BREACHED -> throw new BadRequestResponse("setPassword.passwordBreached");
             case TOKEN_INVALID -> throw new BadRequestResponse("setPassword.tokenInvalid");
+            case TOKEN_EXPIRED -> throw new BadRequestResponse("setPassword.tokenExpired");
         }
+    }
+
+    @OpenApi(
+            path = "/api/v1/auth/password-link",
+            methods = HttpMethod.POST,
+            summary = "Ask what a password link is worth",
+            description =
+                    "Reports whether a setup or reset link is still good, has run out, or is unknown, and which of the two it is. Spends nothing: the page asks before it shows a form nobody could submit. The token travels in the body rather than the path so it stays out of logs.",
+            tags = {"Auth"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TokenRequest.class)),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = AuthService.TokenStatus.class)))
+    private void passwordLinkStatus(Context ctx) {
+        enforceLimit(rateLimiter.trySetPassword(clientIp(ctx)));
+        var request = ctx.bodyAsClass(TokenRequest.class);
+        ctx.json(authService.checkPasswordToken(request.token()));
     }
 
     @OpenApi(

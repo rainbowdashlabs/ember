@@ -57,9 +57,27 @@ function walkable(task: OnboardingTaskView): boolean {
   return flowFor(task.key).length > 0
 }
 
+/**
+ * Who a task is about, by name.
+ *
+ * <p>A guardian reads their tasks about a particular child, and "dein Kind" is the wrong words for
+ * somebody looking after two. Where a task is about nobody in particular the general wording stands.
+ */
+function subjectName(task: OnboardingTaskView): string {
+  return task.subject ?? t('onboarding.child')
+}
+
+/**
+ * The heading of a task. Somebody it is about is named in the heading itself where the wording has
+ * room for them, and appended in brackets where it has not.
+ */
 function title(task: OnboardingTaskView): string {
-  const text = t(`onboarding.tasks.${task.key}.title`)
-  return task.subject ? `${text} (${task.subject})` : text
+  const text = t(`onboarding.tasks.${task.key}.title`, {name: subjectName(task)})
+  return task.subject && !text.includes(task.subject) ? `${text} (${task.subject})` : text
+}
+
+function body(task: OnboardingTaskView): string {
+  return t(`onboarding.tasks.${task.key}.body`, {name: subjectName(task)})
 }
 
 /**
@@ -107,7 +125,7 @@ onMounted(() => load(props.level))
       <li v-for="task in open" :key="task.id" :data-testid="`onboarding-task-${task.id}`"
           class="space-y-1 border-t border-(--border) pt-3 first:border-0 first:pt-0">
         <div class="font-medium">{{ title(task) }}</div>
-        <MutedText tag="p" size="sm">{{ t(`onboarding.tasks.${task.key}.body`) }}</MutedText>
+        <MutedText tag="p" size="sm">{{ body(task) }}</MutedText>
         <div class="flex flex-wrap items-center gap-2 pt-1">
           <PrimaryButton v-if="walkable(task)" class="text-xs" @click="start(level, task)">
             {{ t('onboarding.card.begin') }}

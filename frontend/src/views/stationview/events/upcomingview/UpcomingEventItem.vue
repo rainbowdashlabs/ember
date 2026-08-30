@@ -14,10 +14,12 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
+import EventHeadline from '../eventshared/EventHeadline.vue'
 import EventFieldValue from '../eventshared/EventFieldValue.vue'
 import EventRegistrationActions from '../eventshared/EventRegistrationActions.vue'
 import type {EventCategory, EventField, EventRegistrationEntry, StationEvent} from '@/api/events'
 import {markdownSnippet} from '@/util/markdown'
+import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
 
 const props = defineProps<{
   event: StationEvent
@@ -28,18 +30,19 @@ const props = defineProps<{
   overviewFields: EventField[]
   registrationSummary: { accepted: number; pending: number; declined: number; total: number }
   detailRoute: RouteLocationRaw
-  eligibleMembers: { id: number; name: string }[]
+  eligibleMembers: AnswerablePerson[]
   registrations: EventRegistrationEntry[]
   hasManagedMembers: boolean
   registering: boolean
-  dayLabel: (date: string) => string
   formatTime: (iso?: string) => string
   formatDeadline: (iso: string) => string
 }>()
 
+const answers = computed(() => localAnswers(props.eligibleMembers, props.registrations))
+
 const emit = defineEmits<{
-  register: [memberId: number]
-  decline: [memberId: number]
+  register: [people: AnswerablePerson[]]
+  decline: [people: AnswerablePerson[]]
   withdraw: [registrationId: number]
 }>()
 
@@ -55,20 +58,18 @@ const containerClass = computed(() => [
   <NeutralContainer data-testid="upcoming-event" :data-event="event.id" :data-date="date" :class="containerClass">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
-        <span v-if="endDate" :title="t('eventsUpcoming.multiDay')" class="mr-1 inline-block">
-          <MutedIcon :icon="['fas', 'calendar-days']"/>
-        </span>
-        <router-link :to="detailRoute" class="font-medium text-primary hover:underline">{{ event.name }}</router-link>
-        <ColorBadge v-if="category" :color="category.color" class="ml-2" data-testid="upcoming-event-category">
-          {{ category.name }}
-        </ColorBadge>
-        <MutedIcon v-if="event.restricted" :icon="['fas', 'lock']" class="ml-1"/>
-        <MutedText size="sm" class="ml-2">
-          <template v-if="endDate">{{ dayLabel(date) }}, {{ date }} – {{ dayLabel(endDate) }}, {{ endDate }}</template>
-          <template v-else>{{ dayLabel(date) }}, {{ date }}</template>
-        </MutedText>
-        <MutedText class="ml-2">{{ formatTime(event.startTime) }} – {{ formatTime(event.endTime) }}</MutedText>
-        <MutedText v-if="event.requiresRegistration && event.registrationDeadline" class="ml-2 text-xs text-(--text-muted)">({{ t('eventsUpcoming.deadline') }}: {{ formatDeadline(event.registrationDeadline) }})</MutedText>
+        <EventHeadline
+            :name="event.name" :to="detailRoute" :date="date" :end-date="endDate"
+            :start-time="event.startTime" :end-time="event.endTime" :format-time="formatTime">
+          <ColorBadge v-if="category" :color="category.color" data-testid="upcoming-event-category">
+            {{ category.name }}
+          </ColorBadge>
+          <MutedIcon v-if="event.restricted" :icon="['fas', 'lock']"/>
+          <InfoBadge v-if="event.requiresRegistration" data-testid="upcoming-event-registration">
+            {{ t('eventsUpcoming.registrationRequired') }}
+          </InfoBadge>
+          <MutedText v-if="event.requiresRegistration && event.registrationDeadline" class="text-xs text-(--text-muted)">({{ t('eventsUpcoming.deadline') }}: {{ formatDeadline(event.registrationDeadline) }})</MutedText>
+        </EventHeadline>
         <p v-if="event.description" class="text-sm text-(--text-muted) mt-0.5">
           {{ markdownSnippet(event.description) }}
         </p>
@@ -83,8 +84,8 @@ const containerClass = computed(() => [
       </div>
     </div>
     <EventRegistrationActions
-        :eligible-members="eligibleMembers"
-        :registrations="registrations"
+        :people="eligibleMembers"
+        :answers="answers"
         :requires-registration="!!event.requiresRegistration"
         :registration-deadline="event.registrationDeadline"
         :has-managed-members="hasManagedMembers"

@@ -216,7 +216,7 @@ public class AuthService {
                 accountId,
                 token,
                 TokenType.SET_PASSWORD,
-                Instant.now().plus(authConfig.passwordTokenHours(), ChronoUnit.HOURS));
+                Instant.now().plus(authConfig.setupTokenDays(), ChronoUnit.DAYS));
         String locale = mailLocaleService.forAccount(accountId);
         for (var recipient : recipients) {
             emailService.sendPasswordSetupEmail(recipient.email(), recipient.name(), token, locale);
@@ -273,17 +273,17 @@ public class AuthService {
 
         AccountToken accountToken = tokenOpt.get();
         TokenType type = accountToken.tokenType();
-        if (accountToken.isExpired()
-                || (type != TokenType.SET_PASSWORD
-                        && type != TokenType.RESET_PASSWORD
-                        && type != TokenType.FORCE_PASSWORD_CHANGE)) {
+        boolean setsAPassword = type == TokenType.SET_PASSWORD
+                || type == TokenType.RESET_PASSWORD
+                || type == TokenType.FORCE_PASSWORD_CHANGE;
+        if (!setsAPassword || accountToken.isExpired()) {
             log.info(
                     "[set-password] rejected: token type {} expired={} account={}",
                     type,
                     accountToken.isExpired(),
                     accountToken.accountId());
             accountRepository.deleteToken(token);
-            return SetPasswordOutcome.TOKEN_INVALID;
+            return setsAPassword ? SetPasswordOutcome.TOKEN_EXPIRED : SetPasswordOutcome.TOKEN_INVALID;
         }
 
         String hash = passwordHasher.hash(password);
@@ -321,9 +321,68 @@ public class AuthService {
         PASSWORD_TOO_SHORT,
         /** Submitted password is on the Have-I-Been-Pwned breach corpus. */
         PASSWORD_BREACHED,
-        /** Token does not exist, has expired, has the wrong type, or its account is gone. */
-        TOKEN_INVALID
+        /** Token does not exist, has the wrong type, or its account is gone. */
+        TOKEN_INVALID,
+        /**
+         * The link was real and its time is up. Told apart from an unknown one because the two need
+         * different words: an expired invitation is somebody's to reissue, an unknown link is a
+         * typing mistake or a link that has already been used.
+         */
+        TOKEN_EXPIRED
     }
+
+    /** What a link still in somebody's mailbox is worth, without spending it. */
+    public enum TokenStanding {
+        /** Good, and the form may be shown. */
+        VALID,
+        /** Real, and its time is up. */
+        EXPIRED,
+        /** Not a link this instance issued, or one already spent. */
+        UNKNOWN
+    }
+
+    /** Which kind of link it is, because what to do about an expired one differs. */
+    public enum TokenPurpose {
+        /** Setting up an account somebody was given. Only whoever invited them can send another. */
+        SETUP,
+        /** Getting back into an account. The holder can ask for another themselves. */
+        RESET,
+        /** Anything else, or nothing at all. */
+        OTHER
+    }
+
+    /**
+     * What a password link is worth right now, without using it up.
+     *
+     * <p>So the page can explain itself before anybody types a password into a form that was never
+     * going to be accepted. Nothing is deleted here: a reader who reloads sees the same answer, and
+     * an expired link is cleared when it is actually spent.
+     *
+     * @param token the link's token
+     * @return how it stands and what it was for
+     */
+    public TokenStatus checkPasswordToken(String token) {
+        if (token == null || token.isBlank()) return new TokenStatus(TokenStanding.UNKNOWN, TokenPurpose.OTHER);
+        var found = accountRepository.findToken(token);
+        if (found.isEmpty()) return new TokenStatus(TokenStanding.UNKNOWN, TokenPurpose.OTHER);
+        var accountToken = found.get();
+        TokenPurpose purpose =
+                switch (accountToken.tokenType()) {
+                    case SET_PASSWORD -> TokenPurpose.SETUP;
+                    case RESET_PASSWORD, FORCE_PASSWORD_CHANGE -> TokenPurpose.RESET;
+                    default -> TokenPurpose.OTHER;
+                };
+        if (purpose == TokenPurpose.OTHER) return new TokenStatus(TokenStanding.UNKNOWN, TokenPurpose.OTHER);
+        return new TokenStatus(accountToken.isExpired() ? TokenStanding.EXPIRED : TokenStanding.VALID, purpose);
+    }
+
+    /**
+     * How a password link stands.
+     *
+     * @param standing whether it may still be used
+     * @param purpose  what it was issued for
+     */
+    public record TokenStatus(TokenStanding standing, TokenPurpose purpose) {}
 
     /**
      * Sets the password of an account on behalf of somebody entitled to do so, without the detour

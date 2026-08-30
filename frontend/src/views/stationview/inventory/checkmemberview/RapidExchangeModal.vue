@@ -16,16 +16,19 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {InventorySize} from '@/api/inventory'
 
-/** Which of the two reasons the check offered, which is what the form arrives filled in for. */
-export type RapidExchangeKind = 'size' | 'damaged'
+/** Why a piece is being exchanged. Anything that is neither of the two common ones is said in words. */
+type ExchangeReason = 'tooSmall' | 'damaged' | 'other'
 
 /**
  * The exchange a check raises on the spot, filled in from what the check already knows.
  *
  * <p>Somebody walking a check has the member in front of them and the piece in their hands. Sending
  * them to the exchange screen to type in what they are looking at is how a check that found something
- * ends with nothing recorded. The two reasons it offers are the two that come up: it does not fit, and
- * it is damaged.
+ * ends with nothing recorded.
+ *
+ * <p>The reason is asked here rather than by having a button per reason outside. Two buttons covered
+ * the two common cases and left no room for the third, and every reason added would have been another
+ * button on a screen meant to hold one decision.
  *
  * <p>Everything stays editable. The size one size up is a guess from the order the inventory keeps its
  * sizes in, and a guess that cannot be corrected is worse than no guess.
@@ -35,7 +38,6 @@ const props = defineProps<{
   /** The sizes the inventory keeps, smallest first. */
   sizes: InventorySize[]
   currentSizeId?: number | null
-  kind: RapidExchangeKind
   busy?: boolean
   error?: string
 }>()
@@ -48,8 +50,9 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
+const reasonKind = ref<ExchangeReason>('tooSmall')
+const ownReason = ref('')
 const newSizeId = ref('')
-const reason = ref('')
 
 /**
  * One size up, read off the order the inventory keeps.
@@ -65,34 +68,80 @@ const oneSizeUp = computed(() => {
   return props.sizes[at + 1] ?? null
 })
 
+/** A piece that is too small wants the next size; anything else wants the same one back. */
+function sizeForReason(kind: ExchangeReason): string {
+  const wanted = kind === 'tooSmall' ? oneSizeUp.value?.id ?? props.currentSizeId : props.currentSizeId
+  return wanted ? String(wanted) : ''
+}
+
 watch(show, visible => {
   if (!visible) return
-  const wanted = props.kind === 'size' ? oneSizeUp.value?.id ?? props.currentSizeId : props.currentSizeId
-  newSizeId.value = wanted ? String(wanted) : ''
-  reason.value = props.kind === 'size'
-      ? t('inventory.check.exchangeSizeReason')
-      : t('inventory.check.exchangeDamagedReason')
+  reasonKind.value = 'tooSmall'
+  ownReason.value = ''
+  newSizeId.value = sizeForReason('tooSmall')
+})
+
+function chooseReason(kind: ExchangeReason) {
+  reasonKind.value = kind
+  newSizeId.value = sizeForReason(kind)
+}
+
+/** What is written down as the reason: the chosen one in words, or what was typed instead. */
+const reasonText = computed(() => {
+  if (reasonKind.value === 'tooSmall') return t('inventory.check.exchangeReasonTooSmallText')
+  if (reasonKind.value === 'damaged') return t('inventory.check.exchangeReasonDamagedText')
+  return ownReason.value.trim()
 })
 
 function confirm() {
-  if (!reason.value.trim()) return
+  if (!reasonText.value) return
   emit('confirm', {
     newSizeId: newSizeId.value ? Number(newSizeId.value) : null,
-    reason: reason.value.trim(),
+    reason: reasonText.value,
   })
 }
 </script>
 
 <template>
   <Modal v-model="show">
-    <SubHeader class="mb-1">
-      {{ props.kind === 'size' ? t('inventory.check.exchangeSize') : t('inventory.check.exchangeDamaged') }}
-    </SubHeader>
+    <SubHeader class="mb-1">{{ t('inventory.check.exchange') }}</SubHeader>
     <p class="mb-3 text-sm text-(--text-muted)">{{ props.itemName }}</p>
 
     <Alert v-if="props.error" variant="error" class="mb-3">{{ props.error }}</Alert>
 
     <div class="space-y-3">
+      <div class="space-y-1">
+        <FieldLabel>{{ t('inventory.check.exchangeReason') }}</FieldLabel>
+        <div class="flex flex-wrap gap-2">
+          <SecondaryButton
+              :class="{'ring-2 ring-(--accent)': reasonKind === 'tooSmall'}"
+              data-testid="rapid-exchange-reason-too-small"
+              @click="chooseReason('tooSmall')"
+          >
+            {{ t('inventory.check.exchangeReasonTooSmall') }}
+          </SecondaryButton>
+          <SecondaryButton
+              :class="{'ring-2 ring-(--accent)': reasonKind === 'damaged'}"
+              data-testid="rapid-exchange-reason-damaged"
+              @click="chooseReason('damaged')"
+          >
+            {{ t('inventory.check.exchangeReasonDamaged') }}
+          </SecondaryButton>
+          <SecondaryButton
+              :class="{'ring-2 ring-(--accent)': reasonKind === 'other'}"
+              data-testid="rapid-exchange-reason-other"
+              @click="chooseReason('other')"
+          >
+            {{ t('inventory.check.exchangeReasonOther') }}
+          </SecondaryButton>
+        </div>
+      </div>
+
+      <div v-if="reasonKind === 'other'" class="space-y-1">
+        <FieldLabel>{{ t('inventory.check.exchangeOwnReason') }}</FieldLabel>
+        <TextInput v-model="ownReason" class="w-full" data-testid="rapid-exchange-reason"/>
+      </div>
+
       <div v-if="props.sizes.length > 0" class="space-y-1">
         <FieldLabel>{{ t('inventory.check.exchangeNewSize') }}</FieldLabel>
         <SelectInput v-model="newSizeId" class="w-full" data-testid="rapid-exchange-size">
@@ -100,16 +149,12 @@ function confirm() {
           <option v-for="size in props.sizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
         </SelectInput>
       </div>
-      <div class="space-y-1">
-        <FieldLabel>{{ t('inventory.check.exchangeReason') }}</FieldLabel>
-        <TextInput v-model="reason" class="w-full" data-testid="rapid-exchange-reason"/>
-      </div>
     </div>
 
     <div class="mt-4 flex justify-end gap-2">
       <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton
-          :disabled="props.busy || !reason.trim()"
+          :disabled="props.busy || !reasonText"
           data-testid="rapid-exchange-confirm"
           @click="confirm"
       >

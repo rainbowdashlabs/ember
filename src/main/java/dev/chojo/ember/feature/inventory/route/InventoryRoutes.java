@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
+import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
@@ -51,7 +52,9 @@ import jakarta.inject.Singleton;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -106,6 +109,16 @@ public class InventoryRoutes implements Routes {
                 this::memberItems,
                 StationPermission.MEMBER_READ,
                 StationPermission.INVENTORY_READ);
+        routes.get(
+                prefix + "/station-members/{memberId}/inventory-requirements",
+                this::memberRequirements,
+                StationPermission.MEMBER_READ,
+                StationPermission.INVENTORY_READ);
+        routes.post(
+                prefix + "/station-members/{memberId}/inventory-items",
+                this::createAndHandOut,
+                StationPermission.INVENTORY_CREATE_EXTERNAL,
+                StationPermission.INVENTORY_CREATE_INTERNAL);
         // Inventory CRUD - read vs write
         routes.get(prefix + "/inventories", this::list, StationPermission.INVENTORY_READ);
         routes.post(prefix + "/inventories", this::create, StationPermission.INVENTORY_CREATE);
@@ -287,6 +300,71 @@ public class InventoryRoutes implements Routes {
                 .map(this::toMyItem)
                 .toList());
     }
+
+    @OpenApi(
+            path = "/api/v1/station-members/{memberId}/inventory-requirements",
+            methods = HttpMethod.GET,
+            summary = "What a member is required to hold, and what is still missing",
+            description =
+                    "The same requirements the stock-taking works from, read without taking the member's record for a check. Carries the pieces of each inventory that are in nobody's hands, so one of them can be handed over on the spot.",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberRequirements.class)))
+    private void memberRequirements(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int memberId = pathInt(ctx, "memberId");
+        requireMemberOfStation(memberId, session);
+        var required = checkService.getRequiredItems(session.stationId(), memberId);
+        Map<Integer, List<InventoryItem>> unassigned = new LinkedHashMap<>();
+        for (var requirement : required) {
+            unassigned.put(requirement.inventoryId(), inventoryService.unassignedItems(requirement.inventoryId()));
+        }
+        ctx.json(new MemberRequirements(required, unassigned));
+    }
+
+    @OpenApi(
+            path = "/api/v1/station-members/{memberId}/inventory-items",
+            methods = HttpMethod.POST,
+            summary = "Take a new piece into stock and hand it to a member",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = HandOutRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventoryItem.class)))
+    private void createAndHandOut(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int memberId = pathInt(ctx, "memberId");
+        requireMemberOfStation(memberId, session);
+        var request = ctx.bodyAsClass(HandOutRequest.class);
+        var inventory = inventoryService
+                .findById(request.inventoryId())
+                .orElseThrow(() -> new NotFoundResponse("Inventory not found"));
+        RouteSupport.requireSameStation(session, inventory.stationId());
+        String actor = session.account().firstName() + " " + session.account().lastName();
+        var item = inventoryService.createAndHandOut(request.inventoryId(), request.sizeId(), memberId, actor);
+        ctx.status(HttpStatus.CREATED).json(item);
+    }
+
+    private void requireMemberOfStation(int memberId, UserSession session) {
+        var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
+        RouteSupport.requireSameStation(session, member.stationId());
+    }
+
+    /**
+     * What a member is expected to hold, and what could be handed to them right now.
+     *
+     * @param required   one entry per inventory the member is required to hold something from
+     * @param unassigned the pieces of each of those inventories that are in nobody's hands
+     */
+    public record MemberRequirements(
+            List<RequiredInventoryItem> required, Map<Integer, List<InventoryItem>> unassigned) {}
+
+    /**
+     * A piece to be made and handed over in one step.
+     *
+     * @param inventoryId the inventory it belongs to
+     * @param sizeId      the size, or {@code null} where the inventory keeps none
+     */
+    public record HandOutRequest(int inventoryId, Integer sizeId) {}
 
     /**
      * Renders one line of a member's own inventory, carrying the step of whatever movement the item

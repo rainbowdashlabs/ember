@@ -52,16 +52,27 @@ const blockedReason = computed(() => extras.blockedReason(props.member.id))
  * Whether sending the setup mail again could reach anybody at all.
  *
  * <p>A member entered without an address carries one that was made up for them, ending in
- * {@code .local}, and nothing can be delivered to it. Offering to send to it produced an error and
- * nothing else, so the button is not offered. Where a guardian can be written to instead, it is.
+ * {@code .local}, and nothing can be delivered to it. Where a guardian has a real address the mail
+ * goes to them instead, which is why the offer stands beside an address that looks dead.
  */
-const canBeWrittenTo = computed(() => props.member.mailReachable !== false)
+const canBeWrittenTo = computed(() => props.member.mailReaches !== 'NOBODY')
 
 const pendingTitle = computed(() => {
   const base = t('membersList.accountPending')
   if (!props.member.setupMailExpiresAt) return base
   return `${base} ${t('membersList.accountPendingExpires', {date: formatDate(props.member.setupMailExpiresAt)})}`
 })
+
+/** What pressing the paper plane will do, said in full, because who receives it is not obvious. */
+const resendTitle = computed(() => {
+  const who = props.member.mailReaches === 'GUARDIANS'
+      ? t('membersList.setupMailToGuardians')
+      : t('membersList.setupMailToMember')
+  return `${pendingTitle.value} ${who}`
+})
+
+/** Why there is no button here, which the hourglass alone never said. */
+const waitingTitle = computed(() => `${pendingTitle.value} ${t('membersList.setupMailToNobody')}`)
 </script>
 
 <template>
@@ -96,7 +107,7 @@ const pendingTitle = computed(() => {
         <IconButton
             v-if="member.accountSetupPending && canEdit && canBeWrittenTo"
             :icon="['fas', 'paper-plane']"
-            :title="pendingTitle"
+            :title="resendTitle"
             :label="t('membersList.accountPendingResend')"
             class="ml-auto text-warning hover:bg-warning/15"
             @click.stop="emit('resendSetup', $event)"
@@ -104,7 +115,7 @@ const pendingTitle = computed(() => {
         <font-awesome-icon
             v-else-if="member.accountSetupPending"
             :icon="['fas', 'hourglass-half']"
-            :title="pendingTitle"
+            :title="waitingTitle"
             class="ml-auto text-warning w-3.5 h-3.5"
         />
       </div>

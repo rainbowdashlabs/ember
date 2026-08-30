@@ -3,8 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-<script lang="ts" setup>
-import {computed, ref, watch} from 'vue'
+<script lang="ts" setup generic="K extends string | number">
+import {computed, ref, watch, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -15,18 +15,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
 import type {EventRegistrationField, RegistrationFieldValue} from '@/api/events'
-
-/** One person an answer can be given for. */
-export interface AnswerablePerson {
-    memberId: number
-    name: string
-}
-
-/** One person's answer, ready to be sent. */
-export interface PersonAnswer {
-    memberId: number
-    fields: RegistrationFieldValue[]
-}
+import type {AnswerablePerson, PersonAnswer} from '@/util/eventAnswers'
 
 /**
  * Answering for a household in one go.
@@ -39,7 +28,7 @@ export interface PersonAnswer {
  * tiles are absent then and the dialog is a list of names.
  */
 const props = defineProps<{
-    people: AnswerablePerson[]
+    people: AnswerablePerson<K>[]
     /** The questions the event asks. Empty when it asks none, and ignored when declining. */
     fields: EventRegistrationField[]
     /** Whether this dialog is saying yes. Saying no needs no answers. */
@@ -51,52 +40,54 @@ const props = defineProps<{
 const show = defineModel<boolean>({required: true})
 
 const emit = defineEmits<{
-    confirm: [answers: PersonAnswer[]]
+    confirm: [answers: PersonAnswer<K>[]]
 }>()
 
 const {t} = useI18n()
 
-const chosen = ref<number[]>([])
-const answers = ref<Record<number, Record<number, string>>>({})
+const chosen = ref([]) as Ref<K[]>
+const answers = ref(new Map()) as Ref<Map<K, Record<number, string>>>
 
 const asksQuestions = computed(() => props.attending && props.fields.length > 0)
 
 const missing = computed(() => {
     if (!asksQuestions.value) return []
-    return chosen.value.filter(memberId => props.fields.some(
-        field => field.config?.required && !(answers.value[memberId]?.[field.id] ?? '').trim()))
+    return chosen.value.filter(key => props.fields.some(
+        field => field.config?.required && !(answers.value.get(key)?.[field.id] ?? '').trim()))
 })
 
 /** Everyone is ticked when the dialog opens: answering for the whole household is the common case. */
 watch(show, (visible) => {
     if (!visible) return
-    chosen.value = props.people.map(person => person.memberId)
-    answers.value = Object.fromEntries(props.people.map(person => [person.memberId, {}]))
+    chosen.value = props.people.map(person => person.key)
+    answers.value = new Map(props.people.map(person => [person.key, {}]))
 })
 
-function toggle(memberId: number) {
-    chosen.value = chosen.value.includes(memberId)
-        ? chosen.value.filter(id => id !== memberId)
-        : [...chosen.value, memberId]
+function toggle(key: K) {
+    chosen.value = chosen.value.includes(key)
+        ? chosen.value.filter(entry => entry !== key)
+        : [...chosen.value, key]
 }
 
-function nameOf(memberId: number): string {
-    return props.people.find(person => person.memberId === memberId)?.name ?? String(memberId)
+function nameOf(key: K): string {
+    return props.people.find(person => person.key === key)?.name ?? String(key)
 }
 
-function answerFor(memberId: number, fieldId: number): string {
-    return answers.value[memberId]?.[fieldId] ?? ''
+function answerFor(key: K, fieldId: number): string {
+    return answers.value.get(key)?.[fieldId] ?? ''
 }
 
-function setAnswer(memberId: number, fieldId: number, value: string) {
-    answers.value = {...answers.value, [memberId]: {...answers.value[memberId], [fieldId]: value}}
+function setAnswer(key: K, fieldId: number, value: string) {
+    const next = new Map(answers.value)
+    next.set(key, {...next.get(key), [fieldId]: value})
+    answers.value = next
 }
 
 function confirm() {
     if (chosen.value.length === 0 || missing.value.length > 0) return
-    emit('confirm', chosen.value.map(memberId => ({
-        memberId,
-        fields: props.fields.map(field => ({fieldId: field.id, value: answerFor(memberId, field.id)})),
+    emit('confirm', chosen.value.map(key => ({
+        key,
+        fields: props.fields.map(field => ({fieldId: field.id, value: answerFor(key, field.id)})),
     })))
 }
 </script>
@@ -116,29 +107,29 @@ function confirm() {
         <div class="space-y-1 mb-4">
             <label
                 v-for="person in people"
-                :key="person.memberId"
+                :key="person.key"
                 class="flex items-center gap-2 text-sm"
             >
                 <input
                     type="checkbox"
-                    :checked="chosen.includes(person.memberId)"
-                    :data-testid="`answer-for-${person.memberId}`"
-                    @change="toggle(person.memberId)"
+                    :checked="chosen.includes(person.key)"
+                    :data-testid="`answer-for-${person.key}`"
+                    @change="toggle(person.key)"
                 />
                 {{ person.name }}
             </label>
         </div>
 
         <div v-if="asksQuestions" class="space-y-3 mb-4">
-            <NeutralContainer v-for="memberId in chosen" :key="memberId" class="space-y-2">
-                <FieldLabel>{{ nameOf(memberId) }}</FieldLabel>
+            <NeutralContainer v-for="key in chosen" :key="key" class="space-y-2">
+                <FieldLabel>{{ nameOf(key) }}</FieldLabel>
                 <div v-for="field in fields" :key="field.id" class="space-y-1">
                     <FieldLabel>{{ field.name }}{{ field.config?.required ? ' *' : '' }}</FieldLabel>
                     <EventFieldValueInput
                         :field-type="field.fieldType"
                         :config="{...field.config}"
-                        :model-value="answerFor(memberId, field.id)"
-                        @update:model-value="value => setAnswer(memberId, field.id, value)"
+                        :model-value="answerFor(key, field.id)"
+                        @update:model-value="value => setAnswer(key, field.id, value)"
                     />
                 </div>
             </NeutralContainer>

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
@@ -16,6 +16,9 @@ import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {apiErrorMessage} from '@/util/apiError'
+import LinkNoLongerGood from './setpasswordview/LinkNoLongerGood.vue'
+import Spinner from '@/components/feedback/Spinner.vue'
+import type {PasswordLinkStatus} from '@/api/auth'
 
 const {t, te} = useI18n()
 const route = useRoute()
@@ -26,6 +29,29 @@ const confirmPassword = ref('')
 const validationError = ref('')
 
 const token = route.query.token as string
+
+/**
+ * What the link is worth, asked before the form is drawn.
+ *
+ * <p>Otherwise somebody types a password twice into a form that was never going to be accepted, and
+ * is told only afterwards. While the answer is still coming nothing is shown but the spinner: a form
+ * that appears and is then taken away reads worse than one that arrives a moment late.
+ *
+ * <p>The question is a courtesy. Where it cannot be answered at all the form is drawn anyway and the
+ * submission decides, because a link that might be good must not be refused by a failed lookup.
+ */
+const status = ref<PasswordLinkStatus | null>(null)
+const checking = ref(true)
+
+onMounted(async () => {
+  try {
+    status.value = await auth.passwordLinkStatus(token)
+  } catch {
+    status.value = {standing: 'VALID', purpose: 'OTHER'}
+  } finally {
+    checking.value = false
+  }
+})
 
 const {running: loading, error: submitError, run: runSetPassword} = useAsyncAction(async () => {
   await auth.setPassword({token, password: newPassword.value})
@@ -55,7 +81,11 @@ function handleSetPassword() {
 
 <template>
   <div class="flex min-h-screen items-center justify-center px-4">
-    <div class="w-full max-w-xs space-y-6">
+    <Spinner v-if="checking" size="lg"/>
+
+    <LinkNoLongerGood v-else-if="status && status.standing !== 'VALID'" :status="status"/>
+
+    <div v-else class="w-full max-w-xs space-y-6">
       <div class="text-center">
         <PageHeroIcon :icon="['fas', 'lock']"/>
         <PageHeader class="text-2xl font-bold">{{ t('setPassword.title') }}</PageHeader>

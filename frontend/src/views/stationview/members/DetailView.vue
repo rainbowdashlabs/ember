@@ -68,8 +68,10 @@ const {
   items: memberInventory,
   exchangeRequests: memberExchanges,
   exchangeSizes,
+  requirements: memberRequirements,
   load: loadMemberInventory,
   assignItem,
+  handOutNewItem,
   unassignItem,
   reassignItem,
   submitExchange,
@@ -170,6 +172,7 @@ const loadedTabsProps = computed(() => ({
   getManagerFields,
   getManagerFieldValue,
   memberInventory: memberInventory.value,
+  memberRequirements: memberRequirements.value,
   memberExchanges: memberExchanges.value,
   showInventoryManagement: showInventoryManagement.value,
   canManageInventory: canManageInventory(),
@@ -213,6 +216,8 @@ const detailModalsProps = computed(() => ({
         @remove-manager="removeManager"
         @create-manager="createManager"
         @assign-item="modalsRef?.openAssignModal()"
+        @hand-out="assignItem"
+        @hand-out-new="handOutNewItem"
         @request-exchange="modalsRef?.openExchangeModal($event)"
         @unassign="unassignItem"
         @reassign="modalsRef?.openReassignModal($event)"

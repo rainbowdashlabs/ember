@@ -283,10 +283,60 @@ class EventTemplateServiceTest extends RepositoryTestBase {
                 RestrictionMode.AND, restrictions.findRestrictions(templateId).mode());
     }
 
+    /**
+     * A template carries both audiences an appointment does, and keeps them apart.
+     *
+     * <p>Without the second one, whoever applies the template would have to say again on every date
+     * of the year who may know about it, which is the one thing a template is for.
+     */
+    @Test
+    @Order(24)
+    void aTemplateCarriesBothAudiencesApart() {
+        restrictions.setRestrictions(
+                templateId,
+                new RestrictionSelection(
+                        List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), RestrictionMode.AND));
+        restrictions.setViewRestrictions(
+                templateId,
+                new RestrictionSelection(
+                        List.of(StationUserType.TEAM), List.of(), List.of(), List.of(), RestrictionMode.AND));
+
+        assertEquals(
+                List.of(StationUserType.MEMBER),
+                restrictions.findRestrictions(templateId).userTypes());
+        assertEquals(
+                List.of(StationUserType.TEAM),
+                restrictions.findViewRestrictions(templateId).userTypes());
+    }
+
+    /** The two modes sit in columns of their own, so setting one leaves the other alone. */
+    @Test
+    @Order(25)
+    void theTwoModesAreKeptApart() {
+        restrictions.updateRestrictionMode(templateId, RestrictionMode.OR);
+        restrictions.updateViewRestrictionMode(templateId, RestrictionMode.AND);
+
+        assertEquals(
+                RestrictionMode.OR, restrictions.findRestrictions(templateId).mode());
+        assertEquals(
+                RestrictionMode.AND,
+                restrictions.findViewRestrictions(templateId).mode());
+
+        restrictions.updateViewRestrictionMode(templateId, RestrictionMode.OR);
+        assertEquals(
+                RestrictionMode.OR,
+                restrictions.findViewRestrictions(templateId).mode());
+        assertEquals(
+                RestrictionMode.OR,
+                restrictions.findRestrictions(templateId).mode(),
+                "setting the view mode leaves the registration mode where it was");
+    }
+
     /** A template that is not there names nobody, rather than falling over. */
     @Test
     @Order(23)
     void anUnknownTemplateNamesNobody() {
+        assertFalse(restrictions.findViewRestrictions(999999).hasRestrictions());
         assertFalse(restrictions.findRestrictions(999999).hasRestrictions());
     }
 

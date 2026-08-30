@@ -17,8 +17,9 @@ import {attendance, events, managedMembers as managedMembersApi, stationMembers}
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import EventDetailBody from './eventdetailview/EventDetailBody.vue'
-import RegistrationFieldsModal from './eventshared/RegistrationFieldsModal.vue'
+import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
 import {useEventAnswer} from '@/composables/useEventAnswer'
+import type {AnswerablePerson} from '@/util/eventAnswers'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -105,16 +106,16 @@ const endFormatted = computed(() => {
   return combineDateAndTime(effectiveDate.value, event.value.endTime)
 })
 
-const registrableMembers = computed((): { id: number; name: string }[] => {
+const registrableMembers = computed((): AnswerablePerson[] => {
   const eligible = eligibleMembers.value[eventId.value]
   const ids = eligible ?? [currentMemberId.value, ...managedMembers.value.map(m => m.id)]
-  const result: { id: number; name: string }[] = []
+  const result: AnswerablePerson[] = []
   for (const id of ids) {
     if (id === currentMemberId.value) {
-      result.push({id, name: t('eventsUpcoming.myself')})
+      result.push({key: id, name: t('eventsUpcoming.myself')})
     } else {
       const m = managedMembers.value.find(mm => mm.id === id)
-      if (m) result.push({id, name: m.name ?? m.email ?? `#${id}`})
+      if (m) result.push({key: id, name: m.name ?? m.email ?? `#${id}`})
     }
   }
   return result
@@ -152,7 +153,7 @@ const {loading, error, reload} = useAsyncLoader(async () => {
     name: c.name,
   }))
   try { reminders.value = await events.getEventReminders(eventId.value) } catch { reminders.value = [] }
-  if (ev.requiresRegistration) await reloadMyRegistrations()
+  await reloadMyRegistrations()
   if (canManageEvents()) {
     templates.value = await attendance.listTemplates()
   }
@@ -181,14 +182,14 @@ async function loadAbsences() {
 const answer = useEventAnswer(currentMemberId, reloadMyRegistrations, error)
 
 /** Signing up and refusing both need the appointment and the date they are about. */
-async function onRegister(memberId: number) {
+async function onRegister(people: AnswerablePerson[]) {
   if (!event.value || !effectiveDate.value) return
-  await answer.registerForEvent(event.value, effectiveDate.value, memberId)
+  await answer.registerFor(event.value, effectiveDate.value, people)
 }
 
-async function onDecline(memberId: number) {
+async function onDecline(people: AnswerablePerson[]) {
   if (!event.value || !effectiveDate.value) return
-  await answer.declineEvent(event.value, effectiveDate.value, memberId)
+  await answer.declineFor(event.value, effectiveDate.value, people)
 }
 
 async function onEventCancelled() {
@@ -237,11 +238,14 @@ function onFieldUpdated(field: EventField) {
         @withdraw="answer.withdrawRegistration"
     />
 
-    <RegistrationFieldsModal
-        :model-value="answer.fieldPrompt.value !== null"
-        :fields="answer.fieldPrompt.value?.fields ?? []"
-        @update:model-value="shown => { if (!shown) answer.cancelFieldPrompt() }"
-        @confirm="answer.confirmFieldPrompt"
+    <EventAnswerDialog
+        :model-value="answer.answerPrompt.value !== null"
+        :people="answer.answerPrompt.value?.people ?? []"
+        :fields="answer.answerPrompt.value?.fields ?? []"
+        :attending="answer.answerPrompt.value?.attending ?? true"
+        :busy="!!answer.registering.value"
+        @update:model-value="shown => { if (!shown) answer.cancelAnswerPrompt() }"
+        @confirm="answer.confirmAnswerPrompt"
     />
   </ViewContent>
 </template>

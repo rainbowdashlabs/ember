@@ -10,7 +10,7 @@ import {describe, expect, it} from 'vitest'
 import type {RichMember} from '@/api/stationMembers'
 import {getMemberFirstName, getMemberLastName, useMemberData, type MemberDataSource} from './useMemberData'
 
-function richMember(id: number, name: string, mailReachable: boolean): RichMember {
+function richMember(id: number, name: string, mailReaches: RichMember['mailReaches']): RichMember {
   return {
     id,
     stationId: 1,
@@ -21,7 +21,7 @@ function richMember(id: number, name: string, mailReachable: boolean): RichMembe
     email: `member-${id}@example.test`,
     accountSetupPending: true,
     setupMailExpiresAt: '2026-09-01T10:00:00Z',
-    mailReachable,
+    mailReaches,
     former: false,
     userType: 'MEMBER',
     roles: [],
@@ -54,15 +54,16 @@ describe('useMemberData', () => {
    * the member it was handed. The flag went missing in this mapping once, and the button was then
    * offered for every address nothing can be delivered to.
    */
-  it('carries whether a member can be written to at all', async () => {
+  it('carries who a letter about a member arrives at', async () => {
     const data = dataFor([
-      richMember(1, 'Kann Empfangen', true),
-      richMember(2, 'Ohne Postfach', false),
+      richMember(1, 'Eigene Adresse', 'SELF'),
+      richMember(2, 'Über die Eltern', 'GUARDIANS'),
+      richMember(3, 'Ohne Postfach', 'NOBODY'),
     ])
 
     await data.reload()
 
-    expect(data.members.value.map(member => member.mailReachable)).toEqual([true, false])
+    expect(data.members.value.map(member => member.mailReaches)).toEqual(['SELF', 'GUARDIANS', 'NOBODY'])
   })
 
   /**
@@ -71,7 +72,7 @@ describe('useMemberData', () => {
    * right thing and the next load split the whole name again, which read as a change not kept.
    */
   it('carries the two halves of a name as they are stored', async () => {
-    const stored = {...richMember(1, 'Millie Jo Harnack', true), firstName: 'Millie Jo', lastName: 'Harnack'}
+    const stored = {...richMember(1, 'Millie Jo Harnack', 'SELF'), firstName: 'Millie Jo', lastName: 'Harnack'}
     const data = dataFor([stored])
 
     await data.reload()
@@ -82,7 +83,7 @@ describe('useMemberData', () => {
   })
 
   it('carries when the setup mail runs out', async () => {
-    const data = dataFor([richMember(1, 'Wartet Noch', true)])
+    const data = dataFor([richMember(1, 'Wartet Noch', 'SELF')])
 
     await data.reload()
 

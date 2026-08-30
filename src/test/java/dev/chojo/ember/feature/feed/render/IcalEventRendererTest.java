@@ -27,10 +27,8 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -106,21 +104,21 @@ class IcalEventRendererTest {
     @Test
     void hidesNonGuardianWhoDeclined() {
         var event = simpleEvent(10);
-        var ctx = ctx(Map.of(10, RegistrationStatus.DECLINED), Set.of(), Map.of());
+        var ctx = ctx(Map.of(10, RegistrationStatus.DECLINED), Map.of());
         assertFalse(renderer.isVisibleForFeed(event, ctx));
     }
 
     @Test
     void hidesNonGuardianWhoWasDenied() {
         var event = simpleEvent(10);
-        var ctx = ctx(Map.of(10, RegistrationStatus.DENIED), Set.of(), Map.of());
+        var ctx = ctx(Map.of(10, RegistrationStatus.DENIED), Map.of());
         assertFalse(renderer.isVisibleForFeed(event, ctx));
     }
 
     @Test
     void showsNonGuardianWhoIsPending() {
         var event = simpleEvent(10);
-        var ctx = ctx(Map.of(10, RegistrationStatus.PENDING), Set.of(10), Map.of());
+        var ctx = ctx(Map.of(10, RegistrationStatus.PENDING), Map.of());
         assertTrue(renderer.isVisibleForFeed(event, ctx));
     }
 
@@ -132,7 +130,7 @@ class IcalEventRendererTest {
                 List.of(
                         new IcalEventRenderer.ManagedRegistration("A", RegistrationStatus.DECLINED),
                         new IcalEventRenderer.ManagedRegistration("B", RegistrationStatus.DENIED)));
-        var ctx = ctx(Map.of(), Set.of(), managed);
+        var ctx = ctx(Map.of(), managed);
         assertFalse(renderer.isVisibleForFeed(event, ctx));
     }
 
@@ -144,7 +142,7 @@ class IcalEventRendererTest {
                 List.of(
                         new IcalEventRenderer.ManagedRegistration("A", RegistrationStatus.DECLINED),
                         new IcalEventRenderer.ManagedRegistration("B", RegistrationStatus.ACCEPTED)));
-        var ctx = ctx(Map.of(), Set.of(), managed);
+        var ctx = ctx(Map.of(), managed);
         assertTrue(renderer.isVisibleForFeed(event, ctx));
     }
 
@@ -152,7 +150,7 @@ class IcalEventRendererTest {
     void hidesGuardianWhenOwnerAndAllManagedDeclined() {
         var event = simpleEvent(10);
         var managed = Map.of(10, List.of(new IcalEventRenderer.ManagedRegistration("A", RegistrationStatus.DECLINED)));
-        var ctx = ctx(Map.of(10, RegistrationStatus.DECLINED), Set.of(), managed);
+        var ctx = ctx(Map.of(10, RegistrationStatus.DECLINED), managed);
         assertFalse(renderer.isVisibleForFeed(event, ctx));
     }
 
@@ -160,7 +158,7 @@ class IcalEventRendererTest {
     void showsGuardianWhenOwnerDeclinedButManagedAccepted() {
         var event = simpleEvent(10);
         var managed = Map.of(10, List.of(new IcalEventRenderer.ManagedRegistration("A", RegistrationStatus.ACCEPTED)));
-        var ctx = ctx(Map.of(10, RegistrationStatus.DECLINED), Set.of(), managed);
+        var ctx = ctx(Map.of(10, RegistrationStatus.DECLINED), managed);
         assertTrue(renderer.isVisibleForFeed(event, ctx));
     }
 
@@ -168,22 +166,46 @@ class IcalEventRendererTest {
     void showsGuardianWhenOwnerAcceptedAndManagedDeclined() {
         var event = simpleEvent(10);
         var managed = Map.of(10, List.of(new IcalEventRenderer.ManagedRegistration("A", RegistrationStatus.DECLINED)));
-        var ctx = ctx(Map.of(10, RegistrationStatus.ACCEPTED), Set.of(10), managed);
+        var ctx = ctx(Map.of(10, RegistrationStatus.ACCEPTED), managed);
         assertTrue(renderer.isVisibleForFeed(event, ctx));
     }
 
     @Test
     void hidesExpiredRegistrationWhenNobodyRegistered() {
         var event = registrationRequiredEvent(10, Instant.now().minusSeconds(60));
-        var ctx = ctx(Map.of(), Set.of(), Map.of());
+        var ctx = ctx(Map.of(), Map.of());
         assertFalse(renderer.isVisibleForFeed(event, ctx));
     }
 
     @Test
     void keepsExpiredRegistrationWhenOwnerIsRegistered() {
         var event = registrationRequiredEvent(10, Instant.now().minusSeconds(60));
-        var ctx = ctx(Map.of(10, RegistrationStatus.ACCEPTED), Set.of(10), Map.of());
+        var ctx = ctx(Map.of(10, RegistrationStatus.ACCEPTED), Map.of());
         assertTrue(renderer.isVisibleForFeed(event, ctx));
+    }
+
+    /**
+     * An answer nobody gave before the closing date is an absence. Until then it is only an answer
+     * still outstanding, and the entry stays so the reminder has something to point at.
+     */
+    @Test
+    void anUnansweredSignUpDropsOutOnceTheClosingDatePasses() {
+        var open = registrationRequiredEvent(10, Instant.now().plusSeconds(3600));
+        var closed = registrationRequiredEvent(10, Instant.now().minusSeconds(60));
+        var pending = ctx(Map.of(10, RegistrationStatus.PENDING), Map.of());
+
+        assertTrue(renderer.isVisibleForFeed(open, pending), "before the closing date it stays");
+        assertFalse(renderer.isVisibleForFeed(closed, pending), "after it, it counts as an absence");
+    }
+
+    @Test
+    void aManagedMemberStillUnansweredAtTheClosingDateDropsOutToo() {
+        var closed = registrationRequiredEvent(10, Instant.now().minusSeconds(60));
+        var pending = Map.of(10, List.of(new IcalEventRenderer.ManagedRegistration("A", RegistrationStatus.PENDING)));
+        var accepted = Map.of(10, List.of(new IcalEventRenderer.ManagedRegistration("A", RegistrationStatus.ACCEPTED)));
+
+        assertFalse(renderer.isVisibleForFeed(closed, ctx(Map.of(), pending)));
+        assertTrue(renderer.isVisibleForFeed(closed, ctx(Map.of(), accepted)), "a place taken keeps it");
     }
 
     // -- rendering --
@@ -205,7 +227,7 @@ class IcalEventRendererTest {
         var other = new EventField(
                 2, 10, "Thema", EventFieldType.STRING, EventFieldConfig.parse("{}"), "Übung", 1, false, null, false);
         when(eventFieldService.findByEvent(10)).thenReturn(List.of(loc, other));
-        var ctx = ctx(Map.of(), Set.of(), Map.of());
+        var ctx = ctx(Map.of(), Map.of());
 
         var ve = renderer.render(event, ctx);
         var location = ve.getProperty("LOCATION").map(Location.class::cast).orElseThrow();
@@ -223,7 +245,7 @@ class IcalEventRendererTest {
     void rendersCancelledEventWithPrefixAndStatus() {
         var event = cancelledEvent(11, "Schlechtes Wetter");
         when(eventFieldService.findByEvent(11)).thenReturn(List.of());
-        var ctx = ctx(Map.of(), Set.of(), Map.of());
+        var ctx = ctx(Map.of(), Map.of());
 
         var ve = renderer.render(event, ctx);
         assertTrue(ve.getProperty("SUMMARY").orElseThrow().getValue().startsWith("summary.cancelledPrefix"));
@@ -243,7 +265,6 @@ class IcalEventRendererTest {
                 false, // verbose=false
                 Map.of(),
                 Map.of(),
-                Set.of(),
                 Map.of());
 
         var ve = renderer.render(event, ctx);
@@ -261,7 +282,7 @@ class IcalEventRendererTest {
                 List.of(
                         new IcalEventRenderer.ManagedRegistration("Alice", RegistrationStatus.ACCEPTED),
                         new IcalEventRenderer.ManagedRegistration("Bob", RegistrationStatus.DECLINED)));
-        var ctx = ctx(Map.of(13, RegistrationStatus.ACCEPTED), Set.of(13), managed);
+        var ctx = ctx(Map.of(13, RegistrationStatus.ACCEPTED), managed);
 
         var ve = renderer.render(event, ctx);
         String description = ve.getProperty("DESCRIPTION").orElseThrow().getValue();
@@ -277,7 +298,6 @@ class IcalEventRendererTest {
 
     private IcalEventRenderer.Context ctx(
             Map<Integer, RegistrationStatus> ownerStatus,
-            Set<Integer> ownerRegistered,
             Map<Integer, List<IcalEventRenderer.ManagedRegistration>> managed) {
         return new IcalEventRenderer.Context(
                 station,
@@ -286,7 +306,6 @@ class IcalEventRendererTest {
                 true,
                 new HashMap<>(Map.of(1, new EventCategory(1, 1, "Cat", 1, null, false, null))),
                 new HashMap<>(ownerStatus),
-                new HashSet<>(ownerRegistered),
                 new HashMap<>(managed));
     }
 
@@ -305,6 +324,7 @@ class IcalEventRendererTest {
                 null,
                 false,
                 1,
+                RestrictionMode.AND,
                 RestrictionMode.AND,
                 false,
                 null,
@@ -336,6 +356,7 @@ class IcalEventRendererTest {
                 false,
                 1,
                 RestrictionMode.AND,
+                RestrictionMode.AND,
                 false,
                 null,
                 10,
@@ -365,6 +386,7 @@ class IcalEventRendererTest {
                 null,
                 false,
                 1,
+                RestrictionMode.AND,
                 RestrictionMode.AND,
                 false,
                 null,

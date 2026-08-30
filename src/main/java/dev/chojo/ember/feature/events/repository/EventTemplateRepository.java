@@ -26,7 +26,7 @@ public class EventTemplateRepository {
     private static final String EVENT_TEMPLATE_COLUMNS = """
             id, station_id, name, title, description, category_id, event_type,
             requires_registration, registration_deadline_offset, requires_confirmation,
-            restriction_mode, attendance_template_id, registration_limit""";
+            restriction_mode, view_restriction_mode, attendance_template_id, registration_limit""";
 
     public List<EventTemplate> findByStation(int stationId) {
         return query("""
@@ -96,13 +96,24 @@ public class EventTemplateRepository {
     }
 
     /**
-     * Sets how the audiences of a template combine, without touching anything else it holds.
+     * Sets how the registration audience of a template combines, without touching anything else it
+     * holds.
      *
      * <p>Apart from the general update because the audience is saved on its own: the editor writes
      * the template and its audience in two steps, and the second must not undo the first.
      */
     public boolean updateRestrictionMode(int id, RestrictionMode mode) {
         return query("UPDATE event_template SET restriction_mode = :mode WHERE id = :id;")
+                .single(call().bind("mode", mode).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Sets how the view audience of a template combines, for the same reason as its counterpart.
+     */
+    public boolean updateViewRestrictionMode(int id, RestrictionMode mode) {
+        return query("UPDATE event_template SET view_restriction_mode = :mode WHERE id = :id;")
                 .single(call().bind("mode", mode).bind("id", id))
                 .update()
                 .changed();

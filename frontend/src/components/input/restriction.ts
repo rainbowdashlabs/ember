@@ -17,6 +17,23 @@ export function emptyRestriction(): RestrictionSelection {
 }
 
 /**
+ * Reads one audience as the server sent it into the shape the editor binds.
+ *
+ * A missing audience is an empty one: a feature that carries two of them answers with both even
+ * where neither names anybody, and an absent part means nobody was named rather than nothing was
+ * loaded.
+ */
+export function toRestriction(audience?: Partial<RestrictionSelection> | null): RestrictionSelection {
+    return {
+        userTypes: audience?.userTypes ?? [],
+        groupIds: audience?.groupIds ?? [],
+        tagIds: audience?.tagIds ?? [],
+        memberIds: audience?.memberIds ?? [],
+        mode: audience?.mode ?? 'AND',
+    }
+}
+
+/**
  * Presents three separate selections - user types, groups and tags - as the single
  * {@link RestrictionSelection} the shared restriction editor speaks, and writes edits back to
  * them.

@@ -32,6 +32,7 @@ export function createEventFormState() {
     thresholdDate: '',
     registrationCloseDays: undefined as number | undefined,
     restriction: emptyRestriction(),
+    viewRestriction: emptyRestriction(),
     fields: [] as EventFieldEntry[],
     reminders: [] as number[],
   }

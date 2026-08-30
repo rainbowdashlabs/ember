@@ -142,8 +142,8 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
   }
 
   const {
-    registering, fieldPrompt, registerForEvent, declineEvent, withdrawRegistration,
-    confirmFieldPrompt, cancelFieldPrompt,
+    registering, answerPrompt, registerFor, declineFor, withdrawRegistration,
+    confirmAnswerPrompt, cancelAnswerPrompt,
   } = useEventAnswer(currentMemberId, reloadRegistrations, error)
 
   async function reloadUpcoming() {
@@ -201,12 +201,12 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     loading,
     error,
     reload,
-    registerForEvent,
-    declineEvent,
+    registerFor,
+    declineFor,
     withdrawRegistration,
     loadMore,
-    fieldPrompt,
-    confirmFieldPrompt,
-    cancelFieldPrompt,
+    answerPrompt,
+    confirmAnswerPrompt,
+    cancelAnswerPrompt,
   }
 }

@@ -46,7 +46,7 @@ async function loadComments() {
   try {
     const [c, m, g] = await Promise.all([
       commentsApi.listEventComments(props.eventId, props.eventDate ?? undefined),
-      stationMembers.listCompletions({type: 'EVENT', entityId: props.eventId}),
+      stationMembers.listCompletions({type: 'EVENT_VIEW', entityId: props.eventId}),
       memberGroups.listGroups(),
     ])
     commentsList.value = c

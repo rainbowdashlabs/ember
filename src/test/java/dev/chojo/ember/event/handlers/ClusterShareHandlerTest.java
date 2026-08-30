@@ -118,6 +118,7 @@ class ClusterShareHandlerTest extends RepositoryTestBase {
                 false,
                 null,
                 RestrictionMode.OR,
+                RestrictionMode.AND,
                 false,
                 null,
                 null,

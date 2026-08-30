@@ -8,6 +8,10 @@ import {useI18n} from 'vue-i18n'
 import {events} from '@/api'
 import type {EventRegistrationField, RegistrationFieldValue, StationEvent} from '@/api/events'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
+import type {AnswerablePerson} from '@/util/eventAnswers'
+
+/** Everybody an answer can be given for, as the screens hold them. */
+type AnswerablePeople = AnswerablePerson[]
 
 /**
  * Answering one appointment: signing up, refusing, and taking either back.
@@ -33,14 +37,16 @@ export function useEventAnswer(
     const registering = ref<string | null>(null)
 
     /**
-     * A sign-up waiting for its answers. Set when the appointment asks questions, cleared once the
+     * An answer waiting to be given, once there is something to decide about it: which of several
+     * people it is for, or what the appointment's questions are answered with. Cleared once the
      * dialog the screen renders for it is confirmed or dismissed.
      */
-    const fieldPrompt = ref<{
+    const answerPrompt = ref<{
         event: StationEvent
         date: string
-        memberId: number
+        people: AnswerablePerson[]
         fields: EventRegistrationField[]
+        attending: boolean
     } | null>(null)
 
     async function changeRegistration(action: () => Promise<unknown>) {
@@ -75,30 +81,57 @@ export function useEventAnswer(
     }
 
     /**
-     * Signing up. Where the appointment asks questions, the answers have to be collected first, so
-     * the request is parked in {@link fieldPrompt} for the screen to render a dialog for.
+     * Signing up, for one person or for a household.
+     *
+     * <p>The dialog opens where there is something to decide: which of several people are coming, or
+     * what the appointment's questions are answered with. One person and no questions is a single
+     * press, because putting a dialog in front of the commonest answer of all only slows it down.
      */
-    async function registerForEvent(ev: StationEvent, date: string, memberId: number) {
+    async function registerFor(ev: StationEvent, date: string, people: AnswerablePeople) {
+        if (people.length === 0) return
         const fields = await events.listRegistrationFields(ev.id).catch(() => [])
-        if (fields.length > 0) {
-            fieldPrompt.value = {event: ev, date, memberId, fields}
+        if (people.length === 1 && fields.length === 0) {
+            await sendRegistration(ev, date, people[0]!.key)
             return
         }
-        await sendRegistration(ev, date, memberId)
+        answerPrompt.value = {event: ev, date, people, fields, attending: true}
     }
 
-    async function confirmFieldPrompt(values: RegistrationFieldValue[]) {
-        const prompt = fieldPrompt.value
+    /**
+     * Refusing, for one person or for a household.
+     *
+     * <p>A refusal asks nothing, so a single person goes straight through: the screen has already
+     * asked whether they are sure. Several open the dialog, where ticking the ones who are not coming
+     * is the confirmation.
+     */
+    async function declineFor(ev: StationEvent, date: string, people: AnswerablePeople) {
+        if (people.length === 0) return
+        if (people.length === 1) {
+            await sendDecline(ev, date, people[0]!.key)
+            return
+        }
+        answerPrompt.value = {event: ev, date, people, fields: [], attending: false}
+    }
+
+    /** Gives the parked answer for everybody it was confirmed for, one request each. */
+    async function confirmAnswerPrompt(answers: { key: number; fields: RegistrationFieldValue[] }[]) {
+        const prompt = answerPrompt.value
         if (!prompt) return
-        fieldPrompt.value = null
-        await sendRegistration(prompt.event, prompt.date, prompt.memberId, values)
+        answerPrompt.value = null
+        for (const answer of answers) {
+            if (prompt.attending) {
+                await sendRegistration(prompt.event, prompt.date, answer.key, answer.fields)
+            } else {
+                await sendDecline(prompt.event, prompt.date, answer.key)
+            }
+        }
     }
 
-    function cancelFieldPrompt() {
-        fieldPrompt.value = null
+    function cancelAnswerPrompt() {
+        answerPrompt.value = null
     }
 
-    async function declineEvent(ev: StationEvent, date: string, memberId: number) {
+    async function sendDecline(ev: StationEvent, date: string, memberId: number) {
         await changeRegistration(() =>
             events.declineEvent(ev.id, {eventDate: date, memberId: memberIdParam(memberId)}))
     }
@@ -109,11 +142,11 @@ export function useEventAnswer(
 
     return {
         registering,
-        fieldPrompt,
-        registerForEvent,
-        declineEvent,
+        answerPrompt,
+        registerFor,
+        declineFor,
         withdrawRegistration,
-        confirmFieldPrompt,
-        cancelFieldPrompt,
+        confirmAnswerPrompt,
+        cancelAnswerPrompt,
     }
 }

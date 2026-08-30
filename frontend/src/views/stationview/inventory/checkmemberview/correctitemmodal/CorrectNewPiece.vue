@@ -10,7 +10,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FieldValueInput from '@/views/stationview/inventory/detailview/FieldValueInput.vue'
 import {ItemOwner, type ItemOwnerName} from '@/api/inventory'
-import type {RequiredInventoryItem} from '@/api/inventoryCheck'
+import type {RequiredInventoryItem} from '@/api/inventory'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 
 /**

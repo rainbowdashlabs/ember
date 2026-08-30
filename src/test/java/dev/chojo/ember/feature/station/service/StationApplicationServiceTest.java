@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
+import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -27,7 +28,7 @@ class StationApplicationServiceTest extends RepositoryTestBase {
     static void setup() {
         var emailService = mock(EmailService.class);
         service = new StationApplicationService(
-                stationApplicationRepo, stationRepo, accountRepo, stationMemberRepo, emailService);
+                stationApplicationRepo, stationRepo, accountRepo, stationMemberRepo, emailService, new Auth());
     }
 
     @Test

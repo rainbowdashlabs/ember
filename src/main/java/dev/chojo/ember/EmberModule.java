@@ -121,6 +121,7 @@ import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
 import dev.chojo.ember.feature.federation.service.FederationVersionBroadcaster;
 import dev.chojo.ember.feature.feed.route.FeedMetricsRoutes;
 import dev.chojo.ember.feature.feed.route.FeedTokenRoutes;
+import dev.chojo.ember.feature.feed.route.StationFeedUseRoutes;
 import dev.chojo.ember.feature.feed.route.UserFeedRoutes;
 import dev.chojo.ember.feature.feed.service.FeedMetricsService;
 import dev.chojo.ember.feature.form.route.FormRoutes;
@@ -237,6 +238,7 @@ import dev.chojo.ember.feature.system.service.DemoSettingsSeeder;
 import dev.chojo.ember.feature.system.service.DemoSetupSeeder;
 import dev.chojo.ember.feature.system.service.DemoStationSeeder;
 import dev.chojo.ember.feature.system.service.DemoTwoFactorSeeder;
+import dev.chojo.ember.feature.system.service.DemoVideoSeeder;
 import dev.chojo.ember.feature.system.service.DemoWaitingListSeeder;
 import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes;
 import dev.chojo.ember.feature.traffic.route.StationTrafficRoutes;
@@ -370,6 +372,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(PublicMapsRoutes.class);
         routesBinder.addBinding().to(AdminMapsRoutes.class);
         routesBinder.addBinding().to(FeedTokenRoutes.class);
+        routesBinder.addBinding().to(StationFeedUseRoutes.class);
         routesBinder.addBinding().to(OnboardingRoutes.class);
         routesBinder.addBinding().to(UserFeedRoutes.class);
         routesBinder.addBinding().to(FeedMetricsRoutes.class);
@@ -435,6 +438,7 @@ public class EmberModule extends AbstractModule {
         demoSeederBinder.addBinding().to(DemoSetupSeeder.class);
         demoSeederBinder.addBinding().to(DemoFreshStationSeeder.class);
         demoSeederBinder.addBinding().to(DemoTwoFactorSeeder.class);
+        demoSeederBinder.addBinding().to(DemoVideoSeeder.class);
 
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});

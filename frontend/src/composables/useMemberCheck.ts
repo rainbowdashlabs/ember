@@ -5,10 +5,11 @@
  */
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { InventoryItem } from '@/api/inventory'
-import type { CheckResult, CorrectItemRequest, MemberCheckState, RequiredInventoryItem } from '@/api/inventoryCheck'
+import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
+import type { CheckResult, CorrectItemRequest, MemberCheckState } from '@/api/inventoryCheck'
 import { inventoryCheck, procurement } from '@/api'
 import { reportCaughtError } from '@/util/devErrorReporter'
+import { showToast } from '@/util/toast'
 
 /**
  * One thing still to be looked at during a check: either an item the member holds, or an empty
@@ -40,6 +41,9 @@ export function useMemberCheck(
   const itemResults = ref<Map<number, CheckResult>>(new Map())
   const itemNotes = ref<Map<number, string>>(new Map())
   const procurementCreated = ref<Set<number>>(new Set())
+
+  /** The slots already ordered for, as `inventory-slot`, so the offer is not made twice. */
+  const slotProcurements = ref<Set<string>>(new Set())
   const slotSelections = ref<Map<string, string>>(new Map())
   const slotsNotInPossession = ref<Set<string>>(new Set())
 
@@ -200,6 +204,35 @@ export function useMemberCheck(
     }
   }
 
+  /**
+   * Orders the piece that would fill an empty slot, and settles the slot with it.
+   *
+   * <p>Raised where the store holds nothing that fits, which is what a procurement is for. Nothing
+   * has been lost here: the member is simply owed something that is not there.
+   *
+   * <p>The slot is marked as one they do not have, because that is what it is and what the order has
+   * just confirmed. Without it the walk would offer the same empty slot again, with the order already
+   * placed behind it.
+   */
+  async function createProcurementForSlot(req: RequiredInventoryItem, slotIndex: number, sizeId?: number) {
+    error.value = ''
+    try {
+      await procurement.createProcurement({
+        inventoryId: req.inventoryId,
+        memberId: memberId.value,
+        sizeId,
+      })
+      const key = `${req.inventoryId}-${slotIndex}`
+      slotProcurements.value = new Set([...slotProcurements.value, key])
+      if (!slotsNotInPossession.value.has(key)) {
+        slotsNotInPossession.value = new Set([...slotsNotInPossession.value, key])
+      }
+      showToast(t('inventory.check.procurementNoted'), 'success')
+    } catch {
+      error.value = t('common.error')
+    }
+  }
+
   function sizeLabel(req: RequiredInventoryItem, sizeId?: number | null): string {
     if (!sizeId || !req.sizes.length) return ''
     return req.sizes.find(s => s.id === sizeId)?.label ?? ''
@@ -246,6 +279,8 @@ export function useMemberCheck(
     createAndAssignToSlot,
     unassignItem,
     createProcurementForItem,
+    createProcurementForSlot,
+    slotProcurements,
     sizeLabel,
     itemLabel,
     reset,

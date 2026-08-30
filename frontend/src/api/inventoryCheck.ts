@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {InventoryItem, InventorySize, ItemMetadata, ItemOwnerName} from './inventory'
+import type {InventoryItem, InventorySize, ItemMetadata, ItemOwnerName, RequiredInventoryItem} from './inventory'
 import type {MemberIdentity} from './types'
 
 export interface MemberCheckSummary {
@@ -55,19 +55,6 @@ export interface MemberCheckState {
     assigned: InventoryItem[]
     lastCheck?: InventoryCheck | null
     unassigned: Record<number, InventoryItem[]>
-}
-
-export interface RequiredInventoryItem {
-    inventoryId: number
-    inventoryName: string
-    inventoryType: string
-    hasSizes: boolean
-    sizes: InventorySize[]
-    requiredQuantity: number
-    /** What the member has towards it, counting pieces away in an exchange. */
-    assignedQuantity: number
-    /** How many of those are away in an exchange rather than in their hands. */
-    inExchangeQuantity: number
 }
 
 export interface InventoryCheck {

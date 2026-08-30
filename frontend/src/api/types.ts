@@ -259,10 +259,10 @@ export interface StationMember {
     accountSetupPending?: boolean
     setupMailExpiresAt?: string | null
     /**
-     * Whether anything written about this member would reach anybody: their own address where it is a
-     * real one, a guardian's where it is not. Absent on the lists that do not ask.
+     * Who a letter about this member arrives at: their own address, a guardian's where they have
+     * none of their own, or nobody. Absent on the lists that do not ask.
      */
-    mailReachable?: boolean
+    mailReaches?: 'SELF' | 'GUARDIANS' | 'NOBODY'
     /** ISO yyyy-MM-dd date when the member joined the station. */
     joinDate?: string | null
 }

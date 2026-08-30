@@ -6,7 +6,7 @@
 import {reactive, watch} from 'vue'
 import {events} from '@/api'
 import {EventTypes, needsDayOfWeek, type EventField, type EventFieldEntry, type EventTemplateDetail, type StationEvent} from '@/api/events'
-import {emptyRestriction} from '@/components/input/restriction'
+import {toRestriction} from '@/components/input/restriction'
 import {createEventFormState} from './eventFormState'
 import {modelBindings} from './modelBindings'
 
@@ -45,7 +45,10 @@ export function useEventForm() {
     if (tpl.categoryId) state.categoryId = String(tpl.categoryId)
     if (tpl.attendanceTemplateId) state.templateId = String(tpl.attendanceTemplateId)
     if (tpl.eventType) state.eventType = tpl.eventType
-    if (detail.restriction) state.restriction = {...emptyRestriction(), ...detail.restriction}
+    if (detail.restriction) {
+      state.restriction = toRestriction(detail.restriction.register)
+      state.viewRestriction = toRestriction(detail.restriction.view)
+    }
     if (tpl.requiresRegistration != null) state.requiresRegistration = tpl.requiresRegistration
     if (tpl.requiresConfirmation != null) state.requiresConfirmation = tpl.requiresConfirmation
     if (detail.fields.length > 0) {
@@ -108,13 +111,8 @@ export function useEventForm() {
     applyEventFields(fields)
     applyEvent(ev)
 
-    state.restriction = {
-      userTypes: restrictions.userTypes ?? [],
-      groupIds: restrictions.groupIds ?? [],
-      tagIds: restrictions.tagIds ?? [],
-      memberIds: [],
-      mode: (restrictions.mode as 'AND' | 'OR') ?? 'AND',
-    }
+    state.restriction = toRestriction(restrictions.register)
+    state.viewRestriction = toRestriction(restrictions.view)
 
     try {
       state.reminders = await events.getEventReminders(id)
@@ -140,6 +138,7 @@ export function useEventForm() {
       thresholdDate: state.hasThreshold && state.thresholdDate
           ? new Date(state.thresholdDate).toISOString() : undefined,
       restriction: state.restriction,
+      viewRestriction: state.viewRestriction,
       registrationCloseDays: state.registrationCloseDays ?? undefined,
       repeatUntil: repeats() && state.repeatUntil ? state.repeatUntil : null,
       repeatCount: repeats() && !state.repeatUntil ? state.repeatCount ?? null : null,

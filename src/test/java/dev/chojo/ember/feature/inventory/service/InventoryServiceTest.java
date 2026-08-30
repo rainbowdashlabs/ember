@@ -123,6 +123,34 @@ class InventoryServiceTest extends RepositoryTestBase {
         assertFalse(items.stream().anyMatch(i -> i.id() == itemId));
     }
 
+    /**
+     * Handing a member something they are short of, from the member's own page.
+     *
+     * <p>Two steps that have to be one: a piece written down for somebody and then left lying
+     * because the hand-over failed is worse than no piece at all.
+     */
+    @Test
+    @Order(35)
+    void aFreshPieceIsWrittenDownAndHandedOverInOneStep() {
+        var inv = service.create(station.id(), "HandOut Inv", InventoryType.INTERNAL, false);
+
+        var handed = service.createAndHandOut(inv.id(), null, member.id(), "Inv Tester");
+
+        assertEquals(member.id(), handed.assignedTo(), "it is in the member's hands at once");
+        assertTrue(service.findItemsByMember(member.id()).stream().anyMatch(i -> i.id() == handed.id()));
+        assertTrue(
+                service.unassignedItems(inv.id()).stream().noneMatch(i -> i.id() == handed.id()),
+                "and no longer offered as free stock");
+
+        service.assignItem(handed.id(), null, "");
+        assertTrue(
+                service.unassignedItems(inv.id()).stream().anyMatch(i -> i.id() == handed.id()),
+                "taking it back puts it on offer again");
+
+        service.deleteItem(handed.id(), null);
+        service.delete(inv.id());
+    }
+
     @Test
     @Order(40)
     void markLostAndFound() {

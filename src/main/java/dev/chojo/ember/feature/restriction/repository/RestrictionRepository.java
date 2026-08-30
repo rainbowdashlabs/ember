@@ -41,13 +41,22 @@ public class RestrictionRepository {
     }
 
     /**
+     * Whether an entity carries any restriction at all.
+     */
+    public boolean hasRestrictions(RestrictionType type, int entityId) {
+        return RestrictionSql.hasAny(type.table(), type.fkColumn(), entityId);
+    }
+
+    /**
      * Reads the restriction mode stored on the owning entity, falling back to
      * {@link RestrictionMode#AND} when no such entity exists.
      */
     public RestrictionMode findMode(RestrictionType type, int entityId) {
-        return query("SELECT restriction_mode FROM %s WHERE %s = :id;", type.entityTable(), type.entityIdColumn())
+        return query(
+                        "SELECT %s AS mode FROM %s WHERE %s = :id;",
+                        type.modeColumn(), type.entityTable(), type.entityIdColumn())
                 .single(call().bind("id", entityId))
-                .map(row -> RestrictionMode.valueOf(row.getString("restriction_mode")))
+                .map(row -> RestrictionMode.valueOf(row.getString("mode")))
                 .first()
                 .orElse(RestrictionMode.AND);
     }

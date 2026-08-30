@@ -3,10 +3,10 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {InventoryItem, InventorySize} from '@/api/inventory'
+import type {InventoryItem, InventorySize, RequiredInventoryItem} from '@/api/inventory'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 import type {CheckEntry} from '@/composables/useMemberCheck'
-import type {CheckResult, RequiredInventoryItem} from '@/api/inventoryCheck'
+import type {CheckResult} from '@/api/inventoryCheck'
 import type {PitchInventoryCheck, PitchRapidCheck, PitchStats, PitchStorage} from './pitchTypes'
 
 /**
@@ -55,6 +55,7 @@ export const INVENTORY_CHECK: PitchInventoryCheck = {
     itemNotes: new Map([[755, 'Beim Zeltlager verloren']]),
     procurementCreated: new Set<number>(),
     slotsNotInPossession: new Set<string>(),
+    slotProcurements: new Set<string>(),
     slotSelections: new Map<string, string>(),
     sizeLabel,
     itemLabel,

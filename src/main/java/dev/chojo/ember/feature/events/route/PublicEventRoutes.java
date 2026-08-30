@@ -104,7 +104,15 @@ public class PublicEventRoutes implements Routes {
         return new PublicEventData(station, categoryMap, publicEvents);
     }
 
+    /**
+     * Whether an event belongs on the station's public page, which anybody on the internet can read.
+     *
+     * <p>An event that not even every member may know about never does, whatever the flag says. The
+     * flag is a tri-state whose middle value inherits from the category, so without this an event
+     * dropped into a public category would be published by a setting nobody made for it.
+     */
     private boolean isEventPublic(StationEvent event, Map<Integer, EventCategory> categoryMap) {
+        if (event.restricted()) return false;
         // Tri-state: true = force public, false = force hidden, null = inherit from category
         if (event.isPublic() != null) return event.isPublic();
         if (event.categoryId() != null) {

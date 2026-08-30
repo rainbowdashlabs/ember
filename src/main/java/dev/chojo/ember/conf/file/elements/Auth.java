@@ -14,6 +14,9 @@ import dev.chojo.ocular.override.Overwrite;
  */
 @SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
 public class Auth {
+    /** The longest a setup link may be made to live, whatever the configuration asks for. */
+    public static final int SETUP_TOKEN_MAX_DAYS = 30;
+
     @Overwrite(env = @Env)
     private int tokenBytes = 32;
 
@@ -30,6 +33,20 @@ public class Auth {
      */
     @Overwrite(env = @Env)
     private int resetTokenHours = 1;
+
+    /**
+     * How many days the link that sets up a new account stays good for.
+     *
+     * <p>Its own setting, because it is not a reset. Somebody who forgot their password is at the
+     * screen now and wants back in within the hour; somebody handed an account is invited, and the
+     * invitation waits for a holiday, a term break, or the evening they next look at their mail. A
+     * link that dies over a long weekend leaves an operator sending invitations twice.
+     *
+     * <p>Capped at {@link #SETUP_TOKEN_MAX_DAYS} days however it is configured. It is still a bearer
+     * secret in a mailbox, and a link that never dies is a password that was never chosen.
+     */
+    @Overwrite(env = @Env)
+    private int setupTokenDays = 30;
 
     /**
      * How long a mail waits after a guardian switched signing in on or off for a member in their
@@ -92,6 +109,14 @@ public class Auth {
 
     public int passwordTokenHours() {
         return passwordTokenHours;
+    }
+
+    /**
+     * The setup-link lifetime actually applied, which is what was configured or the ceiling,
+     * whichever is shorter. At least a day, so a nonsensical zero does not hand out dead links.
+     */
+    public int setupTokenDays() {
+        return Math.clamp(setupTokenDays, 1, SETUP_TOKEN_MAX_DAYS);
     }
 
     public int resetTokenHours() {

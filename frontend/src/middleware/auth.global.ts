@@ -3,7 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {getItem} from '~/api/storage'
+import {demoLogin} from '~/api/auth'
+import {getDemoStatus} from '~/api/demo'
+import {getItem, removeItem} from '~/api/storage'
 import {useConsentGuard} from '~/composables/useConsentGuard'
 import {useSession} from '~/composables/useSession'
 import {useCluster} from '~/composables/useCluster'
@@ -29,7 +31,32 @@ const IDLE_LIMIT_MS = 3600000
 const IDLE_EXEMPT = new Set(['/station/requirements', '/reconsent'])
 
 /**
- * Order matters here. The active station is resolved first, so a link arriving with
+ * Signs in as somebody else because a link said so, which only a demo or a development instance
+ * allows.
+ *
+ * <p>It exists for the recordings and the walkthroughs: a link that carries both who is watching and
+ * what they are looking at needs no spoken preamble about signing in first, and it lands on the same
+ * screen every time. The endpoint behind it is registered only on those instances, so the parameter
+ * is inert everywhere else; the check here keeps a production instance from even asking.
+ *
+ * <p>The stored station and cluster go first. They belong to whoever was signed in a moment ago, and
+ * the next person is often at another station, where they would be sent to a picker or an emptiness
+ * instead of the page the link named.
+ *
+ * @param email the address to become
+ */
+async function switchAccount(email: string): Promise<void> {
+    const status = await getDemoStatus()
+    if (!status.demo && !status.dev) return
+    removeItem('station_id')
+    removeItem('cluster_id')
+    await demoLogin(email)
+    useSession().clear()
+}
+
+/**
+ * Order matters here. A link that names somebody to become is honoured before anything else, because
+ * every gate below it asks about the person who is signed in. The active station is resolved next, so a link arriving with
  * {@code ?station=} hands its station over before anything else can redirect and drop the
  * parameter. The idle check runs afterwards and only once a station is known - the requirements
  * page is station-scoped, and sending someone there without one lands them back at the station
@@ -44,6 +71,18 @@ const IDLE_EXEMPT = new Set(['/station/requirements', '/reconsent'])
  */
 export default defineNuxtRouteMiddleware(async (to) => {
     if (!import.meta.client) return
+
+    const becomes = typeof to.query.as === 'string' ? to.query.as.trim() : null
+    if (becomes) {
+        const query = {...to.query}
+        delete query.as
+        try {
+            await switchAccount(becomes)
+        } catch {
+            return navigateTo({path: '/login', query: {redirect: to.path}})
+        }
+        return navigateTo({path: to.path, query, hash: to.hash, replace: true})
+    }
 
     if (to.meta.public === true) return
     if (to.path === '/' || to.path === '/login' || to.path === '/2fa-verify') return

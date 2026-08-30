@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ManageStationInsightsView from '~/views/stationview/manage/ManageStationInsightsView.vue'
+import StationFeedsView from '~/views/stationview/monitoring/StationFeedsView.vue'
 
 definePageMeta({
   layout: 'station',
-  name: 'station-insights',
+  name: 'station-feeds',
 })
 </script>
 
 <template>
-  <ManageStationInsightsView />
+  <StationFeedsView />
 </template>

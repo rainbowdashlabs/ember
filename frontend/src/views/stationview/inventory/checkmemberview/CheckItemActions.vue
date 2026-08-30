@@ -8,8 +8,8 @@ import {useI18n} from 'vue-i18n'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import type {InventoryItem} from '@/api/inventory'
-import type {CheckResult, RequiredInventoryItem} from '@/api/inventoryCheck'
+import type {InventoryItem, RequiredInventoryItem} from '@/api/inventory'
+import type {CheckResult} from '@/api/inventoryCheck'
 
 /** Everything a check can do about one piece in somebody's hands, in one row of buttons. */
 const props = defineProps<{
