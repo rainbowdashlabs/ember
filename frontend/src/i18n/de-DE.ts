@@ -2057,6 +2057,7 @@ export default {
         federatedRegistrations: 'Föderierte Anmeldungen',
         manualRegister: 'Mitglied anmelden',
         selectMember: 'Mitglied wählen',
+        editAnswers: 'Antworten bearbeiten',
     },
     eventsRegistrations: {
         title: 'Offene Anmeldungen',

@@ -1,5 +1,15 @@
 # Changelog
 
+## v26.13.10
+
+### Improvements
+
+- **Whoever runs an appointment can correct an answer to its questions.** The answers were the member's alone to change, although the person planning from them is the one reading them, so a shirt size typed wrong meant chasing the member while the order was going out. Anybody who may edit the appointment can now put an answer right from the list of sign-ups, and the member's own answers stay theirs to change as before.
+
+### Fixes
+
+- **A question asking for a member could not be answered properly.** Where an appointment asks which member is driving or who brings the trailer, the window that answers for a whole household offered a plain text box instead of the list of members, so what was stored was the text somebody typed and every list read it back as a stray number. That window now offers the same picker as the one used elsewhere, and it shows the starting value a question was given instead of leaving the field empty.
+
 ## v26.13.9
 
 ### New Features
