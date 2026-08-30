@@ -24,7 +24,6 @@ defineProps<{
   submitting: boolean
   itemResults: Map<number, CheckResult>
   itemNotes: Map<number, string>
-  procurementCreated: Set<number>
   slotsNotInPossession: Set<string>
   slotProcurements: Set<string>
   slotSelections: Map<string, string>
@@ -51,7 +50,6 @@ defineEmits<{
   setResult: [itemId: number, result: CheckResult]
   setNote: [itemId: number, note: string]
   unassign: [itemId: number]
-  createProcurement: [item: InventoryItem]
   correct: [item: InventoryItem, req: RequiredInventoryItem]
   toggleNotInPossession: [inventoryId: number, slotIndex: number]
   assignToSlot: [inventoryId: number, slotIndex: number]
@@ -113,7 +111,6 @@ defineExpose({ getCurrentRapidEntry })
       :empty-slot-count="emptySlotCount(req)"
       :item-results="itemResults"
       :item-notes="itemNotes"
-      :procurement-created="procurementCreated"
       :slots-not-in-possession="slotsNotInPossession"
       :slot-procurements="slotProcurements"
       :slot-selections="slotSelections"
@@ -122,7 +119,6 @@ defineExpose({ getCurrentRapidEntry })
       @set-result="(id, r) => $emit('setResult', id, r)"
       @set-note="(id, n) => $emit('setNote', id, n)"
       @unassign="(id) => $emit('unassign', id)"
-      @create-procurement="(item) => $emit('createProcurement', item)"
       @correct="(item, r) => $emit('correct', item, r)"
       @toggle-not-in-possession="(invId, slotIdx) => $emit('toggleNotInPossession', invId, slotIdx)"
       @assign-to-slot="(invId, slotIdx) => $emit('assignToSlot', invId, slotIdx)"

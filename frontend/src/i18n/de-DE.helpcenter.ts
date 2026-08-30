@@ -1595,8 +1595,7 @@ volumes:
             step1: 'Wähle ein Mitglied aus der Liste.',
             step2: 'Klicke auf Prüfung starten.',
             step3: 'Pro zugewiesenem Gegenstand hast du zwei Knöpfe: der grüne Haken heißt vorhanden, das '
-                + 'rote Kreuz heißt verloren. Erst nach dem Kreuz erscheint der Knopf, um gleich eine '
-                + 'Beschaffung anzulegen. „Nicht im Besitz" gilt nicht dem Gegenstand, sondern einer leeren '
+                + 'rote Kreuz heißt verloren. „Nicht im Besitz" gilt nicht dem Gegenstand, sondern einer leeren '
                 + 'Stelle: jemand müsste laut Vorgabe etwas haben, hat aber nichts eingetragen.',
             step4: 'Klicke auf Prüfung abschließen.',
             sortTitle: 'Sortierung',
@@ -1606,7 +1605,7 @@ volumes:
             lastCheckText: 'Klicke auf das Augen-Symbol neben einem Mitglied, um die Ergebnisse der letzten Prüfung einzusehen.',
             resultsTitle: 'Ergebnisse',
             resultsText: 'Du kannst die Ergebnisse der letzten Prüfung jederzeit einsehen. Verlorene Gegenstände werden automatisch auf der Inventarübersicht angezeigt.',
-            tip: 'Bei fehlenden Gegenständen kannst du direkt eine Beschaffung erstellen.',
+            tip: 'Passt für eine leere Stelle nichts aus dem Bestand, kannst du dort direkt eine Beschaffung vormerken.',
         },
         inventoryProcurement: {
             title: 'Beschaffung',
@@ -3998,7 +3997,7 @@ volumes:
             statusNotInPossession: 'Nicht im Besitz - Der Gegenstand fehlt, aber ist nicht verloren.',
             statusLost: 'Verloren - Der Gegenstand ist verschwunden.',
             actionsTitle: 'Weitere Aktionen',
-            actionsText: 'Du kannst Gegenstände direkt zuweisen oder zurücknehmen, eine Beschaffung erstellen und Notizen hinzufügen.',
+            actionsText: 'Du kannst Gegenstände direkt zuweisen oder zurücknehmen und Notizen hinzufügen. Eine Beschaffung gehört zur leeren Stelle, für die nichts Passendes da ist.',
             dummyTitle: 'Beispiel: Prüfansicht',
             rapidCheckTitle: 'Schnellprüfung',
             rapidCheckText: 'Die Schnellprüfung zeigt dir Gegenstände einzeln nacheinander an.',

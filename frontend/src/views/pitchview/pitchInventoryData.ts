@@ -53,7 +53,6 @@ export const INVENTORY_CHECK: PitchInventoryCheck = {
     emptySlotCount: 1,
     itemResults: new Map<number, CheckResult>([[142, 'CONFIRMED'], [755, 'LOST']]),
     itemNotes: new Map([[755, 'Beim Zeltlager verloren']]),
-    procurementCreated: new Set<number>(),
     slotsNotInPossession: new Set<string>(),
     slotProcurements: new Set<string>(),
     slotSelections: new Map<string, string>(),

@@ -139,7 +139,6 @@ export interface PitchInventoryCheck {
     emptySlotCount: number
     itemResults: Map<number, CheckResult>
     itemNotes: Map<number, string>
-    procurementCreated: Set<number>
     slotsNotInPossession: Set<string>
     slotProcurements: Set<string>
     slotSelections: Map<string, string>

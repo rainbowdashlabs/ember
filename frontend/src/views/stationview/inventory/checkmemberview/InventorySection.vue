@@ -20,7 +20,6 @@ defineProps<{
   emptySlotCount: number
   itemResults: Map<number, CheckResult>
   itemNotes: Map<number, string>
-  procurementCreated: Set<number>
   slotsNotInPossession: Set<string>
   slotProcurements: Set<string>
   slotSelections: Map<string, string>
@@ -32,7 +31,6 @@ const emit = defineEmits<{
   setResult: [itemId: number, result: CheckResult]
   setNote: [itemId: number, note: string]
   unassign: [itemId: number]
-  createProcurement: [item: InventoryItem]
   correct: [item: InventoryItem, req: RequiredInventoryItem]
   toggleNotInPossession: [inventoryId: number, slotIndex: number]
   assignToSlot: [inventoryId: number, slotIndex: number]
@@ -68,12 +66,10 @@ const {t} = useI18n()
         :req="req"
         :result="itemResults.get(item.id)"
         :note="itemNotes.get(item.id) ?? ''"
-        :procurement-created="procurementCreated.has(item.id)"
         :size-label="sizeLabel(req, item.sizeId)"
         @set-result="(id, r) => emit('setResult', id, r)"
         @set-note="(id, n) => emit('setNote', id, n)"
         @unassign="id => emit('unassign', id)"
-        @create-procurement="item => emit('createProcurement', item)"
         @correct="(item, r) => emit('correct', item, r)"
       />
     </div>

@@ -16,13 +16,11 @@ const props = defineProps<{
   item: InventoryItem
   req: RequiredInventoryItem
   result?: CheckResult
-  procurementCreated: boolean
 }>()
 
 const emit = defineEmits<{
   setResult: [itemId: number, result: CheckResult]
   unassign: [itemId: number]
-  createProcurement: [item: InventoryItem]
   correct: [item: InventoryItem, req: RequiredInventoryItem]
 }>()
 
@@ -52,17 +50,5 @@ const size = 'text-xs px-3 py-1.5 sm:px-2 sm:py-1 flex-1 sm:flex-none'
       <font-awesome-icon :icon="['fas', 'pen']" class="mr-1"/>
       {{ t('inventory.check.correct.action') }}
     </SecondaryButton>
-    <SecondaryButton
-        v-if="props.result === 'LOST' && !procurementCreated"
-        :class="size"
-        @click="emit('createProcurement', item)"
-    >
-      <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-1"/>
-      {{ t('inventory.check.createProcurement') }}
-    </SecondaryButton>
-    <span v-if="procurementCreated" class="text-xs text-success">
-      <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
-      {{ t('inventory.check.procurementCreated') }}
-    </span>
   </div>
 </template>

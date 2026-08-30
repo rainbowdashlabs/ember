@@ -8,7 +8,6 @@ import { useI18n } from 'vue-i18n'
 import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
 import type { CheckResult, CorrectItemRequest, MemberCheckState } from '@/api/inventoryCheck'
 import { inventoryCheck, procurement } from '@/api'
-import { reportCaughtError } from '@/util/devErrorReporter'
 import { showToast } from '@/util/toast'
 
 /**
@@ -40,7 +39,6 @@ export function useMemberCheck(
 
   const itemResults = ref<Map<number, CheckResult>>(new Map())
   const itemNotes = ref<Map<number, string>>(new Map())
-  const procurementCreated = ref<Set<number>>(new Set())
 
   /** The slots already ordered for, as `inventory-slot`, so the offer is not made twice. */
   const slotProcurements = ref<Set<string>>(new Set())
@@ -190,20 +188,6 @@ export function useMemberCheck(
     await apply(() => inventoryCheck.unassignItem(memberId.value, itemId))
   }
 
-  async function createProcurementForItem(item: InventoryItem) {
-    try {
-      await procurement.createProcurement({
-        inventoryId: item.inventoryId,
-        memberId: memberId.value,
-        sizeId: item.sizeId ?? undefined,
-        notes: itemNotes.value.get(item.id) || undefined,
-      })
-      procurementCreated.value = new Set([...procurementCreated.value, item.id])
-    } catch (e) {
-      reportCaughtError(e, 'procurement creation during member check')
-    }
-  }
-
   /**
    * Orders the piece that would fill an empty slot, and settles the slot with it.
    *
@@ -259,7 +243,6 @@ export function useMemberCheck(
   return {
     itemResults,
     itemNotes,
-    procurementCreated,
     slotSelections,
     slotsNotInPossession,
     allMarked,
@@ -278,7 +261,6 @@ export function useMemberCheck(
     correctItem,
     createAndAssignToSlot,
     unassignItem,
-    createProcurementForItem,
     createProcurementForSlot,
     slotProcurements,
     sizeLabel,
