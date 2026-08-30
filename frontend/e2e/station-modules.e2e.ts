@@ -42,7 +42,7 @@ const MODULES: ModuleEntry[] = [
     {key: 'NEWS', name: 'news', entries: ['Neuigkeiten'], at: OVERVIEW},
     {key: 'EVENTS', name: 'events', entries: ['Termine'], at: OVERVIEW},
     {key: 'ATTENDANCE', name: 'attendance', entries: ['Anwesenheit'], at: OVERVIEW},
-    {key: 'FORMS', name: 'forms', entries: ['Formulare'], at: OVERVIEW},
+    {key: 'FORMS', name: 'forms', entries: ['Umfragen'], at: OVERVIEW},
     {key: 'LOST_AND_FOUND', name: 'lost and found', entries: ['Fundbüro'], at: OVERVIEW},
     {key: 'KNOWLEDGE_BASE', name: 'knowledge base', entries: ['Wiki'], at: OVERVIEW},
     {key: 'BOARDS', name: 'boards', entries: ['Boards'], at: OVERVIEW},

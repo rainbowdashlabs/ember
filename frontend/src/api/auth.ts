@@ -166,8 +166,23 @@ export async function passwordLinkStatus(token: string): Promise<PasswordLinkSta
     return res.data
 }
 
-export async function setPassword(data: SetPasswordRequest): Promise<MessageResponse> {
-    const res = await client.post<MessageResponse>('/auth/set-password', data)
+/**
+ * Sets the password a link was sent for, and signs in with it where nothing stands in the way.
+ *
+ * <p>Choosing the password proves the same thing as typing it into the sign-in form would, so the
+ * server answers with a session rather than sending the person round to say it again. An account
+ * with a second factor gets the same challenge the sign-in form would give it, and an answer with
+ * neither means the password was set but the signing in has to be done by hand.
+ */
+export async function setPassword(data: SetPasswordRequest): Promise<LoginResponse> {
+    const res = await client.post<LoginResponse>('/auth/set-password', data)
+    if (res.data.token) {
+        setItem('session_token', res.data.token)
+        if (res.data.expiresAt) {
+            setItem('session_expires_at', res.data.expiresAt)
+            scheduleTokenRefresh(res.data.expiresAt)
+        }
+    }
     return res.data
 }
 

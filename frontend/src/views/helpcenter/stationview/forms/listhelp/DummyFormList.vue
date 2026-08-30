@@ -77,7 +77,7 @@ const {t} = useI18n()
 
     <DummyFormRow
       v-if="view === 'manager'"
-      title="Neues Formular (Entwurf)"
+      title="Neue Umfrage (Entwurf)"
       :manager-view="true"
     >
       <template #badge><InfoBadge>{{ t('forms.statusDraft') }}</InfoBadge></template>

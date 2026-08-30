@@ -202,18 +202,10 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     // -- Profile completeness --
 
     @Test
-    @Order(20)
-    void isProfileCompleteEmptyRoles() {
-        // No roles → no applicable scopes → complete by default
-        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of()));
-    }
-
-    @Test
     @Order(21)
-    void isProfileCompleteWithMemberRole() {
-        // Member has a MEMBER-scope field with value - should be complete
-        // The field has default config (not required), so should be complete
-        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("MEMBER")));
+    void isProfileCompleteWithNothingRequired() {
+        // The member's one field is not required, so nothing is outstanding
+        assertTrue(service.isProfileComplete(member.id()));
     }
 
     @Test
@@ -230,7 +222,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         var account2 = accountRepo.create("pfield-empty@test.com", "Empty", "Member");
         var member2 = stationMemberRepo.create(station.id(), account2.id());
 
-        assertFalse(service.isProfileComplete(member2.id(), station.id(), List.of("MEMBER")));
+        assertFalse(service.isProfileComplete(member2.id()));
 
         // Cleanup
         service.delete(reqField.id());
@@ -373,43 +365,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         assertTrue(fields.isEmpty());
     }
 
-    // -- isProfileComplete with various role scopes --
-
-    @Test
-    @Order(24)
-    void isProfileCompleteWithGuardianRole() {
-        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("GUARDIAN")));
-    }
-
-    @Test
-    @Order(24)
-    void isProfileCompleteWithTeamRole() {
-        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("TEAM")));
-    }
-
-    @Test
-    @Order(24)
-    void isProfileCompleteWithManagerRole() {
-        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("MANAGER")));
-    }
-
-    @Test
-    @Order(24)
-    void isProfileCompleteWithAdminRole() {
-        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("ADMIN")));
-    }
-
-    @Test
-    @Order(24)
-    void isProfileCompleteWithAttendanceManagerRole() {
-        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("ATTENDANCE_MANAGER")));
-    }
-
-    @Test
-    @Order(24)
-    void isProfileCompleteWithMultipleRoles() {
-        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("MEMBER", "TEAM", "MANAGER", "ADMIN")));
-    }
+    // -- What counts as a complete profile --
 
     @Test
     @Order(24)
@@ -425,7 +381,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         var account3 = accountRepo.create("pfield-readonly@test.com", "Readonly", "Test");
         var member3 = stationMemberRepo.create(station.id(), account3.id());
         // Should be complete - readonly required fields are skipped
-        assertTrue(service.isProfileComplete(member3.id(), station.id(), List.of("MEMBER")));
+        assertTrue(service.isProfileComplete(member3.id()));
         service.delete(readonlyReqField.id());
         stationMemberRepo.delete(member3.id());
         accountRepo.delete(account3.id());
@@ -446,25 +402,45 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         var member4 = stationMemberRepo.create(station.id(), account4.id());
         // Set empty quoted value
         service.setValues(member4.id(), List.of(new FieldValueEntry(reqField.id(), "\"\"")), member4.id());
-        assertFalse(service.isProfileComplete(member4.id(), station.id(), List.of("MEMBER")));
+        assertFalse(service.isProfileComplete(member4.id()));
         service.delete(reqField.id());
         stationMemberRepo.delete(member4.id());
         accountRepo.delete(account4.id());
     }
 
+    /**
+     * A question put to a group counts against the members of that group.
+     *
+     * <p>It used to be thrown away here, so somebody in the instructors' group could be missing an
+     * answer the instructors are required to give and still be told their profile was complete. The
+     * gap reached neither the task list nor the reminder on the dashboard.
+     */
     @Test
     @Order(24)
-    void isProfileCompleteGroupScopeSkipped() {
-        // GROUP scope fields should be skipped
+    void aGroupsQuestionIsRequiredOfItsMembers() {
+        var group = memberGroupRepo.create(station.id(), "Ausbilder " + java.util.UUID.randomUUID());
         var groupField = service.create(
                 station.id(),
                 "GroupField",
                 ProfileFieldType.TEXT,
-                ProfileFieldConfig.parse("{\"required\":true}"),
+                ProfileFieldConfig.parse("{\"required\":true,\"groupId\":" + group.id() + "}"),
                 32,
                 ProfileFieldScope.GROUP);
-        assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("MEMBER")));
+        var account5 = accountRepo.create("pfield-group@test.com", "Group", "Member");
+        var member5 = stationMemberRepo.create(station.id(), account5.id());
+
+        assertTrue(service.isProfileComplete(member5.id()), "the question is not theirs before they are in the group");
+
+        memberGroupRepo.addMember(group.id(), member5.id());
+        assertFalse(service.isProfileComplete(member5.id()), "in the group, the group's question is theirs to answer");
+
+        service.setValues(member5.id(), List.of(new FieldValueEntry(groupField.id(), "\"Ja\"")), member5.id());
+        assertTrue(service.isProfileComplete(member5.id()));
+
         service.delete(groupField.id());
+        stationMemberRepo.delete(member5.id());
+        accountRepo.delete(account5.id());
+        memberGroupRepo.delete(group.id());
     }
 
     /**

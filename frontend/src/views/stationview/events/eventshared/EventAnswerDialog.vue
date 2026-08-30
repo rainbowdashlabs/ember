@@ -14,6 +14,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
+import {useAnswerMembers} from './useAnswerMembers'
 import type {EventRegistrationField, RegistrationFieldValue} from '@/api/events'
 import type {AnswerablePerson, PersonAnswer} from '@/util/eventAnswers'
 
@@ -50,6 +51,22 @@ const answers = ref(new Map()) as Ref<Map<K, Record<number, string>>>
 
 const asksQuestions = computed(() => props.attending && props.fields.length > 0)
 
+const {allMembers, loadMembers} = useAnswerMembers(computed(() => props.fields))
+
+/**
+ * What each person's answers start out as: whatever the question was given as its starting point.
+ *
+ * <p>A default is where the answer starts, not one already given, so it is shown rather than left
+ * blank and silently applied by the server on the way in.
+ */
+function seeded(): Record<number, string> {
+  const start: Record<number, string> = {}
+  for (const field of props.fields) {
+    start[field.id] = field.config?.defaultValue ?? ''
+  }
+  return start
+}
+
 const missing = computed(() => {
     if (!asksQuestions.value) return []
     return chosen.value.filter(key => props.fields.some(
@@ -60,7 +77,8 @@ const missing = computed(() => {
 watch(show, (visible) => {
     if (!visible) return
     chosen.value = props.people.map(person => person.key)
-    answers.value = new Map(props.people.map(person => [person.key, {}]))
+    answers.value = new Map(props.people.map(person => [person.key, seeded()]))
+    loadMembers()
 })
 
 function toggle(key: K) {
@@ -128,6 +146,7 @@ function confirm() {
                     <EventFieldValueInput
                         :field-type="field.fieldType"
                         :config="{...field.config}"
+                        :all-members="allMembers"
                         :model-value="answerFor(key, field.id)"
                         @update:model-value="value => setAnswer(key, field.id, value)"
                     />

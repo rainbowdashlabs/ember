@@ -14,7 +14,9 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import EditButton from '@/components/button/EditButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import RegistrationStatsTable from './RegistrationStatsTable.vue'
 import RegistrationFieldAnswers from './RegistrationFieldAnswers.vue'
 import MemberPicker, {type PickableMember} from '@/views/stationview/members/MemberPicker.vue'
@@ -94,8 +96,17 @@ const manualRegisterMemberId = defineModel<string>('manualRegisterMemberId', {de
 const emit = defineEmits<{
   accept: [registrationId: number]
   deny: [registrationId: number]
+  editAnswers: [registrationId: number]
   manualRegister: []
 }>()
+
+/**
+ * Whether an answer on this list can be put right here.
+ *
+ * <p>Whoever runs the appointment collected the answers and is the one reading them, so a wrong one
+ * is theirs to correct. An appointment that asks nothing has nothing to correct.
+ */
+const canEditAnswers = computed(() => runsEvent.value && fields.value.length > 0)
 
 const registrationSummary = computed(() => {
   let accepted = 0, pending = 0, denied = 0, declined = 0
@@ -119,8 +130,13 @@ function statusLabel(status: string): string {
 </script>
 
 <template>
-  <NeutralContainer v-if="registrations.length > 0 || canRegisterOthers" class="space-y-4">
-    <SubHeader>{{ t('eventDetail.registrations') }}</SubHeader>
+  <NeutralContainer v-if="registrations.length > 0 || canRegisterOthers || !event.requiresRegistration" class="space-y-4">
+    <SubHeader>{{ event.requiresRegistration ? t('eventDetail.registrations') : t('eventDetail.attendanceTitle') }}</SubHeader>
+
+    <template v-if="!event.requiresRegistration">
+      <MutedText size="sm" tag="p">{{ t('eventDetail.attendanceHint') }}</MutedText>
+      <MutedText v-if="registrations.length === 0" size="sm" tag="p">{{ t('eventDetail.noSignOffs') }}</MutedText>
+    </template>
 
     <div v-if="summaries.length > 0" class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
       <span v-for="summary in summaries" :key="summary.label" class="text-(--text-muted)">
@@ -152,8 +168,10 @@ function statusLabel(status: string): string {
           :registrations="pendingRegistrations"
           :stats="registrationStats"
           :show-actions="event.requiresConfirmation"
+          :can-edit-answers="canEditAnswers"
           @accept="emit('accept', $event)"
           @deny="emit('deny', $event)"
+          @edit-answers="emit('editAnswers', $event)"
       />
       <!-- Non-manager view: card display matching confirmed registrations -->
       <template v-else>
@@ -178,15 +196,22 @@ function statusLabel(status: string): string {
             <MemberName :identity="reg.memberIdentity ?? null"/>
             <span v-if="reg.eventDate" class="text-xs text-(--text-muted)">{{ formatDate(reg.eventDate) }}</span>
           </div>
-          <div v-if="decidable(reg)" class="flex items-center gap-2">
-            <PrimaryButton v-if="reg.status !== RegistrationStatus.ACCEPTED" @click="emit('accept', reg.id)">
-              <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
-              {{ t('eventsRegistrations.accept') }}
-            </PrimaryButton>
-            <ErrorButton v-if="reg.status !== RegistrationStatus.DENIED" @click="emit('deny', reg.id)">
-              <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
-              {{ t('eventsRegistrations.deny') }}
-            </ErrorButton>
+          <div v-if="decidable(reg) || canEditAnswers" class="flex items-center gap-2">
+            <template v-if="decidable(reg)">
+              <PrimaryButton v-if="reg.status !== RegistrationStatus.ACCEPTED" @click="emit('accept', reg.id)">
+                <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
+                {{ t('eventsRegistrations.accept') }}
+              </PrimaryButton>
+              <ErrorButton v-if="reg.status !== RegistrationStatus.DENIED" @click="emit('deny', reg.id)">
+                <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
+                {{ t('eventsRegistrations.deny') }}
+              </ErrorButton>
+            </template>
+            <EditButton
+                v-if="canEditAnswers"
+                :data-testid="`edit-answers-${reg.id}`"
+                @click="emit('editAnswers', reg.id)"
+            />
           </div>
         </div>
         <RegistrationFieldAnswers :fields="fields" :values="reg.fields" :overview-only="!runsEvent" class="mt-1"/>

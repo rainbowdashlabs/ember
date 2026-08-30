@@ -25,6 +25,7 @@ import LegalModal from '@/views/loginview/LegalModal.vue'
 import LoginForm from '@/views/loginview/LoginForm.vue'
 import DevDemoFooter from '@/views/loginview/DevDemoFooter.vue'
 import {apiErrorMessage} from '@/util/apiError'
+import {decideSignInLanding} from '@/util/signInLanding'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -91,27 +92,10 @@ async function resolveStationAndRedirect() {
   const redirectPath = route.query.redirect as string | undefined
   clearActiveStation()
   clearActiveCluster()
-  const [stations, info, myClusters] = await Promise.all([
-    session.getStations(),
-    session.getSessionInfo().catch(() => null),
-    clusters.listMine().catch(() => []),
-  ])
-  const [onlyStation] = stations
-  if (stations.length === 1 && onlyStation) {
-    setActiveStation(onlyStation.stationId)
-    await navigateTo(redirectPath || '/station/requirements')
-  } else if (stations.length > 1) {
-    await navigateTo(redirectPath || '/cross-station')
-  } else if (info?.instanceUserType === 'ADMINISTRATOR') {
-    await navigateTo(redirectPath || '/admin/dashboard/overview')
-  } else if (myClusters.length > 0) {
-    // Somebody who manages a cluster and belongs to no station has the cluster as their whole reason to be here
-    const [onlyCluster] = myClusters
-    if (myClusters.length === 1 && onlyCluster) setActiveCluster(onlyCluster.uid)
-    await navigateTo(redirectPath || '/cluster')
-  } else {
-    await navigateTo(redirectPath || '/account')
-  }
+  const landing = await decideSignInLanding(redirectPath)
+  if (landing.stationId) setActiveStation(landing.stationId)
+  if (landing.clusterUid) setActiveCluster(landing.clusterUid)
+  await navigateTo(landing.path)
 }
 
 const {running: loggingIn, error: loginError, run: handleLogin} = useAsyncAction(async () => {

@@ -6,12 +6,7 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import MemberName from '@/components/avatar/MemberName.vue'
-import RegistrationFieldAnswers from './RegistrationFieldAnswers.vue'
+import RegistrationStatsRow from './registrationstatstable/RegistrationStatsRow.vue'
 import type {EventRegistrationField} from '@/api/events'
 import type {EventRegistrationEntry, MemberRegistrationStats} from '@/api/events'
 
@@ -20,11 +15,14 @@ const props = defineProps<{
   registrations: EventRegistrationEntry[]
   stats: MemberRegistrationStats[]
   showActions?: boolean
+  /** Whether the reader may put an answer right, which is whoever runs the appointment. */
+  canEditAnswers?: boolean
 }>()
 
 const emit = defineEmits<{
   accept: [registrationId: number]
   deny: [registrationId: number]
+  editAnswers: [registrationId: number]
 }>()
 
 const {t} = useI18n()
@@ -57,39 +55,18 @@ function getStats(memberId: number): MemberRegistrationStats | undefined {
       </tr>
       </thead>
       <tbody>
-      <tr v-for="reg in sortedRegistrations" :key="reg.id" class="border-b border-(--border) last:border-0">
-        <td class="p-2">
-          <MemberName :identity="reg.memberIdentity ?? null"/>
-          <RegistrationFieldAnswers :fields="fields ?? []" :values="reg.fields" class="mt-1"/>
-        </td>
-        <template v-if="getStats(reg.memberId)">
-          <td class="p-2 text-center font-bold" :class="getStats(reg.memberId)!.priority === 'HIGH' ? 'text-success' : getStats(reg.memberId)!.priority === 'MEDIUM' ? 'text-info' : ''">
-            {{ getStats(reg.memberId)!.fairnessScore }}
-          </td>
-          <td class="p-2 text-center"><SuccessBadge>{{ getStats(reg.memberId)!.accepted }}</SuccessBadge></td>
-          <td class="p-2 text-center">
-            <ErrorBadge v-if="getStats(reg.memberId)!.denied > 0">{{ getStats(reg.memberId)!.denied }}</ErrorBadge>
-            <span v-else>0</span>
-          </td>
-          <td class="p-2 text-center">{{ Math.round(getStats(reg.memberId)!.acceptRate * 100) }}%</td>
-        </template>
-        <template v-else>
-          <td class="p-2 text-center text-(--text-muted)" colspan="4">–</td>
-        </template>
-        <td class="p-2 text-center text-xs text-(--text-muted)">{{ reg.eventDate }}</td>
-        <td v-if="showActions" class="p-2">
-          <div class="flex items-center gap-1 justify-end">
-            <PrimaryButton @click="emit('accept', reg.id)">
-              <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
-              {{ t('eventsRegistrations.accept') }}
-            </PrimaryButton>
-            <ErrorButton @click="emit('deny', reg.id)">
-              <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
-              {{ t('eventsRegistrations.deny') }}
-            </ErrorButton>
-          </div>
-        </td>
-      </tr>
+      <RegistrationStatsRow
+          v-for="reg in sortedRegistrations"
+          :key="reg.id"
+          :registration="reg"
+          :fields="fields"
+          :stats="getStats(reg.memberId)"
+          :show-actions="showActions"
+          :can-edit-answers="canEditAnswers"
+          @accept="emit('accept', $event)"
+          @deny="emit('deny', $event)"
+          @edit-answers="emit('editAnswers', $event)"
+      />
       </tbody>
     </table>
   </div>

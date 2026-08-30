@@ -59,6 +59,18 @@ const answers = computed(() => localAnswers(props.registrableMembers, props.myRe
 const {t} = useI18n()
 
 const activeTab = ref<'info' | 'registrations'>('info')
+
+/**
+ * What the second tab is called, which follows what the appointment asks of people.
+ *
+ * <p>Where it has to be signed up for, the tab holds the sign-ups. Where it does not, everybody is
+ * expected and the only answer anybody gives is a refusal, so the tab holds who is not coming. It
+ * used to be absent entirely on such an appointment, which left the refusals with nowhere to be
+ * read: they can be given from the appointment's own page, and then went nowhere anybody looked.
+ */
+const answerTabLabel = computed(() =>
+    props.event.requiresRegistration ? t('eventDetail.tabRegistrations') : t('eventDetail.tabAttendance'))
+
 const showCancelModal = ref(false)
 function onCancelled() {
   showCancelModal.value = false
@@ -109,11 +121,10 @@ function onCancelled() {
       <InfoBadge v-for="days in reminders" :key="days">{{ days }} {{ t('eventEdit.daysBefore') }}</InfoBadge>
     </div>
 
-    <TabBar v-if="event.requiresRegistration" v-model="activeTab"
-            :tabs="[{key: 'info', label: t('eventDetail.tabInfo')}, {key: 'registrations', label: t('eventDetail.tabRegistrations')}]" />
+    <TabBar v-model="activeTab" :tabs="[{key: 'info', label: t('eventDetail.tabInfo')}, {key: 'registrations', label: answerTabLabel}]" />
 
     <EventInfoTab
-        v-if="activeTab === 'info' || !event.requiresRegistration"
+        v-if="activeTab === 'info'"
         :event="event"
         :event-id="eventId"
         :fields="fields"
@@ -131,7 +142,7 @@ function onCancelled() {
     />
 
     <EventRegistrationsTab
-        v-show="activeTab === 'registrations' && event.requiresRegistration"
+        v-show="activeTab === 'registrations'"
         :event="event"
         :event-id="eventId"
         :current-member-id="currentMemberId"

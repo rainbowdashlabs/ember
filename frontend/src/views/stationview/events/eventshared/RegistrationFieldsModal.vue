@@ -13,13 +13,16 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
+import {useAnswerMembers} from './useAnswerMembers'
 import {EventFieldTypes, type EventRegistrationField, type RegistrationFieldValue} from '@/api/events'
-import {stationMembers as stationMembersApi} from '@/api'
-import type {StationMember} from '@/api/types'
 
 const props = defineProps<{
   fields: EventRegistrationField[]
+  /** The answers already on file, where an existing registration is being corrected. */
+  values?: RegistrationFieldValue[]
   title?: string
+  /** What the confirming button says, for a dialog that changes an answer rather than gives one. */
+  confirmLabel?: string
   busy?: boolean
   error?: string
 }>()
@@ -33,32 +36,24 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const answers = ref<Record<number, string>>({})
-const allMembers = ref<StationMember[]>([])
 
-const needsMembers = computed(() => props.fields.some(f => f.fieldType.startsWith('MEMBER')))
+const {allMembers, loadMembers} = useAnswerMembers(computed(() => props.fields))
 
 const missing = computed(() =>
     props.fields.filter(f => f.config?.required && !(answers.value[f.id] ?? '').trim()))
 
 /**
- * Seeds the form with the configured defaults every time it opens. A default is what the member
- * starts from, not an answer already given on their behalf.
+ * Seeds the form every time it opens: with the answers already on file where there are any, and
+ * with the configured defaults where there are none. A default is what the member starts from, not
+ * an answer already given on their behalf, so it never stands in front of one that was.
  */
 function seed() {
+  const onFile = new Map((props.values ?? []).map(value => [value.fieldId, value.value]))
   const seeded: Record<number, string> = {}
   for (const field of props.fields) {
-    seeded[field.id] = field.config?.defaultValue ?? ''
+    seeded[field.id] = onFile.get(field.id) ?? field.config?.defaultValue ?? ''
   }
   answers.value = seeded
-}
-
-async function loadMembers() {
-  if (!needsMembers.value || allMembers.value.length > 0) return
-  try {
-    allMembers.value = await stationMembersApi.listMembers()
-  } catch {
-    allMembers.value = []
-  }
 }
 
 function answerOf(fieldId: number): string {
@@ -114,7 +109,7 @@ watch(show, (open) => {
     <div class="flex justify-end gap-2 mt-4">
       <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton data-onboarding="events.registration-fields.submit" :disabled="busy || missing.length > 0" @click="confirm">
-        {{ t('events.register') }}
+        {{ confirmLabel ?? t('events.register') }}
       </PrimaryButton>
     </div>
   </Modal>

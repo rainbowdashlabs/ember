@@ -110,7 +110,7 @@ public class SessionInfoService {
         boolean profileComplete = true;
         if (session.member() != null && session.stationId() != null) {
             profileComplete =
-                    profileFieldService.isProfileComplete(session.member().id(), session.stationId(), roleNames);
+                    profileFieldService.isProfileComplete(session.member().id());
         }
 
         var managedInfos = managed.stream().map(this::toManagedMemberInfo).toList();

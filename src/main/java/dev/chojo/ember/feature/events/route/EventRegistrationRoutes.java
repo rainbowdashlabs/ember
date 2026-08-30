@@ -461,10 +461,16 @@ public class EventRegistrationRoutes implements Routes {
     /**
      * Answers belong to the member who registered. They may change them, as may whoever manages
      * that member and anyone allowed to decide registrations.
+     *
+     * <p>Whoever runs the appointment may change them too. They are the one the answers were
+     * collected for: a shirt size typed wrong or a lift offered to somebody else is theirs to put
+     * right, and asking the member to correct it while the list is being read from is how a wrong
+     * answer stays wrong.
      */
     private void requireAnswerAuthor(UserSession session, EventRegistration registration) {
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
         if (registration.memberId() == session.member().id()) return;
+        if (session.hasPermission(StationPermission.EVENT_EDIT)) return;
         if (session.hasPermission(StationPermission.EVENT_REGISTRATION)) return;
         boolean manages = stationMemberService.findManaged(session.member().id()).stream()
                 .anyMatch(m -> m.id() == registration.memberId());

@@ -1,5 +1,30 @@
 # Changelog
 
+## v26.13.10
+
+### New Features
+
+- **The help centre carries the explanatory videos.** Under Basics there is now a page that plays the whole series in order, one video per topic, from the invitation through to the parts the team and the leadership use. It runs on YouTube's cookie-free address, so nothing is stored on the reader's device until they actually play something.
+
+### Changes
+
+- **Forms are now called surveys.** The word made a two-question feedback round sound like paperwork, which is the opposite of what it is for. Everything under `/station/forms` reads as a survey now, and the address, the questions and the answers already given are untouched; the contact forms on a station's public page keep their name, because that is what they are.
+
+### Improvements
+
+- **Setting a password from a link signs you straight in.** An invitation ended at the sign-in form, where the password just chosen had to be typed again, and a reset did the same. Choosing it proves what typing it would prove, so the link now leads into the account rather than back to the front door.
+- **Whoever runs an appointment can correct an answer to its questions.** The answers were the member's alone to change, although the person planning from them is the one reading them, so a shirt size typed wrong meant chasing the member while the order was going out. Anybody who may edit the appointment can now put an answer right from the list of sign-ups, and the member's own answers stay theirs to change as before.
+
+### Security
+
+- **A password set from a link still asks for the second factor.** Signing in from the link would otherwise have turned an account guarded by an authenticator into one guarded by a mailbox. Where a second factor is set up it is asked for exactly as at the sign-in form, and every remembered device is revoked when the password changes, so none can vouch for the factor either.
+
+### Fixes
+
+- **An appointment nobody signs up for did not show who had signed off.** Everybody is expected at such an appointment and the only answer anybody gives is a refusal, but its page had no second tab at all, so the refusals could be given and never read. The page now carries an Attendance tab listing who is not coming.
+- **A question asking for a member could not be answered properly.** Where an appointment asks which member is driving or who brings the trailer, the window that answers for a whole household offered a plain text box instead of the list of members, so what was stored was the text somebody typed and every list read it back as a stray number. That window now offers the same picker as the one used elsewhere, and it shows the starting value a question was given instead of leaving the field empty.
+- **A question put to a group was never counted as missing.** Somebody in the instructors' group could leave an answer the instructors are required to give empty and still be told their profile was complete, so the gap reached neither the task list, nor the number beside it, nor the reminder on the dashboard. What counts as missing is now read off the same list the profile screen shows, so anything asked of somebody is asked of them everywhere.
+
 ## v26.13.9
 
 ### New Features
