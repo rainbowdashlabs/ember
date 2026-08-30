@@ -1,5 +1,11 @@
 # Changelog
 
+## v26.13.11
+
+### Improvements
+
+- **The questions of an attendance sheet can be taken straight into an appointment.** Where an appointment names a sheet, its fields are now offered above the appointment's own questions, one at a time or all at once. They arrive with their name, their type and their settings, already tied to the field they came from, which is what makes the answer given at the appointment land on the sheet; a field already taken is not offered a second time. The same offer stands in the appointment templates.
+
 ## v26.13.10
 
 ### New Features

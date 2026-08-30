@@ -7921,6 +7921,8 @@ export default {
         selfRegisterForbidden: 'Du erfüllst die Voraussetzung für dieses Feld nicht.',
         selfRegisterFailed: 'Eintragung fehlgeschlagen.',
         attendanceLink: 'Anwesenheitsfeld',
+        fromAttendance: 'Aus der Anwesenheitsvorlage übernehmen:',
+        takeAllFromAttendance: 'Alle übernehmen',
         value: 'Wert',
         defaultValue: 'Standardwert',
         public: 'Öffentlich',
