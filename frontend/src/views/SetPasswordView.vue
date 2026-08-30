@@ -15,7 +15,10 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useStations} from '@/composables/useStations'
+import {useCluster} from '@/composables/useCluster'
 import {apiErrorMessage} from '@/util/apiError'
+import {decideSignInLanding} from '@/util/signInLanding'
 import LinkNoLongerGood from './setpasswordview/LinkNoLongerGood.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import type {PasswordLinkStatus} from '@/api/auth'
@@ -23,6 +26,8 @@ import type {PasswordLinkStatus} from '@/api/auth'
 const {t, te} = useI18n()
 const route = useRoute()
 const router = useRouter()
+const {setActiveStation, clearActiveStation} = useStations()
+const {setActiveCluster, clearActiveCluster} = useCluster()
 
 const newPassword = ref('')
 const confirmPassword = ref('')
@@ -53,9 +58,33 @@ onMounted(async () => {
   }
 })
 
+/**
+ * Sets the password and goes wherever it leads.
+ *
+ * <p>Choosing a password proves what typing it into the sign-in form would prove, so the server
+ * hands back a session and the reader carries on rather than signing in with the password they
+ * chose ten seconds earlier. What it does not stand in for is a second factor: an account that has
+ * one is sent to give it, exactly as signing in would. An answer with neither leaves the sign-in
+ * form to say what is still missing, which is where an unverified address is explained.
+ */
 const {running: loading, error: submitError, run: runSetPassword} = useAsyncAction(async () => {
-  await auth.setPassword({token, password: newPassword.value})
-  await router.push({name: 'login'})
+  const result = await auth.setPassword({token, password: newPassword.value})
+
+  if (result.twoFactorRequired && result.preAuthToken) {
+    await router.push({path: '/2fa-verify', query: {token: result.preAuthToken}})
+    return
+  }
+  if (!result.token) {
+    await router.push({name: 'login'})
+    return
+  }
+
+  clearActiveStation()
+  clearActiveCluster()
+  const landing = await decideSignInLanding()
+  if (landing.stationId) setActiveStation(landing.stationId)
+  if (landing.clusterUid) setActiveCluster(landing.clusterUid)
+  await router.push(landing.path)
 }, {formatError: (e) => {
   const raw = apiErrorMessage(e)
   return raw ? (te(raw) ? t(raw) : raw) : t('common.error')

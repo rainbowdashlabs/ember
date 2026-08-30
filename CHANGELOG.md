@@ -1,5 +1,15 @@
 # Changelog
 
+## v26.13.10
+
+### Improvements
+
+- **Setting a password from a link signs you straight in.** An invitation ended at the sign-in form, where the password just chosen had to be typed again, and a reset did the same. Choosing it proves what typing it would prove, so the link now leads into the account rather than back to the front door.
+
+### Security
+
+- **A password set from a link still asks for the second factor.** Signing in from the link would otherwise have turned an account guarded by an authenticator into one guarded by a mailbox. Where a second factor is set up it is asked for exactly as at the sign-in form, and every remembered device is revoked when the password changes, so none can vouch for the factor either.
+
 ## v26.13.9
 
 ### New Features

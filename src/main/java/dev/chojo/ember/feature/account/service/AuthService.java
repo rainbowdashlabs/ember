@@ -310,6 +310,57 @@ public class AuthService {
     }
 
     /**
+     * Sets a password from a link, and signs the person in with it.
+     *
+     * <p>Choosing the password is the same proof as typing it into the sign-in form a moment later,
+     * so being asked for it twice in a row protects nothing: whoever followed the link could sign in
+     * either way. What it does not replace is the second factor. Every check that stands between a
+     * proven password and a session is applied here exactly as it is on the sign-in form, so an
+     * account with a second factor is asked for it and gets a challenge rather than a session.
+     *
+     * <p>No remembered device is offered on the way through. Rotating a password revokes every
+     * trusted device for the account, so there is nothing left to vouch for the factor, and passing
+     * a cookie that can no longer be honoured would only invite somebody to make it honourable.
+     *
+     * @param token     the setup or reset link's token
+     * @param password  the new plaintext password
+     * @param userAgent the client's user agent string
+     * @param location  the client's location (e.g. country code)
+     * @return why the password was refused, or the session that follows from it
+     */
+    public SetPasswordResult setPasswordAndSignIn(String token, String password, String userAgent, String location) {
+        Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
+        Integer accountId = tokenOpt.map(AccountToken::accountId).orElse(null);
+
+        SetPasswordOutcome outcome = setPassword(token, password);
+        if (outcome != SetPasswordOutcome.OK || accountId == null) {
+            return new SetPasswordResult(outcome, null);
+        }
+
+        var account = accountRepository.findById(accountId);
+        if (account.isEmpty()) return new SetPasswordResult(outcome, null);
+        if (account.get().hasRealEmail() && !account.get().emailVerified()) {
+            log.info("Password set for account {}, but the address is unverified: no session issued", accountId);
+            return new SetPasswordResult(outcome, null);
+        }
+
+        // The credential was just written, so the rotation flag is clear and no device is trusted.
+        var login = admitVerifiedAccount(account.get(), false, userAgent, location, null, false);
+        log.info("Signed account {} in on the back of setting its password", accountId);
+        return new SetPasswordResult(outcome, login);
+    }
+
+    /**
+     * What setting a password from a link produced: why it was refused, or the session it led to.
+     *
+     * @param outcome why the password was refused, or {@link SetPasswordOutcome#OK}
+     * @param login   what follows the password: a session, or the second factor still to come. Null
+     *                where the password was refused, and where it was accepted but the account
+     *                cannot be signed in yet, which leaves the sign-in form to say why.
+     */
+    public record SetPasswordResult(SetPasswordOutcome outcome, LoginResult login) {}
+
+    /**
      * Outcome of {@link #setPassword(String, String)}. Surfaces distinct rejection reasons so
      * the route can return a precise error message instead of the same opaque "Invalid or
      * expired token" string for every failure mode.
@@ -616,12 +667,37 @@ public class AuthService {
             breachCheckWorker.enqueueCheck(account.id(), password);
         }
 
+        return admitVerifiedAccount(
+                account, credOpt.get().forcePasswordChange(), userAgent, location, trustedDeviceCookie, trustedDevice);
+    }
+
+    /**
+     * What happens once the password has been established, whichever way it was established.
+     *
+     * <p>Signing in and setting a password both end here, because both have just proved the same
+     * thing: that whoever is asking holds the account's password. Everything that stands between
+     * that proof and a session has to stand in both places or the weaker of the two becomes the way
+     * in, so the second factor, the forced rotation and the unverified address are decided once,
+     * here, rather than once per caller.
+     *
+     * @param account             the account the password belongs to
+     * @param forcePasswordChange whether the credential is flagged for rotation
+     * @param trustedDeviceCookie the remembered-device cookie, where the caller has one to offer.
+     *                            Setting a password passes none: rotating the password revokes every
+     *                            trusted device, and a device cannot vouch for a factor across that.
+     * @param trustedDevice       whether the session may last the long duration
+     * @return a session, or what has to happen before there can be one
+     */
+    private LoginResult admitVerifiedAccount(
+            Account account,
+            boolean forcePasswordChange,
+            String userAgent,
+            String location,
+            String trustedDeviceCookie,
+            boolean trustedDevice) {
         // Force password change - issue a one-time token instead of a session
-        if (credOpt.get().forcePasswordChange()) {
-            log.info(
-                    "Login for account {} ({}) requires password change - issuing password-change token",
-                    account.id(),
-                    identifier);
+        if (forcePasswordChange) {
+            log.info("Account {} requires a password change - issuing password-change token", account.id());
             String token = generateToken();
             accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.FORCE_PASSWORD_CHANGE);
             Instant expiresAt = Instant.now().plus(FORCE_PASSWORD_CHANGE_MINUTES, ChronoUnit.MINUTES);
@@ -639,9 +715,8 @@ public class AuthService {
                 var trusted = trustedDeviceService.validate(trustedDeviceCookie);
                 if (trusted.isPresent() && trusted.get().accountId() == account.id()) {
                     log.info(
-                            "Login for account {} ({}) bypassing 2FA via trusted device {}",
+                            "Account {} bypassing 2FA via trusted device {}",
                             account.id(),
-                            identifier,
                             trusted.get().id());
                     return createSession(
                             account.id(),
@@ -652,7 +727,7 @@ public class AuthService {
                             trustedDevice);
                 }
             }
-            log.info("Login for account {} ({}) requires 2FA verification", account.id(), identifier);
+            log.info("Account {} requires 2FA verification", account.id());
             String token = generateToken();
             accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.TWO_FACTOR_PENDING);
             Instant expiresAt = Instant.now().plus(5, ChronoUnit.MINUTES);

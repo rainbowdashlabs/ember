@@ -1092,6 +1092,75 @@ class AuthServiceTest extends RepositoryTestBase {
         accountRepo.delete(child.id());
     }
 
+    /**
+     * Setting the password from a link signs the person in with it.
+     *
+     * <p>Choosing the password proves the same thing as typing it into the sign-in form would, so
+     * being sent round to say it again protects nothing.
+     */
+    @Test
+    @Order(90)
+    void settingAPasswordFromALinkSignsIn() {
+        var fixture = createLoginCapableAccount("setpass-signin");
+        String token = "setpass-signin-" + UUID.randomUUID();
+        accountRepo.createToken(
+                fixture.accountId(),
+                token,
+                TokenType.SET_PASSWORD,
+                Instant.now().plus(1, ChronoUnit.HOURS));
+
+        var result = service.setPasswordAndSignIn(token, "AFreshPassword1!", "agent", "DE");
+
+        assertEquals(AuthService.SetPasswordOutcome.OK, result.outcome());
+        assertNotNull(result.login(), "a password that was accepted earns a session");
+        assertTrue(result.login().success(), result.login().message());
+        assertFalse(result.login().twoFactorRequired());
+        assertNotNull(result.login().token());
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /**
+     * The second factor is the one thing choosing a password does not stand in for.
+     *
+     * <p>Otherwise a reset link turns an account guarded by a factor into an account guarded by a
+     * mailbox, which is the whole reason the factor is there.
+     */
+    @Test
+    @Order(91)
+    void aResetStillAsksForTheSecondFactor() {
+        var fixture = createLoginCapableAccount("setpass-2fa");
+        twoFactorRepoLocal.createFactor(fixture.accountId(), TwoFactorKind.TOTP, "TestTOTP");
+        String token = "setpass-2fa-" + UUID.randomUUID();
+        accountRepo.createToken(
+                fixture.accountId(),
+                token,
+                TokenType.RESET_PASSWORD,
+                Instant.now().plus(1, ChronoUnit.HOURS));
+
+        var result = service.setPasswordAndSignIn(token, "AFreshPassword2!", "agent", "DE");
+
+        assertEquals(AuthService.SetPasswordOutcome.OK, result.outcome());
+        assertNotNull(result.login());
+        assertTrue(result.login().twoFactorRequired(), "a factor on the account still has to be given");
+        assertNull(result.login().token(), "no session before the factor is given");
+        assertNotNull(result.login().preAuthToken());
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /** A password that is refused earns nothing, least of all a session. */
+    @Test
+    @Order(92)
+    void arefusedPasswordSignsNobodyIn() {
+        var result = service.setPasswordAndSignIn("no-such-token", "AFreshPassword3!", "agent", "DE");
+
+        assertEquals(AuthService.SetPasswordOutcome.TOKEN_INVALID, result.outcome());
+        assertNull(result.login());
+    }
+
     @Test
     @Order(99)
     void cleanup() {

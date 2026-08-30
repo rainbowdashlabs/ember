@@ -14,6 +14,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Network;
+import dev.chojo.ember.feature.account.entity.LoginResult;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.util.ClientIp;
@@ -199,11 +200,12 @@ public class AuthRoutes implements Routes {
             path = "/api/v1/auth/set-password",
             methods = HttpMethod.POST,
             summary = "Set password for invited account",
-            description = "Sets the initial password using the token from the invite email.",
+            description =
+                    "Sets the initial password using the token from the invite email, or a new one using a reset token, and signs the account in with it. Answers as the login endpoint does: a session, or the second factor still to be given. Where the account cannot be signed in yet, the session is absent and the sign-in form says why.",
             tags = {"Auth"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetPasswordRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = LoginResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setPassword(Context ctx) {
@@ -213,17 +215,34 @@ public class AuthRoutes implements Routes {
             throw new BadRequestResponse("token and password are required");
         }
 
-        var outcome = authService.setPassword(request.token(), request.password());
+        var result = authService.setPasswordAndSignIn(
+                request.token(), request.password(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         // The body of each failure carries a stable i18n key (e.g. "setPassword.passwordTooShort"),
         // not an English sentence. The frontend localises it via vue-i18n. Translations live in
         // src/i18n/<locale>.ts under the same key path.
-        switch (outcome) {
-            case OK -> ctx.status(HttpStatus.OK).json(new MessageResponse("Password set successfully"));
+        switch (result.outcome()) {
+            case OK -> ctx.status(HttpStatus.OK).json(sessionAfterPassword(result.login()));
             case PASSWORD_TOO_SHORT -> throw new BadRequestResponse("setPassword.passwordTooShort");
             case PASSWORD_BREACHED -> throw new BadRequestResponse("setPassword.passwordBreached");
             case TOKEN_INVALID -> throw new BadRequestResponse("setPassword.tokenInvalid");
             case TOKEN_EXPIRED -> throw new BadRequestResponse("setPassword.tokenExpired");
         }
+    }
+
+    /**
+     * The answer to a password that was accepted: the session it earned, or what still stands in
+     * the way of one. An empty answer means the password was set and the account still has to sign
+     * in by hand, which is what the form falls back to.
+     */
+    private static LoginResponse sessionAfterPassword(LoginResult login) {
+        if (login == null || !login.success()) {
+            return new LoginResponse(null, null, false, null, null, false, null, null);
+        }
+        if (login.twoFactorRequired()) {
+            return new LoginResponse(
+                    null, null, false, null, null, true, login.preAuthToken(), login.preAuthTokenExpiresAt());
+        }
+        return new LoginResponse(login.token(), login.expiresAt(), false, null, null, false, null, null);
     }
 
     @OpenApi(
