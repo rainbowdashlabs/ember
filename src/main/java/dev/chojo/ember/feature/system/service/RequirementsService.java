@@ -30,7 +30,7 @@ public class RequirementsService {
     public RequirementsResponse getRequirements(int memberId, int stationId, List<String> roleNames) {
         var forcedForms = formService.findForcedPending(stationId, memberId);
         var forcedQuizzes = quizService.findForcedPending(stationId, memberId);
-        boolean profileIncomplete = !profileFieldService.isProfileComplete(memberId, stationId, roleNames);
+        boolean profileIncomplete = !profileFieldService.isProfileComplete(memberId);
         return new RequirementsResponse(forcedForms, forcedQuizzes, profileIncomplete);
     }
 
@@ -38,7 +38,7 @@ public class RequirementsService {
         int count = 0;
         count += formService.findForcedPending(stationId, memberId).size();
         count += quizService.findForcedPending(stationId, memberId).size();
-        if (!profileFieldService.isProfileComplete(memberId, stationId, roleNames)) count++;
+        if (!profileFieldService.isProfileComplete(memberId)) count++;
         return count;
     }
 

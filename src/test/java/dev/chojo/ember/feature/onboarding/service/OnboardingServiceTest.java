@@ -166,8 +166,7 @@ class OnboardingServiceTest {
 
     @Test
     void aTaskIsDoneBecauseTheThingItAsksForExists() {
-        when(profileFieldService.isProfileComplete(eq(MEMBER), eq(STATION), eq(List.of("MEMBER"))))
-                .thenReturn(true);
+        when(profileFieldService.isProfileComplete(eq(MEMBER))).thenReturn(true);
 
         assertEquals(
                 OnboardingTaskState.DONE,

@@ -39,7 +39,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -140,8 +139,7 @@ class SessionInfoServiceTest {
         when(userTagRepository.findTagsForMember(5)).thenReturn(List.of(new UserTag(4, 7, "Tag", "#000", true, 0)));
         when(stationMemberRepository.findPermissions(5))
                 .thenReturn(List.of(new Permission(9, StationPermission.LOGIN)));
-        when(profileFieldService.isProfileComplete(anyInt(), anyInt(), anyList()))
-                .thenReturn(false);
+        when(profileFieldService.isProfileComplete(anyInt())).thenReturn(false);
         when(userSettingsRepository.findOrCreate(5)).thenReturn(new UserSettings(5, true, "ocean", "dark", "ROUNDED"));
         when(accountRepository.findById(2)).thenReturn(Optional.of(account(2, "Erika", "Musterfrau")));
 
@@ -174,8 +172,7 @@ class SessionInfoServiceTest {
         when(groupService.findGroupsForMember(5)).thenReturn(List.of());
         when(userTagRepository.findTagsForMember(5)).thenReturn(List.of());
         when(stationMemberRepository.findPermissions(5)).thenReturn(List.of());
-        when(profileFieldService.isProfileComplete(anyInt(), anyInt(), anyList()))
-                .thenReturn(true);
+        when(profileFieldService.isProfileComplete(anyInt())).thenReturn(true);
         when(userSettingsRepository.findOrCreate(5)).thenReturn(new UserSettings(5, true, null, null, null));
 
         var info = service.describe(session);

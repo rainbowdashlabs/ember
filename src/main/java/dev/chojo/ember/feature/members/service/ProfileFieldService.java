@@ -309,43 +309,47 @@ public class ProfileFieldService {
     }
 
     /**
-     * Check if a member has all required profile fields filled.
+     * Whether this member has answered everything their profile asks of them.
+     *
+     * <p>The question is asked of {@link #findApplicableFields(int)}, which is the same list the
+     * profile screen draws. It has to be: what is counted as missing must be something the member
+     * was actually shown, and something they were shown and left empty must be counted. Working the
+     * list out a second time here is what let the two drift, and they did. This one decided from the
+     * member's permissions and threw away every question of group scope, so somebody in the
+     * instructors' group could be missing an answer the instructors are required to give and be told
+     * their profile was complete. Nothing reached the task list, the badge beside it, or the reminder
+     * on the dashboard, because all three ask this.
+     *
+     * <p>A question the member cannot answer is not counted against them: one the station only lets
+     * them read, and one an association asks and keeps to itself.
+     *
+     * @param memberId the member whose profile is being judged
+     * @return whether nothing required of them is left blank
      */
-    public boolean isProfileComplete(int memberId, int stationId, List<String> roleNames) {
-        var allFields = profileFieldRepository.findByStation(stationId);
-        var values = profileFieldRepository.findValues(memberId);
-        var valueMap = values.stream().collect(Collectors.toMap(ProfileFieldValue::fieldId, ProfileFieldValue::value));
+    public boolean isProfileComplete(int memberId) {
+        var answers = findValues(memberId).stream()
+                .collect(Collectors.toMap(
+                        value -> answerKey(value.origin(), value.fieldId()),
+                        MergedValue::value,
+                        (first, ignored) -> first));
 
-        // Determine applicable scopes from roles
-        var scopes = new ArrayList<ProfileFieldScope>();
-        if (roleNames.contains("MEMBER")) scopes.add(ProfileFieldScope.MEMBER);
-        if (roleNames.contains("GUARDIAN")) scopes.add(ProfileFieldScope.GUARDIAN);
-        if (roleNames.stream()
-                .anyMatch(r -> r.equals("TEAM")
-                        || r.equals("MANAGER")
-                        || r.equals("ADMIN")
-                        || r.equals("ATTENDANCE_MANAGER")
-                        || r.equals("INVENTORY_MANAGER")
-                        || r.equals("EVENT_MANAGER")
-                        || r.equals("MEMBER_MANAGER")
-                        || r.equals("NEWS_MANAGER"))) {
-            scopes.add(ProfileFieldScope.TEAM);
-        }
-        if (roleNames.contains("MANAGER") || roleNames.contains("ADMIN")) {
-            scopes.add(ProfileFieldScope.MANAGER);
-        }
-
-        for (var field : allFields) {
+        for (var field : findApplicableFields(memberId)) {
             if (!field.fieldType().holdsValue()) continue;
-            if (field.scope() == ProfileFieldScope.GROUP) continue;
-            if (!scopes.contains(field.scope())) continue;
             var config = field.config();
-            if (!config.required()) continue;
-            if (config.readonly()) continue;
-            String val = valueMap.get(field.id());
-            if (val == null || val.isBlank() || "\"\"".equals(val)) return false;
+            if (config == null || !config.required()) continue;
+            if (config.readonly() || field.readonlyAtStation()) continue;
+            String value = answers.get(answerKey(field.origin(), field.id()));
+            if (value == null || value.isBlank() || "\"\"".equals(value)) return false;
         }
         return true;
+    }
+
+    /**
+     * How an answer is matched to its question. The two carry their own numbering, so a station's
+     * question three and an association's question three are different questions.
+     */
+    private static String answerKey(FieldOrigin origin, int fieldId) {
+        return origin + "-" + fieldId;
     }
 
     // -- Field Values --

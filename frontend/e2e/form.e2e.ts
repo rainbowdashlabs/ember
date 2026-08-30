@@ -8,10 +8,10 @@ import {unique} from './fixtures/unique'
 
 test.describe('Forms', () => {
     test('a form is created', async ({managerPage: page}) => {
-        const form = unique('Formular')
+        const form = unique('Umfrage')
 
         await page.goto('/station/forms')
-        await page.getByRole('button', {name: 'Formular erstellen'}).click()
+        await page.getByRole('button', {name: 'Umfrage erstellen'}).click()
 
         await page.getByRole('textbox').first().fill(form)
         await page.getByRole('button', {name: /Speichern|Erstellen|Weiter/}).last().click()

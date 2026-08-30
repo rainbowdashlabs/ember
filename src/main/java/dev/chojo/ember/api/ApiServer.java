@@ -629,8 +629,7 @@ public class ApiServer {
                     var tagNames = userTagRepository.findTagsForMember(member.id()).stream()
                             .map(UserTag::name)
                             .toList();
-                    boolean complete =
-                            profileFieldService.isProfileComplete(member.id(), station.id(), permissionNames);
+                    boolean complete = profileFieldService.isProfileComplete(member.id());
                     accounts.add(new DemoAccount(
                             account.email(),
                             account.firstName(),
