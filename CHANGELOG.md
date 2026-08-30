@@ -2,6 +2,10 @@
 
 ## v26.13.10
 
+### New Features
+
+- **The help centre carries the explanatory videos.** Under Basics there is now a page that plays the whole series in order, one video per topic, from the invitation through to the parts the team and the leadership use. It runs on YouTube's cookie-free address, so nothing is stored on the reader's device until they actually play something.
+
 ### Changes
 
 - **Forms are now called surveys.** The word made a two-question feedback round sound like paperwork, which is the opposite of what it is for. Everything under `/station/forms` reads as a survey now, and the address, the questions and the answers already given are untouched; the contact forms on a station's public page keep their name, because that is what they are.

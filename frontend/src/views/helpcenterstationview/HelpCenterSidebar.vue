@@ -83,6 +83,10 @@ function escapeHtml(text: string): string {
                    to="/helpcenter/station/basics/overview" @navigate="close">
         {{ t('helpCenter.basics.sidebarOverview') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'play']" name="help-basics-videos"
+                   to="/helpcenter/station/basics/videos" @navigate="close">
+        {{ t('helpCenter.basics.sidebarVideos') }}
+      </SidebarLink>
       <SidebarLink :icon="['fas', 'shield']" name="help-basics-permissions"
                    to="/helpcenter/station/basics/permissions" @navigate="close">
         {{ t('helpCenter.basics.sidebarPermissions') }}

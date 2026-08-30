@@ -100,6 +100,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-basics-modules', path: '/helpcenter/station/basics/modules', i18nPrefix: 'helpCenter.basics.modules'},
     {route: 'help-basics-overview', path: '/helpcenter/station/basics/overview', i18nPrefix: 'helpCenter.basics.overview'},
     {route: 'help-basics-permissions', path: '/helpcenter/station/basics/permissions', i18nPrefix: 'helpCenter.basics.permissions'},
+    {route: 'help-basics-videos', path: '/helpcenter/station/basics/videos', i18nPrefix: 'helpCenter.basics.videos'},
     {route: 'help-board-overview', path: '/helpcenter/station/boards', i18nPrefix: 'helpCenter.boardOverview'},
     {route: 'help-board-view', path: '/helpcenter/station/boards/0', i18nPrefix: ['helpCenter.boardView', 'helpCenter.boardsLaneInProgress', 'helpCenter.boardsLaneOpen']},
     {route: 'help-board-archived', path: '/helpcenter/station/boards/0/archived', i18nPrefix: 'helpCenter.archived'},

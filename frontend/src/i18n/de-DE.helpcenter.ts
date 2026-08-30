@@ -267,6 +267,10 @@ export default {
                     title: 'Was ist Ember?',
                     desc: 'Überblick über das Produkt und seine Funktionen',
                 },
+                videos: {
+                    title: 'Erklärvideos',
+                    desc: 'Kurze Videos, die durch die Bereiche führen',
+                },
                 permissions: {
                     title: 'Berechtigungen & Nutzertypen',
                     desc: 'Wer darf was? Das Berechtigungssystem erklärt',
@@ -301,11 +305,24 @@ export default {
         basics: {
             sidebar: 'Grundlagen',
             sidebarOverview: 'Was ist Ember?',
+            sidebarVideos: 'Erklärvideos',
             sidebarPermissions: 'Berechtigungen & Nutzertypen',
             sidebarModules: 'Module & Navigation',
             sidebarHosting: 'Selbst betreiben',
             sidebarHostingConfiguration: 'Konfiguration',
             sidebarFederation: 'Föderation',
+            videos: {
+                title: 'Erklärvideos',
+                subtitle: 'Ember in kurzen Videos, eines pro Thema.',
+                whatIs: 'Was liegt hier?',
+                whatIsText: 'Eine Reihe kurzer Videos, die durch Ember führen: von der Einladung und dem ersten '
+                    + 'Anmelden über Termine und dein Profil bis zu den Bereichen, die das Team und die Leitung '
+                    + 'brauchen. Jedes ist für sich verständlich, du musst also nicht bei eins anfangen.',
+                watch: 'Ansehen',
+                openOnYoutube: 'Playlist bei YouTube öffnen',
+                tip: 'Die Videos laufen über die cookiefreie Adresse von YouTube. Etwas auf deinem Gerät '
+                    + 'gespeichert wird erst, wenn du ein Video wirklich abspielst.',
+            },
             overview: {
                 title: 'Was ist Ember?',
                 subtitle: 'Ein Überblick über das Produkt, seine Ziele und Funktionen.',
