@@ -124,6 +124,8 @@ const emit = defineEmits<{
             :all-members="allMembers"
             :member-sections="memberSections"
             :readonly="!canEdit"
+            :session-end="session.endTime"
+            :session-start="session.startTime"
             @set-status="(entryId, status) => emit('setStatus', entryId, status)"
             @check-in="(entryId, time) => emit('checkIn', entryId, time)"
             @check-out="(entryId, time) => emit('checkOut', entryId, time)"

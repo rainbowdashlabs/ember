@@ -21,6 +21,8 @@ const props = defineProps<{
   allMembers: StationMember[]
   memberSections: { group: MemberGroup | null; members: StationMember[] }[]
   readonly?: boolean
+  sessionStart?: string
+  sessionEnd?: string
 }>()
 
 const emit = defineEmits<{
@@ -82,6 +84,8 @@ function getEntry(memberId: number): AttendanceEntry | undefined {
           :entry="getEntry(member.id)"
           :member-name="getMemberName(member.id)"
           :readonly="readonly"
+          :session-end="sessionEnd"
+          :session-start="sessionStart"
           @set-status="(entryId, status) => emit('setStatus', entryId, status)"
           @check-in="(entryId, time) => emit('checkIn', entryId, time)"
           @check-out="(entryId, time) => emit('checkOut', entryId, time)"

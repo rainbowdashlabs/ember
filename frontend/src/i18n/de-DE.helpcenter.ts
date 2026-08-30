@@ -1801,7 +1801,9 @@ volumes:
             toolbarTitle: 'Werkzeugleiste', toolbarText: 'Oben findest du die Aktionsbuttons.',
             headerTitle: 'Sitzungskopf bearbeiten', headerText: 'Du kannst Titel, Startzeit und Endzeit direkt ändern.',
             summaryTitle: 'Statusübersicht', memberEntryTitle: 'Mitglieder und Zeiten',
-            memberEntryText: 'Bei anwesenden Mitgliedern erscheinen Felder für Kommen und Gehen.',
+            memberEntryText: 'Bei anwesenden Mitgliedern erscheinen Felder für Kommen und Gehen. Blass '
+                + 'dargestellt stehen dort die Zeiten der Sitzung: so lange niemand etwas anderes einträgt, '
+                + 'gilt die Person als von Anfang bis Ende da. Gespeichert wird nur, was du selbst änderst.',
             checkModeExampleTitle: 'So sieht der Prüfmodus aus',
             fieldsTitle: 'Benutzerdefinierte Felder', fieldsText: 'Eigene Felder der Vorlage erscheinen als zusätzlicher Bereich.',
             tip: 'Nutze den Prüfmodus, um schnell alle Mitglieder einzeln durchzugehen.',

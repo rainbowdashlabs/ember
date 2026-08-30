@@ -19,6 +19,8 @@ const props = defineProps<{
   entry?: AttendanceEntry
   memberName: string
   readonly?: boolean
+  sessionStart?: string
+  sessionEnd?: string
 }>()
 
 const emit = defineEmits<{
@@ -47,12 +49,19 @@ const emit = defineEmits<{
       <MemberEntryActions
           v-if="entry && !readonly"
           :entry="entry"
+          :session-end="sessionEnd"
+          :session-start="sessionStart"
           @set-status="emit('setStatus', entry.id, $event)"
           @check-in="emit('checkIn', entry.id, $event)"
           @check-out="emit('checkOut', entry.id, $event)"
           @reset-times="emit('resetTimes', entry.id)"
       />
-      <MemberEntryReadonlyTimes v-else-if="entry && readonly" :entry="entry"/>
+      <MemberEntryReadonlyTimes
+          v-else-if="entry && readonly"
+          :entry="entry"
+          :session-end="sessionEnd"
+          :session-start="sessionStart"
+      />
       <span v-else class="text-xs text-(--text-muted)">{{ t('attendanceSession.noEntry') }}</span>
     </div>
   </div>
