@@ -2,6 +2,10 @@
 
 ## v26.13.10
 
+### Changes
+
+- **Forms are now called surveys.** The word made a two-question feedback round sound like paperwork, which is the opposite of what it is for. Everything under `/station/forms` reads as a survey now, and the address, the questions and the answers already given are untouched; the contact forms on a station's public page keep their name, because that is what they are.
+
 ### Fixes
 
 - **A question put to a group was never counted as missing.** Somebody in the instructors' group could leave an answer the instructors are required to give empty and still be told their profile was complete, so the gap reached neither the task list, nor the number beside it, nor the reminder on the dashboard. What counts as missing is now read off the same list the profile screen shows, so anything asked of somebody is asked of them everywhere.
