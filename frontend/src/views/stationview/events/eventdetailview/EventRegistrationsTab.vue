@@ -247,6 +247,34 @@ async function confirmHouseholdAnswer(answers: PersonAnswer[]) {
   }
 }
 
+const editingRegistration = ref<EventRegistrationEntry | null>(null)
+const showEditAnswers = ref(false)
+
+/**
+ * Opens the answers of one registration for correction.
+ *
+ * <p>Whoever runs the appointment reads these answers to plan from, so a wrong one is theirs to put
+ * right rather than something to chase the member about while the list is being counted.
+ */
+function editAnswers(registrationId: number) {
+  const registration = registrations.value.find(entry => entry.id === registrationId)
+  if (!registration) return
+  editingRegistration.value = registration
+  showEditAnswers.value = true
+}
+
+const {running: savingAnswers, error: answersError, run: saveAnswers} = useAsyncAction(
+    async (values: RegistrationFieldValue[]) => {
+      const registration = editingRegistration.value
+      if (!registration) return
+      await events.updateRegistrationFieldValues(registration.id, values)
+      showEditAnswers.value = false
+      editingRegistration.value = null
+      await loadRegistrations()
+    },
+    {formatError: () => t('common.error')},
+)
+
 async function acceptFederatedReg(regId: number) {
   await events.updateFederationRegistrationStatus(regId, 'ACCEPTED')
   await loadRegistrations()
@@ -336,7 +364,19 @@ onMounted(loadRegistrations)
         v-model:manual-register-member-id="manualRegisterMemberId"
         @accept="acceptRegistration"
         @deny="denyRegistration"
+        @edit-answers="editAnswers"
         @manual-register="manualRegister"
+    />
+
+    <RegistrationFieldsModal
+        v-model="showEditAnswers"
+        :fields="registrationFields"
+        :values="editingRegistration?.fields"
+        :title="t('eventDetail.editAnswers')"
+        :confirm-label="t('common.save')"
+        :busy="savingAnswers"
+        :error="answersError"
+        @confirm="saveAnswers"
     />
 
     <RegistrationFieldsModal
