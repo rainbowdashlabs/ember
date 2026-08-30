@@ -266,7 +266,13 @@ test.describe('Guardian', () => {
 
             // One of them gives their place back, which deletes it rather than refusing the event.
             // The row is picked by the event, because the household answers several at once.
+            //
+            // The list holds one page of what is coming up, and every other story in the suite puts
+            // its own appointments there, so this one is searched for rather than assumed to be on
+            // the first page. Without that the row is simply past the tenth entry once the suite
+            // runs whole, which is why this passed alone and failed together.
             await page.goto('/station/events/upcoming')
+            await page.getByPlaceholder('Titel, Beschreibung oder Feldinhalt...').fill(name)
             const row = page.locator(`[data-testid="upcoming-event"][data-event="${eventId}"]`)
             await expect(row).toHaveCount(1, {timeout: 15000})
             await row.getByTestId(`undo-answer-${gives}`).click()
