@@ -34,6 +34,7 @@
 ### Fixes
 
 - **An expired setup link ended in a form and a shrug.** Following one that had run out showed the password form, took a password twice, and only then said the link was invalid. It now explains itself before anything is typed: that the link has run out, that the account is still there, and that the station's administration can send a new mail. A reset link explains the same and offers to send itself again.
+- **An attendance handed its hours to people who were not there.** The exported document and the report filled the session's start and end into the two time columns of every member, so somebody marked absent read as having stayed the whole evening. Only a member who was actually there is given those times now, and the hours that were counted were right throughout.
 - **Two kinds of notification arrived without their wording.** A reminder that a registration is about to close, and word that a movement was called off, reached the subscribed feed as their bare details strung together with dashes, because no sentence had ever been written for them. Both now read as sentences, in German and in English.
 
 ## v26.13.8

@@ -45,6 +45,35 @@ public record AttendanceEntry(
     }
 
     /**
+     * When this member arrived, as a sheet shows it.
+     *
+     * <p>Nearly everybody who was there was there from the start, so an entry that carries no time
+     * of its own stands for the session's. That reading only holds for somebody who was actually
+     * there: filling the session's hours in beside a member marked absent would put them on the
+     * sheet for an evening they missed.
+     *
+     * @param sessionStart when the session began
+     * @return the member's own check-in, the session's start where they were present and wrote none
+     *         down, and nothing at all otherwise
+     */
+    public Instant shownCheckIn(Instant sessionStart) {
+        if (checkIn != null) return checkIn;
+        return status == AttendanceStatus.PRESENT ? sessionStart : null;
+    }
+
+    /**
+     * When this member left, read the same way as {@link #shownCheckIn(Instant)}.
+     *
+     * @param sessionEnd when the session ended
+     * @return the member's own check-out, the session's end where they were present and wrote none
+     *         down, and nothing at all otherwise
+     */
+    public Instant shownCheckOut(Instant sessionEnd) {
+        if (checkOut != null) return checkOut;
+        return status == AttendanceStatus.PRESENT ? sessionEnd : null;
+    }
+
+    /**
      * The attendance status of a member in a session.
      */
     public enum AttendanceStatus {

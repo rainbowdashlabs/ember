@@ -193,8 +193,8 @@ public class AttendanceExportService {
         var map = new LinkedHashMap<String, String>();
         map.put("name", resolveMemberName(entry.memberId()));
         map.put("status", entry.status().name());
-        Instant checkIn = entry.checkIn() != null ? entry.checkIn() : session.startTime();
-        Instant checkOut = entry.checkOut() != null ? entry.checkOut() : session.endTime();
+        Instant checkIn = entry.shownCheckIn(session.startTime());
+        Instant checkOut = entry.shownCheckOut(session.endTime());
         map.put("checkIn", checkIn != null ? formatTime(checkIn, zone) : "");
         map.put("checkOut", checkOut != null ? formatTime(checkOut, zone) : "");
         return map;
