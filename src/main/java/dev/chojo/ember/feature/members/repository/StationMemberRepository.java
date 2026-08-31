@@ -21,7 +21,9 @@ import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -468,6 +470,28 @@ public class StationMemberRepository {
                 .single(call().bind("station_id", stationId).bind("uids", uidStrings, PostgreSqlTypes.VARCHAR))
                 .map(PickerMember.map())
                 .all();
+    }
+
+    /**
+     * Resolves member IDs to the names a reader knows them by, in one round trip. Former members are
+     * included: a field someone filled in last year still has to say who filled it. IDs that no longer
+     * resolve are simply absent from the map, so the caller decides what to show in their place.
+     */
+    public Map<Integer, String> findDisplayNames(List<Integer> memberIds) {
+        if (memberIds == null || memberIds.isEmpty()) return Map.of();
+        var rows = query("""
+                SELECT sm.id, coalesce(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name
+                FROM station_member sm
+                LEFT JOIN account a ON sm.account_id = a.id
+                WHERE sm.id = ANY(:ids);""")
+                .single(call().bind("ids", memberIds, PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt("id"), row.getString("display_name")))
+                .all();
+        var names = new HashMap<Integer, String>();
+        for (var row : rows) {
+            names.put(row.getKey(), row.getValue());
+        }
+        return names;
     }
 
     /**
