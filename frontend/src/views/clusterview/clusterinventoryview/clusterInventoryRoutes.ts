@@ -23,6 +23,7 @@ export const CLUSTER_INVENTORY_ROUTES: InventoryRoutes = {
     movement: 'cluster-inventory-movement',
     procurement: 'cluster-inventory-procurement',
     requirements: 'cluster-inventory-requirements',
+    collections: 'cluster-inventory-collections',
     checks: 'cluster-inventory-check-container-overview',
     checkContainerOverview: 'cluster-inventory-check-container-overview',
     checkContainerWalk: 'cluster-inventory-check-container-walk',

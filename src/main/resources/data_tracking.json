@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:95e2032f63b67cb54e8e30fab705c026a6bc2666933871318565386826de8f11",
-  "generatedAt": "2026-08-31T14:29:26Z",
+  "schemaHash": "sha256:b5f3e9e6d94365ae8ddddb69505abde590a79f4946a7d700b883d78559239140",
+  "generatedAt": "2026-08-31T15:48:52Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10152,6 +10152,186 @@
         "reason": "Inventory structure/config, not per-member"
       },
       "description": "Locks to prevent concurrent equipment checks on the same member."
+    },
+    "inventory_collection": {
+      "feature": "inventory",
+      "scope": "STATION",
+      "tableHash": "sha256:cff1825ac4f398cde83a8e5be2203faee548f934db1fd5d634680ef20cea7501",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station the collection belongs to. An association reads the collections of its home station, so there is no second scope."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the station calls it, unique within the station."
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Free text about the purpose, may be empty."
+        },
+        {
+          "name": "created_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who created it, or null once that member is gone."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When it was created."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "created_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "created_by"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "created_by",
+            "strategy": "NULL",
+            "reason": "Collection kept (station structure), author unlinked"
+          }
+        ]
+      },
+      "description": "A named, reusable set of inventory lines. A template that is copied where it is used, never a reservation."
+    },
+    "inventory_collection_line": {
+      "feature": "inventory",
+      "scope": "STATION",
+      "tableHash": "sha256:02e127d934b034303b809e37a0a2f538bdf0d2b03ec462fa7729fcb19488e3f1",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "collection_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the collection."
+        },
+        {
+          "name": "item_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The named piece this line asks for. Exactly one of item_id/art_id/inventory_id is set. The line goes when the piece goes."
+        },
+        {
+          "name": "art_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The kind of thing a counted line asks for, which is how a line says four blue radios rather than four of whatever is in the drawer. Exactly one of item_id/art_id/inventory_id is set. The line goes when the kind goes."
+        },
+        {
+          "name": "inventory_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The inventory a counted line draws from, for the inventories that hold one thing in many copies and therefore carry no kinds. Exactly one of item_id/art_id/inventory_id is set."
+        },
+        {
+          "name": "quantity",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How many pieces the line asks for. Always 1 on a named-item line, because a named piece is one piece."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Display order within the collection."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "art_id",
+          "refTable": "inventory_art",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "collection_id",
+          "refTable": "inventory_collection",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "inventory_id",
+          "refTable": "inventory",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "item_id",
+          "refTable": "inventory_item",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Inventory structure/config, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Inventory structure/config, not per-member"
+      },
+      "description": "One line of a collection: a named piece, a count of one kind of thing, or a count out of a whole inventory. Exactly one of the three, never two and never none."
     },
     "inventory_container": {
       "feature": "inventory",

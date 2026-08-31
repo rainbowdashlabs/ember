@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
+import dev.chojo.ember.feature.inventory.repository.InventoryCollectionRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryTagRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
@@ -71,6 +72,7 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
     private final InventoryRepository inventoryRepository;
     private final InventoryArtRepository artRepository;
     private final InventoryTagRepository tagRepository;
+    private final InventoryCollectionRepository collectionRepository;
     private final InventoryCheckRepository inventoryCheckRepository;
     private final AccountRepository accountRepository;
     private final InventoryContainerService containerService;
@@ -84,6 +86,7 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
             InventoryRepository inventoryRepository,
             InventoryArtRepository artRepository,
             InventoryTagRepository tagRepository,
+            InventoryCollectionRepository collectionRepository,
             InventoryCheckRepository inventoryCheckRepository,
             AccountRepository accountRepository,
             InventoryContainerService containerService,
@@ -94,6 +97,7 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         this.inventoryRepository = inventoryRepository;
         this.artRepository = artRepository;
         this.tagRepository = tagRepository;
+        this.collectionRepository = collectionRepository;
         this.inventoryCheckRepository = inventoryCheckRepository;
         this.accountRepository = accountRepository;
         this.containerService = containerService;
@@ -504,8 +508,54 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
 
         seedStorageContainers(stationId, rng, helm, stiefel, sporttasche, blouson, parka, latzhose);
         seedCustomFields(stiefel.id(), helm.id());
+        seedCollections(stationId);
 
         log.info("Demo: Created {} inventory items with {} history entries", itemCounter - 1, historyCount);
+    }
+
+    /**
+     * The two everyday shapes of a collection, each with the drawers its pieces are spread over.
+     *
+     * <p>The games evening names every piece, because a count of games means nothing. The radio kit
+     * mixes the two: four of the blue kind, and the charging station and the antenna by name, because
+     * nobody takes radios and leaves the charger behind. The radio drawer also holds a case nobody
+     * gave a kind to, so the count of blue ones has something to be wrong about if it ever counted
+     * the drawer instead.
+     */
+    private void seedCollections(int stationId) {
+        var spiele = inventoryRepository.create(stationId, "Spiele", InventoryType.INTERNAL, false);
+        var siedler = inventoryRepository.createItem(spiele.id(), null, "Die Siedler von Catan", null, null);
+        var uno = inventoryRepository.createItem(spiele.id(), null, "Uno", null, null);
+        var twister = inventoryRepository.createItem(spiele.id(), null, "Twister", null, null);
+
+        var sonstiges = inventoryRepository.create(stationId, "Sonstiges", InventoryType.INTERNAL, false);
+        var laminator = inventoryRepository.createItem(sonstiges.id(), null, "Laminiergerät", null, null);
+        inventoryRepository.createItem(sonstiges.id(), null, "Playmobil-Feuerwehrauto", null, null);
+        var ladestation = inventoryRepository.createItem(sonstiges.id(), null, "Ladestation", null, null);
+        var antenne = inventoryRepository.createItem(sonstiges.id(), null, "Antenne", null, null);
+
+        var funk = inventoryRepository.create(stationId, "Handfunkgeräte", InventoryType.INTERNAL, false, false);
+        var blau = artRepository.create(funk.id(), "Funkgerät blau", "Kanal 1 bis 4", 10);
+        for (int i = 1; i <= 6; i++) {
+            inventoryRepository.createItem(
+                    funk.id(), "FUNK-B%02d".formatted(i), "Funkgerät blau", null, blau.id(), null, null, null);
+        }
+        inventoryRepository.createItem(funk.id(), "FUNK-K01", "Koffer", null, null);
+
+        var abend = collectionRepository.create(
+                stationId, "Jugendabend", "Was für den Spieleabend aus den Schränken geholt wird", null);
+        collectionRepository.addLine(abend.id(), siedler.id(), null, null, 1);
+        collectionRepository.addLine(abend.id(), uno.id(), null, null, 1);
+        collectionRepository.addLine(abend.id(), twister.id(), null, null, 1);
+        collectionRepository.addLine(abend.id(), laminator.id(), null, null, 1);
+
+        var funkset =
+                collectionRepository.create(stationId, "Funkset", "Vier blaue Geräte, Ladestation, Antenne", null);
+        collectionRepository.addLine(funkset.id(), null, blau.id(), null, 4);
+        collectionRepository.addLine(funkset.id(), ladestation.id(), null, null, 1);
+        collectionRepository.addLine(funkset.id(), antenne.id(), null, null, 1);
+
+        log.info("Demo: Created 2 inventory collections in station {}", stationId);
     }
 
     private void seedStorageContainers(

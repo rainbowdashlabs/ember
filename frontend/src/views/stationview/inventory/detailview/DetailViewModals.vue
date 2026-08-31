@@ -10,6 +10,7 @@ import AssignItemModal from './AssignItemModal.vue'
 import ProcurementModal from './ProcurementModal.vue'
 import HistoryModal from './HistoryModal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import {useCollectionLossWarning} from '@/composables/useCollectionLossWarning'
 import ItemModals from '../editview/ItemModals.vue'
 import { inventory, procurement } from '@/api'
 import {InventoryTypes, type InventoryDetail, type InventoryItem} from '@/api/inventory'
@@ -49,7 +50,14 @@ const {isOpen: showProcurementModal, open: openProcurement} = useModalTarget<nul
 
 const {isOpen: showHistoryModal, target: historyTarget, open: openHistory} = useModalTarget<InventoryItem>()
 
-const {isOpen: showDeleteModal, target: deleteTarget, open: openDelete} = useModalTarget<InventoryItem>()
+const {isOpen: showDeleteModal, target: deleteTarget, open: startDelete} = useModalTarget<InventoryItem>()
+
+const collectionLoss = useCollectionLossWarning()
+
+async function openDelete(item: InventoryItem) {
+  startDelete(item)
+  await collectionLoss.forItem(item.id)
+}
 
 function fail() { emit('error', t('common.error')) }
 
@@ -170,7 +178,7 @@ defineExpose({
 
   <ConfirmDeleteModal
     v-model="showDeleteModal"
-    :message="t('inventory.edit.deleteConfirm', { name: deleteTarget?.name })"
+    :message="t('inventory.edit.deleteConfirm', { name: deleteTarget?.name }) + collectionLoss.warning.value"
     @confirm="confirmDelete"
   />
 </template>

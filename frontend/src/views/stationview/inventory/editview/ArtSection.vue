@@ -20,6 +20,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import LendingShareButton from '@/components/lending/LendingShareButton.vue'
+import {useCollectionLossWarning} from '@/composables/useCollectionLossWarning'
 import {inventoryArts} from '@/api'
 import type {ArtStock, InventoryArt} from '@/api/inventoryArts'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
@@ -106,13 +107,20 @@ async function saveArt() {
 const {
   show: showDeleteModal,
   target: deleteTarget,
-  requestDelete,
+  requestDelete: startDelete,
   confirm: confirmDelete,
 } = useConfirmDelete<InventoryArt>({
   onDelete: art => inventoryArts.deleteArt(props.inventoryId, art.id),
   onSuccess: () => load(),
   error,
 })
+
+const collectionLoss = useCollectionLossWarning()
+
+async function requestDelete(art: InventoryArt) {
+  startDelete(art)
+  await collectionLoss.forArt(props.inventoryId, art.id)
+}
 
 watch(() => props.inventoryId, load, {immediate: true})
 </script>
@@ -176,7 +184,7 @@ watch(() => props.inventoryId, load, {immediate: true})
 
   <ConfirmDeleteModal
       v-model="showDeleteModal"
-      :message="t('inventory.art.deleteConfirm', {name: deleteTarget?.name})"
+      :message="t('inventory.art.deleteConfirm', {name: deleteTarget?.name}) + collectionLoss.warning.value"
       @confirm="confirmDelete"
   />
 </template>
