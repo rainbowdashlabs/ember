@@ -61,6 +61,23 @@ async function answerEverything(member: Page): Promise<number> {
     return pieces + places
 }
 
+/**
+ * Presses the button that takes one answer and waits for the answer to the press.
+ *
+ * <p>Waiting for the call rather than only for the screen is what tells a refused call apart from a
+ * button that did nothing: the two look the same from outside and are entirely different problems.
+ * The row itself is not asserted on here, because taking the last outstanding answer of a task that
+ * also holds a refused one sends the whole task back and clears what was taken, so the row it was
+ * about is gone by the time the screen redraws.
+ */
+async function takeRow(manager: Page, taskId: number, rowId: number): Promise<void> {
+    const [response] = await Promise.all([
+        manager.waitForResponse(answer => answer.url().includes(`/self-check-reviews/${taskId}/rows/${rowId}/take`)),
+        manager.getByTestId(`review-take-${rowId}`).click(),
+    ])
+    expect(response.ok(), `taking one answer is accepted (${response.status()} ${await response.text()})`).toBeTruthy()
+}
+
 /** The task as the review endpoint reads it, which is where the settlement of each answer stands. */
 async function review(manager: Page, taskId: number) {
     const response = await manager.request.get(`/api/v1/self-check-reviews/${taskId}`, {
@@ -132,14 +149,13 @@ test.describe('Self-check', () => {
             const midway = await review(managerPage, taskId)
             expect(midway.task.state, 'a task still holding answers stays where it is').toBe('SUBMITTED')
 
-            for (const rowId of rows.slice(1)) {
-                await managerPage.getByTestId(`review-take-${rowId}`).click()
-                await expect(managerPage.getByTestId(`review-row-${rowId}`)).toContainText('Übernommen')
-            }
+            for (const rowId of rows.slice(1)) await takeRow(managerPage, taskId, rowId)
 
             const returned = await review(managerPage, taskId)
             expect(returned.task.state, 'a refused answer sends the task back to the member').toBe('OPEN')
             expect(returned.rows.length, 'and it comes back holding only what was refused').toBe(1)
+            await expect(managerPage.getByTestId(`review-row-${rows[0]}`)).toContainText('Zurückgegeben')
+            await expect(managerPage.locator('[data-testid^="review-row-"]')).toHaveCount(1)
 
             await memberPage.goto(`/station/inventory/self-check/${taskId}`)
             const cameBack = memberPage.locator('[data-testid^="self-check-refused-"]')
@@ -154,9 +170,9 @@ test.describe('Self-check', () => {
             await expect(managerPage.getByTestId('review-people')).toBeVisible()
             for (const entry of again.rows) {
                 if (entry.row.state !== 'OUTSTANDING') continue
-                await managerPage.getByTestId(`review-take-${entry.row.id}`).click()
-                await expect(managerPage.getByTestId(`review-row-${entry.row.id}`)).toContainText('Übernommen')
+                await takeRow(managerPage, taskId, entry.row.id)
             }
+            await expect(managerPage.locator('[data-testid^="review-row-"]').first()).toContainText('Übernommen')
 
             const done = await review(managerPage, taskId)
             expect(done.task.state, 'the last answer taken finishes the task').toBe('DONE')

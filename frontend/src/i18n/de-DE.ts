@@ -3787,6 +3787,7 @@ export default {
             member: 'Mitglied',
             lastChecked: 'Zuletzt geprüft',
             checkedBy: 'Geprüft von',
+            reportedBy: 'Angegeben von',
             status: 'Status',
             neverChecked: 'Noch nie geprüft',
             locked: 'Wird geprüft von',
@@ -5869,6 +5870,7 @@ export default {
             title: 'Prüfungsverlauf',
             empty: 'Dieser Gegenstand wurde noch nie geprüft.',
             byChecker: 'Geprüft von {name}',
+            reportedBy: 'Angegeben von {name}',
             inContainer: 'in {container}',
             result: {
                 CONFIRMED: 'Bestätigt',
@@ -6402,6 +6404,7 @@ export default {
         lossRaised: 'Als vermisst gemeldet',
         requestExchange: 'Passt nicht mehr',
         exchangeRaised: 'Tausch läuft',
+        raisedAtOnce: 'Beides gilt sofort und wartet auf niemanden. Es gehört nicht zu dem, was du abgibst.',
         save: 'Zwischenspeichern',
         saved: 'Gespeichert. Du kannst später weitermachen.',
         submit: 'Abgeben',

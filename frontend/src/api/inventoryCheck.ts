@@ -26,6 +26,12 @@ export interface CheckDetail {
     check: InventoryCheck
     checkerFirstName?: string
     checkerLastName?: string
+    /**
+     * Whoever said what the check records, where that is somebody other than the person who signed
+     * it off. Empty on a check somebody walked themselves.
+     */
+    reporterFirstName?: string
+    reporterLastName?: string
     items: EnrichedCheckItem[]
 }
 
