@@ -132,6 +132,28 @@ class InventoryTagServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void theWordsOfAWholeInventoryComeBackAtOnce() {
+        var wearing = inventoryRepo.createItem(inventoryId, "TS-400", "Funkgerät", null, null);
+        var bare = inventoryRepo.createItem(inventoryId, "TS-401", "Kaffeemaschine", null, null);
+        inventoryTagService.setItemTags(station.id(), wearing.id(), List.of("Funk"));
+
+        var byItem = inventoryTagService.findTagsInInventory(station.id(), inventoryId);
+        assertEquals(1, byItem.size());
+        assertEquals("Funk", byItem.get(wearing.id()).getFirst().name());
+
+        assertThrows(
+                NotFoundResponse.class,
+                () -> inventoryTagService.findTagsInInventory(station.id(), strangerInventoryId));
+        assertThrows(NotFoundResponse.class, () -> inventoryTagService.findTagsInInventory(station.id(), -1));
+
+        for (var tag : inventoryTagService.findByStation(station.id())) {
+            inventoryTagService.delete(station.id(), tag.id());
+        }
+        inventoryRepo.deleteItem(wearing.id());
+        inventoryRepo.deleteItem(bare.id());
+    }
+
+    @Test
     void aThingOfAnotherStationIsNotThereAtAll() {
         var theirs = inventoryRepo.createItem(strangerInventoryId, "TS-200", "Fremdes Ding", null, null);
         assertThrows(NotFoundResponse.class, () -> inventoryTagService.findTagsForItem(station.id(), theirs.id()));

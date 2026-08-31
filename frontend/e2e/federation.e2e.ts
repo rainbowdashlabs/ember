@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect} from './fixtures/auth'
+import {test, expect, apiHeaders} from './fixtures/auth'
 
 /**
  * The station's own side of federation. Connecting two stations and reading a partner's content
@@ -67,5 +67,41 @@ test.describe('Federation', () => {
         await page.goto('/station/federate/settings')
 
         await expect(page.getByRole('button', {name: /Speichern/})).toHaveCount(0)
+    })
+
+    /**
+     * A word written down at one station finds gear at another. The partner spells it in lower case
+     * and the searching station asks in capitals, which is the whole point of the merge rule: two
+     * stations using one word mean one thing.
+     */
+    test('a word finds gear at a partner station', async ({managerPage, partnerManagerPage}) => {
+        const stamp = Date.now()
+        const word = `Fernfunk${stamp}`
+
+        const partnerHeaders = await apiHeaders(partnerManagerPage)
+        const drawer = await partnerManagerPage.request.post('/api/v1/inventories', {
+            headers: partnerHeaders,
+            data: {name: `Partnerlager ${stamp}`, inventoryType: 'INTERNAL', hasSizes: false, homogeneous: true},
+        }).then(r => r.json())
+        const piece = await partnerManagerPage.request.post(`/api/v1/inventories/${drawer.id}/items`, {
+            headers: partnerHeaders,
+            data: {internalId: `PF-${stamp}`, name: 'Ferne Antenne', sizeId: null, artId: null, metadata: null,
+                ownerKind: 'STATION', ownerClusterId: null},
+        }).then(r => r.json())
+        const tagged = await partnerManagerPage.request.put(`/api/v1/inventory-items/${piece.id}/tags`, {
+            headers: partnerHeaders,
+            data: {names: [word.toLowerCase()]},
+        })
+        expect(tagged.ok(), `the partner puts the word on its gear (${await tagged.text()})`).toBeTruthy()
+
+        const headers = await apiHeaders(managerPage)
+        await expect(async () => {
+            const found = await managerPage.request.get('/api/v1/federated/inventory-tags/items', {
+                headers,
+                params: {tag: word.toUpperCase()},
+            }).then(r => r.json())
+            expect(found.map((item: {itemId: number}) => item.itemId),
+                'the searching station finds the partner\'s piece').toContain(piece.id)
+        }).toPass()
     })
 })
