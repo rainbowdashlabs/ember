@@ -125,11 +125,9 @@ class InventoryCollectionServiceTest extends RepositoryTestBase {
         assertNull(perKind.inventoryId());
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> service.addArtLine(kit.id(), station.id(), foreignKind.id(), 1));
+                IllegalArgumentException.class, () -> service.addArtLine(kit.id(), station.id(), foreignKind.id(), 1));
         assertThrows(IllegalArgumentException.class, () -> service.addArtLine(kit.id(), station.id(), -1, 1));
-        assertThrows(
-                IllegalArgumentException.class, () -> service.addArtLine(kit.id(), station.id(), kind.id(), 0));
+        assertThrows(IllegalArgumentException.class, () -> service.addArtLine(kit.id(), station.id(), kind.id(), 0));
 
         assertEquals(
                 List.of("Eigenes"),

@@ -35,6 +35,18 @@ const shortfall = () =>
     props.line.itemId !== null
         ? t('inventory.collections.itemMissing')
         : t('inventory.collections.fraction', {available: props.line.available, requested: props.line.requested})
+
+/**
+ * A filled line reports what it asked for, not what the drawer happens to hold.
+ *
+ * Six radios found for a line asking for four is filled, and writing "6 of 4" there invites the
+ * reading that six are needed. What the line is about is the four.
+ */
+const found = () =>
+    t('inventory.collections.fraction', {
+      available: Math.min(props.line.available, props.line.requested),
+      requested: props.line.requested,
+    })
 </script>
 
 <template>
@@ -44,9 +56,7 @@ const shortfall = () =>
   >
     <span class="text-sm truncate">{{ line.label }}</span>
     <div class="flex items-center gap-2">
-      <SuccessBadge v-if="line.filled" data-testid="collection-line-filled">
-        {{ t('inventory.collections.fraction', {available: line.available, requested: line.requested}) }}
-      </SuccessBadge>
+      <SuccessBadge v-if="line.filled" data-testid="collection-line-filled">{{ found() }}</SuccessBadge>
       <ErrorBadge v-else data-testid="collection-line-short">{{ shortfall() }}</ErrorBadge>
       <InfoBadge v-if="line.clusterOwned > 0" data-testid="collection-line-cluster-owned">
         {{ t('inventory.collections.clusterOwned', {count: line.clusterOwned}) }}

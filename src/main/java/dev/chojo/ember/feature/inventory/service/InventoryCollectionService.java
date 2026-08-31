@@ -164,8 +164,9 @@ public class InventoryCollectionService {
      */
     public CollectionLine addArtLine(int collectionId, int stationId, int artId, int quantity) {
         if (quantity < 1) throw new IllegalArgumentException("A line asks for at least one piece");
-        InventoryArt art =
-                artRepository.findById(artId).orElseThrow(() -> new IllegalArgumentException("The kind does not exist"));
+        InventoryArt art = artRepository
+                .findById(artId)
+                .orElseThrow(() -> new IllegalArgumentException("The kind does not exist"));
         requireOwnInventory(art.inventoryId(), stationId, "A collection can only ask for its own station's kinds");
         return collectionRepository.addLine(collectionId, null, artId, null, quantity);
     }
@@ -184,8 +185,7 @@ public class InventoryCollectionService {
      */
     public CollectionLine addInventoryLine(int collectionId, int stationId, int inventoryId, int quantity) {
         if (quantity < 1) throw new IllegalArgumentException("A line asks for at least one piece");
-        requireOwnInventory(
-                inventoryId, stationId, "A collection can only draw from its own station's inventories");
+        requireOwnInventory(inventoryId, stationId, "A collection can only draw from its own station's inventories");
         return collectionRepository.addLine(collectionId, null, null, inventoryId, quantity);
     }
 
