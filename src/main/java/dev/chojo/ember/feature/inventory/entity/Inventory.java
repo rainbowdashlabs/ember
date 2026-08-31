@@ -15,8 +15,12 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param name          the display name of the inventory
  * @param inventoryType the type of inventory (internal, external, or mixed)
  * @param hasSizes      whether this inventory supports size variants
+ * @param homogeneous   whether it holds one thing in many copies rather than a drawer of different
+ *                      things. Requirements, procurements and exchanges are only offered for the
+ *                      first, because none of them means anything for the second.
  */
-public record Inventory(int id, int stationId, String name, InventoryType inventoryType, boolean hasSizes) {
+public record Inventory(
+        int id, int stationId, String name, InventoryType inventoryType, boolean hasSizes, boolean homogeneous) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -26,6 +30,7 @@ public record Inventory(int id, int stationId, String name, InventoryType invent
                 row.getInt("station_id"),
                 row.getString("name"),
                 row.getEnum("inventory_type", InventoryType.class),
-                row.getBoolean("has_sizes"));
+                row.getBoolean("has_sizes"),
+                row.getBoolean("homogeneous"));
     }
 }
