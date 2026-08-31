@@ -3573,6 +3573,14 @@ volumes:
             lossDecideText: 'Über den Verlust selbst entscheidet ihr nicht, der ist bereits passiert und'
                 + ' festgehalten. Ihr entscheidet über den Ersatz: Ihr schickt einen oder lehnt mit Begründung'
                 + ' ab. Vermisst bleibt das Teil so oder so.',
+            tagsTitle: 'Wörter empfehlen',
+            tagsText: 'Ein Schlagwort fasst Dinge zusammen, die zusammengehören, ohne gleich zu sein: die'
+                + ' Funkgeräte, die Ladestation und die Antenne. Hier schlagt ihr euren Abteilungen Wörter'
+                + ' dafür vor, wahlweise allen oder nur einer Gruppe von Abteilungen.',
+            tagsStandsBesideText: 'Ein Vorschlag ersetzt nie das Wort einer Abteilung. Verglichen wird ohne'
+                + ' Rücksicht auf Groß- und Kleinschreibung, also meinen beide ohnehin dasselbe, und jede'
+                + ' Abteilung zeigt weiter ihre eigene Schreibweise. Zieht ihr einen Vorschlag zurück,'
+                + ' ändert sich bei den Abteilungen nichts.',
             tip: 'Wer nur eines der beiden Rechte hat, sieht auf dieser Seite nur den zugehörigen Teil.',
         },
         clusterMemberDetail: {
