@@ -244,9 +244,11 @@ export interface PitchNews {
 export interface PitchNewsSettings {
     groups: MemberGroup[]
     tags: UserTag[]
+    members: StationMember[]
     selectedUserTypes: string[]
     selectedGroupIds: number[]
     selectedTagIds: number[]
+    selectedMemberIds: number[]
     publicBlog: boolean
     shared: boolean
     scope: string

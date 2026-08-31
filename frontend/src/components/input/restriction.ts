@@ -39,27 +39,33 @@ export function toRestriction(audience?: Partial<RestrictionSelection> | null): 
  * them.
  *
  * Several features store the three parts as separate fields rather than as one object, so this is
- * the adapter between that storage shape and the editor's. Individual members are not selectable
- * in these editors and the parts always combine with AND, so both are fixed here rather than
- * being carried by every caller.
+ * the adapter between that storage shape and the editor's. The parts always combine with AND, so
+ * that is fixed here rather than being carried by every caller.
+ *
+ * <p>Individually named members are optional, because most of these editors do not offer them and
+ * would otherwise have to invent a fourth list to pass. A caller that leaves them out gets an empty
+ * member list, exactly as before; one that passes them keeps whatever was already stored, rather
+ * than dropping it the next time somebody saves.
  */
 export function toRestrictionSelection(
     userTypes: {value: string[]},
     groupIds: {value: number[]},
     tagIds: {value: number[]},
+    memberIds?: {value: number[]},
 ): WritableComputedRef<RestrictionSelection> {
     return computed({
         get: (): RestrictionSelection => ({
             userTypes: userTypes.value,
             groupIds: groupIds.value,
             tagIds: tagIds.value,
-            memberIds: [],
+            memberIds: memberIds?.value ?? [],
             mode: 'AND',
         }),
         set: (value: RestrictionSelection) => {
             userTypes.value = value.userTypes
             groupIds.value = value.groupIds
             tagIds.value = value.tagIds
+            if (memberIds) memberIds.value = value.memberIds
         },
     })
 }

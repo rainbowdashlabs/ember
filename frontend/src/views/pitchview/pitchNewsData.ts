@@ -52,9 +52,11 @@ const TAGS: UserTag[] = [
 export const NEWS_SETTINGS: PitchNewsSettings = {
     groups: GROUPS,
     tags: TAGS,
+    members: [],
     selectedUserTypes: [],
     selectedGroupIds: [1],
     selectedTagIds: [],
+    selectedMemberIds: [],
     publicBlog: true,
     shared: true,
     scope: 'ALL_PARTNERS',
