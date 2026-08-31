@@ -447,4 +447,66 @@ test.describe('Inventory', () => {
         expect(written[0].internalId ?? null, 'with no number on it').toBeNull()
         expect(written[0].assignedTo, 'in the hands of the member on its line').toBeTruthy()
     })
+
+    /**
+     * An inventory says whether it holds one thing in many copies or a drawer of different things,
+     * and the three features that only mean something for the first stop offering themselves for
+     * the second. The story marks a drawer, then goes to the screen that writes requirements and
+     * expects it not to be on offer there.
+     */
+    test('a drawer of different things is not offered where one thing is meant', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const stamp = Date.now()
+        const drawer = `Gemeindekiste ${stamp}`
+        await page.request.post('/api/v1/inventories', {
+            headers,
+            data: {name: drawer, inventoryType: 'INTERNAL', hasSizes: false, homogeneous: false},
+        })
+
+        await page.goto('/station/inventory/requirements')
+        await page.getByTestId('requirement-add').click()
+
+        const picker = page.getByTestId('requirement-inventory')
+        await expect(picker).toBeVisible()
+        // The picker has something in it, so an empty list is not what makes the next line pass
+        await expect(picker.getByRole('option')).not.toHaveCount(1)
+        await expect(picker.getByRole('option', {name: drawer})).toHaveCount(0)
+
+        // and the inventory really does exist; it is this screen that does not offer it
+        const listed = await page.request.get('/api/v1/inventories', {headers}).then(r => r.json())
+        expect(listed.some((inv: {name?: string}) => inv.name === drawer)).toBeTruthy()
+    })
+
+    /**
+     * Splitting an inventory is a move rather than a delete and a rewrite, which is what keeps the
+     * pieces the pieces they were. The story moves one and expects it in the other inventory with
+     * the identifier it started with.
+     */
+    test('a piece moves to another inventory and stays the piece it was', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const stamp = Date.now()
+        const from = await page.request.post('/api/v1/inventories',
+            {headers, data: {name: `Bundhose leicht ${stamp}`, inventoryType: 'INTERNAL', hasSizes: false}})
+            .then(r => r.json())
+        const to = await page.request.post('/api/v1/inventories',
+            {headers, data: {name: `Bundhose schwer ${stamp}`, inventoryType: 'INTERNAL', hasSizes: false}})
+            .then(r => r.json())
+        const code = `BH-${stamp}`
+        const item = await page.request.post(`/api/v1/inventories/${from.id}/items`,
+            {headers, data: {internalId: code, name: 'Bundhose'}})
+            .then(r => r.json())
+
+        await page.goto(`/station/inventory/move/${from.id}`)
+        await page.getByTestId('move-target').selectOption({label: `Bundhose schwer ${stamp}`})
+        await page.getByTestId('move-select-all').check()
+        await page.getByTestId('move-submit').click()
+
+        await expect(page.getByTestId('move-done')).toBeVisible()
+
+        const moved = await page.request.get(`/api/v1/inventories/${to.id}/items`, {headers})
+            .then(r => r.json())
+        expect(moved.length, 'the piece arrived').toBe(1)
+        expect(moved[0].id, 'as the same row it always was').toBe(item.id)
+        expect(moved[0].internalId, 'with the number it started with').toBe(code)
+    })
 })
