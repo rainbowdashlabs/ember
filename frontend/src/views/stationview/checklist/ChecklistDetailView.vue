@@ -27,7 +27,10 @@ import type {
   ChecklistCellDto,
   ChecklistDetail,
   ChecklistRefreshResult,
+  ChecklistRestrictionDto,
+  ChecklistSourceRequest,
 } from '@/api/checklists'
+import {formatDate} from '@/util/format'
 import EditButton from '@/components/button/EditButton.vue'
 import ChecklistMatrix from './checklistdetailview/ChecklistMatrix.vue'
 import ChecklistFilterBar from './checklistdetailview/ChecklistFilterBar.vue'
@@ -36,6 +39,7 @@ import ChecklistExportMenu from './checklistdetailview/ChecklistExportMenu.vue'
 import ChecklistAddMembersButton from './checklistdetailview/ChecklistAddMembersButton.vue'
 import ChecklistAddMembersModal from './ChecklistAddMembersModal.vue'
 import ChecklistEditModal from './ChecklistEditModal.vue'
+import ChecklistMembershipModal from './ChecklistMembershipModal.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -57,6 +61,7 @@ const showRemoved = ref(false)
 const showAddMembers = ref(false)
 const showDeleteConfirm = ref(false)
 const showEditMeta = ref(false)
+const showMembership = ref(false)
 
 const checklistId = computed(() => Number(route.params.id))
 
@@ -118,11 +123,27 @@ const visibleEntries = computed(() => {
  */
 const frozenMemberSet = computed(() => {
   const restriction = detail.value?.restriction
-  if (!restriction) return false
+  if (!restriction || followsEvent.value) return false
   return restriction.memberIds.length > 0
       && restriction.userTypes.length === 0
       && restriction.groupIds.length === 0
       && restriction.tagIds.length === 0
+})
+
+/**
+ * Whether this list is tied to one evening of an appointment rather than to a description of
+ * people. The reference is cleared when the appointment is deleted, so a list that used to follow
+ * one keeps every row and simply stops saying that it follows anything.
+ */
+const followsEvent = computed(() => detail.value?.source != null)
+
+const followsLabel = computed(() => {
+  const source = detail.value?.source
+  if (!source) return ''
+  return t('checklist.followsEventHeader', {
+    event: source.eventName ?? '',
+    date: formatDate(source.eventDate),
+  })
 })
 
 const aliveMemberIds = computed(() => new Set(aliveEntries.value.map(e => e.memberId)))
@@ -201,6 +222,25 @@ function onSaveMeta(payload: {name: string; description: string; orderedColumnId
   return runSaveMeta(payload)
 }
 
+/**
+ * Changes what the list is made of. Nobody arrives or leaves on saving: the new source decides who
+ * the next refresh brings in, and rows already here stay where they are either way.
+ */
+const {running: savingMembership, error: membershipError, run: runSaveMembership} = useAsyncAction(
+    async (payload: {restriction?: ChecklistRestrictionDto; source?: ChecklistSourceRequest}) => {
+      if (!detail.value) return
+      await checklists.updateChecklist(detail.value.id, payload)
+      showMembership.value = false
+      await reload()
+      showToast(t('checklist.membershipSaved'), 'success')
+    },
+    {formatError: () => t('checklist.savingError')},
+)
+
+function onSaveMembership(payload: {restriction?: ChecklistRestrictionDto; source?: ChecklistSourceRequest}) {
+  return runSaveMembership(payload)
+}
+
 const {error: deleteError, run: runDeleteChecklist} = useAsyncAction(
     async () => {
       if (!detail.value) return
@@ -217,6 +257,7 @@ function confirmDeleteChecklist() {
 
 const pageError = computed(() =>
     error.value || addMembersError.value || saveMetaError.value || deleteError.value)
+
 </script>
 
 <template>
@@ -239,16 +280,22 @@ const pageError = computed(() =>
             {{ detail.name }}
           </PageHeader>
           <p v-if="detail.description" class="text-sm text-(--text-muted)">{{ detail.description }}</p>
-          <MutedText v-if="frozenMemberSet" tag="p" data-testid="checklist-frozen">{{ t('checklist.frozenSetHint') }}</MutedText>
+          <MutedText v-if="followsEvent" tag="p" data-testid="checklist-follows">{{ followsLabel }}</MutedText>
+          <MutedText v-else-if="frozenMemberSet" tag="p" data-testid="checklist-frozen">{{ t('checklist.frozenSetHint') }}</MutedText>
         </div>
         <div class="flex flex-wrap gap-2 items-center">
           <template v-if="canManage">
             <EditButton @click="showEditMeta = true">
               {{ t('checklist.editChecklist') }}
             </EditButton>
+            <SecondaryButton data-testid="checklist-membership" @click="showMembership = true">
+              <font-awesome-icon :icon="['fas', 'users-gear']" class="mr-1"/>
+              {{ t('checklist.membership') }}
+            </SecondaryButton>
             <ChecklistRefreshButton
                 :last-refreshed-at="detail.lastRefreshedAt"
                 :frozen="frozenMemberSet"
+                :follows-event="followsEvent"
                 :on-refresh="onRefresh"
             />
             <ChecklistAddMembersButton @click="showAddMembers = true"/>
@@ -301,6 +348,18 @@ const pageError = computed(() =>
             :initial-columns="detail.columns"
             :saving="savingMeta"
             @submit="onSaveMeta"
+        />
+
+        <ChecklistMembershipModal
+            v-model="showMembership"
+            :initial-restriction="detail.restriction"
+            :initial-source="detail.source"
+            :groups="groups"
+            :tags="tags"
+            :members="members"
+            :saving="savingMembership"
+            :error="membershipError"
+            @submit="onSaveMembership"
         />
 
         <ConfirmDeleteModal
