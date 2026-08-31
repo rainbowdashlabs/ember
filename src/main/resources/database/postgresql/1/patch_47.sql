@@ -699,3 +699,148 @@ ALTER TABLE ember_schema.inventory_check_item
 ALTER TABLE ember_schema.inventory_check_item
     ADD CONSTRAINT inventory_check_item_check_id_item_id_key
         UNIQUE NULLS DISTINCT (check_id, item_id, inventory_id);
+
+-- The second name on a check.
+--
+-- A check has carried exactly one person since it existed: whoever walked it. That was enough for
+-- as long as walking it was the only way to have one. A member answering for their own gear at home
+-- is a second way, and it produces a check nobody held the boots for, so the person who said what
+-- was there and the person who signed it off are no longer the same person and the record has to
+-- say both. A piece checked at arm's length can then be told from one somebody held, which is the
+-- whole reason answering from home is safe to offer.
+--
+-- Unlike the two names already on the row, this one does not cascade. Both of those take every
+-- check a member ever walked with them when the member is removed, which is a loss of history this
+-- one does not repeat: the check stays and the name comes off, the way a movement already keeps the
+-- gear and unlinks the member.
+ALTER TABLE ember_schema.inventory_check
+    ADD COLUMN reported_by INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
+
+COMMENT ON COLUMN ember_schema.inventory_check.reported_by IS
+    'Who reported what the check records, where that is somebody other than whoever signed it off. NULL on a check somebody walked themselves. Unlinked rather than cascaded when the member is removed, so the check survives them.';
+
+-- The self-check: a task handed to a member about their own gear.
+--
+-- Getting twelve members who each keep a helmet at home into one room is the whole cost of checking
+-- them, and it is paid every time. The station does not need to see the boots; it needs to know
+-- whether they still exist. A task says whose gear is in question, who handed it out, and by when,
+-- and it holds the answers until somebody with the check permission reads them.
+--
+-- The task cascades with the member, deliberately and unlike the check it eventually writes: it is
+-- a piece of work in progress rather than a record of anything, and there is nothing to keep about
+-- an unanswered question once the person it was put to is gone. Everyone else named on it is
+-- unlinked instead, because the task outlives the checker who handed it out.
+CREATE TABLE ember_schema.inventory_self_check
+(
+    id            SERIAL PRIMARY KEY,
+    station_id    INTEGER     NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    member_id     INTEGER     NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    handed_out_by INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    handed_out_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    due_on        DATE,
+    state         TEXT        NOT NULL DEFAULT 'OPEN',
+    submitted_at  TIMESTAMPTZ,
+    submitted_by  INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    closed_at     TIMESTAMPTZ,
+    check_id      INTEGER REFERENCES ember_schema.inventory_check (id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_inventory_self_check_member ON ember_schema.inventory_self_check (member_id);
+CREATE INDEX idx_inventory_self_check_station ON ember_schema.inventory_self_check (station_id);
+
+COMMENT ON TABLE ember_schema.inventory_self_check IS
+    'A task put to a member to answer for the gear the station has recorded against their name, without a checker in the room.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.station_id IS 'The station that handed the task out.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.member_id IS 'The member whose gear the task is about.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.handed_out_by IS 'Who handed the task out. NULL once that person is no longer a member here.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.handed_out_at IS 'When the task was handed out.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.due_on IS 'The day the answer is wanted by, or NULL where none was named.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.state IS 'OPEN while the member may still answer, SUBMITTED once they have, DONE once every row is settled, OVERTAKEN where a checker walked the member instead.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.submitted_at IS 'When the task was submitted, or NULL while it is still open.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.submitted_by IS 'Who entered the submission, which is the member or one of their guardians. NULL once that person is no longer a member here.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.closed_at IS 'When the task stopped needing anything, however it ended.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.check_id IS 'The check the settled task wrote, once it wrote one.';
+
+-- One answer, and what became of it.
+--
+-- The list a member answers is recomputed from their role and the stock on every read, so a row
+-- cannot be a position in it: a saved answer against "the second empty place" points at something
+-- else the moment a group changes underneath it. A row therefore hangs on the piece where there is
+-- one, and on the inventory plus a slot where the place is empty. A piece that is deleted leaves
+-- the row standing with nothing to hang on, which is shown to the reviewer as an anchor that has
+-- gone rather than quietly dropped.
+--
+-- The state lives on the row rather than on the task, and the task follows from its rows: there are
+-- no transactions here, so taking or refusing a row is a conditional update on it still being
+-- outstanding, and the task is finished only once none of them is.
+CREATE TABLE ember_schema.inventory_self_check_item
+(
+    id                SERIAL PRIMARY KEY,
+    task_id           INTEGER NOT NULL REFERENCES ember_schema.inventory_self_check (id) ON DELETE CASCADE,
+    item_id           INTEGER REFERENCES ember_schema.inventory_item (id) ON DELETE SET NULL,
+    inventory_id      INTEGER NOT NULL REFERENCES ember_schema.inventory (id) ON DELETE CASCADE,
+    slot              INTEGER,
+    answer            TEXT    NOT NULL,
+    note              TEXT    NOT NULL DEFAULT '',
+    typed_internal_id TEXT,
+    answered_by       INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    answered_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    state             TEXT    NOT NULL DEFAULT 'OUTSTANDING',
+    reviewer_reason   TEXT    NOT NULL DEFAULT '',
+    reviewed_by       INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    reviewed_at       TIMESTAMPTZ
+);
+
+CREATE UNIQUE INDEX idx_inventory_self_check_item_piece
+    ON ember_schema.inventory_self_check_item (task_id, item_id) WHERE item_id IS NOT NULL;
+CREATE UNIQUE INDEX idx_inventory_self_check_item_place
+    ON ember_schema.inventory_self_check_item (task_id, inventory_id, slot) WHERE slot IS NOT NULL;
+
+COMMENT ON TABLE ember_schema.inventory_self_check_item IS
+    'One thing a member said about one piece of their gear or one empty place in it, and what the reviewer made of it.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.task_id IS 'The task this answer belongs to.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.item_id IS 'The piece the answer is about. NULL where the answer is about an empty place, and NULL again once the piece it named has been deleted.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.inventory_id IS 'The inventory the piece sits in, or the one the empty place belongs to.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.slot IS 'Which of the empty places in that inventory the answer is about, counted from zero. NULL on an answer about a piece.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.answer IS 'What the member said: HAVE_IT, DO_NOT_HAVE_IT, TURNED_UP, WRONG_RECORD, NEVER_HAD or HAVE_ONE.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.note IS 'What the member wrote beside the answer, which is usually the useful part.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.typed_internal_id IS 'The number the member read off a piece nobody wrote down. Matched when the reviewer reads it, never trusted, and NULL where nothing was typed.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.answered_by IS 'Who entered the answer, which is the member or one of their guardians. NULL once that person is no longer a member here.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.answered_at IS 'When the answer was last written.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.state IS 'OUTSTANDING until a reviewer settles it, then TAKEN or REFUSED.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.reviewer_reason IS 'Why a row was refused, in the reviewer''s words. Empty on every other row.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.reviewed_by IS 'Who settled the row. NULL while it is outstanding, and NULL again once that person is no longer a member here.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.reviewed_at IS 'When the row was settled.';
+
+-- What the member set going without waiting for anybody.
+--
+-- A loss and an exchange are both things a member may already raise alone, from screens that exist
+-- and were built that way on purpose, and both take effect the moment they are given. Neither is a
+-- row of the submission, so neither waits for a reviewer. What the reviewer does need is to see
+-- that they happened during this task, and that is all this table is: the link between a task and
+-- the thing it set off, kept nowhere else because the loss lives on the piece and the exchange
+-- lives on a movement.
+CREATE TABLE ember_schema.inventory_self_check_raised
+(
+    id          SERIAL PRIMARY KEY,
+    task_id     INTEGER     NOT NULL REFERENCES ember_schema.inventory_self_check (id) ON DELETE CASCADE,
+    kind        TEXT        NOT NULL,
+    item_id     INTEGER REFERENCES ember_schema.inventory_item (id) ON DELETE SET NULL,
+    movement_id INTEGER REFERENCES ember_schema.item_movement (id) ON DELETE SET NULL,
+    raised_by   INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    raised_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_inventory_self_check_raised_task ON ember_schema.inventory_self_check_raised (task_id);
+
+COMMENT ON TABLE ember_schema.inventory_self_check_raised IS
+    'A loss or an exchange a member raised while answering a self-check, recorded so the reviewer can see it happened.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.task_id IS 'The task it was raised during.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.kind IS 'LOSS where the member said a piece cannot be found, EXCHANGE where they asked for a different size.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.item_id IS 'The piece it was about. NULL once that piece has been deleted.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.movement_id IS 'The movement an exchange started, where there is one.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.raised_by IS 'Who raised it, which is the member or one of their guardians. NULL once that person is no longer a member here.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.raised_at IS 'When it was raised.';
