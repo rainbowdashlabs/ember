@@ -93,10 +93,13 @@ import dev.chojo.ember.feature.inventory.repository.ItemMovementItemRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
 import dev.chojo.ember.feature.inventory.repository.MovementFlowRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
+import dev.chojo.ember.feature.inventory.repository.SelfCheckRepository;
 import dev.chojo.ember.feature.inventory.service.BorrowedGearService;
 import dev.chojo.ember.feature.inventory.service.ClusterItemHandoverService;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryArtService;
+import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
+import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.InventoryTagService;
@@ -105,6 +108,7 @@ import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.LineTargetService;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
+import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
@@ -254,6 +258,9 @@ public abstract class RepositoryTestBase {
     protected static EventReminderRepository eventReminderRepo;
     protected static SavedFilterRepository savedFilterRepo;
     protected static InventoryCheckRepository inventoryCheckRepo;
+    protected static InventoryCheckService inventoryCheckService;
+    protected static SelfCheckRepository selfCheckRepo;
+    protected static SelfCheckService selfCheckService;
     protected static EventFieldRepository eventFieldRepo;
     protected static FormRepository formRepo;
     protected static ProcurementRepository procurementRepo;
@@ -579,6 +586,18 @@ public abstract class RepositoryTestBase {
                 memberNameResolver);
         clusterDispatchService = new ClusterDispatchService(
                 clusterRepo, stationRepo, inventoryRepo, itemMovementService, movementFlowService);
+        inventoryCheckService = new InventoryCheckService(
+                inventoryCheckRepo,
+                inventoryRepo,
+                stationMemberRepo,
+                memberGroupRepo,
+                accountRepo,
+                memberIdentityFactory,
+                new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService),
+                itemCustodyService,
+                inventoryService);
+        selfCheckRepo = new SelfCheckRepository();
+        selfCheckService = new SelfCheckService(selfCheckRepo, inventoryCheckService, inventoryRepo, stationMemberRepo);
     }
 
     /**
