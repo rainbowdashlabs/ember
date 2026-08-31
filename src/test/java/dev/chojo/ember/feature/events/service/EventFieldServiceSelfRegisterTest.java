@@ -232,4 +232,39 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
         var field = createField(EventFieldType.MEMBER, selfRegConfig());
         assertThrows(BadRequestResponse.class, () -> service.toggleSelfRegistration(eventId, field.id(), 987654));
     }
+
+    @Test
+    void memberFieldIsShownByName() {
+        var field = valuedField(EventFieldType.MEMBER, MemberFieldValue.formatSingle(memberA));
+        assertEquals("Alice Anders", service.displayValue(field));
+    }
+
+    @Test
+    void memberListFieldNamesEveryoneInOrder() {
+        var field = valuedField(EventFieldType.MEMBER_LIST, MemberFieldValue.formatList(List.of(memberB, memberA)));
+        assertEquals("Bob Brown, Alice Anders", service.displayValue(field));
+    }
+
+    @Test
+    void memberThatNoLongerExistsKeepsItsNumber() {
+        var field = valuedField(EventFieldType.MEMBER, "987654");
+        assertEquals("#987654", service.displayValue(field));
+    }
+
+    @Test
+    void emptyMemberFieldShowsNothing() {
+        var field = valuedField(EventFieldType.MEMBER, "");
+        assertEquals("", service.displayValue(field));
+    }
+
+    @Test
+    void plainFieldKeepsItsAnswer() {
+        var field = valuedField(EventFieldType.STRING, " Marktplatz ");
+        assertEquals("Marktplatz", service.displayValue(field));
+    }
+
+    private EventField valuedField(EventFieldType type, String value) {
+        return eventFieldRepo.create(
+                eventId, "V" + type.name(), type, EventFieldConfig.parse("{}"), value, 0, false, null, false);
+    }
 }

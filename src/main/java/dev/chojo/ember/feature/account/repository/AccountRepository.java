@@ -447,6 +447,24 @@ public class AccountRepository {
     }
 
     /**
+     * Whether the person behind the account has chosen a password of their own.
+     *
+     * <p>This is what "the account is set up" means, rather than a first sign-in: choosing the
+     * password is the step only the recipient of the link can take, and somebody who has taken it
+     * needs no second invitation whether they went on to sign in or not. A password an
+     * administrator laid down does not count, because it is flagged for rotation and the person has
+     * still to make the account theirs.
+     *
+     * @param accountId the account identifier
+     * @return {@code true} where a password the person chose themselves is on file
+     */
+    public boolean hasChosenPassword(int accountId) {
+        return findCredential(accountId)
+                .filter(credential -> !credential.forcePasswordChange())
+                .isPresent();
+    }
+
+    /**
      * Creates a password credential for an account.
      *
      * @param accountId    the account identifier

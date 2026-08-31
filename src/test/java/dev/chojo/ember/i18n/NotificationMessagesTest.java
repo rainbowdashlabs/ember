@@ -51,6 +51,33 @@ class NotificationMessagesTest {
     }
 
     /**
+     * The headline of a feed entry comes from {@code feedTitle}, and falls back to {@code category}
+     * when no template is written. With neither, the reader is handed the raw name of the type, which
+     * is how a closing registration reached an RSS reader titled "REGISTRATION_CLOSING".
+     */
+    @Test
+    void everyNotificationTypeIsTitledAndFiledInEveryLanguage() {
+        var localizer = new Localizer();
+        var missing = new ArrayList<String>();
+        for (String locale : LOCALES) {
+            var titles = localizer.get("notifications", locale, "feedTitle");
+            var categories = localizer.get("notifications", locale, "category");
+            assertTrue(titles.size() > 20, "the " + locale + " feed titles were not loaded at all");
+            assertTrue(categories.size() > 20, "the " + locale + " categories were not loaded at all");
+            for (NotificationType type : NotificationType.values()) {
+                if (!covered(titles, type.name())) {
+                    missing.add(locale + ": " + type.name() + " has no feed title");
+                }
+                if (!categories.containsKey(type.name())) {
+                    missing.add(locale + ": " + type.name() + " has no category");
+                }
+            }
+        }
+
+        assertEquals(List.of(), missing, "notification types a feed reader sees by their raw name");
+    }
+
+    /**
      * A plural type needs both halves. One of them alone reads correctly until the day the count is
      * the other number.
      */
@@ -77,16 +104,24 @@ class NotificationMessagesTest {
     @Test
     void bothLanguagesCarryTheSameMessages() {
         var localizer = new Localizer();
-        var german = localizer.get("notifications", "de", "message").keySet();
-        var english = localizer.get("notifications", "en", "message").keySet();
+        for (String section : List.of("message", "feedTitle", "category")) {
+            var german = localizer.get("notifications", "de", section).keySet();
+            var english = localizer.get("notifications", "en", section).keySet();
 
-        assertEquals(
-                List.of(),
-                german.stream().filter(key -> !english.contains(key)).sorted().toList(),
-                "written in German and not in English");
-        assertEquals(
-                List.of(),
-                english.stream().filter(key -> !german.contains(key)).sorted().toList(),
-                "written in English and not in German");
+            assertEquals(
+                    List.of(),
+                    german.stream()
+                            .filter(key -> !english.contains(key))
+                            .sorted()
+                            .toList(),
+                    section + " written in German and not in English");
+            assertEquals(
+                    List.of(),
+                    english.stream()
+                            .filter(key -> !german.contains(key))
+                            .sorted()
+                            .toList(),
+                    section + " written in English and not in German");
+        }
     }
 }

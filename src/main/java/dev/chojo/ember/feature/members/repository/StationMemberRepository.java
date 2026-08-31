@@ -21,7 +21,9 @@ import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -196,7 +198,10 @@ public class StationMemberRepository {
                        coalesce(a.first_name, sm.display_name, '') AS first_name,
                        coalesce(a.last_name, '') AS last_name,
                        coalesce(a.email, '') AS email,
-                       (a.id IS NOT NULL AND a.setup_completed_at IS NULL) AS account_setup_pending,
+                       (a.id IS NOT NULL AND a.setup_completed_at IS NULL
+                            AND NOT EXISTS (SELECT 1 FROM account_credential ac
+                                            WHERE ac.account_id = a.id
+                                              AND ac.force_password_change = FALSE)) AS account_setup_pending,
                        (SELECT max(at.expires_at) FROM account_token at WHERE at.account_id = a.id AND at.token_type = 'SET_PASSWORD') AS setup_mail_expires_at,
                        CASE
                            WHEN a.email IS NOT NULL AND a.email <> '' AND lower(a.email) NOT LIKE '%.local'
@@ -468,6 +473,28 @@ public class StationMemberRepository {
                 .single(call().bind("station_id", stationId).bind("uids", uidStrings, PostgreSqlTypes.VARCHAR))
                 .map(PickerMember.map())
                 .all();
+    }
+
+    /**
+     * Resolves member IDs to the names a reader knows them by, in one round trip. Former members are
+     * included: a field someone filled in last year still has to say who filled it. IDs that no longer
+     * resolve are simply absent from the map, so the caller decides what to show in their place.
+     */
+    public Map<Integer, String> findDisplayNames(List<Integer> memberIds) {
+        if (memberIds == null || memberIds.isEmpty()) return Map.of();
+        var rows = query("""
+                SELECT sm.id, coalesce(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name
+                FROM station_member sm
+                LEFT JOIN account a ON sm.account_id = a.id
+                WHERE sm.id = ANY(:ids);""")
+                .single(call().bind("ids", memberIds, PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt("id"), row.getString("display_name")))
+                .all();
+        var names = new HashMap<Integer, String>();
+        for (var row : rows) {
+            names.put(row.getKey(), row.getValue());
+        }
+        return names;
     }
 
     /**

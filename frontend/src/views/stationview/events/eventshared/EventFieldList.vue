@@ -10,6 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFieldEditor from './EventFieldEditor.vue'
+import AttendanceFieldPicker from './AttendanceFieldPicker.vue'
 import DragList from '@/components/input/DragList.vue'
 import FieldLayoutPreview from '@/components/profilefields/FieldLayoutPreview.vue'
 import {configOf} from '@/components/profilefields/fieldLayout'
@@ -20,7 +21,7 @@ import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
 
-defineProps<{
+const props = defineProps<{
   attendanceFields?: AttendanceTemplateField[]
   showValue?: boolean
   valueLabel?: string
@@ -49,6 +50,35 @@ function addQuickField(qf: typeof quickFields[number]) {
 
 function addField() {
   fields.value = [...fields.value, {name: '', fieldType: 'STRING', config: {}, value: '', overview: false, attendanceFieldId: null}]
+}
+
+/** The sheet fields the questions already fill in, so none of them is offered a second time. */
+const takenAttendanceIds = computed(() =>
+    fields.value.map(field => field.attendanceFieldId).filter((id): id is number => id != null))
+
+/**
+ * One question of the sheet, taken over as a question of the appointment.
+ *
+ * <p>Name, type and settings come across as they are, and the tie to the sheet is made here rather
+ * than left to be picked from a dropdown afterwards. That tie is the whole point: the answer given
+ * at the appointment is what fills the field in when the attendance is taken.
+ */
+function takeAttendanceField(field: AttendanceTemplateField) {
+  fields.value = [...fields.value, {
+    name: field.name ?? '',
+    fieldType: field.fieldType ?? 'STRING',
+    config: {...(field.config ?? {})},
+    value: '',
+    overview: false,
+    attendanceFieldId: field.id,
+  }]
+}
+
+function takeAllAttendanceFields() {
+  const taken = new Set(takenAttendanceIds.value)
+  for (const field of props.attendanceFields ?? []) {
+    if (!taken.has(field.id)) takeAttendanceField(field)
+  }
 }
 
 function removeField(index: number) {
@@ -91,6 +121,14 @@ function moveField(fromIndex: number, toIndex: number) {
       </SecondaryButton>
     </div>
   </div>
+  <AttendanceFieldPicker
+      v-if="attendanceFields && attendanceFields.length > 0"
+      :fields="attendanceFields"
+      :taken-ids="takenAttendanceIds"
+      @take="takeAttendanceField"
+      @take-all="takeAllAttendanceFields"
+  />
+
   <MutedText v-if="fields.length === 0" tag="div" size="sm" class="py-2">
     {{ t('events.noFields') }}
   </MutedText>

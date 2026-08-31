@@ -31,8 +31,9 @@ import static org.slf4j.LoggerFactory.getLogger;
  * @param accountId            the linked account identifier, or null for decoupled former members
  * @param name                 the display name (from account first/last name or display_name fallback)
  * @param email                the account email address
- * @param accountSetupPending  {@code true} when the linked account has never been logged into; flagged in the
- *                             member list so managers can chase the recipient or resend the setup mail
+ * @param accountSetupPending  {@code true} when nobody has yet made the linked account theirs: no password of
+ *                             their own choosing and no sign-in. Flagged in the member list so managers can
+ *                             chase the recipient or resend the setup mail
  * @param setupMailExpiresAt   when the most recent password-setup link expires, or null when none was sent
  * @param mailReaches          who a letter about this member actually arrives at: their own address
  *                             where it is a real one, or a guardian's where it is not. The member list offers to

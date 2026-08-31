@@ -372,6 +372,39 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         }
     }
 
+    /**
+     * The hourglass beside a name asks somebody to chase the person, so it has to go out the moment
+     * there is nothing left to chase. Choosing a password is that moment: it is the step only the
+     * recipient of the link can take, and waiting for a first sign-in on top of it left people who
+     * had long since set theirs standing in the list as though the mail had never arrived.
+     */
+    @Test
+    @Order(52)
+    void aChosenPasswordCountsAsASetUpAccount() {
+        var account = accountRepo.create("chosen@setup.test", "Chosen", "Password");
+        var member = stationMemberRepo.create(station.id(), account.id());
+        try {
+            assertTrue(pendingOf(member.id()), "an account with nothing on it is still pending");
+
+            accountRepo.createCredential(account.id(), "hash");
+            assertFalse(pendingOf(member.id()), "a password of their own settles the account");
+
+            accountRepo.setForcePasswordChange(account.id(), true);
+            assertTrue(pendingOf(member.id()), "a password an administrator laid down is not theirs yet");
+        } finally {
+            stationMemberRepo.delete(member.id());
+            accountRepo.delete(account.id());
+        }
+    }
+
+    private boolean pendingOf(int memberId) {
+        return stationMemberRepo.findRichMembers(station.id(), false).stream()
+                .filter(rm -> rm.id() == memberId)
+                .findFirst()
+                .orElseThrow()
+                .accountSetupPending();
+    }
+
     @Test
     @Order(99)
     void delete() {
