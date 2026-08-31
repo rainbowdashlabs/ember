@@ -23,15 +23,17 @@ import type {SelfCheckReview, SelfCheckReviewRow} from '@/api/selfChecks'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {formatDate} from '@/util/format'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 const route = useRoute()
 
 const taskId = computed(() => Number(route.params.id))
 
-const {config: review, loading, error} = useConfigPanel<SelfCheckReview | null>({
+const {config: review, loading, error, runWith} = useConfigPanel<SelfCheckReview | null>({
   initial: null,
   fetch: () => selfChecks.readReview(taskId.value),
+  formatError: e => apiErrorMessage(e) ?? t('common.error'),
 })
 
 const busy = ref(false)
@@ -50,17 +52,14 @@ function itemLabel(item: InventoryItem, req: RequiredInventoryItem): string {
   return [item.name, item.internalId, size].filter(Boolean).join(' - ')
 }
 
-async function settle(action: () => Promise<SelfCheckReview>) {
-  busy.value = true
-  error.value = ''
-  try {
-    review.value = await action()
-  } finally {
-    busy.value = false
-  }
-}
-
-const take = (rowId: number) => settle(() => selfChecks.takeRow(taskId.value, rowId))
+/**
+ * Takes one answer.
+ *
+ * <p>A refusal from the server lands on the screen rather than being thrown away: two reviewers
+ * reaching for the same answer is an ordinary thing to happen, and whoever was second has to be told
+ * so rather than left looking at a button that appears to do nothing.
+ */
+const take = (rowId: number) => runWith(() => selfChecks.takeRow(taskId.value, rowId), {busy})
 
 const correcting = ref<SelfCheckReviewRow | null>(null)
 const showCorrect = ref(false)

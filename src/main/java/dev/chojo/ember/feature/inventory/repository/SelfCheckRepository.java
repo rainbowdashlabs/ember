@@ -216,7 +216,9 @@ public class SelfCheckRepository {
      * Writes what the member said about one piece, replacing whatever they said about it before.
      *
      * <p>Answering the same thing twice is the ordinary case rather than a mistake: a member puts
-     * the boots on and comes back, and the screen saves as they go.
+     * the boots on and comes back, and the screen saves as they go. An answer that came back with a
+     * reason and has been given again is outstanding once more, and the reason goes with the answer
+     * it was about.
      */
     public SelfCheckRow answerForItem(
             int taskId,
@@ -236,7 +238,11 @@ public class SelfCheckRepository {
                               note = excluded.note,
                               typed_internal_id = excluded.typed_internal_id,
                               answered_by = excluded.answered_by,
-                              answered_at = now()
+                              answered_at = now(),
+                              state = 'OUTSTANDING',
+                              reviewer_reason = '',
+                              reviewed_by = NULL,
+                              reviewed_at = NULL
                 RETURNING %s;""",
                 call().bind("task_id", taskId)
                         .bind("item_id", itemId)
@@ -271,7 +277,11 @@ public class SelfCheckRepository {
                               note = excluded.note,
                               typed_internal_id = excluded.typed_internal_id,
                               answered_by = excluded.answered_by,
-                              answered_at = now()
+                              answered_at = now(),
+                              state = 'OUTSTANDING',
+                              reviewer_reason = '',
+                              reviewed_by = NULL,
+                              reviewed_at = NULL
                 RETURNING %s;""",
                 call().bind("task_id", taskId)
                         .bind("inventory_id", inventoryId)

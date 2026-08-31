@@ -281,6 +281,37 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void aTaskGoesBackOnlyOnceNothingIsOutstanding() {
+        InventoryItem first = piece("SCR-ORDER-1", "First");
+        InventoryItem second = piece("SCR-ORDER-2", "Second");
+        SelfCheck task = submitted();
+        SelfCheckRow refused = answer(task, first, SelfCheckAnswer.HAVE_IT);
+        SelfCheckRow taken = answer(task, second, SelfCheckAnswer.HAVE_IT);
+
+        var midway = selfCheckReviewService.refuse(task.id(), refused.id(), station.id(), reviewer.id(), "not ours");
+        assertEquals(SelfCheckState.SUBMITTED, midway.task().state(), "one answer left outstanding holds the task");
+
+        var after = selfCheckReviewService.take(task.id(), taken.id(), station.id(), reviewer.id());
+        assertEquals(SelfCheckState.OPEN, after.task().state());
+        assertEquals(1, after.rows().size(), "what was taken does not come back a second time");
+    }
+
+    @Test
+    void anAnswerGivenAgainIsOutstandingOnceMore() {
+        InventoryItem again = piece("SCR-AGAIN", "Again");
+        SelfCheck task = submitted();
+        SelfCheckRow row = answer(task, again, SelfCheckAnswer.HAVE_IT);
+        selfCheckReviewService.refuse(task.id(), row.id(), station.id(), reviewer.id(), "look again");
+
+        SelfCheckRow rewritten = selfCheckRepo.answerForItem(
+                task.id(), again.id(), again.inventoryId(), SelfCheckAnswer.HAVE_IT, "found it", null, member.id());
+
+        assertEquals(SelfCheckRowState.OUTSTANDING, rewritten.state());
+        assertEquals("", rewritten.reviewerReason());
+        assertNull(rewritten.reviewedBy());
+    }
+
+    @Test
     void aRefusalHasToSayWhy() {
         InventoryItem cap = piece("SCR-NOREASON", "Cap");
         SelfCheck task = submitted();
