@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect} from './fixtures/auth'
+import {test, expect, apiHeaders} from './fixtures/auth'
 
 test.describe('Waiting lists', () => {
     test('the waiting lists of the station are reachable', async ({managerPage: page}) => {
@@ -161,7 +161,8 @@ test.describe('Waiting lists', () => {
         await page.getByTestId('waitlist-invite-send').click()
         await expect(page.getByTestId('waitlist-invite-modal')).toHaveCount(0)
 
-        const entries = await page.request.get(`/api/v1/waiting-lists/${id}/entries`)
+        const headers = await apiHeaders(page)
+        const entries = await page.request.get(`/api/v1/waiting-lists/${id}/entries`, {headers})
         expect(entries.ok(), `the entries were readable (${entries.status()})`).toBeTruthy()
         const body = await entries.json()
         const invited = body.find((item: {entry: {lastname: string}}) => item.entry.lastname === surname)
