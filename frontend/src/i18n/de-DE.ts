@@ -6281,6 +6281,23 @@ export default {
         },
         usesTitle: 'Material im Verband führen',
         usesHint: 'Ist das aus, verhalten sich alle Wachen so, als gäbe es keinen Verband über ihnen, wenn es um Material geht: sie tauschen und geben zurück in ihren eigenen Abläufen, ohne Schritte, die auf euch warten.',
+        tags: {
+            title: 'Empfohlene Schlagwörter',
+            intro: 'Wörter, die ihr euren Abteilungen für ihr Material vorschlagt. Sie erscheinen dort '
+                + 'neben den eigenen Wörtern der Abteilung.',
+            standsBeside: 'Eine Empfehlung ersetzt nie das Wort einer Abteilung. Beide bleiben stehen und '
+                + 'meinen dasselbe, denn verglichen wird ohne Rücksicht auf Groß- und Kleinschreibung. '
+                + 'Zurückgezogen wird nur der Vorschlag, nichts bei den Abteilungen.',
+            add: 'Wort empfehlen',
+            edit: 'Empfehlung bearbeiten',
+            name: 'Wort',
+            namePlaceholder: 'z. B. Funk',
+            color: 'Farbe',
+            forStations: 'Für welche Abteilungen',
+            allStations: 'Alle Abteilungen',
+            empty: 'Ihr empfehlt noch keine Wörter.',
+            deleteConfirm: 'Empfehlung „{name}“ zurückziehen? Bei den Abteilungen ändert sich nichts.',
+        },
         empty: 'Dem Verband gehört noch kein Material.',
         custody: {
             WITH_OWNER: 'Im Lager',

@@ -423,4 +423,26 @@ test.describe('Cluster inventory screens', () => {
         await expect(page.getByText(renamed)).toBeVisible({timeout: 15000})
         await page.context().close()
     })
+
+    /**
+     * CLS-100 - The association recommends a word for its stations' gear.
+     *
+     * A recommendation is an offer and not an instruction, so the walk stops at writing one down and
+     * reading it back: nothing at a station is touched by it, which is the whole point of the panel.
+     */
+    test('the association recommends a word and reads it back', async ({browser, request}) => {
+        const account = await clusterAccountWith(request, 'CLUSTER_INVENTORY_MANAGER')
+        const page = await clusterPage(browser, request, account)
+        const word = `Verbandsfunk ${Date.now()}`
+
+        await page.goto('/cluster/inventory/settings')
+        await expect(page.getByTestId('cluster-inventory-tags')).toBeVisible({timeout: 15000})
+
+        await page.getByTestId('add-cluster-tag').click()
+        await page.getByTestId('cluster-tag-name').fill(word)
+        await page.getByTestId('modal').getByRole('button', {name: 'Speichern'}).click()
+
+        await expect(page.getByTestId('cluster-inventory-tags').getByText(word)).toBeVisible({timeout: 15000})
+        await page.context().close()
+    })
 })
