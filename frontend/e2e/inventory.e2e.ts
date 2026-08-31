@@ -586,7 +586,7 @@ test.describe('Inventory', () => {
 
         await page.goto(`/station/inventory/detail/${drawer.id}`)
         await page.getByTestId('actions-menu-trigger').first().click()
-        await page.getByText('Bearbeiten').click()
+        await page.getByTestId('actions-menu').getByText('Bearbeiten').click()
 
         const picker = page.getByTestId('item-tags')
         await expect(picker).toBeVisible()

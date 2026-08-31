@@ -23,7 +23,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import {inventoryTags} from '@/api'
-import type {InventoryTag, RecommendedTag} from '@/api/inventoryTags'
+import type {CountedInventoryTag, RecommendedTag} from '@/api/inventoryTags'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {apiErrorMessage} from '@/util/apiError'
@@ -37,12 +37,12 @@ import {apiErrorMessage} from '@/util/apiError'
  */
 const {t} = useI18n()
 
-const tags = ref<InventoryTag[]>([])
+const tags = ref<CountedInventoryTag[]>([])
 const recommendations = ref<RecommendedTag[]>([])
 const saveError = ref('')
 
 const showModal = ref(false)
-const editing = ref<InventoryTag | null>(null)
+const editing = ref<CountedInventoryTag | null>(null)
 const name = ref('')
 const color = ref('')
 
@@ -59,7 +59,7 @@ function openAdd(preset = '') {
   showModal.value = true
 }
 
-function openEdit(tag: InventoryTag) {
+function openEdit(tag: CountedInventoryTag) {
   editing.value = tag
   name.value = tag.name
   color.value = tag.color ?? ''
@@ -84,7 +84,7 @@ async function save() {
 }
 
 const {show: showDeleteModal, target: deleteTarget, requestDelete, confirm: confirmDelete} =
-    useConfirmDelete<InventoryTag>({onDelete: tag => inventoryTags.deleteTag(tag.id), onSuccess: reload, error})
+    useConfirmDelete<CountedInventoryTag>({onDelete: tag => inventoryTags.deleteTag(tag.id), onSuccess: reload, error})
 </script>
 
 <template>

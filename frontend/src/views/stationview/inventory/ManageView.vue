@@ -99,9 +99,8 @@ function onError() {
           />
         </div>
 
-        <TagsPanel />
-
         <template v-if="!routes.settings">
+          <TagsPanel />
           <LossSettingsPanel />
         </template>
       </template>

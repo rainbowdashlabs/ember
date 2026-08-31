@@ -18,7 +18,10 @@ export interface InventoryTag {
     name: string
     color?: string | null
     position: number
-    /** How many things wear the word. */
+}
+
+/** A word with the number of things wearing it, which is what a list of words is read for. */
+export interface CountedInventoryTag extends InventoryTag {
     itemCount: number
 }
 
@@ -47,9 +50,15 @@ export interface TaggedItem {
     available: boolean
 }
 
-const tags = createCrudResource<InventoryTag, TagRequest, TagRequest, InventoryTag, InventoryTag, InventoryTag, number>(
-    '/inventory-tags',
-)
+const tags = createCrudResource<
+    CountedInventoryTag,
+    TagRequest,
+    TagRequest,
+    CountedInventoryTag,
+    CountedInventoryTag,
+    CountedInventoryTag,
+    number
+>('/inventory-tags')
 
 export const listTags = tags.list
 export const createTag = tags.create

@@ -87,13 +87,14 @@ public class InventoryTagRoutes implements Routes {
             tags = {"Inventory"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TagRequest.class)),
             responses = {
-                @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventoryTag.class)),
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = TagResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void create(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(TagRequest.class);
-        ctx.status(HttpStatus.CREATED).json(tagService.create(session.stationId(), request.name(), request.color()));
+        var tag = tagService.create(session.stationId(), request.name(), request.color());
+        ctx.status(HttpStatus.CREATED).json(counted(session.stationId(), tag));
     }
 
     @OpenApi(
@@ -104,15 +105,16 @@ public class InventoryTagRoutes implements Routes {
             tags = {"Inventory"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TagRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryTag.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = TagResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(TagRequest.class);
-        ctx.json(tagService.update(
-                session.stationId(), pathInt(ctx, "tagId"), request.name(), request.color(), request.position()));
+        var tag = tagService.update(
+                session.stationId(), pathInt(ctx, "tagId"), request.name(), request.color(), request.position());
+        ctx.json(counted(session.stationId(), tag));
     }
 
     @OpenApi(
@@ -196,6 +198,10 @@ public class InventoryTagRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(ItemTagsRequest.class);
         ctx.json(tagService.setItemTags(session.stationId(), pathInt(ctx, "itemId"), request.names()));
+    }
+
+    private TagResponse counted(int stationId, InventoryTag tag) {
+        return TagResponse.of(tag, tagService.countItemsPerTag(stationId).getOrDefault(tag.id(), 0));
     }
 
     /**
