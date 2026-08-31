@@ -20,6 +20,7 @@ import SettingsSection from './editview/SettingsSection.vue'
 import SizesSection from './editview/SizesSection.vue'
 import ItemListSection from './editview/ItemListSection.vue'
 import FieldDefinitionsSection from './editview/FieldDefinitionsSection.vue'
+import ArtSection from './editview/ArtSection.vue'
 
 const routes = useInventoryRoutes()
 
@@ -89,7 +90,9 @@ function onError(message: string) {
         <SizesSection v-if="detail.hasSizes" :inventory-id="inventoryId" :sizes="detail.sizes ?? []"
                       @updated="onSizesUpdated" @error="onError"/>
 
-        <FieldDefinitionsSection :inventory-id="inventoryId"/>
+        <ArtSection v-if="detail.homogeneous === false" :inventory-id="inventoryId"/>
+
+        <FieldDefinitionsSection :inventory-id="inventoryId" :heterogeneous="detail.homogeneous === false"/>
 
         <ItemListSection :detail="detail" :items="items" :members="members"
                          @items-changed="onItemsChanged" @error="onError"/>

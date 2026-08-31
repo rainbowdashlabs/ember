@@ -9,6 +9,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {defaultFieldConfig, FieldType, type BooleanFieldConfig, type EnumFieldConfig, type FieldTypeName, type NumberFieldConfig, type TextFieldConfig} from '@/api/inventoryFields'
+import type {InventoryItem} from '@/api/inventory'
+import type {InventoryArt} from '@/api/inventoryArts'
 import type {DraftField} from './types'
 import FieldDraftMetaForm from './FieldDraftMetaForm.vue'
 import TextFieldConfigForm from './TextFieldConfigForm.vue'
@@ -16,10 +18,15 @@ import NumberFieldConfigForm from './NumberFieldConfigForm.vue'
 import BooleanFieldConfigForm from './BooleanFieldConfigForm.vue'
 import EnumFieldConfigForm from './EnumFieldConfigForm.vue'
 
-const props = defineProps<{
-    draft: DraftField
-    submitting: boolean
-}>()
+const props = withDefaults(
+    defineProps<{
+        draft: DraftField
+        submitting: boolean
+        arts?: InventoryArt[]
+        items?: InventoryItem[]
+    }>(),
+    {arts: () => [], items: () => []},
+)
 
 const emit = defineEmits<{
     (e: 'cancel'): void
@@ -40,7 +47,7 @@ function onTypeChanged(value: FieldTypeName) {
         <SubHeader class="mb-2">
             {{ props.draft.id ? t('inventory.fields.edit') : t('inventory.fields.add') }}
         </SubHeader>
-        <FieldDraftMetaForm :draft="props.draft" @type-changed="onTypeChanged" />
+        <FieldDraftMetaForm :draft="props.draft" :arts="props.arts" :items="props.items" @type-changed="onTypeChanged" />
         <TextFieldConfigForm
             v-if="props.draft.fieldType === FieldType.TEXT"
             :config="props.draft.config as TextFieldConfig"

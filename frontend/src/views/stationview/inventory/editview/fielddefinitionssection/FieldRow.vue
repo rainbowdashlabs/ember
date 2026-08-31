@@ -7,11 +7,17 @@
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 
-defineProps<{
-  field: InventoryFieldDefinition
-}>()
+withDefaults(
+    defineProps<{
+      field: InventoryFieldDefinition
+      /** What the field describes when it is not the whole inventory: a kind, or one piece. */
+      scopeLabel?: string
+    }>(),
+    {scopeLabel: ''},
+)
 
 const emit = defineEmits<{
   edit: []
@@ -25,6 +31,7 @@ const {t} = useI18n()
   <div class="py-2 flex items-center gap-3 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
     <span class="font-medium">{{ field.label }}</span>
     <span class="text-xs text-(--text-muted)">{{ t(`inventory.fields.types.${field.fieldType}`) }}</span>
+    <SecondaryBadge v-if="scopeLabel">{{ scopeLabel }}</SecondaryBadge>
     <span v-if="field.required" class="text-xs text-error">{{ t('inventory.fields.required') }}</span>
     <div class="ml-auto flex gap-2">
       <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="emit('edit')"/>

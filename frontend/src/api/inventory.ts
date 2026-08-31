@@ -139,6 +139,11 @@ export interface InventoryItem {
     internalId?: string
     name?: string
     sizeId?: number | null
+    /**
+     * The kind of thing this piece is, or null when nobody has said. Null is the ordinary state
+     * rather than a gap: most pieces are written down by a path with nobody present to name a kind.
+     */
+    artId?: number | null
     metadata?: string | ItemMetadata | null
     assignedTo?: number | null
     lostAt?: string | null
@@ -161,8 +166,11 @@ export interface ItemMetadata {
 
 export interface ItemRequest {
     internalId?: string
+    /** What the piece is called. The kind sits beside this and never replaces it. */
     name?: string
     sizeId?: number
+    /** The kind of thing it is, or null for none. */
+    artId?: number | null
     metadata?: ItemMetadata
     ownerKind?: ItemOwnerName
     /** The owning association's stable identity, which is what the backend takes back. */

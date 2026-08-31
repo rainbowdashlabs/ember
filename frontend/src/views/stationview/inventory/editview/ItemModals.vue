@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, nextTick, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -23,8 +23,10 @@ import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {ItemOwner, type InventoryDetail, type InventoryItem, type InventoryItemHistory} from '@/api/inventory'
 import type {StationMember} from '@/api/types'
-import {inventory, inventoryFields} from '@/api'
+import {inventory, inventoryArts, inventoryFields} from '@/api'
+import type {InventoryArt} from '@/api/inventoryArts'
 import {useModalTarget} from '@/composables/useModalTarget'
+import AddItemFields from './itemmodals/AddItemFields.vue'
 import EditItemModal from '../detailview/EditItemModal.vue'
 import EditItemCustomFields from '../detailview/edititemmodal/EditItemCustomFields.vue'
 import {buildItemMetadata} from '../detailview/itemMetadata'
@@ -64,19 +66,36 @@ function getMemberName(memberId: number | null | undefined): string {
 const showItemModal = ref(false)
 const itemName = ref('')
 const itemInternalId = ref('')
-const itemInternalIdInput = ref<InstanceType<typeof TextInput> | null>(null)
 const itemSizeId = ref('')
 const itemQuantity = ref(1)
-const fieldDefs = ref<InventoryFieldDefinition[]>([])
+const itemArtId = ref<number | null>(null)
+const itemArtDraft = ref('')
+const arts = ref<InventoryArt[]>([])
+const allFieldDefs = ref<InventoryFieldDefinition[]>([])
 const fieldValues = ref<Record<string, unknown>>({})
+
+/** Kinds live only in an inventory that holds a drawer of different things. */
+const heterogeneous = computed(() => props.detail.homogeneous === false)
+
+/**
+ * The fields the new piece will carry, worked out the way the backend works them out for a piece
+ * that already exists: the inventory's fields, plus the chosen kind's, narrowest winning.
+ */
+const fieldDefs = computed(() => inventoryFields.resolveFields(allFieldDefs.value, itemArtId.value))
 
 const fieldsInvalid = computed(() => inventoryFields.hasInvalidFieldValues(fieldDefs.value, fieldValues.value))
 
 async function loadFieldDefs() {
   try {
-    fieldDefs.value = await inventoryFields.listFields(props.detail.id)
+    const [defs, allArts] = await Promise.all([
+      inventoryFields.listFields(props.detail.id),
+      heterogeneous.value ? inventoryArts.listArts(props.detail.id) : Promise.resolve([]),
+    ])
+    allFieldDefs.value = defs
+    arts.value = allArts
   } catch {
-    fieldDefs.value = []
+    allFieldDefs.value = []
+    arts.value = []
   }
 }
 
@@ -85,10 +104,11 @@ function openAdd() {
   itemInternalId.value = ''
   itemSizeId.value = ''
   itemQuantity.value = 1
+  itemArtId.value = null
+  itemArtDraft.value = ''
   fieldValues.value = {}
   loadFieldDefs()
   showItemModal.value = true
-  nextTick(() => itemInternalIdInput.value?.$el?.focus())
 }
 
 const {isOpen: showEditModal, target: editTarget, open: openEdit} = useModalTarget<InventoryItem>()
@@ -98,10 +118,18 @@ const {running: itemSaving, run: saveItem} = useAsyncAction(async () => {
     const normalisedInternalId = itemInternalId.value
         ? normaliseScannedPayload(itemInternalId.value)
         : ''
+    // A kind typed into the picker is written down here and nowhere earlier, so a form somebody
+    // opened and closed again leaves no half-invented kind behind.
+    const resolvedArt = heterogeneous.value
+        ? itemArtDraft.value
+            ? await inventoryArts.ensureArt(props.detail.id, arts.value, itemArtDraft.value)
+            : itemArtId.value
+        : null
     const data = {
       name: itemName.value,
       internalId: normalisedInternalId || undefined,
       sizeId: itemSizeId.value ? Number(itemSizeId.value) : undefined,
+      artId: resolvedArt,
       metadata: buildItemMetadata(fieldDefs.value, fieldValues.value),
     }
     const count = Math.max(1, Math.min(itemQuantity.value, 100))
@@ -200,31 +228,17 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
   <Modal v-model="showItemModal">
     <form class="space-y-4" @submit.prevent="saveItem">
       <SectionHeader>{{ t('inventory.edit.addItem') }}</SectionHeader>
-      <div class="space-y-1">
-        <FieldLabel>{{ t('inventory.edit.itemInternalId') }}</FieldLabel>
-        <div class="flex items-center gap-2">
-          <TextInput ref="itemInternalIdInput" v-model="itemInternalId"
-                     class="flex-1"
-                     :placeholder="t('inventory.edit.itemInternalIdPlaceholder')"/>
-          <ScanButton @decoded="itemInternalId = $event"/>
-        </div>
-      </div>
-      <div class="space-y-1">
-        <FieldLabel>{{ t('inventory.edit.itemName') }}</FieldLabel>
-        <TextInput v-model="itemName" :placeholder="t('inventory.edit.itemNamePlaceholder')"/>
-      </div>
-      <div v-if="detail.hasSizes" class="space-y-1">
-        <FieldLabel>{{ t('inventory.edit.itemSize') }}</FieldLabel>
-        <SelectInput v-model="itemSizeId">
-          <option value="">&#x2013;</option>
-          <option v-for="size in detail.sizes ?? []" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
-        </SelectInput>
-      </div>
-      <div class="space-y-1">
-        <FieldLabel>{{ t('inventory.edit.itemQuantity') }}</FieldLabel>
-        <NumberInput v-model="itemQuantity" :max="100" :min="1"/>
-        <p class="text-xs text-(--text-muted)">{{ t('inventory.edit.itemQuantityHint') }}</p>
-      </div>
+      <AddItemFields
+          v-model:internalId="itemInternalId"
+          v-model:name="itemName"
+          v-model:sizeId="itemSizeId"
+          v-model:quantity="itemQuantity"
+          v-model:artId="itemArtId"
+          v-model:artDraft="itemArtDraft"
+          :detail="detail"
+          :arts="arts"
+          :heterogeneous="heterogeneous"
+      />
       <EditItemCustomFields :defs="fieldDefs" v-model="fieldValues"/>
       <div class="flex justify-end gap-3">
         <SecondaryButton type="button" @click="showItemModal = false">{{ t('common.cancel') }}</SecondaryButton>
@@ -240,6 +254,7 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
       :item="editTarget"
       :has-sizes="detail.hasSizes"
       :sizes="detail.sizes ?? []"
+      :heterogeneous="heterogeneous"
       @saved="emit('itemsChanged')"
   />
 

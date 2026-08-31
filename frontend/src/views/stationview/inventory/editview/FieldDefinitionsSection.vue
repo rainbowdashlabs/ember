@@ -13,7 +13,9 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import DragList from '@/components/input/DragList.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import {inventoryFields} from '@/api'
+import {inventory, inventoryArts, inventoryFields} from '@/api'
+import type {InventoryItem} from '@/api/inventory'
+import type {InventoryArt} from '@/api/inventoryArts'
 import {defaultFieldConfig, FieldType, type InventoryFieldDefinition} from '@/api/inventoryFields'
 import FieldDraftEditor from './fielddefinitionssection/FieldDraftEditor.vue'
 import FieldRow from './fielddefinitionssection/FieldRow.vue'
@@ -24,9 +26,14 @@ import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {apiErrorMessage} from '@/util/apiError'
 import {moveWithin} from '@/util/reorder'
 
-const props = defineProps<{
-  inventoryId: number
-}>()
+const props = withDefaults(
+    defineProps<{
+      inventoryId: number
+      /** Whether this inventory holds a drawer of different things, which is where kinds live. */
+      heterogeneous?: boolean
+    }>(),
+    {heterogeneous: false},
+)
 
 const {t} = useI18n()
 
@@ -37,11 +44,42 @@ const {config: fields, loading, error, reload: load} = useConfigPanel<InventoryF
 })
 const editing = ref<number | null>(null)
 const draft = ref<DraftField | null>(null)
+const arts = ref<InventoryArt[]>([])
+const items = ref<InventoryItem[]>([])
+
+/**
+ * What a field can be written for besides the whole inventory. Loaded here rather than in the form
+ * because both levels are read from the same inventory the fields belong to.
+ */
+async function loadLevels() {
+  try {
+    const [allArts, allItems] = await Promise.all([
+      props.heterogeneous ? inventoryArts.listArts(props.inventoryId) : Promise.resolve([]),
+      inventory.listItems(props.inventoryId),
+    ])
+    arts.value = allArts
+    items.value = allItems
+  } catch {
+    arts.value = []
+    items.value = []
+  }
+}
 
 const sortedFields = computed(() => [...fields.value].sort((a, b) => a.sortOrder - b.sortOrder || a.key.localeCompare(b.key)))
 
+function artName(artId: number): string {
+  return arts.value.find(art => art.id === artId)?.name ?? String(artId)
+}
+
+function itemName(itemId: number): string {
+  const item = items.value.find(candidate => candidate.id === itemId)
+  return item?.name?.trim() || item?.internalId || String(itemId)
+}
+
 function newDraft(): DraftField {
   return {
+    artId: null,
+    itemId: null,
     key: '',
     label: '',
     fieldType: FieldType.TEXT,
@@ -54,11 +92,14 @@ function newDraft(): DraftField {
 function startNew() {
   draft.value = newDraft()
   editing.value = -1
+  loadLevels()
 }
 
 function startEdit(field: InventoryFieldDefinition) {
   draft.value = {
     id: field.id,
+    artId: field.artId ?? null,
+    itemId: field.itemId ?? null,
     key: field.key,
     label: field.label,
     fieldType: field.fieldType,
@@ -87,6 +128,8 @@ const {running: submitting, run: save} = useAsyncAction(async () => {
       })
     } else {
       await inventoryFields.createField(props.inventoryId, {
+        artId: draft.value.artId,
+        itemId: draft.value.itemId,
         key: draft.value.key,
         label: draft.value.label,
         fieldType: draft.value.fieldType,
@@ -136,7 +179,11 @@ function moveField(fromIndex: number, toIndex: number) {
   persistOrder(moveWithin(sortedFields.value, fromIndex, toIndex))
 }
 
-watch(() => props.inventoryId, load)
+watch(() => props.inventoryId, () => {
+  load()
+  loadLevels()
+})
+loadLevels()
 </script>
 
 <template>
@@ -156,6 +203,8 @@ watch(() => props.inventoryId, load)
         v-if="draft"
         :draft="draft"
         :submitting="submitting"
+        :arts="arts"
+        :items="items"
         @cancel="cancelEdit"
         @save="save"
     />
@@ -166,7 +215,12 @@ watch(() => props.inventoryId, load)
     <EmptyState v-else-if="sortedFields.length === 0" :message="t('inventory.fields.empty')" />
     <DragList v-else :items="sortedFields" :key-fn="(f) => f.id" @reorder="moveField">
       <template #default="{ item: f }">
-        <FieldRow :field="f" @edit="startEdit(f)" @delete="requestDelete(f)"/>
+        <FieldRow
+            :field="f"
+            :scope-label="f.itemId != null ? itemName(f.itemId) : f.artId != null ? artName(f.artId) : ''"
+            @edit="startEdit(f)"
+            @delete="requestDelete(f)"
+        />
       </template>
     </DragList>
 

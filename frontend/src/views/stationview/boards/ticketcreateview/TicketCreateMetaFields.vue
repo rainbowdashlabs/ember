@@ -63,8 +63,10 @@ const { t } = useI18n()
             <DateInput :model-value="dueDate" @update:model-value="v => emit('update:dueDate', String(v))" />
         </div>
         <div v-if="allLabels.length > 0">
-            <FieldLabel class="mb-1">Labels</FieldLabel>
-            <LabelSelectInput :labels="allLabels" :selected="selectedLabels" @toggle="id => emit('toggleLabel', id)" @create="name => emit('createLabel', name)" />
+            <FieldLabel class="mb-1">{{ t('boards.labels') }}</FieldLabel>
+            <LabelSelectInput :labels="allLabels" :selected="selectedLabels"
+                              :placeholder="t('boards.labelsPlaceholder')" :empty-text="t('boards.noLabelsFound')"
+                              @toggle="id => emit('toggleLabel', id)" @create="name => emit('createLabel', name)" />
         </div>
     </div>
 </template>
