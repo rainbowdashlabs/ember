@@ -4598,7 +4598,6 @@ export default {
         startTesting: 'Probezeit starten',
         join: 'Aufnehmen',
         withdraw: 'Ausscheiden',
-        // Invitation
         inviteTitle: 'Zum Reinschnuppern einladen',
         inviteText: '{name} bekommt eine Einladung per E-Mail. Ein Mitglied wird dabei noch nicht angelegt.',
         inviteAppointment: 'Termin',
