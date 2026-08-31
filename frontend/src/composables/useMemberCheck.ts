@@ -13,10 +13,14 @@ import { showToast } from '@/util/toast'
 /**
  * One thing still to be looked at during a check: either an item the member holds, or an empty
  * slot for an item they should hold but do not.
+ *
+ * <p>`position` and `total` say which of the requirement's pieces this is: the first of two shirts
+ * reads 1/2. Where a requirement is about a single piece, `total` is one and there is nothing to
+ * count off.
  */
 export type CheckEntry =
-  | { type: 'item'; item: InventoryItem; req: RequiredInventoryItem }
-  | { type: 'slot'; req: RequiredInventoryItem; slotIndex: number }
+  | { type: 'item'; item: InventoryItem; req: RequiredInventoryItem; position: number; total: number }
+  | { type: 'slot'; req: RequiredInventoryItem; slotIndex: number; position: number; total: number }
 
 /**
  * The working state of one member's inventory check: what has been marked, what is missing, and
@@ -122,16 +126,23 @@ export function useMemberCheck(
     return assignedMarked && emptyMarked
   })
 
+  /** Whether anything at all has been marked, which is what makes a half walked check worth saving. */
+  const anyMarked = computed(() => itemResults.value.size > 0 || slotsNotInPossession.value.size > 0)
+
   const uncheckedEntries = computed((): CheckEntry[] => {
     if (!state.value) return []
     const entries: CheckEntry[] = []
     for (const req of state.value.required) {
-      for (const item of assignedForInventory(req.inventoryId)) {
-        if (!itemResults.value.has(item.id)) entries.push({ type: 'item', item, req })
-      }
+      const items = assignedForInventory(req.inventoryId)
+      const total = items.length + emptySlotCount(req)
+      items.forEach((item, index) => {
+        if (!itemResults.value.has(item.id)) {
+          entries.push({ type: 'item', item, req, position: index + 1, total })
+        }
+      })
       for (let i = 1; i <= emptySlotCount(req); i++) {
         if (!slotsNotInPossession.value.has(`${req.inventoryId}-${i}`)) {
-          entries.push({ type: 'slot', req, slotIndex: i })
+          entries.push({ type: 'slot', req, slotIndex: i, position: items.length + i, total })
         }
       }
     }
@@ -246,6 +257,7 @@ export function useMemberCheck(
     slotSelections,
     slotsNotInPossession,
     allMarked,
+    anyMarked,
     uncheckedEntries,
     setResult,
     setNote,

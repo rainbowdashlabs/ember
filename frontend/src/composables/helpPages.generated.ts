@@ -239,6 +239,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-profile-module-overview', path: '/helpcenter/station/profile', i18nPrefix: 'helpCenter.profileOverview'},
     {route: 'help-profile-absences', path: '/helpcenter/station/profile/absences', i18nPrefix: 'helpCenter.absences'},
     {route: 'help-profile-ical-feed', path: '/helpcenter/station/profile/feeds/ical', i18nPrefix: 'helpCenter.icalFeed'},
+    {route: 'help-profile-feed-phone', path: '/helpcenter/station/profile/feeds/phone', i18nPrefix: 'helpCenter.feedPhone'},
     {route: 'help-profile-rss-feed', path: '/helpcenter/station/profile/feeds/rss', i18nPrefix: 'helpCenter.rssFeed'},
     {route: 'help-profile-inventory', path: '/helpcenter/station/profile/inventory', i18nPrefix: 'helpCenter.inventoryMy'},
     {route: 'help-profile-managed', path: '/helpcenter/station/profile/managed', i18nPrefix: 'helpCenter.managed'},

@@ -17,6 +17,7 @@ import type { CheckItemResult, CheckResult, CorrectItemRequest, MemberCheckState
 import type { RequiredInventoryItem } from '@/api/inventory'
 import type { InventoryItem } from '@/api/inventory'
 import { exchanges, inventoryCheck } from '@/api'
+import { ExchangeStatus } from '@/api/exchanges'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useMemberCheck, type CheckEntry } from '@/composables/useMemberCheck'
@@ -96,13 +97,24 @@ function onRapidExchange(entry: CheckEntry) {
   showExchange.value = true
 }
 
-async function createRapidExchange(payload: {newSizeId: number | null; reason: string}) {
+/**
+ * Raises the exchange and moves the walk on.
+ *
+ * <p>How far the exchange has come is decided by the one thing only the person standing there knows:
+ * a piece handed over there and then is an exchange whose old piece is already back, and a piece that
+ * stays on the member is one that has been announced and no more.
+ *
+ * <p>Either way the piece is settled for this check, so the walk carries on to the next one instead of
+ * offering the same piece again: what was handed in the member no longer has, and what they kept they
+ * are wearing.
+ */
+async function createRapidExchange(payload: {newSizeId: number | null; reason: string; handedIn: boolean}) {
   const entry = exchangeEntry.value
   if (entry?.type !== 'item') return
   exchangeBusy.value = true
   exchangeError.value = ''
   try {
-    await exchanges.createExchange({
+    const created = await exchanges.createExchange({
       memberId: memberId.value,
       itemId: entry.item.id,
       inventoryId: entry.req.inventoryId,
@@ -110,6 +122,10 @@ async function createRapidExchange(payload: {newSizeId: number | null; reason: s
       newSizeId: payload.newSizeId ?? undefined,
       reason: payload.reason,
     })
+    if (payload.handedIn) {
+      await exchanges.updateStatus(created.id, {status: ExchangeStatus.RECEIVED, note: payload.reason})
+    }
+    check.setResult(entry.item.id, payload.handedIn ? 'NOT_IN_POSSESSION' : 'CONFIRMED')
     showExchange.value = false
   } catch (e) {
     exchangeError.value = apiErrorMessage(e) ?? t('common.error')
@@ -175,13 +191,19 @@ const unassign = useConfirmAction<number>({
 /**
  * Collects the marks into the completion payload. Empty slots the member does not hold are sent
  * per slot rather than per item, since there is no item to name.
+ *
+ * <p>Only what was actually marked is sent. A check walked halfway through is worth recording for the
+ * pieces it did look at, and a piece nobody looked at keeps whatever the last check said about it
+ * rather than being written down as anything.
  */
 function collectResults(current: MemberCheckState): CheckItemResult[] {
-  const items: CheckItemResult[] = current.assigned.map(item => ({
-    itemId: item.id,
-    result: check.itemResults.value.get(item.id)!,
-    note: check.itemNotes.value.get(item.id) ?? '',
-  }))
+  const items: CheckItemResult[] = current.assigned
+    .filter(item => check.itemResults.value.has(item.id))
+    .map(item => ({
+      itemId: item.id,
+      result: check.itemResults.value.get(item.id)!,
+      note: check.itemNotes.value.get(item.id) ?? '',
+    }))
   for (const req of current.required) {
     for (let i = 1; i <= check.emptySlotCount(req); i++) {
       if (check.slotsNotInPossession.value.has(`${req.inventoryId}-${i}`)) {
@@ -193,11 +215,13 @@ function collectResults(current: MemberCheckState): CheckItemResult[] {
 }
 
 const {running: submitting, run: submit} = useAsyncAction(async () => {
-  if (!state.value || !check.allMarked.value) return
+  if (!state.value) return
+  const results = collectResults(state.value)
+  if (results.length === 0) return
   error.value = ''
   try {
     const completedMemberId = memberId.value
-    await inventoryCheck.completeCheck(completedMemberId, { items: collectResults(state.value) })
+    await inventoryCheck.completeCheck(completedMemberId, { items: results })
 
     const nextId = await inventoryCheck.getNextMember(completedMemberId, teamOnly.value)
     if (!nextId) {
@@ -242,6 +266,7 @@ async function cancel() {
         :check-mode="checkMode"
         :unchecked-entries="check.uncheckedEntries.value"
         :all-marked="check.allMarked.value"
+        :any-marked="check.anyMarked.value"
         :submitting="submitting"
         :item-results="check.itemResults.value"
         :item-notes="check.itemNotes.value"

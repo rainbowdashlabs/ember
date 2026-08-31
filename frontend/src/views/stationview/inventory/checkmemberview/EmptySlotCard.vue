@@ -20,6 +20,9 @@ const props = defineProps<{
   availableItems: InventoryItem[]
   slotSelections: Map<string, string>
   itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
+  /** Which of the requirement's pieces this empty place is, counted off as 2/2 among them. */
+  position?: number
+  total?: number
 }>()
 
 const emit = defineEmits<{
@@ -39,7 +42,10 @@ const { t } = useI18n()
     :class="isNotInPossession ? 'border-info ring-2 ring-info bg-info/10' : 'border-bg-light-accent dark:border-bg-dark-accent'"
   >
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-      <span class="text-sm text-(--text-muted)">{{ t('inventory.check.emptySlot') }}</span>
+      <span class="text-sm text-(--text-muted)">
+        <span v-if="total && total > 1" class="tabular-nums">{{ position }}/{{ total }}</span>
+        {{ t('inventory.check.emptySlot') }}
+      </span>
       <InfoButton
         class="text-xs px-2 py-1.5 sm:py-1 w-full sm:w-auto"
         :class="{ 'opacity-100': isNotInPossession, 'opacity-60': !isNotInPossession }"

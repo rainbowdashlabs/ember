@@ -84,6 +84,10 @@ const {t} = useI18n()
       </div>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.attendanceSession.expectedTitle')">
+      <p>{{ t('helpCenter.attendanceSession.expectedText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.attendanceSession.checkModeTitle')">
       <p>{{ t('helpCenter.attendanceSession.checkModeText') }}</p>
     </HelpSection>

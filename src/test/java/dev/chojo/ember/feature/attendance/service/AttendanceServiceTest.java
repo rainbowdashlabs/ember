@@ -13,11 +13,13 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
@@ -63,7 +65,6 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 eventRegistrationRepo,
                 stationMemberRepo,
                 memberGroupRepo,
-                restrictionService,
                 eventBus);
         station = stationRepo.create("AttendanceSvc Station");
         account = accountRepo.create("attend-svc@test.com", "Attend", "User");
@@ -465,21 +466,22 @@ class AttendanceServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Somebody the event was never open to arrives on the sheet already declined.
+     * Only the template's groups put anybody on a sheet.
      *
-     * <p>An event addressed to one group is invisible to everybody else, and an attendance list that
-     * left them undetermined asked whoever fills it in to rule on people who were never invited.
-     * Somebody who could see the event and simply said nothing is not touched: the attendance itself
-     * is their answer.
+     * <p>Whom the event was open to says nothing about who is expected at the evening: the sheet is
+     * the template's, and somebody outside its groups stays off it however the event was addressed.
      */
     @Test
     @Order(54)
-    void whoeverCouldNotSeeTheEventIsAlreadyDeclined() {
+    void theEventsAudienceDoesNotPutAnybodyOnTheSheet() {
         var invitedGroup = memberGroupRepo.create(station.id(), "Eingeladen");
         memberGroupRepo.addMember(invitedGroup.id(), member.id());
 
         var outsiderAccount = accountRepo.create("attend-outsider@test.com", "Drau", "Ssen");
         var outsider = stationMemberRepo.create(station.id(), outsiderAccount.id());
+
+        var expectingTemplate = service.createTemplate(station.id(), "Nur die Eingeladenen");
+        service.setTemplateGroups(expectingTemplate.id(), List.of(new TemplateGroup(invitedGroup.id(), 0)));
 
         var event = eventRepo.create(
                 station.id(),
@@ -503,24 +505,169 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 event.id(),
                 new RestrictionSelection(List.of(), List.of(invitedGroup.id()), List.of(), List.of(), null));
 
-        var session = service.createSession(templateId, null, null, event.id(), null);
+        var session = service.createSession(expectingTemplate.id(), null, null, event.id(), null);
         service.syncFromEvent(session.id());
 
         var entries = service.findEntries(session.id());
-        var forOutsider = entries.stream()
-                .filter(entry -> entry.memberId() == outsider.id())
-                .findFirst()
-                .orElseThrow(() -> new AssertionError("the outsider is not on the sheet at all"));
-        assertEquals(AttendanceEntry.AttendanceStatus.DECLINED, forOutsider.status());
         assertTrue(
-                entries.stream().noneMatch(entry -> entry.memberId() == member.id()),
-                "the one who was invited and said nothing is left undetermined");
+                entries.stream().noneMatch(entry -> entry.memberId() == outsider.id()),
+                "somebody outside the template's groups is not on the sheet");
+        var forInvited = entries.stream()
+                .filter(entry -> entry.memberId() == member.id())
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("the template's group is missing from the sheet"));
+        assertEquals(AttendanceEntry.AttendanceStatus.UNCONFIRMED, forInvited.status());
 
         service.deleteSession(session.id());
+        service.deleteTemplate(expectingTemplate.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(outsider.id());
         accountRepo.delete(outsiderAccount.id());
         memberGroupRepo.delete(invitedGroup.id());
+    }
+
+    /**
+     * An answer given on the appointment after the sheet was opened still reaches the sheet.
+     */
+    @Test
+    @Order(54)
+    void syncTakesTheAnswersOfTheEventIntoTheSheet() {
+        var sheet = service.createTemplate(station.id(), "Antwort Vorlage");
+        service.createTemplateField(
+                sheet.id(), "Thema", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+        int sheetFieldId = service.findTemplateFields(sheet.id()).getFirst().id();
+
+        var event = eventRepo.create(
+                station.id(),
+                "Antwort Termin",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(1, ChronoUnit.DAYS),
+                Instant.now().plus(1, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS),
+                sheet.id(),
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        var session = service.createSession(sheet.id(), null, null, event.id(), null);
+        assertTrue(service.findSessionFields(session.id()).stream()
+                .noneMatch(field -> field.fieldId() == sheetFieldId
+                        && field.value() != null
+                        && !field.value().isBlank()));
+
+        eventFieldRepo.replaceFields(
+                event.id(),
+                List.of(new EventFieldRepository.FieldEntry(
+                        "Thema",
+                        EventFieldType.STRING,
+                        EventFieldConfig.parse("{}"),
+                        "Leiterprobe",
+                        false,
+                        sheetFieldId,
+                        false)));
+
+        service.syncFromEvent(session.id());
+
+        assertTrue(
+                service.findSessionFields(session.id()).stream()
+                        .anyMatch(field -> field.fieldId() == sheetFieldId
+                                && field.value() != null
+                                && field.value().contains("Leiterprobe")),
+                "the answer given on the appointment is on the sheet");
+
+        service.deleteSession(session.id());
+        eventRepo.delete(event.id());
+        service.deleteTemplate(sheet.id());
+    }
+
+    /**
+     * An answer that begins with digits reaches the sheet as the text it is.
+     *
+     * <p>Read as JSON, a date is a number with the rest of the date trailing behind it, and it was
+     * that trailing rest the sheet refused, taking the whole attendance down with it.
+     */
+    @Test
+    @Order(54)
+    void anAnswerThatLooksLikeANumberStillReachesTheSheet() {
+        var sheet = service.createTemplate(station.id(), "Datum Vorlage");
+        service.createTemplateField(
+                sheet.id(), "Datum", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+        int sheetFieldId = service.findTemplateFields(sheet.id()).getFirst().id();
+
+        var event = eventRepo.create(
+                station.id(),
+                "Datum Termin",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(1, ChronoUnit.DAYS),
+                Instant.now().plus(1, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS),
+                sheet.id(),
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        eventFieldRepo.replaceFields(
+                event.id(),
+                List.of(new EventFieldRepository.FieldEntry(
+                        "Datum",
+                        EventFieldType.STRING,
+                        EventFieldConfig.parse("{}"),
+                        "2026-08-31",
+                        false,
+                        sheetFieldId,
+                        false)));
+
+        var session = service.createSession(sheet.id(), null, null, event.id(), null);
+
+        assertTrue(
+                service.findSessionFields(session.id()).stream()
+                        .anyMatch(field -> field.fieldId() == sheetFieldId
+                                && field.value() != null
+                                && field.value().contains("2026-08-31")),
+                "the date is on the sheet as it was written");
+
+        service.deleteSession(session.id());
+        eventRepo.delete(event.id());
+        service.deleteTemplate(sheet.id());
+    }
+
+    /**
+     * A group that grew after the sheet was opened is picked up when it is filled in from the event.
+     *
+     * <p>Without this the newcomer stands on the sheet with nothing to mark, and the walk through the
+     * open names passes them by.
+     */
+    @Test
+    @Order(54)
+    void syncPutsMembersJoinedLaterOnTheSheet() {
+        var lateGroup = memberGroupRepo.create(station.id(), "Nachzügler");
+        var lateTemplate = service.createTemplate(station.id(), "Nachzügler Vorlage");
+        service.setTemplateGroups(lateTemplate.id(), List.of(new TemplateGroup(lateGroup.id(), 0)));
+
+        var session = service.createSession(lateTemplate.id(), Instant.now(), Instant.now(), null, "Nachzügler");
+        assertTrue(service.findEntries(session.id()).isEmpty());
+
+        memberGroupRepo.addMember(lateGroup.id(), member.id());
+        var entries = service.syncFromEvent(session.id());
+
+        assertTrue(entries.stream()
+                .anyMatch(entry -> entry.memberId() == member.id()
+                        && entry.status() == AttendanceEntry.AttendanceStatus.UNCONFIRMED));
+
+        service.deleteSession(session.id());
+        service.deleteTemplate(lateTemplate.id());
+        memberGroupRepo.delete(lateGroup.id());
     }
 
     @Test
@@ -568,17 +715,63 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var account2 = accountRepo.create("attend-svc2@test.com", "Attend2", "User");
         var member2 = stationMemberRepo.create(station.id(), account2.id());
 
+        var group = memberGroupRepo.create(station.id(), "Sync Gruppe");
+        memberGroupRepo.addMember(group.id(), member2.id());
+        var template = service.createTemplate(station.id(), "Sync Vorlage");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
+
         eventRegistrationRepo.create(event.id(), member2.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
 
-        var session = service.createSession(templateId, null, null, event.id(), null);
+        var session = service.createSession(template.id(), null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
         assertNotNull(entries);
-        assertTrue(entries.stream().anyMatch(e -> e.memberId() == member2.id()));
+        assertTrue(entries.stream()
+                .anyMatch(e -> e.memberId() == member2.id() && e.status() == AttendanceEntry.AttendanceStatus.PRESENT));
 
         service.deleteSession(session.id());
+        service.deleteTemplate(template.id());
+        memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(member2.id());
         accountRepo.delete(account2.id());
+    }
+
+    /**
+     * A member who signed up but is not expected by the template stays off the sheet.
+     */
+    @Test
+    @Order(55)
+    void syncLeavesSomebodyOutsideTheTemplatesGroupsOff() {
+        var event = eventRepo.create(
+                station.id(),
+                "Fremde Anmeldung",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(2, ChronoUnit.DAYS),
+                Instant.now().plus(2, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
+                templateId,
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        var strangerAccount = accountRepo.create("attend-stranger@test.com", "Fremd", "Ling");
+        var stranger = stationMemberRepo.create(station.id(), strangerAccount.id());
+        eventRegistrationRepo.create(event.id(), stranger.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
+
+        var session = service.createSession(templateId, null, null, event.id(), null);
+        var entries = service.syncFromEvent(session.id());
+        assertTrue(entries.stream().noneMatch(e -> e.memberId() == stranger.id()));
+
+        service.deleteSession(session.id());
+        eventRepo.delete(event.id());
+        stationMemberRepo.delete(stranger.id());
+        accountRepo.delete(strangerAccount.id());
     }
 
     @Test
@@ -605,15 +798,22 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var account3 = accountRepo.create("attend-dec@test.com", "Dec", "User");
         var member3 = stationMemberRepo.create(station.id(), account3.id());
 
+        var group = memberGroupRepo.create(station.id(), "Absage Gruppe");
+        memberGroupRepo.addMember(group.id(), member3.id());
+        var template = service.createTemplate(station.id(), "Absage Vorlage");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
+
         eventRegistrationRepo.create(event.id(), member3.id(), LocalDate.now(), RegistrationStatus.DECLINED, null);
 
-        var session = service.createSession(templateId, null, null, event.id(), null);
+        var session = service.createSession(template.id(), null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
         assertTrue(entries.stream()
                 .anyMatch(
                         e -> e.memberId() == member3.id() && e.status() == AttendanceEntry.AttendanceStatus.DECLINED));
 
         service.deleteSession(session.id());
+        service.deleteTemplate(template.id());
+        memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
         stationMemberRepo.delete(member3.id());
         accountRepo.delete(account3.id());
@@ -640,18 +840,26 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
+        var group = memberGroupRepo.create(station.id(), "Abwesend Gruppe");
+        memberGroupRepo.addMember(group.id(), member.id());
+        var template = service.createTemplate(station.id(), "Abwesend Vorlage");
+        service.setTemplateGroups(template.id(), List.of(new TemplateGroup(group.id(), 0)));
+
         var absence = service.createAbsence(
                 member.id(), LocalDate.now().minusDays(1), LocalDate.now().plusDays(1), "Sick", null);
 
         eventRegistrationRepo.create(event.id(), member.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
 
-        var session = service.createSession(templateId, null, null, event.id(), null);
+        var session = service.createSession(template.id(), null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
+        // Away for the day, so the sheet settles them rather than counting on the sign-up
         assertTrue(entries.stream()
-                .anyMatch(e -> e.memberId() == member.id() && e.status() == AttendanceEntry.AttendanceStatus.ABSENT));
+                .anyMatch(e -> e.memberId() == member.id() && e.status() != AttendanceEntry.AttendanceStatus.PRESENT));
 
         service.deleteAbsence(absence.id());
         service.deleteSession(session.id());
+        service.deleteTemplate(template.id());
+        memberGroupRepo.delete(group.id());
         eventRepo.delete(event.id());
     }
 

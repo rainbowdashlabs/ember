@@ -20,6 +20,8 @@ import dev.chojo.ember.feature.mail.service.MailChainService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
+import dev.chojo.ember.feature.notifications.entity.NotificationSetting;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
 import dev.chojo.ember.feature.onboarding.entity.OnboardingLevel;
 import dev.chojo.ember.feature.onboarding.entity.OnboardingMark;
@@ -44,6 +46,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -166,13 +169,18 @@ class OnboardingServiceTest {
 
     @Test
     void aTaskIsDoneBecauseTheThingItAsksForExists() {
-        when(profileFieldService.isProfileComplete(eq(MEMBER))).thenReturn(true);
+        // The notification settings, because those really are answered by the data. The profile stood
+        // here until looking over what is written about you became the task, and no row can answer
+        // that for anybody.
+        when(notificationSettingsRepository.findByMember(eq(MEMBER)))
+                .thenReturn(
+                        List.of(new NotificationSetting(MEMBER, NotificationType.EVENT_REMINDER, true, false, false)));
 
         assertEquals(
                 OnboardingTaskState.DONE,
                 stateOf(
                         service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER),
-                        "member.profile"));
+                        "member.notifications"));
     }
 
     @Test
@@ -238,8 +246,24 @@ class OnboardingServiceTest {
     void aTaskThatReadsItsOwnAnswerCannotBeTickedOff() {
         assertThrows(
                 BadRequestResponse.class,
+                () -> service.mark(
+                        OnboardingLevel.MEMBER, "member.notifications", OnboardingTaskState.DONE, MEMBER, 1));
+        verify(markRepository, never()).markForMember(anyInt(), eq("member.notifications"), eq("CONFIRMED"));
+    }
+
+    @Test
+    void lookingOverTheProfileIsSettledByWalkingIt() {
+        // A complete profile is exactly the one worth looking over, so the data must not settle the
+        // task and hide it from the people it is for.
+        when(profileFieldService.isProfileComplete(eq(MEMBER))).thenReturn(true);
+
+        assertEquals(
+                OnboardingTaskState.OPEN,
+                stateOf(
+                        service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER),
+                        "member.profile"));
+        assertDoesNotThrow(
                 () -> service.mark(OnboardingLevel.MEMBER, "member.profile", OnboardingTaskState.DONE, MEMBER, 1));
-        verify(markRepository, never()).markForMember(anyInt(), eq("member.profile"), eq("CONFIRMED"));
     }
 
     @Test
