@@ -6,6 +6,7 @@
 
 - **Lists made out of who is coming.** The sign-ups of an appointment carry a menu that turns the people holding a place on that one evening into a checklist to tick off, or into a survey addressed to exactly them. The set is taken as it stands, so the dialog says how many people come across, who cannot be carried over, and that anybody signing up later is added by hand.
 - **A drawer of different things says what kind each piece is.** An inventory holding six blue radios, five green ones and a charging station can give every piece an Art beside its name, which leaves "Pager 01" reading as "Pager 01" while making "the blue ones" something that can be counted and asked for; an empty Art is perfectly normal and most pieces will have none. A tidying screen under Inventory lists the names actually written on the pieces with a count each, which is where one word spelled two ways shows itself, and bringing them together writes the chosen name onto those pieces so the misspelling leaves every list and export as well.
+- **A checklist can be tied to one evening of an appointment.** Instead of describing who belongs on it by role, group or name, a list can now name an appointment and a date, and Refresh brings in everybody who has taken a place since. Somebody who cancels keeps their row and is marked as no longer belonging, so nothing already ticked off is lost, and what a list is made of can now be changed after it exists.
 
 ### Improvements
 
