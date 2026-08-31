@@ -2253,6 +2253,7 @@ volumes:
             entriesText: 'Jeder Eintrag zeigt den Namen, die Punktzahl und den Status.',
             statusTitle: 'Status eines Eintrags',
             statusFlowText: 'Ein Eintrag durchläuft die Stufen: Wartend, Eingeladen, Probe, Aufgenommen oder Zurückgezogen.',
+            statusAccountText: 'Ein Mitglied entsteht erst mit dem Start der Probezeit, also wenn die Person das erste Mal da ist. Eine Einladung ist bis dahin nur eine Nachricht: Wer absagt oder sich selbst von der Liste nimmt, hinterlässt nichts in der Wache.',
             createEntryTitle: 'Neuen Eintrag erstellen',
             createEntryText: 'Trage Vorname, Nachname, Erziehungsberechtigte und Notizen ein.',
             entryDetailTitle: 'Eintrag bearbeiten',

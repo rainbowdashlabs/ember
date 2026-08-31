@@ -247,6 +247,7 @@ import dev.chojo.ember.feature.twofactor.route.TwoFactorRoutes;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnCredentialStore;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnRelyingPartyFactory;
 import dev.chojo.ember.feature.waitinglist.route.WaitingListRoutes;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -621,7 +622,10 @@ public class EmberModule extends AbstractModule {
                 .setThrowExceptions(true)
                 .setRowMapperRegistry(new RowMapperRegistry().register(PostgresqlMapper.getDefaultMapper()))
                 .build();
-        QueryConfiguration.setDefault(config);
-        return config;
+        // Thread-scoped, so a service that groups writes with Transactions.run reaches the
+        // repositories it calls. Outside such a block this is the plain configuration.
+        var scoped = Transactions.threadScoped(config);
+        QueryConfiguration.setDefault(scoped);
+        return scoped;
     }
 }

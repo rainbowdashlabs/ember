@@ -33,7 +33,9 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
+import dev.chojo.ember.util.sql.Transactions;
 import io.javalin.http.BadRequestResponse;
+import io.javalin.http.ConflictResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -359,14 +361,34 @@ public class WaitingListService {
         return repository.findEntryValues(entryId);
     }
 
+    /**
+     * Takes an entry off the list on the strength of its own access token, and removes it for good.
+     *
+     * <p>Only while the entry is WAITING or INVITED, because that is where nothing has been built on
+     * it yet. The token never rotates and never expires, so a link that has been sitting in a mailbox
+     * for years still names the entry it was sent for; once that entry is in testing or has joined
+     * there is a member behind it, with attendance and guardians of their own, and a mail nobody has
+     * to prove they still hold must not be able to destroy that. Withdrawal from the station side
+     * keeps its wider reach, because somebody with a permission is standing behind it.
+     *
+     * @param token the entry's access token
+     * @throws ConflictResponse when the entry has moved past being a list entry
+     */
     public void removeByToken(String token) {
         repository
                 .findEntryByToken(token)
                 .ifPresentOrElse(
                         entry -> {
-                            repository.updateEntryStatusWithTimestamp(
-                                    entry.id(), WaitingListEntryStatus.WITHDRAWN, "withdrawn_at");
-                            log.info("Withdrew waiting-list entry {} via self-service token", entry.id());
+                            if (entry.status() != WaitingListEntryStatus.WAITING
+                                    && entry.status() != WaitingListEntryStatus.INVITED) {
+                                log.info(
+                                        "Self-service removal refused for waiting-list entry {} (is {})",
+                                        entry.id(),
+                                        entry.status());
+                                throw new ConflictResponse("This entry can no longer be removed from the list");
+                            }
+                            withdrawEntry(entry.id());
+                            log.info("Removed waiting-list entry {} via self-service token", entry.id());
                         },
                         () -> log.warn("Self-service withdrawal skipped: no waiting-list entry for token"));
     }
@@ -462,7 +484,12 @@ public class WaitingListService {
     }
 
     /**
-     * Invite a WAITING entry: set status to INVITED, create a non-login member, assign testing group, link member.
+     * Invite a WAITING entry: set status to INVITED, stamp the moment and write to the guardians.
+     *
+     * <p>Nothing is created here. The account, the membership, the trial user type and the testing
+     * group only come into being once the person actually turns up, in {@link #moveToTesting(int)}.
+     * Until then the entry is a waiting list entry and nothing else, so a refusal or a withdrawal
+     * leaves no member behind.
      */
     public WaitingListEntry inviteEntry(int entryId) {
         var entry =
@@ -472,26 +499,8 @@ public class WaitingListService {
         }
         var list = repository.findById(entry.listId()).orElseThrow();
 
-        var account = accountRepository.create(null, entry.firstname(), entry.lastname(), list.stationId());
-        var member = stationMemberRepository.create(list.stationId(), account.id());
-        stationMemberRepository.setUserType(member.id(), StationUserType.TRIAL);
-        stationMemberRepository
-                .findPermissionByName(StationPermission.USER)
-                .ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
-
-        // Assign testing group if configured
-        if (list.testingGroupId() != null) {
-            memberGroupRepository.addMember(list.testingGroupId(), member.id());
-        }
-
-        // Link member to entry and update status
-        repository.linkMember(entryId, member.id());
         repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.INVITED, "invited_at");
-        log.info(
-                "Invited waiting-list entry {} on station {} (created member {})",
-                entryId,
-                list.stationId(),
-                member.id());
+        log.info("Invited waiting-list entry {} on station {}", entryId, list.stationId());
 
         // Send invite email to all guardians
         String stationName = resolveStationName(list.stationId());
@@ -522,7 +531,17 @@ public class WaitingListService {
     }
 
     /**
-     * Move an INVITED entry to TESTING status.
+     * Move an INVITED entry to TESTING, which is where the member comes into being: the account, the
+     * membership, the trial user type, the testing group and the permission that lets the station
+     * see them.
+     *
+     * <p>Every effect carries its own guard rather than one guard around the block. An entry invited
+     * before this moved here already has a member, and skipping everything for it would leave it out
+     * of a testing group the list gained after the invitation. Setting the user type and granting the
+     * permission are idempotent on their own; adding somebody to a group is not, so that one is asked
+     * about first.
+     *
+     * <p>The writes run as one, so a failure halfway cannot leave a member nothing points at.
      */
     public WaitingListEntry moveToTesting(int entryId) {
         var entry =
@@ -530,9 +549,47 @@ public class WaitingListService {
         if (entry.status() != WaitingListEntryStatus.INVITED) {
             throw new IllegalStateException("Entry must be in INVITED status to move to testing");
         }
-        repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.TESTING, "testing_at");
-        log.info("Moved waiting-list entry {} to testing", entryId);
+        var list = repository.findById(entry.listId()).orElseThrow();
+
+        int memberId = Transactions.call(() -> {
+            int member = entry.memberId() != null ? entry.memberId() : createTrialMember(entry, list.stationId());
+            stationMemberRepository.setUserType(member, StationUserType.TRIAL);
+            stationMemberRepository
+                    .findPermissionByName(StationPermission.USER)
+                    .ifPresent(permission -> stationMemberRepository.grantPermission(member, permission.id()));
+            if (list.testingGroupId() != null && !isInGroup(member, list.testingGroupId())) {
+                memberGroupRepository.addMember(list.testingGroupId(), member);
+            }
+            repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.TESTING, "testing_at");
+            return member;
+        });
+
+        log.info(
+                "Moved waiting-list entry {} to testing on station {} (member {})",
+                entryId,
+                list.stationId(),
+                memberId);
         return repository.findEntryById(entryId).orElseThrow();
+    }
+
+    /**
+     * Creates the account and the membership the trial period runs on and points the entry at it.
+     *
+     * <p>The account carries no address of its own: the people who can be written to are the
+     * guardians, and they get their own accounts when the entry joins.
+     *
+     * @return the id of the new member
+     */
+    private int createTrialMember(WaitingListEntry entry, int stationId) {
+        var account = accountRepository.create(null, entry.firstname(), entry.lastname(), stationId);
+        var member = stationMemberRepository.create(stationId, account.id());
+        repository.linkMember(entry.id(), member.id());
+        return member.id();
+    }
+
+    /** Whether the member already sits in that group, which has no room for a second row. */
+    private boolean isInGroup(int memberId, int groupId) {
+        return memberGroupRepository.findGroupsForMember(memberId).stream().anyMatch(group -> group.id() == groupId);
     }
 
     /**

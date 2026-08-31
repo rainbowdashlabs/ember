@@ -141,6 +141,7 @@ import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
+import dev.chojo.ember.util.sql.Transactions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -336,7 +337,9 @@ public abstract class RepositoryTestBase {
                 .setThrowExceptions(true)
                 .setRowMapperRegistry(new RowMapperRegistry().register(PostgresqlMapper.getDefaultMapper()))
                 .build();
-        QueryConfiguration.setDefault(config);
+        // The same wrapping the application installs, so a service grouping its writes in a
+        // transaction behaves here exactly as it does in production.
+        QueryConfiguration.setDefault(Transactions.threadScoped(config));
         accountRepo = new AccountRepository(TokenHasher.forTesting("repository-test-pepper"));
         stationRepo = new StationRepository();
         stationMemberRepo = new StationMemberRepository();
