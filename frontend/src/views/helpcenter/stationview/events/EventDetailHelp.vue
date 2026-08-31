@@ -15,6 +15,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import ActionsMenu from '@/components/button/ActionsMenu.vue'
+import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -55,9 +57,12 @@ const {t} = useI18n()
         <div class="flex items-center gap-2">
           <SecondaryButton><font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1"/>{{ t('common.back') }}</SecondaryButton>
           <HelpPermissionGuard :permissions="[StationPermission.EVENT_EDIT]" :label="t('helpCenter.permissionLabel.eventEdit')">
-            <ErrorButton><font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>{{ t('events.cancelEvent') }}</ErrorButton>
             <PrimaryButton><font-awesome-icon :icon="['fas', 'pen']" class="mr-1"/>{{ t('events.editEvent') }}</PrimaryButton>
           </HelpPermissionGuard>
+          <ActionsMenu :label="t('common.actions')" test-id="help-event-actions">
+            <DropdownMenuItem :icon="['fas', 'bullhorn']">{{ t('events.announceAsNews') }}</DropdownMenuItem>
+            <DropdownMenuItem :icon="['fas', 'ban']" destructive>{{ t('events.cancelEvent') }}</DropdownMenuItem>
+          </ActionsMenu>
         </div>
       </div>
 
@@ -149,6 +154,15 @@ const {t} = useI18n()
         <ErrorBadge>{{ t('eventsUpcoming.statusDeclined') }}</ErrorBadge>
       </div>
     </HelpSection>
+
+    <HelpPermissionGuard :permissions="[StationPermission.NEWS_EDIT]" :label="t('helpCenter.permissionLabel.newsEdit')">
+      <HelpSection :title="t('helpCenter.eventDetail.announceTitle')">
+        <p>{{ t('helpCenter.eventDetail.announceText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.announceDateText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.announceAudienceText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.announceSnapshotText') }}</p>
+      </HelpSection>
+    </HelpPermissionGuard>
 
     <HelpPermissionGuard :permissions="[StationPermission.EVENT_EDIT]" :label="t('helpCenter.permissionLabel.eventEdit')">
       <HelpSection :title="t('helpCenter.eventDetail.cancelTitle')">
