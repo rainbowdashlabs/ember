@@ -8,9 +8,9 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
+import ActionsMenu from '@/components/button/ActionsMenu.vue'
+import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -53,6 +53,12 @@ function edit() {
       <p v-if="test.description" class="text-sm text-(--text-muted)">{{ test.description }}</p>
       <p v-if="canReadResults && detail" class="text-sm text-(--text-muted)">{{ detail.attemptCount }} {{ t('quiz.attemptCount') }}</p>
     </div>
+    <!--
+      A test is opened to be written while it runs and to be started while it is a draft, so that
+      is the button that stays. The two exports look alike side by side and belong in a list where
+      their names can be read, and closing the test comes last and coloured: it is behind a
+      confirmation either way.
+    -->
     <div class="flex items-center gap-2 flex-wrap">
       <PrimaryButton :icon="['fas', 'play']" v-if="test.status === QuizTestStatus.ACTIVE" @click="take">
         {{ t('quiz.tests.takeTest') }}
@@ -61,18 +67,21 @@ function edit() {
         <SuccessButton v-if="test.status === QuizTestStatus.DRAFT" @click="emit('activate')">
           {{ t('quiz.tests.activate') }}
         </SuccessButton>
-        <ErrorButton v-if="test.status === QuizTestStatus.ACTIVE" @click="emit('close')">
-          {{ t('quiz.tests.close') }}
-        </ErrorButton>
-        <SecondaryButton v-if="test.status === QuizTestStatus.DRAFT" @click="edit">
-          {{ t('common.edit') }}
-        </SecondaryButton>
-        <SecondaryButton :icon="['fas', 'file-lines']" @click="quiz.downloadQuestionPdf(test.id)">
-          {{ t('quiz.tests.exportQuestions') }}
-        </SecondaryButton>
-        <SecondaryButton :icon="['fas', 'file-lines']" @click="quiz.downloadSolutionPdf(test.id)">
-          {{ t('quiz.tests.exportSolutions') }}
-        </SecondaryButton>
+        <ActionsMenu :label="t('common.actions')" test-id="test-actions">
+          <DropdownMenuItem v-if="test.status === QuizTestStatus.DRAFT" :icon="['fas', 'pen']" @click="edit">
+            {{ t('common.edit') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem :icon="['fas', 'file-lines']" @click="quiz.downloadQuestionPdf(test.id)">
+            {{ t('quiz.tests.exportQuestions') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem :icon="['fas', 'file-lines']" @click="quiz.downloadSolutionPdf(test.id)">
+            {{ t('quiz.tests.exportSolutions') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem v-if="test.status === QuizTestStatus.ACTIVE" :icon="['fas', 'ban']" destructive
+                            @click="emit('close')">
+            {{ t('quiz.tests.close') }}
+          </DropdownMenuItem>
+        </ActionsMenu>
       </template>
     </div>
   </div>
