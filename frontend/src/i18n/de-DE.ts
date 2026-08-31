@@ -4429,8 +4429,8 @@ export default {
         withdraw: 'Ausscheiden',
         // Transition confirmation modal
         transitionConfirmTitle: 'Statuswechsel bestätigen',
-        transitionInviteText: 'Soll {name} eingeladen werden?',
-        transitionTestingText: 'Soll für {name} die Probezeit gestartet werden?',
+        transitionInviteText: 'Soll {name} eingeladen werden? Dabei wird noch kein Mitglied angelegt.',
+        transitionTestingText: 'Soll für {name} die Probezeit gestartet werden? Erst damit wird das Mitglied angelegt.',
         transitionJoinText: 'Soll {name} endgültig aufgenommen werden?',
         transitionApproveText: 'Soll {name} freigeschaltet und in die Warteliste verschoben werden?',
         transitionRejectText: 'Soll {name} abgelehnt werden?',

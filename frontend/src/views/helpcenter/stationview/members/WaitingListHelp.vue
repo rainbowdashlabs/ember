@@ -82,6 +82,7 @@ const { t } = useI18n()
           <ErrorBadge>{{ t('waitingList.status_WITHDRAWN') }}</ErrorBadge>
         </div>
         <p class="text-sm text-(--text-muted)">{{ t('helpCenter.waitingList.statusFlowText') }}</p>
+        <p class="text-sm text-(--text-muted)">{{ t('helpCenter.waitingList.statusAccountText') }}</p>
       </NeutralContainer>
     </HelpSection>
 
