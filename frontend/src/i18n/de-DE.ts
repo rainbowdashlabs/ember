@@ -1811,7 +1811,7 @@ export default {
         columns: 'Spalten',
     },
     membersList: {
-        accountPending: 'Konto noch nicht eingerichtet - die Person hat sich noch nicht das erste Mal angemeldet.',
+        accountPending: 'Konto noch nicht eingerichtet - die Person hat sich noch kein Passwort gesetzt.',
         accountPendingExpires: 'Der zugesendete Link ist gültig bis {date}.',
         accountPendingResend: 'Einrichtungs-Mail erneut senden',
         setupMailToMember: 'Die Mail geht an die Adresse des Mitglieds.',
@@ -2514,7 +2514,7 @@ export default {
         },
         INVENTORY_CREATE_EXTERNAL: {
             label: 'Externe Gegenstände',
-            desc: 'Kann Gegenstände anlegen, die Mitgliedern gehören.',
+            desc: 'Kann Gegenstände anlegen, die dem Träger gehören.',
         },
         INVENTORY_CREATE_INTERNAL: {
             label: 'Interne Gegenstände',

@@ -10,6 +10,7 @@
 
 - **Four kinds of notification reached a feed reader under their internal name.** A reminder that a sign-up is about to close, a piece the cluster has sent on its way, a piece reported missing and a movement called off all arrived titled in capital letters rather than in a sentence. All four are now titled and filed in German and English, like every other kind of notification.
 - **A question asking for a member showed a number instead of the name.** Where an appointment asks who drives or who supervises, the notification body and the subscribed calendar entry listed the answer as an internal number, which named nobody. Both now write out the members the question holds.
+- **Somebody who had set their password still counted as not set up.** The member list waited for a first sign-in before dropping the hourglass beside a name, so people who had chosen their password and gone no further were chased with another setup mail. Choosing a password is now what settles the account, and only a password an administrator laid down still counts as outstanding.
 
 ## v26.13.10
 

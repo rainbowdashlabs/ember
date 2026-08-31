@@ -100,8 +100,7 @@ public class AccountInviteService {
 
     /** Nobody is sent a setup mail for an account they have already set up. */
     private boolean needsSetup(Account account) {
-        return account.setupCompletedAt() == null
-                && accountRepository.findCredential(account.id()).isEmpty();
+        return account.setupCompletedAt() == null && !accountRepository.hasChosenPassword(account.id());
     }
 
     /**

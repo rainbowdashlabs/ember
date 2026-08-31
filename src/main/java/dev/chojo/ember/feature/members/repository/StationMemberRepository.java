@@ -198,7 +198,10 @@ public class StationMemberRepository {
                        coalesce(a.first_name, sm.display_name, '') AS first_name,
                        coalesce(a.last_name, '') AS last_name,
                        coalesce(a.email, '') AS email,
-                       (a.id IS NOT NULL AND a.setup_completed_at IS NULL) AS account_setup_pending,
+                       (a.id IS NOT NULL AND a.setup_completed_at IS NULL
+                            AND NOT EXISTS (SELECT 1 FROM account_credential ac
+                                            WHERE ac.account_id = a.id
+                                              AND ac.force_password_change = FALSE)) AS account_setup_pending,
                        (SELECT max(at.expires_at) FROM account_token at WHERE at.account_id = a.id AND at.token_type = 'SET_PASSWORD') AS setup_mail_expires_at,
                        CASE
                            WHEN a.email IS NOT NULL AND a.email <> '' AND lower(a.email) NOT LIKE '%.local'
