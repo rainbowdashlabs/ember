@@ -407,7 +407,10 @@ class DemoServiceTest extends RepositoryTestBase {
                 memberIdentityFactory,
                 demoConfig,
                 apiConfig);
-        var lendingSeeder = new DemoLendingSeeder(lendingService, inventoryRepo);
+        var lendingSeeder = new DemoLendingSeeder(
+                lendingService,
+                new InventoryShareService(new InventoryShareRepository(), federationService, inventoryRepo),
+                inventoryRepo);
         var boardSeeder = new DemoBoardSeeder(
                 boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory);
         var procedureSeeder = new DemoProcedureSeeder(procedureRepo);

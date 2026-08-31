@@ -8,6 +8,14 @@
 - **A drawer of different things says what kind each piece is.** An inventory holding six blue radios, five green ones and a charging station can give every piece an Art beside its name, which leaves "Pager 01" reading as "Pager 01" while making "the blue ones" something that can be counted and asked for; an empty Art is perfectly normal and most pieces will have none. A tidying screen under Inventory lists the names actually written on the pieces with a count each, which is where one word spelled two ways shows itself, and bringing them together writes the chosen name onto those pieces so the misspelling leaves every list and export as well.
 - **A checklist can be tied to one evening of an appointment.** Instead of describing who belongs on it by role, group or name, a list can now name an appointment and a date, and Refresh brings in everybody who has taken a place since. Somebody who cancels keeps their row and is marked as no longer belonging, so nothing already ticked off is lost, and what a list is made of can now be changed after it exists.
 
+### New Features
+
+- **A station decides what it offers its partner stations.** An inventory or a single piece can now be put on offer, to every partner station or only to named ones, and a piece can be held back out of an inventory that is otherwise offered. One screen under Inventory, Lending lists everything the station currently offers and everything it keeps.
+
+### Changes
+
+- **Nothing reaches a partner station until somebody offers it.** Partner stations used to browse every inventory a station had, and switching lending off for a partner did not stop them looking or asking. From this version a station offers nothing until it says otherwise, and a partner whose lending is switched off is shown nothing whatever is set.
+
 ### Improvements
 
 - **An inventory says whether it holds one thing or many different ones.** Requirements, procurements and exchanges only mean something for a shelf of the same thing in many copies, and they were offered just as readily on a drawer of odds and ends, where "everybody needs one" and "order three more" say nothing at all. Every inventory starts as a shelf of one thing, so nothing changes until a station marks a drawer as a drawer, and the three then stop offering themselves for it.
@@ -18,6 +26,7 @@
 - **Borrowed equipment now sits where the rest of the equipment sits.** Gear a partner station lends you appears under Inventory the moment the handover is recorded, on a shelf of its own for everything belonging to somebody else, so it can go in a container, be handed to a member and be walked in a check like anything else. It is marked as the partner's, carries the day it goes back, and disappears again when the loan is recorded as returned.
 - **A lent-out piece says which partner has it.** Equipment out on loan showed as being with a partner without naming which one, so answering "where is that radio" meant opening the lending request. The name now stands on the equipment itself.
 - **The questions of an attendance sheet can be taken straight into an appointment.** Where an appointment names a sheet, its fields are now offered above the appointment's own questions, one at a time or all at once. They arrive with their name, their type and their settings, already tied to the field they came from, which is what makes the answer given at the appointment land on the sheet; a field already taken is not offered a second time. The same offer stands in the appointment templates.
+- **An empty search for a partner's gear says why it is empty.** The screen read the same whether no partner station shares anything with yours or whether everything shared is spoken for in the chosen period. It now says which of the two it is, and it never names the inventories a partner keeps back.
 
 ### Changes
 
