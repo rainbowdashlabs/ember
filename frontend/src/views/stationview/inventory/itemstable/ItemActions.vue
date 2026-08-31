@@ -52,8 +52,8 @@ const { t } = useI18n()
       <DropdownMenuItem :icon="['fas', 'pen']" @click="emit('edit', item)">
         {{ t('common.edit') }}
       </DropdownMenuItem>
-      <DropdownMenuItem v-if="!lentOut" :icon="['fas', 'trash']"
-                        icon-class="text-error" class="text-error" @click="emit('delete', item)">
+      <DropdownMenuItem v-if="!lentOut" :icon="['fas', 'trash']" destructive
+                        @click="emit('delete', item)">
         {{ t('common.delete') }}
       </DropdownMenuItem>
     </template>
