@@ -4,20 +4,30 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, type Ref, ref} from 'vue'
-import type {AttendanceEntry, AttendanceStatus} from '@/api/attendance'
+import type {AttendanceStatus} from '@/api/attendance'
+
+/**
+ * One name on the sheet that is still open.
+ *
+ * <p>Somebody the template expects but who has no entry yet counts as open too: they stand on the
+ * sheet with nothing recorded against them, which is exactly what the walk is for. Their entry is
+ * written the moment they are marked, so nothing is recorded about anybody who is never reached.
+ */
+export interface CheckRow {
+    memberId: number
+    entryId: number | null
+}
 
 export function useCheckMode(
-    entries: Ref<AttendanceEntry[]>,
-    setStatus: (entryId: number, status: AttendanceStatus) => Promise<void>,
+    openRows: Ref<CheckRow[]>,
+    mark: (row: CheckRow, status: AttendanceStatus) => Promise<void>,
 ) {
   const checkMode = ref(false)
   const checkIndex = ref(0)
 
-  const uncheckedEntries = computed(() => entries.value.filter(e => e.status === 'UNCONFIRMED'))
-
-  const currentCheckEntry = computed(() => {
+  const currentCheckRow = computed(() => {
     if (!checkMode.value) return null
-    return uncheckedEntries.value[checkIndex.value] ?? null
+    return openRows.value[checkIndex.value] ?? null
   })
 
   function startCheckMode() {
@@ -26,16 +36,17 @@ export function useCheckMode(
   }
 
   async function checkSetStatus(status: AttendanceStatus) {
-    if (!currentCheckEntry.value) return
-    await setStatus(currentCheckEntry.value.id, status)
-    if (checkIndex.value >= uncheckedEntries.value.length) {
+    const row = currentCheckRow.value
+    if (!row) return
+    await mark(row, status)
+    if (checkIndex.value >= openRows.value.length) {
       checkMode.value = false
     }
   }
 
   function skipCheck() {
     checkIndex.value++
-    if (checkIndex.value >= uncheckedEntries.value.length) {
+    if (checkIndex.value >= openRows.value.length) {
       checkMode.value = false
     }
   }
@@ -43,8 +54,8 @@ export function useCheckMode(
   return {
     checkMode,
     checkIndex,
-    uncheckedEntries,
-    currentCheckEntry,
+    openRows,
+    currentCheckRow,
     startCheckMode,
     checkSetStatus,
     skipCheck,

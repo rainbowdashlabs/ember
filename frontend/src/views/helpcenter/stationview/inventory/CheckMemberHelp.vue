@@ -37,6 +37,18 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryCheckMember.rapidCheckText2') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.inventoryCheckMember.countTitle')">
+      <p>{{ t('helpCenter.inventoryCheckMember.countText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.inventoryCheckMember.exchangeTitle')">
+      <p>{{ t('helpCenter.inventoryCheckMember.exchangeText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.inventoryCheckMember.partialTitle')">
+      <p>{{ t('helpCenter.inventoryCheckMember.partialText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.scanShared.title')">
       <p>{{ t('helpCenter.scanShared.intro') }}</p>
       <p class="font-medium">{{ t('helpCenter.scanShared.continuousTitle') }}</p>

@@ -17,6 +17,9 @@ const props = defineProps<{
   result?: CheckResult
   note: string
   sizeLabel: string
+  /** Which of the requirement's pieces this is, counted off as 1/2 where there is more than one. */
+  position?: number
+  total?: number
 }>()
 
 const emit = defineEmits<{
@@ -48,6 +51,7 @@ function resultClass(): string {
     <div class="flex flex-col sm:flex-row sm:items-center gap-2">
       <div class="flex-1 min-w-0">
         <div class="font-medium text-sm truncate">
+          <span v-if="total && total > 1" class="text-(--text-muted) tabular-nums">{{ position }}/{{ total }}</span>
           {{ item.name }}
           <SizeBadge v-if="sizeLabel">{{ sizeLabel }}</SizeBadge>
         </div>

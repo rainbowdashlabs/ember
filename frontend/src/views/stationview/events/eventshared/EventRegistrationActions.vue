@@ -160,6 +160,7 @@ function onUndo(reference: U) {
       <PrimaryButton
           v-if="requiresRegistration"
           :disabled="registering"
+          data-onboarding="events.item.registration"
           data-testid="answer-selected"
           class="text-sm"
           @click.stop="answer"
@@ -170,6 +171,7 @@ function onUndo(reference: U) {
       <ErrorButton
           v-else
           :disabled="registering"
+          data-onboarding="events.item.attendance"
           data-testid="answer-selected"
           class="text-sm"
           @click.stop="answer"

@@ -15,6 +15,6 @@ defineProps<{
 
 <template>
   <CheckModePanel
-      :current-entry="check.entry" :check-index="check.index" :total-unchecked="check.total"
+      :current-row="check.row" :check-index="check.index" :total-unchecked="check.total"
       :member-name="check.name" :member-identity="check.identity"/>
 </template>

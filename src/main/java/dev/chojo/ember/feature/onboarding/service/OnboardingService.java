@@ -250,11 +250,8 @@ public class OnboardingService {
 
     private boolean memberTaskDone(OnboardingTask task, StationMember member, StationUserType userType) {
         return switch (task) {
-            case PROFILE_FIELDS -> profileFieldService.isProfileComplete(member.id());
             case NOTIFICATIONS ->
                 !notificationSettingsRepository.findByMember(member.id()).isEmpty();
-            case EVENT_ANSWER ->
-                !registrationRepository.findByMember(member.id()).isEmpty();
             case CALENDAR_FEED ->
                 feedTokenRepository
                         .findByMember(member.id())

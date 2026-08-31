@@ -56,7 +56,7 @@ export const ATTENDANCE: PitchAttendance = {entries: ENTRIES, members: MEMBERS, 
 
 /** The entry the check is standing on, and how far it has come. */
 export const ATTENDANCE_CHECK: PitchCheckMode = {
-    entry: ENTRIES[4] ?? null,
+    row: {memberId: 5, entryId: 5},
     index: 0,
     total: 2,
     name: 'Mira Sand',

@@ -22,8 +22,18 @@ export interface OnboardingStep {
      * anything that has to be typed into: clicking into a field is the start of the work and not the
      * end of it, so such a step keeps its light until the reader leaves the field with something in
      * it. A step that moved on at the click would darken the very field being filled.
+     *
+     * `read` ends on the reader saying they have read it. Some tasks are there to show where a thing
+     * is and what it means, and demanding a click to prove it turns looking into doing: a walk that
+     * only ends once somebody has signed up for a Tuesday has made them sign up for a Tuesday. Such a
+     * step points at an example where there is one and stands on its own text where there is not.
+     *
+     * It also ends on something being typed into what it points at, which is what lets one step serve
+     * a reader with nothing to change and a reader with a gap to fill. Somebody looking over a
+     * profile that is already right says so and moves on; somebody filling in what was missing has
+     * shown the same thing by doing it, and being asked to confirm afterwards would be asking twice.
      */
-    advance: 'click' | 'route' | 'fill'
+    advance: 'click' | 'route' | 'fill' | 'read'
     optional?: boolean
 }
 
@@ -36,8 +46,7 @@ export interface OnboardingStep {
 export const ONBOARDING_FLOWS: Record<string, OnboardingStep[]> = {
     'member.profile': [
         {target: 'nav.profile', route: 'profile', advance: 'route'},
-        {target: 'profile.fields', advance: 'fill', optional: true},
-        {target: 'profile.save', advance: 'click'},
+        {target: 'profile.fields', advance: 'read'},
     ],
     'member.notifications': [
         {target: 'nav.profile.notifications', route: 'profile-notifications', advance: 'route'},
@@ -45,8 +54,8 @@ export const ONBOARDING_FLOWS: Record<string, OnboardingStep[]> = {
     ],
     'member.eventAnswer': [
         {target: 'nav.events.upcoming', route: 'events-upcoming', advance: 'route'},
-        {target: 'events.item.pending', advance: 'click'},
-        {target: 'events.registration-fields.submit', advance: 'click', optional: true},
+        {target: 'events.item.registration', advance: 'read'},
+        {target: 'events.item.attendance', advance: 'read'},
     ],
     'member.calendar': [
         {target: 'nav.profile.notifications', route: 'profile-notifications', advance: 'route'},
