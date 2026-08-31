@@ -65,6 +65,7 @@ const { t } = useI18n()
     <Td v-if="isMixed">
       <PrimaryBadge v-if="item.ownerKind === ItemOwner.STATION">{{ t('inventory.edit.ownerStation') }}</PrimaryBadge>
       <SecondaryBadge v-else-if="item.ownerKind === ItemOwner.CLUSTER">{{ t('inventory.edit.ownerCluster') }}</SecondaryBadge>
+      <InfoBadge v-else-if="item.ownerKind === ItemOwner.PARTNER_STATION">{{ t('inventory.edit.ownerPartner') }}</InfoBadge>
       <span v-else class="text-(--text-muted)">–</span>
     </Td>
     <Td v-if="showAssigned">

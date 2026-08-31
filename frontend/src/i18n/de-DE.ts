@@ -432,6 +432,7 @@ export default {
         inventoryFlows: 'Abläufe',
         inventoryManageGroup: 'Verwaltung',
         inventoryStorage: 'Lager',
+        inventoryBorrowed: 'Geliehenes',
         inventoryAssign: 'Zuweisen',
         inventoryRequirements: 'Benötigt',
         inventoryCheck: 'Prüfung',
@@ -762,6 +763,10 @@ export default {
         'inventory-manage': {
             title: 'Inventar verwalten',
             subtitle: 'Inventare anlegen und bearbeiten',
+        },
+        'inventory-borrowed': {
+            title: 'Geliehene Ausrüstung',
+            subtitle: 'Ausrüstung, die einer Partnerwache gehört und gerade hier liegt.',
         },
         'inventory-storage': {
             title: 'Lager',
@@ -3218,6 +3223,8 @@ export default {
             markConfirmed: 'Als bestätigt markieren',
             markMissing: 'Als fehlend markieren',
             markLost: 'Als verloren markieren',
+            borrowedHint: 'Gehört einer Partnerwache. Fehlt das Stück, wird es hier vermerkt, aber nicht '
+                + 'als verloren gemeldet. Sagen Sie es der Wache über die Ausleih-Anfrage.',
             reset: 'Zurücksetzen',
             removeExtra: 'Entfernen',
             finish: 'Prüfung abschließen',
@@ -3441,6 +3448,23 @@ export default {
             viewRequest: 'Anfrage anzeigen',
             lentTo: 'Verliehen an',
         },
+        borrowed: {
+            empty: 'Zurzeit liegt hier nichts, was einer Partnerwache gehört.',
+            loadError: 'Die geliehene Ausrüstung konnte nicht geladen werden.',
+            snapshotNote: 'Diese Angaben wurden bei der Übergabe kopiert und werden nicht nachgeführt. '
+                + 'Sie zeigen die Ausrüstung so, wie sie übergeben wurde. Ändern, verleihen und löschen '
+                + 'darf nur die Wache, der sie gehört.',
+            colName: 'Bezeichnung',
+            colId: 'Kennung',
+            colOwner: 'Gehört',
+            colDue: 'Zurück am',
+            noDueDate: 'Kein Datum vereinbart',
+            sortBy: {
+                owner: 'Nach Wache',
+                name: 'Nach Bezeichnung',
+                due: 'Nach Rückgabe',
+            },
+        },
         edit: {
             back: 'Zurück zur Übersicht',
             moveItems: 'Gegenstände verschieben',
@@ -3477,6 +3501,7 @@ export default {
             colOwner: 'Eigentümer',
             ownerStation: 'Wache',
             ownerCluster: 'Träger',
+            ownerPartner: 'Partnerwache',
             filterAssigned: 'Zugewiesen',
             filterNotAssigned: 'Nicht zugewiesen',
             filterInStorage: 'Im Lager',

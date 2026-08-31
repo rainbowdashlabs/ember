@@ -145,6 +145,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-forms-create', path: '/helpcenter/station/forms/create', i18nPrefix: 'helpCenter.formsBuilder'},
     {route: 'help-inventory-module-overview', path: '/helpcenter/station/inventory', i18nPrefix: 'helpCenter.inventoryModuleOverview'},
     {route: 'help-inventory-assign', path: '/helpcenter/station/inventory/assign', i18nPrefix: 'helpCenter.inventoryAssignHelp'},
+    {route: 'help-inventory-borrowed', path: '/helpcenter/station/inventory/borrowed', i18nPrefix: 'helpCenter.inventoryBorrowed'},
     {route: 'help-inventory-checks', path: '/helpcenter/station/inventory/checks', i18nPrefix: 'helpCenter.inventoryChecks'},
     {route: 'help-inventory-check-member-detail', path: '/helpcenter/station/inventory/checks/0', i18nPrefix: ['helpCenter.inventoryCheckMember', 'helpCenter.inventoryCheckMemberConfirmed', 'helpCenter.scanShared']},
     {route: 'help-inventory-check-result', path: '/helpcenter/station/inventory/checks/0/result', i18nPrefix: 'helpCenter.inventoryCheckResult'},

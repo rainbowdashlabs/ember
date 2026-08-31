@@ -106,6 +106,9 @@ function close() {
     <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_READ)" :icon="['fas', 'warehouse']" name="inventory-storage" to="/station/inventory/storage" @navigate="close">
       {{ t('sidebar.inventoryStorage') }}
     </SidebarLink>
+    <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_READ)" :icon="['fas', 'hand-holding']" name="inventory-borrowed" to="/station/inventory/borrowed" @navigate="close">
+      {{ t('sidebar.inventoryBorrowed') }}
+    </SidebarLink>
     <SidebarLink v-if="hasPermission(StationPermission.INVENTORY_ASSIGN)" :icon="['fas', 'user-plus']" name="inventory-assign" to="/station/inventory/assign" @navigate="close">
       {{ t('sidebar.inventoryAssign') }}
     </SidebarLink>

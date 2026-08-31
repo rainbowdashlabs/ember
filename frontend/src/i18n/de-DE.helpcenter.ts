@@ -4076,6 +4076,41 @@ volumes:
                 + 'Werte bleiben trotzdem bei jedem Gegenstand einzeln.',
             tip: 'Es wird nichts von allein gruppiert. Erst wenn du hier auf eine Schaltfläche klickst, '
                 + 'entsteht eine Art. So wandert kein Tippfehler versehentlich in die Liste.',
+        inventoryBorrowed: {
+            title: 'Geliehene Ausrüstung',
+            subtitle: 'Was einer Partnerwache gehört und gerade hier liegt.',
+            whatShown: 'Was steht hier?',
+            whatShownText: 'Alles, was eine Partnerwache euch geliehen hat, auf einer Liste. Sobald die '
+                + 'Übergabe eingetragen ist, legt Ember dafür ein eigenes Regal an: „Geliehene Ausrüstung". '
+                + 'Darin liegt alles, was anderen gehört, egal von welcher Wache es kommt.',
+            whyOneShelfTitle: 'Ein Regal, nicht eines je Wache',
+            whyOneShelfText: 'Die Frage, die eine Wache wirklich stellt, lautet: was liegt hier gerade, das '
+                + 'uns nicht gehört. Getrennt nach Wachen bräuchte diese Antwort mehrere Listen nebeneinander, '
+                + 'und jede einmalige Ausleihe hinterließe für immer ein leeres Regal. Wem ein Stück gehört, '
+                + 'steht deshalb an der Zeile, und die Liste lässt sich danach sortieren.',
+            renameTitle: 'Umbenennen und löschen',
+            renameText: 'Ihr könnt das Regal umbenennen, wenn ihr es anders nennt. Löschen lässt es sich nur, '
+                + 'solange nichts darin liegt: sonst würden Zeilen verschwinden, die euch nicht gehören. Ist es '
+                + 'leer, könnt ihr es löschen, und die nächste Übergabe legt ein neues an.',
+            useTitle: 'Was ihr damit tun könnt',
+            useText: 'Geliehene Ausrüstung ist ein Gegenstand wie jeder andere: sie kann in einen Behälter, '
+                + 'sie kann an ein Mitglied ausgegeben werden, und sie läuft in der Prüfung mit. Nur ändern, '
+                + 'weiterverleihen und löschen könnt ihr sie nicht. Das bleibt bei der Wache, der sie gehört.',
+            snapshotTitle: 'Ein Abzug vom Tag der Übergabe',
+            snapshotText: 'Bezeichnung, Kennung und Felder werden bei der Übergabe kopiert und danach nicht '
+                + 'mehr nachgeführt. Benennt die andere Wache das Funkgerät um, steht hier weiter der alte '
+                + 'Name, bis es zurückgeht. Das ist Absicht: nachgeführte Angaben brauchen eine Verbindung, '
+                + 'die auch ausfallen kann, und dann zeigen zwei Wachen unbemerkt Verschiedenes an.',
+            checkTitle: 'Was die Prüfung damit macht',
+            checkText: 'Geliehene Ausrüstung liegt im Haus, also wird sie mitgeprüft. Fehlt ein Stück, wird '
+                + 'das in der Prüfung vermerkt, aber nicht als Verlust gemeldet: die Zeile hier verschwindet '
+                + 'ohnehin bei der Rückgabe, und auf der Seite der anderen Wache stünde weiter, dass ihr das '
+                + 'Stück habt. Sagt es der Wache über die Ausleih-Anfrage, auf der ihr es bekommen habt.',
+            returnTitle: 'Bei der Rückgabe',
+            returnText: 'Wird die Ausleihe als zurückgegeben eingetragen, verschwindet die Zeile hier ganz. '
+                + 'Was bleibt, ist die Ausleih-Anfrage, und die steht auf beiden Seiten weiter im Verlauf.',
+            tip: 'Sortiert nach Wache, wenn ihr von mehreren Partnern etwas dahabt: dann steht zusammen, was '
+                + 'zusammen zurückgeht.',
         },
         inventoryCheckMember: {
             title: 'Inventarprüfung - Mitglied',

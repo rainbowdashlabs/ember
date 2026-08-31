@@ -9,7 +9,9 @@ import IconButton from '@/components/button/IconButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import {formatDate} from '@/util/format'
+import {ItemOwner} from '@/api/inventory'
 import type {ExpectedRow} from './types'
 
 defineProps<{
@@ -31,6 +33,12 @@ const {t} = useI18n()
     <span class="flex-1">
       <span class="font-medium">{{ row.item.name }}</span>
       <span v-if="row.item.internalId" class="text-xs text-(--text-muted) ml-2">{{ row.item.internalId }}</span>
+      <PrimaryBadge v-if="row.item.ownerKind === ItemOwner.PARTNER_STATION" class="ml-2">
+        {{ t('inventory.edit.ownerPartner') }}
+      </PrimaryBadge>
+      <span v-if="row.item.ownerKind === ItemOwner.PARTNER_STATION" class="block text-xs text-(--text-muted) mt-0.5">
+        {{ t('inventory.checkContainer.borrowedHint') }}
+      </span>
       <span v-if="row.lastCheck" class="block text-xs text-(--text-muted) mt-0.5">
         {{ t('inventory.checkContainer.lastChecked', {
           date: formatDate(row.lastCheck.checkedAt),
