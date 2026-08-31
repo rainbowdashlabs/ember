@@ -25,6 +25,20 @@ NODE_HEAP="--max-old-space-size=8192"
 # directly when direnv is not installed so the script still works on a plain checkout.
 run() {
     if [ -f "$ROOT/.envrc" ] && command -v direnv >/dev/null 2>&1; then
+        # A checkout direnv has not been told to trust refuses every command with its own wording,
+        # which reads like a broken toolchain rather than a one-off approval. A fresh git worktree
+        # is always in that state, so say what it is and what to do about it, once.
+        if [ -z "${DIRENV_APPROVED:-}" ]; then
+            if ! direnv exec "$ROOT" true >/dev/null 2>&1; then
+                echo "toolchain: this checkout's .envrc has not been approved, so nothing runs in the" >&2
+                echo "           project environment. Approve it once with:" >&2
+                echo "               direnv allow $ROOT" >&2
+                echo "           A fresh git worktree always needs this, even though its .envrc is" >&2
+                echo "           identical to the one already approved in the main checkout." >&2
+                exit 1
+            fi
+            DIRENV_APPROVED=1
+        fi
         direnv exec "$ROOT" "$@"
     else
         "$@"
@@ -113,6 +127,11 @@ Docker
 
 Combined
   verify                be-verify then fe-build
+
+Parallel checkouts
+  The end-to-end and docker commands bind fixed ports and drive one shared stack, so they take a
+  machine-wide lock and wait for each other. Everything else runs in parallel across worktrees.
+  EMBER_TOOLCHAIN_NO_LOCK=1 bypasses it.
 EOF
 }
 
@@ -152,6 +171,25 @@ fi
 
 cmd="${1:-help}"
 shift || true
+
+# Set EMBER_TOOLCHAIN_NO_LOCK=1 to bypass it, for a machine where the ports are known to be free.
+LOCKFILE="${TMPDIR:-/tmp}/ember-toolchain.lock"
+
+needs_lock() {
+    case "$1" in
+        fe-e2e | fe-e2e-* | docker-*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+if [ -z "${EMBER_TOOLCHAIN_LOCKED:-}" ] && [ -z "${EMBER_TOOLCHAIN_NO_LOCK:-}" ] &&
+    needs_lock "$cmd" && command -v flock >/dev/null 2>&1; then
+    export EMBER_TOOLCHAIN_LOCKED=1
+    if ! flock -n "$LOCKFILE" true 2>/dev/null; then
+        echo "toolchain: another checkout is running '$cmd' or a sibling; waiting for the lock." >&2
+    fi
+    exec flock "$LOCKFILE" "$0" "$cmd" "$@"
+fi
 
 case "$cmd" in
     fe-build)
