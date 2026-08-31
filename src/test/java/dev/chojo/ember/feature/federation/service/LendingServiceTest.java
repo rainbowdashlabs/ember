@@ -3,23 +3,25 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.inventory.service;
+package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
+import dev.chojo.ember.feature.federation.entity.CapabilityType;
+import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
-import dev.chojo.ember.feature.federation.service.FederationHttpClient;
-import dev.chojo.ember.feature.federation.service.FederationService;
-import dev.chojo.ember.feature.federation.service.LendingService;
+import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -49,6 +51,7 @@ class LendingServiceTest extends RepositoryTestBase {
 
     private static Station stationA;
     private static Station stationB;
+    private static Station clusterHome;
     private static Account account;
     private static StationMember memberA;
     private static StationMember memberB;
@@ -57,6 +60,8 @@ class LendingServiceTest extends RepositoryTestBase {
     private static int requestItemId;
     private static int inventoryIdA;
     private static int itemIdA;
+    private static int clusterId;
+    private static int partnerIdBtoA;
 
     @BeforeAll
     static void setup() {
@@ -70,11 +75,18 @@ class LendingServiceTest extends RepositoryTestBase {
                 federationService,
                 stationRepo,
                 inventoryRepo,
+                clusterRepo,
                 itemCustodyService,
                 new DomainEventBus(Set.of()));
 
         stationA = stationRepo.create("LendSvcTestStationA");
         stationB = stationRepo.create("LendSvcTestStationB");
+
+        // The body above the stations, running on this instance with a shell station of its own
+        clusterHome = stationRepo.create("LendSvcClusterHome");
+        clusterId = clusterRepo
+                .create("LendSvcKreisverband", null, clusterHome.id())
+                .id();
 
         account = accountRepo.create("lendsvc@test.com", "Lend", "SvcTester");
         memberA = stationMemberRepo.create(stationA.id(), account.id());
@@ -88,9 +100,13 @@ class LendingServiceTest extends RepositoryTestBase {
 
         // Create federation between A and B (local, remoteHost = null)
         var keyPair = federationService.generateKeyPair();
-        var partner = federationService.acceptInvite(
+        federationService.acceptInvite(
                 stationB.id(), stationA.id(), federationService.encodePublicKey(keyPair), null, null);
-        int partnerIdAtoB = partner.id();
+        partnerIdBtoA = federationService.findPartners(stationB.id()).stream()
+                .filter(p -> stationA.uid().equals(p.partnerStationId()))
+                .findFirst()
+                .orElseThrow()
+                .id();
     }
 
     @AfterAll
@@ -99,6 +115,8 @@ class LendingServiceTest extends RepositoryTestBase {
         for (var p : federationService.findPartners(stationB.id())) federationRepo.deletePartner(p.id());
         stationRepo.delete(stationA.id());
         stationRepo.delete(stationB.id());
+        clusterRepo.delete(clusterId);
+        stationRepo.delete(clusterHome.id());
         accountRepo.delete(account.id());
     }
 
@@ -277,7 +295,7 @@ class LendingServiceTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void assignItem() {
-        assertTrue(service.assignItem(requestItemId, itemIdA));
+        assertTrue(service.assignItem(requestItemId, itemIdA, stationA.id()));
         var items = service.findRequestItems(requestId);
         var assigned =
                 items.stream().filter(i -> i.id() == requestItemId).findFirst().orElseThrow();
@@ -443,13 +461,14 @@ class LendingServiceTest extends RepositoryTestBase {
         var stationD = stationRepo.create("LendNoKeyD");
         var memberC = stationMemberRepo.create(stationC.id(), account.id());
 
+        // The remote host sits on stationC, so from stationD's side the partner is the remote one
         var keyPair = federationService.generateKeyPair();
         federationService.acceptInvite(
                 stationD.id(),
                 stationC.id(),
                 federationService.encodePublicKey(keyPair),
-                null,
-                "https://remote-lending.example.com");
+                "https://remote-lending.example.com",
+                null);
 
         // stationC has no federation private key set
         var req = service.createRequest(
@@ -724,5 +743,208 @@ class LendingServiceTest extends RepositoryTestBase {
 
         stationRepo.delete(stationE.id());
         stationRepo.delete(stationF.id());
+    }
+
+    // -- What is this station's to lend --
+
+    /**
+     * A station holding the body's jacket is not its owner and may not pass it on. The manual path
+     * is the one a person drives, so it says no out loud.
+     */
+    @Test
+    @Order(300)
+    void assignItemRefusesGearTheStationOnlyHolds() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcHeldGear", InventoryType.INTERNAL, false);
+        var held =
+                inventoryRepo.createItem(inv.id(), "HELD-001", "Kreis-Jacke", null, null, ItemOwner.CLUSTER, clusterId);
+        var line = lineOn(stationA, inv.id(), null);
+
+        assertThrows(ForbiddenResponse.class, () -> service.assignItem(line, held.id(), stationA.id()));
+    }
+
+    /**
+     * The body lending its own gear is the owner acting, and that gear sits as ordinary inventory on
+     * the station shell it owns. The blunt refusal of everything cluster-owned was never the rule.
+     */
+    @Test
+    @Order(301)
+    void assignItemAllowsTheOwningBodyOnItsOwnShell() {
+        var inv = inventoryRepo.create(clusterHome.id(), "LendSvcClusterGear", InventoryType.INTERNAL, false);
+        var own = inventoryRepo.createItem(inv.id(), "CLU-001", "Kreis-Zelt", null, null, ItemOwner.CLUSTER, clusterId);
+        var line = lineOn(clusterHome, inv.id(), null);
+
+        assertTrue(service.assignItem(line, own.id(), clusterHome.id()));
+    }
+
+    /** Gear in another station's inventory is never this station's to lend, whoever owns it. */
+    @Test
+    @Order(302)
+    void assignItemRefusesGearFromAnotherStationsInventory() {
+        var inv = inventoryRepo.create(stationB.id(), "LendSvcForeignInv", InventoryType.INTERNAL, false);
+        var foreign = inventoryRepo.createItem(inv.id(), "FOR-001", "Fremde Leiter", null, null);
+        var line = lineOn(stationA, inv.id(), null);
+
+        assertThrows(ForbiddenResponse.class, () -> service.assignItem(line, foreign.id(), stationA.id()));
+    }
+
+    /**
+     * The automatic path filters rather than refusing. The status change is already committed when
+     * it runs, so a refusal would reject a call for an approval that has already happened.
+     */
+    @Test
+    @Order(303)
+    void approveLeavesGearTheStationOnlyHoldsUnassigned() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcHeldOnlyInv", InventoryType.INTERNAL, false);
+        inventoryRepo.createItem(inv.id(), "HO-001", "Kreis-Pumpe", null, null, ItemOwner.CLUSTER, clusterId);
+        var request = requestOn(stationA);
+        var line = lendingRepo.addRequestItem(request, inv.id(), null, 1).id();
+
+        assertTrue(service.approveRequest(request, stationA.id()));
+        assertEquals(
+                LendingStatus.APPROVED,
+                service.findRequest(request).orElseThrow().status());
+        assertNull(assignedItemOf(request, line));
+    }
+
+    /** The branch that writes a piece the requesting side named leaks the same way. */
+    @Test
+    @Order(304)
+    void approveLeavesANamedPieceTheStationOnlyHoldsUnassigned() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcNamedHeld", InventoryType.INTERNAL, false);
+        var held = inventoryRepo.createItem(
+                inv.id(), "NH-001", "Kreis-Schlauch", null, null, ItemOwner.CLUSTER, clusterId);
+        var request = requestOn(stationA);
+        var line = lendingRepo.addRequestItem(request, inv.id(), held.id(), 1).id();
+
+        assertTrue(service.approveRequest(request, stationA.id()));
+        assertNull(assignedItemOf(request, line));
+    }
+
+    /** The requesting side names the inventory too, and nothing checked whose inventory it was. */
+    @Test
+    @Order(305)
+    void approveIgnoresAnInventoryThatIsNotTheOwningStations() {
+        var inv = inventoryRepo.create(stationB.id(), "LendSvcAskersOwnInv", InventoryType.INTERNAL, false);
+        inventoryRepo.createItem(inv.id(), "AO-001", "Eigene Leiter", null, null);
+        var request = requestOn(stationA);
+        var line = lendingRepo.addRequestItem(request, inv.id(), null, 1).id();
+
+        assertTrue(service.approveRequest(request, stationA.id()));
+        assertNull(assignedItemOf(request, line));
+    }
+
+    /** The station's own gear is still filled in, which is what the filter must not break. */
+    @Test
+    @Order(306)
+    void approveStillAssignsTheStationsOwnGear() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcOwnedInv", InventoryType.INTERNAL, false);
+        var own = inventoryRepo.createItem(inv.id(), "OW-001", "Wachen-Leiter", null, null);
+        var request = requestOn(stationA);
+        var line = lendingRepo.addRequestItem(request, inv.id(), null, 1).id();
+
+        assertTrue(service.approveRequest(request, stationA.id()));
+        assertEquals(own.id(), assignedItemOf(request, line));
+    }
+
+    // -- What a partner is shown --
+
+    @Test
+    @Order(310)
+    void findAvailableInventoryLeavesOutGearTheStationOnlyHolds() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcOfferHeld", InventoryType.INTERNAL, false);
+        inventoryRepo.createItem(inv.id(), "OH-001", "Kreis-Zelt", null, null, ItemOwner.CLUSTER, clusterId);
+
+        var results = service.findAvailableInventory(stationB.id(), "LendSvcOfferHeld", null, null);
+        assertTrue(results.stream().noneMatch(e -> e.inventoryId() == inv.id()));
+
+        inventoryRepo.createItem(inv.id(), "OH-002", "Wachen-Zelt", null, null);
+        var again = service.findAvailableInventory(stationB.id(), "LendSvcOfferHeld", null, null);
+        var entry = again.stream()
+                .filter(e -> e.inventoryId() == inv.id())
+                .findFirst()
+                .orElseThrow();
+        assertEquals(1, entry.availableCount());
+    }
+
+    @Test
+    @Order(311)
+    void findAssignableItemsLeavesOutGearTheStationOnlyHolds() {
+        var inv = inventoryRepo.create(stationA.id(), "LendSvcPicker", InventoryType.INTERNAL, false);
+        var own = inventoryRepo.createItem(inv.id(), "PK-001", "Wachen-Pumpe", null, null);
+        inventoryRepo.createItem(inv.id(), "PK-002", "Kreis-Pumpe", null, null, ItemOwner.CLUSTER, clusterId);
+
+        var offered = service.findAssignableItems(stationA.id(), inv.id());
+        assertEquals(List.of(own.id()), offered.stream().map(InventoryItem::id).toList());
+
+        // Another station's inventory offers nothing at all
+        assertTrue(service.findAssignableItems(stationB.id(), inv.id()).isEmpty());
+    }
+
+    // -- The switch that already existed --
+
+    @Test
+    @Order(320)
+    void lendingSwitchedOffHidesThePartnerAndRefusesTheRequest() {
+        federationService.setCapability(partnerIdBtoA, CapabilityType.INVENTORY_LEND, Direction.IMPORT, false);
+        try {
+            var results = service.findAvailableInventory(stationB.id(), "LendSvc", null, null);
+            assertTrue(results.stream().noneMatch(e -> e.stationId() == stationA.id()));
+            assertThrows(
+                    ForbiddenResponse.class,
+                    () -> service.createRequest(
+                            stationB.id(),
+                            stationA.id(),
+                            LocalDate.now(),
+                            LocalDate.now().plusDays(1),
+                            memberB.id()));
+        } finally {
+            federationService.setCapability(partnerIdBtoA, CapabilityType.INVENTORY_LEND, Direction.IMPORT, true);
+        }
+        var restored = service.findAvailableInventory(stationB.id(), "LendSvc", null, null);
+        assertTrue(restored.stream().anyMatch(e -> e.stationId() == stationA.id()));
+    }
+
+    @Test
+    @Order(321)
+    void createRequestRefusesAStationThatIsNoPartner() {
+        var stranger = stationRepo.create("LendSvcStranger");
+
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.createRequest(
+                        stationB.id(),
+                        stranger.id(),
+                        LocalDate.now(),
+                        LocalDate.now().plusDays(1),
+                        memberB.id()));
+
+        stationRepo.delete(stranger.id());
+    }
+
+    /** A request from stationB to the given owner, written straight to the repository. */
+    private static int requestOn(Station owner) {
+        return lendingRepo
+                .createRequest(
+                        stationB.uid(),
+                        owner.uid(),
+                        LocalDate.now(),
+                        LocalDate.now().plusDays(2),
+                        memberB.id())
+                .id();
+    }
+
+    /** One line of such a request, for tests that only need something to assign against. */
+    private static int lineOn(Station owner, Integer inventoryId, Integer itemId) {
+        return lendingRepo
+                .addRequestItem(requestOn(owner), inventoryId, itemId, 1)
+                .id();
+    }
+
+    private static Integer assignedItemOf(int requestId, int requestItemId) {
+        return service.findRequestItems(requestId).stream()
+                .filter(i -> i.id() == requestItemId)
+                .findFirst()
+                .orElseThrow()
+                .assignedItemId();
     }
 }

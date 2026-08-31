@@ -2514,7 +2514,7 @@ export default {
         },
         INVENTORY_CREATE_EXTERNAL: {
             label: 'Externe Gegenstände',
-            desc: 'Kann Gegenstände anlegen, die Mitgliedern gehören.',
+            desc: 'Kann Gegenstände anlegen, die dem Träger gehören.',
         },
         INVENTORY_CREATE_INTERNAL: {
             label: 'Interne Gegenstände',
