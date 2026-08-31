@@ -225,12 +225,23 @@ public class EquipmentNeedRepository {
     /**
      * Marks a piece as back, which ends its claim whatever its window still says.
      *
-     * @param id the handover
+     * <p>The appointment travels into the statement rather than being checked by the caller, so a
+     * handover belonging to another appointment cannot be closed however this is called.
+     *
+     * @param id      the handover
+     * @param eventId the appointment it has to belong to
      * @return {@code true} if a row changed
      */
-    public boolean markReturned(int id) {
-        return query("UPDATE event_equipment_handover SET returned_at = now() WHERE id = :id AND returned_at IS NULL;")
-                .single(call().bind("id", id))
+    public boolean markReturned(int id, int eventId) {
+        return query("""
+                UPDATE event_equipment_handover h
+                SET returned_at = now()
+                FROM event_equipment_need n
+                WHERE h.id = :id
+                  AND n.id = h.need_id
+                  AND n.event_id = :event_id
+                  AND h.returned_at IS NULL;""")
+                .single(call().bind("id", id).bind("event_id", eventId))
                 .update()
                 .changed();
     }
