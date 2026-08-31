@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
+import WaitingListAnswerBadge from '@/components/badge/WaitingListAnswerBadge.vue'
 import WaitingSectionActions from './WaitingSectionActions.vue'
 import WaitingSectionGuardians from './WaitingSectionGuardians.vue'
 import type { WaitingListEntryWithScore } from '@/api/waitingList'
@@ -46,6 +47,7 @@ function entryFullName(item: WaitingListEntryWithScore): string {
         </span>
       </div>
       <WaitingListStatusBadge :status="props.item.entry.status" />
+      <WaitingListAnswerBadge v-if="props.item.entry.answer" :answer="props.item.entry.answer.answer" class="ml-1" />
     </div>
     <div class="text-xs text-(--text-muted)">{{ t('waitingList.createdAt') }}: {{ formatDate(props.item.entry.createdAt) }}</div>
     <div v-if="props.expanded" class="border-t border-bg-light-accent dark:border-bg-dark-accent pt-2">

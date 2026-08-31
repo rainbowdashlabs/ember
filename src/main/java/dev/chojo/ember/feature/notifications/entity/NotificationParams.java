@@ -141,5 +141,7 @@ public sealed interface NotificationParams {
 
     record WaitlistPublicRegistration(String childName, String listName) implements NotificationParams {}
 
+    record WaitlistInvitationAnswered(String childName, String listName, String answer) implements NotificationParams {}
+
     record StorageWarning(int usedPercent, String usedFormatted, String quotaFormatted) implements NotificationParams {}
 }

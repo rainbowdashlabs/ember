@@ -29,23 +29,28 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Writes the invitation to come and look, and works out what it can say about the evening.
+ * What an invitation to come and look says, and writing it to whoever can be written to.
+ *
+ * <p>The page behind the entry link shows the same thing, so both ask this rather than each working
+ * the evening out for itself. An answer given without knowing the occasion is not an answer worth
+ * collecting, and "the date does not suit" in particular is about a date that has to be on screen.
  *
  * <p><b>Where "wo" comes from.</b> An appointment has no place of its own. A station that wants one
  * on the invitation says so in one of two ways it already has, and this reads them in that order: a
  * field of type location on the appointment, which is how a one-off meeting point is named, and
  * otherwise the station's postal address, which is an opt-in of its own. When neither is there the
- * mail says nothing about where, rather than guessing at an address the station never published.
+ * invitation says nothing about where, rather than guessing at an address the station never
+ * published.
  */
 @Singleton
-public class WaitlistInvitationMailer {
+public class WaitlistInvitationMessage {
 
     private final EventRepository eventRepository;
     private final EventFieldRepository eventFieldRepository;
     private final EmailService emailService;
 
     @Inject
-    public WaitlistInvitationMailer(
+    public WaitlistInvitationMessage(
             EventRepository eventRepository, EventFieldRepository eventFieldRepository, EmailService emailService) {
         this.eventRepository = eventRepository;
         this.eventFieldRepository = eventFieldRepository;
@@ -80,12 +85,12 @@ public class WaitlistInvitationMailer {
     }
 
     /**
-     * What the mail can say about the evening, all of it already written out for a reader.
+     * What the invitation can say about the evening, all of it already written out for a reader.
      *
      * <p>An invitation whose appointment has since been deleted describes nothing rather than
      * failing: the person still has to be told they are invited.
      */
-    private WaitlistInvitationDetails describe(Station station, WaitingListInvitation invitation) {
+    public WaitlistInvitationDetails describe(Station station, WaitingListInvitation invitation) {
         if (invitation == null) return WaitlistInvitationDetails.NONE;
         var event = eventRepository.findById(invitation.eventId()).orElse(null);
         if (event == null) return WaitlistInvitationDetails.NONE;

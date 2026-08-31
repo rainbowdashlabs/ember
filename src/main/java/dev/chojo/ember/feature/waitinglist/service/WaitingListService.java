@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.waitinglist.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.WaitlistInvitationAnswered;
 import dev.chojo.ember.event.events.WaitlistPublicRegistration;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
@@ -24,6 +25,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryGuardian;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
@@ -69,7 +71,7 @@ public class WaitingListService {
     private final EmailService emailService;
     private final NotificationService notificationService;
     private final AccountInviteService accountInviteService;
-    private final WaitlistInvitationMailer invitationMailer;
+    private final WaitlistInvitationMessage invitationMessage;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -82,7 +84,7 @@ public class WaitingListService {
             EmailService emailService,
             NotificationService notificationService,
             AccountInviteService accountInviteService,
-            WaitlistInvitationMailer invitationMailer,
+            WaitlistInvitationMessage invitationMessage,
             DomainEventBus eventBus) {
         this.repository = repository;
         this.stationRepository = stationRepository;
@@ -92,7 +94,7 @@ public class WaitingListService {
         this.emailService = emailService;
         this.notificationService = notificationService;
         this.accountInviteService = accountInviteService;
-        this.invitationMailer = invitationMailer;
+        this.invitationMessage = invitationMessage;
         this.eventBus = eventBus;
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "waitlist-confirmation-checker");
@@ -518,7 +520,7 @@ public class WaitingListService {
         });
         log.info("Invited waiting-list entry {} on station {}", entryId, list.stationId());
 
-        invitationMailer.send(entry, repository.findGuardiansByEntry(entryId), station, invitation);
+        invitationMessage.send(entry, repository.findGuardiansByEntry(entryId), station, invitation);
 
         return repository.findEntryById(entryId).orElseThrow();
     }
@@ -542,6 +544,79 @@ public class WaitingListService {
         });
         log.info("Returned waiting-list entry {} to waiting", entryId);
         return repository.findEntryById(entryId).orElseThrow();
+    }
+
+    /**
+     * Records what somebody answered to the invitation their entry currently holds, and tells the
+     * station.
+     *
+     * <p>The answer names the evening it answers and is refused when that is not the evening the
+     * entry is currently invited to. Together with an entry carrying one current invitation, that is
+     * what makes a click from a mail that has been superseded harmless rather than misleading.
+     *
+     * <p>A refusal is recorded and nothing more. Withdrawing the entry would move it out of the
+     * section the manager is looking at, and an answer that disappears on arrival is the same
+     * failure as no answer at all.
+     *
+     * @param eventId the appointment the answer is about, {@code null} for an invitation naming none
+     * @param date    the one date of it, {@code null} for the same
+     */
+    public WaitingListEntry answerInvitation(
+            String token, Integer eventId, LocalDate date, WaitingListAnswer answer, String note) {
+        var entry =
+                repository.findEntryByToken(token).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
+        if (entry.status() != WaitingListEntryStatus.INVITED) {
+            log.info("Invitation answer refused for waiting-list entry {} (is {})", entry.id(), entry.status());
+            throw new ConflictResponse("This invitation can no longer be answered");
+        }
+        requireAnswersTheCurrentInvitation(entry, eventId, date);
+
+        repository.updateInvitationAnswer(entry.id(), answer, note == null ? "" : note.trim());
+        log.info("Waiting-list entry {} answered its invitation with {}", entry.id(), answer);
+
+        repository
+                .findById(entry.listId())
+                .ifPresent(list -> eventBus.publish(
+                        new WaitlistInvitationAnswered(list.stationId(), entry.fullName(), list.name(), answer)));
+
+        return repository.findEntryById(entry.id()).orElseThrow();
+    }
+
+    /**
+     * Refuses an answer given to an invitation the entry no longer holds.
+     *
+     * <p>The token never expires and an old mail stays in a mailbox for good, so what the answer
+     * says it is about has to match what the entry is actually invited to.
+     */
+    private static void requireAnswersTheCurrentInvitation(WaitingListEntry entry, Integer eventId, LocalDate date) {
+        var current = entry.invitation();
+        boolean matches = current == null
+                ? eventId == null
+                : Integer.valueOf(current.eventId()).equals(eventId)
+                        && current.date().equals(date);
+        if (!matches) {
+            throw new ConflictResponse("This answer is about a different appointment");
+        }
+    }
+
+    /**
+     * Counts one evening towards the trial period of whoever turned up.
+     *
+     * <p>The list carries a threshold and a counter, and this is what feeds the counter. Reaching
+     * the threshold changes nothing by itself: it is shown, and joining stays the deliberate act it
+     * is. A trial that ended automatically because somebody turned up five times would be a decision
+     * the station should make rather than the software.
+     *
+     * <p>A member belongs to one station, so an account in a trial period at two stations has an
+     * entry at each and only the one that saw them raises its count.
+     *
+     * @param memberId whoever was recorded as present
+     */
+    public void recordTrialAttendance(int memberId) {
+        for (var entry : repository.findEntriesByMemberAndStatus(memberId, WaitingListEntryStatus.TESTING)) {
+            repository.incrementAttendanceCount(entry.id());
+            log.info("Counted an evening towards the trial period of waiting-list entry {}", entry.id());
+        }
     }
 
     /**

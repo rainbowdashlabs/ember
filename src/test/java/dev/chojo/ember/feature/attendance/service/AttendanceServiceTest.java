@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.AttendanceRecorded;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
@@ -34,10 +36,14 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class AttendanceServiceTest extends RepositoryTestBase {
     private static AttendanceService service;
+    private static DomainEventBus eventBus;
     private static Station station;
     private static Account account;
     private static StationMember member;
@@ -48,6 +54,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
+        eventBus = mock(DomainEventBus.class);
         service = new AttendanceService(
                 attendanceRepo,
                 eventRepo,
@@ -56,7 +63,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 eventRegistrationRepo,
                 stationMemberRepo,
                 memberGroupRepo,
-                restrictionService);
+                restrictionService,
+                eventBus);
         station = stationRepo.create("AttendanceSvc Station");
         account = accountRepo.create("attend-svc@test.com", "Attend", "User");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -269,10 +277,30 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertTrue(service.findEntryById(-1).isEmpty());
     }
 
+    /**
+     * Marking somebody present announces it, and marking them present again does not: an evening
+     * somebody turned up to counts once however often the sheet is saved.
+     */
     @Test
     @Order(32)
     void updateEntryStatus() {
         assertTrue(service.updateEntryStatus(entryId, AttendanceEntry.AttendanceStatus.PRESENT));
+        verify(eventBus).publish(new AttendanceRecorded(station.id(), member.id(), sessionId));
+
+        assertTrue(service.updateEntryStatus(entryId, AttendanceEntry.AttendanceStatus.PRESENT));
+        verify(eventBus, times(1)).publish(new AttendanceRecorded(station.id(), member.id(), sessionId));
+
+        assertTrue(service.updateEntryStatus(entryId, AttendanceEntry.AttendanceStatus.ABSENT));
+        verify(eventBus, times(1)).publish(new AttendanceRecorded(station.id(), member.id(), sessionId));
+
+        assertTrue(service.updateEntryStatus(entryId, AttendanceEntry.AttendanceStatus.PRESENT));
+        verify(eventBus, times(2)).publish(new AttendanceRecorded(station.id(), member.id(), sessionId));
+    }
+
+    @Test
+    @Order(32)
+    void anEntryThatIsNotThereIsNotAnnounced() {
+        assertFalse(service.updateEntryStatus(-1, AttendanceEntry.AttendanceStatus.PRESENT));
     }
 
     @Test

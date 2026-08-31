@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.waitinglist.repository;
 
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
@@ -329,6 +330,55 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
         waitingListRepo.updateInvitation(entry.id(), null);
         assertNull(waitingListRepo.findEntryById(entry.id()).orElseThrow().invitation());
+    }
+
+    /** An answer is written with its moment, and a new invitation takes it away again. */
+    @Test
+    void updateInvitationAnswer() {
+        var list = waitingListRepo.create(stationId, "Answer List", "", null, 180, null, null, 5, false, null, null);
+        var entry = waitingListRepo.createEntry(
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
+
+        waitingListRepo.updateInvitationAnswer(entry.id(), WaitingListAnswer.NOT_INTERESTED, "Kein Interesse mehr");
+
+        var answered = waitingListRepo.findEntryById(entry.id()).orElseThrow();
+        assertNotNull(answered.answer());
+        assertEquals(WaitingListAnswer.NOT_INTERESTED, answered.answer().answer());
+        assertEquals("Kein Interesse mehr", answered.answer().note());
+        assertNotNull(answered.answer().answeredAt());
+
+        waitingListRepo.updateInvitation(entry.id(), null);
+        assertNull(waitingListRepo.findEntryById(entry.id()).orElseThrow().answer());
+    }
+
+    /** A trial period is found from the person who turned up rather than from the list. */
+    @Test
+    void findEntriesByMemberAndStatus() {
+        var account = accountRepo.create(null, "Probe", "Kind", stationId);
+        var member = stationMemberRepo.create(stationId, account.id());
+        var list = waitingListRepo.create(stationId, "Trial List", "", null, 180, null, null, 5, false, null, null);
+        var entry = waitingListRepo.createEntry(
+                list.id(),
+                "Probe",
+                "Kind",
+                "",
+                "trial@test.com",
+                UUID.randomUUID().toString(),
+                "",
+                null);
+        waitingListRepo.linkMember(entry.id(), member.id());
+
+        assertTrue(waitingListRepo
+                .findEntriesByMemberAndStatus(member.id(), WaitingListEntryStatus.TESTING)
+                .isEmpty());
+
+        waitingListRepo.updateEntryStatus(entry.id(), WaitingListEntryStatus.TESTING);
+        var found = waitingListRepo.findEntriesByMemberAndStatus(member.id(), WaitingListEntryStatus.TESTING);
+        assertEquals(1, found.size());
+        assertEquals(entry.id(), found.getFirst().id());
+
+        stationMemberRepo.delete(member.id());
+        accountRepo.delete(account.id());
     }
 
     @Test

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:dfe42a72bc1ea95b9dfb5dac900caddf6ab9e64dcdf8d980592e96e911fd7942",
-  "generatedAt": "2026-08-31T14:40:26Z",
+  "schemaHash": "sha256:14196c72c6b58fa9fd009f03506e5d87680fc5012648eaf5cefa76d85b7077c8",
+  "generatedAt": "2026-08-31T15:03:49Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -20563,7 +20563,7 @@
     "waiting_list_entry": {
       "feature": "waitinglist",
       "scope": "STATION",
-      "tableHash": "sha256:effd69124108d4838209921ba2f2cd51ee6c58df0e082b6fccdf151dc698d52a",
+      "tableHash": "sha256:5ec0091f40a5475aa76c61d45ba0e88e18efe08894851ae9678d3ee575bb6725",
       "columns": [
         {
           "name": "id",
@@ -20718,6 +20718,27 @@
           "nullable": true,
           "verified": true,
           "description": "When they were asked to be there, which is usually earlier than everybody else so somebody can meet them. NULL when the invitation named no time of its own. A time rather than an offset, because that is what the mail has to say and what the reader has to read."
+        },
+        {
+          "name": "invitation_answer",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What they answered to the invitation they currently hold: COMING, NOT_INTERESTED or DATE_DOES_NOT_SUIT. NULL while the invitation is unanswered. A refusal is kept here rather than moving the entry out of the open section, because an answer that vanishes on arrival is the same failure as no answer at all. Cleared whenever a new invitation replaces the one it answered."
+        },
+        {
+          "name": "invitation_answered_at",
+          "type": "timestamp",
+          "nullable": true,
+          "verified": true,
+          "description": "When that answer was given, so a station can see how long an invitation has been sitting unanswered. NULL exactly when invitation_answer is NULL."
+        },
+        {
+          "name": "invitation_answer_note",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What they wrote alongside the answer, empty when they wrote nothing. Given by whoever holds the entry link rather than by a member, which is why it is kept apart from the station's own notes on the entry."
         }
       ],
       "foreignKeys": [
