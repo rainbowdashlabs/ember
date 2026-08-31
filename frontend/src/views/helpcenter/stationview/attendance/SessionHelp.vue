@@ -14,6 +14,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
+import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -27,24 +29,24 @@ const {t} = useI18n()
 
 <template>
   <HelpArticle :title="t('helpCenter.attendanceSession.title')" :subtitle="t('helpCenter.attendanceSession.subtitle')">
-    <!-- Dummy: Toolbar at the top (matching real view position) -->
+    <!-- Dummy: Toolbar at the top (matching real view position), with its menu drawn open -->
     <HelpSection :title="t('helpCenter.attendanceSession.toolbarTitle')">
       <p>{{ t('helpCenter.attendanceSession.toolbarText') }}</p>
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <SecondaryButton :icon="['fas', 'chevron-left']" disabled>
           {{ t('attendanceSession.back') }}
         </SecondaryButton>
-        <div class="grid grid-cols-2 sm:flex sm:items-center gap-2">
-          <SecondaryButton :icon="['fas', 'download']" disabled>
-            {{ t('attendanceSession.export') }}
-          </SecondaryButton>
-          <SecondaryButton :icon="['fas', 'clipboard-check']" disabled>
-            {{ t('attendanceSession.sync') }}
-          </SecondaryButton>
-          <PrimaryButton :icon="['fas', 'clipboard-user']" class="col-span-2" disabled>
+        <div class="flex items-center gap-2">
+          <PrimaryButton :icon="['fas', 'clipboard-user']" disabled>
             {{ t('attendanceSession.checkMode') }} (2)
           </PrimaryButton>
+          <IconButton :icon="['fas', 'ellipsis-vertical']" :label="t('common.actions')" disabled/>
         </div>
+      </div>
+      <div class="mt-2 w-56 rounded-theme border border-(--border) py-1 ml-auto">
+        <DropdownMenuItem :icon="['fas', 'download']">{{ t('attendanceSession.export') }}</DropdownMenuItem>
+        <DropdownMenuItem :icon="['fas', 'clipboard-check']">{{ t('attendanceSession.sync') }}</DropdownMenuItem>
+        <DropdownMenuItem :icon="['fas', 'trash']" destructive>{{ t('attendanceSession.delete') }}</DropdownMenuItem>
       </div>
     </HelpSection>
 
