@@ -69,9 +69,15 @@ function onError(message: string) {
       :subtitle="t('pages.inventory-edit.subtitle')"
   >
     <div class="space-y-6">
-      <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: routes.manage })">
-        {{ t('inventory.edit.back') }}
-      </SecondaryButton>
+      <div class="flex flex-wrap gap-2">
+        <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: routes.manage })">
+          {{ t('inventory.edit.back') }}
+        </SecondaryButton>
+        <SecondaryButton v-if="routes.move" :icon="['fas', 'right-left']" data-testid="inventory-move"
+                         @click="router.push({ name: routes.move, params: { id: inventoryId } })">
+          {{ t('inventory.edit.moveItems') }}
+        </SecondaryButton>
+      </div>
 
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>

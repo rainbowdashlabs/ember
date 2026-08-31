@@ -84,7 +84,9 @@ const permissions = computed(() => {
     : canCreateInternal.value || canCreateExternal.value
   return {
     canEdit: canEdit.value,
-    canProcure: canProcure.value,
+    // Ordering three more needs something to be three more of, which a drawer of different things
+    // has not got, so this screen does not offer it there either
+    canProcure: canProcure.value && (detail.value?.homogeneous ?? true),
     canCreateItem,
     canQuickAssign: (type === InventoryTypes.EXTERNAL || type === InventoryTypes.MIXED) && canCreateExternal.value,
     canAddInternal: type !== InventoryTypes.EXTERNAL && canCreateInternal.value,

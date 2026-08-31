@@ -53,12 +53,19 @@ export interface Inventory {
     name?: string
     inventoryType?: InventoryTypeName
     hasSizes: boolean
+    /**
+     * Whether the inventory holds one thing in many copies rather than a drawer of different things.
+     * Requirements, orders and exchanges are only offered for the first.
+     */
+    homogeneous: boolean
 }
 
 export interface InventoryRequest {
     name?: string
     inventoryType?: InventoryTypeName
     hasSizes: boolean
+    /** Left out it means "as it was", which on creation is one thing in many copies. */
+    homogeneous?: boolean
 }
 
 export interface InventoryDetail {
@@ -67,7 +74,49 @@ export interface InventoryDetail {
     name?: string
     inventoryType?: InventoryTypeName
     hasSizes: boolean
+    homogeneous: boolean
     sizes?: InventorySize[]
+}
+
+/** What sort of thing stands in the way of an inventory changing what it holds. */
+export const SwitchBlockerKinds = {
+    REQUIREMENT: 'REQUIREMENT',
+    PROCUREMENT: 'PROCUREMENT',
+    EXCHANGE: 'EXCHANGE',
+    SIZE: 'SIZE',
+} as const
+
+export type SwitchBlockerKindName = (typeof SwitchBlockerKinds)[keyof typeof SwitchBlockerKinds]
+
+/**
+ * One live thing standing in the way, named well enough to go and deal with.
+ *
+ * @property id the thing's own identifier, so the refusal can link straight to it
+ * @property label what it is called on the screen it lives on
+ */
+export interface SwitchBlocker {
+    kind: SwitchBlockerKindName
+    id: number
+    label: string
+}
+
+/** The body of the refusal the backend sends when a change of kind is turned down. */
+export interface SwitchRefusal {
+    error: string
+    message?: string
+    blockers: SwitchBlocker[]
+}
+
+/** The name the backend puts on that refusal, which is how it is told from any other bad request. */
+export const SWITCH_REFUSED = 'InventorySwitchRefusedException'
+
+/**
+ * Reads a refused change of kind out of a failed request, or nothing when it was some other failure.
+ */
+export function switchRefusal(e: unknown): SwitchRefusal | undefined {
+    const data = (e as {response?: {data?: SwitchRefusal}})?.response?.data
+    if (data?.error !== SWITCH_REFUSED) return undefined
+    return {error: data.error, message: data.message, blockers: data.blockers ?? []}
 }
 
 export interface InventorySize {
@@ -188,6 +237,11 @@ export interface MyInventoryItem {
     name?: string
     internalId?: string
     inventoryName: string
+    /**
+     * Whether the inventory holds one thing in many copies, which is what makes the piece
+     * exchangeable. Among a drawer of different things there is nothing to swap it for.
+     */
+    inventoryHomogeneous: boolean
     sizeId?: number | null
     sizeName?: string | null
     lostAt?: string | null
@@ -339,6 +393,8 @@ export interface InventorySummary {
     name?: string
     inventoryType?: string
     hasSizes: boolean
+    /** Whether it holds one thing in many copies rather than a drawer of different things. */
+    homogeneous: boolean
     itemCount: number
     lostCount: number
     procurementCount: number
@@ -390,6 +446,18 @@ export async function createItem(inventoryId: number, data: ItemRequest): Promis
 
 export const updateItem = items.update
 export const deleteItem = items.remove
+
+/**
+ * Moves a piece into another inventory of the same station, keeping the piece it has always been.
+ *
+ * Its identifier, its history, who has it and where it has been all stay with it. Only the size
+ * cannot come along as it stands: the size list belongs to the inventory being left, so the piece
+ * keeps a size of the same name in the new list and arrives without one where there is none.
+ */
+export async function moveItem(id: number, inventoryId: number): Promise<InventoryItem> {
+    const res = await client.put<InventoryItem>(`/inventory-items/${id}/inventory`, {inventoryId})
+    return res.data
+}
 
 export async function assignItem(id: number, data: AssignRequest): Promise<InventoryItem> {
     const res = await client.put<InventoryItem>(`/inventory-items/${id}/assign`, data)
