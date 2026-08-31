@@ -85,7 +85,7 @@ test.describe('Lists from sign-ups', () => {
         await page.getByTestId('signup-checklist-entry').click()
 
         await page.getByTestId('signup-checklist-column').fill(column)
-        await page.getByRole('button', {name: 'Speichern'}).click()
+        await page.getByTestId('modal').getByRole('button', {name: 'Speichern'}).click()
 
         await page.waitForURL(/\/station\/checklist\/\d+/)
 
@@ -97,6 +97,66 @@ test.describe('Lists from sign-ups', () => {
         await expect(page.getByTestId('checklist-frozen'), 'and the list says it will not catch up')
             .toBeVisible()
 
+        await page.request.delete(`/api/v1/events/${eventId}`, {headers})
+    })
+
+    /**
+     * The same menu makes a survey, and the survey is honest about what it is not yet.
+     *
+     * <p>A form is written, then told who it is for, and only then published, so what the menu can
+     * hand over is a draft addressed to the right people. The story lands in the editor and reads
+     * back who the draft is addressed to, because that is the part no screen states outright.
+     */
+    test('a survey made from the sign-ups is a draft addressed to the confirmed', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const appointment = unique('Umfrageliste')
+
+        const created = await page.request.post('/api/v1/events', {
+            headers,
+            data: {
+                name: appointment,
+                description: 'Aus den Anmeldungen',
+                eventType: 'ONE_TIME',
+                startTime: new Date(Date.now() + 26 * 86400000).toISOString(),
+                endTime: new Date(Date.now() + 26 * 86400000 + 3600000).toISOString(),
+                requiresRegistration: true,
+            },
+        })
+        expect(created.ok(), `the organiser made an appointment (${await created.text()})`).toBeTruthy()
+        const eventId = (await created.json()).id
+
+        const people = (await threeOthers(page, headers)).slice(0, 2)
+        for (const person of people) {
+            const signedUp = await page.request.post(`/api/v1/events/${eventId}/register`,
+                {headers, data: {memberId: person.id}})
+            expect(signedUp.ok(), `${person.name} signed up (${await signedUp.text()})`).toBeTruthy()
+        }
+
+        await page.goto(`/station/events/${eventId}`)
+        await page.getByRole('button', {name: 'Anmeldungen'}).click()
+
+        await page.getByRole('button', {name: 'Aus den Anmeldungen'}).click()
+        await page.getByTestId('signup-survey-entry').click()
+
+        await expect(page.getByTestId('signup-survey-name'), 'the appointment names the survey')
+            .toHaveValue(new RegExp(appointment))
+        await page.getByTestId('modal').getByRole('button', {name: 'Erstellen'}).click()
+
+        await page.waitForURL(/\/station\/forms\/\d+\/edit/)
+        const formId = page.url().match(/forms\/(\d+)/)?.[1]
+
+        await expect(page.getByRole('button', {name: 'Zurücksetzen'}).first(),
+            'the draft is addressed to somebody rather than to everybody').toBeVisible()
+
+        const restrictions = await page.request.get(`/api/v1/forms/${formId}/restrictions`, {headers})
+        expect(restrictions.ok(), `the draft says who it is for (${await restrictions.text()})`).toBeTruthy()
+        expect(([...(await restrictions.json()).memberIds ?? []] as number[]).sort(),
+            'exactly the people who hold a place').toEqual(people.map(person => person.id).sort())
+
+        const form = await page.request.get(`/api/v1/forms/${formId}`, {headers})
+        expect((await form.json()).status, 'and it is still a draft').toBe('DRAFT')
+
+        await page.request.delete(`/api/v1/forms/${formId}`, {headers})
         await page.request.delete(`/api/v1/events/${eventId}`, {headers})
     })
 })
