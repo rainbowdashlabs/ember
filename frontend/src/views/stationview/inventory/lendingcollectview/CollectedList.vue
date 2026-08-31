@@ -15,7 +15,7 @@ import type {LineCheck} from '@/api/equipment'
 /** One line as the screen holds it, before anything has been asked of anybody. */
 export interface CollectedEntry {
   key: string
-  owningStationId: number
+  owningStationId: string
   stationName: string
   inventoryId: number
   inventoryName: string
@@ -44,7 +44,7 @@ const {t} = useI18n()
  * list nobody can follow up.
  */
 const groups = computed(() => {
-  const byStation = new Map<number, CollectedEntry[]>()
+  const byStation = new Map<string, CollectedEntry[]>()
   for (const entry of props.entries) {
     const group = byStation.get(entry.owningStationId) ?? []
     group.push(entry)

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.equipment.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import dev.chojo.ember.feature.inventory.entity.ResolvedTarget;
 
 import java.time.Instant;
@@ -32,6 +33,7 @@ public record EquipmentAvailability(
      *
      * @return the claimed count
      */
+    @JsonProperty("claimed")
     public int claimed() {
         return claims.stream().mapToInt(EquipmentClaim::quantity).sum();
     }
@@ -41,6 +43,7 @@ public record EquipmentAvailability(
      *
      * @return the free count
      */
+    @JsonProperty("free")
     public int free() {
         return stock - claimed();
     }
@@ -50,6 +53,7 @@ public record EquipmentAvailability(
      *
      * @return {@code true} when the window is over-claimed
      */
+    @JsonProperty("overClaimed")
     public boolean overClaimed() {
         return claimed() > stock;
     }

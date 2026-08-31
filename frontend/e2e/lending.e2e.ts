@@ -75,6 +75,17 @@ test.describe('Lending offer', () => {
      * story and named after it. It is a drawer of different things rather than a shelf of one thing,
      * because that is the only kind of inventory that may have kinds at all.
      */
+    /**
+     * How many pieces of one inventory a partner is offered, over every row it comes back in. The
+     * answer is a row per kind of thing rather than one per drawer, so a drawer holding a kind and a
+     * piece without one answers in two rows that mean one number.
+     */
+    function offeredCount(offered: {inventoryName: string; availableCount: number}[] | undefined, name: string): number {
+        return (offered ?? [])
+            .filter(entry => entry.inventoryName === name)
+            .reduce((sum, entry) => sum + entry.availableCount, 0)
+    }
+
     async function stockedInventory(page: Page, name: string): Promise<{ inventoryId: number; artId: number }> {
         const headers = await apiHeaders(page)
         const created = await page.request.post('/api/v1/inventories', {
@@ -138,7 +149,7 @@ test.describe('Lending offer', () => {
 
         await expect(async () => {
             const offered = await browse(request, borrowerHeaders)
-            expect(offered?.find(entry => entry.inventoryName === name)?.availableCount).toBe(2)
+            expect(offeredCount(offered, name), 'the drawer is offered whole').toBe(2)
         }).toPass()
 
         await managerPage.goto('/station/inventory/lending/shares')
@@ -154,7 +165,7 @@ test.describe('Lending offer', () => {
 
         await expect(async () => {
             const offered = await browse(request, borrowerHeaders)
-            expect(offered?.find(entry => entry.inventoryName === name)?.availableCount).toBe(1)
+            expect(offeredCount(offered, name), 'the withheld kind is gone and the rest stays').toBe(1)
         }).toPass()
 
         await managerPage.goto(`/station/inventory/detail/${inventoryId}`)

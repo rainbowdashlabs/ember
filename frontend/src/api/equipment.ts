@@ -84,7 +84,8 @@ export interface EquipmentRecommendation {
 
 /** One line of a list somebody is collecting from the partner stations. */
 export interface CollectedLine {
-    owningStationId: number
+    /** The owning station, as the public UUID the API speaks in. */
+    owningStationId: string
     inventoryId: number
     artId: number | null
     quantity: number
@@ -99,7 +100,8 @@ export interface LineCheck {
 
 export interface CollectedCheck {
     lines: LineCheck[]
-    stationsInvolved: number[]
+    /** How many requests the list will turn into: one per station. */
+    requestCount: number
 }
 
 export interface NeedPayload {

@@ -108,7 +108,7 @@ export interface InventoryBlock {
 }
 
 export interface CreateLendingRequestPayload {
-    owningStationId: number | string
+    owningStationId: string
     dateFrom: string
     dateTo: string | null
     eventId?: number | null
@@ -136,7 +136,8 @@ export interface AvailableInventoryEntry {
     /** The kind counted, or null where the row counts a whole inventory. */
     artId: number | null
     artName: string | null
-    stationId: number
+    /** The owning station, as the public UUID the API speaks in. */
+    stationId: string
     stationName: string
     availableCount: number
     distanceKm: number | null
