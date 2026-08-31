@@ -492,9 +492,13 @@ test.describe('Inventory', () => {
             {headers, data: {name: `Bundhose schwer ${stamp}`, inventoryType: 'INTERNAL', hasSizes: false}})
             .then(r => r.json())
         const code = `BH-${stamp}`
-        const item = await page.request.post(`/api/v1/inventories/${from.id}/items`,
-            {headers, data: {internalId: code, name: 'Bundhose'}})
-            .then(r => r.json())
+        const made = await page.request.post(`/api/v1/inventories/${from.id}/items`, {
+            headers,
+            data: {internalId: code, name: 'Bundhose', sizeId: null, metadata: null,
+                ownerKind: 'STATION', ownerClusterId: null},
+        })
+        expect(made.ok(), `a piece is recorded (${await made.text()})`).toBeTruthy()
+        const item = await made.json()
 
         await page.goto(`/station/inventory/move/${from.id}`)
         await page.getByTestId('move-target').selectOption({label: `Bundhose schwer ${stamp}`})
