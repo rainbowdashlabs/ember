@@ -28,9 +28,9 @@ import {activeLevel, activeTaskId, activeTaskKey, activeStep, guideDismissed} fr
  */
 const {t} = useI18n()
 const router = useRouter()
-const {box, step, steps, pointing, revealing, blocked, gaze, targetLow, finished, reducedMotion, onStepRoute, dismiss} =
+const {box, step, steps, pointing, revealing, blocked, behindMenu, gaze, targetLow, finished, reducedMotion, onStepRoute, advance, dismiss} =
     useOnboardingGuide()
-const {stop, skip, load, status} = useOnboardingTasks()
+const {stop, skip, load, status, confirm} = useOnboardingTasks()
 
 /**
  * The task whose steps have just run out: what it was called, where its list is, and whether it
@@ -80,7 +80,20 @@ watch(finished, async ended => {
       : ''
   stop()
   if (level) await load(level)
-  const task = level && taskId ? (status.value[level]?.tasks ?? []).find(entry => entry.id === taskId) : undefined
+  const find = () =>
+      level && taskId ? (status.value[level]?.tasks ?? []).find(entry => entry.id === taskId) : undefined
+  let task = find()
+
+  // A task Ember cannot read for itself is settled by the walk, because walking it is the whole of
+  // what it asks. Leaving it open here told a reader who had just done exactly as they were told to
+  // go and check whether their entry had saved, when the step before had said there was nothing to
+  // enter. What is derived stays derived: there the data really is the answer.
+  if (level && task && task.confirmable && task.state !== OnboardingTaskState.DONE) {
+    await confirm(level, task.id)
+    await load(level)
+    task = find()
+  }
+
   completed.value = {
     title,
     route: (level && LISTS[level]) || 'dashboard-overview',
@@ -117,6 +130,15 @@ const ring = computed(() => {
  */
 const spotlight = computed(() => (ring.value ? {...ring.value, boxShadow: '0 0 0 9999px rgb(0 0 0 / 0.55)'} : undefined))
 
+/**
+ * Whether the ring is on the way to the thing rather than on the thing.
+ *
+ * Both states that do this mean the same to a reader: press here and I will carry on. A solid ring
+ * has meant "this is it" everywhere else in the walk, so a signpost is drawn dashed instead, and the
+ * reader is not told to press what turns out to be a doorway.
+ */
+const signposting = computed(() => behindMenu.value || revealing.value)
+
 /** The task being walked, named above the step so a reader who looked away can pick it up again. */
 const taskTitle = computed(() => {
   if (completed.value) return completed.value.title
@@ -128,6 +150,7 @@ const taskTitle = computed(() => {
 const bubbleText = computed(() => {
   if (completed.value) return t(completed.value.done ? 'onboarding.guide.finished' : 'onboarding.guide.notYet')
   if (!activeTaskKey.value || !step.value) return ''
+  if (behindMenu.value) return t('onboarding.guide.behindMenu')
   if (revealing.value) return t('onboarding.guide.reveal')
   if (!pointing.value && step.value.route) {
     return t('onboarding.guide.elsewhere', {page: t(`onboarding.routes.${step.value.route}`)})
@@ -160,12 +183,14 @@ function close() {
       <div
           v-if="spotlight"
           aria-hidden="true"
+          :class="signposting ? 'border-dashed' : ''"
           class="absolute rounded-theme border-4 border-primary"
           :style="spotlight"
       />
       <div
           v-if="ring && !reducedMotion"
           aria-hidden="true"
+          :class="signposting ? 'border-dashed' : ''"
           class="absolute rounded-theme border-2 border-primary animate-ping"
           :style="ring"
       />
@@ -193,7 +218,10 @@ function close() {
               </SecondaryButton>
             </div>
             <div v-else class="flex flex-wrap items-center gap-2">
-              <PrimaryButton v-if="!pointing && !onStepRoute && step?.route" class="text-sm" @click="goToStepRoute">
+              <PrimaryButton v-if="step?.advance === 'read'" class="text-sm" @click="advance">
+                {{ t('onboarding.guide.understood') }}
+              </PrimaryButton>
+              <PrimaryButton v-else-if="!pointing && !onStepRoute && step?.route" class="text-sm" @click="goToStepRoute">
                 {{ t('onboarding.guide.takeMeThere') }}
               </PrimaryButton>
               <SecondaryButton class="text-sm" @click="skipTask">{{ t('onboarding.guide.skip') }}</SecondaryButton>

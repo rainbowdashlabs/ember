@@ -21,6 +21,7 @@ defineProps<{
   checkMode: boolean
   uncheckedEntries: CheckEntry[]
   allMarked: boolean
+  anyMarked: boolean
   submitting: boolean
   itemResults: Map<number, CheckResult>
   itemNotes: Map<number, string>
@@ -131,6 +132,7 @@ defineExpose({ getCurrentRapidEntry })
   </div>
   <CheckMemberSubmitBar
     :all-marked="allMarked"
+    :any-marked="anyMarked"
     :submitting="submitting"
     @cancel="$emit('cancel')"
     @submit="$emit('submit')"

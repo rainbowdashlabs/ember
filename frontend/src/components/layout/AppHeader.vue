@@ -4,7 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
+
+const {t} = useI18n()
 
 defineProps<{
   title?: string
@@ -20,7 +23,8 @@ defineEmits<{
   <header class="sticky top-0 z-20 bg-(--bg) flex min-h-14 items-center border-b border-bg-light-accent dark:border-bg-dark-accent px-4 lg:pl-8 py-2 sm:py-0 gap-4">
     <IconButton
         :icon="['fas', 'bars']"
-        label="Menu"
+        :label="t('sidebar.openMenu')"
+        data-onboarding="nav.open"
         class="text-[var(--text)] hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent lg:hidden"
         @click="$emit('toggleSidebar')"
     >

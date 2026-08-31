@@ -17,6 +17,9 @@ export interface TargetBox {
 
 const ATTRIBUTE = 'data-onboarding'
 
+/** The control that pulls the navigation in, on the widths where it is not standing open. */
+const MENU_MARK = 'nav.open'
+
 /**
  * How long a step's target is given to appear before an optional step is passed over, when nothing
  * else settles the question. Long enough for a page to fetch what it shows, short enough that a
@@ -37,7 +40,10 @@ function filled(element: HTMLElement): boolean {
     const controls = element.matches('input, textarea, select')
         ? [element as HTMLInputElement]
         : Array.from(element.querySelectorAll<HTMLInputElement>('input, textarea, select'))
-    return controls.some(control => control.value.trim() !== '')
+    // A field the reader cannot write in does not answer for them. Some of what a profile holds is
+    // the station's to fill and readable only, and counting it would carry the step on the moment
+    // somebody tabbed past it, crediting them with an answer that was already there.
+    return controls.some(control => !control.readOnly && !control.disabled && control.value.trim() !== '')
 }
 
 /**
@@ -68,6 +74,22 @@ function findHolder(mark: string | undefined): HTMLElement | null {
     return null
 }
 
+/**
+ * Whether the element sits outside the window sideways, which is what a navigation drawer does to
+ * everything inside it on the widths where it slides away.
+ *
+ * Only sideways counts. Something below the fold is reachable by scrolling and the walk scrolls to
+ * it, but a drawer standing at minus its own width is not reachable by any amount of scrolling: it
+ * is reachable by opening the drawer, which is a different thing to ask for. Zero size counts too,
+ * because a drawer that is folded rather than slid away leaves its contents measuring nothing.
+ */
+function outOfReach(element: HTMLElement): boolean {
+    if (typeof window === 'undefined') return false
+    const rect = element.getBoundingClientRect()
+    if (rect.width === 0 && rect.height === 0) return true
+    return rect.right <= 0 || rect.left >= window.innerWidth
+}
+
 function prefersReducedMotion(): boolean {
     return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
@@ -88,6 +110,12 @@ export function useOnboardingGuide() {
     const revealing = ref(false)
     /** Set while the target is there but cannot be used yet. */
     const blocked = ref(false)
+    /**
+     * Set while the ring sits on the menu button because the target is inside a drawer that is not
+     * standing open. It is its own state rather than a kind of {@link revealing}: one asks the
+     * reader to unfold something they can see, the other to summon something they cannot.
+     */
+    const behindMenu = ref(false)
 
     const steps = computed<OnboardingStep[]>(() => (activeTaskKey.value ? flowFor(activeTaskKey.value) : []))
     const step = computed<OnboardingStep | null>(() => steps.value[activeStep.value] ?? null)
@@ -118,6 +146,7 @@ export function useOnboardingGuide() {
     let observer: MutationObserver | null = null
     let scrolledFor = -1
     let settleTimer: ReturnType<typeof setTimeout> | null = null
+    let measureQueued = false
 
     function stopSettling() {
         if (settleTimer !== null) clearTimeout(settleTimer)
@@ -159,6 +188,7 @@ export function useOnboardingGuide() {
             box.value = null
             revealing.value = false
             blocked.value = false
+            behindMenu.value = false
             return
         }
         const own = findTarget(step.value?.target)
@@ -167,10 +197,39 @@ export function useOnboardingGuide() {
         if (!element) {
             box.value = null
             blocked.value = false
+            behindMenu.value = false
             if (step.value?.optional && onStepRoute.value) considerSkipping()
             return
         }
         stopSettling()
+
+        // The navigation is in the page at every width; on a narrow one it is merely pushed off the
+        // side. So the target is found, and ringing where it says it is draws the ring past the edge
+        // of the window, which is the whole of what a reader on a phone saw: nothing. Send them to
+        // the menu first, and pick the target up again once it has come in.
+        if (outOfReach(element)) {
+            const opener = findTarget(MENU_MARK)
+            if (opener && !outOfReach(opener)) {
+                behindMenu.value = true
+                revealing.value = false
+                blocked.value = false
+                const openerRect = opener.getBoundingClientRect()
+                box.value = {
+                    top: openerRect.top,
+                    left: openerRect.left,
+                    width: openerRect.width,
+                    height: openerRect.height,
+                }
+                return
+            }
+            // Nothing to send them to, so say nothing rather than ring the edge of the window.
+            behindMenu.value = false
+            box.value = null
+            blocked.value = false
+            return
+        }
+        behindMenu.value = false
+
         blocked.value = own !== null && isBlocked(own)
         const rect = element.getBoundingClientRect()
         box.value = {top: rect.top, left: rect.left, width: rect.width, height: rect.height}
@@ -178,6 +237,35 @@ export function useOnboardingGuide() {
             scrolledFor = activeStep.value
             element.scrollIntoView({block: 'center', behavior: reducedMotion.value ? 'auto' : 'smooth'})
         }
+    }
+
+    /**
+     * One measurement per frame, however many mutations ask for it.
+     *
+     * Watching class changes across the page means every hover asks, and measuring on each would be
+     * work nobody sees. Folding them into the next frame keeps the cost of the wider watch to what
+     * the narrower one used to cost.
+     */
+    function scheduleMeasure() {
+        if (measureQueued) return
+        measureQueued = true
+        const run = () => {
+            measureQueued = false
+            measure()
+        }
+        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run)
+        else run()
+    }
+
+    /**
+     * Measures again once a slide has come to rest.
+     *
+     * The drawer takes its time coming in, and a measurement taken as the class changes reads the
+     * position it is leaving rather than the one it is going to, which would leave the ring standing
+     * where the navigation used to be.
+     */
+    function onTransitionEnd() {
+        scheduleMeasure()
     }
 
     function advance() {
@@ -204,7 +292,9 @@ export function useOnboardingGuide() {
      */
     function onFocusOut(event: FocusEvent) {
         const current = step.value
-        if (!current || current.advance !== 'fill') return
+        // A step to be read carries on the same way, because somebody who has just filled in what was
+        // missing has shown they read it, and asking them to confirm afterwards asks twice.
+        if (!current || (current.advance !== 'fill' && current.advance !== 'read')) return
         const element = findTarget(current.target)
         if (!element || !(event.target instanceof Node) || !element.contains(event.target)) return
         if (event.relatedTarget instanceof Node && element.contains(event.relatedTarget)) return
@@ -224,14 +314,23 @@ export function useOnboardingGuide() {
         observer?.disconnect()
         observer = null
         if (!active) return
-        observer = new MutationObserver(() => measure())
-        observer.observe(document.body, {childList: true, subtree: true})
+        observer = new MutationObserver(() => scheduleMeasure())
+        // Attributes as well as children, because a drawer does not leave the page when it closes:
+        // it changes one class and slides away. Watching children alone left the ring sitting on the
+        // menu button after the reader had already opened the menu.
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class', 'style'],
+        })
     }
 
     onMounted(() => {
         reducedMotion.value = prefersReducedMotion()
         document.addEventListener('click', onDocumentClick, true)
         document.addEventListener('focusout', onFocusOut, true)
+        document.addEventListener('transitionend', onTransitionEnd, true)
         window.addEventListener('resize', measure)
         window.addEventListener('scroll', measure, true)
         watchPage(activeTaskKey.value !== null)
@@ -241,6 +340,7 @@ export function useOnboardingGuide() {
     onBeforeUnmount(() => {
         document.removeEventListener('click', onDocumentClick, true)
         document.removeEventListener('focusout', onFocusOut, true)
+        document.removeEventListener('transitionend', onTransitionEnd, true)
         window.removeEventListener('resize', measure)
         window.removeEventListener('scroll', measure, true)
         watchPage(false)
@@ -264,7 +364,7 @@ export function useOnboardingGuide() {
     })
 
     return {
-        box, step, steps, pointing, revealing, blocked, gaze, targetLow, finished, reducedMotion, onStepRoute,
-        advance, dismiss,
+        box, step, steps, pointing, revealing, blocked, behindMenu, gaze, targetLow, finished, reducedMotion,
+        onStepRoute, advance, dismiss,
     }
 }

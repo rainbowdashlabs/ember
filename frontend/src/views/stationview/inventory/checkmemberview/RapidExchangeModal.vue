@@ -14,6 +14,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import HandedInChoice from './rapidexchangemodal/HandedInChoice.vue'
 import type {InventorySize} from '@/api/inventory'
 
 /** Why a piece is being exchanged. Anything that is neither of the two common ones is said in words. */
@@ -45,7 +46,7 @@ const props = defineProps<{
 const show = defineModel<boolean>({required: true})
 
 const emit = defineEmits<{
-  confirm: [payload: {newSizeId: number | null; reason: string}]
+  confirm: [payload: {newSizeId: number | null; reason: string; handedIn: boolean}]
 }>()
 
 const {t} = useI18n()
@@ -53,6 +54,15 @@ const {t} = useI18n()
 const reasonKind = ref<ExchangeReason>('tooSmall')
 const ownReason = ref('')
 const newSizeId = ref('')
+
+/**
+ * Whether the piece was handed over there and then.
+ *
+ * <p>Asked rather than assumed, because it is the one thing about the exchange that only the person
+ * standing there knows, and it decides how far the exchange has already come: a piece still on the
+ * member is an exchange announced, a piece in the hand is one whose old piece is back.
+ */
+const handedIn = ref<boolean | null>(null)
 
 /**
  * One size up, read off the order the inventory keeps.
@@ -78,6 +88,7 @@ watch(show, visible => {
   if (!visible) return
   reasonKind.value = 'tooSmall'
   ownReason.value = ''
+  handedIn.value = null
   newSizeId.value = sizeForReason('tooSmall')
 })
 
@@ -94,10 +105,11 @@ const reasonText = computed(() => {
 })
 
 function confirm() {
-  if (!reasonText.value) return
+  if (!reasonText.value || handedIn.value === null) return
   emit('confirm', {
     newSizeId: newSizeId.value ? Number(newSizeId.value) : null,
     reason: reasonText.value,
+    handedIn: handedIn.value,
   })
 }
 </script>
@@ -142,6 +154,8 @@ function confirm() {
         <TextInput v-model="ownReason" class="w-full" data-testid="rapid-exchange-reason"/>
       </div>
 
+      <HandedInChoice v-model="handedIn"/>
+
       <div v-if="props.sizes.length > 0" class="space-y-1">
         <FieldLabel>{{ t('inventory.check.exchangeNewSize') }}</FieldLabel>
         <SelectInput v-model="newSizeId" class="w-full" data-testid="rapid-exchange-size">
@@ -154,7 +168,7 @@ function confirm() {
     <div class="mt-4 flex justify-end gap-2">
       <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
       <PrimaryButton
-          :disabled="props.busy || !reasonText"
+          :disabled="props.busy || !reasonText || handedIn === null"
           data-testid="rapid-exchange-confirm"
           @click="confirm"
       >
