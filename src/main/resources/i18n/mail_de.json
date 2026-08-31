@@ -19,6 +19,7 @@
     "application-received": "Antrag für {stationName} eingegangen",
     "waitlist-verify": "Wartelisten-Anmeldung bestätigen{stationSuffix}",
     "waitlist-registered": "Wartelisten-Anmeldung{stationSuffix}",
+    "waitlist-invitation": "Einladung zum Reinschnuppern{stationSuffix}",
     "waitlist-confirm-reminder": "Bitte bestätige dein Interesse{stationSuffix}",
     "waitlist-removal-warning": "Wartelisten-Entfernung in 2 Wochen{stationSuffix}",
     "test-mail": "Test-E-Mail von Ember"

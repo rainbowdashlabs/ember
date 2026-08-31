@@ -10,6 +10,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
+import WaitingListAnswerBadge from '@/components/badge/WaitingListAnswerBadge.vue'
 import type { WaitingListEntryWithScore } from '@/api/waitingList'
 import { formatDateTime } from '@/util/format'
 
@@ -33,7 +34,12 @@ const { t } = useI18n()
   <div class="flex items-center gap-2">
     <SubHeader>{{ entryFullName }}</SubHeader>
     <WaitingListStatusBadge :status="entry.entry.status" />
+    <WaitingListAnswerBadge v-if="entry.entry.answer" :answer="entry.entry.answer.answer" />
   </div>
+
+  <p v-if="entry.entry.answer && entry.entry.answer.note" class="text-sm">
+    {{ t('waitingList.answerNote') }}: {{ entry.entry.answer.note }}
+  </p>
 
   <div class="text-sm text-(--text-muted) flex flex-wrap items-center gap-x-4 gap-y-2">
     <span>{{ t('waitingList.score') }}: <span class="font-mono font-medium">{{ entry.score }}</span></span>

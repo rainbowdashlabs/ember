@@ -28,6 +28,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   invite: [entryId: number]
+  backToWaiting: [entryId: number]
   moveToTesting: [entryId: number]
   navigateToEntry: [entryId: number]
   deleteEntry: [entry: WaitingListEntryWithScore]
@@ -126,6 +127,7 @@ function toggleExpand(entryId: number) {
       @sort="toggle"
       @toggle-expand="toggleExpand"
       @invite="(id) => emit('invite', id)"
+      @back-to-waiting="(id) => emit('backToWaiting', id)"
       @move-to-testing="(id) => emit('moveToTesting', id)"
       @navigate-to-entry="(id) => emit('navigateToEntry', id)"
       @delete-entry="(entry) => emit('deleteEntry', entry)"
@@ -138,6 +140,7 @@ function toggleExpand(entryId: number) {
       :readonly="readonly"
       @toggle-expand="toggleExpand"
       @invite="(id) => emit('invite', id)"
+      @back-to-waiting="(id) => emit('backToWaiting', id)"
       @move-to-testing="(id) => emit('moveToTesting', id)"
       @navigate-to-entry="(id) => emit('navigateToEntry', id)"
       @delete-entry="(entry) => emit('deleteEntry', entry)"
