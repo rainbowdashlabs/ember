@@ -339,12 +339,14 @@ test.describe('Inventory', () => {
         await exchange.click()
 
         const confirm = page.getByTestId('rapid-exchange-confirm')
-        await expect(confirm, 'a reason is chosen already').toBeEnabled()
+        await expect(confirm, 'whether the piece was handed over is still unanswered').toBeDisabled()
 
         await page.getByTestId('rapid-exchange-reason-other').click()
-        await expect(confirm, 'an own reason has to say something').toBeDisabled()
         await page.getByTestId('rapid-exchange-reason').fill('Reißverschluss fehlt')
-        await expect(confirm).toBeEnabled()
+        await expect(confirm, 'a reason alone does not answer the question').toBeDisabled()
+
+        await page.getByTestId('rapid-exchange-kept').click()
+        await expect(confirm, 'reason and answer together stand').toBeEnabled()
 
         await page.getByTestId('rapid-exchange-reason-damaged').click()
         await confirm.click()
