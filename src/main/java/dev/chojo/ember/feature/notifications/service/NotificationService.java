@@ -70,6 +70,8 @@ public class NotificationService {
             Map.entry("dashboard-overview", "/station/dashboard/overview"),
             Map.entry("lost-and-found", "/station/lost-and-found"),
             Map.entry("lending-request", "/station/inventory/lending/{id}"),
+            Map.entry("procedure-list", "/station/procedures"),
+            Map.entry("procedure-detail", "/station/procedures/{id}"),
             // Board ticket routes use the board short key + per-board ticket number, not the
             // numeric primary keys. Handlers must pass {boardKey} and {ticketNumber} accordingly.
             Map.entry("ticket-detail", "/station/boards/{boardKey}/tickets/{ticketNumber}"));

@@ -452,7 +452,7 @@ class NotificationFeedRendererTest {
                 73,
                 NotificationType.PROCEDURE_ASSIGNED,
                 new NotificationParams.ProcedureAssigned("Quarterly truck check", "Alice"),
-                new NotificationData.NotificationLink("procedures", Map.of("id", 80)));
+                new NotificationData.NotificationLink("procedure-detail", Map.of("id", 80)));
         var html = renderer.render(n, richCtx()).getContents().getFirst().getValue();
         assertTrue(html.contains("Progress"), "Progress row label should be present: " + html);
         // Mock echoes the bundle key "progressFormat" after substituting {checked} and {total}.
@@ -468,7 +468,7 @@ class NotificationFeedRendererTest {
                 74,
                 NotificationType.PROCEDURE_RESOLVED,
                 new NotificationParams.ProcedureResolvedParams("Empty procedure"),
-                new NotificationData.NotificationLink("procedures", Map.of("id", 81)));
+                new NotificationData.NotificationLink("procedure-detail", Map.of("id", 81)));
         var html = renderer.render(n, richCtx()).getContents().getFirst().getValue();
         assertFalse(html.contains("Progress"));
     }
