@@ -661,6 +661,7 @@ public abstract class RepositoryTestBase {
                 itemCustodyService,
                 borrowedGearService,
                 inventoryShareService,
+                artRepo,
                 lineTargetService,
                 availability,
                 eventBus);

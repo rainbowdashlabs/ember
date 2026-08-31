@@ -304,6 +304,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 itemCustodyService,
                 borrowedGearService,
                 new InventoryShareService(new InventoryShareRepository(), federationService, inventoryRepo, artRepo),
+                artRepo,
                 lineTargetService,
                 new EquipmentAvailabilityService(
                         new EquipmentAvailabilityRepository(),

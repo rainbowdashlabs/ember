@@ -147,15 +147,18 @@ public class LendingRepository {
      * a line asking for four blue radios is answered with four of them, and a single column could only
      * ever hold the last one written.
      *
+     * <p>Setting the same piece aside twice is not an error and reports success, because what the
+     * caller asked for is true afterwards either way.
+     *
      * @param requestItemId  the line
      * @param assignedItemId the piece
-     * @return {@code true} when the piece was not already set aside for that line
+     * @return {@code true} when the piece is set aside for that line
      */
     public boolean assignItem(int requestItemId, int assignedItemId) {
         return query("""
                 INSERT INTO federation_lending_request_item_assignment(request_item_id, item_id)
                 VALUES (:request_item_id, :item_id)
-                ON CONFLICT (request_item_id, item_id) DO NOTHING;""")
+                ON CONFLICT (request_item_id, item_id) DO UPDATE SET item_id = excluded.item_id;""")
                 .single(call().bind("request_item_id", requestItemId).bind("item_id", assignedItemId))
                 .insert()
                 .changed();

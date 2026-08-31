@@ -23,9 +23,11 @@ import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.LineTarget;
+import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.BorrowedGearService;
 import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
@@ -46,6 +48,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -71,6 +74,7 @@ public class LendingService {
     private final ItemCustodyService custodyService;
     private final BorrowedGearService borrowedGearService;
     private final InventoryShareService shareService;
+    private final InventoryArtRepository artRepository;
     private final LineTargetService lineTargets;
     private final EquipmentAvailabilityService availability;
     private final DomainEventBus eventBus;
@@ -86,9 +90,11 @@ public class LendingService {
             ItemCustodyService custodyService,
             BorrowedGearService borrowedGearService,
             InventoryShareService shareService,
+            InventoryArtRepository artRepository,
             LineTargetService lineTargets,
             EquipmentAvailabilityService availability,
             DomainEventBus eventBus) {
+        this.artRepository = artRepository;
         this.lineTargets = lineTargets;
         this.availability = availability;
         this.repository = repository;
@@ -782,6 +788,8 @@ public class LendingService {
             decorated.add(new AvailableInventoryEntry(
                     entry.inventoryId(),
                     entry.inventoryName(),
+                    entry.artId(),
+                    entry.artName(),
                     entry.stationId(),
                     entry.stationName(),
                     entry.availableCount(),
@@ -823,22 +831,36 @@ public class LendingService {
                 continue;
             }
 
-            var offered = shareService.filterShared(
-                    policy,
-                    inventoryRepository.findUnassignedItems(inv.id()).stream()
-                            .filter(lender::owns)
-                            .toList());
-            int availableCount;
-            if (dateFrom != null) {
-                availableCount = (int) offered.stream()
-                        .filter(item -> !isBlocked(partnerStationId, null, item.id(), dateFrom, dateTo))
-                        .count();
-            } else {
-                availableCount = offered.size();
+            var offered = shareService
+                    .filterShared(
+                            policy,
+                            inventoryRepository.findUnassignedItems(inv.id()).stream()
+                                    .filter(lender::owns)
+                                    .toList())
+                    .stream()
+                    .filter(item -> dateFrom == null || !isBlocked(partnerStationId, null, item.id(), dateFrom, dateTo))
+                    .toList();
+
+            var perArt = new LinkedHashMap<Integer, Integer>();
+            for (var item : offered) {
+                perArt.merge(item.artId(), 1, Integer::sum);
             }
-            if (availableCount > 0) {
+            for (var group : perArt.entrySet()) {
+                Integer artId = group.getKey();
                 entries.add(new AvailableInventoryEntry(
-                        inv.id(), inv.name(), partnerStationId, name, availableCount, null));
+                        inv.id(),
+                        inv.name(),
+                        artId,
+                        artId == null
+                                ? null
+                                : artRepository
+                                        .findById(artId)
+                                        .map(InventoryArt::name)
+                                        .orElse(null),
+                        partnerStationId,
+                        name,
+                        group.getValue(),
+                        null));
             }
         }
         return new PartnerAvailability(entries, true);
@@ -856,7 +878,14 @@ public class LendingService {
     }
 
     /**
-     * Federated lending inventory entry.
+     * One thing a partner offers, counted.
+     *
+     * <p>A row per kind of thing rather than per drawer, because a count out of the radio drawer is
+     * the granularity that fails: asking for four out of it may be answered with the charging station
+     * and the case. Where a piece carries no kind the row is the drawer, as it always was.
+     *
+     * @param artId   the kind counted, or {@code null} where the row counts a whole inventory
+     * @param artName what that kind is called, or {@code null}
      *
      * @param distanceKm great-circle distance from the searching station to the offering
      *                   station, or {@code null} when either side hasn't published
@@ -866,6 +895,8 @@ public class LendingService {
     public record AvailableInventoryEntry(
             int inventoryId,
             String inventoryName,
+            Integer artId,
+            String artName,
             int stationId,
             String stationName,
             int availableCount,

@@ -195,10 +195,11 @@ public class EquipmentNeedService {
      * Marks a handed-over piece as back.
      *
      * @param handoverId the handover
+     * @param eventId    the appointment it has to belong to
      * @return {@code true} if a row changed
      */
-    public boolean handBack(int handoverId) {
-        return needRepository.markReturned(handoverId);
+    public boolean handBack(int handoverId, int eventId) {
+        return needRepository.markReturned(handoverId, eventId);
     }
 
     /**
@@ -239,7 +240,8 @@ public class EquipmentNeedService {
             int borrowed = availabilityRepository.borrowedAgainstNeed(need.id());
             int outstanding = Math.max(0, availabilityRepository.outstandingAgainstNeed(need.id()) - borrowed);
             int own = Math.min(need.quantity(), Math.max(0, availability.free()));
-            List<EquipmentClaim> overClaim = availability.free() < 0
+            boolean overClaimed = availability.claimed() + need.quantity() > availability.stock();
+            List<EquipmentClaim> overClaim = overClaimed
                     ? availability.claims().stream()
                             .filter(claim -> claim.origin() == ClaimOrigin.OWN_NEED)
                             .toList()

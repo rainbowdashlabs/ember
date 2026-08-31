@@ -99,7 +99,9 @@ public class EquipmentAvailabilityRepository {
                         .bind("art_id", target.artId())
                         .bind("inventory_id", target.inventoryId()))
                 .map(resolvedTarget())
-                .first();
+                .first()
+                .filter(resolved ->
+                        resolved.itemId() != null || resolved.artId() != null || resolved.inventoryId() != null);
     }
 
     /**

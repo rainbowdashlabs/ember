@@ -330,7 +330,6 @@ class LendingServiceTest extends RepositoryTestBase {
     @Order(30)
     void assignItem() {
         assertTrue(service.assignItem(requestItemId, itemIdA, stationA.id()));
-        var items = service.findRequestItems(requestId);
         assertEquals(List.of(itemIdA), lendingRepo.findAssignedItems(requestItemId));
     }
 
@@ -635,9 +634,11 @@ class LendingServiceTest extends RepositoryTestBase {
     @Test
     @Order(204)
     void availableInventoryEntryRecord() {
-        var entry = new LendingService.AvailableInventoryEntry(42, "Test Inv", 7, "Station X", 5, null);
+        var entry = new LendingService.AvailableInventoryEntry(42, "Test Inv", 9, "Blau", 7, "Station X", 5, null);
         assertEquals(42, entry.inventoryId());
         assertEquals("Test Inv", entry.inventoryName());
+        assertEquals(9, entry.artId());
+        assertEquals("Blau", entry.artName());
         assertEquals(7, entry.stationId());
         assertEquals("Station X", entry.stationName());
         assertEquals(5, entry.availableCount());
