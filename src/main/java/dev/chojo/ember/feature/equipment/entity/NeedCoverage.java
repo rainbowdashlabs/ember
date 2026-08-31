@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.equipment.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -45,6 +47,7 @@ public record NeedCoverage(
      *
      * @return the missing count
      */
+    @JsonProperty("missing")
     public int missing() {
         return Math.max(0, need.quantity() - own - borrowed - outstanding);
     }
@@ -54,6 +57,7 @@ public record NeedCoverage(
      *
      * @return {@code true} when nothing is missing
      */
+    @JsonProperty("covered")
     public boolean covered() {
         return missing() == 0;
     }

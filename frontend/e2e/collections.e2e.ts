@@ -25,8 +25,8 @@ test.describe('Collections', () => {
 
         await page.getByTestId('collection-add-line').click()
         await page.getByTestId('collection-line-kind').selectOption('inventory')
-        await page.getByTestId('collection-line-inventory').selectOption({index: 1})
-        await page.getByTestId('collection-line-quantity').fill('2')
+        await page.getByTestId('line-target-inventory').selectOption({index: 1})
+        await page.getByTestId('line-target-quantity').fill('2')
         await page.getByTestId('collection-line-submit').click()
 
         await expect(page.getByTestId('collection-line')).toHaveCount(1)
@@ -56,8 +56,8 @@ test.describe('Collections', () => {
 
         await page.getByTestId('collection-add-line').click()
         await page.getByTestId('collection-line-kind').selectOption('art')
-        await page.getByTestId('collection-line-art').selectOption({label: 'Funkgerät blau (Handfunkgeräte)'})
-        await page.getByTestId('collection-line-art-quantity').fill('4')
+        await page.getByTestId('line-target-art').selectOption({label: 'Funkgerät blau (Handfunkgeräte)'})
+        await page.getByTestId('line-target-art-quantity').fill('4')
         await page.getByTestId('collection-line-submit').click()
 
         await expect(page.getByTestId('collection-line')).toHaveCount(1)

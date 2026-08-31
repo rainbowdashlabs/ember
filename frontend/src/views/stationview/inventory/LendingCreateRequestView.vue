@@ -32,7 +32,7 @@ const router = useRouter()
 const {loaded} = useSession()
 
 const inventoryId = Number(route.query.inventoryId)
-const stationId = Number(route.query.stationId ?? 0)
+const stationId = String(route.query.stationId ?? '')
 const stationName = String(route.query.stationName || '')
 
 const dateFrom = ref('')

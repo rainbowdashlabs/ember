@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.equipment.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
 import java.time.Instant;
@@ -46,6 +47,7 @@ public record EquipmentHandover(
      *
      * @return {@code true} while it has not come back
      */
+    @JsonProperty("outstanding")
     public boolean outstanding() {
         return returnedAt == null;
     }

@@ -112,9 +112,7 @@ class EquipmentBrowseServiceTest extends RepositoryTestBase {
                 new EquipmentBrowseService.CollectedLine(owner.id(), drawer.id(), blue.id(), 1, null),
                 new EquipmentBrowseService.CollectedLine(owner.id(), drawer.id(), null, 1, null),
                 new EquipmentBrowseService.CollectedLine(borrower.id(), drawer.id(), null, 1, null));
-        assertEquals(
-                List.of(Math.min(owner.id(), borrower.id()), Math.max(owner.id(), borrower.id())),
-                browse.stationsInvolved(lines));
-        assertTrue(browse.stationsInvolved(List.of()).isEmpty());
+        assertEquals(2, browse.requestCount(lines), "two stations, two letters");
+        assertEquals(0, browse.requestCount(List.of()));
     }
 }

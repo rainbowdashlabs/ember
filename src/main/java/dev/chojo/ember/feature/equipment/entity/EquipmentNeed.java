@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.equipment.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.inventory.entity.LineTarget;
 
@@ -54,6 +55,7 @@ public record EquipmentNeed(
      *
      * @return the target
      */
+    @JsonIgnore
     public LineTarget target() {
         return LineTarget.of(itemId, artId, inventoryId);
     }
@@ -63,6 +65,7 @@ public record EquipmentNeed(
      *
      * @return {@code true} when the line carries no date of its own
      */
+    @JsonIgnore
     public boolean forWholeSeries() {
         return eventDate == null;
     }
@@ -72,6 +75,7 @@ public record EquipmentNeed(
      *
      * @return the lead
      */
+    @JsonIgnore
     public Duration lead() {
         return Duration.ofMinutes(leadMinutes);
     }
@@ -81,6 +85,7 @@ public record EquipmentNeed(
      *
      * @return the trail
      */
+    @JsonIgnore
     public Duration trail() {
         return Duration.ofMinutes(trailMinutes);
     }

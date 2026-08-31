@@ -92,14 +92,11 @@ public class EquipmentBrowseService {
      * list that quietly became three letters is a list nobody can follow up.
      *
      * @param lines the list as it stands
-     * @return the stations it will be sent to
+     * @return how many requests will go out
      */
-    public List<Integer> stationsInvolved(List<CollectedLine> lines) {
-        return lines.stream()
-                .map(CollectedLine::owningStationId)
-                .distinct()
-                .sorted()
-                .toList();
+    public int requestCount(List<CollectedLine> lines) {
+        return (int)
+                lines.stream().map(CollectedLine::owningStationId).distinct().count();
     }
 
     /**

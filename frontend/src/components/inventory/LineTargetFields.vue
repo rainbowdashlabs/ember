@@ -40,7 +40,7 @@ const countable = computed(() => props.inventories.filter(inventory => inventory
   <div class="space-y-4">
     <template v-if="kind === 'item'">
       <FieldLabel>{{ t('inventory.collections.item') }}</FieldLabel>
-      <SelectInput v-model="itemId" data-testid="collection-line-item">
+      <SelectInput v-model="itemId" data-testid="line-target-item">
         <option value="">{{ t('inventory.collections.selectItem') }}</option>
         <option v-for="item in items" :key="item.id" :value="String(item.id)">
           {{ item.name }} ({{ inventoryName(item.inventoryId) }})
@@ -50,7 +50,7 @@ const countable = computed(() => props.inventories.filter(inventory => inventory
 
     <template v-else-if="kind === 'art'">
       <FieldLabel>{{ t('inventory.collections.art') }}</FieldLabel>
-      <SelectInput v-model="artId" data-testid="collection-line-art">
+      <SelectInput v-model="artId" data-testid="line-target-art">
         <option value="">{{ t('inventory.collections.selectArt') }}</option>
         <option v-for="art in arts" :key="art.id" :value="String(art.id)">
           {{ art.name }} ({{ inventoryName(art.inventoryId) }})
@@ -58,17 +58,17 @@ const countable = computed(() => props.inventories.filter(inventory => inventory
       </SelectInput>
       <FieldHint v-if="arts.length === 0">{{ t('inventory.collections.noArts') }}</FieldHint>
       <FieldLabel>{{ t('inventory.collections.quantity') }}</FieldLabel>
-      <NumberInput v-model="quantity" :min="1" data-testid="collection-line-art-quantity"/>
+      <NumberInput v-model="quantity" :min="1" data-testid="line-target-art-quantity"/>
     </template>
 
     <template v-else>
       <FieldLabel>{{ t('inventory.collections.inventory') }}</FieldLabel>
-      <SelectInput v-model="inventoryId" data-testid="collection-line-inventory">
+      <SelectInput v-model="inventoryId" data-testid="line-target-inventory">
         <option value="">{{ t('inventory.collections.selectInventory') }}</option>
         <option v-for="inv in countable" :key="inv.id" :value="String(inv.id)">{{ inv.name }}</option>
       </SelectInput>
       <FieldLabel>{{ t('inventory.collections.quantity') }}</FieldLabel>
-      <NumberInput v-model="quantity" :min="1" data-testid="collection-line-quantity"/>
+      <NumberInput v-model="quantity" :min="1" data-testid="line-target-quantity"/>
     </template>
   </div>
 </template>

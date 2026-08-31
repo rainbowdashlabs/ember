@@ -420,6 +420,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 memberIdentityFactory,
                 demoConfig,
                 apiConfig);
+        var equipmentSeeder = new DemoEquipmentSeeder(equipmentNeedRepo, eventRepo, inventoryRepo, artRepo);
         var lendingSeeder = new DemoLendingSeeder(
                 lendingService,
                 new InventoryShareService(new InventoryShareRepository(), federationService, inventoryRepo, artRepo),
@@ -518,6 +519,7 @@ class DemoServiceTest extends RepositoryTestBase {
                         boardSeeder,
                         pageSeeder,
                         lendingSeeder,
+                        equipmentSeeder,
                         notificationSeeder,
                         setupSeeder,
                         freshStationSeeder,

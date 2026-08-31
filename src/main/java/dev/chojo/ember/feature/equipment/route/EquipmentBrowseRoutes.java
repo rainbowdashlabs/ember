@@ -92,14 +92,13 @@ public class EquipmentBrowseRoutes implements Routes {
         List<EquipmentBrowseService.CollectedLine> lines = body.lines() == null ? List.of() : body.lines();
         LocalDate to = body.to() == null ? body.from() : body.to();
         ctx.json(new RecheckResponse(
-                browseService.recheck(session.stationId(), body.from(), to, lines),
-                browseService.stationsInvolved(lines)));
+                browseService.recheck(session.stationId(), body.from(), to, lines), browseService.requestCount(lines)));
     }
 
     public record RecheckRequest(LocalDate from, LocalDate to, List<EquipmentBrowseService.CollectedLine> lines) {}
 
     /**
-     * @param stationsInvolved the stations the list will be sent to, one request each
+     * @param requestCount how many requests the list will turn into, one per station
      */
-    public record RecheckResponse(List<EquipmentBrowseService.LineCheck> lines, List<Integer> stationsInvolved) {}
+    public record RecheckResponse(List<EquipmentBrowseService.LineCheck> lines, int requestCount) {}
 }
