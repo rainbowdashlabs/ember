@@ -14,6 +14,8 @@
 
 ### Improvements
 
+- **An inventory says whether it holds one thing or many different ones.** Requirements, procurements and exchanges only mean something for a shelf of the same thing in many copies, and they were offered just as readily on a drawer of odds and ends, where "everybody needs one" and "order three more" say nothing at all. Every inventory starts as a shelf of one thing, so nothing changes until a station marks a drawer as a drawer, and the three then stop offering themselves for it.
+- **An inventory can be split without the equipment losing its history.** Where one inventory turns out to hold two different things, its pieces can now be moved into another inventory of the same station under Inventory, keeping their number, who has them and everywhere they have been. Until now the only way was to delete them and write them down again, which threw all of that away.
 - **Setting a password from a link signs you straight in.** An invitation ended at the sign-in form, where the password just chosen had to be typed again, and a reset did the same. Choosing it proves what typing it would prove, so the link now leads into the account rather than back to the front door.
 - **Whoever runs an appointment can correct an answer to its questions.** The answers were the member's alone to change, although the person planning from them is the one reading them, so a shirt size typed wrong meant chasing the member while the order was going out. Anybody who may edit the appointment can now put an answer right from the list of sign-ups, and the member's own answers stay theirs to change as before.
 

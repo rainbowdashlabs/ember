@@ -54,6 +54,7 @@ public class ProcurementService {
      * @param memberId who it is for, or {@code null} for an order a cluster places for its own store
      */
     public Procurement create(int stationId, int inventoryId, Integer memberId, Integer sizeId, String notes) {
+        inventoryService.requireHomogeneous(inventoryId, "ordering more");
         var procurement = procurementRepository.create(stationId, inventoryId, memberId, sizeId, notes);
         String inventoryName =
                 inventoryRepository.findById(inventoryId).map(Inventory::name).orElse("?");

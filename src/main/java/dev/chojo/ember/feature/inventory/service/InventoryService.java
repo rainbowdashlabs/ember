@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
+import dev.chojo.ember.feature.inventory.entity.SwitchBlocker;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
@@ -29,6 +30,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -107,16 +109,20 @@ public class InventoryService {
      * @param name          the inventory name
      * @param inventoryType the inventory type
      * @param hasSizes      whether the inventory supports sizes
+     * @param homogeneous   whether it holds one thing in many copies rather than a drawer of different things
      * @return the created inventory
      */
-    public Inventory create(int stationId, String name, InventoryType inventoryType, boolean hasSizes) {
-        Inventory inventory = inventoryRepository.create(stationId, name, inventoryType, hasSizes);
+    public Inventory create(
+            int stationId, String name, InventoryType inventoryType, boolean hasSizes, boolean homogeneous) {
+        boolean sizes = hasSizes && homogeneous;
+        Inventory inventory = inventoryRepository.create(stationId, name, inventoryType, sizes, homogeneous);
         log.info(
-                "Created inventory {} (name='{}', type={}, hasSizes={}) in station {}",
+                "Created inventory {} (name='{}', type={}, hasSizes={}, homogeneous={}) in station {}",
                 inventory.id(),
                 name,
                 inventoryType,
-                hasSizes,
+                sizes,
+                homogeneous,
                 stationId);
         return inventory;
     }
@@ -124,19 +130,119 @@ public class InventoryService {
     /**
      * Updates an existing inventory.
      *
+     * <p>Changing what kind of thing it holds is refused while something live still depends on the
+     * kind being left, and the refusal names every one of those things. Putting the size list away is
+     * refused for the same reason and in the same words: the sizes the items are carrying would be
+     * left pointing at a list nothing shows any more.
+     *
      * @param id            the inventory ID
      * @param name          the new name
      * @param inventoryType the new type
      * @param hasSizes      whether sizes are supported
+     * @param homogeneous   whether it holds one thing in many copies rather than a drawer of different things
      * @return the updated inventory, or empty if not found
+     * @throws InventorySwitchRefusedException when something live depends on the state being left
      */
-    public Optional<Inventory> update(int id, String name, InventoryType inventoryType, boolean hasSizes) {
-        if (inventoryRepository.update(id, name, inventoryType, hasSizes)) {
-            log.info("Updated inventory {} (name='{}', type={}, hasSizes={})", id, name, inventoryType, hasSizes);
+    public Optional<Inventory> update(
+            int id, String name, InventoryType inventoryType, boolean hasSizes, boolean homogeneous) {
+        Inventory before = inventoryRepository.findById(id).orElse(null);
+        if (before != null && before.homogeneous() != homogeneous) {
+            requireNothingDependsOnIt(before, homogeneous);
+        }
+        if (before != null && before.hasSizes() && !hasSizes) {
+            requireNoSizesLeft(before);
+        }
+        boolean sizes = hasSizes && homogeneous;
+        if (inventoryRepository.update(id, name, inventoryType, sizes, homogeneous)) {
+            log.info(
+                    "Updated inventory {} (name='{}', type={}, hasSizes={}, homogeneous={})",
+                    id,
+                    name,
+                    inventoryType,
+                    sizes,
+                    homogeneous);
             return inventoryRepository.findById(id);
         }
         log.warn("Update of inventory {} did not change any row", id);
         return Optional.empty();
+    }
+
+    /**
+     * Everything live that would have to go before an inventory could change what kind of thing it
+     * holds.
+     *
+     * <p>Leaving the homogeneous half strands the three features that only make sense there, plus the
+     * size list, which belongs to that half and whose values the items are already carrying. Coming
+     * back the other way will one day be blocked by the Arten a heterogeneous inventory has been given;
+     * there is no such thing yet, so nothing stands in that direction and the list comes back empty.
+     *
+     * @param inventory     the inventory as it stands
+     * @param toHomogeneous the kind it is being asked to become
+     * @return what stands in the way, empty when nothing does
+     */
+    public List<SwitchBlocker> blockersForSwitch(Inventory inventory, boolean toHomogeneous) {
+        if (toHomogeneous) {
+            // Nothing lives only on the heterogeneous side yet. The Arten will, and the clause goes here.
+            return List.of();
+        }
+        var blockers = new ArrayList<SwitchBlocker>();
+        blockers.addAll(inventoryRepository.findRequirementBlockers(inventory.id()));
+        blockers.addAll(inventoryRepository.findOpenProcurementBlockers(inventory.id()));
+        blockers.addAll(inventoryRepository.findOpenExchangeBlockers(inventory.id()));
+        blockers.addAll(inventoryRepository.findSizeBlockers(inventory.id()));
+        return List.copyOf(blockers);
+    }
+
+    private void requireNothingDependsOnIt(Inventory inventory, boolean toHomogeneous) {
+        var blockers = blockersForSwitch(inventory, toHomogeneous);
+        if (blockers.isEmpty()) return;
+        log.info(
+                "Refused to switch inventory {} to {}: {} things depend on it",
+                inventory.id(),
+                toHomogeneous ? "homogeneous" : "heterogeneous",
+                blockers.size());
+        throw new InventorySwitchRefusedException(
+                toHomogeneous
+                        ? "This inventory still holds things that only exist for a drawer of different things"
+                        : "Requirements, orders, exchanges and sizes only exist for an inventory of one thing, and this one still has some",
+                blockers);
+    }
+
+    /**
+     * Refuses putting the size list away while there is still a list.
+     *
+     * <p>The sizes the items carry point at rows of it, so hiding the list would leave every one of
+     * them naming something no screen shows any more. Emptying the list first is the same act done in
+     * the right order, and the refusal names the sizes so it is clear what has to go.
+     */
+    private void requireNoSizesLeft(Inventory inventory) {
+        var blockers = inventoryRepository.findSizeBlockers(inventory.id());
+        if (blockers.isEmpty()) return;
+        log.info("Refused to drop the size list of inventory {}: {} sizes are on it", inventory.id(), blockers.size());
+        throw new InventorySwitchRefusedException(
+                "The size list still has sizes on it, and the pieces are carrying them", blockers);
+    }
+
+    /**
+     * Refuses one of the three features that only mean something for an inventory of one thing in
+     * many copies.
+     *
+     * <p>The pickers offer only the inventories where these make sense, so this is the second line
+     * rather than the first: a request that reached here named a drawer of different things anyway.
+     *
+     * @param inventoryId the inventory the feature would point at
+     * @param what        the feature, named as the refusal should read
+     * @throws BadRequestResponse when the inventory holds a drawer of different things
+     */
+    public void requireHomogeneous(int inventoryId, String what) {
+        boolean homogeneous = inventoryRepository
+                .findById(inventoryId)
+                .map(Inventory::homogeneous)
+                .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
+        if (!homogeneous) {
+            throw new BadRequestResponse(
+                    "This inventory holds a drawer of different things, so " + what + " does not apply to it");
+        }
     }
 
     /**
@@ -164,6 +270,7 @@ public class InventoryService {
      * @return the updated list of all sizes for the inventory
      */
     public List<InventorySize> createSize(int inventoryId, String label, int position, String note) {
+        requireHomogeneous(inventoryId, "a size list");
         inventoryRepository.createSize(inventoryId, label, position, note);
         log.info("Created size (label='{}', position={}) in inventory {}", label, position, inventoryId);
         return inventoryRepository.findSizes(inventoryId);
@@ -465,6 +572,69 @@ public class InventoryService {
     }
 
     /**
+     * Moves an item into another inventory of the same station.
+     *
+     * <p>Splitting one inventory into two used to mean deleting the items and writing them again,
+     * which throws away their identifiers, their assignments, their history and their custody chain.
+     * The piece is the same piece afterwards; only the drawer it is filed under has changed, so the
+     * row moves rather than being replaced.
+     *
+     * <p>The size cannot come along as it stands, because the size list belongs to the inventory being
+     * left. Where the new inventory offers a size of the same name the item keeps that size under the
+     * new list, and where it does not the item arrives without one. Nothing is invented and nothing
+     * points at a size the item's inventory does not have.
+     *
+     * @param itemId          the item to move
+     * @param inventoryId     the inventory it moves into
+     * @param actingClusterId the body the caller answers for, or {@code null} when they act as the station
+     * @return the moved item, or empty if it was not found
+     * @throws BadRequestResponse when the target inventory belongs to another station
+     */
+    public Optional<InventoryItem> moveItem(int itemId, int inventoryId, Integer actingClusterId) {
+        requireOwned(itemId, "moved", actingClusterId);
+        InventoryItem item = inventoryRepository.findItemById(itemId).orElseThrow(NotFoundResponse::new);
+        Inventory target = inventoryRepository
+                .findById(inventoryId)
+                .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
+        Inventory source = inventoryRepository
+                .findById(item.inventoryId())
+                .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
+        if (target.stationId() != source.stationId()) {
+            throw new BadRequestResponse("A piece can only be moved into an inventory of the same station");
+        }
+        if (target.id() == source.id()) {
+            return Optional.of(item);
+        }
+
+        Integer sizeId = remappedSize(item, source, target);
+        if (inventoryRepository.moveItemToInventory(itemId, inventoryId, sizeId)) {
+            log.info("Moved item {} from inventory {} to {} (sizeId={})", itemId, source.id(), inventoryId, sizeId);
+            return inventoryRepository.findItemById(itemId);
+        }
+        log.warn("Move of item {} did not find a row to change", itemId);
+        return Optional.empty();
+    }
+
+    /**
+     * The size the item carries once it is in the new inventory: the one of the same name there, or
+     * none at all.
+     */
+    private Integer remappedSize(InventoryItem item, Inventory source, Inventory target) {
+        if (item.sizeId() == null || !target.hasSizes()) return null;
+        String label = inventoryRepository.findSizes(source.id()).stream()
+                .filter(size -> size.id() == item.sizeId())
+                .map(InventorySize::label)
+                .findFirst()
+                .orElse(null);
+        if (label == null) return null;
+        return inventoryRepository.findSizes(target.id()).stream()
+                .filter(size -> size.label().equals(label))
+                .map(InventorySize::id)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
      * Assigns an item to a member (or unassigns it) with full history tracking.
      * If the item is currently assigned, the existing history entry is closed. If a new member is specified,
      * a new history entry is created.
@@ -639,6 +809,7 @@ public class InventoryService {
      */
     public InventoryRequirement createRequirement(
             int inventoryId, StationUserType userType, int groupId, Integer stationGroupId, int quantity) {
+        requireHomogeneous(inventoryId, "a requirement");
         requireGroupOfTheOwningCluster(inventoryId, stationGroupId);
         InventoryRequirement requirement =
                 inventoryRepository.createRequirement(inventoryId, userType, groupId, stationGroupId, quantity);

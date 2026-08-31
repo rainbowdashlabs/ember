@@ -52,6 +52,12 @@ export interface InventoryRoutes {
     memberGroups?: string
     exchanges?: string
     /**
+     * Where pieces are moved from one inventory to another, which is how an inventory is split in
+     * two without the pieces losing their identity. Absent at an association, whose store is not
+     * divided along the line this exists to draw.
+     */
+    move?: string
+    /**
      * Where a station writes down an inventory it already owns, member by member. Absent at an
      * association: its store holds gear rather than handing it to people it keeps a list of.
      */
@@ -82,6 +88,7 @@ export const STATION_INVENTORY_ROUTES: InventoryRoutes = {
     member: 'inventory-member',
     memberGroups: 'members-groups',
     exchanges: 'inventory-exchanges',
+    move: 'inventory-move',
     intake: 'inventory-intake',
     lending: 'inventory-lending',
     lendingBlocks: 'inventory-lending-blocks',
