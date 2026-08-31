@@ -8,13 +8,10 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {Inventory, InventoryDetail, InventoryItem} from '@/api/inventory'
 import {inventory} from '@/api'
@@ -22,6 +19,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import MoveItemsTable from './moveitemsview/MoveItemsTable.vue'
+import MoveTargetPicker from './moveitemsview/MoveTargetPicker.vue'
 
 /**
  * Moving pieces out of one inventory and into another.
@@ -115,43 +113,39 @@ const {running: moving, error: moveError, run: runMove} = useAsyncAction(async (
         {{ t('inventory.move.back') }}
       </SecondaryButton>
 
-      <AsyncSection :loading="loading" :error="error" :empty="items.length === 0"
-                    :empty-message="t('inventory.move.nothingToMove')">
+      <AsyncSection :loading="loading" :error="error">
         <div class="space-y-6">
-          <NeutralContainer class="space-y-4">
-            <SubHeader>{{ t('inventory.move.target') }}</SubHeader>
-            <p class="text-sm text-(--text-muted)">{{ t('inventory.move.explainer') }}</p>
-            <div class="space-y-1">
-              <FieldLabel>{{ t('inventory.move.targetLabel') }}</FieldLabel>
-              <SelectInput v-model="targetId" data-testid="move-target" @change="onTargetSelected">
-                <option disabled value="">{{ t('inventory.move.selectTarget') }}</option>
-                <option v-for="target in targets" :key="target.id" :value="String(target.id)">
-                  {{ target.name }}
-                </option>
-              </SelectInput>
-            </div>
-          </NeutralContainer>
-
-          <MoveItemsTable
-              :items="items"
-              :selected="selected"
-              :size-label="sizeLabel"
-              :target-size-labels="targetSizeLabels"
-              :target-chosen="!!targetId"
-              @toggle="toggle"
-              @toggle-all="toggleAll"
-          />
+          <MoveTargetPicker v-model="targetId" :targets="targets" @selected="onTargetSelected"/>
 
           <Alert v-if="moveError" variant="error">{{ moveError }}</Alert>
+          <!--
+            What was moved has to stay legible after the list it came from has emptied, which is the
+            usual way a split ends: the last piece leaves and the page would otherwise say only that
+            there is nothing here, with no word about what just happened.
+          -->
           <Alert v-if="moved > 0" variant="success" data-testid="move-done">
             {{ t('inventory.move.moved', {count: moved}) }}
           </Alert>
 
-          <PrimaryButton :disabled="!targetId || selected.size === 0 || moving"
-                         :icon="['fas', 'right-left']" data-testid="move-submit"
-                         @click="runMove()">
-            {{ t('inventory.move.submit', {count: selected.size}) }}
-          </PrimaryButton>
+          <EmptyState v-if="items.length === 0" :message="t('inventory.move.nothingToMove')"/>
+
+          <template v-else>
+            <MoveItemsTable
+                :items="items"
+                :selected="selected"
+                :size-label="sizeLabel"
+                :target-size-labels="targetSizeLabels"
+                :target-chosen="!!targetId"
+                @toggle="toggle"
+                @toggle-all="toggleAll"
+            />
+
+            <PrimaryButton :disabled="!targetId || selected.size === 0 || moving"
+                           :icon="['fas', 'right-left']" data-testid="move-submit"
+                           @click="runMove()">
+              {{ t('inventory.move.submit', {count: selected.size}) }}
+            </PrimaryButton>
+          </template>
         </div>
       </AsyncSection>
     </div>
