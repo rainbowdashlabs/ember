@@ -36,7 +36,9 @@ public class InventoryTagRepository {
             SELECT i.id                                                    AS item_id,
                    i.internal_id                                           AS internal_id,
                    i.name                                                  AS item_name,
+                   inv.id                                                  AS inventory_id,
                    inv.name                                                AS inventory_name,
+                   i.art_id                                                AS art_id,
                    s.uid                                                   AS station_uid,
                    s.name                                                  AS station_name,
                    t.name                                                  AS tag_name,
@@ -209,39 +211,24 @@ public class InventoryTagRepository {
     }
 
     /**
-     * The items a station serves to one partner for a tag: the same query as
-     * {@link #findItemsByTag}, narrowed to what the station offers that partner.
+     * Every piece of one station carrying a tag, with the inventory and kind each sits in, so that
+     * what a partner may see can be decided against the station's offer rather than guessed here.
      *
-     * <p>Where the station has named what it offers, only that is served, whether it named whole
-     * inventories or single pieces and whether it named every partner or a few. Where it has named
-     * nothing at all, the answer is the free stock, which is exactly what the same partner is
-     * already shown when it browses for something to borrow. So a word can never reach further than
-     * browsing already does, and it narrows to the offer the day a station makes one.
+     * <p>This answers nothing about sharing on purpose. The offer is one decision and it lives in
+     * one place; a second rule written here would be a second way to the same gear, and the two
+     * would drift.
      *
      * @param stationId the station serving the request
-     * @param partnerId the partnership the request arrived on
      * @param name      the tag name as the asking station typed it
-     * @return the items found
+     * @return every tagged piece, whether or not it is offered
      */
-    public List<TaggedItemSummary> findSharedItemsByTag(int stationId, int partnerId, String name) {
+    public List<TaggedItemSummary> findTaggedItemsOfStation(int stationId, String name) {
         return query(TAGGED_ITEM_SELECT + """
                         WHERE t.canonical_name = :canonical
                           AND inv.station_id = :station_id
-                          AND (EXISTS (SELECT 1
-                                       FROM federation_inventory_share sh
-                                                LEFT JOIN federation_inventory_share_target st ON st.share_id = sh.id
-                                       WHERE sh.station_id = inv.station_id
-                                         AND (sh.inventory_id = inv.id OR sh.item_id = i.id)
-                                         AND (sh.share_scope = 'ALL_PARTNERS' OR st.partner_id = :partner_id))
-                               OR (NOT EXISTS (SELECT 1
-                                               FROM federation_inventory_share sh
-                                               WHERE sh.station_id = inv.station_id)
-                                   AND i.assigned_to IS NULL
-                                   AND i.lost_at IS NULL))
                         ORDER BY inv.name, i.name, i.id;""")
                 .single(call().bind("canonical", InventoryTag.canonical(name))
-                        .bind("station_id", stationId)
-                        .bind("partner_id", partnerId))
+                        .bind("station_id", stationId))
                 .map(TaggedItemSummary.map())
                 .all();
     }

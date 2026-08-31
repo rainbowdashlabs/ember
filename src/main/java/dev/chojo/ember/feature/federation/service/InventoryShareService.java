@@ -68,7 +68,26 @@ public class InventoryShareService {
      * @param partnerStationUid  the station that would like to borrow it
      */
     public SharePolicy policyFor(int ownerStationId, UUID partnerStationUid) {
-        var partner = findPartnership(ownerStationId, partnerStationUid);
+        return policyFrom(ownerStationId, findPartnership(ownerStationId, partnerStationUid));
+    }
+
+    /**
+     * The same policy for a partnership already in hand, which is what a request arriving over
+     * federation carries instead of the asking station's uid.
+     *
+     * @param ownerStationId the station whose gear it is
+     * @param partnerId      the partnership the request arrived on
+     */
+    public SharePolicy policyForPartnership(int ownerStationId, int partnerId) {
+        var partner = federationService.findPartners(ownerStationId).stream()
+                .filter(p -> p.id() == partnerId)
+                .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
+                .findFirst()
+                .orElse(null);
+        return policyFrom(ownerStationId, partner);
+    }
+
+    private SharePolicy policyFrom(int ownerStationId, FederationPartner partner) {
         if (partner == null) return SharePolicy.closed();
         if (!federationService.hasCapability(partner, CapabilityType.INVENTORY_LEND, Direction.EXPORT)) {
             return SharePolicy.closed();
