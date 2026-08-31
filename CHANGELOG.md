@@ -20,6 +20,10 @@
 - **A lent-out piece says which partner has it.** Equipment out on loan showed as being with a partner without naming which one, so answering "where is that radio" meant opening the lending request. The name now stands on the equipment itself.
 - **The questions of an attendance sheet can be taken straight into an appointment.** Where an appointment names a sheet, its fields are now offered above the appointment's own questions, one at a time or all at once. They arrive with their name, their type and their settings, already tied to the field they came from, which is what makes the answer given at the appointment land on the sheet; a field already taken is not offered a second time. The same offer stands in the appointment templates.
 
+### Security
+
+- **A waiting list entry behind its own link is no longer cached.** The page a family opens from the link in their mail carries a name, an address and where they stand on the list, and it was marked as freely cacheable for an hour, so any cache along the way could keep a copy. It is now stored nowhere, which also means the page shows what has just been answered instead of what it said an hour ago.
+
 ### Changes
 
 - **Crowded button rows keep one button and a menu.** The attendance sheet, a wiki file, a question catalogue and a test sheet showed as many as seven buttons above the page at once, which on a phone filled the screen before the page began. Each now shows the one action it is opened for and keeps the rest, exports and deletion included, in a menu beside it.
