@@ -82,8 +82,16 @@ const procedureTemplates = ref<ProcedureTemplate[]>([])
 /** What has already been prepared for this evening, so a second press does not make a second list. */
 const existingProcedure = ref<Procedure | null>(null)
 
+/**
+ * Makes the list, either as a copy of tonight's names or as one tied to this evening.
+ *
+ * <p>A following list names the occurrence instead of the people, and the server resolves the same
+ * accepted sign-ups from it, so the two agree on the first day and only the following one can still
+ * agree on the next.
+ */
 const {running: creating, error, run: runCreateChecklist} = useAsyncAction(
-    async (payload: {name: string; description: string; column: string}) => {
+    async (payload: {name: string; description: string; column: string; following: boolean}) => {
+      const following = payload.following && props.effectiveDate !== null
       const detail = await checklists.createChecklist({
         name: payload.name,
         description: payload.description,
@@ -92,9 +100,12 @@ const {running: creating, error, run: runCreateChecklist} = useAsyncAction(
           userTypes: [],
           groupIds: [],
           tagIds: [],
-          memberIds: props.memberSet.memberIds,
+          memberIds: following ? [] : props.memberSet.memberIds,
           mode: 'OR',
         },
+        ...(following && props.effectiveDate
+            ? {source: {eventId: props.event.id, date: props.effectiveDate}}
+            : {}),
       })
       showChecklist.value = false
       showToast(t('signupLists.checklistCreated', {count: props.memberSet.count}), 'success')

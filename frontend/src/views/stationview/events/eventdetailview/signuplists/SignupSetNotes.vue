@@ -20,6 +20,14 @@ defineProps<{
   memberSet: SignupMemberSet
   /** The evening the set belongs to, already written the way a reader reads a date. */
   dateLabel: string
+  /**
+   * Whether what is being made stays tied to this evening instead of copying it once.
+   *
+   * <p>The closing sentence is the one people read hardest, and it has to say the opposite thing in
+   * each case: a copy never catches up, while a list that follows the evening does, but only when
+   * somebody presses the refresh button on it.
+   */
+  following?: boolean
 }>()
 
 const {t} = useI18n()
@@ -36,6 +44,8 @@ const {t} = useI18n()
     <MutedText v-if="memberSet.formerCount > 0" tag="p" size="sm">
       {{ t('signupLists.formerLeftOut', {count: memberSet.formerCount}) }}
     </MutedText>
-    <Alert variant="info" class="mt-2">{{ t('signupLists.snapshot') }}</Alert>
+    <Alert variant="info" class="mt-2">
+      {{ following ? t('signupLists.following') : t('signupLists.snapshot') }}
+    </Alert>
   </div>
 </template>
