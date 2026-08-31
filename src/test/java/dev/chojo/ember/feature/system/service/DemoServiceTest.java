@@ -289,6 +289,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationService,
                 stationRepo,
                 inventoryRepo,
+                clusterRepo,
                 itemCustodyService,
                 noOpBus);
         var federatedBoardService = new FederatedBoardService(federatedBoardRepo);

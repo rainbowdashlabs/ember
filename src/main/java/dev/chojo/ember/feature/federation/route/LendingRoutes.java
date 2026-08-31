@@ -212,8 +212,8 @@ public class LendingRoutes implements Routes {
             if (ri.inventoryId() == null) continue;
             var inv = inventoryRepository.findById(ri.inventoryId()).orElse(null);
             if (inv == null) continue;
-            var unassigned = inventoryRepository.findUnassignedItems(ri.inventoryId());
-            for (var item : unassigned) {
+            var assignable = service.findAssignableItems(session.stationId(), ri.inventoryId());
+            for (var item : assignable) {
                 String sizeName = null;
                 if (item.sizeId() != null) {
                     sizeName = inventoryRepository.findSizes(ri.inventoryId()).stream()
@@ -248,7 +248,7 @@ public class LendingRoutes implements Routes {
         var assignments = ctx.bodyAsClass(AssignItemsRequest.class);
         if (assignments.items() != null) {
             for (var a : assignments.items()) {
-                service.assignItem(a.requestItemId(), a.itemId());
+                service.assignItem(a.requestItemId(), a.itemId(), session.stationId());
             }
         }
         ctx.status(HttpStatus.NO_CONTENT);
