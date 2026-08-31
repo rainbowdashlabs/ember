@@ -64,9 +64,7 @@ public class SelfCheckReviewRoutes implements Routes {
         routes.get(prefix + "/self-check-reviews", this::forStation, StationPermission.INVENTORY_CHECK);
         routes.get(prefix + "/self-check-reviews/{id}", this::read, StationPermission.INVENTORY_CHECK);
         routes.post(
-                prefix + "/self-check-reviews/{id}/rows/{rowId}/take",
-                this::take,
-                StationPermission.INVENTORY_CHECK);
+                prefix + "/self-check-reviews/{id}/rows/{rowId}/take", this::take, StationPermission.INVENTORY_CHECK);
         routes.post(
                 prefix + "/self-check-reviews/{id}/rows/{rowId}/correct",
                 this::correct,

@@ -14,14 +14,14 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
-import type {InventorySize, MyInventoryItem} from '@/api/inventory'
+import type {InventorySize, NamedPiece} from '@/api/inventory'
 
 const modelValue = defineModel<boolean>({required: true})
 const reason = defineModel<string>('reason', {required: true})
 const newSizeId = defineModel<string>('newSizeId', {required: true})
 
 defineProps<{
-  item: MyInventoryItem | null
+  item: NamedPiece | null
   sizes: InventorySize[]
   submitting: boolean
   error: string

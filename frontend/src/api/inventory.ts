@@ -197,6 +197,13 @@ export interface AssignRequest {
 /** What was written when gear was reported missing. */
 export interface LostRequest {
     note?: string
+    /**
+     * The self-check this was reported during, where it was reported during one.
+     *
+     * <p>The piece counts as missing from the moment it is said, task or no task. Naming the task
+     * only records that it happened while the member was answering.
+     */
+    selfCheckId?: number | null
 }
 
 /** What the station has decided about its gear beyond any one inventory. */
@@ -249,6 +256,20 @@ export interface InventoryItemHistory {
     /** Whether a check ended the spell by putting the record right rather than by a hand-back. */
     corrected?: boolean
     memberIdentity?: MemberIdentity | null
+}
+
+/**
+ * The little a dialogue about one piece needs in order to name it.
+ *
+ * <p>Both the loss and the exchange are raised from more than one screen now, and each screen holds
+ * its pieces in the shape its own endpoint returns. What the dialogue reads is the same three words
+ * either way.
+ */
+export interface NamedPiece {
+    inventoryName: string
+    name?: string
+    sizeId?: number | null
+    sizeName?: string | null
 }
 
 export interface MyInventoryItem {
@@ -308,6 +329,11 @@ export interface RequiredInventoryItem {
     inventoryName: string
     inventoryType: string
     hasSizes: boolean
+    /**
+     * Whether the inventory holds one thing in many copies, which is what makes a piece of it
+     * exchangeable. Among a drawer of different things there is nothing to swap one for.
+     */
+    homogeneous: boolean
     sizes: InventorySize[]
     requiredQuantity: number
     /** What the member has towards it, counting pieces away in an exchange. */

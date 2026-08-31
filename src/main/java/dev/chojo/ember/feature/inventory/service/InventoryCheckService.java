@@ -421,8 +421,13 @@ public class InventoryCheckService {
                             ci.note());
                 })
                 .toList();
-        return Optional.of(
-                new EnrichedCheckDetail(d.check(), d.checkerFirstName(), d.checkerLastName(), enrichedItems));
+        return Optional.of(new EnrichedCheckDetail(
+                d.check(),
+                d.checkerFirstName(),
+                d.checkerLastName(),
+                d.reporterFirstName(),
+                d.reporterLastName(),
+                enrichedItems));
     }
 
     /**
@@ -494,12 +499,14 @@ public class InventoryCheckService {
             String invName = inv != null ? inv.name() : "#" + inventoryId;
             InventoryType invType = inv != null ? inv.inventoryType() : InventoryType.INTERNAL;
             boolean hasSizes = inv != null && inv.hasSizes();
+            boolean homogeneous = inv != null && inv.homogeneous();
             List<InventorySize> sizes = hasSizes ? inventoryRepository.findSizes(inventoryId) : List.of();
             result.add(new RequiredInventoryItem(
                     inventoryId,
                     invName,
                     invType,
                     hasSizes,
+                    homogeneous,
                     sizes,
                     requiredQty,
                     assignedQty,

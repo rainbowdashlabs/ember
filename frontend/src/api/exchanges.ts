@@ -71,6 +71,13 @@ export interface CreateExchangeRequest {
     oldSizeId?: number | null
     newSizeId?: number | null
     reason: string
+    /**
+     * The self-check this was raised during, where it was raised during one.
+     *
+     * <p>The exchange does not wait for anybody either way. Naming the task only records that it
+     * happened while the member was answering, so whoever reads the submission can see it.
+     */
+    selfCheckId?: number | null
 }
 
 export interface UpdateStatusRequest {
