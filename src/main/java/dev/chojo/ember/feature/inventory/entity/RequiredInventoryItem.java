@@ -14,6 +14,9 @@ import java.util.List;
  * @param inventoryName    the inventory name
  * @param inventoryType    the inventory type
  * @param hasSizes         whether the inventory supports sizes
+ * @param homogeneous      whether the inventory holds one thing in many copies, which is what makes
+ *                         a piece of it exchangeable: among a drawer of different things there is
+ *                         nothing to swap one for, and the exchange is refused there
  * @param sizes            the available sizes if applicable
  * @param requiredQuantity the total required quantity
  * @param assignedQuantity what the member has towards it, counting what is away in an exchange
@@ -24,6 +27,7 @@ public record RequiredInventoryItem(
         String inventoryName,
         InventoryType inventoryType,
         boolean hasSizes,
+        boolean homogeneous,
         List<InventorySize> sizes,
         int requiredQuantity,
         int assignedQuantity,

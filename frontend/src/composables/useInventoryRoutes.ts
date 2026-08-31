@@ -34,6 +34,12 @@ export interface InventoryRoutes {
     /** Absent at an association: it keeps gear in containers, not on people. */
     checkMember?: string
     checkResult?: string
+    /**
+     * Where a member answers for their own gear, and where a checker reads what they said. Absent at
+     * an association for the same reason as the walk: it has no members to ask.
+     */
+    selfCheck?: string
+    selfCheckReview?: string
     /** Absent at an association: it dispatches gear to a station, not to a person. */
     member?: string
     /** Absent at a station: sending gear out of the store is the owner's act, not the holder's. */
@@ -94,6 +100,8 @@ export const STATION_INVENTORY_ROUTES: InventoryRoutes = {
     checkContainerWalk: 'inventory-check-container-walk',
     checkMember: 'inventory-check-member',
     checkResult: 'inventory-check-result',
+    selfCheck: 'inventory-self-check',
+    selfCheckReview: 'inventory-self-check-review',
     member: 'inventory-member',
     memberGroups: 'members-groups',
     exchanges: 'inventory-exchanges',

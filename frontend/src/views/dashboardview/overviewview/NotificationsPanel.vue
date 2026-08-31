@@ -70,6 +70,9 @@ const typeIcons: Record<string, string> = {
   PROCEDURE_RESOLVED: 'clipboard-check',
   PROCEDURE_REOPENED: 'rotate',
   PROCEDURE_ITEM_CHECKED: 'square-check',
+  SELF_CHECK_ASSIGNED: 'shirt',
+  SELF_CHECK_SUBMITTED: 'inbox',
+  SELF_CHECK_ROW_REFUSED: 'rotate-left',
 }
 
 /**

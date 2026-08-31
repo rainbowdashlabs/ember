@@ -179,7 +179,11 @@ public class SelfCheckReviewService {
         if (!repository.take(rowId, reviewerId)) {
             throw new ConflictResponse("Somebody has already settled this answer");
         }
-        log.info("Self-check {} row {} corrected onto piece {} by member {}", taskId, rowId, replacement.id(),
+        log.info(
+                "Self-check {} row {} corrected onto piece {} by member {}",
+                taskId,
+                rowId,
+                replacement.id(),
                 reviewerId);
         return settled(task, reviewerId);
     }
@@ -258,8 +262,8 @@ public class SelfCheckReviewService {
     private void complete(SelfCheck task, int reviewerId) {
         if (!repository.finish(task.id(), SelfCheckState.DONE, null)) return;
         List<SelfCheckRow> rows = repository.findRows(task.id());
-        InventoryCheck check = checkRepository.createCheck(
-                task.stationId(), task.memberId(), reviewerId, task.submittedBy());
+        InventoryCheck check =
+                checkRepository.createCheck(task.stationId(), task.memberId(), reviewerId, task.submittedBy());
         for (CheckItemRequest result : resultsOf(rows)) {
             checkRepository.createCheckItem(
                     check.id(), result.itemId(), result.inventoryId(), result.result(), result.note());
@@ -309,9 +313,8 @@ public class SelfCheckReviewService {
             case DO_NOT_HAVE_IT -> SelfCheckSettlement.RECORDS_NOT_HELD;
             case TURNED_UP -> SelfCheckSettlement.MARKS_FOUND;
             case NEVER_HAD -> SelfCheckSettlement.CONFIRMS_GAP;
-            case WRONG_RECORD -> settled
-                    ? SelfCheckSettlement.CONFIRMS_PIECE
-                    : SelfCheckSettlement.NEEDS_RECORD_PUT_RIGHT;
+            case WRONG_RECORD ->
+                settled ? SelfCheckSettlement.CONFIRMS_PIECE : SelfCheckSettlement.NEEDS_RECORD_PUT_RIGHT;
             case HAVE_ONE -> repointed ? SelfCheckSettlement.CONFIRMS_PIECE : SelfCheckSettlement.NEEDS_A_PIECE_NAMED;
         };
     }
@@ -362,7 +365,8 @@ public class SelfCheckReviewService {
      * unique and the containers share the numbering with the gear.
      */
     private SelfCheckIdentifierMatch identifierOf(SelfCheck task, SelfCheckRow row) {
-        String typed = row.typedInternalId() == null ? "" : row.typedInternalId().strip();
+        String typed =
+                row.typedInternalId() == null ? "" : row.typedInternalId().strip();
         if (typed.isEmpty()) return SelfCheckIdentifierMatch.nothingTyped();
         List<SelfCheckIdentifierMatch.Piece> pieces =
                 inventoryRepository.findAllByInternalId(task.stationId(), typed).stream()
@@ -504,10 +508,7 @@ public class SelfCheckReviewService {
     }
 
     private String inventoryNameOf(int inventoryId) {
-        return inventoryRepository
-                .findById(inventoryId)
-                .map(Inventory::name)
-                .orElse("");
+        return inventoryRepository.findById(inventoryId).map(Inventory::name).orElse("");
     }
 
     private String nameOf(Integer memberId) {

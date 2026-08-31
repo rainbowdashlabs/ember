@@ -45,13 +45,9 @@ public record SelfCheckIdentifierMatch(
     private static SelfCheckIdentifierFinding finding(List<Piece> pieces, List<String> containers) {
         if (pieces.size() + containers.size() > 1) return SelfCheckIdentifierFinding.SEVERAL;
         if (pieces.isEmpty()) {
-            return containers.isEmpty()
-                    ? SelfCheckIdentifierFinding.NO_MATCH
-                    : SelfCheckIdentifierFinding.A_CONTAINER;
+            return containers.isEmpty() ? SelfCheckIdentifierFinding.NO_MATCH : SelfCheckIdentifierFinding.A_CONTAINER;
         }
-        return pieces.getFirst().heldBy() == null
-                ? SelfCheckIdentifierFinding.FREE
-                : SelfCheckIdentifierFinding.HELD;
+        return pieces.getFirst().heldBy() == null ? SelfCheckIdentifierFinding.FREE : SelfCheckIdentifierFinding.HELD;
     }
 
     /**

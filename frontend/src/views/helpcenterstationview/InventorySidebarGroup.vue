@@ -94,6 +94,14 @@ const {t} = useI18n()
                    to="/helpcenter/station/inventory/checks/0/result" @navigate="close">
         {{ t('sidebar.inventoryCheckResult') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'shirt']" name="help-inventory-self-check"
+                   to="/helpcenter/station/inventory/self-check/0" @navigate="close">
+        {{ t('helpCenter.inventorySelfCheck.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'inbox']" name="help-inventory-self-check-review"
+                   to="/helpcenter/station/inventory/checks/self/0" @navigate="close">
+        {{ t('helpCenter.inventorySelfCheckReview.title') }}
+      </SidebarLink>
     </SidebarExpandableLink>
     <SidebarLink :icon="['fas', 'folder-plus']" name="help-inventory-procurement"
                  to="/helpcenter/station/inventory/procurement" @navigate="close">

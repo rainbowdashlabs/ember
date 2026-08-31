@@ -124,7 +124,9 @@ public class SelfCheckService {
      */
     private void announce(SelfCheck task, int handedOutBy) {
         var params = new NotificationParams.SelfCheckAssigned(
-                nameOf(task.memberId()), nameOf(handedOutBy), task.dueOn() == null ? "" : task.dueOn().toString());
+                nameOf(task.memberId()),
+                nameOf(handedOutBy),
+                task.dueOn() == null ? "" : task.dueOn().toString());
         var data = NotificationData.of(
                 params, new NotificationData.NotificationLink("inventory-self-check", Map.of("id", task.id())));
         notificationService.notifyIfAbsent(task.memberId(), NotificationType.SELF_CHECK_ASSIGNED, data);
@@ -139,11 +141,13 @@ public class SelfCheckService {
     private void announceSubmission(SelfCheck task, int submittedBy) {
         var params = new NotificationParams.SelfCheckSubmitted(nameOf(task.memberId()), nameOf(submittedBy));
         var data = NotificationData.of(
-                params,
-                new NotificationData.NotificationLink("inventory-self-check-review", Map.of("id", task.id())));
+                params, new NotificationData.NotificationLink("inventory-self-check-review", Map.of("id", task.id())));
         notificationService.notifyMembersWithRole(
-                task.stationId(), StationPermission.INVENTORY_CHECK.name(), NotificationType.SELF_CHECK_SUBMITTED,
-                data, submittedBy);
+                task.stationId(),
+                StationPermission.INVENTORY_CHECK.name(),
+                NotificationType.SELF_CHECK_SUBMITTED,
+                data,
+                submittedBy);
     }
 
     /**

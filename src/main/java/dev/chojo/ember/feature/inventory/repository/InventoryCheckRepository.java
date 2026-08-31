@@ -74,6 +74,13 @@ public class InventoryCheckRepository {
     }
 
     /**
+     * One check by id, for a reader that already knows which one it wants.
+     */
+    public Optional<InventoryCheck> findById(int id) {
+        return SqlSupport.findById("inventory_check", INVENTORY_CHECK_COLUMNS, id, InventoryCheck.map());
+    }
+
+    /**
      * Creates a new container-scoped check.
      *
      * @param stationId   the station ID
@@ -200,15 +207,24 @@ public class InventoryCheckRepository {
         var check = latestCheckForMember(memberId);
         if (check.isEmpty()) return Optional.empty();
         var items = findCheckItems(check.get().id());
-        var names = query("""
+        var checker = nameOf(check.get().checkedBy());
+        var reporter = nameOf(check.get().reportedBy());
+        return Optional.of(new CheckDetail(check.get(), checker[0], checker[1], reporter[0], reporter[1], items));
+    }
+
+    /**
+     * The first and last name of one member, empty where there is nobody to name.
+     */
+    private String[] nameOf(Integer memberId) {
+        if (memberId == null) return new String[] {"", ""};
+        return query("""
                 SELECT a.first_name, a.last_name FROM station_member sm
                     JOIN account a ON a.id = sm.account_id
                 WHERE sm.id = :id;""")
-                .single(call().bind("id", check.get().checkedBy()))
+                .single(call().bind("id", memberId))
                 .map(row -> new String[] {row.getString("first_name"), row.getString("last_name")})
                 .first()
                 .orElse(new String[] {"", ""});
-        return Optional.of(new CheckDetail(check.get(), names[0], names[1], items));
     }
 
     /**
@@ -288,11 +304,15 @@ public class InventoryCheckRepository {
                     ci.note,
                     a.first_name,
                     a.last_name,
+                    ra.first_name   AS reporter_first_name,
+                    ra.last_name    AS reporter_last_name,
                     co.name         AS container_name
                 FROM inventory_check_item ci
                     JOIN inventory_check c ON c.id = ci.check_id
                     LEFT JOIN station_member sm ON sm.id = c.checked_by
                     LEFT JOIN account a ON a.id = sm.account_id
+                    LEFT JOIN station_member rm ON rm.id = c.reported_by
+                    LEFT JOIN account ra ON ra.id = rm.account_id
                     LEFT JOIN inventory_container co ON co.id = c.container_id
                 WHERE ci.item_id = :item_id
                 ORDER BY c.checked_at DESC;""")
@@ -301,12 +321,18 @@ public class InventoryCheckRepository {
                     String first = row.getString("first_name");
                     String last = row.getString("last_name");
                     String checkerName = ((first == null ? "" : first) + " " + (last == null ? "" : last)).trim();
+                    String reporterFirst = row.getString("reporter_first_name");
+                    String reporterLast = row.getString("reporter_last_name");
+                    String reporterName = ((reporterFirst == null ? "" : reporterFirst) + " "
+                                    + (reporterLast == null ? "" : reporterLast))
+                            .trim();
                     String note = row.getString("note");
                     return new ItemCheckHistoryEntry(
                             row.getInt("check_id"),
                             row.getEnum("result", CheckResult.class),
                             row.get("checked_at", INSTANT_TIMESTAMP),
                             checkerName,
+                            reporterName,
                             row.getString("container_name"),
                             row.getString("scope"),
                             note == null ? "" : note);

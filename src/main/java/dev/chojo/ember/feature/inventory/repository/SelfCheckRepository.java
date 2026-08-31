@@ -170,9 +170,7 @@ public class SelfCheckRepository {
      */
     public void attachCheck(int taskId, int checkId) {
         query("""
-                UPDATE inventory_self_check SET check_id = :check_id WHERE id = :id;""")
-                .single(call().bind("id", taskId).bind("check_id", checkId))
-                .update();
+                UPDATE inventory_self_check SET check_id = :check_id WHERE id = :id;""").single(call().bind("id", taskId).bind("check_id", checkId)).update();
     }
 
     /**
@@ -354,9 +352,7 @@ public class SelfCheckRepository {
                 UPDATE inventory_self_check_item
                 SET item_id = :item_id, inventory_id = :inventory_id
                 WHERE id = :id AND state = 'OUTSTANDING';""")
-                .single(call().bind("id", rowId)
-                        .bind("item_id", itemId)
-                        .bind("inventory_id", inventoryId))
+                .single(call().bind("id", rowId).bind("item_id", itemId).bind("inventory_id", inventoryId))
                 .update()
                 .changed();
     }

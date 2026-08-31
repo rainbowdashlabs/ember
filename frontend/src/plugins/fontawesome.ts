@@ -26,7 +26,7 @@ import {
     faUsersGear, faXmark, faXmarkCircle, faCircleQuestion, faFilter, faTags, faBarcode,
     faSquarePollVertical, faStar, faHeart, faThumbsUp, faGripLines, faLocationDot, faCamera,
     faToggleOn, faArrowRightArrowLeft, faPuzzlePiece, faPalette, faBook, faServer, faDatabase,
-    faEnvelope, faArrowDown, faBug, faFlag, faPaperclip, faInbox, faExpand, faRocket,
+    faEnvelope, faArrowDown, faBug, faFlag, faPaperclip, faInbox, faExpand, faRocket, faShirt,
     faShareNodes, faHandshake, faRobot, faCircleXmark, faRotateLeft, faCodeCompare, faTrophy,
     faRedo, faArrowLeft, faHandHolding, faCalendarXmark, faCheckCircle, faEyeSlash, faDesktop,
     faUserGear, faCalendar, faChartBar, faChartPie, faClock, faHand, faImage, faPaperPlane,
@@ -75,7 +75,7 @@ library.add(
     faPaste, faClone, faHourglassHalf, faArrowUp, faSatelliteDish, faMapLocationDot,
     faUserClock, faFloppyDisk, faBoxArchive, faFilePowerpoint, faDisplay, faKey,
     faArrowsUpDown, faLightbulb, faBroom, faTowerBroadcast, faEllipsisVertical,
-    faWarehouse, faBox, faSuitcase, faCube,
+    faWarehouse, faBox, faSuitcase, faCube, faShirt,
 )
 
 export default defineNuxtPlugin((nuxtApp) => {
