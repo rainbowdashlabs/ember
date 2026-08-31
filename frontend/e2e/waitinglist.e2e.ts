@@ -129,6 +129,10 @@ test.describe('Waiting lists', () => {
      * The whole of the first contact: a station invites somebody to one evening, they answer from
      * the link in the mail without signing in, and the answer is back on the entry the station is
      * looking at. Nothing is created along the way, and nobody is signed up for the appointment.
+     *
+     * The evening is picked out of what is coming up, so it is an appointment and one date of it.
+     * The link the answer is given from is the entry's own and needs no session, which is the whole
+     * point: somebody with no interest will not walk through an account just to say no.
      */
     test('an invitation names an evening and is answered from the entry link', async ({managerPage: page, page: visitor}) => {
         const surname = `Einladung-${Date.now()}`
@@ -151,14 +155,12 @@ test.describe('Waiting lists', () => {
         const row = page.getByRole('row').filter({hasText: surname})
         await row.getByRole('button', {name: 'Einladen'}).click()
 
-        // The evening is picked out of what is coming up: an appointment and one date of it.
         const occurrence = page.getByTestId('waitlist-invite-occurrence')
         await occurrence.locator('input[type="search"]').click()
         await occurrence.getByRole('button').first().click()
         await page.getByTestId('waitlist-invite-send').click()
         await expect(page.getByTestId('waitlist-invite-modal')).toHaveCount(0)
 
-        // The link that went out in the mail is the entry's own, and it needs no session.
         const entries = await page.request.get(`/api/v1/waiting-lists/${id}/entries`)
         expect(entries.ok(), `the entries were readable (${entries.status()})`).toBeTruthy()
         const body = await entries.json()
@@ -170,10 +172,11 @@ test.describe('Waiting lists', () => {
         await visitor.getByTestId('waitlist-answer-coming').click()
         await expect(visitor.getByTestId('waitlist-answer-given')).toBeVisible()
 
-        // And the station finds the answer where it is already looking.
         await page.reload()
-        await expect(page.getByRole('row').filter({hasText: surname}).getByTestId('waitlist-answer-badge'))
-            .toBeVisible()
+        await expect(
+            page.getByRole('row').filter({hasText: surname}).getByTestId('waitlist-answer-badge'),
+            'the station finds the answer where it is already looking',
+        ).toBeVisible()
     })
 
     /**
