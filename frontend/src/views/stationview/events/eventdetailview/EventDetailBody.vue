@@ -18,7 +18,7 @@ import EventRegistrationActions from '../eventshared/EventRegistrationActions.vu
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {AbsentMember, EventField, EventRegistrationEntry, StationEvent} from '@/api/events'
-import type {StationMember} from '@/api/types'
+import {StationPermission, type StationMember} from '@/api/types'
 import {formatDateTime} from '@/util/format'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
 
@@ -95,6 +95,8 @@ function onCancelled() {
     <EventDetailHeader
         :event="event"
         :can-manage-events="canManageEvents"
+        :can-write-news="hasPermission(StationPermission.NEWS_EDIT)"
+        :effective-date="effectiveDate"
         :category-name="categoryName"
         @cancel="showCancelModal = true"
     />

@@ -117,8 +117,7 @@ public class NewsFederationRepository {
      * @return the list of shared news IDs
      */
     public List<Integer> findSharedNewsIds(int partnerId, int stationId) {
-        return query(
-                        """
+        return query("""
                 SELECT nfs.news_id
                 FROM news_federation_share nfs
                     JOIN news n ON n.id = nfs.news_id
@@ -128,8 +127,7 @@ public class NewsFederationRepository {
                   AND (nfs.scope = 'ALL_PARTNERS'
                        OR (nfs.scope = 'SPECIFIC'
                            AND exists (SELECT 1 FROM news_federation_share_target nfst
-                                       WHERE nfst.share_id = nfs.id AND nfst.partner_id = :partner_id)));""",
-                        RestrictionSql.unrestricted(RestrictionType.NEWS, "n.id"))
+                                       WHERE nfst.share_id = nfs.id AND nfst.partner_id = :partner_id)));""", RestrictionSql.unrestricted(RestrictionType.NEWS, "n.id"))
                 .single(call().bind("station_id", stationId).bind("partner_id", partnerId))
                 .map(row -> row.getInt("news_id"))
                 .all();
