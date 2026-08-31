@@ -74,6 +74,35 @@ export function formatRelative(iso?: string | null): string {
 }
 
 /**
+ * Turns what a date field holds (`yyyy-MM-dd`) into the instant an endpoint expecting a timestamp
+ * will accept, which is midnight UTC on that day.
+ *
+ * <p>A date field and a timestamp field look interchangeable and are not: handed a bare `2026-03-17`
+ * a backend parsing instants refuses the whole request, so the field silently loses whatever was
+ * typed into it. Anything writing a date into a timestamp goes through here.
+ *
+ * @param date a calendar date, or nothing
+ * @return the ISO instant, or null when there was no date
+ */
+export function dateToInstant(date?: string | null): string | null {
+    if (!date) return null
+    const parsed = new Date(`${date}T00:00:00Z`)
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString()
+}
+
+/**
+ * The counterpart of {@link dateToInstant}: the calendar date a stored instant falls on, ready to
+ * be put back into a date field. Returns an empty string when there is nothing, which is what an
+ * empty date field holds.
+ */
+export function instantToDate(iso?: string | null): string {
+    if (!iso) return ''
+    const parsed = new Date(iso)
+    if (Number.isNaN(parsed.getTime())) return ''
+    return parsed.toISOString().slice(0, 10)
+}
+
+/**
  * Formats a byte count as a compact human-readable size (`B`, `KB`, `MB`), using one decimal
  * place for the kilobyte and megabyte ranges.
  */
