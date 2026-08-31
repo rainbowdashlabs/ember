@@ -25,13 +25,7 @@ package dev.chojo.ember.feature.inventory.entity;
  * @param clusterOwned how many of the available pieces belong to the body above the station
  */
 public record ResolvedCollectionLine(
-        int lineId,
-        Integer itemId,
-        Integer inventoryId,
-        String label,
-        int requested,
-        int available,
-        int clusterOwned) {
+        int lineId, Integer itemId, Integer inventoryId, String label, int requested, int available, int clusterOwned) {
 
     /**
      * Whether the station can fill this line.

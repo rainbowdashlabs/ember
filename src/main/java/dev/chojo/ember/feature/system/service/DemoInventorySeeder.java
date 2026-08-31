@@ -528,7 +528,7 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         var ladestation = inventoryRepository.createItem(sonstiges.id(), null, "Ladestation", null, null);
         var antenne = inventoryRepository.createItem(sonstiges.id(), null, "Antenne", null, null);
 
-        var funk = inventoryRepository.create(stationId, "Funkgeräte", InventoryType.INTERNAL, false);
+        var funk = inventoryRepository.create(stationId, "Handfunkgeräte", InventoryType.INTERNAL, false);
         for (int i = 1; i <= 6; i++) {
             inventoryRepository.createItem(funk.id(), "FUNK-%02d".formatted(i), "Funkgerät blau", null, null);
         }

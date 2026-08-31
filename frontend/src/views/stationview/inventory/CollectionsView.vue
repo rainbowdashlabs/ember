@@ -49,7 +49,7 @@ const {loading, error} = useAsyncLoader(async () => {
 
       <p class="text-sm text-(--text-muted)">{{ t('inventory.collections.hint') }}</p>
 
-      <div v-if="!loading" class="grid gap-4 md:grid-cols-[18rem_1fr] items-start">
+      <div v-if="!loading" class="grid gap-4 md:grid-cols-[18rem_1fr] items-start" data-testid="collections-panel">
         <CollectionList
             :collections="editing.collections.value"
             :selected-id="editing.selectedId.value"

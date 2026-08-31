@@ -84,9 +84,9 @@ class InventoryCollectionServiceTest extends RepositoryTestBase {
         assertTrue(service.findByStation(station.id()).stream()
                 .anyMatch(summary -> summary.collection().name().equals("Spieleabend")));
 
-        assertTrue(service.delete(created.id()));
-        assertTrue(service.delete(withoutNote.id()));
-        assertFalse(service.delete(created.id()));
+        assertTrue(service.delete(created.id(), station.id()));
+        assertTrue(service.delete(withoutNote.id(), station.id()));
+        assertFalse(service.delete(created.id(), station.id()));
     }
 
     @Test
@@ -99,8 +99,7 @@ class InventoryCollectionServiceTest extends RepositoryTestBase {
         assertEquals(own.id(), named.itemId());
         assertEquals(1, named.quantity());
 
-        assertThrows(
-                IllegalArgumentException.class, () -> service.addItemLine(kit.id(), station.id(), elsewhere.id()));
+        assertThrows(IllegalArgumentException.class, () -> service.addItemLine(kit.id(), station.id(), elsewhere.id()));
         assertThrows(IllegalArgumentException.class, () -> service.addItemLine(kit.id(), station.id(), -1));
         assertThrows(IllegalArgumentException.class, () -> service.addItemLine(kit.id(), station.id(), own.id()));
 
@@ -115,7 +114,7 @@ class InventoryCollectionServiceTest extends RepositoryTestBase {
         assertThrows(
                 IllegalArgumentException.class, () -> service.addInventoryLine(kit.id(), station.id(), drawer.id(), 0));
 
-        service.delete(kit.id());
+        service.delete(kit.id(), station.id());
         inventoryRepo.deleteItem(own.id());
         inventoryRepo.deleteItem(elsewhere.id());
     }
@@ -140,7 +139,7 @@ class InventoryCollectionServiceTest extends RepositoryTestBase {
         assertTrue(service.deleteLine(named.id()));
         assertFalse(service.deleteLine(named.id()));
 
-        service.delete(kit.id());
+        service.delete(kit.id(), station.id());
         inventoryRepo.deleteItem(piece.id());
     }
 
@@ -179,7 +178,7 @@ class InventoryCollectionServiceTest extends RepositoryTestBase {
                 () -> service.resolve(kit.id(), station.id(), LocalDate.of(2026, 3, 5), LocalDate.of(2026, 3, 1)));
         assertThrows(IllegalArgumentException.class, () -> service.resolve(-1, station.id(), null, null));
 
-        service.delete(kit.id());
+        service.delete(kit.id(), station.id());
         inventoryRepo.delete(box.id());
     }
 
@@ -201,7 +200,7 @@ class InventoryCollectionServiceTest extends RepositoryTestBase {
                         .map(InventoryCollection::name)
                         .toList());
 
-        service.delete(kit.id());
+        service.delete(kit.id(), station.id());
         inventoryRepo.delete(box.id());
     }
 }
