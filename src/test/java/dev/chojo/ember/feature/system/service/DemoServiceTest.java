@@ -347,6 +347,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var inventorySeeder = new DemoInventorySeeder(
                 inventoryRepo,
                 artRepo,
+                inventoryTagRepo,
                 inventoryCheckRepo,
                 accountRepo,
                 containerSvc,

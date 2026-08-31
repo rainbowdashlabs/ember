@@ -244,6 +244,7 @@ export default {
             procedureManager: 'Nur für Ablauf-Verwalter',
             memberExport: 'Nur mit Exportberechtigung',
             inventoryCreate: 'Nur mit Inventar-Erstellungsrecht',
+            inventoryEdit: 'Nur mit Inventar-Bearbeitungsrecht',
             inventoryManage: 'Nur für Inventarverwalter',
             lostAndFoundCreate: 'Nur mit Fundbüro-Erstellungsrecht',
             lostAndFoundManage: 'Nur für Fundbüro-Verwalter',
@@ -3598,6 +3599,14 @@ volumes:
             lossDecideText: 'Über den Verlust selbst entscheidet ihr nicht, der ist bereits passiert und'
                 + ' festgehalten. Ihr entscheidet über den Ersatz: Ihr schickt einen oder lehnt mit Begründung'
                 + ' ab. Vermisst bleibt das Teil so oder so.',
+            tagsTitle: 'Wörter empfehlen',
+            tagsText: 'Ein Schlagwort fasst Dinge zusammen, die zusammengehören, ohne gleich zu sein: die'
+                + ' Funkgeräte, die Ladestation und die Antenne. Hier schlagt ihr euren Abteilungen Wörter'
+                + ' dafür vor, wahlweise allen oder nur einer Gruppe von Abteilungen.',
+            tagsStandsBesideText: 'Ein Vorschlag ersetzt nie das Wort einer Abteilung. Verglichen wird ohne'
+                + ' Rücksicht auf Groß- und Kleinschreibung, also meinen beide ohnehin dasselbe, und jede'
+                + ' Abteilung zeigt weiter ihre eigene Schreibweise. Zieht ihr einen Vorschlag zurück,'
+                + ' ändert sich bei den Abteilungen nichts.',
             tip: 'Wer nur eines der beiden Rechte hat, sieht auf dieser Seite nur den zugehörigen Teil.',
         },
         clusterMemberDetail: {
@@ -4086,6 +4095,36 @@ volumes:
                 + 'ist der andere Weg dorthin, und der ist ohne Verschieben nicht zu haben.',
             tip: 'Wähle erst das Ziel und dann die Gegenstände: dann steht schon an jeder Zeile, ob die '
                 + 'Größe mitkommt.',
+        },
+        inventoryTags: {
+            title: 'Schlagwörter',
+            subtitle: 'Dinge zusammenfassen, die zusammengehören, ohne gleich zu sein.',
+            whatIsTitle: 'Was ein Schlagwort ist',
+            whatIsText: 'Ein Schlagwort ist eine Eigenschaft eines Gegenstands, die immer gilt und keine '
+                + 'Menge kennt. Die zehn Funkgeräte und die zwei Ladestationen sind alle „Funk“, auch wenn '
+                + 'sie in verschiedenen Inventaren liegen und nicht dasselbe Ding sind.',
+            againstArtText: 'Die Art fasst gleiche Dinge zusammen, das Schlagwort fasst Dinge zusammen, die '
+                + 'zusammengehören. Eine Antenne unter „Sonstiges“ trägt dasselbe Schlagwort wie die '
+                + 'Funkgeräte, obwohl sie keine Art mit ihnen teilt.',
+            pickedTitle: 'Schlagwörter werden ausgewählt, nicht getippt',
+            pickedText: 'Im Feld am Gegenstand steht, was es schon gibt. Ein neues Wort lässt sich anlegen, '
+                + 'sobald das Getippte zu nichts passt, und wird erst beim Speichern wirklich angelegt. So '
+                + 'wird aus „orange“ nicht nebenbei ein zweites „organge“.',
+            manageTitle: 'Wörter verwalten',
+            manageText: 'Unter Inventar verwalten stehen alle Wörter der Abteilung mit der Anzahl der '
+                + 'Gegenstände, die sie tragen. Dort lassen sie sich umbenennen, einfärben und löschen; '
+                + 'gelöscht wird nur das Wort, die Gegenstände bleiben.',
+            filterTitle: 'Nach einem Wort filtern',
+            filterText: 'In der Gegenstandsliste eines Inventars gibt es eine Spalte „Schlagwörter“. Über '
+                + 'ihren Filter lässt sich die Liste auf ein Wort einschränken.',
+            sameWordTitle: 'Dasselbe Wort bei mehreren Abteilungen',
+            sameWordText: 'Groß- und Kleinschreibung und Leerzeichen am Rand spielen keine Rolle: „Funk“, '
+                + '„funk“ und „ Funk “ sind ein Wort. Jede Abteilung behält ihre eigene Schreibweise in der '
+                + 'Anzeige.',
+            clusterText: 'Ein Verband kann Wörter empfehlen. Eine Empfehlung ersetzt nie das Wort einer '
+                + 'Abteilung: beide bleiben stehen und meinen ohnehin dasselbe.',
+            tip: 'Wenige, klare Wörter nützen mehr als viele. Ein Wort, das nur ein Gegenstand trägt, '
+                + 'findet nichts, was die Liste nicht auch zeigt.',
         },
         inventoryTidy: {
             title: 'Arten aufräumen',
