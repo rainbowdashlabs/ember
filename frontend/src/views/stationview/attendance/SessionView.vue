@@ -20,7 +20,7 @@ import {StationPermission, type MemberGroup, type StationMember} from '@/api/typ
 import {attendance, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSessionMeta} from './sessionview/useSessionMeta'
-import {useCheckMode} from './sessionview/useCheckMode'
+import {useCheckMode, type CheckRow} from './sessionview/useCheckMode'
 import {useSessionFields} from './sessionview/useSessionFields'
 import SessionContent from './sessionview/SessionContent.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
@@ -51,7 +51,26 @@ const error = ref('')
 const selectedMemberId = ref('')
 
 const {setSessionStartTime, setSessionEndTime, setSessionTitle} = useSessionMeta(sessionId, session, error)
-const {checkMode, checkIndex, uncheckedEntries, currentCheckEntry, startCheckMode, checkSetStatus, skipCheck} = useCheckMode(entries, setStatus)
+/**
+ * Every name on the sheet that is still open, in the order the sheet reads.
+ *
+ * <p>A member the template expects who has no entry yet belongs here as much as one whose entry says
+ * nothing: both are names nobody has decided about, and leaving the first kind out is what emptied
+ * the walk and took its button off the screen.
+ */
+const openRows = computed((): CheckRow[] => {
+  const rows: CheckRow[] = []
+  for (const section of memberSections.value) {
+    for (const member of section.members) {
+      const entry = entries.value.find(e => e.memberId === member.id)
+      if (!entry) rows.push({memberId: member.id, entryId: null})
+      else if (entry.status === 'UNCONFIRMED') rows.push({memberId: member.id, entryId: entry.id})
+    }
+  }
+  return rows
+})
+
+const {checkMode, checkIndex, currentCheckRow, startCheckMode, checkSetStatus, skipCheck} = useCheckMode(openRows, markRow)
 const {fieldValues, parseFieldConfig, onFieldUpdate, setFieldMemberIds, initFieldValues} = useSessionFields(sessionId, templateFields, entries, error)
 
 interface MemberSection {
@@ -161,6 +180,27 @@ async function addMember() {
   try {
     entries.value = await attendance.createEntry(sessionId.value, {memberId: Number(selectedMemberId.value)})
     selectedMemberId.value = ''
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
+/**
+ * Marks one name of the walk, writing its entry first where the sheet has none.
+ *
+ * <p>Somebody expected but never entered has nothing to mark against, so the mark itself is what puts
+ * them on the sheet. Nothing is written for a name that is only passed over.
+ */
+async function markRow(row: CheckRow, status: AttendanceStatus) {
+  if (row.entryId != null) {
+    await setStatus(row.entryId, status)
+    return
+  }
+  error.value = ''
+  try {
+    entries.value = await attendance.createEntry(sessionId.value, {memberId: row.memberId})
+    const created = entries.value.find(e => e.memberId === row.memberId)
+    if (created) await setStatus(created.id, status)
   } catch {
     error.value = t('common.error')
   }
@@ -281,10 +321,10 @@ watch(loaded, (isLoaded) => {
         :can-edit="canEdit"
         :check-mode="checkMode"
         :check-index="checkIndex"
-        :unchecked-entries="uncheckedEntries"
-        :current-check-entry="currentCheckEntry"
-        :current-member-name="currentCheckEntry ? getMemberName(currentCheckEntry.memberId) : ''"
-        :current-member-identity="currentCheckEntry ? getMemberIdentity(currentCheckEntry.memberId) : null"
+        :open-rows="openRows"
+        :current-check-row="currentCheckRow"
+        :current-member-name="currentCheckRow ? getMemberName(currentCheckRow.memberId) : ''"
+        :current-member-identity="currentCheckRow ? getMemberIdentity(currentCheckRow.memberId) : null"
         :template-fields="templateFields"
         :field-values="fieldValues"
         :group-members="groupMembers"

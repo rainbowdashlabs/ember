@@ -1863,7 +1863,10 @@ volumes:
             statusDeclined: 'Abgemeldet - Das Mitglied nimmt nicht teil.',
             statusOpen: 'Offen - Noch nicht geprüft.',
             checkModeTitle: 'Prüfmodus',
-            checkModeText: 'Klicke auf Anwesenheit prüfen, um in den Prüfmodus zu wechseln. Hier gehst du Mitglied für Mitglied durch und markierst den Status - wie ein Namensaufruf.',
+            checkModeText: 'Klicke auf Anwesenheit prüfen, um in den Prüfmodus zu wechseln. Hier gehst du Mitglied für Mitglied durch und markierst den Status - wie ein Namensaufruf. '
+                + 'Durchlaufen werden alle offenen Namen, auch die, zu denen noch nichts eingetragen ist; der Eintrag entsteht erst, wenn du den Status setzt.',
+            expectedTitle: 'Wer auf der Liste steht',
+            expectedText: 'Erwartet wird, wer in einer Gruppe der Anwesenheitsvorlage steht. Wen der Termin ansprechen darf, spielt dafür keine Rolle: Zu- und Absagen zum Termin bestimmen nur, was neben einem Namen steht, nicht wer auf der Liste erscheint.',
             addMemberTitle: 'Mitglieder hinzufügen',
             addMemberText: 'Wenn jemand unerwartet erscheint, kannst du über Mitglied hinzufügen zusätzliche Personen zur Sitzung hinzufügen.',
             syncExportTitle: 'Synchronisieren & Export',
@@ -4081,6 +4084,12 @@ volumes:
             rapidCheckText2: 'Pro Gegenstand wählst du nur den Status - dann springt die Ansicht automatisch zum nächsten. '
                 + 'Über dem Status steht ein Feld für eine Notiz, etwa warum etwas fehlt; sie gehört zum Gegenstand und '
                 + 'steht später im Ergebnis der Prüfung.',
+            countTitle: 'Mehrere gleiche Gegenstände',
+            countText: 'Sind von einem Gegenstand mehrere gefordert, steht vor jeder Zeile eine Nummer: 1/2 und 2/2 bei zwei T-Shirts. In der Schnellprüfung steht dieselbe Nummer über dem Gegenstand, damit klar ist, welches Stück gerade gemeint ist.',
+            exchangeTitle: 'Tausch aus der Prüfung heraus',
+            exchangeText: 'Über „Tausch" hältst du fest, dass ein Stück ersetzt werden muss. Dabei wirst du gefragt, ob der Gegenstand gleich abgegeben wurde: ist er abgegeben, ist der Tausch bereits einen Schritt weiter, sonst ist er nur angekündigt. So oder so geht die Prüfung zum nächsten Gegenstand.',
+            partialTitle: 'Teilweise prüfen',
+            partialText: 'Du musst nicht alles auf einmal prüfen. Gespeichert wird nur, was du wirklich markiert hast; alles andere behält das Ergebnis der letzten Prüfung.',
             correctTitle: 'Eintrag korrigieren',
             correctText: 'Hält das Mitglied etwas anderes als eingetragen ist, öffnet „Korrigieren" ein Fenster, in dem du festhältst, was es wirklich hat. Bewegt wird dabei nichts: die Ausrüstung liegt schon in den richtigen Händen, nur der Eintrag zieht nach.',
             correctNewText: 'Du wählst entweder einen freien Gegenstand aus dem Bestand der Wache oder legst einen neuen an, mit Größe, Nummer und den Feldern des Inventars. Führt das Inventar Ausrüstung von Wache und Träger nebeneinander, wirst du einmal gefragt, wem der neue Gegenstand gehört.',

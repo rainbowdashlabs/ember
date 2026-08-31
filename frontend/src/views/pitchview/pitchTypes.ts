@@ -8,6 +8,7 @@ import type {InventoryItem, InventorySize, RequiredInventoryItem} from '@/api/in
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 import type {CheckResult} from '@/api/inventoryCheck'
 import type {CheckEntry} from '@/composables/useMemberCheck'
+import type {CheckRow} from '@/views/stationview/attendance/sessionview/useCheckMode'
 import type {EvaluationResponse, TestProtocolItem, TestProtocolSection} from '@/api/protocol'
 import type {Form, FormQuestion, FormQuestionAnalytics} from '@/api/forms'
 import type {PageRow, StationPage} from '@/api/pageManage'
@@ -124,7 +125,7 @@ export interface PitchStats {
 
 /** What the application's own check panel needs: the entry it stands on, and how far it has come. */
 export interface PitchCheckMode {
-    entry: AttendanceEntry | null
+    row: CheckRow | null
     index: number
     total: number
     name: string

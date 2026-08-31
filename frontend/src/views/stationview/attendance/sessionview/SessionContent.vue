@@ -13,6 +13,7 @@ import type {
   AttendanceTemplateField,
 } from '@/api/attendance'
 import type {MemberGroup, MemberIdentity, StationMember} from '@/api/types'
+import type {CheckRow} from './useCheckMode'
 import SessionToolbar from './SessionToolbar.vue'
 import SessionHeader from './SessionHeader.vue'
 import CheckModePanel from './CheckModePanel.vue'
@@ -34,8 +35,8 @@ defineProps<{
   canEdit: boolean
   checkMode: boolean
   checkIndex: number
-  uncheckedEntries: AttendanceEntry[]
-  currentCheckEntry: AttendanceEntry | null
+  openRows: CheckRow[]
+  currentCheckRow: CheckRow | null
   currentMemberName: string
   currentMemberIdentity: MemberIdentity | null
   templateFields: AttendanceTemplateField[]
@@ -72,7 +73,7 @@ const emit = defineEmits<{
   <div class="space-y-6">
     <SessionToolbar
         :check-mode="checkMode"
-        :unchecked-count="uncheckedEntries.length"
+        :unchecked-count="openRows.length"
         :readonly="!canEdit"
         @back="emit('back')"
         @export="emit('export')"
@@ -95,9 +96,9 @@ const emit = defineEmits<{
 
       <CheckModePanel
           v-if="checkMode"
-          :current-entry="currentCheckEntry"
+          :current-row="currentCheckRow"
           :check-index="checkIndex"
-          :total-unchecked="uncheckedEntries.length"
+          :total-unchecked="openRows.length"
           :member-name="currentMemberName"
           :member-identity="currentMemberIdentity"
           @set-status="emit('checkSetStatus', $event)"

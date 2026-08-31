@@ -170,7 +170,12 @@ defineExpose({ currentEntry })
     <div class="text-center space-y-2">
       <p class="text-xs text-(--text-muted)">{{ t('inventory.check.rapidProgress', { current: uncheckedEntries.length }) }}</p>
       <SubHeader>{{ currentEntry.req.inventoryName }}</SubHeader>
-      <p class="text-2xl font-bold">{{ currentEntry.item.name }}</p>
+      <p class="text-2xl font-bold">
+        <span v-if="currentEntry.total > 1" class="text-(--text-muted) tabular-nums">
+          {{ currentEntry.position }}/{{ currentEntry.total }}
+        </span>
+        {{ currentEntry.item.name }}
+      </p>
       <div class="flex items-center justify-center gap-2">
         <SizeBadge v-if="sizeLabel(currentEntry.req, currentEntry.item.sizeId)">{{ sizeLabel(currentEntry.req, currentEntry.item.sizeId) }}</SizeBadge>
         <span v-if="currentEntry.item.internalId" class="text-sm text-(--text-muted)">{{ currentEntry.item.internalId }}</span>
@@ -223,7 +228,10 @@ defineExpose({ currentEntry })
     <div class="text-center space-y-2">
       <p class="text-xs text-(--text-muted)">{{ t('inventory.check.rapidProgress', { current: uncheckedEntries.length }) }}</p>
       <SubHeader>{{ currentEntry.req.inventoryName }}</SubHeader>
-      <p class="text-lg font-medium text-(--text-muted)">{{ t('inventory.check.missingItem') }}</p>
+      <p class="text-lg font-medium text-(--text-muted)">
+        <span v-if="currentEntry.total > 1" class="tabular-nums">{{ currentEntry.position }}/{{ currentEntry.total }}</span>
+        {{ t('inventory.check.missingItem') }}
+      </p>
       <p class="text-sm text-(--text-muted)">
         {{ currentEntry.req.assignedQuantity }} / {{ currentEntry.req.requiredQuantity }}
       </p>

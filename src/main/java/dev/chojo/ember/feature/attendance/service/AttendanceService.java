@@ -24,8 +24,6 @@ import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.restriction.RestrictionType;
-import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -37,6 +35,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -57,7 +56,6 @@ public class AttendanceService {
     private final EventRegistrationRepository eventRegistrationRepository;
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
-    private final RestrictionService restrictionService;
 
     @Inject
     public AttendanceService(
@@ -67,8 +65,7 @@ public class AttendanceService {
             EventFieldDefaultRepository eventFieldDefaultRepository,
             EventRegistrationRepository eventRegistrationRepository,
             StationMemberRepository stationMemberRepository,
-            MemberGroupRepository memberGroupRepository,
-            RestrictionService restrictionService) {
+            MemberGroupRepository memberGroupRepository) {
         this.attendanceRepository = attendanceRepository;
         this.eventRepository = eventRepository;
         this.eventFieldRepository = eventFieldRepository;
@@ -76,7 +73,6 @@ public class AttendanceService {
         this.eventRegistrationRepository = eventRegistrationRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
-        this.restrictionService = restrictionService;
     }
 
     private static String toJsonValue(Object value) {
@@ -276,38 +272,110 @@ public class AttendanceService {
                 }
             }
         }
-        // Auto-populate from linked event fields (event field value → attendance session field)
-        if (eventId != null) {
-            var eventFields = eventFieldRepository.findByEvent(eventId);
-            for (var ef : eventFields) {
-                if (ef.attendanceFieldId() != null
-                        && ef.value() != null
-                        && !ef.value().isBlank()) {
-                    attendanceRepository.setSessionField(session.id(), ef.attendanceFieldId(), ef.value());
-                }
-            }
-        }
+        // The appointment's own answers stand above the defaults the sheet and the appointment carry
+        if (eventId != null) takeEventFieldValues(session.id(), eventId, false);
 
-        // Auto-populate expected member entries from template groups
-        var tplGroups = attendanceRepository.findTemplateGroups(templateId);
-        var existingMemberIds = new HashSet<Integer>();
-        for (var tg : tplGroups) {
-            var members = memberGroupRepository.findMembers(tg.groupId());
-            for (var m : members) {
-                if (!existingMemberIds.contains(m.id()) && !m.former()) {
-                    attendanceRepository.createEntry(
-                            session.id(),
-                            m.id(),
-                            attendanceRepository.isAbsent(m.id())
-                                    ? AttendanceEntry.AttendanceStatus.DECLINED
-                                    : AttendanceEntry.AttendanceStatus.UNCONFIRMED,
-                            AttendanceEntry.EntrySource.EXPECTED);
-                    existingMemberIds.add(m.id());
-                }
-            }
-        }
+        enterExpectedMembers(session.id(), expectedMembers(templateId), new HashSet<>());
 
         return session;
+    }
+
+    /**
+     * Writes what the appointment answered into the sheet fields its questions are tied to.
+     *
+     * <p>Taken again whenever the sheet is filled in from its appointment, because the answer is
+     * often given after the sheet was opened: whoever runs the evening enters it on the appointment,
+     * and until then there was nothing to carry over.
+     *
+     * @param sessionId        the sheet being filled
+     * @param eventId          the appointment it was made from
+     * @param keepWhatIsFilled leaves a field that already says something alone, which is what filling
+     *                         an open sheet in wants: what stands on it was written by somebody
+     *                         looking at the evening itself, and the appointment must not undo that
+     */
+    private void takeEventFieldValues(int sessionId, int eventId, boolean keepWhatIsFilled) {
+        Set<Integer> filled = keepWhatIsFilled
+                ? attendanceRepository.findSessionFields(sessionId).stream()
+                        .filter(field -> !isEmptyValue(field.value()))
+                        .map(AttendanceSessionField::fieldId)
+                        .collect(Collectors.toSet())
+                : Set.of();
+        for (var field : eventFieldRepository.findByEvent(eventId)) {
+            if (field.attendanceFieldId() == null) continue;
+            if (field.value() == null || field.value().isBlank()) continue;
+            if (filled.contains(field.attendanceFieldId())) continue;
+            attendanceRepository.setSessionField(sessionId, field.attendanceFieldId(), asJsonValue(field.value()));
+        }
+    }
+
+    /** Whether a sheet field says nothing, whether it was never written or written empty. */
+    private static boolean isEmptyValue(String value) {
+        if (value == null || value.isBlank()) return true;
+        String trimmed = value.trim();
+        return trimmed.equals("\"\"") || trimmed.equals("null");
+    }
+
+    /**
+     * The value as the sheet keeps it, which is JSON.
+     *
+     * <p>An appointment keeps its answers as plain text, and a piece of plain text is not JSON:
+     * writing it straight into the sheet threw the whole request away, which is why an answer given
+     * on an appointment never arrived on the sheet it was tied to. A value that already is JSON, such
+     * as the list of members a question holds, is passed on untouched.
+     */
+    private static String asJsonValue(String raw) {
+        try {
+            JSON.readTree(raw);
+            return raw;
+        } catch (Exception e) {
+            return toJsonValue(raw);
+        }
+    }
+
+    /**
+     * Everybody the template expects: the members of the groups it names.
+     *
+     * <p>The template is the only thing that decides who belongs on a sheet. An event the sheet was
+     * made from asks its own question of its own people, and whom it was open to says nothing about
+     * who is expected at the evening itself.
+     *
+     * @param templateId the template the sheet was made from
+     * @return the members of the template's groups, without those who have left
+     */
+    private Set<Integer> expectedMembers(int templateId) {
+        Set<Integer> expected = new LinkedHashSet<>();
+        for (var group : attendanceRepository.findTemplateGroups(templateId)) {
+            for (var member : memberGroupRepository.findMembers(group.groupId())) {
+                if (!member.former()) expected.add(member.id());
+            }
+        }
+        return expected;
+    }
+
+    /**
+     * Puts everybody the template expects onto the sheet, as far as they are not on it already.
+     *
+     * <p>Run again whenever the sheet is filled in from its event, because a group grows: somebody
+     * who joined after the sheet was opened would otherwise stand on it without an entry, with
+     * nothing to mark and nothing for the walk to pick up.
+     *
+     * <p>Somebody who is away for the day arrives declined, since that is already settled.
+     *
+     * @param sessionId      the sheet being filled
+     * @param expected       whom the template expects
+     * @param alreadyEntered who is on the sheet already, extended by everybody added here
+     */
+    private void enterExpectedMembers(int sessionId, Set<Integer> expected, Set<Integer> alreadyEntered) {
+        for (int memberId : expected) {
+            if (!alreadyEntered.add(memberId)) continue;
+            attendanceRepository.createEntry(
+                    sessionId,
+                    memberId,
+                    attendanceRepository.isAbsent(memberId)
+                            ? AttendanceEntry.AttendanceStatus.DECLINED
+                            : AttendanceEntry.AttendanceStatus.UNCONFIRMED,
+                    AttendanceEntry.EntrySource.EXPECTED);
+        }
     }
 
     public Optional<AttendanceSession> updateSession(int id, Instant startTime, Instant endTime, String title) {
@@ -378,48 +446,17 @@ public class AttendanceService {
     }
 
     /**
-     * Writes down as declined everybody the event was never open to.
-     *
-     * <p>An event addressed to one group is invisible to everybody else, and somebody who could not
-     * see it could not answer it either. Left undetermined they would arrive on the attendance list
-     * as people to decide about, and whoever fills it in would be ruling on people who were never
-     * asked.
-     *
-     * <p>Somebody who could see the event and said nothing is not touched. Their answer is the
-     * attendance itself, taken on the day, and that is what leaving them undetermined is for.
-     *
-     * <p>An event open to everybody excludes nobody, and the restrictions then name nobody either, so
-     * there is nothing to write down.
-     *
-     * @param sessionId      the attendance being filled in
-     * @param eventId        the event it was made from
-     * @param alreadyEntered who is on the list already, extended by everybody added here
-     */
-    private void markUnreachedAsDeclined(int sessionId, int eventId, Set<Integer> alreadyEntered) {
-        var event = eventRepository.findById(eventId).orElse(null);
-        if (event == null) return;
-
-        var reached =
-                restrictionService.findMembersPassingRestriction(RestrictionType.EVENT, eventId, event.stationId());
-        if (reached.isEmpty()) return;
-
-        for (var member : stationMemberRepository.findByStation(event.stationId(), false)) {
-            if (reached.contains(member.id()) || alreadyEntered.contains(member.id())) continue;
-            attendanceRepository.createEntry(
-                    sessionId,
-                    member.id(),
-                    AttendanceEntry.AttendanceStatus.DECLINED,
-                    AttendanceEntry.EntrySource.EXPECTED);
-            alreadyEntered.add(member.id());
-        }
-    }
-
-    /**
      * Sync attendance entries from event registrations, absence data, and autoAttend template fields.
+     * - Members of the template's groups → put on the sheet if they are not on it yet
+     * - Answers on the event → written into the sheet fields they are tied to, where the sheet is empty
      * - ACCEPTED registrations → PRESENT (or ABSENT if member has active absence)
      * - DECLINED registrations → DECLINED
      * - Members with active absence who already have PRESENT status → updated to ABSENT
      * - Members from autoAttend fields → added as PRESENT at the end
+     *
+     * <p>Only the template's groups put anybody on a sheet. An answer given to the event settles what
+     * an entry says, and an answer nobody gave settles nothing, so whom the event was open to has no
+     * say here at all.
      */
     public List<AttendanceEntry> syncFromEvent(int sessionId) {
         var session = attendanceRepository.findSessionById(sessionId);
@@ -430,34 +467,43 @@ public class AttendanceService {
 
         var existingEntries = attendanceRepository.findEntries(sessionId);
         var existingMemberIds =
-                existingEntries.stream().map(AttendanceEntry::memberId).collect(Collectors.toSet());
+                existingEntries.stream().map(AttendanceEntry::memberId).collect(Collectors.toCollection(HashSet::new));
+
+        var expected = expectedMembers(session.get().templateId());
+        enterExpectedMembers(sessionId, expected, existingMemberIds);
 
         // Sync from event registrations
         if (session.get().eventId() != null) {
             int eventId = session.get().eventId();
+            takeEventFieldValues(sessionId, eventId, true);
             LocalDate today = LocalDate.now();
             var registrations = eventRegistrationRepository.findByEventAndDate(eventId, today);
 
             for (var reg : registrations) {
-                if (existingMemberIds.contains(reg.memberId())) continue;
+                if (!expected.contains(reg.memberId())) continue;
                 var status =
                         switch (reg.status()) {
                             case ACCEPTED -> AttendanceEntry.AttendanceStatus.PRESENT;
                             case DECLINED -> AttendanceEntry.AttendanceStatus.DECLINED;
                             default -> null;
                         };
-                if (status != null) {
-                    if (status == AttendanceEntry.AttendanceStatus.PRESENT
-                            && attendanceRepository.isAbsent(reg.memberId())) {
-                        status = AttendanceEntry.AttendanceStatus.ABSENT;
-                    }
+                if (status == null) continue;
+                if (status == AttendanceEntry.AttendanceStatus.PRESENT
+                        && attendanceRepository.isAbsent(reg.memberId())) {
+                    status = AttendanceEntry.AttendanceStatus.ABSENT;
+                }
+                var entry = attendanceRepository
+                        .findEntry(sessionId, reg.memberId())
+                        .orElse(null);
+                if (entry == null) {
                     attendanceRepository.createEntry(
                             sessionId, reg.memberId(), status, AttendanceEntry.EntrySource.EXPECTED);
                     existingMemberIds.add(reg.memberId());
+                } else if (entry.status() == AttendanceEntry.AttendanceStatus.UNCONFIRMED) {
+                    // Only what nobody has decided yet: a mark taken on the day outlives the answer
+                    attendanceRepository.updateEntryStatus(entry.id(), status);
                 }
             }
-
-            markUnreachedAsDeclined(sessionId, eventId, existingMemberIds);
         }
 
         // Sync absence status for existing PRESENT/UNCONFIRMED entries
@@ -480,7 +526,7 @@ public class AttendanceService {
         // Refresh existing member IDs
         existingMemberIds = attendanceRepository.findEntries(sessionId).stream()
                 .map(AttendanceEntry::memberId)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(HashSet::new));
 
         for (var field : templateFieldsList) {
             if (!field.config().autoAttend()) continue;

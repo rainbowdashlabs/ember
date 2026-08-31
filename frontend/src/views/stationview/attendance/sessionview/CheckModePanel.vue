@@ -13,14 +13,15 @@ import InfoButton from '@/components/button/InfoButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import {useBreakpoint} from '@/composables/useBreakpoint'
-import type {AttendanceEntry, AttendanceStatus} from '@/api/attendance'
+import type {AttendanceStatus} from '@/api/attendance'
+import type {CheckRow} from './useCheckMode'
 import type {MemberIdentity} from '@/api/types'
 
 const {t} = useI18n()
 const {isMobile} = useBreakpoint()
 
 defineProps<{
-  currentEntry: AttendanceEntry | null
+  currentRow: CheckRow | null
   checkIndex: number
   totalUnchecked: number
   memberName: string
@@ -35,7 +36,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <NeutralContainer v-if="currentEntry" class="space-y-4">
+  <NeutralContainer v-if="currentRow" class="space-y-4">
     <SectionHeader>{{ t('attendanceSession.checkMode') }}</SectionHeader>
     <div class="text-center space-y-4 py-4">
       <p class="text-2xl font-bold">
@@ -60,7 +61,7 @@ const emit = defineEmits<{
     </div>
   </NeutralContainer>
 
-  <div v-if="!currentEntry" class="text-center py-6">
+  <div v-if="!currentRow" class="text-center py-6">
     <p class="text-lg font-semibold text-success">{{ t('attendanceSession.allChecked') }}</p>
     <SecondaryButton class="mt-3" @click="emit('end')">{{ t('attendanceSession.endCheck') }}</SecondaryButton>
   </div>

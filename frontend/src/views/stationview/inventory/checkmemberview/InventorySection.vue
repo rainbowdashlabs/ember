@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -13,7 +14,7 @@ import EmptySlotCard from './EmptySlotCard.vue'
 import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
 import type { CheckResult } from '@/api/inventoryCheck'
 
-defineProps<{
+const props = defineProps<{
   req: RequiredInventoryItem
   assignedItems: InventoryItem[]
   availableItems: InventoryItem[]
@@ -40,6 +41,14 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+/**
+ * How many pieces this requirement is about: what the member holds plus what is still missing.
+ *
+ * <p>What the number beside each piece counts off, so the first of two shirts reads 1/2 and stays
+ * apart from the second while the check is walked.
+ */
+const pieceCount = computed(() => props.assignedItems.length + props.emptySlotCount)
 </script>
 
 <template>
@@ -60,9 +69,11 @@ const {t} = useI18n()
     <!-- Assigned items -->
     <div class="space-y-2">
       <InventoryItemCard
-        v-for="item in assignedItems"
+        v-for="(item, index) in assignedItems"
         :key="item.id"
         :item="item"
+        :position="index + 1"
+        :total="pieceCount"
         :req="req"
         :result="itemResults.get(item.id)"
         :note="itemNotes.get(item.id) ?? ''"
@@ -79,6 +90,8 @@ const {t} = useI18n()
       v-for="slotIdx in emptySlotCount"
       :key="`empty-${req.inventoryId}-${slotIdx}`"
       :req="req"
+      :position="assignedItems.length + slotIdx"
+      :total="pieceCount"
       :slot-index="slotIdx"
       :is-not-in-possession="slotsNotInPossession.has(`${req.inventoryId}-${slotIdx}`)"
       :procurement-noted="slotProcurements.has(`${req.inventoryId}-${slotIdx}`)"
