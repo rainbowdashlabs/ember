@@ -126,6 +126,7 @@ function answerLabel(answer: SelfCheckAnswerName): string {
       >
         {{ exchangeRaised ? t('selfCheck.exchangeRaised') : t('selfCheck.requestExchange') }}
       </PrimaryButton>
+      <MutedText size="xs" class="w-full">{{ t('selfCheck.raisedAtOnce') }}</MutedText>
     </div>
 
     <TextInput
