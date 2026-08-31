@@ -29,6 +29,11 @@ export interface LendingRequest {
     createdBy: number
     createdAt: string
     updatedAt: string
+    /** The appointment the request was collected for, at the requesting station. */
+    eventId: number | null
+    eventDate: string | null
+    /** What the request is for, as the owning station reads it. A copy of the name, never a link. */
+    occasion: string
 }
 
 export interface LendingRequestResponse {
@@ -45,8 +50,11 @@ export interface LendingRequestItem {
     requestId: number
     inventoryId: number | null
     itemId: number | null
+    /** The kind of thing the line asks for, which is how it says four blue radios. */
+    artId: number | null
     quantity: number
-    assignedItemId: number | null
+    /** The line of an appointment's needs this fills, at the requesting station. */
+    needId: number | null
 }
 
 export interface EnrichedItem {
@@ -100,10 +108,18 @@ export interface InventoryBlock {
 }
 
 export interface CreateLendingRequestPayload {
-    owningStationId: string
+    owningStationId: number | string
     dateFrom: string
     dateTo: string | null
-    items: { inventoryId?: number | null; itemId?: number | null; quantity: number }[]
+    eventId?: number | null
+    eventDate?: string | null
+    items: {
+        inventoryId?: number | null
+        itemId?: number | null
+        artId?: number | null
+        quantity: number
+        needId?: number | null
+    }[]
 }
 
 export interface CreateBlockPayload {
@@ -117,7 +133,10 @@ export interface CreateBlockPayload {
 export interface AvailableInventoryEntry {
     inventoryId: number
     inventoryName: string
-    stationId: string
+    /** The kind counted, or null where the row counts a whole inventory. */
+    artId: number | null
+    artName: string | null
+    stationId: number
     stationName: string
     availableCount: number
     distanceKm: number | null

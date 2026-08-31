@@ -11,6 +11,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import NumberInput from '@/components/input/number/NumberInput.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import LineTargetFields from '@/components/inventory/LineTargetFields.vue'
@@ -23,12 +25,16 @@ const itemId = defineModel<string>('itemId', {required: true})
 const artId = defineModel<string>('artId', {required: true})
 const inventoryId = defineModel<string>('inventoryId', {required: true})
 const quantity = defineModel<number>('quantity', {required: true})
+const leadHours = defineModel<number>('leadHours', {required: true})
+const trailHours = defineModel<number>('trailHours', {required: true})
+const thisEveningOnly = defineModel<boolean>('thisEveningOnly', {required: true})
 
 defineProps<{
   inventories: Inventory[]
   items: InventoryItem[]
-  /** Every kind of every mixed inventory the station keeps, so one picker covers them all. */
   arts: InventoryArt[]
+  /** Whether the appointment repeats at all, which is what makes an evening of its own possible. */
+  recurring: boolean
   saving: boolean
 }>()
 
@@ -48,15 +54,14 @@ const incomplete = computed(() => {
 <template>
   <Modal v-model="show" size="md">
     <div class="space-y-4">
-      <SubHeader>{{ t('inventory.collections.addLine') }}</SubHeader>
+      <SubHeader>{{ t('eventEquipment.addLine') }}</SubHeader>
 
       <FieldLabel>{{ t('inventory.collections.lineKind') }}</FieldLabel>
-      <SelectInput v-model="kind" data-testid="collection-line-kind">
+      <SelectInput v-model="kind" data-testid="equipment-line-kind">
         <option value="item">{{ t('inventory.collections.kindItem') }}</option>
         <option value="art">{{ t('inventory.collections.kindArt') }}</option>
         <option value="inventory">{{ t('inventory.collections.kindCount') }}</option>
       </SelectInput>
-      <FieldHint>{{ t('inventory.collections.kindHint') }}</FieldHint>
 
       <LineTargetFields
           v-model:kind="kind"
@@ -69,10 +74,23 @@ const incomplete = computed(() => {
           :arts="arts"
       />
 
+      <FieldLabel>{{ t('eventEquipment.lead') }}</FieldLabel>
+      <NumberInput v-model="leadHours" :min="0" data-testid="equipment-line-lead"/>
+      <FieldHint>{{ t('eventEquipment.leadHint') }}</FieldHint>
+
+      <FieldLabel>{{ t('eventEquipment.trail') }}</FieldLabel>
+      <NumberInput v-model="trailHours" :min="0" data-testid="equipment-line-trail"/>
+
+      <label v-if="recurring" class="flex items-center gap-2 text-sm">
+        <CheckboxInput v-model="thisEveningOnly" data-testid="equipment-line-once"/>
+        <span>{{ t('eventEquipment.thisEveningOnlyLabel') }}</span>
+      </label>
+      <FieldHint v-if="recurring">{{ t('eventEquipment.thisEveningOnlyHint') }}</FieldHint>
+
       <div class="flex justify-end gap-2">
         <SecondaryButton data-cancel @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="saving || incomplete" data-testid="collection-line-submit" @click="emit('submit')">
-          {{ t('inventory.collections.addLine') }}
+        <PrimaryButton :disabled="saving || incomplete" data-testid="equipment-line-submit" @click="emit('submit')">
+          {{ t('eventEquipment.addLine') }}
         </PrimaryButton>
       </div>
     </div>

@@ -14,10 +14,11 @@ import EventCancelModal from './EventCancelModal.vue'
 import EventRegistrationsTab from './EventRegistrationsTab.vue'
 import EventDetailHeader from './EventDetailHeader.vue'
 import EventInfoTab from './EventInfoTab.vue'
+import EventEquipmentTab from './EventEquipmentTab.vue'
 import EventRegistrationActions from '../eventshared/EventRegistrationActions.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {AbsentMember, EventField, EventRegistrationEntry, StationEvent} from '@/api/events'
+import {isRecurringEvent, type AbsentMember, type EventField, type EventRegistrationEntry, type StationEvent} from '@/api/events'
 import {StationPermission, type StationMember} from '@/api/types'
 import {formatDateTime} from '@/util/format'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
@@ -64,7 +65,7 @@ const currentMemberIds = computed(() => props.allMembers.map(member => member.id
 
 const {t} = useI18n()
 
-const activeTab = ref<'info' | 'registrations'>('info')
+const activeTab = ref<'info' | 'registrations' | 'equipment'>('info')
 
 /**
  * What the second tab is called, which follows what the appointment asks of people.
@@ -129,7 +130,14 @@ function onCancelled() {
       <InfoBadge v-for="days in reminders" :key="days">{{ days }} {{ t('eventEdit.daysBefore') }}</InfoBadge>
     </div>
 
-    <TabBar v-model="activeTab" :tabs="[{key: 'info', label: t('eventDetail.tabInfo')}, {key: 'registrations', label: answerTabLabel}]" />
+    <TabBar
+        v-model="activeTab"
+        :tabs="[
+          {key: 'info', label: t('eventDetail.tabInfo')},
+          {key: 'registrations', label: answerTabLabel},
+          {key: 'equipment', label: t('eventDetail.tabEquipment')},
+        ]"
+    />
 
     <EventInfoTab
         v-if="activeTab === 'info'"
@@ -158,6 +166,14 @@ function onCancelled() {
         :has-managed-members="hasManagedMembers"
         :effective-date="effectiveDate"
         :current-member-ids="currentMemberIds"
+    />
+
+    <EventEquipmentTab
+        v-if="activeTab === 'equipment'"
+        :event-id="eventId"
+        :effective-date="effectiveDate"
+        :recurring="isRecurringEvent(event.eventType)"
+        :can-edit="canManageEvents"
     />
 
     <EventCancelModal
