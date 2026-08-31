@@ -357,8 +357,7 @@ public class InventoryCollectionRoutes implements Routes {
             return collectionService.addItemLine(collection.id(), collection.stationId(), body.itemId());
         }
         if (body.artId() != null) {
-            return collectionService.addArtLine(
-                    collection.id(), collection.stationId(), body.artId(), body.quantity());
+            return collectionService.addArtLine(collection.id(), collection.stationId(), body.artId(), body.quantity());
         }
         return collectionService.addInventoryLine(
                 collection.id(), collection.stationId(), body.inventoryId(), body.quantity());

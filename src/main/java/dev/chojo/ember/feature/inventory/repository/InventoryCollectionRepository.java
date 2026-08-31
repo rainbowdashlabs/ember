@@ -25,8 +25,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class InventoryCollectionRepository {
 
     private static final String COLLECTION_COLUMNS = "id, station_id, name, note, created_by, created_at";
-    private static final String LINE_COLUMNS =
-            "id, collection_id, item_id, art_id, inventory_id, quantity, position";
+    private static final String LINE_COLUMNS = "id, collection_id, item_id, art_id, inventory_id, quantity, position";
 
     /**
      * Finds a collection by its ID.
@@ -150,8 +149,7 @@ public class InventoryCollectionRepository {
      * @param quantity     how many pieces the line asks for
      * @return the created line
      */
-    public CollectionLine addLine(
-            int collectionId, Integer itemId, Integer artId, Integer inventoryId, int quantity) {
+    public CollectionLine addLine(int collectionId, Integer itemId, Integer artId, Integer inventoryId, int quantity) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO inventory_collection_line(collection_id, item_id, art_id, inventory_id, quantity, position)
