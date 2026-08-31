@@ -77,6 +77,14 @@ const manageLinks = computed<InventoryManageLink[]>(() => {
       label: t('sidebar.inventoryRequirements'),
     })
   }
+  if (hasPermission(StationPermission.INVENTORY_READ)) {
+    links.push({
+      name: 'inventory-collections',
+      to: '/station/inventory/collections',
+      icon: ['fas', 'box-open'],
+      label: t('sidebar.inventoryCollections'),
+    })
+  }
   if (hasPermission(StationPermission.INVENTORY_LENDING_REQUEST)
       || hasPermission(StationPermission.INVENTORY_LENDING_MANAGER)) {
     links.push({
