@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryTag;
 import dev.chojo.ember.feature.inventory.entity.TaggedItemSummary;
+import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryTagRepository;
 import io.javalin.http.BadRequestResponse;
@@ -41,11 +42,14 @@ public class InventoryTagService {
 
     private final InventoryTagRepository tagRepository;
     private final InventoryRepository inventoryRepository;
+    private final InventoryShareService shareService;
 
     @Inject
-    public InventoryTagService(InventoryTagRepository tagRepository, InventoryRepository inventoryRepository) {
+    public InventoryTagService(InventoryTagRepository tagRepository, InventoryRepository inventoryRepository,
+            InventoryShareService shareService) {
         this.tagRepository = tagRepository;
         this.inventoryRepository = inventoryRepository;
+        this.shareService = shareService;
     }
 
     /**
@@ -209,6 +213,9 @@ public class InventoryTagService {
     /**
      * The things a station serves to one partner for a word, which is only what it has offered.
      *
+     * <p>The offer is asked, never re-derived: a word reaches exactly the gear browsing reaches,
+     * and a station that has offered nothing serves nothing.
+     *
      * @param stationId the station serving the request
      * @param partnerId the partnership the request arrived on
      * @param name      the word the asking station used
@@ -216,7 +223,11 @@ public class InventoryTagService {
      */
     public List<TaggedItemSummary> findSharedItemsByTag(int stationId, int partnerId, String name) {
         if (name == null || name.isBlank()) return List.of();
-        return tagRepository.findSharedItemsByTag(stationId, partnerId, name);
+        var policy = shareService.policyForPartnership(stationId, partnerId);
+        if (!policy.offersAnything()) return List.of();
+        return tagRepository.findTaggedItemsOfStation(stationId, name).stream()
+                .filter(item -> policy.allows(item.inventoryId(), item.artId(), item.itemId()))
+                .toList();
     }
 
     private static String requireName(String name) {

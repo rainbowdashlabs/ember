@@ -65,6 +65,8 @@ import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
+import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
@@ -254,6 +256,7 @@ public abstract class RepositoryTestBase {
     protected static InventoryArtService artService;
     protected static InventoryTagRepository inventoryTagRepo;
     protected static InventoryTagService inventoryTagService;
+    protected static InventoryShareService inventoryShareService;
     protected static ClusterInventoryTagRepository clusterInventoryTagRepo;
     protected static ClusterInventoryTagService clusterInventoryTagService;
     protected static LostAndFoundRepository lostAndFoundRepo;
@@ -417,7 +420,9 @@ public abstract class RepositoryTestBase {
         artRepo = new InventoryArtRepository();
         artService = new InventoryArtService(artRepo, inventoryRepo);
         inventoryTagRepo = new InventoryTagRepository();
-        inventoryTagService = new InventoryTagService(inventoryTagRepo, inventoryRepo);
+        inventoryShareService = new InventoryShareService(new InventoryShareRepository(),
+                new FederationService(new FederationRepository(), stationRepo, new Api()), inventoryRepo, artRepo);
+        inventoryTagService = new InventoryTagService(inventoryTagRepo, inventoryRepo, inventoryShareService);
         clusterInventoryTagRepo = new ClusterInventoryTagRepository();
         clusterInventoryTagService = new ClusterInventoryTagService(clusterInventoryTagRepo, inventoryTagRepo);
         lostAndFoundRepo = new LostAndFoundRepository();

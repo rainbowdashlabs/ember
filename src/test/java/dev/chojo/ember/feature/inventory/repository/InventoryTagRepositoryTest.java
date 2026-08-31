@@ -162,7 +162,7 @@ class InventoryTagRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
-    void aPartnerSeesTheFreeStockUntilTheStationNamesWhatItOffers() {
+    void aPartnerSeesNothingUntilTheStationNamesWhatItOffers() {
         var federationRepo = new FederationRepository();
         var federationService = new FederationService(federationRepo, stationRepo, new Api());
         var keyPair = federationService.generateKeyPair();
@@ -180,16 +180,20 @@ class InventoryTagRepositoryTest extends RepositoryTestBase {
         inventoryTagRepo.setItemTags(offered.id(), station.id(), List.of(funk.id()));
         inventoryTagRepo.setItemTags(kept.id(), station.id(), List.of(funk.id()));
 
-        assertEquals(
-                2,
-                inventoryTagRepo
-                        .findSharedItemsByTag(station.id(), partnerId, "Funk")
-                        .size());
+        assertTrue(
+                inventoryTagService.findSharedItemsByTag(station.id(), partnerId, "Funk").isEmpty(),
+                "a station that has offered nothing serves nothing for a word either");
 
         shareItem(station.id(), offered.id());
-        var shared = inventoryTagRepo.findSharedItemsByTag(station.id(), partnerId, "funk");
+        var shared = inventoryTagService.findSharedItemsByTag(station.id(), partnerId, "funk");
         assertEquals(1, shared.size());
         assertEquals("Funkgerät geteilt", shared.getFirst().name());
+
+        withholdItem(station.id(), kept.id());
+        assertEquals(
+                1,
+                inventoryTagService.findSharedItemsByTag(station.id(), partnerId, "funk").size(),
+                "a row that expressly withholds a piece does not serve it for a word");
 
         clearShares(station.id());
         for (var p : federationService.findPartners(station.id())) federationRepo.deletePartner(p.id());
@@ -203,6 +207,14 @@ class InventoryTagRepositoryTest extends RepositoryTestBase {
         query("""
                 INSERT INTO federation_inventory_share(station_id, item_id, share_scope)
                 VALUES (:station_id, :item_id, 'ALL_PARTNERS');""")
+                .single(call().bind("station_id", stationId).bind("item_id", itemId))
+                .insert();
+    }
+
+    private static void withholdItem(int stationId, int itemId) {
+        query("""
+                INSERT INTO federation_inventory_share(station_id, item_id, share_scope, share_grant)
+                VALUES (:station_id, :item_id, 'ALL_PARTNERS', 'WITHHOLD');""")
                 .single(call().bind("station_id", stationId).bind("item_id", itemId))
                 .insert();
     }

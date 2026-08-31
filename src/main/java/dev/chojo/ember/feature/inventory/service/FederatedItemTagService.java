@@ -39,6 +39,7 @@ public class FederatedItemTagService {
     private static final Logger log = LoggerFactory.getLogger(FederatedItemTagService.class);
 
     private final InventoryTagRepository tagRepository;
+    private final InventoryTagService tagService;
     private final FederationService federationService;
     private final FederationRepository federationRepository;
     private final FederationFanout fanout;
@@ -48,12 +49,14 @@ public class FederatedItemTagService {
     @Inject
     public FederatedItemTagService(
             InventoryTagRepository tagRepository,
+            InventoryTagService tagService,
             FederationService federationService,
             FederationRepository federationRepository,
             FederationFanout fanout,
             FederationHttpClient httpClient,
             StationRepository stationRepository) {
         this.tagRepository = tagRepository;
+        this.tagService = tagService;
         this.federationService = federationService;
         this.federationRepository = federationRepository;
         this.fanout = fanout;
@@ -95,8 +98,7 @@ public class FederatedItemTagService {
      * @return what may be shown
      */
     public List<TaggedItemSummary> serveToPartner(int stationId, int partnerId, String name) {
-        if (name == null || name.isBlank()) return List.of();
-        return tagRepository.findSharedItemsByTag(stationId, partnerId, name);
+        return tagService.findSharedItemsByTag(stationId, partnerId, name);
     }
 
     private boolean lendsWith(FederationPartner partner) {
@@ -111,7 +113,7 @@ public class FederatedItemTagService {
                 .findPartnerByStationAndRemoteUid(holding.id(), asking)
                 .orElse(null);
         if (reciprocal == null) return List.of();
-        return tagRepository.findSharedItemsByTag(holding.id(), reciprocal.id(), name);
+        return tagService.findSharedItemsByTag(holding.id(), reciprocal.id(), name);
     }
 
     private List<TaggedItemSummary> fromRemotePartner(FederationPartner partner, int stationId, String name) {

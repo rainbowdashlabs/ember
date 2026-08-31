@@ -52,8 +52,8 @@ class FederatedItemTagServiceTest extends RepositoryTestBase {
         federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
-        service = new FederatedItemTagService(
-                inventoryTagRepo, federationService, federationRepo, new FederationFanout(), httpClient, stationRepo);
+        service = new FederatedItemTagService(inventoryTagRepo, inventoryTagService, federationService,
+                federationRepo, new FederationFanout(), httpClient, stationRepo);
 
         account = accountRepo.create("fedtag@test.example", "Fed", "Tagger");
         asking = stationRepo.create("FedTagAsking");
@@ -128,7 +128,7 @@ class FederatedItemTagServiceTest extends RepositoryTestBase {
         stationRepo.updateFederationPrivateKey(asking.id(), "a-private-key");
 
         var served = new TaggedItemSummary(
-                7, "FS-001", "Ferne Antenne", "Fernlager", remoteUid, "FernStation", "Funk", true);
+                7, "FS-001", "Ferne Antenne", 0, "Fernlager", null, remoteUid, "FernStation", "Funk", true);
         when(httpClient.getList(
                         anyString(),
                         pathIs("/remote/inventory/tagged/Funk"),
