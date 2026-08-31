@@ -4085,6 +4085,7 @@ volumes:
                 + 'Werte bleiben trotzdem bei jedem Gegenstand einzeln.',
             tip: 'Es wird nichts von allein gruppiert. Erst wenn du hier auf eine Schaltfläche klickst, '
                 + 'entsteht eine Art. So wandert kein Tippfehler versehentlich in die Liste.',
+        },
         inventoryBorrowed: {
             title: 'Geliehene Ausrüstung',
             subtitle: 'Was einer Partnerwache gehört und gerade hier liegt.',
