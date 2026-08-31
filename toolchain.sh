@@ -177,6 +177,7 @@ LOCKFILE="${TMPDIR:-/tmp}/ember-toolchain.lock"
 
 needs_lock() {
     case "$1" in
+        docker-app-logs) return 1 ;;
         fe-e2e | fe-e2e-* | docker-*) return 0 ;;
         *) return 1 ;;
     esac
