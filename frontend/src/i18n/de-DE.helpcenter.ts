@@ -1081,6 +1081,56 @@ volumes:
             icalGuide: 'iCal-Anleitung',
             tip: 'App-Benachrichtigungen erscheinen auf dem Dashboard. E-Mails und Feeds sind zusätzliche Kanäle.',
         },
+        feedPhone: {
+            title: 'Den Feed aufs Handy holen',
+            subtitle: 'Der einzige Weg, auf dem dich eine Benachrichtigung außerhalb von Ember erreicht. '
+                + 'Ein Weg, einmal zu Ende erzählt: Feeder unter Android, NetNewsWire auf dem iPhone.',
+            whyTitle: 'Warum überhaupt eine App',
+            whyText: 'Der Feed ist eine Adresse, die deine Benachrichtigungen ausliefert. Eine Reader-App '
+                + 'holt sie regelmäßig ab und zeigt dir, was neu ist, ohne dass du dich in Ember einloggen '
+                + 'musst. Das ist der entscheidende Unterschied: eine Benachrichtigung in der App siehst du '
+                + 'erst, wenn du Ember von dir aus aufmachst. Der Feed ist der Weg, auf dem sie dich '
+                + 'erreicht, ohne dass du daran denken musst.',
+            urlTitle: 'Zuerst die Adresse holen',
+            urlText: 'Geh in Ember auf Einstellungen und dann Benachrichtigungen und erstelle dir dort einen '
+                + 'Feed-Token, falls du noch keinen hast. Kopiere die Atom-Adresse. Schick sie dir selbst, '
+                + 'etwa per Mail oder Messenger, dann kannst du sie auf dem Handy einfügen statt abzutippen. '
+                + 'Behandle sie wie ein Passwort: wer sie hat, liest deine Benachrichtigungen mit.',
+            androidTitle: 'Android mit Feeder',
+            androidIntro: 'Feeder ist kostenlos, werbefrei und quelloffen. Es gibt sie im Play Store und in '
+                + 'F-Droid.',
+            android1: 'Installiere „Feeder" aus dem Play Store oder aus F-Droid.',
+            android2: 'Öffne die App. Beim ersten Start ist die Liste leer, das ist richtig so.',
+            android3: 'Tippe unten rechts auf das Plus.',
+            android4: 'Füge die kopierte Atom-Adresse in das Feld ein und tippe auf „Suchen".',
+            android5: 'Feeder zeigt dir den gefundenen Feed. Bestätige mit „OK", dann steht er in deiner Liste.',
+            androidAfter: 'Stell in den Einstellungen von Feeder ein, wie oft abgeholt wird, und lass die '
+                + 'Benachrichtigungen der App an. Ohne sie holt Feeder zwar ab, sagt dir aber nichts, und '
+                + 'dann hast du denselben Zustand wie vorher: du erfährst es, wenn du nachschaust.',
+            iosTitle: 'iPhone und iPad mit NetNewsWire',
+            iosIntro: 'NetNewsWire ist kostenlos und quelloffen und liegt im App Store.',
+            ios1: 'Installiere „NetNewsWire" aus dem App Store.',
+            ios2: 'Öffne die App und tippe oben links auf das Plus.',
+            ios3: 'Wähle „Add Web Feed".',
+            ios4: 'Füge die kopierte Atom-Adresse ein.',
+            ios5: 'Tippe auf „Add". Der Feed steht danach unter „On My iPhone".',
+            iosAfter: 'Erlaube NetNewsWire Mitteilungen, wenn iOS danach fragt, sonst holt die App zwar ab, '
+                + 'sagt dir aber nichts davon. Über iCloud kann sie deine Feeds außerdem zwischen iPhone, '
+                + 'iPad und Mac abgleichen.',
+            quietTitle: 'Was in den Feed gehört',
+            quietText: 'Was im Feed steht, entscheidest du in Ember unter Benachrichtigungen, je Zeile '
+                + 'einzeln. Setz dort alles in den Feed, wovon du wirklich erfahren willst. Nur in der App '
+                + 'bedeutet: du erfährst davon, wenn du das nächste Mal von dir aus hineinschaust, und bis '
+                + 'dahin kann die Absage längst zu spät sein. Der Feed ist der einzige Weg, auf dem dich eine '
+                + 'Benachrichtigung außerhalb von Ember erreicht.',
+            troubleTitle: 'Wenn nichts ankommt',
+            troubleText: 'Kommt nichts an, sind es fast immer drei Dinge. Die Adresse ist beim Kopieren '
+                + 'abgeschnitten worden, dann hol sie dir noch einmal. Es steht schlicht nichts Neues an, '
+                + 'denn ein leerer Feed sieht genauso aus wie ein falsch eingerichteter. Oder der Token wurde '
+                + 'neu erzeugt, dann gilt die alte Adresse nicht mehr und du trägst die neue ein.',
+            tip: 'Erzeugst du den Token neu, werden alle alten Adressen ungültig. Das ist der Weg, wenn ein '
+                + 'Gerät abhandenkommt.',
+        },
         rssFeed: {
             title: 'RSS/Atom-Feed einrichten',
             subtitle: 'Benachrichtigungen in deinem Lieblings-Reader abonnieren.',
@@ -1102,6 +1152,10 @@ volumes:
             iosText: 'Installiere einen RSS-Reader wie „NetNewsWire" (kostenlos), „Reeder" oder „Unread". Öffne die App, tippe auf Feed hinzufügen und füge die URL ein. NetNewsWire unterstützt auch iCloud-Sync zwischen Geräten.',
             webTitle: 'Web-basierte Reader',
             webText: 'Dienste wie Feedly, Inoreader oder The Old Reader funktionieren im Browser und auf allen Geräten. Melde dich bei einem Dienst an, klicke auf „Feed hinzufügen" und füge deine Feed-URL ein.',
+            phoneTitle: 'Schritt für Schritt auf dem Handy',
+            phoneText: 'Die Absätze oben nennen mehrere Apps zur Auswahl. Wenn du lieber einen Weg zu Ende '
+                + 'erzählt bekommst, mit Feeder unter Android und NetNewsWire auf dem iPhone:',
+            phoneLink: 'Den Feed aufs Handy holen',
             richEntriesTitle: 'Was steht in einem Feed-Eintrag?',
             richEntriesText: 'Jeder Eintrag hat einen sprechenden Titel (z. B. „Neuigkeit: Übungsplan Q3" oder „Anmeldung ✓ Angenommen: Offenes Training"), eine semantische Definitionsliste mit allen relevanten Details, eine eingebettete Vorschau bei Fundsachen und einen großen „Im Browser öffnen"-Button. Termin-Benachrichtigungen zeigen Beginn, Ende, Treffpunkt und alle gesetzten Feld-Werte. Lager-, Tausch- und Beschaffungs-Hinweise tragen Inventartyp; Tickets zeigen Titel, Zuständig und Priorität; Prozeduren zeigen den Fortschritt (z. B. „5 von 12 Punkten"). Wiederkehrende Termine zeigen das konkrete Datum der jeweiligen Wiederholung.',
             tip: 'Wenn du den Feed-Token neu generierst, werden alle alten URLs ungültig. Du musst sie dann in deinen Apps aktualisieren.',

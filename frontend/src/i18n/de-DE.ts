@@ -409,6 +409,7 @@ export default {
     sidebar: {
         collapse: 'Seitenleiste einklappen',
         expand: 'Seitenleiste ausklappen',
+        openMenu: 'Menü öffnen',
         stationMoved: 'Wache verschoben',
         dashboard: 'Dashboard',
         overview: 'Übersicht',
@@ -6443,8 +6444,10 @@ export default {
         },
         guide: {
             reveal: 'Hier steckt es drin. Klapp das auf, dann zeige ich dir weiter.',
+            behindMenu: 'Das liegt im Menü, und das ist gerade zu. Tipp hier drauf, dann zeige ich dir weiter.',
             elsewhere: 'Das findest du unter „{page}". Soll ich dich hinbringen?',
             takeMeThere: 'Hinbringen',
+            understood: 'Verstanden',
             skip: 'Aufgabe überspringen',
             dismiss: 'Später',
             blocked: 'Das geht noch nicht. Erledige zuerst, was auf der Seite darüber steht, dann wird der Knopf aktiv.',
@@ -6482,8 +6485,8 @@ export default {
         tasks: {
             member: {
                 profile: {
-                    title: 'Dein Profil vervollständigen',
-                    body: 'Deine Wache braucht ein paar Angaben von dir. Dauert zwei Minuten.',
+                    title: 'Dein Profil durchsehen',
+                    body: 'Schau nach, was über dich hinterlegt ist, und ergänze, was fehlt. Dauert zwei Minuten.',
                 },
                 notifications: {
                     title: 'Benachrichtigungen einstellen',
@@ -6491,8 +6494,9 @@ export default {
                         + 'bekommst.',
                 },
                 eventAnswer: {
-                    title: 'Auf den nächsten Termin antworten',
-                    body: 'Anmelden oder abmelden, beides zählt. Nach Ablauf der Frist geht es nicht mehr.',
+                    title: 'Die zwei Arten von Terminen kennenlernen',
+                    body: 'Zu manchen meldest du dich an, bei anderen wirst du erwartet. Antworten musst du '
+                        + 'dafür nichts.',
                 },
                 calendar: {
                     title: 'Termine in deinen Kalender holen',
@@ -6611,8 +6615,8 @@ export default {
             member: {
                 profile: {
                     0: 'Öffne dein Profil, dort steht alles über dich.',
-                    1: 'Fülle die Felder aus, die noch leer sind.',
-                    2: 'Speichern nicht vergessen.',
+                    1: 'Schau einmal durch, ob das alles noch stimmt: deine Wache plant damit. '
+                        + 'Ändern musst du nichts, und wenn doch, denk ans Speichern.',
                 },
                 notifications: {
                     0: 'Deine Benachrichtigungen liegen hier.',
@@ -6620,8 +6624,11 @@ export default {
                 },
                 eventAnswer: {
                     0: 'Hier stehen alle kommenden Termine.',
-                    1: 'Sag zu oder ab. Beides ist eine Antwort, nur schweigen hilft niemandem.',
-                    2: 'Beantworte noch die Fragen zum Termin und schick sie ab.',
+                    1: 'Zu manchen Terminen meldest du dich an. Dort ist der Platz erst deiner, wenn du '
+                        + 'zugesagt hast, und deine Wache plant mit denen, die zugesagt haben. Antworten '
+                        + 'musst du jetzt nichts.',
+                    2: 'Bei den anderen wirst du erwartet, ohne dass du etwas tust. Da meldest du dich nur '
+                        + 'ab, wenn du nicht kannst, damit niemand vergeblich auf dich wartet.',
                 },
                 calendar: {
                     0: 'Deinen Kalender-Zugang findest du bei den Benachrichtigungen.',

@@ -50,6 +50,22 @@ test.describe('Onboarding tasks', () => {
         await expect(page.getByText('Klapp das auf')).toBeVisible()
     })
 
+    test('on a narrow screen the walk asks for the menu before it points into it', async ({memberPage: page}, testInfo) => {
+        test.skip(testInfo.project.name !== 'mobile', 'The navigation only slides away where it is not standing open')
+        await setTaskState(page, 'OPEN')
+        await page.goto('/station/dashboard/overview')
+
+        await page.getByTestId(`onboarding-task-${TASK}`).getByRole('button', {name: 'Los geht’s'}).click()
+
+        // The navigation is in the page at every width, so before this the ring was drawn at the
+        // place the closed drawer says it occupies, which is past the left edge of the window.
+        await expect(page.getByText('Das liegt im Menü')).toBeVisible()
+
+        await page.getByRole('button', {name: 'Menü öffnen'}).click()
+
+        await expect(page.getByText('Das liegt im Menü')).toBeHidden()
+    })
+
     test('a skipped task is gone after a reload and can be taken up again', async ({memberPage: page}) => {
         await setTaskState(page, 'OPEN')
         await page.goto('/station/dashboard/overview')

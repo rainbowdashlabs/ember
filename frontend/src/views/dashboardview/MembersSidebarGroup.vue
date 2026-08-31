@@ -37,7 +37,7 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :badge="counts.pendingChanges + counts.waitingListEntries" :icon="['fas', 'users']"
+  <SidebarGroup data-onboarding="nav.members" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :badge="counts.pendingChanges + counts.waitingListEntries" :icon="['fas', 'users']"
                 :label="t('sidebar.members')" prefix="/station/members" :to="membersDefaultRoute" name="members-list" @navigate="close">
     <SidebarLink v-if="hasPermission(StationPermission.MEMBER_EDIT)" data-onboarding="nav.members.create" :icon="['fas', 'user-plus']" name="members-create" to="/station/members/create" @navigate="close">
       {{ t('sidebar.create') }}

@@ -23,9 +23,21 @@ import java.util.Optional;
  * to the readers that audience covers. Nothing here can point at a page its reader cannot open.
  */
 public enum OnboardingTask {
-    PROFILE_FIELDS("member.profile", OnboardingLevel.MEMBER, true),
+    /**
+     * Read rather than derived, although the profile is a thing Ember can look at. The task asks
+     * somebody to go and check what is written about them, and a profile that happens to be complete
+     * is exactly the one worth checking, so a station's data settling it would hide the task from the
+     * people it is for.
+     */
+    PROFILE_FIELDS("member.profile", OnboardingLevel.MEMBER, false),
     NOTIFICATIONS("member.notifications", OnboardingLevel.MEMBER, true),
-    EVENT_ANSWER("member.eventAnswer", OnboardingLevel.MEMBER, true, StationModule.EVENTS),
+    /**
+     * Read rather than derived, because it explains a difference rather than asking for an answer.
+     * Deriving it from an answer having been given made the walk end in a sign-up nobody had asked
+     * for, and settled the task for anybody who had once answered anything without ever telling them
+     * what the two kinds of appointment are.
+     */
+    EVENT_ANSWER("member.eventAnswer", OnboardingLevel.MEMBER, false, StationModule.EVENTS),
     CALENDAR_FEED("member.calendar", OnboardingLevel.MEMBER, true, StationModule.EVENTS),
     ABSENCE("member.absence", OnboardingLevel.MEMBER, false),
     BOOKMARK("member.bookmark", OnboardingLevel.MEMBER, false),

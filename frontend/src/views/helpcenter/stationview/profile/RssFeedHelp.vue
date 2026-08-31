@@ -48,6 +48,15 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.rssFeed.iosText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.rssFeed.phoneTitle')">
+      <p>
+        {{ t('helpCenter.rssFeed.phoneText') }}
+        <router-link :to="{name: 'help-profile-feed-phone'}">
+          {{ t('helpCenter.rssFeed.phoneLink') }}
+        </router-link>
+      </p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.rssFeed.webTitle')">
       <p>{{ t('helpCenter.rssFeed.webText') }}</p>
     </HelpSection>

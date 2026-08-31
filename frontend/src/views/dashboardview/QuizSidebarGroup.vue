@@ -61,7 +61,7 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup v-if="quiz || protocols" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :icon="['fas', 'graduation-cap']" :label="label" :prefix="['/station/quiz', '/station/protocols']" group-key="quiz-protocols">
+  <SidebarGroup v-if="quiz || protocols" data-onboarding="nav.quiz" :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :icon="['fas', 'graduation-cap']" :label="label" :prefix="['/station/quiz', '/station/protocols']" group-key="quiz-protocols">
     <template v-if="sectioned">
       <SidebarSubGroup :icon="['fas', 'graduation-cap']" :label="t('sidebar.quiz')" prefix="/station/quiz">
         <QuizSidebarLinks @navigate="close"/>

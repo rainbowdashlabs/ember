@@ -2,12 +2,20 @@
 
 ## v26.13.11
 
+### Changes
+
+- **Two of the first steps now ask you to look rather than to act.** Answering an appointment has become a short explanation of the two kinds, the ones you sign up for and the ones where you are simply expected, and it no longer ends in a sign-up nobody asked for. Going through your profile is offered even when nothing is missing, because a profile that looks complete is the one worth reading over.
+
 ### Improvements
 
+- **A page that walks you through putting your notifications on your phone.** Until now the help named a handful of reader apps to choose from; there is now one route told to the end, with Feeder on Android and NetNewsWire on iPhone. It also says plainly why it is worth doing: a notification left inside Ember waits until you next open Ember.
 - **The questions of an attendance sheet can be taken straight into an appointment.** Where an appointment names a sheet, its fields are now offered above the appointment's own questions, one at a time or all at once. They arrive with their name, their type and their settings, already tied to the field they came from, which is what makes the answer given at the appointment land on the sheet; a field already taken is not offered a second time. The same offer stands in the appointment templates.
 
 ### Fixes
 
+- **The guided first steps pointed off the edge of the screen on a phone.** The navigation is present at every width and merely slides out of sight on a narrow one, so the ring was drawn faithfully at a place beyond the left edge and the reader saw nothing at all. It now points at the menu button first, in a dashed ring that says this is the way rather than the destination, and moves on to what it was after once the menu is open.
+- **A first step stayed open after it had been walked to the end.** Looking up where absences are recorded, opening an article, trying a training: each of these ended with Ember saying the task was not settled yet and suggesting the reader check whether their entry had saved, two steps after telling them there was nothing to enter. Walking such a step now settles it, while anything Ember reads from the data is unchanged.
+- **The step about trying a training offered to jump there instead of showing the way.** The point of that step is to show where training lives, and it skipped its own purpose whenever the group in the navigation was folded away. It now points at the group, as the other steps already did.
 - **Four kinds of notification reached a feed reader under their internal name.** A reminder that a sign-up is about to close, a piece the cluster has sent on its way, a piece reported missing and a movement called off all arrived titled in capital letters rather than in a sentence. All four are now titled and filed in German and English, like every other kind of notification.
 - **A question asking for a member showed a number instead of the name.** Where an appointment asks who drives or who supervises, the notification body and the subscribed calendar entry listed the answer as an internal number, which named nobody. Both now write out the members the question holds.
 - **Somebody who had set their password still counted as not set up.** The member list waited for a first sign-in before dropping the hourglass beside a name, so people who had chosen their password and gone no further were chased with another setup mail. Choosing a password is now what settles the account, and only a password an administrator laid down still counts as outstanding.
