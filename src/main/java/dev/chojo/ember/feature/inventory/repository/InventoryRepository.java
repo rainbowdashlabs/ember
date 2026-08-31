@@ -18,6 +18,8 @@ import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
+import dev.chojo.ember.feature.inventory.entity.SwitchBlocker;
+import dev.chojo.ember.feature.inventory.entity.SwitchBlockerKind;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -36,7 +38,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 @Singleton
 public class InventoryRepository {
-    private static final String INVENTORY_COLUMNS = "id, station_id, name, inventory_type, has_sizes";
+    private static final String INVENTORY_COLUMNS = "id, station_id, name, inventory_type, has_sizes, homogeneous";
     private static final String INVENTORY_SIZE_COLUMNS = "id, inventory_id, label, position, note";
     private static final String INVENTORY_ITEM_COLUMNS =
             "id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, lost_note, lost_note_by, owner_kind, owner_cluster_id, custody, custody_station_id, custody_movement_id, container_id";
@@ -108,7 +110,10 @@ public class InventoryRepository {
     }
 
     /**
-     * Creates a new inventory for a station.
+     * Creates a new inventory holding one thing in many copies.
+     *
+     * <p>That is the permissive kind, the one every inventory that existed before the distinction was
+     * drawn became, so it is what a caller with no opinion gets.
      *
      * @param stationId     the station ID
      * @param name          the inventory name
@@ -117,15 +122,31 @@ public class InventoryRepository {
      * @return the created inventory
      */
     public Inventory create(int stationId, String name, InventoryType inventoryType, boolean hasSizes) {
+        return create(stationId, name, inventoryType, hasSizes, true);
+    }
+
+    /**
+     * Creates a new inventory for a station.
+     *
+     * @param stationId     the station ID
+     * @param name          the inventory name
+     * @param inventoryType the inventory type
+     * @param hasSizes      whether the inventory supports sizes
+     * @param homogeneous   whether it holds one thing in many copies rather than a drawer of different things
+     * @return the created inventory
+     */
+    public Inventory create(
+            int stationId, String name, InventoryType inventoryType, boolean hasSizes, boolean homogeneous) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO inventory(station_id, name, inventory_type, has_sizes)
-                VALUES(:station_id, :name, :inventory_type, :has_sizes)
+                INSERT INTO inventory(station_id, name, inventory_type, has_sizes, homogeneous)
+                VALUES(:station_id, :name, :inventory_type, :has_sizes, :homogeneous)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("inventory_type", inventoryType)
-                        .bind("has_sizes", hasSizes),
+                        .bind("has_sizes", hasSizes)
+                        .bind("homogeneous", homogeneous),
                 Inventory.map(),
                 INVENTORY_COLUMNS);
     }
@@ -137,17 +158,103 @@ public class InventoryRepository {
      * @param name          the new name
      * @param inventoryType the new inventory type
      * @param hasSizes      whether the inventory supports sizes
+     * @param homogeneous   whether it holds one thing in many copies rather than a drawer of different things
      * @return {@code true} if the inventory was updated
      */
-    public boolean update(int id, String name, InventoryType inventoryType, boolean hasSizes) {
-        return query(
-                        "UPDATE inventory SET name = :name, inventory_type = :inventory_type, has_sizes = :has_sizes WHERE id = :id;")
+    public boolean update(int id, String name, InventoryType inventoryType, boolean hasSizes, boolean homogeneous) {
+        return query("""
+                UPDATE inventory
+                SET name           = :name,
+                    inventory_type = :inventory_type,
+                    has_sizes      = :has_sizes,
+                    homogeneous    = :homogeneous
+                WHERE id = :id;""")
                 .single(call().bind("name", name)
                         .bind("inventory_type", inventoryType)
                         .bind("has_sizes", hasSizes)
+                        .bind("homogeneous", homogeneous)
                         .bind("id", id))
                 .update()
                 .changed();
+    }
+
+    /**
+     * The requirements pointing at an inventory, named well enough to go and deal with.
+     *
+     * <p>A requirement has no status: it is a standing profile rather than an event, so every one of
+     * them counts against a switch, however old.
+     *
+     * @param inventoryId the inventory ID
+     * @return one entry per requirement, labelled with the group or user type it asks of
+     */
+    public List<SwitchBlocker> findRequirementBlockers(int inventoryId) {
+        return query("""
+                SELECT r.id, coalesce(g.name, r.user_type, '') AS label
+                FROM inventory_requirement r
+                LEFT JOIN member_group g ON g.id = r.group_id
+                WHERE r.inventory_id = :inventory_id
+                ORDER BY r.position, r.id;""")
+                .single(call().bind("inventory_id", inventoryId))
+                .map(row -> new SwitchBlocker(SwitchBlockerKind.REQUIREMENT, row.getInt("id"), row.getString("label")))
+                .all();
+    }
+
+    /**
+     * The orders on an inventory that nothing has arrived for yet.
+     *
+     * <p>An order is open while it has no fulfilment time. One fulfilled two years ago is history,
+     * and history never blocks.
+     *
+     * @param inventoryId the inventory ID
+     * @return one entry per open order, labelled with who it is for
+     */
+    public List<SwitchBlocker> findOpenProcurementBlockers(int inventoryId) {
+        return query("""
+                SELECT p.id,
+                       trim(coalesce(a.first_name, '') || ' ' || coalesce(a.last_name, '')) AS label
+                FROM equipment_procurement p
+                LEFT JOIN station_member sm ON sm.id = p.member_id
+                LEFT JOIN account a ON a.id = sm.account_id
+                WHERE p.inventory_id = :inventory_id AND p.fulfilled_at IS NULL
+                ORDER BY p.requested_at;""")
+                .single(call().bind("inventory_id", inventoryId))
+                .map(row -> new SwitchBlocker(SwitchBlockerKind.PROCUREMENT, row.getInt("id"), row.getString("label")))
+                .all();
+    }
+
+    /**
+     * The exchanges on an inventory that are still walking their flow.
+     *
+     * <p>An exchange that reached its end, was declined or was called off has stopped moving, and a
+     * finished one must not hold an inventory in place forever.
+     *
+     * @param inventoryId the inventory ID
+     * @return one entry per open exchange, labelled with the member it is for
+     */
+    public List<SwitchBlocker> findOpenExchangeBlockers(int inventoryId) {
+        return query("""
+                SELECT m.id,
+                       trim(coalesce(a.first_name, '') || ' ' || coalesce(a.last_name, '')) AS label
+                FROM item_movement m
+                LEFT JOIN station_member sm ON sm.id = m.member_id
+                LEFT JOIN account a ON a.id = sm.account_id
+                WHERE m.inventory_id = :inventory_id AND m.purpose = 'EXCHANGE' AND m.state = 'OPEN'
+                ORDER BY m.created_at;""")
+                .single(call().bind("inventory_id", inventoryId))
+                .map(row -> new SwitchBlocker(SwitchBlockerKind.EXCHANGE, row.getInt("id"), row.getString("label")))
+                .all();
+    }
+
+    /**
+     * The sizes an inventory offers, as things that stand in the way of leaving the sized half.
+     *
+     * @param inventoryId the inventory ID
+     * @return one entry per size, labelled with the size itself
+     */
+    public List<SwitchBlocker> findSizeBlockers(int inventoryId) {
+        return findSizes(inventoryId).stream()
+                .map(size -> new SwitchBlocker(SwitchBlockerKind.SIZE, size.id(), size.label()))
+                .toList();
     }
 
     /**
@@ -685,6 +792,35 @@ public class InventoryRepository {
                         .bind("name", name)
                         .bind("size_id", sizeId)
                         .bind("metadata", (metadata != null ? metadata : InventoryItemMetadata.empty()).toJson())
+                        .bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Moves an item into another inventory, keeping the row it has always been.
+     *
+     * <p>This is the whole point of the statement being an update rather than a delete and an insert:
+     * the identifier, the history, the assignment and the custody chain all hang off this row, and
+     * recreating the item somewhere else throws every one of them away.
+     *
+     * <p>The size goes with the move, because the size list belongs to the inventory being left. The
+     * caller has either found the same label in the new inventory or has nothing to put there, and
+     * either way what arrives here is a size of the target or {@code null}.
+     *
+     * @param id          the item ID
+     * @param inventoryId the inventory it is moving into
+     * @param sizeId      its size in the new inventory, or {@code null} when it has none there
+     * @return {@code true} if the item was moved
+     */
+    public boolean moveItemToInventory(int id, int inventoryId, Integer sizeId) {
+        return query("""
+                UPDATE inventory_item
+                SET inventory_id = :inventory_id,
+                    size_id      = :size_id
+                WHERE id = :id;""")
+                .single(call().bind("inventory_id", inventoryId)
+                        .bind("size_id", sizeId)
                         .bind("id", id))
                 .update()
                 .changed();

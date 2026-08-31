@@ -76,12 +76,13 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void update() {
-        assertTrue(inventoryRepo.update(inventoryId, "Jackets", InventoryType.INTERNAL, false));
+        assertTrue(inventoryRepo.update(inventoryId, "Jackets", InventoryType.INTERNAL, false, true));
         Inventory updated = inventoryRepo.findById(inventoryId).orElseThrow();
         assertEquals("Jackets", updated.name());
         assertFalse(updated.hasSizes());
+        assertTrue(updated.homogeneous());
         // restore
-        inventoryRepo.update(inventoryId, "Helmets", InventoryType.EXTERNAL, true);
+        inventoryRepo.update(inventoryId, "Helmets", InventoryType.EXTERNAL, true, true);
     }
 
     // -- Sizes --

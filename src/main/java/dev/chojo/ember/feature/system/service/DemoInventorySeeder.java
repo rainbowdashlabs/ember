@@ -278,10 +278,23 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
             inventoryRepository.createSize(tshirt.id(), tshirtSizes.get(i), i, "");
 
         // Gear whose owner is not on this instance: the same ownership with nobody behind it, which is what
-        // makes the asserted half of the model visible. Every station keeps some, association or not
-        var gemeindematerial = inventoryRepository.create(stationId, "Gemeindematerial", InventoryType.EXTERNAL, false);
+        // makes the asserted half of the model visible. Every station keeps some, association or not.
+        //
+        // It is also the drawer of different things, which is why it is the one inventory here that is not
+        // marked as holding one thing in many copies: several names under one heading, fetched for an
+        // occasion and handed back. With it marked, the barrier is something the demo shows rather than
+        // something only the tests know about, and the three features that need one thing are simply not
+        // offered on it.
+        var gemeindematerial =
+                inventoryRepository.create(stationId, "Gemeindematerial", InventoryType.EXTERNAL, false, false);
         inventoryRepository.createItem(
                 gemeindematerial.id(), "GM-0001", "Funkgerät der Gemeinde", null, null, ItemOwner.CLUSTER, null);
+        inventoryRepository.createItem(
+                gemeindematerial.id(), "GM-0002", "Laminiergerät", null, null, ItemOwner.CLUSTER, null);
+        inventoryRepository.createItem(
+                gemeindematerial.id(), "GM-0003", "Beamer der Gemeinde", null, null, ItemOwner.CLUSTER, null);
+        inventoryRepository.createItem(
+                gemeindematerial.id(), "GM-0004", "Kaffeemaschine", null, null, ItemOwner.CLUSTER, null);
 
         // Requirements: Anfänger and Fortgeschritten members each need 1 of each (2 T-shirts)
         for (int groupId : List.of(anfaengerGroupId, fortgeschrittenGroupId)) {

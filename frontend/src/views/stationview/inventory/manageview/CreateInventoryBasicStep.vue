@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -16,6 +17,7 @@ import {InventoryTypes, type InventoryTypeName} from '@/api/inventory'
 const name = defineModel<string>('name', {required: true})
 const type = defineModel<InventoryTypeName>('type', {required: true})
 const hasSizes = defineModel<boolean>('hasSizes', {required: true})
+const homogeneous = defineModel<boolean>('homogeneous', {required: true})
 
 const emit = defineEmits<{
   cancel: []
@@ -23,6 +25,11 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+/** A drawer of different things keeps no size list, so the one control follows the other. */
+watch(homogeneous, value => {
+  if (!value) hasSizes.value = false
+})
 </script>
 
 <template>
@@ -41,12 +48,20 @@ const {t} = useI18n()
     <p class="text-xs text-(--text-muted)">{{ t('inventory.manage.typeHint') }}</p>
   </div>
 
-  <div class="flex items-center justify-between">
+  <div class="flex items-center justify-between gap-4">
+    <div>
+      <label class="text-sm font-medium">{{ t('inventory.manage.homogeneous') }}</label>
+      <p class="text-xs text-(--text-muted)">{{ t('inventory.manage.homogeneousHint') }}</p>
+    </div>
+    <ToggleInput v-model="homogeneous" data-testid="inventory-homogeneous" />
+  </div>
+
+  <div v-if="homogeneous" class="flex items-center justify-between gap-4">
     <div>
       <label class="text-sm font-medium">{{ t('inventory.manage.hasSizes') }}</label>
       <p class="text-xs text-(--text-muted)">{{ t('inventory.manage.hasSizesHint') }}</p>
     </div>
-    <ToggleInput v-model="hasSizes" />
+    <ToggleInput v-model="hasSizes" data-testid="inventory-has-sizes" />
   </div>
 
   <div class="flex justify-end gap-3">

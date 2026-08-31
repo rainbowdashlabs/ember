@@ -281,7 +281,9 @@ test.describe('Events', () => {
         await page.getByRole('button', {name: /Speichern|Erstellen/}).last().click()
 
         await page.waitForURL(/\/station\/events$/)
-        await page.getByText(name).first().click()
+        // The name is on the page twice: once in the calendar preview above, which leads nowhere,
+        // and once on the list entry. Only the entry opens the appointment.
+        await page.getByTestId('event-entry').filter({hasText: name}).first().click()
         await page.waitForURL(/\/station\/events\/\d+/)
 
         await expect(page.getByTestId('event-repeat-end')).toHaveText(/8 Mal/)
