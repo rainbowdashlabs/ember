@@ -130,6 +130,16 @@ const {t} = useI18n()
       </HelpSection>
     </HelpPermissionGuard>
 
+    <HelpPermissionGuard
+        :permissions="[StationPermission.CHECKLIST_MANAGE, StationPermission.POLL_CREATE]"
+        :label="t('helpCenter.permissionLabel.checklistManage')">
+      <HelpSection :title="t('helpCenter.eventDetail.signupListsTitle')">
+        <p>{{ t('helpCenter.eventDetail.signupListsText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.signupListsLimitsText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.signupListsSurveyText') }}</p>
+      </HelpSection>
+    </HelpPermissionGuard>
+
     <HelpSection :title="t('helpCenter.eventDetail.badgesTitle')">
       <p>{{ t('helpCenter.eventDetail.badgesText') }}</p>
       <div class="flex flex-wrap gap-2 mt-3">
