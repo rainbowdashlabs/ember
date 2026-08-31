@@ -9,10 +9,11 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
-import ArtPicker from '../../ArtPicker.vue'
+import EditItemNaming from './EditItemNaming.vue'
 import type {InventorySize} from '@/api/inventory'
 import type {InventoryContainer} from '@/api/inventoryContainers'
 import type {InventoryArt} from '@/api/inventoryArts'
+import type {InventoryTag} from '@/api/inventoryTags'
 
 withDefaults(
     defineProps<{
@@ -23,8 +24,10 @@ withDefaults(
       arts?: InventoryArt[]
       /** Whether kinds are offered at all, which follows from what the inventory holds. */
       showArt?: boolean
+      /** The words this station puts on its things, whatever inventory they are filed under. */
+      tags?: InventoryTag[]
     }>(),
-    {arts: () => [], showArt: false},
+    {arts: () => [], showArt: false, tags: () => []},
 )
 
 const itemName = defineModel<string>('itemName', {default: ''})
@@ -33,21 +36,22 @@ const sizeId = defineModel<string>('sizeId', {default: ''})
 const containerId = defineModel<number | null>('containerId', {default: null})
 const artId = defineModel<number | null>('artId', {default: null})
 const artDraft = defineModel<string>('artDraft', {default: ''})
+const tagNames = defineModel<string[]>('tagNames', {default: () => []})
 
 const {t} = useI18n()
 </script>
 
 <template>
   <div class="space-y-4">
-    <div class="space-y-1">
-      <FieldLabel>{{ t('inventory.edit.itemName') }}</FieldLabel>
-      <TextInput v-model="itemName" :placeholder="t('inventory.edit.itemNamePlaceholder')"/>
-    </div>
-    <div v-if="showArt" class="space-y-1">
-      <FieldLabel>{{ t('inventory.art.field') }}</FieldLabel>
-      <ArtPicker v-model:artId="artId" v-model:draft="artDraft" :arts="arts"/>
-      <p class="text-xs text-(--text-muted)">{{ t('inventory.art.fieldHint') }}</p>
-    </div>
+    <EditItemNaming
+        v-model:itemName="itemName"
+        v-model:artId="artId"
+        v-model:artDraft="artDraft"
+        v-model:tagNames="tagNames"
+        :arts="arts"
+        :showArt="showArt"
+        :tags="tags"
+    />
     <div class="space-y-1">
       <FieldLabel>{{ t('inventory.edit.itemInternalId') }}</FieldLabel>
       <div class="flex items-center gap-2">

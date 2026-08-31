@@ -58,6 +58,10 @@ public class InventoryTagRoutes implements Routes {
         routes.get(prefix + "/inventory-tags/items", this::itemsByTag, StationPermission.INVENTORY_READ);
         routes.put(prefix + "/inventory-tags/{tagId}", this::update, StationPermission.INVENTORY_EDIT);
         routes.delete(prefix + "/inventory-tags/{tagId}", this::delete, StationPermission.INVENTORY_EDIT);
+        routes.get(
+                prefix + "/inventories/{inventoryId}/item-tags",
+                this::inventoryItemTags,
+                StationPermission.INVENTORY_READ);
         routes.get(prefix + "/inventory-items/{itemId}/tags", this::itemTags, StationPermission.INVENTORY_READ);
         routes.put(prefix + "/inventory-items/{itemId}/tags", this::setItemTags, StationPermission.INVENTORY_EDIT);
     }
@@ -151,6 +155,21 @@ public class InventoryTagRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/inventories/{inventoryId}/item-tags",
+            methods = HttpMethod.GET,
+            pathParams = @OpenApiParam(name = "inventoryId", type = Integer.class, required = true),
+            summary = "The words every thing in one inventory wears",
+            tags = {"Inventory"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ItemTagsResponse[].class)))
+    private void inventoryItemTags(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var byItem = tagService.findTagsInInventory(session.stationId(), pathInt(ctx, "inventoryId"));
+        ctx.json(byItem.entrySet().stream()
+                .map(entry -> new ItemTagsResponse(entry.getKey(), entry.getValue()))
+                .toList());
+    }
+
+    @OpenApi(
             path = "/api/v1/inventory-items/{itemId}/tags",
             methods = HttpMethod.GET,
             pathParams = @OpenApiParam(name = "itemId", type = Integer.class, required = true),
@@ -208,4 +227,10 @@ public class InventoryTagRoutes implements Routes {
      * @param names the words a thing should wear, as somebody typed them
      */
     public record ItemTagsRequest(List<String> names) {}
+
+    /**
+     * @param itemId the thing
+     * @param tags   the words it wears
+     */
+    public record ItemTagsResponse(int itemId, List<InventoryTag> tags) {}
 }

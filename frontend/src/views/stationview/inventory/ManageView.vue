@@ -22,6 +22,7 @@ import ScannerPanel from './manageview/ScannerPanel.vue'
 import InventorySummaryCard from './manageview/InventorySummaryCard.vue'
 import CreateInventoryModal from './manageview/CreateInventoryModal.vue'
 import LossSettingsPanel from './manageview/LossSettingsPanel.vue'
+import TagsPanel from './manageview/TagsPanel.vue'
 
 const routes = useInventoryRoutes()
 
@@ -97,6 +98,8 @@ function onError() {
             @remove="requestDelete"
           />
         </div>
+
+        <TagsPanel />
 
         <template v-if="!routes.settings">
           <LossSettingsPanel />
