@@ -25,11 +25,11 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 /**
- * The two line kinds fall short differently, so they say so differently.
+ * The line kinds fall short differently, so they say so differently.
  *
- * <p>A counted line short of stock is a fraction, because two of four is still worth knowing. A named
- * piece that is not here is simply gone: there is no other piece that would do, so a fraction would be
- * a number nobody can act on.
+ * A counted line short of stock is a fraction, because two of four blue radios is still worth
+ * knowing. A named piece that is not here is simply gone: there is no other piece that would do, so
+ * a fraction would be a number nobody can act on.
  */
 const shortfall = () =>
     props.line.itemId !== null

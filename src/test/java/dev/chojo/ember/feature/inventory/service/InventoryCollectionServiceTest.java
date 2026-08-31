@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.service;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.CollectionLine;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryCollection;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
@@ -42,13 +43,13 @@ class InventoryCollectionServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new InventoryCollectionService(collectionRepo, inventoryRepo);
+        service = new InventoryCollectionService(collectionRepo, inventoryRepo, artRepo);
         account = accountRepo.create("collectionsvc@test.example", "Collection", "Service");
         station = stationRepo.create("CollectionServiceStation");
         other = stationRepo.create("CollectionServiceOther");
         member = stationMemberRepo.create(station.id(), account.id());
-        drawer = inventoryRepo.create(station.id(), "Sonstiges", InventoryType.INTERNAL, false);
-        foreign = inventoryRepo.create(other.id(), "Fremd", InventoryType.INTERNAL, false);
+        drawer = inventoryRepo.create(station.id(), "Sonstiges", InventoryType.INTERNAL, false, false);
+        foreign = inventoryRepo.create(other.id(), "Fremd", InventoryType.INTERNAL, false, false);
     }
 
     @AfterAll
@@ -114,7 +115,31 @@ class InventoryCollectionServiceTest extends RepositoryTestBase {
         assertThrows(
                 IllegalArgumentException.class, () -> service.addInventoryLine(kit.id(), station.id(), drawer.id(), 0));
 
+        InventoryArt kind = artRepo.create(drawer.id(), "Laminiergeraet", "", 0);
+        InventoryArt foreignKind = artRepo.create(foreign.id(), "Fremde Art", "", 0);
+
+        CollectionLine perKind = service.addArtLine(kit.id(), station.id(), kind.id(), 4);
+        assertEquals(kind.id(), perKind.artId());
+        assertEquals(4, perKind.quantity());
+        assertNull(perKind.itemId());
+        assertNull(perKind.inventoryId());
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.addArtLine(kit.id(), station.id(), foreignKind.id(), 1));
+        assertThrows(IllegalArgumentException.class, () -> service.addArtLine(kit.id(), station.id(), -1, 1));
+        assertThrows(
+                IllegalArgumentException.class, () -> service.addArtLine(kit.id(), station.id(), kind.id(), 0));
+
+        assertEquals(
+                List.of("Eigenes"),
+                service.collectionsAskingForArt(kind.id()).stream()
+                        .map(InventoryCollection::name)
+                        .toList());
+
         service.delete(kit.id(), station.id());
+        artRepo.delete(kind.id());
+        artRepo.delete(foreignKind.id());
         inventoryRepo.deleteItem(own.id());
         inventoryRepo.deleteItem(elsewhere.id());
     }

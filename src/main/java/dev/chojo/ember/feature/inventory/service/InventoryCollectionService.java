@@ -7,10 +7,12 @@ package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.feature.inventory.entity.CollectionLine;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryCollection;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ResolvedCollection;
 import dev.chojo.ember.feature.inventory.entity.ResolvedCollectionLine;
+import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCollectionRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
@@ -36,12 +38,16 @@ public class InventoryCollectionService {
 
     private final InventoryCollectionRepository collectionRepository;
     private final InventoryRepository inventoryRepository;
+    private final InventoryArtRepository artRepository;
 
     @Inject
     public InventoryCollectionService(
-            InventoryCollectionRepository collectionRepository, InventoryRepository inventoryRepository) {
+            InventoryCollectionRepository collectionRepository,
+            InventoryRepository inventoryRepository,
+            InventoryArtRepository artRepository) {
         this.collectionRepository = collectionRepository;
         this.inventoryRepository = inventoryRepository;
+        this.artRepository = artRepository;
     }
 
     /**
@@ -139,11 +145,35 @@ public class InventoryCollectionService {
                 .anyMatch(line -> Integer.valueOf(itemId).equals(line.itemId()))) {
             throw new IllegalArgumentException("The collection already names this item");
         }
-        return collectionRepository.addLine(collectionId, itemId, null, 1);
+        return collectionRepository.addLine(collectionId, itemId, null, null, 1);
     }
 
     /**
-     * Appends a line asking for a count out of an inventory.
+     * Appends a line asking for a count of one kind of thing.
+     *
+     * <p>This is the line the whole idea turns on: four blue radios rather than four of whatever the
+     * radio drawer happens to hold, which in a drawer that also holds a charging station and a cable
+     * are two different requests.
+     *
+     * @param collectionId the collection to append to
+     * @param stationId    the station the collection belongs to
+     * @param artId        the kind to ask for
+     * @param quantity     how many pieces to ask for
+     * @return the created line
+     * @throws IllegalArgumentException if the kind belongs to another station or the count is below one
+     */
+    public CollectionLine addArtLine(int collectionId, int stationId, int artId, int quantity) {
+        if (quantity < 1) throw new IllegalArgumentException("A line asks for at least one piece");
+        InventoryArt art =
+                artRepository.findById(artId).orElseThrow(() -> new IllegalArgumentException("The kind does not exist"));
+        requireOwnInventory(art.inventoryId(), stationId, "A collection can only ask for its own station's kinds");
+        return collectionRepository.addLine(collectionId, null, artId, null, quantity);
+    }
+
+    /**
+     * Appends a line asking for a count out of a whole inventory.
+     *
+     * <p>For the inventories that hold one thing in many copies, which carry no kinds at all.
      *
      * @param collectionId the collection to append to
      * @param stationId    the station the collection belongs to
@@ -154,13 +184,16 @@ public class InventoryCollectionService {
      */
     public CollectionLine addInventoryLine(int collectionId, int stationId, int inventoryId, int quantity) {
         if (quantity < 1) throw new IllegalArgumentException("A line asks for at least one piece");
+        requireOwnInventory(
+                inventoryId, stationId, "A collection can only draw from its own station's inventories");
+        return collectionRepository.addLine(collectionId, null, null, inventoryId, quantity);
+    }
+
+    private void requireOwnInventory(int inventoryId, int stationId, String refusal) {
         Inventory inventory = inventoryRepository
                 .findById(inventoryId)
                 .orElseThrow(() -> new IllegalArgumentException("The inventory does not exist"));
-        if (inventory.stationId() != stationId) {
-            throw new IllegalArgumentException("A collection can only draw from its own station's inventories");
-        }
-        return collectionRepository.addLine(collectionId, null, inventoryId, quantity);
+        if (inventory.stationId() != stationId) throw new IllegalArgumentException(refusal);
     }
 
     /**
@@ -244,6 +277,16 @@ public class InventoryCollectionService {
      */
     public List<InventoryCollection> collectionsTouchingInventory(int inventoryId) {
         return collectionRepository.findCollectionsTouchingInventory(inventoryId);
+    }
+
+    /**
+     * The collections that stand to lose a line when a kind of thing goes.
+     *
+     * @param artId the kind about to go
+     * @return the collections asking for it
+     */
+    public List<InventoryCollection> collectionsAskingForArt(int artId) {
+        return collectionRepository.findCollectionsAskingForArt(artId);
     }
 
     private String requireName(String name) {

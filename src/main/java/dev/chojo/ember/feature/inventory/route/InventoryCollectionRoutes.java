@@ -32,6 +32,8 @@ import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -82,6 +84,10 @@ public class InventoryCollectionRoutes implements Routes {
         routes.get(
                 prefix + "/inventories/{id}/collections",
                 this::collectionsTouchingInventory,
+                StationPermission.INVENTORY_READ);
+        routes.get(
+                prefix + "/inventories/{id}/arts/{artId}/collections",
+                this::collectionsAskingForArt,
                 StationPermission.INVENTORY_READ);
     }
 
@@ -204,7 +210,7 @@ public class InventoryCollectionRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Add a line to a collection",
             description =
-                    "Name a piece with itemId, or ask for a count out of an inventory with inventoryId and quantity. Exactly one of the two.",
+                    "Name a piece with itemId, ask for a count of one kind with artId and quantity, or for a count out of a whole inventory with inventoryId and quantity. Exactly one of the three.",
             tags = {"Inventory"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LineRequest.class)),
@@ -215,15 +221,14 @@ public class InventoryCollectionRoutes implements Routes {
     private void addLine(Context ctx) {
         InventoryCollection collection = ownCollection(ctx);
         var body = ctx.bodyAsClass(LineRequest.class);
-        if ((body.itemId() == null) == (body.inventoryId() == null)) {
-            throw new BadRequestResponse("A line names a piece or asks for a count, never both and never neither");
+        if (Stream.of(body.itemId(), body.artId(), body.inventoryId())
+                        .filter(Objects::nonNull)
+                        .count()
+                != 1) {
+            throw new BadRequestResponse("A line names a piece, a kind or an inventory, and exactly one of them");
         }
         try {
-            CollectionLine line = body.itemId() != null
-                    ? collectionService.addItemLine(collection.id(), collection.stationId(), body.itemId())
-                    : collectionService.addInventoryLine(
-                            collection.id(), collection.stationId(), body.inventoryId(), body.quantity());
-            ctx.status(HttpStatus.CREATED).json(line);
+            ctx.status(HttpStatus.CREATED).json(addLineOf(collection, body));
         } catch (IllegalArgumentException e) {
             throw new BadRequestResponse(e.getMessage());
         }
@@ -316,6 +321,23 @@ public class InventoryCollectionRoutes implements Routes {
         ctx.json(names(collectionService.collectionsTouchingInventory(inventoryId)));
     }
 
+    @OpenApi(
+            path = "/api/v1/inventories/{id}/arts/{artId}/collections",
+            methods = HttpMethod.GET,
+            summary = "The collections that would lose a line if this kind of thing went",
+            tags = {"Inventory"},
+            pathParams = {
+                @OpenApiParam(name = "id", type = Integer.class, required = true),
+                @OpenApiParam(name = "artId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = String[].class)))
+    private void collectionsAskingForArt(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var inventory = inventoryService.findById(pathInt(ctx, "id")).orElseThrow(NotFoundResponse::new);
+        RouteSupport.requireSameStation(session, inventory.stationId());
+        ctx.json(names(collectionService.collectionsAskingForArt(pathInt(ctx, "artId"))));
+    }
+
     private static List<String> names(List<InventoryCollection> collections) {
         return collections.stream().map(InventoryCollection::name).toList();
     }
@@ -328,6 +350,18 @@ public class InventoryCollectionRoutes implements Routes {
         } catch (java.time.format.DateTimeParseException e) {
             throw new BadRequestResponse("%s is not a date".formatted(name));
         }
+    }
+
+    private CollectionLine addLineOf(InventoryCollection collection, LineRequest body) {
+        if (body.itemId() != null) {
+            return collectionService.addItemLine(collection.id(), collection.stationId(), body.itemId());
+        }
+        if (body.artId() != null) {
+            return collectionService.addArtLine(
+                    collection.id(), collection.stationId(), body.artId(), body.quantity());
+        }
+        return collectionService.addInventoryLine(
+                collection.id(), collection.stationId(), body.inventoryId(), body.quantity());
     }
 
     /**
@@ -351,13 +385,14 @@ public class InventoryCollectionRoutes implements Routes {
     public record CollectionRequest(String name, String note) {}
 
     /**
-     * A line to add: either a named piece or a count out of an inventory.
+     * A line to add: a named piece, a count of one kind, or a count out of a whole inventory.
      *
      * @param itemId      the named piece, or null
+     * @param artId       the kind of thing counted, or null
      * @param inventoryId the inventory drawn from, or null
      * @param quantity    how many pieces a counted line asks for
      */
-    public record LineRequest(Integer itemId, Integer inventoryId, int quantity) {}
+    public record LineRequest(Integer itemId, Integer artId, Integer inventoryId, int quantity) {}
 
     /**
      * A new count for a line.
