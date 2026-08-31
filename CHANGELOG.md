@@ -4,6 +4,7 @@
 
 ### New Features
 
+- **Lists made out of who is coming.** The sign-ups of an appointment carry a menu that turns the people holding a place on that one evening into a checklist to tick off, or into a survey addressed to exactly them. The set is taken as it stands, so the dialog says how many people come across, who cannot be carried over, and that anybody signing up later is added by hand.
 - **The help centre carries the explanatory videos.** Under Basics there is now a page that plays the whole series in order, one video per topic, from the invitation through to the parts the team and the leadership use. It runs on YouTube's cookie-free address, so nothing is stored on the reader's device until they actually play something.
 
 ### Changes

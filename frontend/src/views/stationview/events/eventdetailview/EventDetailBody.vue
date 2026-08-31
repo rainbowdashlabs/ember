@@ -56,6 +56,12 @@ const emit = defineEmits<{
 
 const answers = computed(() => localAnswers(props.registrableMembers, props.myRegistrations))
 
+/**
+ * Who the station has today. Read from the same list the info tab names people from, which holds
+ * current members only, so anybody who has since left is absent from it by construction.
+ */
+const currentMemberIds = computed(() => props.allMembers.map(member => member.id))
+
 const {t} = useI18n()
 
 const activeTab = ref<'info' | 'registrations'>('info')
@@ -148,7 +154,8 @@ function onCancelled() {
         :current-member-id="currentMemberId"
         :registrable-members="registrableMembers"
         :has-managed-members="hasManagedMembers"
-        :next-occurrence-date="effectiveDate"
+        :effective-date="effectiveDate"
+        :current-member-ids="currentMemberIds"
     />
 
     <EventCancelModal

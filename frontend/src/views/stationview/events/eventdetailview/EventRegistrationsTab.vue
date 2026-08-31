@@ -21,8 +21,10 @@ import {events, stationMembers as stationMembersApi} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useSignupMemberSet} from '@/composables/useSignupMemberSet'
 import RegistrationsPanel from './RegistrationsPanel.vue'
 import FederatedRegistrationsPanel from './FederatedRegistrationsPanel.vue'
+import SignupListsMenu from './signuplists/SignupListsMenu.vue'
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 import EventAnswerDialog from '../eventshared/EventAnswerDialog.vue'
 import type {AnswerablePerson, PersonAnswer} from '@/util/eventAnswers'
@@ -33,7 +35,10 @@ const props = defineProps<{
   currentMemberId: number
   registrableMembers: AnswerablePerson[]
   hasManagedMembers: boolean
-  nextOccurrenceDate: string | null
+  /** The single evening this screen is focused on. Every answer written here belongs to it. */
+  effectiveDate: string | null
+  /** Everybody the station has today, which is who a list built from these sign-ups can hold. */
+  currentMemberIds: number[]
 }>()
 
 const {t} = useI18n()
@@ -91,6 +96,19 @@ const nonPendingRegistrations = computed<StatusGroup[]>(() => {
 const unregisteredMembers = computed(() => {
   const regIds = new Set(registrations.value.map(r => r.memberId))
   return allMembers.value.filter(m => !regIds.has(m.id)).sort((a, b) => a.name.localeCompare(b.name))
+})
+
+/**
+ * The people holding a place on the evening in view, which is what anything built from this tab
+ * works from. The loaded list carries every occurrence of the appointment, so the date is what
+ * makes this one Tuesday rather than all of them.
+ */
+const signupMemberSet = useSignupMemberSet({
+  event: () => props.event,
+  effectiveDate: () => props.effectiveDate,
+  registrations: () => registrations.value,
+  federatedRegistrations: () => federatedRegs.value,
+  currentMemberIds: () => props.currentMemberIds,
 })
 
 function getRegistrationForMember(memberId: number): EventRegistrationEntry | undefined {
@@ -151,7 +169,7 @@ async function denyRegistration(id: number) {
 const {running: registering, error: registrationError, run: runRegistration} = useAsyncAction(
     async (kind: 'register' | 'decline', memberId: number, fields?: RegistrationFieldValue[]) => {
       const request = {
-        eventDate: props.nextOccurrenceDate ?? undefined,
+        eventDate: props.effectiveDate ?? undefined,
         memberId: memberId !== props.currentMemberId ? memberId : undefined,
         fields,
       }
@@ -298,7 +316,7 @@ async function manualRegister(values?: RegistrationFieldValue[]) {
   }
   try {
     await events.registerForEvent(props.eventId, {
-      eventDate: props.nextOccurrenceDate ?? undefined,
+      eventDate: props.effectiveDate ?? undefined,
       memberId: Number(manualRegisterMemberId.value),
       fields: values,
     })
@@ -366,7 +384,15 @@ onMounted(loadRegistrations)
         @deny="denyRegistration"
         @edit-answers="editAnswers"
         @manual-register="manualRegister"
-    />
+    >
+      <template #header-actions>
+        <SignupListsMenu
+            :event="event"
+            :effective-date="effectiveDate"
+            :member-set="signupMemberSet"
+        />
+      </template>
+    </RegistrationsPanel>
 
     <RegistrationFieldsModal
         v-model="showEditAnswers"
