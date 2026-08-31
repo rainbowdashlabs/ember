@@ -139,8 +139,6 @@ export interface AvailableInventoryResult {
     emptyReason: LendingEmptyReasonName | null
 }
 
-// -- What this station offers --
-
 export const ShareGrant = {
     GRANT: 'GRANT',
     WITHHOLD: 'WITHHOLD',
@@ -219,8 +217,6 @@ export async function listAvailable(options?: { q?: string; from?: string; to?: 
     const res = await client.get<AvailableInventoryResult>('/federated/lending/available', {params})
     return res.data
 }
-
-// -- Sharing --
 
 export async function listShares(): Promise<ShareDetail[]> {
     const res = await client.get<ShareDetail[]>('/lending/shares')

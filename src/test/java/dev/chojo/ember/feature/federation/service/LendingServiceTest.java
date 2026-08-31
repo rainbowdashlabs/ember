@@ -982,8 +982,6 @@ class LendingServiceTest extends RepositoryTestBase {
                 .assignedItemId();
     }
 
-    // -- The opt-in share --
-
     /**
      * Gear nobody has said anything about is not on offer, and the answer says so rather than
      * reading as a fault to whoever is looking at an empty screen.
