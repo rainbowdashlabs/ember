@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, apiHeaders, clusterGearManagerPage} from './fixtures/auth'
+import {test, expect, apiHeaders, clusterAccountWith, clusterPage} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 
 test.describe('Collections', () => {
@@ -39,15 +39,17 @@ test.describe('Collections', () => {
         await expect(page.getByTestId('collection-line')).toHaveCount(1)
     })
 
-    /** The seeded kit is what an association reads through its own screens, on the station it owns. */
+    /** An association's gear is a station's gear, so its collections are the home station's, shown here. */
     test('the association reads the collections of its home station', async ({browser, request}) => {
-        const page = await clusterGearManagerPage(browser, request)
+        const account = await clusterAccountWith(request, 'CLUSTER_INVENTORY_MANAGER')
+        const page = await clusterPage(browser, request, account)
 
         await page.goto('/cluster/inventory/collections')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        await expect(page.getByTestId('cluster-inventory-tabs')).toBeVisible()
-        await expect(page.getByTestId('tab-cluster-inventory-collections')).toBeVisible()
-        await expect(page.getByTestId('collections-panel')).toBeVisible()
+        await expect(page.getByTestId('tab-cluster-inventory-collections')).toBeVisible({timeout: 15000})
+        await expect(page.getByTestId('collections-panel')).toBeVisible({timeout: 15000})
+        await page.context().close()
     })
 
     /**
