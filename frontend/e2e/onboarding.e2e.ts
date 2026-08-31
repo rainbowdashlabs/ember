@@ -80,10 +80,16 @@ test.describe('Onboarding tasks', () => {
         await setTaskState(page, 'OPEN')
     })
 
+    /**
+     * Whether the notifications are set up is something Ember reads from the settings themselves, so
+     * saying it is done says nothing: the answer would be overwritten by what the data says the next
+     * time the list is read. The profile is not such a task any more, because a profile that looks
+     * complete is exactly the one worth reading over.
+     */
     test('a task Ember reads for itself refuses to be ticked off', async ({memberPage: page}) => {
         const headers = await apiHeaders(page)
 
-        const response = await page.request.put('/api/v1/onboarding/member/member.profile', {
+        const response = await page.request.put('/api/v1/onboarding/member/member.notifications', {
             headers,
             data: {state: 'DONE'},
         })
