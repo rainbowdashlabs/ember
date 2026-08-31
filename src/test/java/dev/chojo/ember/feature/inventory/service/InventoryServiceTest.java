@@ -52,7 +52,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void createInventory() {
-        var inv = service.create(station.id(), "Helmets", InventoryType.INTERNAL, true);
+        var inv = service.create(station.id(), "Helmets", InventoryType.INTERNAL, true, true);
         assertNotNull(inv);
         assertEquals("Helmets", inv.name());
         assertTrue(inv.hasSizes());
@@ -132,7 +132,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(35)
     void aFreshPieceIsWrittenDownAndHandedOverInOneStep() {
-        var inv = service.create(station.id(), "HandOut Inv", InventoryType.INTERNAL, false);
+        var inv = service.create(station.id(), "HandOut Inv", InventoryType.INTERNAL, false, true);
 
         var handed = service.createAndHandOut(inv.id(), null, member.id(), "Inv Tester");
 
@@ -174,7 +174,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Order(55)
     void findItemById() {
         // Item was deleted in order 50, so create a new one
-        var inv = service.create(station.id(), "FindItem Inv", InventoryType.INTERNAL, false);
+        var inv = service.create(station.id(), "FindItem Inv", InventoryType.INTERNAL, false, true);
         var item = service.createItem(inv.id(), "FI-001", "FindItem 1", null, null);
         assertTrue(service.findItemById(item.id()).isPresent());
         assertTrue(service.findItemById(99999).isEmpty());
@@ -184,7 +184,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(56)
     void updateItem() {
-        var inv = service.create(station.id(), "UpdateItem Inv", InventoryType.INTERNAL, false);
+        var inv = service.create(station.id(), "UpdateItem Inv", InventoryType.INTERNAL, false, true);
         var item = service.createItem(inv.id(), "UI-001", "Original Name", null, null);
         var updated =
                 service.updateItem(item.id(), "UI-002", "Updated Name", null, InventoryItemMetadata.empty(), null);
@@ -203,8 +203,8 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(58)
     void updateInventory() {
-        var inv = service.create(station.id(), "ToUpdate", InventoryType.INTERNAL, true);
-        var updated = service.update(inv.id(), "Updated Inv", InventoryType.EXTERNAL, false);
+        var inv = service.create(station.id(), "ToUpdate", InventoryType.INTERNAL, true, true);
+        var updated = service.update(inv.id(), "Updated Inv", InventoryType.EXTERNAL, false, true);
         assertTrue(updated.isPresent());
         assertEquals("Updated Inv", updated.get().name());
         assertEquals(InventoryType.EXTERNAL, updated.get().inventoryType());
@@ -214,7 +214,8 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(59)
     void updateInventoryNonExistent() {
-        assertTrue(service.update(99999, "Nope", InventoryType.INTERNAL, false).isEmpty());
+        assertTrue(service.update(99999, "Nope", InventoryType.INTERNAL, false, true)
+                .isEmpty());
     }
 
     @Test
@@ -227,7 +228,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(61)
     void updateSizeAndDeleteSize() {
-        var inv = service.create(station.id(), "SizeTest Inv", InventoryType.INTERNAL, true);
+        var inv = service.create(station.id(), "SizeTest Inv", InventoryType.INTERNAL, true, true);
         service.createSize(inv.id(), "S", 0, null);
         var sizes = service.findSizes(inv.id());
         var sizeId = sizes.getFirst().id();
@@ -258,7 +259,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(64)
     void findAllItemsByStation() {
-        var inv = service.create(station.id(), "AllItems Inv", InventoryType.INTERNAL, false);
+        var inv = service.create(station.id(), "AllItems Inv", InventoryType.INTERNAL, false, true);
         service.createItem(inv.id(), "AI-001", "All Item 1", null, null);
         var items = service.findAllItemsByStation(station.id());
         assertFalse(items.isEmpty());
@@ -268,7 +269,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(65)
     void findAllSizesByStation() {
-        var inv = service.create(station.id(), "AllSizes Inv", InventoryType.INTERNAL, true);
+        var inv = service.create(station.id(), "AllSizes Inv", InventoryType.INTERNAL, true, true);
         service.createSize(inv.id(), "XL", 0, null);
         var sizes = service.findAllSizesByStation(station.id());
         assertFalse(sizes.isEmpty());
@@ -278,7 +279,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(66)
     void findHistory() {
-        var inv = service.create(station.id(), "History Inv", InventoryType.INTERNAL, false);
+        var inv = service.create(station.id(), "History Inv", InventoryType.INTERNAL, false, true);
         var item = service.createItem(inv.id(), "HI-001", "History Item", null, null);
         service.assignItem(item.id(), member.id(), "Inv Tester");
         service.assignItem(item.id(), null, "");
@@ -308,7 +309,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(70)
     void createItemWithOwner() {
-        var inv = service.create(station.id(), "Owner Inv", InventoryType.MIXED, false);
+        var inv = service.create(station.id(), "Owner Inv", InventoryType.MIXED, false, true);
         var item = service.createItem(inv.id(), "SI-001", "Owner Item", null, null, ItemOwner.CLUSTER, null);
         assertNotNull(item);
         assertEquals(ItemOwner.CLUSTER, item.ownerKind());
@@ -322,7 +323,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(71)
     void requirementCrud() {
-        var inv = service.create(station.id(), "Req Inv", InventoryType.INTERNAL, false);
+        var inv = service.create(station.id(), "Req Inv", InventoryType.INTERNAL, false, true);
         // Use MEMBER user type
         var req = service.createRequirement(inv.id(), StationUserType.MEMBER, 0, null, 3);
         assertNotNull(req);
@@ -349,7 +350,7 @@ class InventoryServiceTest extends RepositoryTestBase {
         clusterRepo.setUsesInventory(cluster.id(), true);
         stationRepo.setCluster(station.id(), cluster.id());
 
-        var theirs = service.create(home.id(), "Bootsausrüstung", InventoryType.INTERNAL, false);
+        var theirs = service.create(home.id(), "Bootsausrüstung", InventoryType.INTERNAL, false, true);
         var group = clusterStationGroupRepo.create(cluster.id(), "Wasserwachen " + station.id());
 
         service.createRequirement(theirs.id(), StationUserType.MEMBER, 0, group.id(), 1);
@@ -398,8 +399,8 @@ class InventoryServiceTest extends RepositoryTestBase {
         clusterRepo.setUsesInventory(cluster.id(), true);
         stationRepo.setCluster(station.id(), cluster.id());
 
-        var mine = service.create(station.id(), "Eigene Vorgabe", InventoryType.INTERNAL, false);
-        var theirs = service.create(home.id(), "Verbandsvorgabe", InventoryType.INTERNAL, false);
+        var mine = service.create(station.id(), "Eigene Vorgabe", InventoryType.INTERNAL, false, true);
+        var theirs = service.create(home.id(), "Verbandsvorgabe", InventoryType.INTERNAL, false, true);
         service.createRequirement(mine.id(), StationUserType.MEMBER, 0, null, 1);
         service.createRequirement(theirs.id(), StationUserType.MEMBER, 0, null, 2);
 
@@ -433,7 +434,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     @Test
     @Order(73)
     void requirementsVisibleAtAStationUnderNobodyAreItsOwn() {
-        var inv = service.create(station.id(), "Allein", InventoryType.INTERNAL, false);
+        var inv = service.create(station.id(), "Allein", InventoryType.INTERNAL, false, true);
         service.createRequirement(inv.id(), StationUserType.MEMBER, 0, null, 1);
 
         assertTrue(service.findRequirementsVisibleAt(station.id()).stream().noneMatch(row -> row.fromCluster()));

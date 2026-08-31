@@ -25,11 +25,13 @@ import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
+import dev.chojo.ember.feature.inventory.entity.SwitchBlocker;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
 import dev.chojo.ember.feature.inventory.service.InventoryIntakeService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.inventory.service.InventorySwitchRefusedException;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -160,6 +162,7 @@ public class InventoryRoutes implements Routes {
                 this::assignItem,
                 StationPermission.INVENTORY_EDIT,
                 StationPermission.INVENTORY_ASSIGN);
+        routes.put(prefix + "/inventory-items/{id}/inventory", this::moveItem, StationPermission.INVENTORY_EDIT);
         routes.get(prefix + "/inventory-items/{id}/location", this::getItemLocation, StationPermission.INVENTORY_READ);
         routes.put(
                 prefix + "/inventory-items/{id}/container",
@@ -372,10 +375,11 @@ public class InventoryRoutes implements Routes {
      */
     private MyInventoryItem toMyItem(MemberInventoryEntry entry) {
         var item = entry.item();
-        String inventoryName = inventoryService
-                .findById(item.inventoryId())
-                .map(Inventory::name)
-                .orElse("");
+        var inventory = inventoryService.findById(item.inventoryId());
+        String inventoryName = inventory.map(Inventory::name).orElse("");
+        // Whether the piece can be exchanged at all travels with the piece, because the screens that
+        // offer an exchange are the member's own and have no list of inventories to look it up in
+        boolean homogeneous = inventory.map(Inventory::homogeneous).orElse(true);
         String sizeName = null;
         if (item.sizeId() != null) {
             sizeName = inventoryService.findSizes(item.inventoryId()).stream()
@@ -390,6 +394,7 @@ public class InventoryRoutes implements Routes {
                 item.name(),
                 item.internalId(),
                 inventoryName,
+                homogeneous,
                 item.sizeId(),
                 sizeName,
                 item.lostAt(),
@@ -459,7 +464,11 @@ public class InventoryRoutes implements Routes {
         }
         ctx.status(HttpStatus.CREATED)
                 .json(inventoryService.create(
-                        session.stationId(), request.name(), request.inventoryType(), request.hasSizes()));
+                        session.stationId(),
+                        request.name(),
+                        request.inventoryType(),
+                        request.hasSizes(),
+                        request.homogeneous() == null || request.homogeneous()));
     }
 
     @OpenApi(
@@ -487,6 +496,7 @@ public class InventoryRoutes implements Routes {
                                     inventory.name(),
                                     inventory.inventoryType(),
                                     inventory.hasSizes(),
+                                    inventory.homogeneous(),
                                     sizes));
                         },
                         () -> {
@@ -503,12 +513,13 @@ public class InventoryRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InventoryRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = Inventory.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = SwitchRefusal.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
         int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        requireOwnedInventory(id, session);
+        Inventory current = requireOwnedInventory(id, session);
         var request = ctx.bodyAsClass(InventoryRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -516,11 +527,21 @@ public class InventoryRoutes implements Routes {
         if (request.inventoryType() == null) {
             throw new BadRequestResponse("inventoryType is required");
         }
-        inventoryService
-                .update(id, request.name(), request.inventoryType(), request.hasSizes())
-                .ifPresentOrElse(ctx::json, () -> {
-                    throw new NotFoundResponse();
-                });
+        // A caller that says nothing about the kind is leaving it alone, not asking for the default.
+        // Reading a missing field as "one thing in many copies" would quietly undo a drawer every time
+        // somebody renamed it.
+        boolean homogeneous = request.homogeneous() == null ? current.homogeneous() : request.homogeneous();
+        try {
+            inventoryService
+                    .update(id, request.name(), request.inventoryType(), request.hasSizes(), homogeneous)
+                    .ifPresentOrElse(ctx::json, () -> {
+                        throw new NotFoundResponse();
+                    });
+        } catch (InventorySwitchRefusedException refused) {
+            ctx.status(HttpStatus.BAD_REQUEST)
+                    .json(new SwitchRefusal(
+                            "InventorySwitchRefusedException", refused.getMessage(), refused.blockers()));
+        }
     }
 
     // -- Sizes --
@@ -778,6 +799,31 @@ public class InventoryRoutes implements Routes {
                         request.sizeId(),
                         request.metadata(),
                         describingClusterId(session))
+                .ifPresentOrElse(ctx::json, () -> {
+                    throw new NotFoundResponse();
+                });
+    }
+
+    @OpenApi(
+            path = "/api/v1/inventory-items/{id}/inventory",
+            methods = HttpMethod.PUT,
+            summary = "Move an item into another inventory of the same station",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MoveItemRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryItem.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void moveItem(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        verifyItemOwnership(id, session);
+        var request = ctx.bodyAsClass(MoveItemRequest.class);
+        requireOwnedInventory(request.inventoryId(), session);
+        inventoryService
+                .moveItem(id, request.inventoryId(), describingClusterId(session))
                 .ifPresentOrElse(ctx::json, () -> {
                     throw new NotFoundResponse();
                 });
@@ -1229,6 +1275,11 @@ public class InventoryRoutes implements Routes {
             String name,
             String internalId,
             String inventoryName,
+            /**
+             * Whether the inventory holds one thing in many copies, which is what makes a piece
+             * exchangeable. Among a drawer of different things there is nothing to swap it for.
+             */
+            boolean inventoryHomogeneous,
             Integer sizeId,
             String sizeName,
             Instant lostAt,
@@ -1244,7 +1295,12 @@ public class InventoryRoutes implements Routes {
 
     public record MyRequirement(int inventoryId, String inventoryName, int requiredQuantity) {}
 
-    public record InventoryRequest(String name, InventoryType inventoryType, boolean hasSizes) {}
+    /**
+     * @param homogeneous whether the inventory holds one thing in many copies rather than a drawer of
+     *                    different things. Left out it means "as it was", which on creation is one thing
+     *                    in many copies: that is the permissive kind and the one nothing has to opt out of
+     */
+    public record InventoryRequest(String name, InventoryType inventoryType, boolean hasSizes, Boolean homogeneous) {}
 
     public record InventoryDetail(
             int id,
@@ -1252,7 +1308,22 @@ public class InventoryRoutes implements Routes {
             String name,
             InventoryType inventoryType,
             boolean hasSizes,
+            boolean homogeneous,
             List<InventorySize> sizes) {}
+
+    /**
+     * A refused change of kind, carrying everything that stands in its way.
+     *
+     * @param error    names the refusal, so the screen can tell it from any other bad request
+     * @param message  what is being refused, in plain words
+     * @param blockers what stands in the way, each named well enough to go and deal with
+     */
+    public record SwitchRefusal(String error, String message, List<SwitchBlocker> blockers) {}
+
+    /**
+     * @param inventoryId the inventory the piece moves into
+     */
+    public record MoveItemRequest(int inventoryId) {}
 
     public record SizeRequest(String label, int position, String note) {}
 
