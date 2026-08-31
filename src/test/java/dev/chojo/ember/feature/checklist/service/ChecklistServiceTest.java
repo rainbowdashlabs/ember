@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.checklist.entity.ChecklistColumn;
 import dev.chojo.ember.feature.checklist.entity.ChecklistEntry;
 import dev.chojo.ember.feature.checklist.service.ChecklistService.ColumnSpec;
 import dev.chojo.ember.feature.checklist.service.ChecklistService.FilterSpec;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -18,6 +20,8 @@ import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -37,7 +41,8 @@ class ChecklistServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setupService() {
-        service = new ChecklistService(checklistRepo, stationMemberRepo, memberGroupRepo, userTagRepo);
+        service = new ChecklistService(
+                checklistRepo, stationMemberRepo, memberGroupRepo, userTagRepo, eventRegistrationRepo);
         station = stationRepo.create("Service Station");
         Account account = accountRepo.create("svc@test.com", "Svc", "Member");
         managerMember = stationMemberRepo.create(station.id(), account.id());
@@ -134,11 +139,147 @@ class ChecklistServiceTest extends RepositoryTestBase {
         var allCells = service.findCells(checklist.id());
         assertFalse(allCells.isEmpty());
 
-        var resolvedEmpty = service.resolveMatchingMemberIds(checklist.id(), station.id(), RestrictionMode.AND);
-        assertTrue(resolvedEmpty.isEmpty());
+        var resolvedEmpty =
+                service.resolveMembership(service.findById(checklist.id()).orElseThrow());
+        assertFalse(resolvedEmpty.following());
+        assertTrue(resolvedEmpty.memberIds().isEmpty());
 
         assertTrue(service.delete(checklist.id()));
         assertFalse(service.delete(checklist.id()));
+    }
+
+    /**
+     * The whole life of a list that follows an evening: it starts with the people who had already
+     * taken a place, a late sign-up arrives on the next refresh, somebody who cancels stays on it
+     * and is marked, a row taken off by hand never comes back, and the appointment being deleted
+     * leaves the list standing with everything on it.
+     */
+    @Test
+    void followsOneOccurrenceOfAnAppointment() {
+        var account3 = accountRepo.create("svc3@test.com", "Svc", "Three");
+        var late = stationMemberRepo.create(station.id(), account3.id());
+        var event = createEvent("Dienstabend");
+        LocalDate evening = LocalDate.of(2026, 3, 3);
+        LocalDate otherEvening = LocalDate.of(2026, 3, 10);
+
+        eventRegistrationRepo.create(event.id(), managerMember.id(), evening, RegistrationStatus.ACCEPTED, null);
+        eventRegistrationRepo.create(event.id(), other.id(), evening, RegistrationStatus.PENDING, null);
+        eventRegistrationRepo.create(event.id(), late.id(), otherEvening, RegistrationStatus.ACCEPTED, null);
+
+        var checklist = service.create(
+                station.id(),
+                "Dienstabend 03.03.",
+                "",
+                RestrictionMode.AND,
+                List.of(new ColumnSpec("Zettel abgegeben", "")),
+                FilterSpec.empty(),
+                new ChecklistService.OccurrenceSpec(event.id(), evening),
+                managerMember.id());
+
+        // Only the one evening counts: the accepted sign-up on the other Tuesday is somebody else's.
+        assertEquals(
+                List.of(managerMember.id()),
+                service.findEntries(checklist.id(), false).stream()
+                        .map(ChecklistEntry::memberId)
+                        .toList());
+        assertTrue(service.findFilterRows(checklist.id()).isEmpty());
+        assertTrue(service.findById(checklist.id()).orElseThrow().followsEvent());
+
+        // A late sign-up arrives, and only a refresh brings it in.
+        eventRegistrationRepo.create(event.id(), late.id(), evening, RegistrationStatus.ACCEPTED, null);
+        var refreshed = service.refresh(checklist.id());
+        assertEquals(1, refreshed.added());
+        assertEquals(1, refreshed.alreadyPresent());
+
+        // Somebody cancels: their row stays and the list knows they no longer match.
+        eventRegistrationRepo.create(event.id(), late.id(), evening, RegistrationStatus.DECLINED, null);
+        var afterCancel =
+                service.resolveMembership(service.findById(checklist.id()).orElseThrow());
+        assertTrue(afterCancel.following());
+        assertFalse(afterCancel.memberIds().contains(late.id()));
+        assertTrue(service.findEntries(checklist.id(), false).stream().anyMatch(e -> e.memberId() == late.id()));
+
+        // A row taken off by hand stays off, however often refresh runs.
+        var managerEntry = service.findEntries(checklist.id(), false).stream()
+                .filter(e -> e.memberId() == managerMember.id())
+                .findFirst()
+                .orElseThrow();
+        service.softDeleteEntry(managerEntry.id());
+        var afterRemoval = service.refresh(checklist.id());
+        assertEquals(0, afterRemoval.added());
+        assertTrue(
+                service.findEntries(checklist.id(), false).stream().noneMatch(e -> e.memberId() == managerMember.id()));
+
+        // The appointment goes away: the reference is cleared, the rows are not.
+        int rowsBefore = service.findEntries(checklist.id(), true).size();
+        assertTrue(eventRepo.delete(event.id()));
+        var orphaned = service.findById(checklist.id()).orElseThrow();
+        assertFalse(orphaned.followsEvent());
+        assertNull(orphaned.sourceEventId());
+        assertEquals(rowsBefore, service.findEntries(checklist.id(), true).size());
+        var stopped = service.resolveMembership(orphaned);
+        assertFalse(stopped.following());
+
+        assertTrue(service.delete(checklist.id()));
+    }
+
+    /**
+     * A list follows one thing at a time, and saying so is what switching between them means.
+     */
+    @Test
+    void followingAndFilteringReplaceEachOther() {
+        var event = createEvent("Wechsel");
+        LocalDate evening = LocalDate.of(2026, 4, 7);
+        eventRegistrationRepo.create(event.id(), other.id(), evening, RegistrationStatus.ACCEPTED, null);
+
+        var checklist = service.create(
+                station.id(),
+                "Wechselliste",
+                "",
+                RestrictionMode.OR,
+                List.of(new ColumnSpec("Schritt", "")),
+                new FilterSpec(List.of(), List.of(), List.of(), List.of(managerMember.id())),
+                managerMember.id());
+        assertFalse(service.findFilterRows(checklist.id()).isEmpty());
+
+        var following =
+                service.followOccurrence(checklist.id(), new ChecklistService.OccurrenceSpec(event.id(), evening));
+        assertTrue(following.followsEvent());
+        assertEquals(evening, following.sourceEventDate());
+        assertTrue(service.findFilterRows(checklist.id()).isEmpty());
+
+        var backToFilter = service.update(
+                checklist.id(),
+                "Wechselliste",
+                "",
+                RestrictionMode.OR,
+                new FilterSpec(List.of(), List.of(), List.of(), List.of(managerMember.id())));
+        assertFalse(backToFilter.followsEvent());
+        assertNull(backToFilter.sourceEventDate());
+        assertFalse(service.findFilterRows(checklist.id()).isEmpty());
+
+        assertTrue(service.delete(checklist.id()));
+        eventRepo.delete(event.id());
+    }
+
+    private static StationEvent createEvent(String name) {
+        return eventRepo.create(
+                station.id(),
+                name,
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now(),
+                Instant.now().plusSeconds(3600),
+                null,
+                true,
+                null,
+                true,
+                null,
+                null,
+                null,
+                null,
+                null);
     }
 
     @Test

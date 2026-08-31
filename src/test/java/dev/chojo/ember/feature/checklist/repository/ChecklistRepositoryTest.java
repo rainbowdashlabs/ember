@@ -54,8 +54,8 @@ class ChecklistRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void createChecklist() {
-        var checklist =
-                checklistRepo.create(station.id(), "Safety", "All required steps", RestrictionMode.AND, member.id());
+        var checklist = checklistRepo.create(
+                station.id(), "Safety", "All required steps", RestrictionMode.AND, member.id(), null, null);
         assertNotNull(checklist);
         assertEquals("Safety", checklist.name());
         assertEquals(RestrictionMode.AND, checklist.mode());
