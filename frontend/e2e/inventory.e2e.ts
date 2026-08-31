@@ -513,4 +513,51 @@ test.describe('Inventory', () => {
         expect(moved[0].id, 'as the same row it always was').toBe(item.id)
         expect(moved[0].internalId, 'with the number it started with').toBe(code)
     })
+
+    /**
+     * Tidying a drawer up into kinds. The point of the story is the rename: setting a kind leaves
+     * the name alone, and the name is what every list and both exports read, so a typo would go on
+     * reading as a typo under a heading that says otherwise. Merging therefore rewrites it.
+     */
+    test('two spellings of one thing become one kind, and the typo is written out', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const stamp = Date.now()
+        const drawer = await page.request.post('/api/v1/inventories', {
+            headers,
+            data: {name: `Funkgeräte ${stamp}`, inventoryType: 'INTERNAL', hasSizes: false, homogeneous: false},
+        }).then(r => r.json())
+
+        const right = 'Funkgerät orange'
+        const typo = 'Funkgerät organge'
+        for (const name of [right, right, typo]) {
+            const made = await page.request.post(`/api/v1/inventories/${drawer.id}/items`, {
+                headers,
+                data: {internalId: null, name, sizeId: null, artId: null, metadata: null,
+                    ownerKind: 'STATION', ownerClusterId: null},
+            })
+            expect(made.ok(), `a piece is recorded (${await made.text()})`).toBeTruthy()
+        }
+
+        await page.goto(`/station/inventory/tidy/${drawer.id}`)
+        await expect(page.getByTestId('tidy-names')).toBeVisible()
+
+        await page.getByTestId(`tidy-name-${right}`).check()
+        await page.getByTestId(`tidy-name-${typo}`).check()
+        await page.getByTestId('tidy-art-name').fill(right)
+        await page.getByTestId('tidy-merge').click()
+
+        await expect(page.getByTestId('tidy-done')).toBeVisible()
+
+        const arts = await page.request.get(`/api/v1/inventories/${drawer.id}/arts`, {headers})
+            .then(r => r.json())
+        expect(arts.length, 'one kind was written down, and only one').toBe(1)
+        expect(arts[0].name).toBe(right)
+
+        const pieces = await page.request.get(`/api/v1/inventories/${drawer.id}/items`, {headers})
+            .then(r => r.json())
+        expect(pieces.every((p: {artId?: number}) => p.artId === arts[0].id),
+            'every piece is of that kind').toBeTruthy()
+        expect(pieces.some((p: {name?: string}) => p.name === typo),
+            'and the misspelling is gone from the names as well').toBeFalsy()
+    })
 })
