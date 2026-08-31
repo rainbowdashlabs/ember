@@ -1,21 +1,38 @@
 # Changelog
 
-## v26.13.10
+## v26.13.11
 
 ### New Features
 
 - **Lists made out of who is coming.** The sign-ups of an appointment carry a menu that turns the people holding a place on that one evening into a checklist to tick off, or into a survey addressed to exactly them. The set is taken as it stands, so the dialog says how many people come across, who cannot be carried over, and that anybody signing up later is added by hand.
-- **The help centre carries the explanatory videos.** Under Basics there is now a page that plays the whole series in order, one video per topic, from the invitation through to the parts the team and the leadership use. It runs on YouTube's cookie-free address, so nothing is stored on the reader's device until they actually play something.
-
-### Changes
-
-- **Crowded button rows keep one button and a menu.** The attendance sheet, a wiki file, a question catalogue and a test sheet showed as many as seven buttons above the page at once, which on a phone filled the screen before the page began. Each now shows the one action it is opened for and keeps the rest, exports and deletion included, in a menu beside it.
-- **Forms are now called surveys.** The word made a two-question feedback round sound like paperwork, which is the opposite of what it is for. Everything under `/station/forms` reads as a survey now, and the address, the questions and the answers already given are untouched; the contact forms on a station's public page keep their name, because that is what they are.
 
 ### Improvements
 
 - **An inventory says whether it holds one thing or many different ones.** Requirements, procurements and exchanges only mean something for a shelf of the same thing in many copies, and they were offered just as readily on a drawer of odds and ends, where "everybody needs one" and "order three more" say nothing at all. Every inventory starts as a shelf of one thing, so nothing changes until a station marks a drawer as a drawer, and the three then stop offering themselves for it.
 - **An inventory can be split without the equipment losing its history.** Where one inventory turns out to hold two different things, its pieces can now be moved into another inventory of the same station under Inventory, keeping their number, who has them and everywhere they have been. Until now the only way was to delete them and write them down again, which threw all of that away.
+
+### Changes
+
+- **Crowded button rows keep one button and a menu.** The attendance sheet, a wiki file, a question catalogue and a test sheet showed as many as seven buttons above the page at once, which on a phone filled the screen before the page began. Each now shows the one action it is opened for and keeps the rest, exports and deletion included, in a menu beside it.
+
+### Fixes
+
+- **Gear belonging to the body above the station could be lent to a partner.** A station only holds such gear, and lending it on put it somewhere its owner never agreed to and cannot look. Only what a station owns itself is now offered, suggested and handed over, while a body running a station of its own still lends its own gear freely.
+- **Turning lending off for a partner did not stop them asking.** The setting was there to be switched and then went unread, so a partner kept browsing the whole inventory and kept sending requests. Lending now follows it the same way shared wikis, quizzes and boards already do.
+- **A request could name gear the asked station does not keep.** The inventory and the piece a request names were taken as given, so approving one could set aside something standing on another station's shelf. What is set aside is now checked against the lending station's own stock first.
+
+## v26.13.10
+
+### New Features
+
+- **The help centre carries the explanatory videos.** Under Basics there is now a page that plays the whole series in order, one video per topic, from the invitation through to the parts the team and the leadership use. It runs on YouTube's cookie-free address, so nothing is stored on the reader's device until they actually play something.
+
+### Changes
+
+- **Forms are now called surveys.** The word made a two-question feedback round sound like paperwork, which is the opposite of what it is for. Everything under `/station/forms` reads as a survey now, and the address, the questions and the answers already given are untouched; the contact forms on a station's public page keep their name, because that is what they are.
+
+### Improvements
+
 - **Setting a password from a link signs you straight in.** An invitation ended at the sign-in form, where the password just chosen had to be typed again, and a reset did the same. Choosing it proves what typing it would prove, so the link now leads into the account rather than back to the front door.
 - **Whoever runs an appointment can correct an answer to its questions.** The answers were the member's alone to change, although the person planning from them is the one reading them, so a shirt size typed wrong meant chasing the member while the order was going out. Anybody who may edit the appointment can now put an answer right from the list of sign-ups, and the member's own answers stay theirs to change as before.
 
@@ -25,9 +42,6 @@
 
 ### Fixes
 
-- **Gear belonging to the body above the station could be lent to a partner.** A station only holds such gear, and lending it on put it somewhere its owner never agreed to and cannot look. Only what a station owns itself is now offered, suggested and handed over, while a body running a station of its own still lends its own gear freely.
-- **Turning lending off for a partner did not stop them asking.** The setting was there to be switched and then went unread, so a partner kept browsing the whole inventory and kept sending requests. Lending now follows it the same way shared wikis, quizzes and boards already do.
-- **A request could name gear the asked station does not keep.** The inventory and the piece a request names were taken as given, so approving one could set aside something standing on another station's shelf. What is set aside is now checked against the lending station's own stock first.
 - **An appointment nobody signs up for did not show who had signed off.** Everybody is expected at such an appointment and the only answer anybody gives is a refusal, but its page had no second tab at all, so the refusals could be given and never read. The page now carries an Attendance tab listing who is not coming.
 - **A question asking for a member could not be answered properly.** Where an appointment asks which member is driving or who brings the trailer, the window that answers for a whole household offered a plain text box instead of the list of members, so what was stored was the text somebody typed and every list read it back as a stray number. That window now offers the same picker as the one used elsewhere, and it shows the starting value a question was given instead of leaving the field empty.
 - **A question put to a group was never counted as missing.** Somebody in the instructors' group could leave an answer the instructors are required to give empty and still be told their profile was complete, so the gap reached neither the task list, nor the number beside it, nor the reminder on the dashboard. What counts as missing is now read off the same list the profile screen shows, so anything asked of somebody is asked of them everywhere.
