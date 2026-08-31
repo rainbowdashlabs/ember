@@ -239,9 +239,10 @@ public class InventoryCollectionRepository {
                            OR ci.inventory_id = l.inventory_id)
                       AND %2$s
                       AND NOT EXISTS (
-                          SELECT 1 FROM federation_lending_request_item li
+                          SELECT 1 FROM federation_lending_request_item_assignment la
+                          JOIN federation_lending_request_item li ON li.id = la.request_item_id
                           JOIN federation_lending_request lr ON lr.id = li.request_id
-                          WHERE li.assigned_item_id = ci.id
+                          WHERE la.item_id = ci.id
                             AND lr.status IN ('APPROVED', 'LENT')
                             AND :date_from::DATE IS NOT NULL
                             AND lr.requested_date_from <= :date_to::DATE

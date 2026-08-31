@@ -8,6 +8,10 @@ package dev.chojo.ember.feature.inventory.service;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
+import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
+import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
+import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
@@ -71,6 +75,12 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
                 itemCustodyService,
                 borrowedGearService,
                 new InventoryShareService(new InventoryShareRepository(), federationService, inventoryRepo, artRepo),
+                lineTargetService,
+                new EquipmentAvailabilityService(
+                        new EquipmentAvailabilityRepository(),
+                        new EquipmentNeedRepository(),
+                        eventRepo,
+                        new EventBreakService(eventBreakRepo)),
                 new DomainEventBus(Set.of()));
 
         owner = stationRepo.create("BorrowedGearOwner");
@@ -258,8 +268,15 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
     /** Takes one piece all the way from asking for it to holding it. */
     private static int lend(InventoryItem item) {
         var request = lending.createRequest(
-                borrower.id(), owner.id(), LocalDate.now(), LocalDate.now().plusDays(7), borrowerMember.id());
-        var line = lending.addRequestItem(request.id(), inventoryId, item.id(), 1);
+                borrower.id(),
+                owner.id(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(7),
+                borrowerMember.id(),
+                null,
+                null,
+                "");
+        var line = lending.addRequestItem(request.id(), inventoryId, item.id(), null, 1, null);
         lending.assignItem(line.id(), item.id(), owner.id());
         assertTrue(lending.markLent(request.id(), owner.id()));
         return request.id();

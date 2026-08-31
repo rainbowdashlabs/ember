@@ -8,6 +8,10 @@ package dev.chojo.ember.feature.federation.service;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
+import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
+import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
+import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
@@ -77,17 +81,14 @@ class LendingServiceTest extends RepositoryTestBase {
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         shareService = new InventoryShareService(shareRepo, federationService, inventoryRepo, artRepo);
         httpClient = mock(FederationHttpClient.class);
-        service = new LendingService(
-                lendingRepo,
-                httpClient,
-                federationService,
-                stationRepo,
-                inventoryRepo,
-                clusterRepo,
-                itemCustodyService,
-                borrowedGearService,
-                shareService,
-                new DomainEventBus(Set.of()));
+        service = newLendingService(
+                new DomainEventBus(Set.of()),
+                new EquipmentAvailabilityService(
+                        new EquipmentAvailabilityRepository(),
+                        new EquipmentNeedRepository(),
+                        eventRepo,
+                        new EventBreakService(eventBreakRepo)),
+                httpClient);
 
         stationA = stationRepo.create("LendSvcTestStationA");
         stationB = stationRepo.create("LendSvcTestStationB");
@@ -145,7 +146,8 @@ class LendingServiceTest extends RepositoryTestBase {
     void createRequest() {
         var dateFrom = LocalDate.now();
         var dateTo = LocalDate.now().plusDays(7);
-        var request = service.createRequest(stationB.id(), stationA.id(), dateFrom, dateTo, memberB.id());
+        var request =
+                service.createRequest(stationB.id(), stationA.id(), dateFrom, dateTo, memberB.id(), null, null, "");
         assertNotNull(request);
         assertTrue(request.id() > 0);
         assertEquals(LendingStatus.REQUESTED, request.status());
@@ -163,7 +165,7 @@ class LendingServiceTest extends RepositoryTestBase {
     @Test
     @Order(3)
     void addRequestItem() {
-        var item = service.addRequestItem(requestId, inventoryIdA, itemIdA, 2);
+        var item = service.addRequestItem(requestId, inventoryIdA, itemIdA, null, 2, null);
         assertNotNull(item);
         assertEquals(2, item.quantity());
         requestItemId = item.id();
@@ -216,7 +218,14 @@ class LendingServiceTest extends RepositoryTestBase {
     void declineRequest() {
         // Create a new request to decline
         var req = service.createRequest(
-                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(3), memberB.id());
+                stationB.id(),
+                stationA.id(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(3),
+                memberB.id(),
+                null,
+                null,
+                "");
         assertTrue(service.declineRequest(req.id(), stationA.id(), "Not available"));
         var declined = service.findRequest(req.id()).orElseThrow();
         assertEquals(LendingStatus.DECLINED, declined.status());
@@ -269,7 +278,14 @@ class LendingServiceTest extends RepositoryTestBase {
 
         // Create a request between A and C
         var req = service.createRequest(
-                stationC.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(3), memberC.id());
+                stationC.id(),
+                stationA.id(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(3),
+                memberC.id(),
+                null,
+                null,
+                "");
         service.sendMessage(req.id(), stationA.id(), memberA.id(), "Tester A", "Local msg from A");
 
         // Mock remote messages from C
@@ -315,9 +331,7 @@ class LendingServiceTest extends RepositoryTestBase {
     void assignItem() {
         assertTrue(service.assignItem(requestItemId, itemIdA, stationA.id()));
         var items = service.findRequestItems(requestId);
-        var assigned =
-                items.stream().filter(i -> i.id() == requestItemId).findFirst().orElseThrow();
-        assertEquals(itemIdA, assigned.assignedItemId());
+        assertEquals(List.of(itemIdA), lendingRepo.findAssignedItems(requestItemId));
     }
 
     // -- Blocks --
@@ -402,7 +416,14 @@ class LendingServiceTest extends RepositoryTestBase {
     @Order(52)
     void declineRequestWithNoReason() {
         var req = service.createRequest(
-                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(2), memberB.id());
+                stationB.id(),
+                stationA.id(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(2),
+                memberB.id(),
+                null,
+                null,
+                "");
         assertTrue(service.declineRequest(req.id(), stationA.id(), null));
         var found = service.findRequest(req.id()).orElseThrow();
         assertEquals(LendingStatus.DECLINED, found.status());
@@ -412,7 +433,14 @@ class LendingServiceTest extends RepositoryTestBase {
     @Order(53)
     void declineRequestWithBlankReason() {
         var req = service.createRequest(
-                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(2), memberB.id());
+                stationB.id(),
+                stationA.id(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(2),
+                memberB.id(),
+                null,
+                null,
+                "");
         assertTrue(service.declineRequest(req.id(), stationA.id(), ""));
         var found = service.findRequest(req.id()).orElseThrow();
         assertEquals(LendingStatus.DECLINED, found.status());
@@ -441,15 +469,29 @@ class LendingServiceTest extends RepositoryTestBase {
     void createRequestWithItemsBuildsSummary() {
         // Create request and add an item with inventoryId so buildItemSummary covers lines 72-79
         var req = service.createRequest(
-                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(5), memberB.id());
-        service.addRequestItem(req.id(), inventoryIdA, itemIdA, 3);
+                stationB.id(),
+                stationA.id(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(5),
+                memberB.id(),
+                null,
+                null,
+                "");
+        service.addRequestItem(req.id(), inventoryIdA, itemIdA, null, 3, null);
 
         // Create another request - this triggers buildItemSummary with items in the DB
         var req2 = service.createRequest(
-                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(5), memberB.id());
+                stationB.id(),
+                stationA.id(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(5),
+                memberB.id(),
+                null,
+                null,
+                "");
         // Add item to req2 before checking (buildItemSummary is called during createRequest,
         // but the items are added after, so let's exercise it via status changes)
-        service.addRequestItem(req2.id(), inventoryIdA, itemIdA, 1);
+        service.addRequestItem(req2.id(), inventoryIdA, itemIdA, null, 1, null);
 
         // Approve from the requesting station's side to exercise the other publishStatusChange branch (line 85)
         assertTrue(service.approveRequest(req.id(), stationB.id()));
@@ -460,7 +502,14 @@ class LendingServiceTest extends RepositoryTestBase {
     void getMessagesFromRequestingStationPerspective() {
         // Exercise getMessages where localStationId == requestingStationId (line 204)
         var req = service.createRequest(
-                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(3), memberB.id());
+                stationB.id(),
+                stationA.id(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(3),
+                memberB.id(),
+                null,
+                null,
+                "");
         service.sendMessage(req.id(), stationA.id(), memberA.id(), "A", "msg from A");
         service.sendMessage(req.id(), stationB.id(), memberB.id(), "B", "msg from B");
 
@@ -490,7 +539,14 @@ class LendingServiceTest extends RepositoryTestBase {
 
         // stationC has no federation private key set
         var req = service.createRequest(
-                stationC.id(), stationD.id(), LocalDate.now(), LocalDate.now().plusDays(2), memberC.id());
+                stationC.id(),
+                stationD.id(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(2),
+                memberC.id(),
+                null,
+                null,
+                "");
         service.sendMessage(req.id(), stationC.id(), memberC.id(), "C", "msg from C");
 
         // getMessages from stationD perspective - partner is remote, but stationD has no private key
@@ -550,7 +606,14 @@ class LendingServiceTest extends RepositoryTestBase {
     void getMessagesLocalPartner() {
         // Create a fresh lending request between stationB (requesting) and stationA (owning)
         var req = service.createRequest(
-                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(5), memberB.id());
+                stationB.id(),
+                stationA.id(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(5),
+                memberB.id(),
+                null,
+                null,
+                "");
 
         // Add messages from both sides using the repo directly
         lendingRepo.createMessage(req.id(), stationA.uid(), memberA.id(), "Msg from A side", false);
@@ -634,7 +697,14 @@ class LendingServiceTest extends RepositoryTestBase {
         // stationR sees stationA as remote
         // Create request: stationR requesting from stationA
         var req = service.createRequest(
-                stationR.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(3), memberR.id());
+                stationR.id(),
+                stationA.id(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(3),
+                memberR.id(),
+                null,
+                null,
+                "");
         service.sendMessage(req.id(), stationA.id(), memberA.id(), "A", "Local msg 1");
 
         // Mock remote messages with specific timestamps
@@ -739,7 +809,10 @@ class LendingServiceTest extends RepositoryTestBase {
                 stationA.uid(),
                 LocalDate.now(),
                 LocalDate.now().plusDays(1),
-                memberNoPk.id());
+                memberNoPk.id(),
+                null,
+                null,
+                "");
         lendingRepo.createMessage(req.id(), stationNoPk.uid(), memberNoPk.id(), "local only", false);
 
         // getMessages should still work - remote messages skipped due to no private key
@@ -762,7 +835,14 @@ class LendingServiceTest extends RepositoryTestBase {
 
         // Directly create a lending request via the repository (bypassing federation check)
         var req = lendingRepo.createRequest(
-                stationE.uid(), stationF.uid(), LocalDate.now(), LocalDate.now().plusDays(2), memberE.id());
+                stationE.uid(),
+                stationF.uid(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(2),
+                memberE.id(),
+                null,
+                null,
+                "");
         lendingRepo.createMessage(req.id(), stationE.uid(), memberE.id(), "hello", false);
 
         // getMessages - no federation partner exists, so findPartnerForStation returns null
@@ -826,7 +906,9 @@ class LendingServiceTest extends RepositoryTestBase {
         var inv = inventoryRepo.create(stationA.id(), "LendSvcHeldOnlyInv", InventoryType.INTERNAL, false);
         inventoryRepo.createItem(inv.id(), "HO-001", "Kreis-Pumpe", null, null, ItemOwner.CLUSTER, clusterId);
         var request = requestOn(stationA);
-        var line = lendingRepo.addRequestItem(request, inv.id(), null, 1).id();
+        var line = lendingRepo
+                .addRequestItem(request, inv.id(), null, null, 1, null)
+                .id();
 
         assertTrue(service.approveRequest(request, stationA.id()));
         assertEquals(
@@ -843,7 +925,9 @@ class LendingServiceTest extends RepositoryTestBase {
         var held = inventoryRepo.createItem(
                 inv.id(), "NH-001", "Kreis-Schlauch", null, null, ItemOwner.CLUSTER, clusterId);
         var request = requestOn(stationA);
-        var line = lendingRepo.addRequestItem(request, inv.id(), held.id(), 1).id();
+        var line = lendingRepo
+                .addRequestItem(request, inv.id(), held.id(), null, 1, null)
+                .id();
 
         assertTrue(service.approveRequest(request, stationA.id()));
         assertNull(assignedItemOf(request, line));
@@ -856,7 +940,9 @@ class LendingServiceTest extends RepositoryTestBase {
         var inv = inventoryRepo.create(stationB.id(), "LendSvcAskersOwnInv", InventoryType.INTERNAL, false);
         inventoryRepo.createItem(inv.id(), "AO-001", "Eigene Leiter", null, null);
         var request = requestOn(stationA);
-        var line = lendingRepo.addRequestItem(request, inv.id(), null, 1).id();
+        var line = lendingRepo
+                .addRequestItem(request, inv.id(), null, null, 1, null)
+                .id();
 
         assertTrue(service.approveRequest(request, stationA.id()));
         assertNull(assignedItemOf(request, line));
@@ -869,7 +955,9 @@ class LendingServiceTest extends RepositoryTestBase {
         var inv = inventoryRepo.create(stationA.id(), "LendSvcOwnedInv", InventoryType.INTERNAL, false);
         var own = inventoryRepo.createItem(inv.id(), "OW-001", "Wachen-Leiter", null, null);
         var request = requestOn(stationA);
-        var line = lendingRepo.addRequestItem(request, inv.id(), null, 1).id();
+        var line = lendingRepo
+                .addRequestItem(request, inv.id(), null, null, 1, null)
+                .id();
 
         assertTrue(service.approveRequest(request, stationA.id()));
         assertEquals(own.id(), assignedItemOf(request, line));
@@ -929,7 +1017,10 @@ class LendingServiceTest extends RepositoryTestBase {
                             stationA.id(),
                             LocalDate.now(),
                             LocalDate.now().plusDays(1),
-                            memberB.id()));
+                            memberB.id(),
+                            null,
+                            null,
+                            ""));
         } finally {
             federationService.setCapability(partnerIdBtoA, CapabilityType.INVENTORY_LEND, Direction.IMPORT, true);
         }
@@ -950,7 +1041,10 @@ class LendingServiceTest extends RepositoryTestBase {
                         stranger.id(),
                         LocalDate.now(),
                         LocalDate.now().plusDays(1),
-                        memberB.id()));
+                        memberB.id(),
+                        null,
+                        null,
+                        ""));
 
         stationRepo.delete(stranger.id());
     }
@@ -963,23 +1057,22 @@ class LendingServiceTest extends RepositoryTestBase {
                         owner.uid(),
                         LocalDate.now(),
                         LocalDate.now().plusDays(2),
-                        memberB.id())
+                        memberB.id(),
+                        null,
+                        null,
+                        "")
                 .id();
     }
 
     /** One line of such a request, for tests that only need something to assign against. */
     private static int lineOn(Station owner, Integer inventoryId, Integer itemId) {
         return lendingRepo
-                .addRequestItem(requestOn(owner), inventoryId, itemId, 1)
+                .addRequestItem(requestOn(owner), inventoryId, itemId, null, 1, null)
                 .id();
     }
 
     private static Integer assignedItemOf(int requestId, int requestItemId) {
-        return service.findRequestItems(requestId).stream()
-                .filter(i -> i.id() == requestItemId)
-                .findFirst()
-                .orElseThrow()
-                .assignedItemId();
+        return lendingRepo.findAssignedItems(requestItemId).stream().findFirst().orElse(null);
     }
 
     /**
@@ -1051,10 +1144,20 @@ class LendingServiceTest extends RepositoryTestBase {
                 stationA.id(), inventory.id(), ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
 
         var request = service.createRequest(
-                stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(3), memberB.id());
-        service.addRequestItem(request.id(), inventory.id(), null, 1);
+                stationB.id(),
+                stationA.id(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(3),
+                memberB.id(),
+                null,
+                null,
+                "");
+        service.addRequestItem(request.id(), inventory.id(), null, null, 1, null);
         assertTrue(service.approveRequest(request.id(), stationA.id()));
-        assertTrue(service.findRequestItems(request.id()).stream().anyMatch(i -> i.assignedItemId() != null));
+        assertFalse(lendingRepo
+                .findAssignedItems(
+                        service.findRequestItems(request.id()).getFirst().id())
+                .isEmpty());
 
         shareService.removeInventoryShare(stationA.id(), inventory.id());
         assertTrue(service.findAvailableInventory(stationB.id(), "LendSvcRunsToEnd", null, null)

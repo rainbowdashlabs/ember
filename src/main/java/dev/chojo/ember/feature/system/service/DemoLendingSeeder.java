@@ -105,8 +105,11 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 partnerStationId,
                 LocalDate.now().plusDays(7),
                 LocalDate.now().plusDays(14),
-                createdBy);
-        lendingService.addRequestItem(approvedRequest.id(), partnerFeuerloescher.id(), null, 2);
+                createdBy,
+                null,
+                null,
+                "");
+        lendingService.addRequestItem(approvedRequest.id(), partnerFeuerloescher.id(), null, null, 2, null);
         lendingService.approveRequest(approvedRequest.id(), partnerStationId);
 
         // Chat messages
@@ -129,8 +132,11 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 partnerStationId,
                 LocalDate.now().plusDays(21),
                 LocalDate.now().plusDays(28),
-                createdBy);
-        lendingService.addRequestItem(requestedRequest.id(), partnerSchlaeuche.id(), null, 3);
+                createdBy,
+                null,
+                null,
+                "");
+        lendingService.addRequestItem(requestedRequest.id(), partnerSchlaeuche.id(), null, null, 3, null);
 
         // Chat message
         lendingService.sendMessage(
@@ -146,8 +152,11 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 partnerStationId,
                 LocalDate.now().minusDays(30),
                 LocalDate.now().minusDays(23),
-                createdBy);
-        lendingService.addRequestItem(returnedRequest.id(), partnerZelte.id(), null, 1);
+                createdBy,
+                null,
+                null,
+                "");
+        lendingService.addRequestItem(returnedRequest.id(), partnerZelte.id(), null, null, 1, null);
         lendingService.approveRequest(returnedRequest.id(), partnerStationId);
         lendingService.markLent(returnedRequest.id(), partnerStationId);
         lendingService.markReturned(returnedRequest.id(), stationId);
@@ -185,9 +194,12 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 stationId,
                 LocalDate.now().minusDays(3),
                 LocalDate.now().plusDays(4),
-                createdBy);
-        lendingService.addRequestItem(lentRequest.id(), walkieTalkies.id(), wt1.id(), 1);
-        lendingService.addRequestItem(lentRequest.id(), walkieTalkies.id(), wt2.id(), 1);
+                createdBy,
+                null,
+                null,
+                "");
+        lendingService.addRequestItem(lentRequest.id(), walkieTalkies.id(), wt1.id(), null, 1, null);
+        lendingService.addRequestItem(lentRequest.id(), walkieTalkies.id(), wt2.id(), null, 1, null);
         lendingService.approveRequest(lentRequest.id(), stationId);
         lendingService.markLent(lentRequest.id(), stationId);
 
@@ -205,8 +217,11 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 stationId,
                 LocalDate.now().plusDays(14),
                 LocalDate.now().plusDays(16),
-                createdBy);
-        lendingService.addRequestItem(incomingPending.id(), walkieTalkies.id(), null, 3);
+                createdBy,
+                null,
+                null,
+                "");
+        lendingService.addRequestItem(incomingPending.id(), walkieTalkies.id(), null, null, 3, null);
 
         lendingService.sendMessage(
                 incomingPending.id(),
@@ -221,8 +236,11 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 stationId,
                 LocalDate.now().plusDays(1),
                 LocalDate.now().plusDays(5),
-                createdBy);
-        lendingService.addRequestItem(aboutToLend.id(), walkieTalkies.id(), null, 2);
+                createdBy,
+                null,
+                null,
+                "");
+        lendingService.addRequestItem(aboutToLend.id(), walkieTalkies.id(), null, null, 2, null);
         lendingService.approveRequest(aboutToLend.id(), stationId);
 
         lendingService.sendMessage(
@@ -240,8 +258,11 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 stationId,
                 LocalDate.now().minusDays(14),
                 LocalDate.now().minusDays(7),
-                createdBy);
-        lendingService.addRequestItem(overdueRequest.id(), walkieTalkies.id(), null, 1);
+                createdBy,
+                null,
+                null,
+                "");
+        lendingService.addRequestItem(overdueRequest.id(), walkieTalkies.id(), null, null, 1, null);
         lendingService.approveRequest(overdueRequest.id(), stationId);
         lendingService.markLent(overdueRequest.id(), stationId);
 

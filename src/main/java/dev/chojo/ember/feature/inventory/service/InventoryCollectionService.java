@@ -6,15 +6,11 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.feature.inventory.entity.CollectionLine;
-import dev.chojo.ember.feature.inventory.entity.Inventory;
-import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryCollection;
-import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.LineTarget;
 import dev.chojo.ember.feature.inventory.entity.ResolvedCollection;
 import dev.chojo.ember.feature.inventory.entity.ResolvedCollectionLine;
-import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCollectionRepository;
-import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -37,17 +33,13 @@ import java.util.Optional;
 public class InventoryCollectionService {
 
     private final InventoryCollectionRepository collectionRepository;
-    private final InventoryRepository inventoryRepository;
-    private final InventoryArtRepository artRepository;
+    private final LineTargetService lineTargets;
 
     @Inject
     public InventoryCollectionService(
-            InventoryCollectionRepository collectionRepository,
-            InventoryRepository inventoryRepository,
-            InventoryArtRepository artRepository) {
+            InventoryCollectionRepository collectionRepository, LineTargetService lineTargets) {
         this.collectionRepository = collectionRepository;
-        this.inventoryRepository = inventoryRepository;
-        this.artRepository = artRepository;
+        this.lineTargets = lineTargets;
     }
 
     /**
@@ -132,15 +124,8 @@ public class InventoryCollectionService {
      * @throws IllegalArgumentException if the piece belongs to another station or is already named here
      */
     public CollectionLine addItemLine(int collectionId, int stationId, int itemId) {
-        InventoryItem item = inventoryRepository
-                .findItemById(itemId)
-                .orElseThrow(() -> new IllegalArgumentException("The item does not exist"));
-        Inventory inventory = inventoryRepository
-                .findById(item.inventoryId())
-                .orElseThrow(() -> new IllegalArgumentException("The item's inventory does not exist"));
-        if (inventory.stationId() != stationId) {
-            throw new IllegalArgumentException("A collection can only name gear of its own station");
-        }
+        lineTargets.requireOwnedBy(
+                LineTarget.item(itemId), stationId, "A collection can only name gear of its own station");
         if (collectionRepository.findLines(collectionId).stream()
                 .anyMatch(line -> Integer.valueOf(itemId).equals(line.itemId()))) {
             throw new IllegalArgumentException("The collection already names this item");
@@ -164,10 +149,8 @@ public class InventoryCollectionService {
      */
     public CollectionLine addArtLine(int collectionId, int stationId, int artId, int quantity) {
         if (quantity < 1) throw new IllegalArgumentException("A line asks for at least one piece");
-        InventoryArt art = artRepository
-                .findById(artId)
-                .orElseThrow(() -> new IllegalArgumentException("The kind does not exist"));
-        requireOwnInventory(art.inventoryId(), stationId, "A collection can only ask for its own station's kinds");
+        lineTargets.requireOwnedBy(
+                LineTarget.art(artId), stationId, "A collection can only ask for its own station's kinds");
         return collectionRepository.addLine(collectionId, null, artId, null, quantity);
     }
 
@@ -185,15 +168,11 @@ public class InventoryCollectionService {
      */
     public CollectionLine addInventoryLine(int collectionId, int stationId, int inventoryId, int quantity) {
         if (quantity < 1) throw new IllegalArgumentException("A line asks for at least one piece");
-        requireOwnInventory(inventoryId, stationId, "A collection can only draw from its own station's inventories");
+        lineTargets.requireOwnedBy(
+                LineTarget.inventory(inventoryId),
+                stationId,
+                "A collection can only draw from its own station's inventories");
         return collectionRepository.addLine(collectionId, null, null, inventoryId, quantity);
-    }
-
-    private void requireOwnInventory(int inventoryId, int stationId, String refusal) {
-        Inventory inventory = inventoryRepository
-                .findById(inventoryId)
-                .orElseThrow(() -> new IllegalArgumentException("The inventory does not exist"));
-        if (inventory.stationId() != stationId) throw new IllegalArgumentException(refusal);
     }
 
     /**

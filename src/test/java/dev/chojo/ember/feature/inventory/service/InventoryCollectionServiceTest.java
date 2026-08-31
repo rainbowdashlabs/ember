@@ -45,7 +45,7 @@ class InventoryCollectionServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new InventoryCollectionService(collectionRepo, inventoryRepo, artRepo);
+        service = new InventoryCollectionService(collectionRepo, lineTargetService);
         account = accountRepo.create("collectionsvc@test.example", "Collection", "Service");
         station = stationRepo.create("CollectionServiceStation");
         other = stationRepo.create("CollectionServiceOther");

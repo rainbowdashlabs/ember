@@ -299,8 +299,15 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
         collectionRepo.addLine(kit.id(), null, null, drawer.id(), 2);
 
         var request = lendingRepo.createRequest(
-                partner.uid(), station.uid(), LocalDate.of(2026, 5, 10), LocalDate.of(2026, 5, 12), member.id());
-        var requestItem = lendingRepo.addRequestItem(request.id(), drawer.id(), promised.id(), 1);
+                partner.uid(),
+                station.uid(),
+                LocalDate.of(2026, 5, 10),
+                LocalDate.of(2026, 5, 12),
+                member.id(),
+                null,
+                null,
+                "");
+        var requestItem = lendingRepo.addRequestItem(request.id(), drawer.id(), promised.id(), null, 1, null);
         lendingRepo.assignItem(requestItem.id(), promised.id());
         lendingRepo.updateRequestStatus(request.id(), LendingStatus.APPROVED);
 

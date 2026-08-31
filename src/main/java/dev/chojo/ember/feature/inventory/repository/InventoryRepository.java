@@ -98,9 +98,10 @@ public class InventoryRepository {
                 ) proc ON proc.inventory_id = i.id
                 LEFT JOIN (
                     SELECT li.inventory_id,
-                           count(*) FILTER (WHERE li.assigned_item_id IS NOT NULL) AS lent_out_count
+                           count(la.item_id) AS lent_out_count
                     FROM federation_lending_request_item li
                     JOIN federation_lending_request lr ON lr.id = li.request_id
+                    JOIN federation_lending_request_item_assignment la ON la.request_item_id = li.id
                     WHERE lr.status IN ('APPROVED', 'LENT')
                     GROUP BY li.inventory_id
                 ) lent ON lent.inventory_id = i.id
@@ -431,27 +432,6 @@ public class InventoryRepository {
                 .single(call().bind(ItemCustodySql.STATION_BIND, stationId).bind("internal_id", internalId))
                 .map(InventoryItem.map())
                 .first();
-    }
-
-    public List<InventoryItem> findFreeItems(int inventoryId, LocalDate dateFrom, LocalDate dateTo) {
-        return query("""
-                SELECT %s FROM inventory_item
-                WHERE inventory_id = :inventory_id
-                  AND %s
-                  AND id NOT IN (
-                      SELECT li.assigned_item_id FROM federation_lending_request_item li
-                      JOIN federation_lending_request lr ON lr.id = li.request_id
-                      WHERE li.assigned_item_id IS NOT NULL
-                        AND lr.status IN ('APPROVED', 'LENT')
-                        AND lr.requested_date_from <= :date_to
-                        AND (lr.requested_date_to IS NULL OR lr.requested_date_to >= :date_from)
-                  )
-                ORDER BY id;""", INVENTORY_ITEM_COLUMNS, ItemCustodySql.freeStock("inventory_item"))
-                .single(call().bind("inventory_id", inventoryId)
-                        .bind("date_from", dateFrom)
-                        .bind("date_to", dateTo))
-                .map(InventoryItem.map())
-                .all();
     }
 
     /**

@@ -9,6 +9,8 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
@@ -51,6 +53,7 @@ public class LendingRoutes implements Routes {
     private final InventoryRepository inventoryRepository;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
+    private final EventCrudService eventService;
 
     @Inject
     public LendingRoutes(
@@ -59,7 +62,9 @@ public class LendingRoutes implements Routes {
             StationRepository stationRepository,
             InventoryRepository inventoryRepository,
             StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            EventCrudService eventService) {
+        this.eventService = eventService;
         this.service = service;
         this.lendingRepository = lendingRepository;
         this.stationRepository = stationRepository;
@@ -160,11 +165,15 @@ public class LendingRoutes implements Routes {
                 req.owningStationId(),
                 req.dateFrom(),
                 dateTo,
-                session.member().id());
+                session.member().id(),
+                req.eventId(),
+                req.eventDate(),
+                occasionOf(session.stationId(), req.eventId()));
 
         if (req.items() != null) {
             for (var item : req.items()) {
-                service.addRequestItem(request.id(), item.inventoryId(), item.itemId(), item.quantity());
+                service.addRequestItem(
+                        request.id(), item.inventoryId(), item.itemId(), item.artId(), item.quantity(), item.needId());
             }
         }
 
@@ -391,6 +400,25 @@ public class LendingRoutes implements Routes {
         return new LendingRequestResponse(request, requestingName, owningName, isOwner, itemSummary, overdue);
     }
 
+    /**
+     * What the owning station is told the request is for: the appointment's name, and nothing else.
+     *
+     * <p>Copied here rather than resolved later, so a rename does not rewrite what was asked for and
+     * nothing that is added to an appointment afterwards can travel with it.
+     *
+     * @param stationId the station asking
+     * @param eventId   the appointment the list was collected for, or {@code null}
+     * @return the name, or an empty string where there is no appointment or it is not this station's
+     */
+    private String occasionOf(int stationId, Integer eventId) {
+        if (eventId == null) return "";
+        return eventService
+                .findById(eventId)
+                .filter(event -> event.stationId() == stationId)
+                .map(StationEvent::name)
+                .orElse("");
+    }
+
     private List<EnrichedItem> enrichItems(List<LendingRequestItem> items) {
         return items.stream()
                 .map(item -> {
@@ -413,10 +441,23 @@ public class LendingRoutes implements Routes {
         ctx.json(lentItems);
     }
 
+    /**
+     * @param eventId   the appointment the list was collected for, or {@code null}
+     * @param eventDate the evening of that appointment, or {@code null}
+     */
     public record CreateLendingRequest(
-            int owningStationId, LocalDate dateFrom, LocalDate dateTo, List<ItemRequest> items) {}
+            int owningStationId,
+            LocalDate dateFrom,
+            LocalDate dateTo,
+            Integer eventId,
+            LocalDate eventDate,
+            List<ItemRequest> items) {}
 
-    public record ItemRequest(Integer inventoryId, Integer itemId, int quantity) {}
+    /**
+     * @param artId  the kind of thing the line asks for, or {@code null}
+     * @param needId the line of an appointment's needs this fills, or {@code null}
+     */
+    public record ItemRequest(Integer inventoryId, Integer itemId, Integer artId, int quantity, Integer needId) {}
 
     public record DeclineBody(String reason) {}
 
