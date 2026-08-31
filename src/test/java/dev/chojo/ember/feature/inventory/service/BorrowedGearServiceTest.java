@@ -10,9 +10,11 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -68,6 +70,7 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
                 clusterRepo,
                 itemCustodyService,
                 borrowedGearService,
+                new InventoryShareService(new InventoryShareRepository(), federationService, inventoryRepo),
                 new DomainEventBus(Set.of()));
 
         owner = stationRepo.create("BorrowedGearOwner");

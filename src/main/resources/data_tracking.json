@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "schemaHash": "sha256:38ecc2c7c432a058d5e17de5d901d15ceae3deb62e32349168e26eb9f6cb4f6c",
+  "schemaHash": "sha256:b7c9ac0ed0125554fa784d3e9690d3ef1d39573832344d6b113a5bd67c5e1f5e",
   "generatedAt": "2026-08-31T10:35:39Z",
   "tables": {
     "account": {
@@ -7753,7 +7753,7 @@
     "federation_inventory_share": {
       "feature": "federation",
       "scope": "STATION",
-      "tableHash": "sha256:a69c5d7178407146fa6e73612862ae3cab71c87092d4806f9f572933c07720b4",
+      "tableHash": "sha256:97da557e1110c319b64390f4a1bc8f3df4831cfa32565f8538433923d3a9ed07",
       "columns": [
         {
           "name": "id",
@@ -7789,6 +7789,13 @@
           "nullable": false,
           "verified": true,
           "description": "Scope: ALL_PARTNERS or SPECIFIC."
+        },
+        {
+          "name": "share_grant",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "GRANT puts the gear on offer, WITHHOLD takes it back out of a wider offer. The narrowest row that exists decides."
         }
       ],
       "foreignKeys": [

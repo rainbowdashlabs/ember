@@ -882,12 +882,15 @@ class LendingServiceTest extends RepositoryTestBase {
     void findAvailableInventoryLeavesOutGearTheStationOnlyHolds() {
         var inv = inventoryRepo.create(stationA.id(), "LendSvcOfferHeld", InventoryType.INTERNAL, false);
         inventoryRepo.createItem(inv.id(), "OH-001", "Kreis-Zelt", null, null, ItemOwner.CLUSTER, clusterId);
+        shareService.setInventoryShare(stationA.id(), inv.id(), ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
 
-        var results = service.findAvailableInventory(stationB.id(), "LendSvcOfferHeld", null, null);
+        var results = service.findAvailableInventory(stationB.id(), "LendSvcOfferHeld", null, null)
+                .entries();
         assertTrue(results.stream().noneMatch(e -> e.inventoryId() == inv.id()));
 
         inventoryRepo.createItem(inv.id(), "OH-002", "Wachen-Zelt", null, null);
-        var again = service.findAvailableInventory(stationB.id(), "LendSvcOfferHeld", null, null);
+        var again = service.findAvailableInventory(stationB.id(), "LendSvcOfferHeld", null, null)
+                .entries();
         var entry = again.stream()
                 .filter(e -> e.inventoryId() == inv.id())
                 .findFirst()
@@ -916,7 +919,8 @@ class LendingServiceTest extends RepositoryTestBase {
     void lendingSwitchedOffHidesThePartnerAndRefusesTheRequest() {
         federationService.setCapability(partnerIdBtoA, CapabilityType.INVENTORY_LEND, Direction.IMPORT, false);
         try {
-            var results = service.findAvailableInventory(stationB.id(), "LendSvc", null, null);
+            var results = service.findAvailableInventory(stationB.id(), "LendSvc", null, null)
+                    .entries();
             assertTrue(results.stream().noneMatch(e -> e.stationId() == stationA.id()));
             assertThrows(
                     ForbiddenResponse.class,
@@ -929,7 +933,8 @@ class LendingServiceTest extends RepositoryTestBase {
         } finally {
             federationService.setCapability(partnerIdBtoA, CapabilityType.INVENTORY_LEND, Direction.IMPORT, true);
         }
-        var restored = service.findAvailableInventory(stationB.id(), "LendSvc", null, null);
+        var restored = service.findAvailableInventory(stationB.id(), "LendSvc", null, null)
+                .entries();
         assertTrue(restored.stream().anyMatch(e -> e.stationId() == stationA.id()));
     }
 
@@ -986,30 +991,38 @@ class LendingServiceTest extends RepositoryTestBase {
     @Test
     @Order(400)
     void nothingIsOfferedUntilAShareSaysSo() {
-        shareService.removeInventoryShare(stationA.id(), inventoryIdA);
-        var results = service.findAvailableInventory(stationB.id(), null, null, null);
-        assertTrue(results.entries().isEmpty());
-        assertEquals(LendingService.EmptyReason.NOTHING_SHARED, results.emptyReason());
+        var inventory = inventoryRepo.create(stationA.id(), "LendSvcOptIn", InventoryType.INTERNAL, false);
+        inventoryRepo.createItem(inventory.id(), "OPT-001", "Opt In Item", null, null);
+
+        var before = service.findAvailableInventory(stationB.id(), "LendSvcOptIn", null, null);
+        assertTrue(before.entries().isEmpty());
+        assertEquals(LendingService.EmptyReason.NOTHING_FREE, before.emptyReason());
 
         shareService.setInventoryShare(
-                stationA.id(), inventoryIdA, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
-        assertFalse(service.findAvailableInventory(stationB.id(), null, null, null)
-                .entries()
-                .isEmpty());
+                stationA.id(), inventory.id(), ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+        assertTrue(service.findAvailableInventory(stationB.id(), "LendSvcOptIn", null, null).entries().stream()
+                .anyMatch(e -> e.inventoryId() == inventory.id()));
     }
 
     /** The drawer goes out, the one good radio stays: the narrower row wins over the wider one. */
     @Test
     @Order(401)
     void anItemIsWithheldFromASharedInventory() {
-        shareService.setItemShare(stationA.id(), itemIdA, ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of());
-        var results = service.findAvailableInventory(stationB.id(), null, null, null);
-        assertTrue(results.entries().stream().noneMatch(e -> e.inventoryId() == inventoryIdA));
+        var inventory = inventoryRepo.create(stationA.id(), "LendSvcWithheld", InventoryType.INTERNAL, false);
+        var kept = inventoryRepo.createItem(inventory.id(), "WH-001", "Gutes Funkgerät", null, null);
+        shareService.setInventoryShare(
+                stationA.id(), inventory.id(), ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+        assertTrue(service.findAvailableInventory(stationB.id(), "LendSvcWithheld", null, null).entries().stream()
+                .anyMatch(e -> e.inventoryId() == inventory.id()));
+
+        shareService.setItemShare(stationA.id(), kept.id(), ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of());
+        var results = service.findAvailableInventory(stationB.id(), "LendSvcWithheld", null, null);
+        assertTrue(results.entries().isEmpty());
         assertEquals(LendingService.EmptyReason.NOTHING_FREE, results.emptyReason());
 
-        shareService.removeItemShare(stationA.id(), itemIdA);
-        assertTrue(service.findAvailableInventory(stationB.id(), null, null, null).entries().stream()
-                .anyMatch(e -> e.inventoryId() == inventoryIdA));
+        shareService.removeItemShare(stationA.id(), kept.id());
+        assertTrue(service.findAvailableInventory(stationB.id(), "LendSvcWithheld", null, null).entries().stream()
+                .anyMatch(e -> e.inventoryId() == inventory.id()));
     }
 
     /** Turning lending off for a partner takes the whole offer away from that partner. */
@@ -1058,17 +1071,17 @@ class LendingServiceTest extends RepositoryTestBase {
     @Test
     @Order(404)
     void aShareAimedAtNamedPartnersReachesOnlyThose() {
-        shareService.setInventoryShare(
-                stationA.id(), inventoryIdA, ShareScope.SPECIFIC, ShareGrant.GRANT, List.of(partnerIdAtoB));
-        assertTrue(service.findAvailableInventory(stationB.id(), null, null, null).entries().stream()
-                .anyMatch(e -> e.inventoryId() == inventoryIdA));
+        var inventory = inventoryRepo.create(stationA.id(), "LendSvcNamed", InventoryType.INTERNAL, false);
+        inventoryRepo.createItem(inventory.id(), "NM-001", "Genannte Leiter", null, null);
 
-        shareService.setInventoryShare(stationA.id(), inventoryIdA, ShareScope.SPECIFIC, ShareGrant.GRANT, List.of());
-        var results = service.findAvailableInventory(stationB.id(), null, null, null);
+        shareService.setInventoryShare(
+                stationA.id(), inventory.id(), ShareScope.SPECIFIC, ShareGrant.GRANT, List.of(partnerIdAtoB));
+        assertTrue(service.findAvailableInventory(stationB.id(), "LendSvcNamed", null, null).entries().stream()
+                .anyMatch(e -> e.inventoryId() == inventory.id()));
+
+        shareService.setInventoryShare(stationA.id(), inventory.id(), ShareScope.SPECIFIC, ShareGrant.GRANT, List.of());
+        var results = service.findAvailableInventory(stationB.id(), "LendSvcNamed", null, null);
         assertTrue(results.entries().isEmpty());
-        assertEquals(LendingService.EmptyReason.NOTHING_SHARED, results.emptyReason());
-
-        shareService.setInventoryShare(
-                stationA.id(), inventoryIdA, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+        assertEquals(LendingService.EmptyReason.NOTHING_FREE, results.emptyReason());
     }
 }
