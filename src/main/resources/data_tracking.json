@@ -1,6 +1,6 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:444fe48fbff84721183473e1bd933bc59fbe4cf14573133946ef64d4b1b8a053",
+  "schemaHash" : "sha256:020df317dab46b1762a1a198d1b3f70ea2f75763885cad781b4f2bd298f0c646",
   "generatedAt" : "2026-08-31T17:44:01Z",
   "tables" : {
     "account" : {
@@ -8763,7 +8763,7 @@
     "inventory_check" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:1dfe5e8c52518563b9f8885a0a450592da9e9ccf06c83be4d9c11205d08914db",
+      "tableHash" : "sha256:07355103f5766fac80f2679e0f1676b67c7fc88425747745b3b42fc1b88ca867",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -8812,6 +8812,12 @@
         "nullable" : false,
         "verified" : true,
         "description" : "On a CONTAINER-scope check, whether the walk includes all descendant containers (TRUE) or only the direct container (FALSE)."
+      }, {
+        "name" : "reported_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who reported what the check records, where that is somebody other than whoever signed it off. NULL on a check somebody walked themselves."
       } ],
       "foreignKeys" : [ {
         "column" : "checked_by",
@@ -8828,6 +8834,11 @@
         "refTable" : "station_member",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
+      }, {
+        "column" : "reported_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
       }, {
         "column" : "station_id",
         "refTable" : "station",
@@ -8846,6 +8857,9 @@
         }, {
           "type" : "MEMBER_ID",
           "column" : "checked_by"
+        }, {
+          "type" : "MEMBER_ID",
+          "column" : "reported_by"
         } ]
       },
       "gdprDeletion" : {
@@ -9836,6 +9850,370 @@
         "reason" : "Inventory structure/config, not per-member"
       },
       "description" : "Required inventory items per role or group (e.g. every TEAM member needs 1 uniform)."
+    },
+    "inventory_self_check" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:2433166941b804f5b1bd605224c130ba7ebb5ad5580e25a0b329d84a1abf0079",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station that handed the task out."
+      }, {
+        "name" : "member_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The member whose gear the task is about."
+      }, {
+        "name" : "handed_out_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who handed the task out. NULL once that person is no longer a member here."
+      }, {
+        "name" : "handed_out_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the task was handed out."
+      }, {
+        "name" : "due_on",
+        "type" : "date",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The day the answer is wanted by, or NULL where none was named."
+      }, {
+        "name" : "state",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "OPEN while the member may still answer, SUBMITTED once they have, DONE once every row is settled, OVERTAKEN where a checker walked the member instead."
+      }, {
+        "name" : "submitted_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the task was submitted, or NULL while it is still open."
+      }, {
+        "name" : "submitted_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who entered the submission, which is the member or one of their guardians."
+      }, {
+        "name" : "closed_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the task stopped needing anything, however it ended."
+      }, {
+        "name" : "check_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The check the settled task wrote, once it wrote one."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "check_id",
+        "refTable" : "inventory_check",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "handed_out_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "member_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "submitted_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "ignoredColumns" : [ "station_id" ]
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "member_id"
+        }, {
+          "type" : "MEMBER_ID",
+          "column" : "submitted_by"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "member_id",
+          "strategy" : "CASCADE",
+          "reason" : "FK ON DELETE CASCADE on the member; an unanswered question about somebody who has gone is not a record of anything"
+        }, {
+          "column" : "handed_out_by",
+          "strategy" : "NULL",
+          "reason" : "Task kept, the checker who handed it out unlinked"
+        }, {
+          "column" : "submitted_by",
+          "strategy" : "NULL",
+          "reason" : "Task kept, whoever entered the submission unlinked"
+        } ]
+      },
+      "description" : "A task put to a member to answer for the gear the station has recorded against their name, without a checker in the room."
+    },
+    "inventory_self_check_item" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:11a2d14e817a2a3c5e271baf6ed075daef450fb151a942afe3935dbf392c55fd",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "task_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The task this answer belongs to."
+      }, {
+        "name" : "item_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The piece the answer is about. NULL where the answer is about an empty place, and NULL again once the piece it named has been deleted."
+      }, {
+        "name" : "inventory_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The inventory the piece sits in, or the one the empty place belongs to."
+      }, {
+        "name" : "slot",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Which of the empty places in that inventory the answer is about, counted from zero. NULL on an answer about a piece."
+      }, {
+        "name" : "answer",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the member said: HAVE_IT, DO_NOT_HAVE_IT, TURNED_UP, WRONG_RECORD, NEVER_HAD or HAVE_ONE."
+      }, {
+        "name" : "note",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the member wrote beside the answer, which is usually the useful part."
+      }, {
+        "name" : "typed_internal_id",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The number the member read off a piece nobody wrote down. Matched when the reviewer reads it, never trusted, and NULL where nothing was typed."
+      }, {
+        "name" : "answered_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who entered the answer, which is the member or one of their guardians."
+      }, {
+        "name" : "answered_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the answer was last written."
+      }, {
+        "name" : "state",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "OUTSTANDING until a reviewer settles it, then TAKEN or REFUSED."
+      }, {
+        "name" : "reviewer_reason",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Why a row was refused, in the reviewer's words. Empty on every other row."
+      }, {
+        "name" : "reviewed_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who settled the row. NULL while it is outstanding."
+      }, {
+        "name" : "reviewed_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the row was settled."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "answered_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "inventory_id",
+        "refTable" : "inventory",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "item_id",
+        "refTable" : "inventory_item",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "reviewed_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "task_id",
+        "refTable" : "inventory_self_check",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "answered_by"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "task_id",
+          "strategy" : "CASCADE",
+          "reason" : "FK ON DELETE CASCADE through the task, which cascades on the member it is about"
+        }, {
+          "column" : "answered_by",
+          "strategy" : "NULL",
+          "reason" : "Answer kept, whoever entered it unlinked"
+        }, {
+          "column" : "reviewed_by",
+          "strategy" : "NULL",
+          "reason" : "Answer kept, the reviewer unlinked"
+        } ]
+      },
+      "description" : "One thing a member said about one piece of their gear or one empty place in it, and what the reviewer made of it. The note is the member's own words about themselves."
+    },
+    "inventory_self_check_raised" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:a13d7b809febaae7b2138428782d81cf9794c436071adbb2cf3f4307c033a00f",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "task_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The task it was raised during."
+      }, {
+        "name" : "kind",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "LOSS where the member said a piece cannot be found, EXCHANGE where they asked for a different size."
+      }, {
+        "name" : "item_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The piece it was about. NULL once that piece has been deleted."
+      }, {
+        "name" : "movement_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The movement an exchange started, where there is one."
+      }, {
+        "name" : "raised_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who raised it, which is the member or one of their guardians."
+      }, {
+        "name" : "raised_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When it was raised."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "item_id",
+        "refTable" : "inventory_item",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "movement_id",
+        "refTable" : "item_movement",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "raised_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "task_id",
+        "refTable" : "inventory_self_check",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "raised_by"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "task_id",
+          "strategy" : "CASCADE",
+          "reason" : "FK ON DELETE CASCADE through the task, which cascades on the member it is about"
+        }, {
+          "column" : "raised_by",
+          "strategy" : "NULL",
+          "reason" : "Record kept, whoever raised it unlinked"
+        } ]
+      },
+      "description" : "A loss or an exchange a member raised while answering a self-check, recorded so the reviewer can see it happened."
     },
     "inventory_size" : {
       "feature" : "inventory",
