@@ -28,7 +28,9 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectReader;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
@@ -49,6 +51,9 @@ import java.util.stream.Collectors;
 public class AttendanceService {
     private static final Logger log = LoggerFactory.getLogger(AttendanceService.class);
     private static final ObjectMapper JSON = JsonMapper.builder().build();
+    /** Reads a value only when it is JSON all the way to its end, so a date is not read as a number. */
+    private static final ObjectReader STRICT_JSON = JSON.reader().with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
+
     private final AttendanceRepository attendanceRepository;
     private final EventRepository eventRepository;
     private final EventFieldRepository eventFieldRepository;
@@ -304,7 +309,9 @@ public class AttendanceService {
             if (field.attendanceFieldId() == null) continue;
             if (field.value() == null || field.value().isBlank()) continue;
             if (filled.contains(field.attendanceFieldId())) continue;
-            attendanceRepository.setSessionField(sessionId, field.attendanceFieldId(), asJsonValue(field.value()));
+            String value = asJsonValue(field.value());
+            if (value == null) continue;
+            attendanceRepository.setSessionField(sessionId, field.attendanceFieldId(), value);
         }
     }
 
@@ -320,14 +327,19 @@ public class AttendanceService {
      *
      * <p>An appointment keeps its answers as plain text, and a piece of plain text is not JSON:
      * writing it straight into the sheet threw the whole request away, which is why an answer given
-     * on an appointment never arrived on the sheet it was tied to. A value that already is JSON, such
-     * as the list of members a question holds, is passed on untouched.
+     * on an appointment never arrived on the sheet it was tied to.
+     *
+     * <p>Only a list or an object is taken as it stands, which is how the members a question holds
+     * are kept. Everything else goes in as the text it is, rather than being read for a number that
+     * happens to stand at its front: a date read that way is a number followed by the rest of the
+     * date, and the rest is what the sheet would have choked on.
      */
     private static String asJsonValue(String raw) {
         try {
-            JSON.readTree(raw);
-            return raw;
+            STRICT_JSON.readTree(raw);
+            return raw.trim();
         } catch (Exception e) {
+            // Not JSON, or not JSON all the way to its end, so it goes in as the text it is
             return toJsonValue(raw);
         }
     }

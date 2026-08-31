@@ -559,6 +559,62 @@ class AttendanceServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * An answer that begins with digits reaches the sheet as the text it is.
+     *
+     * <p>Read as JSON, a date is a number with the rest of the date trailing behind it, and it was
+     * that trailing rest the sheet refused, taking the whole attendance down with it.
+     */
+    @Test
+    @Order(54)
+    void anAnswerThatLooksLikeANumberStillReachesTheSheet() {
+        var sheet = service.createTemplate(station.id(), "Datum Vorlage");
+        service.createTemplateField(
+                sheet.id(), "Datum", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
+        int sheetFieldId = service.findTemplateFields(sheet.id()).getFirst().id();
+
+        var event = eventRepo.create(
+                station.id(),
+                "Datum Termin",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(1, ChronoUnit.DAYS),
+                Instant.now().plus(1, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS),
+                sheet.id(),
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        eventFieldRepo.replaceFields(
+                event.id(),
+                List.of(new EventFieldRepository.FieldEntry(
+                        "Datum",
+                        EventFieldType.STRING,
+                        EventFieldConfig.parse("{}"),
+                        "2026-08-31",
+                        false,
+                        sheetFieldId,
+                        false)));
+
+        var session = service.createSession(sheet.id(), null, null, event.id(), null);
+
+        assertTrue(
+                service.findSessionFields(session.id()).stream()
+                        .anyMatch(field -> field.fieldId() == sheetFieldId
+                                && field.value() != null
+                                && field.value().contains("2026-08-31")),
+                "the date is on the sheet as it was written");
+
+        service.deleteSession(session.id());
+        eventRepo.delete(event.id());
+        service.deleteTemplate(sheet.id());
+    }
+
+    /**
      * A group that grew after the sheet was opened is picked up when it is filled in from the event.
      *
      * <p>Without this the newcomer stands on the sheet with nothing to mark, and the walk through the
