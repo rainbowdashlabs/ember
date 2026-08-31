@@ -33,7 +33,10 @@ const props = defineProps<{
   currentMemberId: number
   registrableMembers: AnswerablePerson[]
   hasManagedMembers: boolean
-  nextOccurrenceDate: string | null
+  /** The single evening this screen is focused on. Every answer written here belongs to it. */
+  effectiveDate: string | null
+  /** Everybody the station has today, which is who a list built from these sign-ups can hold. */
+  currentMemberIds: number[]
 }>()
 
 const {t} = useI18n()
@@ -151,7 +154,7 @@ async function denyRegistration(id: number) {
 const {running: registering, error: registrationError, run: runRegistration} = useAsyncAction(
     async (kind: 'register' | 'decline', memberId: number, fields?: RegistrationFieldValue[]) => {
       const request = {
-        eventDate: props.nextOccurrenceDate ?? undefined,
+        eventDate: props.effectiveDate ?? undefined,
         memberId: memberId !== props.currentMemberId ? memberId : undefined,
         fields,
       }
@@ -298,7 +301,7 @@ async function manualRegister(values?: RegistrationFieldValue[]) {
   }
   try {
     await events.registerForEvent(props.eventId, {
-      eventDate: props.nextOccurrenceDate ?? undefined,
+      eventDate: props.effectiveDate ?? undefined,
       memberId: Number(manualRegisterMemberId.value),
       fields: values,
     })
