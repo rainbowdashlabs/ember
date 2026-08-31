@@ -9,19 +9,30 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
+import ArtPicker from '../../ArtPicker.vue'
 import type {InventorySize} from '@/api/inventory'
 import type {InventoryContainer} from '@/api/inventoryContainers'
+import type {InventoryArt} from '@/api/inventoryArts'
 
-defineProps<{
-  hasSizes: boolean
-  sizes: InventorySize[]
-  containers: InventoryContainer[]
-}>()
+withDefaults(
+    defineProps<{
+      hasSizes: boolean
+      sizes: InventorySize[]
+      containers: InventoryContainer[]
+      /** The kinds this inventory holds. Empty for an inventory of one thing in many copies. */
+      arts?: InventoryArt[]
+      /** Whether kinds are offered at all, which follows from what the inventory holds. */
+      showArt?: boolean
+    }>(),
+    {arts: () => [], showArt: false},
+)
 
 const itemName = defineModel<string>('itemName', {default: ''})
 const internalId = defineModel<string>('internalId', {default: ''})
 const sizeId = defineModel<string>('sizeId', {default: ''})
 const containerId = defineModel<number | null>('containerId', {default: null})
+const artId = defineModel<number | null>('artId', {default: null})
+const artDraft = defineModel<string>('artDraft', {default: ''})
 
 const {t} = useI18n()
 </script>
@@ -31,6 +42,11 @@ const {t} = useI18n()
     <div class="space-y-1">
       <FieldLabel>{{ t('inventory.edit.itemName') }}</FieldLabel>
       <TextInput v-model="itemName" :placeholder="t('inventory.edit.itemNamePlaceholder')"/>
+    </div>
+    <div v-if="showArt" class="space-y-1">
+      <FieldLabel>{{ t('inventory.art.field') }}</FieldLabel>
+      <ArtPicker v-model:artId="artId" v-model:draft="artDraft" :arts="arts"/>
+      <p class="text-xs text-(--text-muted)">{{ t('inventory.art.fieldHint') }}</p>
     </div>
     <div class="space-y-1">
       <FieldLabel>{{ t('inventory.edit.itemInternalId') }}</FieldLabel>

@@ -14,8 +14,9 @@ import Alert from '@/components/feedback/Alert.vue'
 import {InventoryTypes, type InventoryDetail, type InventoryItem, type InventorySize} from '@/api/inventory'
 import type { ProcurementEntry } from '@/api/procurement'
 import {StationPermission, type StationMember} from '@/api/types'
-import { inventory, inventoryContainers, stationMembers, procurement } from '@/api'
+import { inventory, inventoryArts, inventoryContainers, stationMembers, procurement } from '@/api'
 import type { InventoryContainer } from '@/api/inventoryContainers'
+import type { InventoryArt } from '@/api/inventoryArts'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { getLentOutByInventory, type LentOutItem } from '@/api/lending'
@@ -38,6 +39,7 @@ const { hasPermission } = useSession()
 const inventoryId = computed(() => Number(route.params.id))
 const detail = ref<InventoryDetail | null>(null)
 const items = ref<InventoryItem[]>([])
+const arts = ref<InventoryArt[]>([])
 const memberMap = ref<Map<number, StationMember>>(new Map())
 const openProcurement = ref<ProcurementEntry[]>([])
 const lentOutItems = ref<LentOutItem[]>([])
@@ -191,6 +193,11 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
   detail.value = inv
   items.value = allItems
   containers.value = allContainers
+  // Only a drawer of different things has kinds, and most drawers have none, so an empty list here
+  // is the ordinary answer and leaves the flat list exactly as it was.
+  arts.value = inv.homogeneous === false
+      ? await inventoryArts.listArts(inventoryId.value).catch(() => [] as InventoryArt[])
+      : []
   const map = new Map<number, StationMember>()
   for (const m of members) map.set(m.id, m)
   memberMap.value = map
@@ -226,6 +233,7 @@ function goBack() { router.push({ name: routes.manage }) }
         v-if="!loading && detail"
         :detail="detail"
         :items="items"
+        :arts="arts"
         :free-items="freeItems"
         :lost-items="lostItems"
         :member-map="memberMap"

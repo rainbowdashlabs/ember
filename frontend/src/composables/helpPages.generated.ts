@@ -174,6 +174,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-inventory-requirements', path: '/helpcenter/station/inventory/requirements', i18nPrefix: 'helpCenter.inventoryRequirements'},
     {route: 'help-inventory-storage', path: '/helpcenter/station/inventory/storage', i18nPrefix: 'helpCenter.inventoryStorageHelp'},
     {route: 'help-inventory-container-detail', path: '/helpcenter/station/inventory/storage/0', i18nPrefix: 'helpCenter.inventoryContainerDetailHelp'},
+    {route: 'help-inventory-tidy', path: '/helpcenter/station/inventory/tidy', i18nPrefix: 'helpCenter.inventoryTidy'},
     {route: 'help-knowledge-module-overview', path: '/helpcenter/station/knowledge', i18nPrefix: 'helpCenter.knowledgeModuleOverview'},
     {route: 'help-knowledge-base', path: '/helpcenter/station/knowledge/browse', i18nPrefix: 'helpCenter.kb'},
     {route: 'help-knowledge-editor', path: '/helpcenter/station/knowledge/editor', i18nPrefix: ['helpCenter.kb.editor', 'helpCenter.knowledgeEditorToolbarFormatting', 'helpCenter.knowledgeEditorToolbarMedia', 'helpCenter.knowledgeEditorToolbarStructure']},

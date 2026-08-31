@@ -58,6 +58,11 @@ export interface InventoryRoutes {
      */
     move?: string
     /**
+     * Where the names written on the pieces are tidied up into kinds. Absent at an association,
+     * whose store is not the drawer of different things this exists for.
+     */
+    tidy?: string
+    /**
      * Where a station writes down an inventory it already owns, member by member. Absent at an
      * association: its store holds gear rather than handing it to people it keeps a list of.
      */
@@ -89,6 +94,7 @@ export const STATION_INVENTORY_ROUTES: InventoryRoutes = {
     memberGroups: 'members-groups',
     exchanges: 'inventory-exchanges',
     move: 'inventory-move',
+    tidy: 'inventory-tidy',
     intake: 'inventory-intake',
     lending: 'inventory-lending',
     lendingBlocks: 'inventory-lending-blocks',

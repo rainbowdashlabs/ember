@@ -1359,6 +1359,10 @@ export default {
             title: 'Gegenstände verschieben',
             subtitle: 'Ein Inventar aufteilen, ohne die Gegenstände neu anzulegen',
         },
+        'inventory-tidy': {
+            title: 'Arten aufräumen',
+            subtitle: 'Gleiche Dinge unter eine Art bringen und Tippfehler geraderücken',
+        },
         'inventory-detail': {
             title: 'Inventar-Details',
             subtitle: 'Details ansehen',
@@ -2956,6 +2960,14 @@ export default {
         selectHint: 'Wähle einen Mitgliedstyp aus, um die Berechtigungen zu bearbeiten.',
         noPermissions: 'Keine zusätzlichen Berechtigungen. Mitglieder dieses Typs erhalten nur die Standardberechtigungen.',
     },
+    labelSelect: {
+        placeholder: 'Auswählen...',
+        search: 'Suchen...',
+        searchOrCreate: 'Suchen oder erstellen...',
+        create: '„{name}“ erstellen',
+        empty: 'Nichts gefunden',
+        draft: 'neu',
+    },
     userTags: {
         title: 'Tags',
         create: 'Tag erstellen',
@@ -3208,6 +3220,13 @@ export default {
             type: 'Typ',
             sortOrder: 'Sortierung',
             required: 'Pflichtfeld',
+            scope: 'Gilt für',
+            scopeInventory: 'Das ganze Inventar',
+            scopeArt: 'Eine Art',
+            scopeItem: 'Einen einzelnen Gegenstand',
+            scopeUnnamedPiece: 'Ohne Bezeichnung',
+            scopeHint: 'Ein Feld für eine Art gilt für alle Gegenstände dieser Art. Die Werte bleiben trotzdem '
+                + 'bei jedem Gegenstand einzeln. Später lässt sich das nicht mehr ändern.',
             confirmDelete: 'Feld "{label}" wirklich löschen?',
             types: {
                 DATE: 'Datum',
@@ -3471,6 +3490,45 @@ export default {
             quickAssignHint: 'Erstellt automatisch einen Gegenstand und weist ihn dem Mitglied zu.',
             externalItemsHint: 'Externe Gegenstände werden automatisch erstellt, wenn sie einem Mitglied zugewiesen werden. Nutze "Ausgeben" um Gegenstände zuzuweisen.',
             searchItems: 'Gegenstände durchsuchen...',
+        },
+        art: {
+            title: 'Arten',
+            intro: 'Eine Art fasst gleiche Dinge in diesem Inventar zusammen, zum Beispiel alle blauen '
+                + 'Funkgeräte. Die Bezeichnung eines Gegenstands bleibt daneben stehen: „Pager 01“ ist '
+                + 'ein Stück der Art „Pager“.',
+            field: 'Art',
+            fieldHint: 'Darf leer bleiben. Die meisten Gegenstände haben keine Art.',
+            add: 'Art anlegen',
+            edit: 'Art bearbeiten',
+            name: 'Name',
+            namePlaceholder: 'z. B. Funkgerät blau',
+            note: 'Notiz',
+            notePlaceholder: 'Optional',
+            none: 'Keine Art',
+            none2: 'Für dieses Inventar gibt es noch keine Arten.',
+            empty: 'Keine Art gefunden',
+            pieces: '{pieces} Stück, davon {free} frei',
+            groupCount: '{count} Stück',
+            looseTitle: 'Ohne Art',
+            deleteConfirm: 'Art „{name}“ löschen? Die Gegenstände bleiben erhalten und verlieren nur ihre Art.',
+            onlyForDrawers: 'Arten gibt es nur in einem Inventar mit verschiedenen Dingen.',
+            backToInventory: 'Zurück zum Inventar',
+            tidyLink: 'Aufräumen',
+            tidyIntro: 'Hier stehen die Bezeichnungen, die auf den Gegenständen dieses Inventars stehen, '
+                + 'mit ihrer Anzahl. So fällt auf, wo dasselbe zweimal geschrieben wurde. Wähle die '
+                + 'Bezeichnungen aus, die dasselbe meinen, und gib der Gruppe eine Art.',
+            nothingToTidy: 'In diesem Inventar liegt nichts, was sich aufräumen ließe.',
+            nameCount: '{pieces} Stück, davon {unassigned} ohne Art',
+            existing: 'Vorhandene Art',
+            newOne: 'Neue Art anlegen',
+            newName: 'Name der Art',
+            newNameHint: 'Die Art wird erst angelegt, wenn du unten auf eine Schaltfläche klickst.',
+            willRename: '{count} Gegenstände werden der Art „{name}“ zugeordnet.',
+            mergeSubmit: 'Zusammenführen und umbenennen',
+            assignSubmit: 'Nur Art setzen',
+            assignHint: 'Beim Zusammenführen bekommen die Gegenstände den Namen der Art. Das lässt sich '
+                + 'nicht rückgängig machen. „Nur Art setzen“ lässt die Bezeichnungen unverändert.',
+            tidied: '{count} Gegenstände aufgeräumt.',
         },
         move: {
             back: 'Zurück zum Inventar',
@@ -5897,6 +5955,8 @@ export default {
     },
     boards: {
         title: 'Planer',
+        labelsPlaceholder: 'Labels...',
+        noLabelsFound: 'Keine Labels gefunden',
         manageTitle: 'Boards verwalten',
         createBoard: 'Board erstellen',
         boardName: 'Name',

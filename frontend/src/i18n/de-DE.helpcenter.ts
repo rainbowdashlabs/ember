@@ -4034,6 +4034,35 @@ volumes:
             tip: 'Wähle erst das Ziel und dann die Gegenstände: dann steht schon an jeder Zeile, ob die '
                 + 'Größe mitkommt.',
         },
+        inventoryTidy: {
+            title: 'Arten aufräumen',
+            subtitle: 'Gleiche Dinge unter eine Art bringen und Tippfehler geraderücken.',
+            whatIsArtTitle: 'Was eine Art ist',
+            whatIsArtText: 'Eine Art fasst gleiche Dinge in einem Inventar zusammen. In der Kiste mit den '
+                + 'Funkgeräten sind sechs blaue, fünf grüne und eine Ladestation. Blau und Grün sind zwei '
+                + 'Arten, die Ladestation ist eine dritte mit nur einem Stück.',
+            threeWordsText: 'Die Art steht neben der Bezeichnung und ersetzt sie nicht. „Pager 01“ bleibt '
+                + '„Pager 01“ und ist ein Stück der Art „Pager“. Die Größe ist noch einmal etwas anderes: '
+                + 'sie sagt, wie groß etwas ist, die Art sagt, welches Ding es ist.',
+            whereTitle: 'Wo es Arten gibt',
+            whereText: 'Nur in einem Inventar, das verschiedene Dinge enthält. Ein Inventar mit einer Sache '
+                + 'in vielen Exemplaren wird über Größen geordnet und bekommt keine Arten. Umstellen lässt '
+                + 'sich das erst wieder, wenn keine Art mehr darin steht.',
+            screenTitle: 'Was diese Seite zeigt',
+            screenText: 'Oben stehen die Bezeichnungen, die auf den Gegenständen dieses Inventars stehen, '
+                + 'mit ihrer Anzahl. So fällt sofort auf, wo dasselbe zweimal geschrieben wurde. Hake die '
+                + 'Bezeichnungen an, die dasselbe meinen, und gib der Gruppe eine Art.',
+            twoButtonsTitle: 'Die beiden Schaltflächen',
+            twoButtonsText: '„Zusammenführen und umbenennen“ setzt die Art und schreibt allen ausgewählten '
+                + 'Gegenständen den Namen der Art. Das räumt den Tippfehler wirklich weg, lässt sich aber '
+                + 'nicht rückgängig machen. „Nur Art setzen“ lässt jede Bezeichnung stehen.',
+            fieldsTitle: 'Felder an einer Art',
+            fieldsText: 'Ein benutzerdefiniertes Feld kannst du an eine Art hängen statt an das ganze '
+                + 'Inventar. Dann steht das Feld an allen Funkgeräten und nicht an der Ladestation. Die '
+                + 'Werte bleiben trotzdem bei jedem Gegenstand einzeln.',
+            tip: 'Es wird nichts von allein gruppiert. Erst wenn du hier auf eine Schaltfläche klickst, '
+                + 'entsteht eine Art. So wandert kein Tippfehler versehentlich in die Liste.',
+        },
         inventoryCheckMember: {
             title: 'Inventarprüfung - Mitglied',
             subtitle: 'Ausrüstung eines einzelnen Mitglieds prüfen.',

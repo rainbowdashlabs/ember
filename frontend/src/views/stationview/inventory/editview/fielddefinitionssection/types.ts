@@ -10,6 +10,10 @@ import type {FieldConfig, FieldTypeName} from '@/api/inventoryFields'
  */
 export interface DraftField {
     id?: number
+    /** The kind this field describes, or null when it describes the whole inventory. */
+    artId: number | null
+    /** The single piece this field describes, or null. At most one of the two is set. */
+    itemId: number | null
     key: string
     label: string
     fieldType: FieldTypeName
