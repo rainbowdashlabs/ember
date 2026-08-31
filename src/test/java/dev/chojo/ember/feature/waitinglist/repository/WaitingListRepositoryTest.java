@@ -5,10 +5,12 @@
  */
 package dev.chojo.ember.feature.waitinglist.repository;
 
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +18,8 @@ import tools.jackson.databind.node.IntNode;
 import tools.jackson.databind.node.StringNode;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -287,6 +291,44 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
         assertEquals(member.id(), found.memberId());
         stationMemberRepo.delete(member.id());
         accountRepo.delete(account.id());
+    }
+
+    /** The evening an invitation names is written and read back whole, and clears in one go. */
+    @Test
+    void updateInvitation() {
+        var list =
+                waitingListRepo.create(stationId, "Invitation List", "", null, 180, null, null, 5, false, null, null);
+        var entry = waitingListRepo.createEntry(
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
+        var event = eventRepo.create(
+                stationId,
+                "Dienstabend",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.parse("2026-05-12T18:00:00Z"),
+                Instant.parse("2026-05-12T20:00:00Z"),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        waitingListRepo.updateInvitation(
+                entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), LocalTime.of(17, 45)));
+
+        var invited = waitingListRepo.findEntryById(entry.id()).orElseThrow();
+        assertNotNull(invited.invitation());
+        assertEquals(event.id(), invited.invitation().eventId());
+        assertEquals(LocalDate.of(2026, 5, 12), invited.invitation().date());
+        assertEquals(LocalTime.of(17, 45), invited.invitation().arrivalTime());
+
+        waitingListRepo.updateInvitation(entry.id(), null);
+        assertNull(waitingListRepo.findEntryById(entry.id()).orElseThrow().invitation());
     }
 
     @Test

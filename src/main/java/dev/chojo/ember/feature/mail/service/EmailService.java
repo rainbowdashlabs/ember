@@ -9,6 +9,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import dev.chojo.ember.feature.mail.service.mail.MailProvider;
@@ -632,6 +633,39 @@ public class EmailService {
                 email,
                 subject("waitlist-registered", locale, waitlistPlaceholders(stationName)),
                 loadTemplate("waitlist-registered.html", locale, vars));
+    }
+
+    /**
+     * Sends the invitation to come and look, which is the first message a station writes to
+     * somebody on its waiting list of its own accord.
+     *
+     * <p>It carries the evening they are asked to come to and links to the page where the three
+     * answers are given. The answers are not links in the body: a one-click answer in a mail is
+     * followed by scanners, which would answer on the reader's behalf.
+     */
+    public void sendWaitlistInvitationEmail(
+            String email,
+            String name,
+            String accessToken,
+            String stationName,
+            String locale,
+            Integer stationId,
+            WaitlistInvitationDetails details) {
+        var vars = baseVars(name, stationId);
+        vars.put("url", api.baseUrl() + "/waiting-list/status?token=" + accessToken);
+        vars.put("stationName", stationName != null ? stationName : "");
+        vars.put("appointmentName", details.appointmentName());
+        vars.put("appointmentDate", details.date());
+        vars.put("appointmentTime", details.time());
+        vars.put("arrivalTime", details.arrivalTime());
+        vars.put("location", details.location());
+        if (stationId != null) {
+            vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
+        }
+        enqueueGlobal(
+                email,
+                subject("waitlist-invitation", locale, waitlistPlaceholders(stationName)),
+                loadTemplate("waitlist-invitation.html", locale, vars));
     }
 
     /**

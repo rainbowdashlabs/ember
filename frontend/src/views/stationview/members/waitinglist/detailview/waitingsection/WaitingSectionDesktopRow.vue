@@ -27,6 +27,7 @@ const { t } = useI18n()
 const emit = defineEmits<{
   toggleExpand: [entryId: number]
   invite: [entryId: number]
+  backToWaiting: [entryId: number]
   moveToTesting: [entryId: number]
   navigateToEntry: [entryId: number]
   deleteEntry: [entry: WaitingListEntryWithScore]
@@ -69,6 +70,7 @@ function getEntryFieldValue(item: WaitingListEntryWithScore, fieldId: number): s
       <WaitingSectionActions
         :item="props.item"
         @invite="(id) => emit('invite', id)"
+        @back-to-waiting="(id) => emit('backToWaiting', id)"
         @move-to-testing="(id) => emit('moveToTesting', id)"
         @navigate-to-entry="(id) => emit('navigateToEntry', id)"
         @delete-entry="(entry) => emit('deleteEntry', entry)"

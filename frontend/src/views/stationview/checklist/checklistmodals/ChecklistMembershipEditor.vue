@@ -10,7 +10,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import RadioInput from '@/components/input/toggle/RadioInput.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
-import ChecklistOccurrencePicker from './ChecklistOccurrencePicker.vue'
+import OccurrenceSearchPicker from '@/components/input/search/OccurrenceSearchPicker.vue'
 import type {RestrictionSelection} from '@/components/input/restriction'
 import type {ChecklistSourceRequest} from '@/api/checklists'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
@@ -69,7 +69,14 @@ const {t} = useI18n()
     </label>
 
     <div v-if="follows === 'EVENT'" class="pl-6 space-y-2">
-      <ChecklistOccurrencePicker v-model="occurrence" :selected-display="selectedOccurrenceLabel"/>
+      <OccurrenceSearchPicker
+          v-model="occurrence"
+          :selected-display="selectedOccurrenceLabel"
+          :placeholder="t('checklist.occurrencePlaceholder')"
+          :empty-label="t('checklist.occurrenceEmpty')"
+          testid="checklist-occurrence-picker"
+          requires-registration
+      />
       <MutedText tag="p" size="sm">{{ t('checklist.followsEventGuests') }}</MutedText>
       <Alert variant="info">{{ t('checklist.followsEventRefresh') }}</Alert>
     </div>

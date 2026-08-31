@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:38ecc2c7c432a058d5e17de5d901d15ceae3deb62e32349168e26eb9f6cb4f6c",
-  "generatedAt": "2026-08-31T10:35:39Z",
+  "schemaHash": "sha256:dfe42a72bc1ea95b9dfb5dac900caddf6ab9e64dcdf8d980592e96e911fd7942",
+  "generatedAt": "2026-08-31T14:40:26Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -20563,7 +20563,7 @@
     "waiting_list_entry": {
       "feature": "waitinglist",
       "scope": "STATION",
-      "tableHash": "sha256:d22351fee40f79dde276a54410bd01bb43d7922831e0fef6ebd66cd8ced743d3",
+      "tableHash": "sha256:effd69124108d4838209921ba2f2cd51ee6c58df0e082b6fccdf151dc698d52a",
       "columns": [
         {
           "name": "id",
@@ -20697,9 +20697,36 @@
           "nullable": true,
           "verified": true,
           "description": "JSONB-encoded ConsentProof captured at the time of public submission. NULL for entries created by managers via the admin UI."
+        },
+        {
+          "name": "invited_event_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The appointment the current invitation asks them to come to, or NULL when nobody has been invited yet. No sign-up is created from it: they have not joined anything, so they are not on the attendee list and count towards nothing the station plans from. Deleting the appointment empties this, which leaves the invitation without an occasion rather than pointing at nothing."
+        },
+        {
+          "name": "invited_event_date",
+          "type": "date",
+          "nullable": true,
+          "verified": true,
+          "description": "The one date of that appointment they were invited to. An appointment repeats, so without a date the invitation would name every Tuesday there has ever been, and the answer to it would mean nothing."
+        },
+        {
+          "name": "invited_arrival_time",
+          "type": "time",
+          "nullable": true,
+          "verified": true,
+          "description": "When they were asked to be there, which is usually earlier than everybody else so somebody can meet them. NULL when the invitation named no time of its own. A time rather than an offset, because that is what the mail has to say and what the reader has to read."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "invited_event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "list_id",
           "refTable": "waiting_list",

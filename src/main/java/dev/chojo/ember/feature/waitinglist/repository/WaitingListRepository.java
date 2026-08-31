@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.entity.WaitlistVerificationToken;
 import dev.chojo.ember.util.JsonUtil;
@@ -49,7 +50,7 @@ public class WaitingListRepository {
     private static final String WAITING_LIST_ENTRY_COLUMNS = """
             id, list_id, firstname, lastname, parent_name, email, access_token, status, confirmed_at, \
             reminder_sent_at, created_at, notes, member_id, invited_at, testing_at, joined_at, \
-            withdrawn_at, attendance_count""";
+            withdrawn_at, attendance_count, invited_event_id, invited_event_date, invited_arrival_time""";
     private static final String WAITING_LIST_ENTRY_VALUE_COLUMNS = "entry_id, field_id, value";
     private static final String WAITING_LIST_ENTRY_GUARDIAN_COLUMNS =
             "id, entry_id, firstname, lastname, email, phone, position";
@@ -413,6 +414,25 @@ public class WaitingListRepository {
     public void linkMember(int entryId, int memberId) {
         query("UPDATE waiting_list_entry SET member_id = :member_id WHERE id = :id;")
                 .single(call().bind("id", entryId).bind("member_id", memberId))
+                .update();
+    }
+
+    /**
+     * Writes the one appointment the current invitation names, or clears it when the invitation is
+     * withdrawn. The date goes with the appointment, so an entry never carries half a reference.
+     */
+    public void updateInvitation(int entryId, WaitingListInvitation invitation) {
+        query("""
+                UPDATE waiting_list_entry
+                SET
+                    invited_event_id     = :event_id,
+                    invited_event_date   = :event_date,
+                    invited_arrival_time = :arrival_time
+                WHERE id = :id;""")
+                .single(call().bind("id", entryId)
+                        .bind("event_id", invitation != null ? invitation.eventId() : null)
+                        .bind("event_date", invitation != null ? invitation.date() : null)
+                        .bind("arrival_time", invitation != null ? invitation.arrivalTime() : null))
                 .update();
     }
 

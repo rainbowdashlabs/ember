@@ -82,6 +82,26 @@ export interface WaitingListInvite {
     createdAt: string
 }
 
+/**
+ * The one appointment an entry has been invited to, or null while nobody has been invited.
+ *
+ * Nobody is signed up from it: they have not joined anything, so they are on no attendee list and
+ * count towards no total the station plans from.
+ */
+export interface WaitingListInvitation {
+    eventId: number
+    date: string
+    /** When they were asked to be there, usually earlier than everybody else. */
+    arrivalTime?: string | null
+}
+
+/** What the station sends when it invites: the evening, or nothing to invite without one. */
+export interface WaitingListInvitationRequest {
+    eventId: number
+    date: string
+    arrivalTime?: string | null
+}
+
 export interface WaitingListEntry {
     id: number
     listId: number
@@ -101,6 +121,7 @@ export interface WaitingListEntry {
     joinedAt?: string | null
     withdrawnAt?: string | null
     attendanceCount: number
+    invitation?: WaitingListInvitation | null
 }
 
 export interface WaitingListEntryValue {
@@ -275,8 +296,18 @@ export async function updateCreatedAt(listId: number, entryId: number, createdAt
 
 // State transitions
 
-export async function inviteEntry(listId: number, entryId: number): Promise<WaitingListEntry> {
-    const res = await client.post<WaitingListEntry>(`/waiting-lists/${listId}/entries/${entryId}/invite`)
+export async function inviteEntry(
+    listId: number,
+    entryId: number,
+    invitation?: WaitingListInvitationRequest | null,
+): Promise<WaitingListEntry> {
+    const res = await client.post<WaitingListEntry>(
+        `/waiting-lists/${listId}/entries/${entryId}/invite`, invitation ?? {})
+    return res.data
+}
+
+export async function returnToWaiting(listId: number, entryId: number): Promise<WaitingListEntry> {
+    const res = await client.post<WaitingListEntry>(`/waiting-lists/${listId}/entries/${entryId}/back-to-waiting`)
     return res.data
 }
 
