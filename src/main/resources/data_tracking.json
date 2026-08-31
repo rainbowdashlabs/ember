@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:38ecc2c7c432a058d5e17de5d901d15ceae3deb62e32349168e26eb9f6cb4f6c",
-  "generatedAt": "2026-08-31T10:35:39Z",
+  "schemaHash": "sha256:95e2032f63b67cb54e8e30fab705c026a6bc2666933871318565386826de8f11",
+  "generatedAt": "2026-08-31T14:29:26Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -3791,6 +3791,89 @@
         "reason": "Names no person, so an account leaving has nothing to remove here"
       },
       "description": "Modules a cluster switches off for all of its stations. A station cannot turn a denied module back on."
+    },
+    "cluster_inventory_tag": {
+      "feature": "cluster",
+      "scope": "CLUSTER",
+      "tableHash": "sha256:0c9bb1d8fef6068c829bf0ecd005ae04f1cc9978b4c50a4f4c42f3defcb6a98b",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "cluster_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The association recommending it."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The tag as the association spelled it."
+        },
+        {
+          "name": "canonical_name",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The trimmed lowercase name, maintained by the database, which is what a station's own tag matches on."
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Optional hex colour for the badge."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where it sits among the association's own tags."
+        },
+        {
+          "name": "station_group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The group of stations the tag is recommended to. NULL recommends it to every station under the association."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "cluster_id",
+          "refTable": "cluster",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "station_group_id",
+          "refTable": "cluster_station_group",
+          "refColumn": "id",
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Names no person: a word an association recommends, not anybody who wears it"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description": "A tag an association recommends to its stations. It never displaces a station's own tag of the same name."
     },
     "cluster_member": {
       "feature": "cluster",
@@ -10734,6 +10817,53 @@
       },
       "description": "History of item assignments (lending/return log)."
     },
+    "inventory_item_tag": {
+      "feature": "inventory",
+      "scope": "STATION",
+      "tableHash": "sha256:da64868072ab136f942840bdffbe9bab23d7bccb0c5e7512b676264a731a60dc",
+      "columns": [
+        {
+          "name": "item_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The item wearing the tag."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The tag."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "item_id",
+          "refTable": "inventory_item",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "inventory_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Inventory structure/config, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Inventory structure/config, not per-member"
+      },
+      "description": "Which tags one item carries. The tag sits on the item, so a piece filed anywhere can carry it."
+    },
     "inventory_requirement": {
       "feature": "inventory",
       "scope": "STATION",
@@ -10882,6 +11012,80 @@
         "reason": "Inventory structure/config, not per-member"
       },
       "description": "Size options for inventories that have sizes enabled."
+    },
+    "inventory_tag": {
+      "feature": "inventory",
+      "scope": "STATION",
+      "tableHash": "sha256:eb33cbe2245de9540d677870da0c6fd671b71a86f195d2e6d1ec3aafdf40e746",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station the tag belongs to."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The tag as the station spelled it, which is what every list shows."
+        },
+        {
+          "name": "canonical_name",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The trimmed lowercase name, maintained by the database. Two stations spelling one tag differently match on this."
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Optional hex colour for the badge. Null means the badge takes the neutral colour."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the tag sits in the station's own list."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "station_id",
+          "canonical_name"
+        ],
+        "rationale": "The words a station uses travel with its things, or the pieces arrive naming rows that do not exist. station_id is supplied by the receiving station and canonical_name is maintained by the database."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Inventory structure/config, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Inventory structure/config, not per-member"
+      },
+      "description": "A tag a station puts on its items, picked from what exists rather than typed per item."
     },
     "item_movement": {
       "feature": "inventory",
