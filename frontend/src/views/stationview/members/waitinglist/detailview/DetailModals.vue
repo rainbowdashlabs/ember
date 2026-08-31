@@ -8,10 +8,12 @@ import { computed } from 'vue'
 import CreateInviteModal from './CreateInviteModal.vue'
 import DeleteListModal from './DeleteListModal.vue'
 import TransitionConfirmModal from './TransitionConfirmModal.vue'
+import InviteEntryModal from './InviteEntryModal.vue'
 import DeleteEntryModal from './DeleteEntryModal.vue'
 import type { WaitingListEntryWithScore } from '@/api/waitingList'
+import type { EventOccurrenceRef } from '@/api/events'
 
-type TransitionKind = 'invite' | 'testing' | 'join' | 'approve' | 'reject' | 'withdraw'
+type TransitionKind = 'testing' | 'join' | 'approve' | 'reject' | 'withdraw' | 'backToWaiting'
 
 interface PendingTransition {
   entry: WaitingListEntryWithScore
@@ -28,6 +30,10 @@ const props = defineProps<{
   deletingList: boolean
   pendingTransition: PendingTransition | null
   runningTransition: boolean
+  inviteTarget: WaitingListEntryWithScore | null
+  inviteOccurrence: EventOccurrenceRef | null
+  inviteArrivalTime: string
+  runningInvite: boolean
   showDeleteEntry: boolean
   deleteEntryTarget: WaitingListEntryWithScore | null
 }>()
@@ -41,6 +47,10 @@ const emit = defineEmits<{
   (e: 'confirm-delete-list'): void
   (e: 'cancel-transition'): void
   (e: 'confirm-transition'): void
+  (e: 'update:inviteOccurrence', value: EventOccurrenceRef | null): void
+  (e: 'update:inviteArrivalTime', value: string): void
+  (e: 'cancel-invite'): void
+  (e: 'confirm-invite'): void
   (e: 'update:showDeleteEntry', value: boolean): void
   (e: 'confirm-delete-entry'): void
 }>()
@@ -65,6 +75,14 @@ const showDeleteEntryModel = computed({
   get: () => props.showDeleteEntry,
   set: (v) => emit('update:showDeleteEntry', v),
 })
+const inviteOccurrenceModel = computed({
+  get: () => props.inviteOccurrence,
+  set: (v) => emit('update:inviteOccurrence', v),
+})
+const inviteArrivalTimeModel = computed({
+  get: () => props.inviteArrivalTime,
+  set: (v) => emit('update:inviteArrivalTime', v),
+})
 </script>
 
 <template>
@@ -86,6 +104,14 @@ const showDeleteEntryModel = computed({
     :running="runningTransition"
     @cancel="emit('cancel-transition')"
     @confirm="emit('confirm-transition')"
+  />
+  <InviteEntryModal
+    v-model:occurrence="inviteOccurrenceModel"
+    v-model:arrival-time="inviteArrivalTimeModel"
+    :target="inviteTarget"
+    :running="runningInvite"
+    @cancel="emit('cancel-invite')"
+    @confirm="emit('confirm-invite')"
   />
   <DeleteEntryModal
     v-model="showDeleteEntryModel"

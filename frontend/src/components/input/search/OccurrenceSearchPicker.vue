@@ -5,29 +5,30 @@
  */
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
-import {useI18n} from 'vue-i18n'
-import EntitySearchPicker from '@/components/input/search/EntitySearchPicker.vue'
-import {listUpcomingOccurrences, type UpcomingEventOccurrence} from '@/api/events'
-import type {ChecklistSourceRequest} from '@/api/checklists'
+import EntitySearchPicker from './EntitySearchPicker.vue'
+import {listUpcomingOccurrences, type EventOccurrenceRef, type UpcomingEventOccurrence} from '@/api/events'
 import {formatDate} from '@/util/format'
 
 /**
- * Picks the one evening a list should follow.
+ * Picks one evening out of what is coming up.
  *
- * <p>It offers occurrences rather than appointments, because that is what a sign-up is kept
- * against: a weekly Dienst named without a date would mean every Tuesday there has ever been. And
- * it offers only what the reader may know about, since the list of upcoming occurrences is already
- * narrowed to the appointments their view audience lets them see.
+ * It offers occurrences rather than appointments, because a weekly Dienst named without a date
+ * would mean every Tuesday there has ever been. And it offers only what the reader may know about,
+ * since the list of upcoming occurrences is already narrowed to the appointments their view
+ * audience lets them see.
  */
-const model = defineModel<ChecklistSourceRequest | null>({required: true})
+const model = defineModel<EventOccurrenceRef | null>({required: true})
 
 const props = defineProps<{
+  placeholder: string
+  emptyLabel: string
+  testid: string
+  /** Whether only appointments people sign up for may be picked. */
+  requiresRegistration?: boolean
   /** What the chip should read for an evening picked before this screen was opened. */
   selectedDisplay?: string | null
   disabled?: boolean
 }>()
-
-const {t} = useI18n()
 
 const pickedLabel = ref<string | null>(null)
 
@@ -48,7 +49,7 @@ const key = computed({
 
 async function search(query: string): Promise<UpcomingEventOccurrence[]> {
   return listUpcomingOccurrences({
-    requiresRegistration: true,
+    requiresRegistration: props.requiresRegistration ? true : undefined,
     search: query || undefined,
     limit: 10,
   })
@@ -64,7 +65,7 @@ function subtitle(occurrence: UpcomingEventOccurrence): string {
 
 function pick(occurrence: UpcomingEventOccurrence) {
   model.value = {eventId: occurrence.event.id, date: occurrence.date}
-  pickedLabel.value = `${label(occurrence)} ${t('checklist.occurrenceOn', {date: subtitle(occurrence)})}`
+  pickedLabel.value = `${label(occurrence)} ${subtitle(occurrence)}`
 }
 </script>
 
@@ -77,10 +78,10 @@ function pick(occurrence: UpcomingEventOccurrence) {
       :key-fn="(o: UpcomingEventOccurrence) => `${o.event.id}|${o.date}`"
       :icon-fn="() => ['fas', 'calendar-days']"
       :selected-display="pickedLabel ?? props.selectedDisplay"
-      :placeholder="t('checklist.occurrencePlaceholder')"
-      :empty-label="t('checklist.occurrenceEmpty')"
+      :placeholder="props.placeholder"
+      :empty-label="props.emptyLabel"
       :disabled="props.disabled"
-      data-testid="checklist-occurrence-picker"
+      :data-testid="props.testid"
       @pick="pick"
   />
 </template>

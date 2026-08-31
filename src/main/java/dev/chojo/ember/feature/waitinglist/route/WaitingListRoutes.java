@@ -11,6 +11,8 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Network;
+import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
@@ -22,6 +24,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListRateLimiter;
 import dev.chojo.ember.feature.waitinglist.service.ScoreEvaluator;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
@@ -47,7 +50,9 @@ import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,6 +71,8 @@ public class WaitingListRoutes implements Routes {
     private final StationRepository stationRepository;
     private final ConsentService consentService;
     private final PublicWaitingListRateLimiter rateLimiter;
+    private final EventCrudService eventCrudService;
+    private final EventRestrictionService eventRestrictionService;
     private final Network network;
 
     @Inject
@@ -74,11 +81,15 @@ public class WaitingListRoutes implements Routes {
             StationRepository stationRepository,
             ConsentService consentService,
             PublicWaitingListRateLimiter rateLimiter,
+            EventCrudService eventCrudService,
+            EventRestrictionService eventRestrictionService,
             Network network) {
         this.service = service;
         this.stationRepository = stationRepository;
         this.consentService = consentService;
         this.rateLimiter = rateLimiter;
+        this.eventCrudService = eventCrudService;
+        this.eventRestrictionService = eventRestrictionService;
         this.network = network;
     }
 
@@ -164,6 +175,10 @@ public class WaitingListRoutes implements Routes {
         routes.post(
                 prefix + "/waiting-lists/{id}/entries/{entryId}/invite",
                 this::inviteEntry,
+                StationPermission.WAITLIST_EDIT);
+        routes.post(
+                prefix + "/waiting-lists/{id}/entries/{entryId}/back-to-waiting",
+                this::returnToWaiting,
                 StationPermission.WAITLIST_EDIT);
         routes.post(
                 prefix + "/waiting-lists/{id}/entries/{entryId}/testing",
@@ -616,8 +631,9 @@ public class WaitingListRoutes implements Routes {
         verifyListOwnership(ctx, listId);
         int entryId = pathInt(ctx, "entryId");
         verifyEntryInList(listId, entryId);
+        var invitation = ctx.body().isBlank() ? null : resolveInvitation(ctx, ctx.bodyAsClass(InvitationRequest.class));
         try {
-            var entry = service.inviteEntry(entryId);
+            var entry = service.inviteEntry(entryId, invitation);
             ctx.json(entry);
         } catch (IllegalArgumentException e) {
             log.warn("Waiting list entry not found for invite, entryId={}", entryId, e);
@@ -625,6 +641,61 @@ public class WaitingListRoutes implements Routes {
         } catch (IllegalStateException e) {
             log.warn("Invalid state when inviting waiting list entry, entryId={}", entryId, e);
             throw new BadRequestResponse(e.getMessage());
+        }
+    }
+
+    private void returnToWaiting(Context ctx) {
+        int listId = pathInt(ctx, "id");
+        verifyListOwnership(ctx, listId);
+        int entryId = pathInt(ctx, "entryId");
+        verifyEntryInList(listId, entryId);
+        try {
+            ctx.json(service.returnToWaiting(entryId));
+        } catch (IllegalArgumentException e) {
+            log.warn("Waiting list entry not found for return to waiting, entryId={}", entryId, e);
+            throw new NotFoundResponse(e.getMessage());
+        } catch (IllegalStateException e) {
+            log.warn("Invalid state when returning waiting list entry to waiting, entryId={}", entryId, e);
+            throw new BadRequestResponse(e.getMessage());
+        }
+    }
+
+    /**
+     * The evening an invitation names, checked against the station that is inviting.
+     *
+     * <p>An appointment repeats, so the date travels with it and an invitation naming an appointment
+     * without one is refused rather than silently meaning every occurrence there has ever been.
+     */
+    private WaitingListInvitation resolveInvitation(Context ctx, InvitationRequest request) {
+        if (request == null || request.eventId() == null) return null;
+        var session = UserSession.from(ctx);
+        var event = eventCrudService
+                .findById(request.eventId())
+                .filter(candidate -> candidate.stationId() == session.stationId())
+                .orElseThrow(() -> new NotFoundResponse("Appointment not found"));
+        if (!eventRestrictionService.canView(event.id(), session.member().id(), session.permissions())) {
+            throw new ForbiddenResponse("Appointment not visible");
+        }
+        return new WaitingListInvitation(event.id(), parseDate(request.date()), parseTime(request.arrivalTime()));
+    }
+
+    private static LocalDate parseDate(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new BadRequestResponse("An invitation needs the date of the occurrence");
+        }
+        try {
+            return LocalDate.parse(raw.trim());
+        } catch (DateTimeParseException e) {
+            throw new BadRequestResponse("Invalid date: " + raw);
+        }
+    }
+
+    private static LocalTime parseTime(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return LocalTime.parse(raw.trim());
+        } catch (DateTimeParseException e) {
+            throw new BadRequestResponse("Invalid time: " + raw);
         }
     }
 
@@ -889,6 +960,15 @@ public class WaitingListRoutes implements Routes {
             boolean belowJoinAge) {}
 
     public record GuardianRequest(String firstname, String lastname, String email, String phone) {}
+
+    /**
+     * The evening an invitation is about.
+     *
+     * @param eventId     the appointment, or null to invite without naming one
+     * @param date        the one date of it, as {@code YYYY-MM-DD}, required whenever an appointment is named
+     * @param arrivalTime when they should be there, as {@code HH:MM}, or null to say nothing about it
+     */
+    public record InvitationRequest(Integer eventId, String date, String arrivalTime) {}
 
     private record StatusResponse(String status) {}
 

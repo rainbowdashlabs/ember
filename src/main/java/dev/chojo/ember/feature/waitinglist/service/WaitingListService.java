@@ -31,6 +31,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import dev.chojo.ember.util.sql.Transactions;
@@ -68,6 +69,7 @@ public class WaitingListService {
     private final EmailService emailService;
     private final NotificationService notificationService;
     private final AccountInviteService accountInviteService;
+    private final WaitlistInvitationMailer invitationMailer;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -80,6 +82,7 @@ public class WaitingListService {
             EmailService emailService,
             NotificationService notificationService,
             AccountInviteService accountInviteService,
+            WaitlistInvitationMailer invitationMailer,
             DomainEventBus eventBus) {
         this.repository = repository;
         this.stationRepository = stationRepository;
@@ -89,6 +92,7 @@ public class WaitingListService {
         this.emailService = emailService;
         this.notificationService = notificationService;
         this.accountInviteService = accountInviteService;
+        this.invitationMailer = invitationMailer;
         this.eventBus = eventBus;
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "waitlist-confirmation-checker");
@@ -484,49 +488,59 @@ public class WaitingListService {
     }
 
     /**
-     * Invite a WAITING entry: set status to INVITED, stamp the moment and write to the guardians.
+     * Invite a WAITING entry: record the evening it is about, set status to INVITED, stamp the
+     * moment and write the invitation to the guardians.
      *
      * <p>Nothing is created here. The account, the membership, the trial user type and the testing
      * group only come into being once the person actually turns up, in {@link #moveToTesting(int)}.
      * Until then the entry is a waiting list entry and nothing else, so a refusal or a withdrawal
      * leaves no member behind.
+     *
+     * <p>The invitation names an appointment and a date and nobody is signed up from it. They have
+     * not joined anything, so putting them on the attendee list would make them part of a Tuesday
+     * they never agreed to and would count them in the totals the station plans from.
+     *
+     * @param invitation the evening they are asked to come to, or {@code null} to invite without
+     *                   naming one
      */
-    public WaitingListEntry inviteEntry(int entryId) {
+    public WaitingListEntry inviteEntry(int entryId, WaitingListInvitation invitation) {
         var entry =
                 repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
         if (entry.status() != WaitingListEntryStatus.WAITING) {
             throw new IllegalStateException("Entry must be in WAITING status to invite");
         }
         var list = repository.findById(entry.listId()).orElseThrow();
+        var station = stationRepository.findById(list.stationId()).orElseThrow();
 
-        repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.INVITED, "invited_at");
+        Transactions.run(() -> {
+            repository.updateInvitation(entryId, invitation);
+            repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.INVITED, "invited_at");
+        });
         log.info("Invited waiting-list entry {} on station {}", entryId, list.stationId());
 
-        // Send invite email to all guardians
-        String stationName = resolveStationName(list.stationId());
-        var guardians = repository.findGuardiansByEntry(entryId);
-        if (!guardians.isEmpty()) {
-            for (var g : guardians) {
-                if (!g.email().isBlank()) {
-                    emailService.sendWaitlistRegistrationEmail(
-                            g.email(),
-                            g.firstname().isBlank() ? entry.fullName() : g.fullName(),
-                            entry.accessToken(),
-                            stationName,
-                            "de",
-                            list.stationId());
-                }
-            }
-        } else if (!entry.email().isBlank()) {
-            emailService.sendWaitlistRegistrationEmail(
-                    entry.email(),
-                    entry.parentName().isBlank() ? entry.fullName() : entry.parentName(),
-                    entry.accessToken(),
-                    stationName,
-                    "de",
-                    list.stationId());
-        }
+        invitationMailer.send(entry, repository.findGuardiansByEntry(entryId), station, invitation);
 
+        return repository.findEntryById(entryId).orElseThrow();
+    }
+
+    /**
+     * Takes an invited entry back to waiting, which is what a station does when the answer was that
+     * the date does not suit.
+     *
+     * <p>The invitation goes with it: an entry carries one current invitation, so an answer given
+     * from a mail that has been superseded can never apply to the one that replaced it.
+     */
+    public WaitingListEntry returnToWaiting(int entryId) {
+        var entry =
+                repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
+        if (entry.status() != WaitingListEntryStatus.INVITED) {
+            throw new IllegalStateException("Entry must be in INVITED status to go back to waiting");
+        }
+        Transactions.run(() -> {
+            repository.updateInvitation(entryId, null);
+            repository.updateEntryStatus(entryId, WaitingListEntryStatus.WAITING);
+        });
+        log.info("Returned waiting-list entry {} to waiting", entryId);
         return repository.findEntryById(entryId).orElseThrow();
     }
 
