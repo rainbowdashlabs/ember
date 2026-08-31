@@ -5,11 +5,13 @@
 ### New Features
 
 - **Lists made out of who is coming.** The sign-ups of an appointment carry a menu that turns the people holding a place on that one evening into a checklist to tick off, or into a survey addressed to exactly them. The set is taken as it stands, so the dialog says how many people come across, who cannot be carried over, and that anybody signing up later is added by hand.
+- **A drawer of different things says what kind each piece is.** An inventory holding six blue radios, five green ones and a charging station can give every piece an Art beside its name, which leaves "Pager 01" reading as "Pager 01" while making "the blue ones" something that can be counted and asked for; an empty Art is perfectly normal and most pieces will have none. A tidying screen under Inventory lists the names actually written on the pieces with a count each, which is where one word spelled two ways shows itself, and bringing them together writes the chosen name onto those pieces so the misspelling leaves every list and export as well.
 
 ### Improvements
 
 - **An inventory says whether it holds one thing or many different ones.** Requirements, procurements and exchanges only mean something for a shelf of the same thing in many copies, and they were offered just as readily on a drawer of odds and ends, where "everybody needs one" and "order three more" say nothing at all. Every inventory starts as a shelf of one thing, so nothing changes until a station marks a drawer as a drawer, and the three then stop offering themselves for it.
 - **An inventory can be split without the equipment losing its history.** Where one inventory turns out to hold two different things, its pieces can now be moved into another inventory of the same station under Inventory, keeping their number, who has them and everywhere they have been. Until now the only way was to delete them and write them down again, which threw all of that away.
+- **A custom field can belong to one kind of thing or to one single piece.** A field used to hang on the whole inventory, which is why a mixed drawer had none worth adding: a call sign is nonsense on the charging station standing beside the radios. A field can now be written for one Art or for one piece alone, and the values still belong to each piece separately.
 
 ### Changes
 
