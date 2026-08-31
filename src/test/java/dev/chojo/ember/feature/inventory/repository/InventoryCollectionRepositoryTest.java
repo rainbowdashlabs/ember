@@ -71,7 +71,8 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
 
     @Test
     void collectionCrudAndSummaries() {
-        InventoryCollection evening = collectionRepo.create(station.id(), "Jugendabend", "Spiele und Laminator", member.id());
+        InventoryCollection evening =
+                collectionRepo.create(station.id(), "Jugendabend", "Spiele und Laminator", member.id());
         assertEquals(station.id(), evening.stationId());
         assertEquals("Jugendabend", evening.name());
         assertEquals("Spiele und Laminator", evening.note());
@@ -79,7 +80,9 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
         assertTrue(evening.createdAt().isBefore(java.time.Instant.now().plusSeconds(60)));
 
         InventoryCollection kit = collectionRepo.create(station.id(), "Funkset", "", null);
-        assertEquals(evening.id(), collectionRepo.findById(evening.id()).orElseThrow().id());
+        assertEquals(
+                evening.id(),
+                collectionRepo.findById(evening.id()).orElseThrow().id());
         assertTrue(collectionRepo.findById(-1).isEmpty());
 
         collectionRepo.addLine(evening.id(), item(games, "Siedler").id(), null, 1);
@@ -91,9 +94,9 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
                         .filter(summary -> List.of("Funkset", "Jugendabend")
                                 .contains(summary.collection().name()))
                         .toList();
-        assertEquals(List.of("Funkset", "Jugendabend"), summaries.stream()
-                .map(summary -> summary.collection().name())
-                .toList());
+        assertEquals(
+                List.of("Funkset", "Jugendabend"),
+                summaries.stream().map(summary -> summary.collection().name()).toList());
         assertEquals(0, summaries.get(0).lineCount());
         assertEquals(2, summaries.get(1).lineCount());
 
@@ -103,10 +106,11 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
         assertEquals("neu", renamed.note());
         assertFalse(collectionRepo.update(-1, "nirgends", ""));
 
-        assertTrue(collectionRepo.delete(evening.id()));
-        assertFalse(collectionRepo.delete(evening.id()));
+        assertFalse(collectionRepo.delete(evening.id(), partner.id()));
+        assertTrue(collectionRepo.delete(evening.id(), station.id()));
+        assertFalse(collectionRepo.delete(evening.id(), station.id()));
         assertTrue(collectionRepo.findLines(evening.id()).isEmpty());
-        assertTrue(collectionRepo.delete(kit.id()));
+        assertTrue(collectionRepo.delete(kit.id(), station.id()));
     }
 
     @Test
@@ -132,21 +136,24 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
         collectionRepo.reorderLines(kit.id(), List.of(three.id(), one.id(), two.id()));
         assertEquals(
                 List.of(three.id(), one.id(), two.id()),
-                collectionRepo.findLines(kit.id()).stream().map(CollectionLine::id).toList());
+                collectionRepo.findLines(kit.id()).stream()
+                        .map(CollectionLine::id)
+                        .toList());
 
         assertTrue(collectionRepo.updateLineQuantity(three.id(), 6));
-        assertEquals(
-                6, collectionRepo.findLine(three.id()).orElseThrow().quantity());
+        assertEquals(6, collectionRepo.findLine(three.id()).orElseThrow().quantity());
         assertFalse(collectionRepo.updateLineQuantity(-1, 2));
 
         inventoryRepo.deleteItem(second.id());
         assertEquals(
                 List.of(three.id(), one.id()),
-                collectionRepo.findLines(kit.id()).stream().map(CollectionLine::id).toList());
+                collectionRepo.findLines(kit.id()).stream()
+                        .map(CollectionLine::id)
+                        .toList());
 
         assertTrue(collectionRepo.deleteLine(one.id()));
         assertFalse(collectionRepo.deleteLine(one.id()));
-        collectionRepo.delete(kit.id());
+        collectionRepo.delete(kit.id(), station.id());
         inventoryRepo.deleteItem(first.id());
     }
 
@@ -158,7 +165,7 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
         assertThrows(Exception.class, () -> collectionRepo.addLine(kit.id(), null, null, 1));
         assertThrows(Exception.class, () -> collectionRepo.addLine(kit.id(), piece.id(), null, 2));
         assertThrows(Exception.class, () -> collectionRepo.addLine(kit.id(), null, radios.id(), 0));
-        collectionRepo.delete(kit.id());
+        collectionRepo.delete(kit.id(), station.id());
         inventoryRepo.deleteItem(piece.id());
     }
 
@@ -216,7 +223,7 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
         List<ResolvedCollectionLine> elsewhere = collectionRepo.resolve(kit.id(), partner.id(), null, null);
         assertTrue(elsewhere.stream().allMatch(line -> line.available() == 0));
 
-        collectionRepo.delete(kit.id());
+        collectionRepo.delete(kit.id(), station.id());
         inventoryRepo.delete(drawer.id());
     }
 
@@ -256,7 +263,7 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
         assertEquals(1, returned.get(0).available());
 
         assertEquals("Frei", inventoryRepo.findItemById(free.id()).orElseThrow().name());
-        collectionRepo.delete(kit.id());
+        collectionRepo.delete(kit.id(), station.id());
         inventoryRepo.delete(drawer.id());
     }
 
@@ -285,9 +292,9 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
                         .map(InventoryCollection::name)
                         .toList());
 
-        collectionRepo.delete(named.id());
-        collectionRepo.delete(counted.id());
-        collectionRepo.delete(untouched.id());
+        collectionRepo.delete(named.id(), station.id());
+        collectionRepo.delete(counted.id(), station.id());
+        collectionRepo.delete(untouched.id(), station.id());
         inventoryRepo.delete(drawer.id());
     }
 }

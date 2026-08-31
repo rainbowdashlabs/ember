@@ -109,7 +109,6 @@ public final class ItemCustodySql {
                 (
                     (%1$s.custody = 'WITH_OWNER' AND %1$s.owner_kind = 'STATION' AND %2$s.station_id = :%3$s)
                     OR (%1$s.custody IN ('AT_STATION', 'WITH_MEMBER') AND %1$s.custody_station_id = :%3$s)
-                )"""
-                .formatted(itemAlias, inventoryAlias, STATION_BIND);
+                )""".formatted(itemAlias, inventoryAlias, STATION_BIND);
     }
 }

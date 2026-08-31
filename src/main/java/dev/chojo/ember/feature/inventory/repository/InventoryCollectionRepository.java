@@ -44,15 +44,13 @@ public class InventoryCollectionRepository {
      * @return the collections, ordered by name
      */
     public List<CollectionSummary> findSummariesByStation(int stationId) {
-        return query(
-                        """
+        return query("""
                 SELECT %s, count(l.id) AS line_count
                 FROM inventory_collection c
                 LEFT JOIN inventory_collection_line l ON l.collection_id = c.id
                 WHERE c.station_id = :station_id
                 GROUP BY c.id
-                ORDER BY lower(c.name), c.id;""",
-                        SqlSupport.alias("c", COLLECTION_COLUMNS))
+                ORDER BY lower(c.name), c.id;""", SqlSupport.alias("c", COLLECTION_COLUMNS))
                 .single(call().bind("station_id", stationId))
                 .map(row -> new CollectionSummary(InventoryCollection.map().map(row), row.getInt("line_count")))
                 .all();
@@ -107,11 +105,12 @@ public class InventoryCollectionRepository {
     /**
      * Deletes a collection and, with it, its lines.
      *
-     * @param id the collection ID
+     * @param id        the collection ID
+     * @param stationId the station it must belong to
      * @return {@code true} if a row went
      */
-    public boolean delete(int id) {
-        return SqlSupport.deleteById("inventory_collection", id);
+    public boolean delete(int id, int stationId) {
+        return SqlSupport.deleteByIdInStation("inventory_collection", id, stationId);
     }
 
     /**
@@ -121,12 +120,10 @@ public class InventoryCollectionRepository {
      * @return the lines
      */
     public List<CollectionLine> findLines(int collectionId) {
-        return query(
-                        """
+        return query("""
                 SELECT %s FROM inventory_collection_line
                 WHERE collection_id = :collection_id
-                ORDER BY position, id;""",
-                        LINE_COLUMNS)
+                ORDER BY position, id;""", LINE_COLUMNS)
                 .single(call().bind("collection_id", collectionId))
                 .map(CollectionLine.map())
                 .all();
@@ -216,10 +213,8 @@ public class InventoryCollectionRepository {
      * @param dateTo       the last day of the window, or {@code null} to read undated
      * @return one answer per line, in the collection's order
      */
-    public List<ResolvedCollectionLine> resolve(
-            int collectionId, int stationId, LocalDate dateFrom, LocalDate dateTo) {
-        return query(
-                        """
+    public List<ResolvedCollectionLine> resolve(int collectionId, int stationId, LocalDate dateFrom, LocalDate dateTo) {
+        return query("""
                 SELECT l.id            AS line_id,
                        l.item_id,
                        l.inventory_id,
@@ -248,9 +243,7 @@ public class InventoryCollectionRepository {
                       )
                 ) found ON TRUE
                 WHERE l.collection_id = :collection_id
-                ORDER BY l.position, l.id;""",
-                        ItemCustodySql.joinInventory("ci", "cinv"),
-                        ItemCustodySql.atHand("ci", "cinv"))
+                ORDER BY l.position, l.id;""", ItemCustodySql.joinInventory("ci", "cinv"), ItemCustodySql.atHand("ci", "cinv"))
                 .single(call().bind("collection_id", collectionId)
                         .bind(ItemCustodySql.STATION_BIND, stationId)
                         .bind("date_from", dateFrom)
@@ -276,13 +269,11 @@ public class InventoryCollectionRepository {
      * @return the collections holding it, ordered by name
      */
     public List<InventoryCollection> findCollectionsHoldingItem(int itemId) {
-        return query(
-                        """
+        return query("""
                 SELECT %s FROM inventory_collection c
                 WHERE EXISTS (SELECT 1 FROM inventory_collection_line l
                                WHERE l.collection_id = c.id AND l.item_id = :item_id)
-                ORDER BY lower(c.name), c.id;""",
-                        SqlSupport.alias("c", COLLECTION_COLUMNS))
+                ORDER BY lower(c.name), c.id;""", SqlSupport.alias("c", COLLECTION_COLUMNS))
                 .single(call().bind("item_id", itemId))
                 .map(InventoryCollection.map())
                 .all();
@@ -298,15 +289,13 @@ public class InventoryCollectionRepository {
      * @return the collections affected, ordered by name
      */
     public List<InventoryCollection> findCollectionsTouchingInventory(int inventoryId) {
-        return query(
-                        """
+        return query("""
                 SELECT %s FROM inventory_collection c
                 WHERE EXISTS (SELECT 1 FROM inventory_collection_line l
                                LEFT JOIN inventory_item it ON it.id = l.item_id
                                WHERE l.collection_id = c.id
                                  AND (l.inventory_id = :inventory_id OR it.inventory_id = :inventory_id))
-                ORDER BY lower(c.name), c.id;""",
-                        SqlSupport.alias("c", COLLECTION_COLUMNS))
+                ORDER BY lower(c.name), c.id;""", SqlSupport.alias("c", COLLECTION_COLUMNS))
                 .single(call().bind("inventory_id", inventoryId))
                 .map(InventoryCollection.map())
                 .all();

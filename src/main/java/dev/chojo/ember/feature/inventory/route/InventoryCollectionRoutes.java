@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.RouteSupport;
-import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.CollectionLine;
 import dev.chojo.ember.feature.inventory.entity.InventoryCollection;
@@ -130,7 +130,11 @@ public class InventoryCollectionRoutes implements Routes {
         var body = ctx.bodyAsClass(CollectionRequest.class);
         try {
             ctx.status(HttpStatus.CREATED)
-                    .json(collectionService.create(session.stationId(), body.name(), body.note(), session.member().id()));
+                    .json(collectionService.create(
+                            session.stationId(),
+                            body.name(),
+                            body.note(),
+                            session.member().id()));
         } catch (IllegalArgumentException e) {
             throw new BadRequestResponse(e.getMessage());
         }
@@ -191,7 +195,7 @@ public class InventoryCollectionRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void delete(Context ctx) {
         InventoryCollection collection = ownCollection(ctx);
-        collectionService.delete(collection.id());
+        collectionService.delete(collection.id(), collection.stationId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

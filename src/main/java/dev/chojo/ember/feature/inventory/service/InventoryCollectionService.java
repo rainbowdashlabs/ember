@@ -106,11 +106,12 @@ public class InventoryCollectionService {
     /**
      * Deletes a collection and its lines.
      *
-     * @param id the collection ID
+     * @param id        the collection ID
+     * @param stationId the station it must belong to
      * @return {@code true} if a row went
      */
-    public boolean delete(int id) {
-        return collectionRepository.delete(id);
+    public boolean delete(int id, int stationId) {
+        return collectionRepository.delete(id, stationId);
     }
 
     /**
@@ -125,8 +126,9 @@ public class InventoryCollectionService {
      * @throws IllegalArgumentException if the piece belongs to another station or is already named here
      */
     public CollectionLine addItemLine(int collectionId, int stationId, int itemId) {
-        InventoryItem item = inventoryRepository.findItemById(itemId).orElseThrow(() -> new IllegalArgumentException(
-                "The item does not exist"));
+        InventoryItem item = inventoryRepository
+                .findItemById(itemId)
+                .orElseThrow(() -> new IllegalArgumentException("The item does not exist"));
         Inventory inventory = inventoryRepository
                 .findById(item.inventoryId())
                 .orElseThrow(() -> new IllegalArgumentException("The item's inventory does not exist"));
@@ -171,9 +173,9 @@ public class InventoryCollectionService {
      */
     public boolean updateLineQuantity(int lineId, int quantity) {
         if (quantity < 1) throw new IllegalArgumentException("A line asks for at least one piece");
-        CollectionLine line =
-                collectionRepository.findLine(lineId).orElseThrow(() -> new IllegalArgumentException(
-                        "The line does not exist"));
+        CollectionLine line = collectionRepository
+                .findLine(lineId)
+                .orElseThrow(() -> new IllegalArgumentException("The line does not exist"));
         if (line.namesItem()) {
             throw new IllegalArgumentException("A line naming one piece always asks for that one piece");
         }
@@ -211,9 +213,9 @@ public class InventoryCollectionService {
      * @throws IllegalArgumentException if the collection does not exist or the window ends before it starts
      */
     public ResolvedCollection resolve(int collectionId, int stationId, LocalDate dateFrom, LocalDate dateTo) {
-        InventoryCollection collection =
-                collectionRepository.findById(collectionId).orElseThrow(() -> new IllegalArgumentException(
-                        "The collection does not exist"));
+        InventoryCollection collection = collectionRepository
+                .findById(collectionId)
+                .orElseThrow(() -> new IllegalArgumentException("The collection does not exist"));
         LocalDate from = dateFrom;
         LocalDate to = dateTo == null ? dateFrom : dateTo;
         if (from == null) to = null;
