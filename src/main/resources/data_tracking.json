@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:8587200dee90a389d7f842727642af47a211402a193f71f5a6a2a74cfe63c2e0",
-  "generatedAt" : "2026-08-31T09:34:19Z",
+  "schemaHash" : "sha256:f21a865cd72a22e74cffa78dc7c3d3cd32abb0e2e17882ed6fa961a9a78f3a12",
+  "generatedAt" : "2026-08-31T09:23:54Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -2506,7 +2506,7 @@
     "checklist" : {
       "feature" : "checklist",
       "scope" : "STATION",
-      "tableHash" : "sha256:a5a7f750f39683c6faaa547477eac25c4496bed83fb20f3567cde9273b607a6e",
+      "tableHash" : "sha256:46b9a0f27d9aa9fe9d64ad77014132f2268ca8ce6ee34fc574b974fe0e5cfc74",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -2549,10 +2549,27 @@
         "nullable" : true,
         "verified" : true,
         "description" : "Timestamp of the most recent additive refresh that pulled newly-matching members onto the list. NULL means never refreshed since creation."
+      }, {
+        "name" : "source_event_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The appointment this checklist follows instead of a filter, or NULL when it follows the rows in checklist_member_filter. Set means the two are exclusive: the filter table is empty and refresh resolves the accepted sign-ups of the occurrence instead. Deleting the appointment sets this back to NULL, which keeps every row already on the list and stops the list following anything."
+      }, {
+        "name" : "source_event_date",
+        "type" : "date",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The one date of that appointment whose sign-ups are followed. Registrations are kept per appointment and date, so an appointment without a date would resolve to the union of every occurrence there has ever been. A leftover date with no appointment is what a deleted appointment leaves behind and carries no meaning."
       } ],
       "foreignKeys" : [ {
         "column" : "created_by",
         "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "source_event_id",
+        "refTable" : "station_event",
         "refColumn" : "id",
         "onDelete" : "SET NULL"
       }, {
@@ -12445,7 +12462,7 @@
     "procedure" : {
       "feature" : "procedure",
       "scope" : "STATION",
-      "tableHash" : "sha256:1aa513ed66347397e8b214abaeb0798dbfa2f331b8d6e1c1534902f4ada30f87",
+      "tableHash" : "sha256:35477101fe2b9f3076ed42326d1e3a41137254a3542b810844d72779ff459e18",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -12501,29 +12518,12 @@
         "type" : "timestamptz",
         "nullable" : true,
         "verified" : true
-      }, {
-        "name" : "event_id",
-        "type" : "int4",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "The appointment this procedure was prepared for, or NULL when it was written by hand. Cleared rather than cascaded when the appointment is deleted, so the procedure and its recorded progress survive it."
-      }, {
-        "name" : "event_date",
-        "type" : "date",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "The single occurrence of that appointment the procedure belongs to, since a recurring appointment has one per date. NULL exactly when event_id is NULL."
       } ],
       "foreignKeys" : [ {
         "column" : "assigned_by",
         "refTable" : "station_member",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
-      }, {
-        "column" : "event_id",
-        "refTable" : "station_event",
-        "refColumn" : "id",
-        "onDelete" : "SET NULL"
       }, {
         "column" : "station_id",
         "refTable" : "station",

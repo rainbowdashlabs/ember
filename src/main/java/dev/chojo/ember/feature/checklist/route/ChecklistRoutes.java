@@ -19,12 +19,11 @@ import dev.chojo.ember.feature.checklist.service.ChecklistExportService;
 import dev.chojo.ember.feature.checklist.service.ChecklistService;
 import dev.chojo.ember.feature.checklist.service.ChecklistService.ColumnSpec;
 import dev.chojo.ember.feature.checklist.service.ChecklistService.FilterSpec;
-import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.entity.UserTag;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.checklist.service.ChecklistService.OccurrenceSpec;
+import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -48,8 +47,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -69,8 +69,8 @@ public class ChecklistRoutes implements Routes {
     private final ChecklistExportService exportService;
     private final MemberNameResolver memberNameResolver;
     private final StationMemberRepository memberRepository;
-    private final MemberGroupRepository memberGroupRepository;
-    private final UserTagRepository userTagRepository;
+    private final EventCrudService eventCrudService;
+    private final EventRestrictionService eventRestrictionService;
 
     @Inject
     public ChecklistRoutes(
@@ -78,14 +78,14 @@ public class ChecklistRoutes implements Routes {
             ChecklistExportService exportService,
             MemberNameResolver memberNameResolver,
             StationMemberRepository memberRepository,
-            MemberGroupRepository memberGroupRepository,
-            UserTagRepository userTagRepository) {
+            EventCrudService eventCrudService,
+            EventRestrictionService eventRestrictionService) {
         this.checklistService = checklistService;
         this.exportService = exportService;
         this.memberNameResolver = memberNameResolver;
         this.memberRepository = memberRepository;
-        this.memberGroupRepository = memberGroupRepository;
-        this.userTagRepository = userTagRepository;
+        this.eventCrudService = eventCrudService;
+        this.eventRestrictionService = eventRestrictionService;
     }
 
     @Override
@@ -163,6 +163,7 @@ public class ChecklistRoutes implements Routes {
                 .toList();
         RestrictionMode mode = resolveMode(request.restriction());
         FilterSpec filterSpec = toFilterSpec(request.restriction());
+        OccurrenceSpec occurrence = resolveOccurrence(session, request.source());
         var checklist = checklistService.create(
                 session.stationId(),
                 request.name(),
@@ -170,6 +171,7 @@ public class ChecklistRoutes implements Routes {
                 mode,
                 columnSpecs,
                 filterSpec,
+                occurrence,
                 session.member().id());
         ctx.status(HttpStatus.CREATED).json(buildDetail(checklist));
     }
@@ -197,14 +199,22 @@ public class ChecklistRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = ChecklistDetailResponse.class)))
     private void update(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         var checklist = loadOwned(ctx);
         var request = ctx.bodyAsClass(UpdateRequest.class);
         String name = request.name() != null ? request.name() : checklist.name();
         if (name.isBlank()) throw new BadRequestResponse("Name cannot be blank");
         String description = request.description() != null ? request.description() : checklist.description();
+        OccurrenceSpec occurrence = resolveOccurrence(session, request.source());
+        if (occurrence != null && request.restriction() != null) {
+            throw new BadRequestResponse("A checklist follows either a filter or an appointment, never both");
+        }
         RestrictionMode mode = request.restriction() != null ? resolveMode(request.restriction()) : checklist.mode();
         FilterSpec filterSpec = request.restriction() != null ? toFilterSpec(request.restriction()) : null;
         var updated = checklistService.update(checklist.id(), name, description, mode, filterSpec);
+        if (occurrence != null) {
+            updated = checklistService.followOccurrence(updated.id(), occurrence);
+        }
         ctx.json(buildDetail(updated));
     }
 
@@ -524,30 +534,14 @@ public class ChecklistRoutes implements Routes {
         var aliveEntries = checklistService.findEntries(checklist.id(), false);
         var cells = checklistService.findCells(checklist.id());
         var filter = checklistService.findFilterRows(checklist.id());
-        var restrictionSet = checklistService.findRestrictionSet(checklist);
-        var groupCache = new HashMap<Integer, List<Integer>>();
-        var tagCache = new HashMap<Integer, List<Integer>>();
-        var members = new HashMap<Integer, StationMember>();
-        for (var m : memberRepository.findByStation(checklist.stationId(), true)) {
-            members.put(m.id(), m);
-        }
+        var membership = checklistService.resolveMembership(checklist);
         var entryResponses = aliveEntries.stream()
                 .map(entry -> {
-                    var member = members.get(entry.memberId());
                     String name = memberNameResolver.resolveLocal(entry.memberId());
-                    boolean inFilter = false;
-                    if (member != null) {
-                        var groupIds = groupCache.computeIfAbsent(
-                                member.id(), id -> memberGroupRepository.findGroupsForMember(id).stream()
-                                        .map(MemberGroup::id)
-                                        .toList());
-                        var tagIds = tagCache.computeIfAbsent(
-                                member.id(), id -> userTagRepository.findTagsForMember(id).stream()
-                                        .map(UserTag::id)
-                                        .toList());
-                        inFilter = !member.former()
-                                && restrictionSet.matches(member.userType(), groupIds, tagIds, member.id());
-                    }
+                    // A list that follows nothing has nothing to measure its rows against, so it
+                    // marks none of them rather than marking all of them.
+                    boolean inFilter =
+                            !membership.following() || membership.memberIds().contains(entry.memberId());
                     return new EntryResponse(
                             entry.id(),
                             entry.memberId(),
@@ -568,7 +562,53 @@ public class ChecklistRoutes implements Routes {
                 columns.stream().map(this::toColumnResponse).toList(),
                 entryResponses,
                 cells.stream().map(this::toCellResponse).toList(),
-                toRestrictionResponse(filter, checklist.mode()));
+                toRestrictionResponse(filter, checklist.mode()),
+                toSourceResponse(checklist));
+    }
+
+    /**
+     * What the list follows, so the screen can say it. Absent means the list follows its filter, or
+     * the appointment it used to follow has been deleted and it now follows nothing.
+     */
+    private SourceOccurrenceResponse toSourceResponse(Checklist checklist) {
+        if (!checklist.followsEvent()) return null;
+        String eventName = eventCrudService
+                .findById(checklist.sourceEventId())
+                .map(StationEvent::name)
+                .orElse(null);
+        return new SourceOccurrenceResponse(checklist.sourceEventId(), checklist.sourceEventDate(), eventName);
+    }
+
+    /**
+     * Turns a requested occurrence into one the caller is actually allowed to name.
+     *
+     * <p>Three things have to hold, and a picker that only ever offers what it should still cannot
+     * be the place they are checked: the appointment exists at this station, the reader may know it
+     * exists at all, and a date came with it. Without the date the reference would resolve to every
+     * occurrence there has ever been.
+     */
+    private OccurrenceSpec resolveOccurrence(UserSession session, SourceOccurrenceRequest request) {
+        if (request == null || request.eventId() == null) return null;
+        LocalDate date = parseDate(request.date());
+        if (date == null) throw new BadRequestResponse("An appointment needs the date of the occurrence");
+        var event = eventCrudService
+                .findById(request.eventId())
+                .filter(e -> e.stationId() == session.stationId())
+                .orElseThrow(() -> new NotFoundResponse("Appointment not found"));
+        if (session.member() != null
+                && !eventRestrictionService.canView(event.id(), session.member().id(), session.permissions())) {
+            throw new ForbiddenResponse("Appointment not visible");
+        }
+        return new OccurrenceSpec(event.id(), date);
+    }
+
+    private static LocalDate parseDate(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return LocalDate.parse(raw.trim());
+        } catch (DateTimeParseException e) {
+            throw new BadRequestResponse("Invalid date: " + raw);
+        }
     }
 
     private ChecklistSummaryResponse toSummaryResponse(ChecklistSummary summary) {
@@ -684,7 +724,18 @@ public class ChecklistRoutes implements Routes {
             List<ColumnResponse> columns,
             List<EntryResponse> entries,
             List<CellResponse> cells,
-            RestrictionResponse restriction) {}
+            RestrictionResponse restriction,
+            SourceOccurrenceResponse source) {}
+
+    /**
+     * The appointment occurrence a list follows, or {@code null} when it follows its filter or has
+     * stopped following anything.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the one evening whose sign-ups it follows
+     * @param eventName the appointment's name, so the header can say it without a second request
+     */
+    public record SourceOccurrenceResponse(Integer eventId, LocalDate eventDate, String eventName) {}
 
     public record ColumnResponse(int id, int position, String label, String description) {}
 
@@ -705,9 +756,20 @@ public class ChecklistRoutes implements Routes {
             String mode) {}
 
     public record CreateRequest(
-            String name, String description, List<ColumnSpecRequest> columns, RestrictionRequest restriction) {}
+            String name,
+            String description,
+            List<ColumnSpecRequest> columns,
+            RestrictionRequest restriction,
+            SourceOccurrenceRequest source) {}
 
-    public record UpdateRequest(String name, String description, RestrictionRequest restriction) {}
+    public record UpdateRequest(
+            String name, String description, RestrictionRequest restriction, SourceOccurrenceRequest source) {}
+
+    /**
+     * Names the appointment occurrence a list should follow. Sending one replaces the filter; a
+     * request that sends a filter instead stops the list following anything.
+     */
+    public record SourceOccurrenceRequest(Integer eventId, String date) {}
 
     public record ColumnSpecRequest(String label, String description) {}
 

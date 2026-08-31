@@ -431,8 +431,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 quizCatalogRepo);
         var newsSeeder = new DemoNewsSeeder(newsService, stationMemberRepo);
         var lostAndFoundSeederLocal = new DemoLostAndFoundSeeder(lostAndFoundService);
-        var checklistService =
-                new ChecklistService(new ChecklistRepository(), stationMemberRepo, memberGroupRepo, userTagRepo);
+        var checklistService = new ChecklistService(
+                new ChecklistRepository(), stationMemberRepo, memberGroupRepo, userTagRepo, eventRegistrationRepo);
         var checklistSeederLocal = new DemoChecklistSeeder(checklistService);
         var stationSeeder = new DemoStationSeeder(accountRepo, stationRepo);
         var mirrorStationSeeder = new DemoMirrorStationSeeder(
