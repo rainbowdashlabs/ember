@@ -27,6 +27,7 @@ export interface InventoryRoutes {
     movement: string
     procurement: string
     requirements: string
+    collections: string
     checks: string
     checkContainerOverview: string
     checkContainerWalk: string
@@ -85,6 +86,7 @@ export const STATION_INVENTORY_ROUTES: InventoryRoutes = {
     movement: 'inventory-movement-detail',
     procurement: 'inventory-procurement',
     requirements: 'inventory-requirements',
+    collections: 'inventory-collections',
     checks: 'inventory-checks',
     checkContainerOverview: 'inventory-check-container-overview',
     checkContainerWalk: 'inventory-check-container-walk',

@@ -19,6 +19,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import {useCollectionLossWarning} from '@/composables/useCollectionLossWarning'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {ItemOwner, type InventoryDetail, type InventoryItem, type InventoryItemHistory} from '@/api/inventory'
@@ -207,7 +208,14 @@ async function openHistory(item: InventoryItem) {
   }
 }
 
-const {isOpen: showDeleteModal, target: deleteTarget, open: requestDelete} = useModalTarget<InventoryItem>()
+const {isOpen: showDeleteModal, target: deleteTarget, open: startDelete} = useModalTarget<InventoryItem>()
+
+const collectionLoss = useCollectionLossWarning()
+
+async function requestDelete(item: InventoryItem) {
+  startDelete(item)
+  await collectionLoss.forItem(item.id)
+}
 
 async function confirmDelete() {
   if (!deleteTarget.value) return
@@ -330,7 +338,7 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
 
   <ConfirmDeleteModal
       v-model="showDeleteModal"
-      :message="t('inventory.edit.deleteConfirm', { name: deleteTarget?.name })"
+      :message="t('inventory.edit.deleteConfirm', { name: deleteTarget?.name }) + collectionLoss.warning.value"
       @confirm="confirmDelete"
   />
 </template>
