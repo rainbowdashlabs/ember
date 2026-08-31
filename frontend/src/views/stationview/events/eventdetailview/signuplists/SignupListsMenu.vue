@@ -11,16 +11,18 @@ import ActionsMenu from '@/components/button/ActionsMenu.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SignupChecklistDialog from './SignupChecklistDialog.vue'
+import SignupProcedureDialog from './SignupProcedureDialog.vue'
 import SignupSurveyDialog from './SignupSurveyDialog.vue'
-import {checklists, forms} from '@/api'
+import {checklists, forms, procedures} from '@/api'
 import type {StationEvent} from '@/api/events'
 import {FormPurpose} from '@/api/forms'
+import type {Procedure, ProcedureTemplate} from '@/api/procedures'
 import {StationModules, StationPermission} from '@/api/types'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useSession} from '@/composables/useSession'
 import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
 import {getActingStation} from '@/util/actingStationState'
-import {formatDate} from '@/util/format'
+import {dateToInstant, formatDate} from '@/util/format'
 import {showToast} from '@/util/toast'
 
 const props = defineProps<{
@@ -51,6 +53,13 @@ const canCreateSurvey = computed(() =>
     hasPermission(StationPermission.POLL_CREATE) && isModuleEnabled(StationModules.FORMS))
 
 /**
+ * A procedure is gated the same way a survey is, on a permission and on the feature being switched
+ * on for this station. Checklists are the odd one out here: they have no module to switch off.
+ */
+const canCreateProcedure = computed(() =>
+    hasPermission(StationPermission.PROCEDURE_EDIT) && isModuleEnabled(StationModules.PROCEDURES))
+
+/**
  * Where the menu can do anything at all: an appointment that is signed up for, an evening in view,
  * a panel that is not the association's, and at least one thing the reader may create.
  */
@@ -58,7 +67,7 @@ const shown = computed(() =>
     !!props.event.requiresRegistration
     && !!props.effectiveDate
     && !insideCluster.value
-    && (canCreateChecklist.value || canCreateSurvey.value))
+    && (canCreateChecklist.value || canCreateSurvey.value || canCreateProcedure.value))
 
 const dateLabel = computed(() => formatDate(props.effectiveDate))
 
@@ -67,6 +76,11 @@ const suggestedName = computed(() =>
 
 const showChecklist = ref(false)
 const showSurvey = ref(false)
+const showProcedure = ref(false)
+
+const procedureTemplates = ref<ProcedureTemplate[]>([])
+/** What has already been prepared for this evening, so a second press does not make a second list. */
+const existingProcedure = ref<Procedure | null>(null)
 
 const {running: creating, error, run: runCreateChecklist} = useAsyncAction(
     async (payload: {name: string; description: string; column: string}) => {
@@ -113,6 +127,72 @@ const {running: creatingSurvey, error: surveyError, run: runCreateSurvey} = useA
     },
     {formatError: () => t('signupLists.createError')},
 )
+
+/**
+ * What the dialog needs before it can offer anything: the templates it must pick one of, and
+ * whatever was already prepared for this same evening.
+ */
+const {running: loadingProcedure, run: runLoadProcedure} = useAsyncAction(
+    async () => {
+      const [templates, prepared] = await Promise.all([
+        procedures.getTemplates(),
+        procedures.getProceduresForEvent(props.event.id, props.effectiveDate!),
+      ])
+      procedureTemplates.value = templates.filter(template => !template.archived)
+      existingProcedure.value = prepared[0] ?? null
+    },
+    {formatError: () => t('signupLists.createError')},
+)
+
+async function openProcedure() {
+  procedureTemplates.value = []
+  existingProcedure.value = null
+  showProcedure.value = true
+  await runLoadProcedure()
+}
+
+function openExistingProcedure(procedure: Procedure) {
+  showProcedure.value = false
+  return router.push({name: 'procedure-detail', params: {id: procedure.id}})
+}
+
+/**
+ * Writes the preparation list and hands it to the people who hold a place.
+ *
+ * <p>Two things are set that the ordinary create form leaves alone, and without either of them the
+ * people on the list can look at it and do nothing else. The list itself is public, because a
+ * private one is closed to an assignee who may not read every procedure of the station. Its steps
+ * are marked as assigned to the user, because that is the mark a non-manager is allowed to tick.
+ */
+const {running: creatingProcedure, error: procedureError, run: runCreateProcedure} = useAsyncAction(
+    async (payload: {templateId: number; name: string; description: string; dueAt: string}) => {
+      const created = await procedures.createProcedure({
+        templateId: payload.templateId,
+        name: payload.name,
+        description: payload.description || undefined,
+        dueAt: dateToInstant(payload.dueAt) ?? undefined,
+        isPublic: true,
+        assigneeIds: props.memberSet.memberIds,
+        eventId: props.event.id,
+        eventDate: props.effectiveDate ?? undefined,
+      })
+      const detail = await procedures.getProcedure(created.id)
+      for (const item of detail.items) {
+        if (item.isPublic && item.userAssigned) continue
+        await procedures.editItem(created.id, item.id, {
+          title: item.title,
+          description: item.description ?? undefined,
+          isPublic: true,
+          userAssigned: true,
+          position: item.position,
+        })
+      }
+      showProcedure.value = false
+      showToast(t('signupLists.procedureCreated', {count: props.memberSet.count}), 'success')
+      await router.push({name: 'procedure-detail', params: {id: created.id}})
+    },
+    {formatError: () => t('signupLists.createError')},
+)
 </script>
 
 <template>
@@ -138,6 +218,15 @@ const {running: creatingSurvey, error: surveyError, run: runCreateSurvey} = useA
     >
       {{ t('signupLists.survey') }}
     </DropdownMenuItem>
+    <DropdownMenuItem
+        v-if="canCreateProcedure"
+        :icon="['fas', 'diagram-project']"
+        :disabled="!memberSet.usable || creatingProcedure"
+        data-testid="signup-procedure-entry"
+        @click="openProcedure"
+    >
+      {{ t('signupLists.procedure') }}
+    </DropdownMenuItem>
   </ActionsMenu>
 
   <SignupChecklistDialog
@@ -158,5 +247,20 @@ const {running: creatingSurvey, error: surveyError, run: runCreateSurvey} = useA
       :date-label="dateLabel"
       :suggested-name="suggestedName"
       @submit="runCreateSurvey"
+  />
+
+  <SignupProcedureDialog
+      v-model="showProcedure"
+      :loading="loadingProcedure"
+      :creating="creatingProcedure"
+      :error="procedureError"
+      :member-set="memberSet"
+      :date-label="dateLabel"
+      :suggested-name="suggestedName"
+      :occurrence-date="effectiveDate"
+      :templates="procedureTemplates"
+      :existing="existingProcedure"
+      @submit="runCreateProcedure"
+      @open="openExistingProcedure"
   />
 </template>
