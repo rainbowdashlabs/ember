@@ -94,19 +94,22 @@ function onKeydown(e: KeyboardEvent) {
             @keydown="onKeydown"
             :class="[
               'relative z-10 w-full mx-4 rounded-theme border border-bg-light-accent bg-bg-light p-6 shadow-xl dark:border-bg-dark-accent dark:bg-bg-dark',
+              'flex flex-col max-h-[90vh]',
               sizeClass,
               props.mobileFull ? 'max-sm:h-full max-sm:mx-0 max-sm:rounded-none max-sm:border-0 max-sm:overflow-y-auto max-sm:flex max-sm:flex-col' : '',
             ]">
           <IconButton
               :icon="['fas', 'xmark']"
               :label="t('common.close')"
-              class="absolute top-3 right-3 text-[var(--text-muted)] hover:text-[var(--text)]"
+              class="absolute top-3 right-3 z-10 text-[var(--text-muted)] hover:text-[var(--text)]"
               data-cancel
               @click="model = false"
           >
             <font-awesome-icon :icon="['fas', 'xmark']" class="h-5 w-5"/>
           </IconButton>
-          <slot/>
+          <div class="flex-1 min-h-0 overflow-y-auto">
+            <slot/>
+          </div>
         </div>
       </div>
     </Transition>
