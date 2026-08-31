@@ -176,20 +176,28 @@ public class NotificationService {
     }
 
     /**
-     * Replaces a raw status enum name (e.g. {@code "ACCEPTED"}, {@code "DONE"},
-     * {@code "APPROVED"}) in the params with its localised label from the {@code ical.status.*}
-     * bundle. Lets the message templates use a single {@code {status}} placeholder for all
-     * status-bearing types (registration, exchange, lending) without each consumer having to
-     * translate the enum themselves. No-op when the param is absent or the bundle has no
-     * matching entry.
+     * Replaces the params that carry a raw enum name with the label for it in the reader's
+     * language: a status (e.g. {@code "ACCEPTED"}, {@code "DONE"}, {@code "APPROVED"}) and the
+     * answer somebody gave to a waiting-list invitation.
+     *
+     * <p>A notification records what happened, not how it reads. Which language it is read in is
+     * only known when the message is built, so the name travels and the label is looked up here.
+     * That lets the message templates use a single {@code {status}} or {@code {answer}} placeholder
+     * for every type carrying one. No-op when the param is absent or the bundle has no matching
+     * entry.
      */
     private static void localizeStatusParam(String locale, Map<String, String> params) {
-        String status = params.get("status");
-        if (status == null) return;
-        var statusLabels = LOCALIZER.get("notifications", locale, "ical");
-        String localized = statusLabels.get("status." + status);
+        localizeLabelParam(locale, params, "status", "ical", "status.");
+        localizeLabelParam(locale, params, "answer", "waitlistAnswer", "");
+    }
+
+    private static void localizeLabelParam(
+            String locale, Map<String, String> params, String param, String section, String prefix) {
+        String name = params.get(param);
+        if (name == null) return;
+        String localized = LOCALIZER.get("notifications", locale, section).get(prefix + name);
         if (localized != null) {
-            params.put("status", localized);
+            params.put(param, localized);
         }
     }
 

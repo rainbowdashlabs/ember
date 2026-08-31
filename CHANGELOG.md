@@ -9,6 +9,7 @@
 - **A checklist can be tied to one evening of an appointment.** Instead of describing who belongs on it by role, group or name, a list can now name an appointment and a date, and Refresh brings in everybody who has taken a place since. Somebody who cancels keeps their row and is marked as no longer belonging, so nothing already ticked off is lost, and what a list is made of can now be changed after it exists.
 - **A station decides what it offers its partner stations.** An inventory, one kind of thing in it, or a single piece can now be put on offer, to every partner station or only to named ones, and the narrower decision wins, so the drawer goes out while the good radios stay. One screen under Inventory, Lending lists everything the station currently offers and everything it keeps.
 - **Collections hold what belongs together.** A station can now name a set of equipment and fill it in the order the things are fetched: individual pieces by name, four of one kind, or a count out of an inventory that holds only one kind of thing. Beside every line stands how much of it the station could actually put its hands on, and choosing a date range subtracts what is already promised to a partner, so two people planning the same weekend do not both count on the same radios.
+- **An invitation from the waiting list names an evening and can be answered.** Inviting somebody now picks one appointment and date out of what is coming up, adds a time to be there, and sends a proper invitation carrying all of it, without putting anybody on the attendee list or on the roster. They answer from the link in that mail without signing in, with "I am coming", "the date does not suit" or "not interested", and the answer shows beside their entry where the waiting list is already being read.
 
 ### Improvements
 
@@ -24,6 +25,10 @@
 - **The questions of an attendance sheet can be taken straight into an appointment.** Where an appointment names a sheet, its fields are now offered above the appointment's own questions, one at a time or all at once. They arrive with their name, their type and their settings, already tied to the field they came from, which is what makes the answer given at the appointment land on the sheet; a field already taken is not offered a second time. The same offer stands in the appointment templates.
 - **An empty search for a partner's gear says why it is empty.** The screen read the same whether no partner station shares anything with yours or whether everything shared is spoken for in the chosen period. It now says which of the two it is, and it never names the inventories a partner keeps back.
 
+### Security
+
+- **A waiting list entry behind its own link is no longer cached.** The page a family opens from the link in their mail carries a name, an address and where they stand on the list, and it was marked as freely cacheable for an hour, so any cache along the way could keep a copy. It is now stored nowhere, which also means the page shows what has just been answered instead of what it said an hour ago.
+
 ### Changes
 
 - **Crowded button rows keep one button and a menu.** The attendance sheet, a wiki file, a question catalogue and a test sheet showed as many as seven buttons above the page at once, which on a phone filled the screen before the page began. Each now shows the one action it is opened for and keeps the rest, exports and deletion included, in a menu beside it.
@@ -31,6 +36,7 @@
 
 ### Fixes
 
+- **The attendance count of a trial period stood at zero however often somebody came.** A waiting list shows how many evenings a trial member has been to against the number the station asks for, and nothing ever raised that number, so the measure it was set up for never worked. Being marked present at an evening now counts towards it; reaching the number still changes nothing on its own, because taking somebody on stays a decision the station makes.
 - **Narrowing a shared news entry did not withdraw it.** Sharing with partner stations and keeping an entry to a few groups were decided apart, so an entry narrowed after it had been shared carried on travelling. What a partner is offered is now checked against the entry's own audience, the same way an appointment already was.
 - **Gear belonging to the body above the station could be lent to a partner.** A station only holds such gear, and lending it on put it somewhere its owner never agreed to and cannot look. Only what a station owns itself is now offered, suggested and handed over, while a body running a station of its own still lends its own gear freely.
 - **Turning lending off for a partner did not stop them asking.** The setting was there to be switched and then went unread, so a partner kept browsing the whole inventory and kept sending requests. Lending now follows it the same way shared wikis, quizzes and boards already do.

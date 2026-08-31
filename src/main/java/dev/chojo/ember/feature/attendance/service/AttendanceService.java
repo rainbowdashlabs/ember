@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.AttendanceRecorded;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
@@ -58,6 +60,7 @@ public class AttendanceService {
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final RestrictionService restrictionService;
+    private final DomainEventBus eventBus;
 
     @Inject
     public AttendanceService(
@@ -68,7 +71,8 @@ public class AttendanceService {
             EventRegistrationRepository eventRegistrationRepository,
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
-            RestrictionService restrictionService) {
+            RestrictionService restrictionService,
+            DomainEventBus eventBus) {
         this.attendanceRepository = attendanceRepository;
         this.eventRepository = eventRepository;
         this.eventFieldRepository = eventFieldRepository;
@@ -77,6 +81,7 @@ public class AttendanceService {
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.restrictionService = restrictionService;
+        this.eventBus = eventBus;
     }
 
     private static String toJsonValue(Object value) {
@@ -359,13 +364,33 @@ public class AttendanceService {
         return attendanceRepository.findEntries(sessionId);
     }
 
+    /**
+     * Sets what an entry says about somebody, and announces the ones that say they were there.
+     *
+     * <p>Announced only on the change to present, so re-saving a sheet that already said so does
+     * not count the same evening twice.
+     */
     public boolean updateEntryStatus(int entryId, AttendanceEntry.AttendanceStatus status) {
+        var before = attendanceRepository.findEntryById(entryId).orElse(null);
         if (attendanceRepository.updateEntryStatus(entryId, status)) {
             log.info("Updated attendance entry {} status to {}", entryId, status);
+            if (status == AttendanceEntry.AttendanceStatus.PRESENT
+                    && before != null
+                    && before.status() != AttendanceEntry.AttendanceStatus.PRESENT) {
+                announcePresence(before);
+            }
             return true;
         }
         log.warn("Cannot update attendance entry status: entry {} not found", entryId);
         return false;
+    }
+
+    /** Tells whoever cares that somebody was there, which is what feeds a trial period's count. */
+    private void announcePresence(AttendanceEntry entry) {
+        stationMemberRepository
+                .findById(entry.memberId())
+                .ifPresent(member -> eventBus.publish(
+                        new AttendanceRecorded(member.stationId(), entry.memberId(), entry.sessionId())));
     }
 
     public boolean resetTimes(int entryId) {

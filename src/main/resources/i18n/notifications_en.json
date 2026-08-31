@@ -106,6 +106,11 @@
     "HIGH": "High",
     "HIGHEST": "Highest"
   },
+  "waitlistAnswer": {
+    "COMING": "I am coming",
+    "NOT_INTERESTED": "Not interested",
+    "DATE_DOES_NOT_SUIT": "The date does not suit"
+  },
   "feedTitle": {
     "NEW_NEWS": "News: {title}",
     "NEWS_COMMENT": "Comment on \"{newsTitle}\"",
@@ -142,6 +147,7 @@
     "PROCEDURE_REOPENED": "Reopened: {procedureName}",
     "PROCEDURE_ITEM_CHECKED": "Checked off: {itemTitle} - in {procedureName}",
     "WAITLIST_PUBLIC_REGISTRATION": "Public sign-up - {listName}: {childName}",
+    "WAITLIST_INVITATION_ANSWERED": "Invitation answered - {listName}: {childName}",
     "STORAGE_WARNING": "Storage at {usedPercent}% - {usedFormatted} / {quotaFormatted}",
     "CLUSTER_APPLICATION_SUBMITTED": "Request to join: {stationName}",
     "CLUSTER_APPLICATION_APPROVED": "Accepted into {clusterName}",
@@ -189,6 +195,7 @@
     "PROCEDURE_ITEM_CHECKED": "Procedure Item Checked",
     "WAITLIST_NEW_ENTRY": "New Waitlist Entry",
     "WAITLIST_PUBLIC_REGISTRATION": "New Public Registration",
+    "WAITLIST_INVITATION_ANSWERED": "Invitation Answered",
     "STORAGE_WARNING": "Storage Warning",
     "MOVEMENT_DECLINED": "Movement refused",
     "MOVEMENT_CANCELLED": "Movement called off",
@@ -236,6 +243,7 @@
     "notification.procedureItemChecked": "{checkedByName} checked off \"{itemTitle}\" in {procedureName}",
     "notification.waitlistNewEntry": "{childName} was added to waiting list {listName}",
     "notification.waitlistPublicRegistration": "Public sign-up: {childName} on waiting list {listName}",
+    "notification.waitlistInvitationAnswered": "{childName} answered the invitation: {answer} (waiting list {listName})",
     "notification.storageWarning": "Storage at {usedPercent}% ({usedFormatted} of {quotaFormatted})",
     "notification.movementDeclined": "{inventoryName}: refused - {reason}",
     "notification.clusterApplicationSubmitted": "{stationName} would like to join the cluster",

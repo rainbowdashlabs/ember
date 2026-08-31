@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import TRow from '@/components/table/TRow.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
+import WaitingListAnswerBadge from '@/components/badge/WaitingListAnswerBadge.vue'
 import WaitingSectionActions from './WaitingSectionActions.vue'
 import WaitingSectionGuardians from './WaitingSectionGuardians.vue'
 import type { WaitingListEntryWithScore, WaitingListField } from '@/api/waitingList'
@@ -27,6 +28,7 @@ const { t } = useI18n()
 const emit = defineEmits<{
   toggleExpand: [entryId: number]
   invite: [entryId: number]
+  backToWaiting: [entryId: number]
   moveToTesting: [entryId: number]
   navigateToEntry: [entryId: number]
   deleteEntry: [entry: WaitingListEntryWithScore]
@@ -59,6 +61,7 @@ function getEntryFieldValue(item: WaitingListEntryWithScore, fieldId: number): s
     <td v-for="vf in props.visibleFields" :key="vf.id" class="py-2 px-2 text-(--text-muted)">{{ displayFieldValue(vf, getEntryFieldValue(props.item, vf.id), t) || '–' }}</td>
     <td class="py-2 px-2 whitespace-nowrap">
       <WaitingListStatusBadge :status="props.item.entry.status" />
+      <WaitingListAnswerBadge v-if="props.item.entry.answer" :answer="props.item.entry.answer.answer" class="ml-1" />
       <span v-if="props.item.belowJoinAge" :title="t('waitingList.belowJoinAgeHint')"
             class="ml-1 rounded bg-warning/15 px-1.5 py-0.5 text-xs font-medium text-warning">
         {{ t('waitingList.belowJoinAge') }}
@@ -69,6 +72,7 @@ function getEntryFieldValue(item: WaitingListEntryWithScore, fieldId: number): s
       <WaitingSectionActions
         :item="props.item"
         @invite="(id) => emit('invite', id)"
+        @back-to-waiting="(id) => emit('backToWaiting', id)"
         @move-to-testing="(id) => emit('moveToTesting', id)"
         @navigate-to-entry="(id) => emit('navigateToEntry', id)"
         @delete-entry="(entry) => emit('deleteEntry', entry)"

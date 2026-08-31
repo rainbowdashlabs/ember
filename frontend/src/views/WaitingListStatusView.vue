@@ -12,8 +12,10 @@ import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import StatusDetails from './waitingliststatusview/StatusDetails.vue'
 import StatusActions from './waitingliststatusview/StatusActions.vue'
+import InvitationDetails from './waitingliststatusview/InvitationDetails.vue'
+import InvitationAnswerActions from './waitingliststatusview/InvitationAnswerActions.vue'
 import RemoveConfirmationModal from './waitingliststatusview/RemoveConfirmationModal.vue'
-import type { WaitingListPublicStatus } from '@/api/waitingList'
+import type { WaitingListAnswerName, WaitingListPublicStatus } from '@/api/waitingList'
 import { waitingList } from '@/api'
 import { useFlashMessage } from '@/composables/useFlashMessage'
 import { useAsyncAction } from '@/composables/useAsyncAction'
@@ -51,7 +53,29 @@ const { running: removing, error: removeError, run: removeFromList } = useAsyncA
   showRemoveModal.value = false
 })
 
-const error = computed(() => pageError.value || confirmError.value || removeError.value)
+const answerNote = ref('')
+const pendingAnswer = ref<WaitingListAnswerName | null>(null)
+
+const { running: answering, error: answerError, run: sendAnswer } = useAsyncAction(async () => {
+  if (!pendingAnswer.value) return
+  await waitingList.answerInvitation(token.value, {
+    eventId: status.value?.invitation?.eventId ?? null,
+    date: status.value?.invitation?.date ?? null,
+    answer: pendingAnswer.value,
+    note: answerNote.value,
+  })
+  pendingAnswer.value = null
+  answerNote.value = ''
+  status.value = await waitingList.getEntryStatus(token.value)
+  flash(t('waitingList.publicStatus.answered'))
+})
+
+function answer(chosen: WaitingListAnswerName) {
+  pendingAnswer.value = chosen
+  sendAnswer()
+}
+
+const error = computed(() => pageError.value || confirmError.value || removeError.value || answerError.value)
 
 onMounted(loadStatus)
 </script>
@@ -80,6 +104,18 @@ onMounted(loadStatus)
           @confirm="confirmInterest"
           @remove="showRemoveModal = true"
         />
+        <template v-if="status.status === 'INVITED'">
+          <InvitationDetails v-if="status.invitation" :invitation="status.invitation" />
+          <Alert v-if="status.answer" variant="info" data-testid="waitlist-answer-given">
+            {{ t(`waitingList.publicStatus.answerGiven.${status.answer.answer}`) }}
+          </Alert>
+          <InvitationAnswerActions
+            v-else
+            v-model:note="answerNote"
+            :answering="answering"
+            @answer="answer"
+          />
+        </template>
       </template>
 
       <template v-if="!loading && !status && !removed">

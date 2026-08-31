@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect} from './fixtures/auth'
+import {test, expect, apiHeaders} from './fixtures/auth'
 
 test.describe('Waiting lists', () => {
     test('the waiting lists of the station are reachable', async ({managerPage: page}) => {
@@ -123,6 +123,61 @@ test.describe('Waiting lists', () => {
         await page.getByRole('button', {name: 'Speichern'}).click()
 
         await expect(page.getByText(/already has a date of birth field|Fehler/)).toBeVisible()
+    })
+
+    /**
+     * The whole of the first contact: a station invites somebody to one evening, they answer from
+     * the link in the mail without signing in, and the answer is back on the entry the station is
+     * looking at. Nothing is created along the way, and nobody is signed up for the appointment.
+     *
+     * The evening is picked out of what is coming up, so it is an appointment and one date of it.
+     * The link the answer is given from is the entry's own and needs no session, which is the whole
+     * point: somebody with no interest will not walk through an account just to say no.
+     */
+    test('an invitation names an evening and is answered from the entry link', async ({managerPage: page, page: visitor}) => {
+        const surname = `Einladung-${Date.now()}`
+
+        await page.goto('/station/members/waiting-lists')
+        await page.getByText('Schnupperstunde').first().click()
+        await page.waitForURL(/\/station\/members\/waiting-lists\/(\d+)/)
+        const id = page.url().match(/waiting-lists\/(\d+)/)?.[1]
+
+        await page.goto(`/station/members/waiting-lists/${id}/entries/new`)
+        await page.getByPlaceholder('Vorname').first().fill('Neu')
+        await page.getByPlaceholder('Nachname').first().fill(surname)
+        await page.getByPlaceholder('Vorname').nth(1).fill('Erika')
+        await page.getByPlaceholder('Nachname').nth(1).fill('Muster')
+        await page.getByPlaceholder('E-Mail-Adresse').first()
+            .fill(`${surname.toLowerCase()}@example.test`)
+        await page.getByRole('button', {name: 'Eintrag hinzufügen'}).click()
+
+        await page.goto(`/station/members/waiting-lists/${id}`)
+        const row = page.getByRole('row').filter({hasText: surname})
+        await row.getByRole('button', {name: 'Einladen'}).click()
+
+        const occurrence = page.getByTestId('waitlist-invite-occurrence')
+        await occurrence.locator('input[type="search"]').click()
+        await occurrence.getByRole('button').first().click()
+        await page.getByTestId('waitlist-invite-send').click()
+        await expect(page.getByTestId('waitlist-invite-modal')).toHaveCount(0)
+
+        const headers = await apiHeaders(page)
+        const entries = await page.request.get(`/api/v1/waiting-lists/${id}/entries`, {headers})
+        expect(entries.ok(), `the entries were readable (${entries.status()})`).toBeTruthy()
+        const body = await entries.json()
+        const invited = body.find((item: {entry: {lastname: string}}) => item.entry.lastname === surname)
+        expect(invited, 'the entry that was just invited is on the list').toBeTruthy()
+
+        await visitor.goto(`/waiting-list/status?token=${invited.entry.accessToken}`)
+        await expect(visitor.getByTestId('waitlist-invitation'), 'the page says what it is about').toBeVisible()
+        await visitor.getByTestId('waitlist-answer-coming').click()
+        await expect(visitor.getByTestId('waitlist-answer-given')).toBeVisible()
+
+        await page.reload()
+        await expect(
+            page.getByRole('row').filter({hasText: surname}).getByTestId('waitlist-answer-badge'),
+            'the station finds the answer where it is already looking',
+        ).toBeVisible()
     })
 
     /**

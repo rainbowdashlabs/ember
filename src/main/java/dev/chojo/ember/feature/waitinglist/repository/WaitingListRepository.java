@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.waitinglist.repository;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryGuardian;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
@@ -15,6 +16,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.entity.WaitlistVerificationToken;
 import dev.chojo.ember.util.JsonUtil;
@@ -49,7 +51,8 @@ public class WaitingListRepository {
     private static final String WAITING_LIST_ENTRY_COLUMNS = """
             id, list_id, firstname, lastname, parent_name, email, access_token, status, confirmed_at, \
             reminder_sent_at, created_at, notes, member_id, invited_at, testing_at, joined_at, \
-            withdrawn_at, attendance_count""";
+            withdrawn_at, attendance_count, invited_event_id, invited_event_date, invited_arrival_time, \
+            invitation_answer, invitation_answered_at, invitation_answer_note""";
     private static final String WAITING_LIST_ENTRY_VALUE_COLUMNS = "entry_id, field_id, value";
     private static final String WAITING_LIST_ENTRY_GUARDIAN_COLUMNS =
             "id, entry_id, firstname, lastname, email, phone, position";
@@ -414,6 +417,65 @@ public class WaitingListRepository {
         query("UPDATE waiting_list_entry SET member_id = :member_id WHERE id = :id;")
                 .single(call().bind("id", entryId).bind("member_id", memberId))
                 .update();
+    }
+
+    /**
+     * Writes the one appointment the current invitation names, or clears it when the invitation is
+     * withdrawn. The date goes with the appointment, so an entry never carries half a reference.
+     */
+    public void updateInvitation(int entryId, WaitingListInvitation invitation) {
+        query("""
+                UPDATE waiting_list_entry
+                SET
+                    invited_event_id       = :event_id,
+                    invited_event_date     = :event_date,
+                    invited_arrival_time   = :arrival_time,
+                    invitation_answer      = NULL,
+                    invitation_answered_at = NULL,
+                    invitation_answer_note = ''
+                WHERE id = :id;""")
+                .single(call().bind("id", entryId)
+                        .bind("event_id", invitation != null ? invitation.eventId() : null)
+                        .bind("event_date", invitation != null ? invitation.date() : null)
+                        .bind("arrival_time", invitation != null ? invitation.arrivalTime() : null))
+                .update();
+    }
+
+    /**
+     * Records what came back to the invitation the entry currently holds.
+     *
+     * <p>Written together with its moment, because an answer nobody can date says nothing about how
+     * long an invitation has been sitting.
+     */
+    public void updateInvitationAnswer(int entryId, WaitingListAnswer answer, String note) {
+        query("""
+                UPDATE waiting_list_entry
+                SET
+                    invitation_answer      = :answer,
+                    invitation_answered_at = :answered_at,
+                    invitation_answer_note = :note
+                WHERE id = :id;""")
+                .single(call().bind("id", entryId)
+                        .bind("answer", answer.name())
+                        .bind("answered_at", Instant.now(), INSTANT_TIMESTAMP)
+                        .bind("note", note))
+                .update();
+    }
+
+    /**
+     * The entries a member holds in one status, which is how a trial period is found from the
+     * person who turned up rather than from the list they are on.
+     */
+    public List<WaitingListEntry> findEntriesByMemberAndStatus(int memberId, WaitingListEntryStatus status) {
+        return query("""
+                        SELECT %s
+                        FROM
+                            waiting_list_entry
+                        WHERE member_id = :member_id
+                          AND status = :status;""", WAITING_LIST_ENTRY_COLUMNS)
+                .single(call().bind("member_id", memberId).bind("status", status.name()))
+                .map(WaitingListEntry.map())
+                .all();
     }
 
     public void incrementAttendanceCount(int entryId) {

@@ -20967,7 +20967,7 @@
     "waiting_list_entry": {
       "feature": "waitinglist",
       "scope": "STATION",
-      "tableHash": "sha256:d22351fee40f79dde276a54410bd01bb43d7922831e0fef6ebd66cd8ced743d3",
+      "tableHash": "sha256:5ec0091f40a5475aa76c61d45ba0e88e18efe08894851ae9678d3ee575bb6725",
       "columns": [
         {
           "name": "id",
@@ -21101,9 +21101,57 @@
           "nullable": true,
           "verified": true,
           "description": "JSONB-encoded ConsentProof captured at the time of public submission. NULL for entries created by managers via the admin UI."
+        },
+        {
+          "name": "invited_event_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The appointment the current invitation asks them to come to, or NULL when nobody has been invited yet. No sign-up is created from it: they have not joined anything, so they are not on the attendee list and count towards nothing the station plans from. Deleting the appointment empties this, which leaves the invitation without an occasion rather than pointing at nothing."
+        },
+        {
+          "name": "invited_event_date",
+          "type": "date",
+          "nullable": true,
+          "verified": true,
+          "description": "The one date of that appointment they were invited to. An appointment repeats, so without a date the invitation would name every Tuesday there has ever been, and the answer to it would mean nothing."
+        },
+        {
+          "name": "invited_arrival_time",
+          "type": "time",
+          "nullable": true,
+          "verified": true,
+          "description": "When they were asked to be there, which is usually earlier than everybody else so somebody can meet them. NULL when the invitation named no time of its own. A time rather than an offset, because that is what the mail has to say and what the reader has to read."
+        },
+        {
+          "name": "invitation_answer",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What they answered to the invitation they currently hold: COMING, NOT_INTERESTED or DATE_DOES_NOT_SUIT. NULL while the invitation is unanswered. A refusal is kept here rather than moving the entry out of the open section, because an answer that vanishes on arrival is the same failure as no answer at all. Cleared whenever a new invitation replaces the one it answered."
+        },
+        {
+          "name": "invitation_answered_at",
+          "type": "timestamp",
+          "nullable": true,
+          "verified": true,
+          "description": "When that answer was given, so a station can see how long an invitation has been sitting unanswered. NULL exactly when invitation_answer is NULL."
+        },
+        {
+          "name": "invitation_answer_note",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What they wrote alongside the answer, empty when they wrote nothing. Given by whoever holds the entry link rather than by a member, which is why it is kept apart from the station's own notes on the entry."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "invited_event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "list_id",
           "refTable": "waiting_list",
