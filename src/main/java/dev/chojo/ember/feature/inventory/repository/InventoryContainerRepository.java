@@ -62,6 +62,29 @@ public class InventoryContainerRepository {
     }
 
     /**
+     * Every container of a station carrying a number somebody typed, ignoring case and the spaces
+     * around it.
+     *
+     * <p>Containers share their numbering with the gear, so a number a member read off something they
+     * are holding may perfectly well be a box's. Answering with every match is what lets whoever
+     * reads it see that.
+     *
+     * @param stationId  the station
+     * @param internalId the number as it was typed
+     * @return every container carrying it, oldest first
+     */
+    public List<InventoryContainer> findAllByInternalId(int stationId, String internalId) {
+        return query("""
+                SELECT %s FROM inventory_container
+                WHERE station_id = :station_id
+                  AND lower(btrim(internal_id)) = lower(btrim(:internal_id))
+                ORDER BY id ASC;""", INVENTORY_CONTAINER_COLUMNS)
+                .single(call().bind("station_id", stationId).bind("internal_id", internalId))
+                .map(InventoryContainer.map())
+                .all();
+    }
+
+    /**
      * Returns every container in a station, ordered for display.
      */
     public List<InventoryContainer> findByStation(int stationId) {

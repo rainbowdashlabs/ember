@@ -25,9 +25,11 @@ import dev.chojo.ember.feature.inventory.entity.ItemCorrection;
 import dev.chojo.ember.feature.inventory.entity.ItemLastCheck;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
+import dev.chojo.ember.feature.inventory.entity.SelfCheck;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.MemberCheckSummary;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.repository.SelfCheckRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -69,6 +71,7 @@ public class InventoryCheckService {
     private final InventoryContainerService containerService;
     private final ItemCustodyService custodyService;
     private final InventoryService inventoryService;
+    private final SelfCheckRepository selfCheckRepository;
 
     @Inject
     public InventoryCheckService(
@@ -80,7 +83,9 @@ public class InventoryCheckService {
             MemberIdentityFactory memberIdentityFactory,
             InventoryContainerService containerService,
             ItemCustodyService custodyService,
-            InventoryService inventoryService) {
+            InventoryService inventoryService,
+            SelfCheckRepository selfCheckRepository) {
+        this.selfCheckRepository = selfCheckRepository;
         this.checkRepository = checkRepository;
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -116,8 +121,33 @@ public class InventoryCheckService {
      * @throws ConflictResponse if the member is already locked by a different checker
      */
     public MemberCheckState startCheck(int stationId, int memberId, int lockedBy) {
-        acquireLock(stationId, memberId, lockedBy);
-        return checkState(stationId, memberId);
+        boolean begun = acquireLock(stationId, memberId, lockedBy);
+        List<SelfCheck> overtaken = begun ? overtakeSelfChecks(memberId) : List.of();
+        return checkState(stationId, memberId, overtaken);
+    }
+
+    /**
+     * Closes whatever the member had been asked to answer for themselves, keeping what they said and
+     * applying none of it.
+     *
+     * <p>This is the reverse of the lock above, and deliberately so. The lock stops two checkers
+     * walking one member, which is a collision. A member's report and a checker's walk are two
+     * sources of different quality about the same thing, and the better source does not wait for the
+     * worse one. What the member set going without waiting, an exchange or a loss, is untouched: it
+     * was never part of the submission.
+     *
+     * @param memberId the member being walked
+     * @return the tasks this walk closed, as they stood before
+     */
+    private List<SelfCheck> overtakeSelfChecks(int memberId) {
+        List<SelfCheck> closed = new ArrayList<>();
+        for (SelfCheck task : selfCheckRepository.findUnfinishedForMembers(List.of(memberId))) {
+            if (selfCheckRepository.overtake(task.id())) closed.add(task);
+        }
+        if (!closed.isEmpty()) {
+            log.info("A checker's walk overtook {} self-check(s) of member {}", closed.size(), memberId);
+        }
+        return closed;
     }
 
     /**
@@ -126,9 +156,12 @@ public class InventoryCheckService {
      *
      * <p>Kept apart from reading the state because what looks like a start is also the load path: the
      * check screen calls it again after every assignment, and anything hung on it would fire several
-     * times through one walk.
+     * times through one walk. What the beginning carries and the loading does not is closing whatever
+     * the member had been asked to answer for themselves.
+     *
+     * @return {@code true} where this call is the one that began the walk
      */
-    private void acquireLock(int stationId, int memberId, int lockedBy) {
+    private boolean acquireLock(int stationId, int memberId, int lockedBy) {
         checkRepository.releaseExpiredLocks(LOCK_TIMEOUT_MINUTES);
 
         var existingLock = checkRepository.findLock(memberId);
@@ -136,7 +169,7 @@ public class InventoryCheckService {
             if (existingLock.get().lockedBy() != lockedBy) {
                 throw new ConflictResponse("Member is already being checked by another user");
             }
-            return;
+            return false;
         }
         checkRepository.releaseLockByLocker(lockedBy);
         Optional<InventoryCheckLock> lock = checkRepository.acquireLock(stationId, memberId, lockedBy);
@@ -144,6 +177,7 @@ public class InventoryCheckService {
             throw new ConflictResponse("Member is already being checked by another user");
         }
         log.info("Started check on member {} by member {} (station={})", memberId, lockedBy, stationId);
+        return true;
     }
 
     /**
@@ -173,7 +207,7 @@ public class InventoryCheckService {
      * The walk's own view, which is the member's gear widened by the free stock a checker may hand
      * out from.
      */
-    private MemberCheckState checkState(int stationId, int memberId) {
+    private MemberCheckState checkState(int stationId, int memberId, List<SelfCheck> overtaken) {
         MemberGear gear = readGear(stationId, memberId);
         Map<Integer, List<InventoryItem>> unassigned = new HashMap<>();
         for (RequiredInventoryItem req : gear.required()) {
@@ -185,7 +219,8 @@ public class InventoryCheckService {
                 gear.required(),
                 gear.assigned(),
                 gear.lastCheck(),
-                unassigned);
+                unassigned,
+                overtaken);
     }
 
     /**
@@ -601,6 +636,8 @@ public class InventoryCheckService {
      * @param assigned   the items currently assigned to the member
      * @param lastCheck  the member's most recent check, or {@code null} if never checked
      * @param unassigned available unassigned items per inventory, keyed by inventory ID
+     * @param overtookSelfChecks the tasks this walk closed, so the walker is told a member had been
+     *                           asked to answer for themselves and that their answers are not applied
      */
     public record MemberCheckState(
             String memberName,
@@ -608,7 +645,8 @@ public class InventoryCheckService {
             List<RequiredInventoryItem> required,
             List<InventoryItem> assigned,
             InventoryCheck lastCheck,
-            Map<Integer, List<InventoryItem>> unassigned) {}
+            Map<Integer, List<InventoryItem>> unassigned,
+            List<SelfCheck> overtookSelfChecks) {}
 
     /**
      * What the station has recorded against one member, and nothing about anybody else's gear.

@@ -108,6 +108,7 @@ import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.LineTargetService;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
+import dev.chojo.ember.feature.inventory.service.SelfCheckReviewService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
@@ -261,6 +262,8 @@ public abstract class RepositoryTestBase {
     protected static InventoryCheckService inventoryCheckService;
     protected static SelfCheckRepository selfCheckRepo;
     protected static SelfCheckService selfCheckService;
+    protected static SelfCheckReviewService selfCheckReviewService;
+    protected static dev.chojo.ember.feature.notifications.service.NotificationService selfCheckNotifications;
     protected static EventFieldRepository eventFieldRepo;
     protected static FormRepository formRepo;
     protected static ProcurementRepository procurementRepo;
@@ -586,6 +589,7 @@ public abstract class RepositoryTestBase {
                 memberNameResolver);
         clusterDispatchService = new ClusterDispatchService(
                 clusterRepo, stationRepo, inventoryRepo, itemMovementService, movementFlowService);
+        selfCheckRepo = new SelfCheckRepository();
         inventoryCheckService = new InventoryCheckService(
                 inventoryCheckRepo,
                 inventoryRepo,
@@ -595,9 +599,27 @@ public abstract class RepositoryTestBase {
                 memberIdentityFactory,
                 new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService),
                 itemCustodyService,
-                inventoryService);
-        selfCheckRepo = new SelfCheckRepository();
-        selfCheckService = new SelfCheckService(selfCheckRepo, inventoryCheckService, inventoryRepo, stationMemberRepo);
+                inventoryService,
+                selfCheckRepo);
+        selfCheckNotifications =
+                org.mockito.Mockito.mock(dev.chojo.ember.feature.notifications.service.NotificationService.class);
+        selfCheckService = new SelfCheckService(
+                selfCheckRepo,
+                inventoryCheckService,
+                inventoryRepo,
+                stationMemberRepo,
+                accountRepo,
+                selfCheckNotifications);
+        selfCheckReviewService = new SelfCheckReviewService(
+                selfCheckRepo,
+                inventoryCheckService,
+                inventoryCheckRepo,
+                inventoryRepo,
+                containerRepo,
+                stationMemberRepo,
+                accountRepo,
+                itemCustodyService,
+                selfCheckNotifications);
     }
 
     /**

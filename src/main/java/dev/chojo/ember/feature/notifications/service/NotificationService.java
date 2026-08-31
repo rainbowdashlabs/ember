@@ -70,6 +70,8 @@ public class NotificationService {
             Map.entry("dashboard-overview", "/station/dashboard/overview"),
             Map.entry("lost-and-found", "/station/lost-and-found"),
             Map.entry("lending-request", "/station/inventory/lending/{id}"),
+            Map.entry("inventory-self-check", "/station/inventory/self-check/{id}"),
+            Map.entry("inventory-self-check-review", "/station/inventory/checks/self/{id}"),
             Map.entry("procedure-list", "/station/procedures"),
             Map.entry("procedure-detail", "/station/procedures/{id}"),
             // Board ticket routes use the board short key + per-board ticket number, not the
