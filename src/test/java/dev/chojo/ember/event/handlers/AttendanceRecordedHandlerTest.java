@@ -19,15 +19,20 @@ class AttendanceRecordedHandlerTest {
     @Test
     void itHandlesItsOwnEvent() {
         assertEquals(
-                AttendanceRecorded.class, new AttendanceRecordedHandler(mock(WaitingListService.class)).eventType());
+                AttendanceRecorded.class,
+                handlerFor(mock(WaitingListService.class)).eventType());
     }
 
     @Test
     void theMemberWhoWasThereHasTheEveningCounted() {
         var waitingListService = mock(WaitingListService.class);
 
-        new AttendanceRecordedHandler(waitingListService).handle(new AttendanceRecorded(3, 42, 8));
+        handlerFor(waitingListService).handle(new AttendanceRecorded(3, 42, 8));
 
         verify(waitingListService).recordTrialAttendance(42);
+    }
+
+    private static AttendanceRecordedHandler handlerFor(WaitingListService service) {
+        return new AttendanceRecordedHandler(() -> service);
     }
 }

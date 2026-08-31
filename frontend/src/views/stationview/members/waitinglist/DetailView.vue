@@ -233,27 +233,15 @@ function showErrorMessage(msg: string) {
       />
 
       <DetailModals
-        v-model:show-invite="invite.showModal.value"
-        v-model:invite-max-uses="invite.maxUses.value"
-        v-model:invite-expires-at="invite.expiresAt.value"
-        :creating-invite="invite.creating.value"
+        :invite="invite"
+        :transitions="transitions"
+        :invitation="invitation"
         v-model:show-delete="showDeleteModal"
         :list-name="list?.name"
         :deleting-list="deletingList"
-        :pending-transition="transitions.pending.value"
-        :running-transition="transitions.running.value"
-        :invite-target="invitation.target.value"
-        v-model:invite-occurrence="invitation.occurrence.value"
-        v-model:invite-arrival-time="invitation.arrivalTime.value"
-        :running-invite="invitation.running.value"
         v-model:show-delete-entry="showDeleteEntryModal"
         :delete-entry-target="deleteEntryTarget"
-        @submit-invite="invite.create"
         @confirm-delete-list="confirmDeleteList"
-        @cancel-transition="transitions.pending.value = null"
-        @confirm-transition="transitions.confirm"
-        @cancel-invite="invitation.cancel"
-        @confirm-invite="invitation.confirm"
         @confirm-delete-entry="confirmDeleteEntry"
       />
     </div>

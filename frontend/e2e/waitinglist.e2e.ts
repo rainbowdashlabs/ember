@@ -126,6 +126,57 @@ test.describe('Waiting lists', () => {
     })
 
     /**
+     * The whole of the first contact: a station invites somebody to one evening, they answer from
+     * the link in the mail without signing in, and the answer is back on the entry the station is
+     * looking at. Nothing is created along the way, and nobody is signed up for the appointment.
+     */
+    test('an invitation names an evening and is answered from the entry link', async ({managerPage: page, page: visitor}) => {
+        const surname = `Einladung-${Date.now()}`
+
+        await page.goto('/station/members/waiting-lists')
+        await page.getByText('Schnupperstunde').first().click()
+        await page.waitForURL(/\/station\/members\/waiting-lists\/(\d+)/)
+        const id = page.url().match(/waiting-lists\/(\d+)/)?.[1]
+
+        await page.goto(`/station/members/waiting-lists/${id}/entries/new`)
+        await page.getByPlaceholder('Vorname').first().fill('Neu')
+        await page.getByPlaceholder('Nachname').first().fill(surname)
+        await page.getByPlaceholder('Vorname').nth(1).fill('Erika')
+        await page.getByPlaceholder('Nachname').nth(1).fill('Muster')
+        await page.getByPlaceholder('E-Mail-Adresse').first()
+            .fill(`${surname.toLowerCase()}@example.test`)
+        await page.getByRole('button', {name: 'Eintrag hinzufügen'}).click()
+
+        await page.goto(`/station/members/waiting-lists/${id}`)
+        const row = page.getByRole('row').filter({hasText: surname})
+        await row.getByRole('button', {name: 'Einladen'}).click()
+
+        // The evening is picked out of what is coming up: an appointment and one date of it.
+        const occurrence = page.getByTestId('waitlist-invite-occurrence')
+        await occurrence.locator('input[type="search"]').click()
+        await occurrence.getByRole('button').first().click()
+        await page.getByTestId('waitlist-invite-send').click()
+        await expect(page.getByTestId('waitlist-invite-modal')).toHaveCount(0)
+
+        // The link that went out in the mail is the entry's own, and it needs no session.
+        const entries = await page.request.get(`/api/v1/waiting-lists/${id}/entries`)
+        expect(entries.ok(), `the entries were readable (${entries.status()})`).toBeTruthy()
+        const body = await entries.json()
+        const invited = body.find((item: {entry: {lastname: string}}) => item.entry.lastname === surname)
+        expect(invited, 'the entry that was just invited is on the list').toBeTruthy()
+
+        await visitor.goto(`/waiting-list/status?token=${invited.entry.accessToken}`)
+        await expect(visitor.getByTestId('waitlist-invitation'), 'the page says what it is about').toBeVisible()
+        await visitor.getByTestId('waitlist-answer-coming').click()
+        await expect(visitor.getByTestId('waitlist-answer-given')).toBeVisible()
+
+        // And the station finds the answer where it is already looking.
+        await page.reload()
+        await expect(page.getByRole('row').filter({hasText: surname}).getByTestId('waitlist-answer-badge'))
+            .toBeVisible()
+    })
+
+    /**
      * A field offering a choice is only worth having if the choices come back. They are saved as
      * an object and were read as though they were text, which left every such field looking empty
      * everywhere it was shown while the answers sat in the database intact.
