@@ -122,6 +122,7 @@ export interface WaitingListEntry {
     withdrawnAt?: string | null
     attendanceCount: number
     invitation?: WaitingListInvitation | null
+    answer?: WaitingListInvitationAnswer | null
 }
 
 export interface WaitingListEntryValue {
@@ -156,6 +157,32 @@ export interface WaitingListWithCount {
     entryCount: number
 }
 
+export const WaitingListAnswers = {
+    COMING: 'COMING',
+    NOT_INTERESTED: 'NOT_INTERESTED',
+    DATE_DOES_NOT_SUIT: 'DATE_DOES_NOT_SUIT',
+} as const
+
+export type WaitingListAnswerName = (typeof WaitingListAnswers)[keyof typeof WaitingListAnswers]
+
+/** What came back to the invitation an entry currently holds, or null while nothing has. */
+export interface WaitingListInvitationAnswer {
+    answer: WaitingListAnswerName
+    answeredAt: string
+    note: string
+}
+
+/** The evening the entry is invited to, already written out the way the mail wrote it. */
+export interface WaitingListPublicInvitation {
+    eventId: number
+    date: string
+    appointmentName: string
+    appointmentDate: string
+    appointmentTime: string
+    arrivalTime: string
+    location: string
+}
+
 export interface WaitingListPublicStatus {
     firstname: string
     lastname: string
@@ -170,6 +197,8 @@ export interface WaitingListPublicStatus {
     fields: WaitingListField[]
     values: WaitingListEntryValue[]
     guardians: WaitingListEntryGuardian[]
+    invitation?: WaitingListPublicInvitation | null
+    answer?: WaitingListInvitationAnswer | null
 }
 
 export interface WaitingListInviteInfo {
@@ -358,6 +387,22 @@ export async function removeEntry(token: string): Promise<void> {
 
 export async function confirmInterest(token: string): Promise<void> {
     await client.post(`/public/waiting-list/entry/${token}/confirm`)
+}
+
+/**
+ * Answers the invitation the entry currently holds.
+ *
+ * The evening travels with the answer so it says what it answers: an entry carries one current
+ * invitation, and a click from a mail that has been superseded is refused rather than applied to
+ * the invitation that replaced it.
+ */
+export async function answerInvitation(token: string, data: {
+    eventId?: number | null
+    date?: string | null
+    answer: WaitingListAnswerName
+    note?: string
+}): Promise<void> {
+    await client.post(`/public/waiting-list/entry/${token}/answer`, data)
 }
 
 // --- Approve / Reject ---

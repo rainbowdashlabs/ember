@@ -39,17 +39,17 @@ import static org.mockito.Mockito.verifyNoInteractions;
 /**
  * What the invitation mail can say about the evening, and who it goes to.
  */
-class WaitlistInvitationMailerTest extends RepositoryTestBase {
+class WaitlistInvitationMessageTest extends RepositoryTestBase {
 
     private static EmailService emailService;
-    private static WaitlistInvitationMailer mailer;
+    private static WaitlistInvitationMessage message;
     private static Station station;
     private int listId;
 
     @BeforeAll
     static void setup() {
         emailService = mock(EmailService.class);
-        mailer = new WaitlistInvitationMailer(eventRepo, eventFieldRepo, emailService);
+        message = new WaitlistInvitationMessage(eventRepo, eventFieldRepo, emailService);
         var created = stationRepo.create("InvitationStation");
         stationRepo.updateTimezone(created.id(), "UTC");
         station = stationRepo.findById(created.id()).orElseThrow();
@@ -108,7 +108,7 @@ class WaitlistInvitationMailerTest extends RepositoryTestBase {
         var event = appointment("Dienstabend");
         var invited = entry("Kind", "kind@test.com");
 
-        mailer.send(
+        message.send(
                 invited,
                 List.of(),
                 station,
@@ -130,7 +130,7 @@ class WaitlistInvitationMailerTest extends RepositoryTestBase {
         var event = appointment("Dienstabend");
         var invited = entry("Kind", "kind@test.com");
 
-        mailer.send(
+        message.send(
                 invited, List.of(), reloaded, new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null));
 
         assertEquals("20:00 - 22:00", captureDetails().time());
@@ -140,7 +140,7 @@ class WaitlistInvitationMailerTest extends RepositoryTestBase {
     void anInvitationWithoutAnEveningSaysNothingAboutOne() {
         var invited = entry("Kind", "kind@test.com");
 
-        mailer.send(invited, List.of(), station, null);
+        message.send(invited, List.of(), station, null);
 
         var details = captureDetails();
         assertEquals("", details.appointmentName());
@@ -152,7 +152,7 @@ class WaitlistInvitationMailerTest extends RepositoryTestBase {
     void anInvitationNamingAGoneAppointmentStillGoesOut() {
         var invited = entry("Kind", "kind@test.com");
 
-        mailer.send(invited, List.of(), station, new WaitingListInvitation(-1, LocalDate.of(2026, 5, 12), null));
+        message.send(invited, List.of(), station, new WaitingListInvitation(-1, LocalDate.of(2026, 5, 12), null));
 
         assertEquals("", captureDetails().appointmentName());
     }
@@ -172,7 +172,7 @@ class WaitlistInvitationMailerTest extends RepositoryTestBase {
                 false);
         var invited = entry("Kind", "kind@test.com");
 
-        mailer.send(invited, List.of(), station, new WaitingListInvitation(event.id(), LocalDate.now(), null));
+        message.send(invited, List.of(), station, new WaitingListInvitation(event.id(), LocalDate.now(), null));
 
         assertEquals("Am Hof 3", captureDetails().location());
     }
@@ -186,7 +186,7 @@ class WaitlistInvitationMailerTest extends RepositoryTestBase {
         var event = appointment("Ohne Ort");
         var invited = entry("Kind", "kind@test.com");
 
-        mailer.send(invited, List.of(), reloaded, new WaitingListInvitation(event.id(), LocalDate.now(), null));
+        message.send(invited, List.of(), reloaded, new WaitingListInvitation(event.id(), LocalDate.now(), null));
 
         assertEquals("Feuerwache 1, 12345 Musterstadt", captureDetails().location());
     }
@@ -196,7 +196,7 @@ class WaitlistInvitationMailerTest extends RepositoryTestBase {
         var event = appointment("Ohne alles");
         var invited = entry("Kind", "kind@test.com");
 
-        mailer.send(invited, List.of(), station, new WaitingListInvitation(event.id(), LocalDate.now(), null));
+        message.send(invited, List.of(), station, new WaitingListInvitation(event.id(), LocalDate.now(), null));
 
         assertEquals("", captureDetails().location());
     }
@@ -208,7 +208,7 @@ class WaitlistInvitationMailerTest extends RepositoryTestBase {
         waitingListRepo.createGuardian(invited.id(), "Vater", "Muster", "vater@test.com", "", 1);
         waitingListRepo.createGuardian(invited.id(), "Oma", "Muster", "", "", 2);
 
-        mailer.send(invited, waitingListRepo.findGuardiansByEntry(invited.id()), station, null);
+        message.send(invited, waitingListRepo.findGuardiansByEntry(invited.id()), station, null);
 
         verify(emailService, times(2))
                 .sendWaitlistInvitationEmail(
@@ -223,7 +223,7 @@ class WaitlistInvitationMailerTest extends RepositoryTestBase {
     void theEntrysOwnAddressIsUsedWhenNoGuardianLeftOne() {
         var invited = entry("Kind", "kind@test.com");
 
-        mailer.send(invited, List.of(), station, null);
+        message.send(invited, List.of(), station, null);
 
         verify(emailService)
                 .sendWaitlistInvitationEmail(
@@ -234,7 +234,7 @@ class WaitlistInvitationMailerTest extends RepositoryTestBase {
     void nobodyToWriteToMeansNoMail() {
         var invited = entry("Kind", "");
 
-        mailer.send(invited, List.of(), station, null);
+        message.send(invited, List.of(), station, null);
 
         verifyNoInteractions(emailService);
     }
@@ -245,7 +245,7 @@ class WaitlistInvitationMailerTest extends RepositoryTestBase {
         var invited = entry("Kind", "kind@test.com");
         waitingListRepo.createGuardian(invited.id(), "", "", "still@test.com", "", 0);
 
-        mailer.send(invited, waitingListRepo.findGuardiansByEntry(invited.id()), station, null);
+        message.send(invited, waitingListRepo.findGuardiansByEntry(invited.id()), station, null);
 
         verify(emailService)
                 .sendWaitlistInvitationEmail(

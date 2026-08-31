@@ -106,6 +106,11 @@
     "HIGH": "Hoch",
     "HIGHEST": "Sehr hoch"
   },
+  "waitlistAnswer": {
+    "COMING": "Ich komme",
+    "NOT_INTERESTED": "Kein Interesse",
+    "DATE_DOES_NOT_SUIT": "Der Termin passt nicht"
+  },
   "feedTitle": {
     "NEW_NEWS": "Neuigkeit: {title}",
     "NEWS_COMMENT": "Kommentar zu „{newsTitle}\"",
@@ -142,6 +147,7 @@
     "PROCEDURE_REOPENED": "Wieder geöffnet: {procedureName}",
     "PROCEDURE_ITEM_CHECKED": "Abgehakt: {itemTitle} - in {procedureName}",
     "WAITLIST_PUBLIC_REGISTRATION": "Öffentliche Anmeldung - {listName}: {childName}",
+    "WAITLIST_INVITATION_ANSWERED": "Antwort auf die Einladung - {listName}: {childName}",
     "STORAGE_WARNING": "Speicher bei {usedPercent}% - {usedFormatted} / {quotaFormatted}",
     "CLUSTER_APPLICATION_SUBMITTED": "Beitrittsanfrage: {stationName}",
     "CLUSTER_APPLICATION_APPROVED": "Aufgenommen in {clusterName}",
@@ -189,6 +195,7 @@
     "PROCEDURE_ITEM_CHECKED": "Prozedur-Punkt abgehakt",
     "WAITLIST_NEW_ENTRY": "Neue Wartelisten-Anmeldung",
     "WAITLIST_PUBLIC_REGISTRATION": "Öffentliche Anmeldung",
+    "WAITLIST_INVITATION_ANSWERED": "Einladung beantwortet",
     "STORAGE_WARNING": "Speicherwarnung",
     "MOVEMENT_DECLINED": "Bewegung abgelehnt",
     "MOVEMENT_CANCELLED": "Bewegung abgebrochen",
@@ -236,6 +243,7 @@
     "notification.procedureItemChecked": "{checkedByName} hat \"{itemTitle}\" in {procedureName} abgehakt",
     "notification.waitlistNewEntry": "{childName} wurde auf die Warteliste {listName} gesetzt",
     "notification.waitlistPublicRegistration": "Öffentliche Anmeldung: {childName} auf Warteliste {listName}",
+    "notification.waitlistInvitationAnswered": "{childName} hat auf die Einladung geantwortet: {answer} (Warteliste {listName})",
     "notification.storageWarning": "Speicher bei {usedPercent}% ({usedFormatted} von {quotaFormatted})",
     "notification.movementDeclined": "{inventoryName}: abgelehnt - {reason}",
     "notification.clusterApplicationSubmitted": "{stationName} möchte dem Verband beitreten",

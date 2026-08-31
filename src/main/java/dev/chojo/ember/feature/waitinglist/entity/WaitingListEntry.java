@@ -30,7 +30,8 @@ public record WaitingListEntry(
         Instant joinedAt,
         Instant withdrawnAt,
         int attendanceCount,
-        WaitingListInvitation invitation) {
+        WaitingListInvitation invitation,
+        WaitingListInvitationAnswer answer) {
 
     public static RowMapping<WaitingListEntry> map() {
         return row -> new WaitingListEntry(
@@ -52,7 +53,8 @@ public record WaitingListEntry(
                 row.get("joined_at", INSTANT_TIMESTAMP),
                 row.get("withdrawn_at", INSTANT_TIMESTAMP),
                 row.getInt("attendance_count"),
-                WaitingListInvitation.from(row));
+                WaitingListInvitation.from(row),
+                WaitingListInvitationAnswer.from(row));
     }
 
     public String fullName() {

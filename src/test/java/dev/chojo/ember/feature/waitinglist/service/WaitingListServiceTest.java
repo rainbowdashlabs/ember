@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
@@ -97,7 +98,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 emailService,
                 notificationService,
                 new AccountInviteService(accountRepo, authService),
-                new WaitlistInvitationMailer(eventRepo, eventFieldRepo, emailService),
+                new WaitlistInvitationMessage(eventRepo, eventFieldRepo, emailService),
                 new DomainEventBus(Set.of()));
         station = stationRepo.create("WaitlistStation");
     }
@@ -497,6 +498,153 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void returnToWaitingNeedsAnEntry() {
         assertThrows(IllegalArgumentException.class, () -> service.returnToWaiting(-1));
+    }
+
+    /** The station knows to expect them, and the answer sits where somebody will see it. */
+    @Test
+    void anInvitationIsAnsweredWithoutSigningIn() {
+        var event = appointment("Antwort");
+        var entry = service.createEntry(listId, "Neu", "Ja", guardians("", "ja@test.com"), Map.of(), "");
+        var invited =
+                service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null));
+
+        var answered = service.answerInvitation(
+                invited.accessToken(), event.id(), LocalDate.of(2026, 5, 12), WaitingListAnswer.COMING, "  Bis dann  ");
+
+        assertNotNull(answered.answer());
+        assertEquals(WaitingListAnswer.COMING, answered.answer().answer());
+        assertEquals("Bis dann", answered.answer().note());
+        assertNotNull(answered.answer().answeredAt());
+    }
+
+    /**
+     * A refusal is recorded and nothing more. Withdrawing would move the entry into the closed
+     * section, which is precisely where the manager is not looking.
+     */
+    @Test
+    void arefusalLeavesTheEntryWhereTheManagerIsLooking() {
+        var entry = service.createEntry(listId, "Neu", "Nein", guardians("", "nein@test.com"), Map.of(), "");
+        var invited = invite(entry.id());
+
+        var answered =
+                service.answerInvitation(invited.accessToken(), null, null, WaitingListAnswer.NOT_INTERESTED, null);
+
+        assertEquals(WaitingListEntryStatus.INVITED, answered.status());
+        assertEquals(WaitingListAnswer.NOT_INTERESTED, answered.answer().answer());
+        assertEquals("", answered.answer().note());
+    }
+
+    /** An old link in a mailbox cannot answer the invitation that replaced the one it was sent for. */
+    @Test
+    void anAnswerAboutAnotherAppointmentIsRefused() {
+        var first = appointment("Erster");
+        var second = appointment("Zweiter");
+        var entry = service.createEntry(listId, "Neu", "Alt", guardians("", "alt@test.com"), Map.of(), "");
+        var invited = service.inviteEntry(
+                entry.id(), new WaitingListInvitation(second.id(), LocalDate.of(2026, 5, 19), null));
+
+        assertThrows(
+                ConflictResponse.class,
+                () -> service.answerInvitation(
+                        invited.accessToken(), first.id(), LocalDate.of(2026, 5, 12), WaitingListAnswer.COMING, null));
+    }
+
+    @Test
+    void anAnswerNamingADateTheEntryWasNotInvitedToIsRefused() {
+        var event = appointment("Anderer Abend");
+        var entry = service.createEntry(listId, "Neu", "Datum", guardians("", "datum@test.com"), Map.of(), "");
+        var invited =
+                service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 19), null));
+
+        assertThrows(
+                ConflictResponse.class,
+                () -> service.answerInvitation(
+                        invited.accessToken(), event.id(), LocalDate.of(2026, 5, 12), WaitingListAnswer.COMING, null));
+    }
+
+    @Test
+    void anEntryThatHasMovedOnCanNoLongerBeAnswered() {
+        var entry = service.createEntry(listId, "Neu", "Weiter", guardians("", "weiter@test.com"), Map.of(), "");
+        var testing = service.moveToTesting(invite(entry.id()).id());
+
+        assertThrows(
+                ConflictResponse.class,
+                () -> service.answerInvitation(testing.accessToken(), null, null, WaitingListAnswer.COMING, null));
+    }
+
+    @Test
+    void answeringNeedsATokenThatNamesAnEntry() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.answerInvitation("nothing", null, null, WaitingListAnswer.COMING, null));
+    }
+
+    /** A second invitation is a new question, so the answer to the first does not stand for it. */
+    @Test
+    void aNewInvitationClearsTheAnswerToTheOldOne() {
+        var entry = service.createEntry(listId, "Neu", "Nochmal", guardians("", "nochmal@test.com"), Map.of(), "");
+        var invited = invite(entry.id());
+        service.answerInvitation(
+                invited.accessToken(), null, null, WaitingListAnswer.DATE_DOES_NOT_SUIT, "Da kann ich nicht");
+
+        var back = service.returnToWaiting(invited.id());
+        assertNull(back.answer(), "going back to waiting takes the answer with the invitation");
+
+        var event = appointment("Neuer Anlauf");
+        var again =
+                service.inviteEntry(back.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 19), null));
+        assertNull(again.answer());
+    }
+
+    /**
+     * The list shows a count against a threshold, and this is what feeds it. Nothing else happens
+     * when the threshold is reached: joining stays the deliberate act it is.
+     */
+    @Test
+    void turningUpDuringTheTrialPeriodRaisesTheCount() {
+        var entry = service.createEntry(listId, "Neu", "Probe", guardians("", "probe@test.com"), Map.of(), "");
+        var testing = service.moveToTesting(invite(entry.id()).id());
+
+        service.recordTrialAttendance(testing.memberId());
+        service.recordTrialAttendance(testing.memberId());
+
+        assertEquals(2, service.findEntryById(testing.id()).orElseThrow().attendanceCount());
+    }
+
+    /** Only a trial period counts. An entry that has already joined is not still being measured. */
+    @Test
+    void turningUpAfterJoiningCountsTowardsNothing() {
+        var entry = service.createEntry(listId, "Neu", "Dabei", guardians("", "dabei@test.com"), Map.of(), "");
+        var joined = service.moveToJoined(
+                service.moveToTesting(invite(entry.id()).id()).id());
+
+        service.recordTrialAttendance(joined.memberId());
+
+        assertEquals(0, service.findEntryById(joined.id()).orElseThrow().attendanceCount());
+    }
+
+    /**
+     * Somebody in a trial period at two stations has an entry at each, and only the one that saw
+     * them raises its count: a member belongs to one station.
+     */
+    @Test
+    void aTrialAtTwoStationsCountsOnlyWhereTheEveningWas() {
+        var elsewhere = stationRepo.create("SecondTrialStation");
+        var otherList = service.create(elsewhere.id(), "Zweite Liste", "", null, 180, null, null, 5, false, null, null);
+
+        var here = service.moveToTesting(
+                invite(service.createEntry(listId, "Neu", "Hier", guardians("", "hier@test.com"), Map.of(), "")
+                                .id())
+                        .id());
+        var there = service.moveToTesting(
+                invite(service.createEntry(otherList.id(), "Neu", "Dort", guardians("", "dort@test.com"), Map.of(), "")
+                                .id())
+                        .id());
+
+        service.recordTrialAttendance(here.memberId());
+
+        assertEquals(1, service.findEntryById(here.id()).orElseThrow().attendanceCount());
+        assertEquals(0, service.findEntryById(there.id()).orElseThrow().attendanceCount());
     }
 
     @Test

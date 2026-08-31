@@ -50,6 +50,7 @@ const typeIcons: Record<string, string> = {
   BOARD_TICKET_UPDATE: 'list-check',
   WAITLIST_NEW_ENTRY: 'list-ol',
   WAITLIST_PUBLIC_REGISTRATION: 'list-ol',
+  WAITLIST_INVITATION_ANSWERED: 'envelope-open-text',
   STORAGE_WARNING: 'triangle-exclamation',
   CLUSTER_APPLICATION_SUBMITTED: 'sitemap',
   CLUSTER_APPLICATION_APPROVED: 'sitemap',

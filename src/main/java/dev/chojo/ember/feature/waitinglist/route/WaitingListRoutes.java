@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryGuardian;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
@@ -28,6 +29,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListRateLimiter;
 import dev.chojo.ember.feature.waitinglist.service.ScoreEvaluator;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
+import dev.chojo.ember.feature.waitinglist.service.WaitlistInvitationMessage;
 import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -73,6 +75,7 @@ public class WaitingListRoutes implements Routes {
     private final PublicWaitingListRateLimiter rateLimiter;
     private final EventCrudService eventCrudService;
     private final EventRestrictionService eventRestrictionService;
+    private final WaitlistInvitationMessage invitationMessage;
     private final Network network;
 
     @Inject
@@ -83,6 +86,7 @@ public class WaitingListRoutes implements Routes {
             PublicWaitingListRateLimiter rateLimiter,
             EventCrudService eventCrudService,
             EventRestrictionService eventRestrictionService,
+            WaitlistInvitationMessage invitationMessage,
             Network network) {
         this.service = service;
         this.stationRepository = stationRepository;
@@ -90,6 +94,7 @@ public class WaitingListRoutes implements Routes {
         this.rateLimiter = rateLimiter;
         this.eventCrudService = eventCrudService;
         this.eventRestrictionService = eventRestrictionService;
+        this.invitationMessage = invitationMessage;
         this.network = network;
     }
 
@@ -130,6 +135,7 @@ public class WaitingListRoutes implements Routes {
         routes.get(prefix + "/public/waiting-list/entry/{token}", this::getEntryByToken);
         routes.post(prefix + "/public/waiting-list/entry/{token}/remove", this::removeByToken);
         routes.post(prefix + "/public/waiting-list/entry/{token}/confirm", this::confirmInterest);
+        routes.post(prefix + "/public/waiting-list/entry/{token}/answer", this::answerInvitation);
 
         // Public waitlist registration
         routes.get(prefix + "/public/station/{stationUid}/waitlists", this::listPublicWaitlists);
@@ -305,6 +311,7 @@ public class WaitingListRoutes implements Routes {
     @StationFree("the entry token is what a family holds instead of a login, and it names one entry")
     private void getEntryByToken(Context ctx) {
         String token = ctx.pathParam("token");
+        if (rateLimited(ctx, token)) return;
         var entry = service.findEntryByToken(token).orElseThrow(NotFoundResponse::new);
         var values = service.findEntryValues(entry.id());
         var guardians = service.findGuardiansByEntry(entry.id());
@@ -324,7 +331,90 @@ public class WaitingListRoutes implements Routes {
                 list.name(),
                 fields,
                 values,
-                guardians));
+                guardians,
+                describeInvitation(list.stationId(), entry),
+                describeAnswer(entry)));
+    }
+
+    /**
+     * The evening the page is about, written exactly as the mail wrote it.
+     *
+     * <p>The page is the invitation rather than a window into the station: somebody holding the link
+     * was deliberately invited, and an answer given without knowing the occasion is not an answer
+     * worth collecting.
+     */
+    private PublicInvitationResponse describeInvitation(int stationId, WaitingListEntry entry) {
+        var invitation = entry.invitation();
+        if (invitation == null) return null;
+        var station = stationRepository.findById(stationId).orElseThrow(NotFoundResponse::new);
+        var details = invitationMessage.describe(station, invitation);
+        return new PublicInvitationResponse(
+                invitation.eventId(),
+                invitation.date().toString(),
+                details.appointmentName(),
+                details.date(),
+                details.time(),
+                details.arrivalTime(),
+                details.location());
+    }
+
+    private static PublicAnswerResponse describeAnswer(WaitingListEntry entry) {
+        var answer = entry.answer();
+        if (answer == null) return null;
+        return new PublicAnswerResponse(answer.answer(), answer.answeredAt().toString(), answer.note());
+    }
+
+    @OpenApi(
+            path = "/api/v1/public/waiting-list/entry/{token}/answer",
+            methods = HttpMethod.POST,
+            summary = "Answer the invitation the entry currently holds",
+            tags = {"Waiting List"},
+            pathParams = @OpenApiParam(name = "token", required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AnswerRequest.class)))
+    @StationFree("the same token, used to answer the invitation the entry it names is holding")
+    private void answerInvitation(Context ctx) {
+        String token = ctx.pathParam("token");
+        if (rateLimited(ctx, token)) return;
+        var request = ctx.bodyAsClass(AnswerRequest.class);
+        if (request.answer() == null) {
+            throw new BadRequestResponse("answer is required");
+        }
+        WaitingListAnswer answer;
+        try {
+            answer = WaitingListAnswer.valueOf(request.answer());
+        } catch (IllegalArgumentException e) {
+            log.warn("Unknown waiting-list invitation answer {}", request.answer(), e);
+            throw new BadRequestResponse("Unknown answer: " + request.answer());
+        }
+        try {
+            service.answerInvitation(
+                    token,
+                    request.eventId(),
+                    request.date() == null || request.date().isBlank() ? null : parseDate(request.date()),
+                    answer,
+                    request.note());
+            ctx.status(HttpStatus.NO_CONTENT);
+        } catch (IllegalArgumentException e) {
+            log.warn("No waiting-list entry for the token answering an invitation", e);
+            throw new NotFoundResponse(e.getMessage());
+        }
+    }
+
+    /**
+     * Answers the request itself when the caller has asked too often, and says so.
+     *
+     * <p>The entry endpoints are keyed by the token rather than by the list, because the token is
+     * what a guess would have to hit and it now returns something worth guessing at.
+     *
+     * @return whether the request has been answered and the handler should stop
+     */
+    private boolean rateLimited(Context ctx, String token) {
+        var retryAfter = rateLimiter.tryAcquire(ClientIp.resolve(ctx, network).getHostAddress(), "entry:" + token);
+        if (retryAfter.isEmpty()) return false;
+        ctx.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(retryAfter.get()))
+                .json(new ErrorResponseWrapper("Rate limit exceeded"));
+        return true;
     }
 
     // --- Management ---
@@ -896,7 +986,44 @@ public class WaitingListRoutes implements Routes {
             String listName,
             List<WaitingListField> fields,
             List<WaitingListEntryValue> values,
-            List<WaitingListEntryGuardian> guardians) {}
+            List<WaitingListEntryGuardian> guardians,
+            PublicInvitationResponse invitation,
+            PublicAnswerResponse answer) {}
+
+    /**
+     * The evening the entry is invited to, as the page has to show it.
+     *
+     * @param eventId         the appointment, sent back with the answer so it names what it answers
+     * @param date            the one date of it, in {@code YYYY-MM-DD}, sent back for the same reason
+     * @param appointmentName what it is called
+     * @param appointmentDate the date written out for a reader
+     * @param appointmentTime when the appointment itself runs
+     * @param arrivalTime     when they were asked to be there, empty when the invitation named no time
+     * @param location        where it is, empty when neither the appointment nor the station says
+     */
+    @OpenApiName("WaitingListPublicInvitation")
+    public record PublicInvitationResponse(
+            int eventId,
+            String date,
+            String appointmentName,
+            String appointmentDate,
+            String appointmentTime,
+            String arrivalTime,
+            String location) {}
+
+    @OpenApiName("WaitingListPublicAnswer")
+    public record PublicAnswerResponse(WaitingListAnswer answer, String answeredAt, String note) {}
+
+    /**
+     * An answer to the invitation an entry currently holds.
+     *
+     * @param eventId the appointment it answers, null when the invitation named none
+     * @param date    the one date of it, null for the same
+     * @param answer  one of COMING, NOT_INTERESTED or DATE_DOES_NOT_SUIT
+     * @param note    anything they wrote alongside it
+     */
+    @OpenApiName("WaitingListInvitationAnswerRequest")
+    public record AnswerRequest(Integer eventId, String date, String answer, String note) {}
 
     public record ListRequest(
             String name,

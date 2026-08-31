@@ -44,6 +44,8 @@ public enum NotificationType {
     PROCEDURE_ITEM_CHECKED(NotificationParams.ProcedureItemCheckedParams.class, "notification.procedureItemChecked"),
     WAITLIST_PUBLIC_REGISTRATION(
             NotificationParams.WaitlistPublicRegistration.class, "notification.waitlistPublicRegistration"),
+    WAITLIST_INVITATION_ANSWERED(
+            NotificationParams.WaitlistInvitationAnswered.class, "notification.waitlistInvitationAnswered"),
     STORAGE_WARNING(NotificationParams.StorageWarning.class, "notification.storageWarning"),
     CLUSTER_APPLICATION_SUBMITTED(
             NotificationParams.ClusterApplicationSubmitted.class, "notification.clusterApplicationSubmitted"),
