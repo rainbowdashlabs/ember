@@ -1355,6 +1355,10 @@ export default {
             title: 'Inventar bearbeiten',
             subtitle: 'Bestand anpassen',
         },
+        'inventory-move': {
+            title: 'Gegenstände verschieben',
+            subtitle: 'Ein Inventar aufteilen, ohne die Gegenstände neu anzulegen',
+        },
         'inventory-detail': {
             title: 'Inventar-Details',
             subtitle: 'Details ansehen',
@@ -3278,6 +3282,12 @@ export default {
             },
             hasSizes: 'Größen verwenden',
             hasSizesHint: 'Aktiviere diese Option, wenn die Gegenstände in verschiedenen Größen vorhanden sind.',
+            homogeneous: 'Eine Sache in vielen Exemplaren',
+            homogeneousHint:
+                'Aktiviert: Das Inventar enthält immer dasselbe, nur mehrfach, zum Beispiel Stiefel. ' +
+                'Nur dafür gibt es Vorgaben, Beschaffungen, Tausche und Größen. ' +
+                'Deaktiviert: Das Inventar ist eine Kiste mit lauter verschiedenen Dingen, die bei Bedarf ' +
+                'geholt und wieder zurückgebracht werden.',
             withSizes: 'mit Größen',
             quickSizes: 'Schnellauswahl',
             quickSizesHint: 'Felder anklicken oder mit gedrückter Maustaste überstreichen. Eingefügt wird in der Reihenfolge der Anzeige.',
@@ -3372,8 +3382,22 @@ export default {
         },
         edit: {
             back: 'Zurück zur Übersicht',
+            moveItems: 'Gegenstände verschieben',
             settings: 'Einstellungen',
             settingsSaved: 'Einstellungen gespeichert.',
+            kindRefused: 'Das lässt sich noch nicht umstellen. Folgendes steht im Weg:',
+            blocker: {
+                REQUIREMENT: 'Vorgabe für {name}',
+                PROCUREMENT: 'Offene Beschaffung für {name}',
+                EXCHANGE: 'Laufender Tausch von {name}',
+                SIZE: 'Größe {name}',
+            },
+            blockerUnnamed: {
+                REQUIREMENT: 'Eine Vorgabe',
+                PROCUREMENT: 'Eine offene Beschaffung',
+                EXCHANGE: 'Ein laufender Tausch',
+                SIZE: 'Eine Größe',
+            },
             sizesTitle: 'Größen',
             addSize: 'Größe hinzufügen',
             editSize: 'Größe bearbeiten',
@@ -3426,6 +3450,22 @@ export default {
             quickAssignHint: 'Erstellt automatisch einen Gegenstand und weist ihn dem Mitglied zu.',
             externalItemsHint: 'Externe Gegenstände werden automatisch erstellt, wenn sie einem Mitglied zugewiesen werden. Nutze "Ausgeben" um Gegenstände zuzuweisen.',
             searchItems: 'Gegenstände durchsuchen...',
+        },
+        move: {
+            back: 'Zurück zum Inventar',
+            explainer:
+                'Die Gegenstände bleiben dieselben: Kennung, Verlauf und wer sie gerade hat, ziehen mit um. '
+                + 'Nur die Größe gehört zum alten Inventar. Gibt es im Ziel eine Größe mit demselben Namen, '
+                + 'behält der Gegenstand sie, sonst kommt er ohne Größe an.',
+            target: 'Ziel',
+            targetLabel: 'Inventar',
+            selectTarget: 'Inventar auswählen',
+            selectAll: 'Alle auswählen',
+            nothingToMove: 'In diesem Inventar liegt nichts, was sich verschieben ließe.',
+            sizeKept: 'Größe {size} bleibt',
+            sizeCleared: 'Größe {size} entfällt',
+            submit: '{count} Gegenstände verschieben',
+            moved: '{count} Gegenstände verschoben.',
         },
         request: {
             title: 'Material anfragen',

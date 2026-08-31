@@ -4006,6 +4006,28 @@ volumes:
             historyText: 'Jeder Gegenstand hat einen Verlauf, der zeigt, wem er wann zugewiesen oder zurückgegeben wurde.',
             tip: 'Bei externen Inventaren werden Gegenstände automatisch erstellt, wenn du „Ausgeben" nutzt.',
         },
+        inventoryMove: {
+            title: 'Gegenstände verschieben',
+            subtitle: 'Ein Inventar aufteilen, ohne die Gegenstände neu anzulegen.',
+            whatShown: 'Was kannst du hier tun?',
+            whatShownText: 'Du wählst Gegenstände aus diesem Inventar aus und schiebst sie in ein anderes '
+                + 'Inventar derselben Wache. Das brauchst du vor allem, wenn ein Inventar in Wahrheit zwei '
+                + 'Dinge enthält, etwa „Bundhose leicht" und „Bundhose schwer".',
+            keepsTitle: 'Was bleibt',
+            keepsText: 'Die Gegenstände bleiben dieselben. Kennung, Verlauf, wer sie gerade hat und wo sie '
+                + 'schon überall waren, ziehen mit um. Genau darum verschiebst du sie, statt sie zu löschen '
+                + 'und neu anzulegen: beim Neuanlegen wäre all das weg.',
+            sizeTitle: 'Was mit der Größe passiert',
+            sizeText: 'Die Größenliste gehört zum Inventar, das du verlässt. Gibt es im Ziel eine Größe mit '
+                + 'demselben Namen, behält der Gegenstand sie. Sonst kommt er ohne Größe an. In der Liste '
+                + 'steht vor dem Verschieben an jedem Gegenstand, was mit seiner Größe geschieht.',
+            whyTitle: 'Wozu das gut ist',
+            whyText: 'Ob ein Inventar eine Sache in vielen Exemplaren enthält oder eine Kiste mit lauter '
+                + 'verschiedenen Dingen, lässt sich nur umstellen, wenn nichts mehr daran hängt. Aufteilen '
+                + 'ist der andere Weg dorthin, und der ist ohne Verschieben nicht zu haben.',
+            tip: 'Wähle erst das Ziel und dann die Gegenstände: dann steht schon an jeder Zeile, ob die '
+                + 'Größe mitkommt.',
+        },
         inventoryCheckMember: {
             title: 'Inventarprüfung - Mitglied',
             subtitle: 'Ausrüstung eines einzelnen Mitglieds prüfen.',
