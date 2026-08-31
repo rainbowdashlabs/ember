@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlocker;
+import dev.chojo.ember.feature.inventory.service.BorrowedGearService;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
@@ -75,6 +76,7 @@ public class InventoryRoutes implements Routes {
     private final StationMemberRepository stationMemberRepository;
     private final LossReportService lossReportService;
     private final InventoryIntakeService intakeService;
+    private final BorrowedGearService borrowedGearService;
 
     @Inject
     public InventoryRoutes(
@@ -86,8 +88,10 @@ public class InventoryRoutes implements Routes {
             StationRepository stationRepository,
             StationMemberRepository stationMemberRepository,
             LossReportService lossReportService,
-            InventoryIntakeService intakeService) {
+            InventoryIntakeService intakeService,
+            BorrowedGearService borrowedGearService) {
         this.intakeService = intakeService;
+        this.borrowedGearService = borrowedGearService;
         this.inventoryService = inventoryService;
         this.checkService = checkService;
         this.inventoryExportService = inventoryExportService;
@@ -181,6 +185,8 @@ public class InventoryRoutes implements Routes {
         routes.post(
                 prefix + "/inventory-items/{id}/loss-report", this::reportLoss, StationPermission.INVENTORY_MANAGER);
         routes.delete(prefix + "/inventory-items/{id}", this::deleteItem, StationPermission.INVENTORY_EDIT);
+
+        routes.get(prefix + "/inventory-borrowed", this::listBorrowed, StationPermission.INVENTORY_READ);
 
         routes.get(prefix + "/inventory-requirements", this::listAllRequirements, StationPermission.INVENTORY_READ);
         routes.get(prefix + "/inventory-owner-above", this::ownerAbove, StationPermission.INVENTORY_READ);
@@ -1127,6 +1133,38 @@ public class InventoryRoutes implements Routes {
         ctx.json(new OwnerAboveResponse(
                 inventoryService.ownerAbove(session.stationId()).orElse(null)));
     }
+
+    @OpenApi(
+            path = "/api/v1/inventory-borrowed",
+            methods = HttpMethod.GET,
+            summary = "List the gear this station has borrowed from partner stations",
+            description = "Each piece with the partner it belongs to and the day the loan runs to. "
+                    + "The rows are copies taken at handover and are not kept in step with the owner's.",
+            tags = {"Inventory"},
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = BorrowedItemResponse[].class)))
+    private void listBorrowed(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(borrowedGearService.borrowedAt(session.stationId()).stream()
+                .map(borrowed -> new BorrowedItemResponse(
+                        borrowed.item(),
+                        borrowed.ownerStationName(),
+                        borrowed.loanRequestId(),
+                        borrowed.dueOn() != null ? borrowed.dueOn().toString() : null))
+                .toList());
+    }
+
+    /**
+     * One piece a station is holding that is not its own.
+     *
+     * @param item             the row as it was written at handover, which is not kept in step with
+     *                         the owner's afterwards
+     * @param ownerStationName the partner the gear belongs to
+     * @param loanRequestId    the lending request it came in on, which is where anything about the
+     *                         loan is said
+     * @param dueOn            the day the loan was asked to run to, or {@code null} when none was named
+     */
+    public record BorrowedItemResponse(InventoryItem item, String ownerStationName, int loanRequestId, String dueOn) {}
 
     // -- Requirements --
 

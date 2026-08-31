@@ -77,6 +77,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 inventoryRepo,
                 clusterRepo,
                 itemCustodyService,
+                borrowedGearService,
                 new DomainEventBus(Set.of()));
 
         stationA = stationRepo.create("LendSvcTestStationA");

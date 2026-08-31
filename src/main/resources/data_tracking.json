@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:f21a865cd72a22e74cffa78dc7c3d3cd32abb0e2e17882ed6fa961a9a78f3a12",
-  "generatedAt" : "2026-08-31T09:23:54Z",
+  "schemaHash" : "sha256:49a37056a131be966b74630007a4a45ce0439ea739d49f0da6c9d1a0b35aadf4",
+  "generatedAt" : "2026-08-31T09:33:48Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -2506,7 +2506,7 @@
     "checklist" : {
       "feature" : "checklist",
       "scope" : "STATION",
-      "tableHash" : "sha256:46b9a0f27d9aa9fe9d64ad77014132f2268ca8ce6ee34fc574b974fe0e5cfc74",
+      "tableHash" : "sha256:a5a7f750f39683c6faaa547477eac25c4496bed83fb20f3567cde9273b607a6e",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -2549,27 +2549,10 @@
         "nullable" : true,
         "verified" : true,
         "description" : "Timestamp of the most recent additive refresh that pulled newly-matching members onto the list. NULL means never refreshed since creation."
-      }, {
-        "name" : "source_event_id",
-        "type" : "int4",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "The appointment this checklist follows instead of a filter, or NULL when it follows the rows in checklist_member_filter. Set means the two are exclusive: the filter table is empty and refresh resolves the accepted sign-ups of the occurrence instead. Deleting the appointment sets this back to NULL, which keeps every row already on the list and stops the list following anything."
-      }, {
-        "name" : "source_event_date",
-        "type" : "date",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "The one date of that appointment whose sign-ups are followed. Registrations are kept per appointment and date, so an appointment without a date would resolve to the union of every occurrence there has ever been. A leftover date with no appointment is what a deleted appointment leaves behind and carries no meaning."
       } ],
       "foreignKeys" : [ {
         "column" : "created_by",
         "refTable" : "station_member",
-        "refColumn" : "id",
-        "onDelete" : "SET NULL"
-      }, {
-        "column" : "source_event_id",
-        "refTable" : "station_event",
         "refColumn" : "id",
         "onDelete" : "SET NULL"
       }, {
@@ -8255,7 +8238,7 @@
     "inventory" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:49ac82fb1ae33dbd2aed22fb895e04cee35344e60792f6644bf42842c274905f",
+      "tableHash" : "sha256:acfb620ffd0205e617f098f037a7eb34dc3e0cd42d29e0e9749235aa6cdf00e5",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -8292,6 +8275,12 @@
         "nullable" : false,
         "verified" : true,
         "description" : "True where the inventory holds one thing in many copies, which is the only kind requirements, procurements and exchanges are offered for. False where it holds a drawer of different things. Every row existing before this column was added is true, deliberately: that is the permissive state."
+      }, {
+        "name" : "borrowed",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether this is the station's one shelf for gear belonging to somebody else. Created on the first handover, renameable, and refused deletion while anything is still on it."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
@@ -8818,7 +8807,7 @@
     "inventory_item" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:89b9e124685f207ad8912a50df5e8a696e3d7239d7e0f65ae8a157d5fa2c1f2d",
+      "tableHash" : "sha256:5dcebcefc3dc3e3edc44f744f2f240bc0c851216f962d7a69279961078f9c1d0",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -8915,6 +8904,24 @@
         "nullable" : true,
         "verified" : true,
         "description" : "Who wrote that note, which is the guardian rather than the member when one acted for the other."
+      }, {
+        "name" : "owner_station_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The station that owns the item when a partner station does, null for every other owner. Only ever set for PARTNER_STATION."
+      }, {
+        "name" : "loan_request_item_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The line of the lending request this borrowed copy came in on, which is what pairs it with the owner's row and what ends it when the gear goes home. Only ever set for PARTNER_STATION."
+      }, {
+        "name" : "custody_partner_station_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The federation partner holding the item while it is WITH_PARTNER, null for every other custody. Null while it stands only when that station has since been removed."
       } ],
       "foreignKeys" : [ {
         "column" : "assigned_to",
@@ -8932,6 +8939,11 @@
         "refColumn" : "id",
         "onDelete" : "SET NULL"
       }, {
+        "column" : "custody_partner_station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
         "column" : "custody_station_id",
         "refTable" : "station",
         "refColumn" : "id",
@@ -8939,6 +8951,11 @@
       }, {
         "column" : "inventory_id",
         "refTable" : "inventory",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "loan_request_item_id",
+        "refTable" : "federation_lending_request_item",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
       }, {
@@ -8951,6 +8968,11 @@
         "refTable" : "cluster",
         "refColumn" : "id",
         "onDelete" : "SET NULL"
+      }, {
+        "column" : "owner_station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
       }, {
         "column" : "size_id",
         "refTable" : "inventory_size",
