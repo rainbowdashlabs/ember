@@ -28,6 +28,11 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.newsEdit.titleFieldText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.newsEdit.fromEventTitle')">
+      <p>{{ t('helpCenter.newsEdit.fromEventText') }}</p>
+      <p>{{ t('helpCenter.newsEdit.fromEventWideningText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.newsEdit.contentTitle')">
       <p>{{ t('helpCenter.newsEdit.contentText') }}</p>
       <p>{{ t('helpCenter.newsEdit.markdownEditorText') }}</p>
