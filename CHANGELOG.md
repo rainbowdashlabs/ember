@@ -8,6 +8,7 @@
 
 ### Changes
 
+- **Crowded button rows keep one button and a menu.** The attendance sheet, a wiki file, a question catalogue and a test sheet showed as many as seven buttons above the page at once, which on a phone filled the screen before the page began. Each now shows the one action it is opened for and keeps the rest, exports and deletion included, in a menu beside it.
 - **Forms are now called surveys.** The word made a two-question feedback round sound like paperwork, which is the opposite of what it is for. Everything under `/station/forms` reads as a survey now, and the address, the questions and the answers already given are untouched; the contact forms on a station's public page keep their name, because that is what they are.
 
 ### Improvements

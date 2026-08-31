@@ -10,7 +10,9 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
+import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import BulletList from '@/components/typography/BulletList.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -41,13 +43,11 @@ const {t} = useI18n()
           </div>
           <MutedText tag="div" class="mt-1">Zuletzt geändert: 12. Mai 2026 · Max Mustermann</MutedText>
         </div>
-        <div class="flex gap-2 flex-shrink-0">
-          <SecondaryButton compact disabled>
+        <div class="flex gap-2 flex-shrink-0 items-center">
+          <PrimaryButton compact disabled>
             <font-awesome-icon :icon="['fas', 'pen']" class="mr-1" /> Bearbeiten
-          </SecondaryButton>
-          <SecondaryButton compact disabled>
-            <font-awesome-icon :icon="['fas', 'clock-rotate-left']" class="mr-1" /> Versionen
-          </SecondaryButton>
+          </PrimaryButton>
+          <IconButton :icon="['fas', 'ellipsis-vertical']" :label="t('common.actions')" disabled/>
         </div>
       </div>
       <div class="border-t border-[var(--border)] pt-3 text-sm space-y-2">
@@ -93,10 +93,8 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.kbFileView.pdfExportText') }}</p>
       <p>{{ t('helpCenter.kbFileView.pdfExportFormatting') }}</p>
       <p>{{ t('helpCenter.kbFileView.pdfExportWhere') }}</p>
-      <NeutralContainer>
-        <SecondaryButton compact disabled>
-          <font-awesome-icon :icon="['fas', 'file-pdf']" class="mr-1"/> {{ t('kb.downloadPdf') }}
-        </SecondaryButton>
+      <NeutralContainer class="p-0! max-w-xs overflow-hidden">
+        <DropdownMenuItem :icon="['fas', 'file-pdf']">{{ t('kb.downloadPdf') }}</DropdownMenuItem>
       </NeutralContainer>
     </HelpSection>
 
@@ -112,13 +110,14 @@ const {t} = useI18n()
         <span class="font-semibold">Schulung-Brandschutz.pptx</span>
         <PrimaryBadge>Präsentation</PrimaryBadge>
       </div>
-      <div class="flex gap-2">
-        <SecondaryButton compact disabled>
+      <div class="flex gap-2 items-center">
+        <PrimaryButton compact disabled>
           <font-awesome-icon :icon="['fas', 'display']" class="mr-1"/> Präsentieren
-        </SecondaryButton>
-        <SecondaryButton compact disabled>
-          <font-awesome-icon :icon="['fas', 'download']" class="mr-1"/> Original herunterladen
-        </SecondaryButton>
+        </PrimaryButton>
+        <IconButton :icon="['fas', 'ellipsis-vertical']" :label="t('common.actions')" disabled/>
+      </div>
+      <div class="w-64 rounded-theme border border-(--border) py-1">
+        <DropdownMenuItem :icon="['fas', 'download']">Original herunterladen</DropdownMenuItem>
       </div>
       <MutedText tag="p">{{ t('helpCenter.kbFileView.presentationsButtons') }}</MutedText>
     </NeutralContainer>

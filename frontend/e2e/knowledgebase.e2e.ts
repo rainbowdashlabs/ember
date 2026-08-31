@@ -35,6 +35,24 @@ async function createFileInFolder(page: Page): Promise<{folder: string; file: st
 }
 
 /**
+ * Opens the actions menu of the file header.
+ *
+ * <p>A file offers one action as a button of its own and keeps the rest behind that menu, so a
+ * story that wants any of the rest has to open it first. The panel is rendered at the end of the
+ * body rather than beside its button, which is also why nothing here reaches for a button by where
+ * it stands on the page.
+ */
+async function openFileActions(page: Page) {
+    await page.getByTestId('kb-file-actions-trigger').click()
+    await page.getByTestId('kb-file-actions').waitFor()
+}
+
+/** The one action the file header shows as a button, which for a Markdown file is the editor. */
+function headerButton(page: Page, name: string) {
+    return page.getByTestId('kb-file-header').getByRole('button', {name, exact: true})
+}
+
+/**
  * The permission story is the one worth having: what one person sets on a folder has to change what
  * a different person sees, and the rule is enforced in three places - the route guard, the levels
  * the listing reports, and the create menu. One story covers all three from the outside.
@@ -68,6 +86,7 @@ test.describe('Knowledge base', () => {
         await createFileInFolder(page)
 
         const download = page.waitForEvent('download')
+        await openFileActions(page)
         await page.getByRole('button', {name: 'Als PDF'}).click()
 
         expect((await download).suggestedFilename()).toMatch(/\.pdf$/)
@@ -113,9 +132,9 @@ test.describe('Knowledge base', () => {
 
         // The editor is a rich one: it takes typing into its own body, not a value into a field.
         for (const text of [first, second]) {
-            // The pen on the description line carries the same name, and it sits further down the
-            // page - the one that opens the editor is the first.
-            await page.getByRole('button', {name: 'Bearbeiten', exact: true}).first().click()
+            // The pen on the description line carries the same name, so the header is named rather
+            // than counted on to come first.
+            await headerButton(page, 'Bearbeiten').click()
             const body = page.locator('.markdown-editor-content')
             await body.click()
             await page.keyboard.press('ControlOrMeta+a')
@@ -127,6 +146,7 @@ test.describe('Knowledge base', () => {
         await page.reload()
         await expect(page.getByText(second).first()).toBeVisible()
 
+        await openFileActions(page)
         await page.getByRole('button', {name: 'Versionen'}).click()
         await page.waitForURL(/\/station\/knowledge\/file\/\d+\/versions/)
 
@@ -151,6 +171,7 @@ test.describe('Knowledge base', () => {
     test('a file marked public is readable on the public wiki', async ({managerPage: page, browser}) => {
         const {folder, file} = await createFileInFolder(page)
 
+        await openFileActions(page)
         await page.getByRole('button', {name: 'Sichtbarkeit'}).click()
         await page.locator('select:has(option:text-is("Öffentlich sichtbar"))')
             .selectOption({label: 'Öffentlich sichtbar'})
@@ -182,7 +203,7 @@ test.describe('Knowledge base', () => {
             await createFileInFolder(page)
             const fileUrl = page.url()
 
-            await page.getByRole('button', {name: 'Bearbeiten', exact: true}).first().click()
+            await headerButton(page, 'Bearbeiten').click()
             const body = page.locator('.markdown-editor-content')
             await body.click()
             await page.keyboard.press('ControlOrMeta+a')
@@ -190,7 +211,7 @@ test.describe('Knowledge base', () => {
             await page.getByRole('button', {name: 'Speichern'}).last().click()
             await expect(page.getByText('Ungespeicherte Änderungen')).toHaveCount(0)
 
-            await page.getByRole('button', {name: 'Bearbeiten', exact: true}).first().click()
+            await headerButton(page, 'Bearbeiten').click()
             await page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}).click()
 
             await expect(page.getByText(written).first()).toBeVisible()
@@ -199,6 +220,7 @@ test.describe('Knowledge base', () => {
             await page.goto(fileUrl)
             await expect(page.getByText(written).first()).toBeVisible()
 
+            await openFileActions(page)
             await page.getByRole('button', {name: 'Versionen'}).click()
             await page.waitForURL(/\/station\/knowledge\/file\/\d+\/versions/)
             await expect(page.getByTestId('kb-version').first()).toBeVisible()
@@ -218,12 +240,12 @@ test.describe('Knowledge base', () => {
             await createFileInFolder(page)
             const fileUrl = page.url()
 
-            await page.getByRole('button', {name: 'Bearbeiten', exact: true}).first().click()
+            await headerButton(page, 'Bearbeiten').click()
             await page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}).click()
 
             await page.goto(fileUrl)
             await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
-            await page.getByRole('button', {name: 'Bearbeiten', exact: true}).first().click()
+            await headerButton(page, 'Bearbeiten').click()
             await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
         })
 
