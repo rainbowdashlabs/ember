@@ -4,14 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import ActionsMenu from '@/components/button/ActionsMenu.vue'
+import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import {KbFileType, type KbFile} from '@/api/knowledgeBase'
 
-defineProps<{
+const props = defineProps<{
     file: KbFile
     isFederated: boolean
     isKbPublic: boolean
@@ -34,10 +37,39 @@ defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+const isTextFile = computed(() => props.file.fileType === KbFileType.MARKDOWN
+    || props.file.fileType === KbFileType.TEXT)
+const canWriteText = computed(() => props.canEdit && isTextFile.value)
+const canPresent = computed(() => props.file.fileType === KbFileType.PDF
+    || (props.file.fileType === KbFileType.PRESENTATION && props.file.conversionStatus === 'SUCCESS'))
+const hasVersions = computed(() => props.file.fileType === KbFileType.MARKDOWN)
+const hasOriginal = computed(() => props.file.fileType === KbFileType.PRESENTATION)
+const canShareLink = computed(() => props.isKbPublic && !props.isFederated)
+
+/**
+ * Which one action stays a button of its own, which here changes with the file rather than being
+ * fixed: a file from a partner station is read in order to be taken over, a text file of one's own
+ * is opened in order to be written in, and a presentation or a PDF is opened in order to be shown.
+ * A file that is none of those, an image say, offers its download instead, and one that is not even
+ * downloadable leaves the menu standing alone.
+ */
+const primary = computed(() => {
+    if (props.isFederated) return 'copy'
+    if (canWriteText.value) return 'edit'
+    if (canPresent.value) return 'present'
+    if (isTextFile.value) return 'pdf'
+    return 'none'
+})
+
+const hasMenu = computed(() => canShareLink.value
+    || (isTextFile.value && primary.value !== 'pdf')
+    || (!props.isFederated && (props.canEdit || hasVersions.value || hasOriginal.value
+        || (canPresent.value && primary.value !== 'present'))))
 </script>
 
 <template>
-    <div class="flex flex-wrap items-center gap-2 mb-4">
+    <div class="flex flex-wrap items-center gap-2 mb-4" data-testid="kb-file-header">
         <SecondaryButton @click="$emit('back')">
             <font-awesome-icon :icon="['fas', 'chevron-left']"/>
             {{ t('kb.backToBrowse') }}
@@ -45,63 +77,61 @@ const {t} = useI18n()
 
         <PageHeader class="flex-1 !mb-0">{{ file.name }}</PageHeader>
 
+        <!--
+          The share link keeps its own button although it is an action like the others: the whole
+          answer it gives is the tick it turns into, and a menu that has closed itself cannot show
+          one.
+        -->
         <IconButton
-            v-if="isKbPublic && !isFederated"
+            v-if="canShareLink"
             :icon="['fas', shareCopied ? 'check' : 'share-nodes']"
             :label="t('kb.shareLink')"
             :class="shareCopied ? '!text-green-500' : '!text-[var(--text-muted)]'"
             @click="$emit('copyShareLink')"
         />
 
-        <SecondaryButton
-            v-if="file.fileType === KbFileType.MARKDOWN || file.fileType === KbFileType.TEXT"
-            @click="$emit('downloadPdf')"
-        >
-            <font-awesome-icon :icon="['fas', 'file-pdf']"/>
-            {{ t('kb.downloadPdf') }}
-        </SecondaryButton>
-
-        <PrimaryButton v-if="isFederated" @click="$emit('copyToStation')">
+        <PrimaryButton v-if="primary === 'copy'" @click="$emit('copyToStation')">
             <font-awesome-icon :icon="['fas', 'copy']"/>
             {{ t('federation.copyToStation') }}
         </PrimaryButton>
-        <template v-else>
-            <SecondaryButton v-if="canEdit" @click="$emit('openShare')">
-                <font-awesome-icon :icon="['fas', 'eye']"/>
-                {{ t('kb.share') }}
-            </SecondaryButton>
-            <SecondaryButton v-if="canEdit" @click="$emit('openEditMetadata')">
-                <font-awesome-icon :icon="['fas', 'gear']"/>
-                {{ t('kb.editMetadata') }}
-            </SecondaryButton>
-            <PrimaryButton
-                v-if="canEdit && (file.fileType === KbFileType.MARKDOWN || file.fileType === KbFileType.TEXT)"
-                @click="$emit('toggleEdit')"
-            >
-                <font-awesome-icon :icon="['fas', editing ? 'eye' : 'pen']"/>
-                {{ editing ? t('kb.preview') : t('kb.edit') }}
-            </PrimaryButton>
-            <SecondaryButton
-                v-if="file.fileType === KbFileType.MARKDOWN"
-                @click="$emit('openVersions')"
-            >
-                <font-awesome-icon :icon="['fas', 'clock-rotate-left']"/>
-                {{ t('kb.versions') }}
-            </SecondaryButton>
-            <SecondaryButton
-                v-if="(file.fileType === KbFileType.PDF || (file.fileType === KbFileType.PRESENTATION && file.conversionStatus === 'SUCCESS'))"
-                @click="$emit('openPresentation')"
-            >
-                <font-awesome-icon :icon="['fas', 'display']"/>
-                {{ t('kb.present') }}
-            </SecondaryButton>
-            <SecondaryButton
-                v-if="file.fileType === KbFileType.PRESENTATION"
-                @click="$emit('downloadOriginal')"
-            >
-                <font-awesome-icon :icon="['fas', 'download']"/>
-                {{ t('kb.downloadOriginal') }}
-            </SecondaryButton>
-        </template>
+        <PrimaryButton v-else-if="primary === 'edit'" @click="$emit('toggleEdit')">
+            <font-awesome-icon :icon="['fas', editing ? 'eye' : 'pen']"/>
+            {{ editing ? t('kb.preview') : t('kb.edit') }}
+        </PrimaryButton>
+        <PrimaryButton v-else-if="primary === 'present'" @click="$emit('openPresentation')">
+            <font-awesome-icon :icon="['fas', 'display']"/>
+            {{ t('kb.present') }}
+        </PrimaryButton>
+        <PrimaryButton v-else-if="primary === 'pdf'" @click="$emit('downloadPdf')">
+            <font-awesome-icon :icon="['fas', 'file-pdf']"/>
+            {{ t('kb.downloadPdf') }}
+        </PrimaryButton>
+
+        <ActionsMenu v-if="hasMenu" :label="t('common.actions')" test-id="kb-file-actions">
+            <DropdownMenuItem v-if="isTextFile && primary !== 'pdf'" :icon="['fas', 'file-pdf']"
+                              @click="$emit('downloadPdf')">
+                {{ t('kb.downloadPdf') }}
+            </DropdownMenuItem>
+            <template v-if="!isFederated">
+                <DropdownMenuItem v-if="canPresent && primary !== 'present'" :icon="['fas', 'display']"
+                                  @click="$emit('openPresentation')">
+                    {{ t('kb.present') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem v-if="hasOriginal" :icon="['fas', 'download']"
+                                  @click="$emit('downloadOriginal')">
+                    {{ t('kb.downloadOriginal') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem v-if="hasVersions" :icon="['fas', 'clock-rotate-left']"
+                                  @click="$emit('openVersions')">
+                    {{ t('kb.versions') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem v-if="canEdit" :icon="['fas', 'eye']" @click="$emit('openShare')">
+                    {{ t('kb.share') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem v-if="canEdit" :icon="['fas', 'gear']" @click="$emit('openEditMetadata')">
+                    {{ t('kb.editMetadata') }}
+                </DropdownMenuItem>
+            </template>
+        </ActionsMenu>
     </div>
 </template>
