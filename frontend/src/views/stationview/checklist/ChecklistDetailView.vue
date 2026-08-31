@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -105,6 +106,23 @@ const visibleEntries = computed(() => {
     }
     return true
   })
+})
+
+/**
+ * Whether this list names its people one by one instead of describing them.
+ *
+ * <p>A list built that way is a snapshot: the refresh resolves the same names again, so nobody who
+ * joined the group, gained the tag or signed up afterwards can ever arrive through it. Saying so
+ * next to the button is the difference between a list somebody trusts and one they think is keeping
+ * itself up to date.
+ */
+const frozenMemberSet = computed(() => {
+  const restriction = detail.value?.restriction
+  if (!restriction) return false
+  return restriction.memberIds.length > 0
+      && restriction.userTypes.length === 0
+      && restriction.groupIds.length === 0
+      && restriction.tagIds.length === 0
 })
 
 const aliveMemberIds = computed(() => new Set(aliveEntries.value.map(e => e.memberId)))
@@ -221,13 +239,18 @@ const pageError = computed(() =>
             {{ detail.name }}
           </PageHeader>
           <p v-if="detail.description" class="text-sm text-(--text-muted)">{{ detail.description }}</p>
+          <MutedText v-if="frozenMemberSet" tag="p" data-testid="checklist-frozen">{{ t('checklist.frozenSetHint') }}</MutedText>
         </div>
         <div class="flex flex-wrap gap-2 items-center">
           <template v-if="canManage">
             <EditButton @click="showEditMeta = true">
               {{ t('checklist.editChecklist') }}
             </EditButton>
-            <ChecklistRefreshButton :last-refreshed-at="detail.lastRefreshedAt" :on-refresh="onRefresh"/>
+            <ChecklistRefreshButton
+                :last-refreshed-at="detail.lastRefreshedAt"
+                :frozen="frozenMemberSet"
+                :on-refresh="onRefresh"
+            />
             <ChecklistAddMembersButton @click="showAddMembers = true"/>
           </template>
           <ChecklistExportMenu :checklist-id="detail.id"/>

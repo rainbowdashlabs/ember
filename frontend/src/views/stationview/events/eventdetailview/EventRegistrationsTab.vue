@@ -21,8 +21,10 @@ import {events, stationMembers as stationMembersApi} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useSignupMemberSet} from '@/composables/useSignupMemberSet'
 import RegistrationsPanel from './RegistrationsPanel.vue'
 import FederatedRegistrationsPanel from './FederatedRegistrationsPanel.vue'
+import SignupListsMenu from './signuplists/SignupListsMenu.vue'
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 import EventAnswerDialog from '../eventshared/EventAnswerDialog.vue'
 import type {AnswerablePerson, PersonAnswer} from '@/util/eventAnswers'
@@ -94,6 +96,19 @@ const nonPendingRegistrations = computed<StatusGroup[]>(() => {
 const unregisteredMembers = computed(() => {
   const regIds = new Set(registrations.value.map(r => r.memberId))
   return allMembers.value.filter(m => !regIds.has(m.id)).sort((a, b) => a.name.localeCompare(b.name))
+})
+
+/**
+ * The people holding a place on the evening in view, which is what anything built from this tab
+ * works from. The loaded list carries every occurrence of the appointment, so the date is what
+ * makes this one Tuesday rather than all of them.
+ */
+const signupMemberSet = useSignupMemberSet({
+  event: () => props.event,
+  effectiveDate: () => props.effectiveDate,
+  registrations: () => registrations.value,
+  federatedRegistrations: () => federatedRegs.value,
+  currentMemberIds: () => props.currentMemberIds,
 })
 
 function getRegistrationForMember(memberId: number): EventRegistrationEntry | undefined {
@@ -369,7 +384,15 @@ onMounted(loadRegistrations)
         @deny="denyRegistration"
         @edit-answers="editAnswers"
         @manual-register="manualRegister"
-    />
+    >
+      <template #header-actions>
+        <SignupListsMenu
+            :event="event"
+            :effective-date="effectiveDate"
+            :member-set="signupMemberSet"
+        />
+      </template>
+    </RegistrationsPanel>
 
     <RegistrationFieldsModal
         v-model="showEditAnswers"
