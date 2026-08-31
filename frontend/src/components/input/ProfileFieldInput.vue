@@ -9,6 +9,9 @@ import DateInput from '@/components/input/datetime/DateInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import {useI18n} from 'vue-i18n'
+
+const {t} = useI18n()
 
 const modelValue = defineModel<string>({required: true})
 
@@ -16,6 +19,12 @@ defineProps<{
   fieldType: string
   options?: string[]
   disabled?: boolean
+  /**
+   * Whether an answer is expected. A selection that must be answered still offers its empty entry,
+   * because a question never answered has to show as unanswered rather than as its first option,
+   * but that entry cannot be chosen: picking nothing on purpose is what this stops.
+   */
+  required?: boolean
 }>()
 
 function getBool(): boolean {
@@ -42,7 +51,7 @@ function setBool(val: boolean) {
   <template v-else-if="fieldType === 'ENUM'">
     <SelectInput :disabled="disabled" :model-value="modelValue"
                  @update:model-value="modelValue = String($event ?? '')">
-      <option value="">-</option>
+      <option value="" :disabled="required">{{ required ? t('profile.chooseOne') : '-' }}</option>
       <option v-for="opt in options ?? []" :key="opt" :value="opt">{{ opt }}</option>
     </SelectInput>
   </template>

@@ -338,10 +338,21 @@ public class ProfileFieldService {
             var config = field.config();
             if (config == null || !config.required()) continue;
             if (config.readonly() || field.readonlyAtStation()) continue;
-            String value = answers.get(answerKey(field.origin(), field.id()));
-            if (value == null || value.isBlank() || "\"\"".equals(value)) return false;
+            if (isBlankAnswer(answers.get(answerKey(field.origin(), field.id())))) return false;
         }
         return true;
+    }
+
+    /**
+     * Whether an answer says nothing, in every shape that can reach the column.
+     *
+     * <p>Answers are kept as documents, so emptiness arrives spelled four ways: no row at all, an
+     * empty column, the empty string a text box hands back, and the document null a selection left
+     * on its blank entry produces. That last one reads as the four letters {@code null} rather than
+     * as nothing, which is how a question nobody had answered could count as answered.
+     */
+    private static boolean isBlankAnswer(String value) {
+        return value == null || value.isBlank() || "\"\"".equals(value) || "null".equals(value);
     }
 
     /**
