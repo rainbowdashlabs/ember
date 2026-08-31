@@ -41,6 +41,8 @@ defineEmits<{
   cancel: []
   submit: []
   rapidSetResult: [result: CheckResult]
+  rapidUndoResult: [itemId: number]
+  rapidUndoNotInPossession: [inventoryId: number, slotIndex: number]
   rapidExchange: [entry: CheckEntry]
   rapidCreateProcurement: [req: RequiredInventoryItem, slotIndex: number, sizeId: string]
   rapidCorrect: [entry: CheckEntry]
@@ -102,6 +104,8 @@ defineExpose({ getCurrentRapidEntry })
     @assign="(id) => $emit('rapidAssign', id)"
     @create-and-assign="(id) => $emit('rapidCreateAndAssign', id)"
     @skip="() => {}"
+    @undo-result="(id) => $emit('rapidUndoResult', id)"
+    @undo-not-in-possession="(inv, slot) => $emit('rapidUndoNotInPossession', inv, slot)"
     @done="$emit('rapidDone')"
   />
   <div v-if="!checkMode" class="space-y-6">

@@ -15,6 +15,8 @@
 
 ### Improvements
 
+- **A quick check can step back to the piece before.** A wrong tap on the walk through somebody's equipment used to stand until the whole check was closed and reopened from the list behind it. One step back is now offered, which puts the walk on the piece it just left and takes off what was said about it.
+- **How long a setup link lasts is set in the browser.** The time somebody has to follow the link in their setup mail could only be changed in the file on the server. It now sits under Settings, Security, Tokens with the other lifetimes, between one and thirty days.
 - **A line of an appointment counts borrowed equipment towards itself.** Fourteen needed, ten of our own, four borrowed from a partner and nothing outstanding is one answer rather than two, so a list stops reporting a shortfall that was settled a week ago. Two dates that both plan the same trailer for the same weekend are not stopped from writing it down: the shortage is shown with the other date named, which is what makes it something anybody can act on beforehand.
 - **A partner's offer is counted by kind of thing.** Browsing what a partner lends used to answer with one number per drawer, which for a drawer holding radios, a charger and a case said nothing useful. It now answers a row per kind, so asking for four blue ones is a request that can be filled with four blue ones.
 - **A request tells the asked station what it is for.** Alongside the dates it now carries the name of the date it was collected for, which is the thing that decides a yes. Nothing else about the appointment travels: not the sign-ups, not the questions, not the description.
@@ -43,6 +45,7 @@
 
 ### Fixes
 
+- **A check could not be finished where somebody was short of two of the same thing.** Where a member should have had two of something and had neither, saying so about both places at once was refused and the check stayed open. Both gaps can now be recorded.
 - **A request for four of something could only ever be answered with one.** The lending station set a piece aside for a line, and each further piece overwrote the one before, so a line asking for four came back with a single radio however many were picked. A line now records every piece set aside for it, and the count on the inventory overview follows.
 - **The attendance count of a trial period stood at zero however often somebody came.** A waiting list shows how many evenings a trial member has been to against the number the station asks for, and nothing ever raised that number, so the measure it was set up for never worked. Being marked present at an evening now counts towards it; reaching the number still changes nothing on its own, because taking somebody on stays a decision the station makes.
 - **Narrowing a shared news entry did not withdraw it.** Sharing with partner stations and keeping an entry to a few groups were decided apart, so an entry narrowed after it had been shared carried on travelling. What a partner is offered is now checked against the entry's own audience, the same way an appointment already was.

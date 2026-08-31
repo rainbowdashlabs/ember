@@ -141,6 +141,24 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         assertTrue(next.isPresent());
     }
 
+    /**
+     * A member who needs two of a thing and holds neither leaves two empty places, and a check has
+     * to be able to say so about both. The key that holds a check's rows apart counted two rows with
+     * no piece as one row, so closing such a check failed outright.
+     */
+    @Test
+    @Order(39)
+    void twoEmptyPlacesOfOneInventoryBothFitInACheck() {
+        service.startCheck(station.id(), target.id(), checker.id());
+
+        var results = List.of(
+                new CheckItemRequest(null, inventoryId, CheckResult.NOT_IN_POSSESSION, ""),
+                new CheckItemRequest(null, inventoryId, CheckResult.NOT_IN_POSSESSION, ""));
+        var check = service.completeCheck(station.id(), target.id(), checker.id(), results);
+
+        assertNotNull(check);
+    }
+
     @Test
     @Order(40)
     void completeCheck() {
