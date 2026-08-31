@@ -27,6 +27,10 @@ const {t} = useI18n()
                  to="/helpcenter/station/inventory/my" @navigate="close">
       {{ t('sidebar.myInventory') }}
     </SidebarLink>
+    <SidebarLink :icon="['fas', 'hand-holding']" name="help-inventory-borrowed"
+                 to="/helpcenter/station/inventory/borrowed" @navigate="close">
+      {{ t('helpCenter.inventoryBorrowed.title') }}
+    </SidebarLink>
     <SidebarLink :icon="['fas', 'rotate']" name="help-inventory-exchanges"
                  to="/helpcenter/station/inventory/exchanges" @navigate="close">
       {{ t('sidebar.inventoryExchanges') }}

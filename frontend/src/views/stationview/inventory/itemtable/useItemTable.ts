@@ -115,6 +115,7 @@ export function useItemTable(options: ItemTableOptions) {
   function ownerLabel(item: InventoryItem): string {
     if (item.ownerKind === ItemOwner.STATION) return t('inventory.edit.ownerStation')
     if (item.ownerKind === ItemOwner.CLUSTER) return t('inventory.edit.ownerCluster')
+    if (item.ownerKind === ItemOwner.PARTNER_STATION) return t('inventory.edit.ownerPartner')
     return ''
   }
 

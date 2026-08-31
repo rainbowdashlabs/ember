@@ -102,6 +102,7 @@ function getMemberIdentity(memberId: number | null | undefined) {
         <div v-if="isMixed">
           <PrimaryBadge v-if="item.ownerKind === ItemOwner.STATION">{{ t('inventory.edit.ownerStation') }}</PrimaryBadge>
           <SecondaryBadge v-else-if="item.ownerKind === ItemOwner.CLUSTER">{{ t('inventory.edit.ownerCluster') }}</SecondaryBadge>
+          <InfoBadge v-else-if="item.ownerKind === ItemOwner.PARTNER_STATION">{{ t('inventory.edit.ownerPartner') }}</InfoBadge>
         </div>
         <div v-if="item.assignedTo">
           <span class="text-(--text-muted)">{{ t('inventory.edit.colAssigned') }}:</span>

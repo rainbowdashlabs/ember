@@ -17,12 +17,13 @@ export const InventoryTypes = {
 export type InventoryTypeName = (typeof InventoryTypes)[keyof typeof InventoryTypes]
 
 /**
- * Who owns an item: the station running its inventory, or the one body above that station.
- * Members never own tracked items.
+ * Who owns an item: the station running its inventory, the one body above that station, or a
+ * federation partner the station has borrowed it from. Members never own tracked items.
  */
 export const ItemOwner = {
     STATION: 'STATION',
     CLUSTER: 'CLUSTER',
+    PARTNER_STATION: 'PARTNER_STATION',
 } as const
 
 export type ItemOwnerName = (typeof ItemOwner)[keyof typeof ItemOwner]
@@ -58,6 +59,11 @@ export interface Inventory {
      * Requirements, orders and exchanges are only offered for the first.
      */
     homogeneous: boolean
+    /**
+     * Whether this is the station's one shelf for gear belonging to somebody else. It appears on the
+     * first handover, it can be renamed, and it refuses to go while anything is still on it.
+     */
+    borrowed: boolean
 }
 
 export interface InventoryRequest {
@@ -154,8 +160,14 @@ export interface InventoryItem {
     ownerKind?: ItemOwnerName | null
     /** The owning association's stable identity. An internal id never leaves the backend. */
     ownerClusterId?: string | null
+    /** The partner station that owns it, set only for gear borrowed from one. */
+    ownerStationId?: number | null
+    /** The line of the lending request a borrowed piece came in on, and nothing else. */
+    loanRequestItemId?: number | null
     custody?: ItemCustodyName | null
     custodyStationId?: number | null
+    /** The partner holding the piece while it is out on loan. */
+    custodyPartnerStationId?: number | null
     custodyMovementId?: number | null
     containerId?: number | null
 }
@@ -403,6 +415,8 @@ export interface InventorySummary {
     hasSizes: boolean
     /** Whether it holds one thing in many copies rather than a drawer of different things. */
     homogeneous: boolean
+    /** Whether it is the station's one shelf for gear belonging to somebody else. */
+    borrowed: boolean
     itemCount: number
     lostCount: number
     procurementCount: number
@@ -527,6 +541,28 @@ export async function reportLoss(itemId: number, note: string, document?: File |
  * The body above this station that keeps its gear in Ember, or null when there is none. What a station
  * may ask for follows from it: with nobody above, there is nobody to ask.
  */
+/**
+ * One piece the station is holding that belongs to a partner station.
+ *
+ * The row is a copy taken when the gear changed hands and is not kept in step with the owner's
+ * afterwards, so what it shows is the thing as it was handed over.
+ */
+export interface BorrowedItem {
+    item: InventoryItem
+    /** The partner the gear belongs to. */
+    ownerStationName: string
+    /** The lending request it came in on, which is where anything about the loan is said. */
+    loanRequestId: number
+    /** The day the loan was asked to run to, or null when none was named. */
+    dueOn?: string | null
+}
+
+/** Everything the station has borrowed, by partner and then by name. */
+export async function listBorrowed(): Promise<BorrowedItem[]> {
+    const res = await client.get<BorrowedItem[]>('/inventory-borrowed')
+    return res.data
+}
+
 export async function ownerAbove(): Promise<string | null> {
     const res = await client.get<{name: string | null}>('/inventory-owner-above')
     return res.data.name
