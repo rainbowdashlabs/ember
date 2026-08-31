@@ -87,4 +87,28 @@ public final class ItemCustodySql {
         return "(%1$s.custody = 'AT_STATION' OR (%1$s.custody = 'WITH_OWNER' AND %1$s.owner_kind = 'STATION'))"
                 .formatted(itemAlias);
     }
+
+    /**
+     * A predicate matching the gear a station can actually put its hands on.
+     *
+     * <p>Narrower than {@link #heldBy(String, String)} and wider than {@link #freeStock(String)}, and
+     * it exists because neither of those answers "can this station bring the thing along". Held-by
+     * counts gear that is lost or in the post, which cannot be brought. Free stock leaves out gear a
+     * member keeps, and radios permanently handed to a group leader are the ordinary case rather than
+     * the exception: a list that reports them missing because somebody at the station is holding them
+     * is worse than no list.
+     *
+     * <p>Gear with a federation partner is out for the same reason lost gear is: it is somewhere else.
+     *
+     * @param itemAlias      the alias of {@code inventory_item}
+     * @param inventoryAlias the alias of the joined {@code inventory} row
+     * @return the SQL predicate, expecting {@code :custody_station} to be bound
+     */
+    public static String atHand(String itemAlias, String inventoryAlias) {
+        return """
+                (
+                    (%1$s.custody = 'WITH_OWNER' AND %1$s.owner_kind = 'STATION' AND %2$s.station_id = :%3$s)
+                    OR (%1$s.custody IN ('AT_STATION', 'WITH_MEMBER') AND %1$s.custody_station_id = :%3$s)
+                )""".formatted(itemAlias, inventoryAlias, STATION_BIND);
+    }
 }
