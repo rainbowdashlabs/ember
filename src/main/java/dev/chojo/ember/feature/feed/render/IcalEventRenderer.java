@@ -199,7 +199,11 @@ public class IcalEventRenderer {
         for (var field : fields) {
             if (field.fieldType() == EventFieldType.LOCATION) continue;
             if (field.value() == null || field.value().isBlank()) continue;
-            sb.append(field.name()).append(": ").append(field.value().trim()).append("\n");
+            // A member field holds internal ids, which say nothing in a calendar entry, so the
+            // service resolves them to the names the reader knows.
+            String value = eventFieldService.displayValue(field);
+            if (value.isBlank()) continue;
+            sb.append(field.name()).append(": ").append(value).append("\n");
         }
 
         if (event.cancelled()) {

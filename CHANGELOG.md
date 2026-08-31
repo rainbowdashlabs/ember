@@ -1,5 +1,17 @@
 # Changelog
 
+## v26.13.11
+
+### Improvements
+
+- **The questions of an attendance sheet can be taken straight into an appointment.** Where an appointment names a sheet, its fields are now offered above the appointment's own questions, one at a time or all at once. They arrive with their name, their type and their settings, already tied to the field they came from, which is what makes the answer given at the appointment land on the sheet; a field already taken is not offered a second time. The same offer stands in the appointment templates.
+
+### Fixes
+
+- **Four kinds of notification reached a feed reader under their internal name.** A reminder that a sign-up is about to close, a piece the cluster has sent on its way, a piece reported missing and a movement called off all arrived titled in capital letters rather than in a sentence. All four are now titled and filed in German and English, like every other kind of notification.
+- **A question asking for a member showed a number instead of the name.** Where an appointment asks who drives or who supervises, the notification body and the subscribed calendar entry listed the answer as an internal number, which named nobody. Both now write out the members the question holds.
+- **Somebody who had set their password still counted as not set up.** The member list waited for a first sign-in before dropping the hourglass beside a name, so people who had chosen their password and gone no further were chased with another setup mail. Choosing a password is now what settles the account, and only a password an administrator laid down still counts as outstanding.
+
 ## v26.13.10
 
 ### New Features

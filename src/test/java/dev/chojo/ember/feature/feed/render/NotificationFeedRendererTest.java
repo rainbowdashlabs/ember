@@ -81,6 +81,12 @@ class NotificationFeedRendererTest {
         // No-ops by default; per-test stubbing wires up real returns when needed.
         when(crudService.findById(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
         when(eventFieldService.findByEvent(ArgumentMatchers.anyInt())).thenReturn(List.of());
+        // Stand-in for the real resolution: everything but a member field renders its stored
+        // text, so a test that cares about member names stubs this again for its own field.
+        when(eventFieldService.displayValue(ArgumentMatchers.any())).thenAnswer(inv -> {
+            EventField field = inv.getArgument(0);
+            return field == null || field.value() == null ? "" : field.value().trim();
+        });
         when(lostAndFoundService.findById(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
         when(lendingService.findRequest(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
         when(storageQuotaService.getUsage(ArgumentMatchers.anyInt())).thenReturn(List.of());

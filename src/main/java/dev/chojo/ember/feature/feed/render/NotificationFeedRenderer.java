@@ -685,10 +685,13 @@ public class NotificationFeedRenderer {
             if (event.registrationLimit() != null) {
                 details.put(label(ctx, "limit", "Limit"), String.valueOf(event.registrationLimit()));
             }
-            // Custom event fields - skip blank values, surface every set value verbatim.
+            // Custom event fields - skip blank values, and let the service name the members a
+            // member field holds, because a reader outside the app cannot read an internal id.
             for (var field : eventFieldService.findByEvent(eventId)) {
                 if (field.value() == null || field.value().isBlank()) continue;
-                details.put(field.name(), field.value().trim());
+                String value = eventFieldService.displayValue(field);
+                if (value.isBlank()) continue;
+                details.put(field.name(), value);
             }
         } catch (Exception ignored) {
             // Telemetry-grade enrichment: never block a feed render on a side-effect failure.

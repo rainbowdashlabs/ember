@@ -67,6 +67,22 @@ public class EventFieldService {
         return repository.findByEvent(eventId);
     }
 
+    /**
+     * The value of a field as a reader outside the app should see it. A member field stores the
+     * internal IDs of the members it holds, which mean nothing in a feed or a calendar entry, so
+     * they are resolved to names here. Every other field already carries the text it was answered
+     * with and is returned unchanged. An ID that no longer resolves keeps its number, marked with a
+     * {@code #}, rather than dropping a name silently.
+     */
+    public String displayValue(EventField field) {
+        if (field == null || field.value() == null) return "";
+        if (!field.fieldType().isMemberField()) return field.value().trim();
+        var ids = MemberFieldValue.parseIds(field.value());
+        if (ids.isEmpty()) return "";
+        var names = memberRepository.findDisplayNames(ids);
+        return ids.stream().map(id -> names.getOrDefault(id, "#" + id)).collect(Collectors.joining(", "));
+    }
+
     public Map<Integer, List<EventField>> findOverviewFieldsByEvents(List<Integer> eventIds) {
         var allFields = repository.findOverviewFieldsByEvents(eventIds);
         var result = new LinkedHashMap<Integer, List<EventField>>();
