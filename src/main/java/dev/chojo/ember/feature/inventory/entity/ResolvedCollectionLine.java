@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * What one line of a collection would find if it were fetched now, or over a given window.
  *
@@ -40,6 +42,7 @@ public record ResolvedCollectionLine(
      *
      * @return {@code true} when at least as many pieces are available as the line asks for
      */
+    @JsonProperty("filled")
     public boolean filled() {
         return available >= requested;
     }
@@ -49,6 +52,7 @@ public record ResolvedCollectionLine(
      *
      * @return the shortfall, or zero when the line is filled
      */
+    @JsonProperty("missing")
     public int missing() {
         return Math.max(0, requested - available);
     }

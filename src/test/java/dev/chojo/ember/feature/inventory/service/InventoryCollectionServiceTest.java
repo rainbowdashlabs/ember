@@ -15,9 +15,11 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ResolvedCollection;
+import dev.chojo.ember.feature.inventory.entity.ResolvedCollectionLine;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.Json;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -203,6 +205,32 @@ class InventoryCollectionServiceTest extends RepositoryTestBase {
 
         service.delete(kit.id(), station.id());
         inventoryRepo.delete(box.id());
+    }
+
+    /**
+     * The numbers the screen reads off a line are derived rather than stored, so they only exist on
+     * the wire because they are asked for by name. Losing them is silent: the badge simply reads as
+     * unfilled for ever, which is the failure this pins down.
+     */
+    @Test
+    void theDerivedNumbersReachTheWire() {
+        String line = Json.MAPPER.writeValueAsString(
+                new ResolvedCollectionLine(1, null, 2, null, "Funk blau", 4, 6, 0));
+        assertTrue(line.contains("\"filled\":true"), line);
+        assertTrue(line.contains("\"missing\":0"), line);
+
+        String short_ = Json.MAPPER.writeValueAsString(
+                new ResolvedCollectionLine(1, null, 2, null, "Funk blau", 4, 1, 0));
+        assertTrue(short_.contains("\"filled\":false"), short_);
+        assertTrue(short_.contains("\"missing\":3"), short_);
+
+        String collection = Json.MAPPER.writeValueAsString(new ResolvedCollection(
+                new InventoryCollection(1, station.id(), "Funkset", "", null, java.time.Instant.EPOCH),
+                null,
+                null,
+                List.of(new ResolvedCollectionLine(1, null, 2, null, "Funk blau", 4, 6, 2))));
+        assertTrue(collection.contains("\"complete\":true"), collection);
+        assertTrue(collection.contains("\"holdsClusterOwned\":true"), collection);
     }
 
     @Test
