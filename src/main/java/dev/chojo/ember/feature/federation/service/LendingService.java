@@ -11,6 +11,7 @@ import dev.chojo.ember.event.events.LendingRequested;
 import dev.chojo.ember.event.events.LendingStatusChanged;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -24,9 +25,11 @@ import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.LineTarget;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.BorrowedGearService;
 import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
+import dev.chojo.ember.feature.inventory.service.LineTargetService;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -38,7 +41,9 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -66,6 +71,8 @@ public class LendingService {
     private final ItemCustodyService custodyService;
     private final BorrowedGearService borrowedGearService;
     private final InventoryShareService shareService;
+    private final LineTargetService lineTargets;
+    private final EquipmentAvailabilityService availability;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -79,7 +86,11 @@ public class LendingService {
             ItemCustodyService custodyService,
             BorrowedGearService borrowedGearService,
             InventoryShareService shareService,
+            LineTargetService lineTargets,
+            EquipmentAvailabilityService availability,
             DomainEventBus eventBus) {
+        this.lineTargets = lineTargets;
+        this.availability = availability;
         this.repository = repository;
         this.httpClient = httpClient;
         this.federationService = federationService;
@@ -92,12 +103,31 @@ public class LendingService {
         this.eventBus = eventBus;
     }
 
+    /**
+     * Opens a request for gear at a partner station.
+     *
+     * <p>The occasion is a copy of the appointment's name rather than a link to it, deliberately: why
+     * a request is being made is the question that decides a yes, and a title plus a window answers
+     * it. Adding a field to an appointment must never quietly add it to a request.
+     *
+     * @param eventId   the appointment the request was collected for, or {@code null}
+     * @param eventDate the evening of that appointment, or {@code null}
+     * @param occasion  what to tell the owning station the request is for
+     */
     public LendingRequest createRequest(
-            int requestingStationId, int owningStationId, LocalDate dateFrom, LocalDate dateTo, int createdBy) {
+            int requestingStationId,
+            int owningStationId,
+            LocalDate dateFrom,
+            LocalDate dateTo,
+            int createdBy,
+            Integer eventId,
+            LocalDate eventDate,
+            String occasion) {
         UUID requestingUid = stationRepository.resolveUid(requestingStationId);
         UUID owningUid = stationRepository.resolveUid(owningStationId);
         requireLendingPartner(requestingStationId, owningUid);
-        var request = repository.createRequest(requestingUid, owningUid, dateFrom, dateTo, createdBy);
+        var request = repository.createRequest(
+                requestingUid, owningUid, dateFrom, dateTo, createdBy, eventId, eventDate, occasion);
         eventBus.publish(new LendingRequested(
                 requestingStationId,
                 owningStationId,
@@ -152,10 +182,29 @@ public class LendingService {
 
     // -- Requests --
 
-    public LendingRequestItem addRequestItem(int requestId, Integer inventoryId, Integer itemId, int quantity) {
-        LendingRequestItem added = repository.addRequestItem(requestId, inventoryId, itemId, quantity);
+    public LendingRequestItem addRequestItem(
+            int requestId, Integer inventoryId, Integer itemId, Integer artId, int quantity, Integer needId) {
+        LendingRequestItem added = repository.addRequestItem(requestId, inventoryId, itemId, artId, quantity, needId);
         log.info("Lending request {} now asks for {} piece(s) more", requestId, quantity);
         return added;
+    }
+
+    /**
+     * Withdraws the requests an appointment has sent that nobody has settled yet.
+     *
+     * <p>Cancelling an appointment is the moment a partner's shelf has to be given back: the evening
+     * they were holding gear for is not happening, and the partner has no other way of learning that.
+     *
+     * @param eventId   the appointment
+     * @param stationId the station it belongs to
+     * @return how many requests were withdrawn
+     */
+    public int withdrawForEvent(int eventId, int stationId) {
+        int withdrawn = 0;
+        for (var request : repository.findOpenRequestsForEvent(eventId)) {
+            if (declineRequest(request.id(), stationId, "Der Termin wurde abgesagt")) withdrawn++;
+        }
+        return withdrawn;
     }
 
     public List<LendingRequestItem> findRequestItems(int requestId) {
@@ -390,7 +439,9 @@ public class LendingService {
      */
     private void forEachLentItem(int requestId, LentItemAction action) {
         for (var requestItem : repository.findItemsByRequest(requestId)) {
-            if (requestItem.assignedItemId() != null) action.accept(requestItem.id(), requestItem.assignedItemId());
+            for (int itemId : repository.findAssignedItems(requestItem.id())) {
+                action.accept(requestItem.id(), itemId);
+            }
         }
     }
 
@@ -629,10 +680,16 @@ public class LendingService {
                 stationRepository.findByUid(request.owningStationUid()).orElse(null);
         if (owningStation == null) return;
         var lender = lenderAt(owningStation.id());
-        var requestItems = repository.findItemsByRequest(requestId);
-        for (var ri : requestItems) {
-            if (ri.assignedItemId() != null) continue;
-            // If a specific item was requested, assign that one, provided it is ours to lend
+        Instant from = request.requestedDateFrom().atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant to = request.requestedDateTo() == null
+                ? Instant.MAX
+                : request.requestedDateTo()
+                        .plusDays(1)
+                        .atStartOfDay(ZoneOffset.UTC)
+                        .toInstant();
+        for (var ri : repository.findItemsByRequest(requestId)) {
+            int alreadySet = repository.findAssignedItems(ri.id()).size();
+            if (alreadySet >= ri.quantity()) continue;
             if (ri.itemId() != null) {
                 inventoryRepository
                         .findItemById(ri.itemId())
@@ -640,19 +697,31 @@ public class LendingService {
                         .ifPresent(item -> repository.assignItem(ri.id(), item.id()));
                 continue;
             }
-            // Otherwise assign first N free items from the inventory for the requested period
-            if (ri.inventoryId() == null) continue;
-            if (!ownsInventory(lender.stationId(), ri.inventoryId())) continue;
-            var dateTo = request.requestedDateTo() != null
-                    ? request.requestedDateTo()
-                    : request.requestedDateFrom().plusDays(1);
-            var freeItems =
-                    inventoryRepository.findFreeItems(ri.inventoryId(), request.requestedDateFrom(), dateTo).stream()
-                            .filter(lender::owns)
-                            .toList();
-            for (int q = 0; q < ri.quantity() && q < freeItems.size(); q++) {
-                repository.assignItem(ri.id(), freeItems.get(q).id());
+            LineTarget target = ri.target();
+            if (target == null || !ownsTarget(lender.stationId(), target)) continue;
+            var free = availability.freePieces(owningStation.id(), target, from, to).stream()
+                    .map(inventoryRepository::findItemById)
+                    .flatMap(Optional::stream)
+                    .filter(lender::owns)
+                    .toList();
+            for (int q = 0; q < ri.quantity() - alreadySet && q < free.size(); q++) {
+                repository.assignItem(ri.id(), free.get(q).id());
             }
+        }
+    }
+
+    /**
+     * Whether what a line names is the lending station's to offer at all.
+     *
+     * @param stationId the station being asked
+     * @param target    what the line names
+     * @return {@code true} when it belongs to that station
+     */
+    private boolean ownsTarget(int stationId, LineTarget target) {
+        try {
+            return lineTargets.stationOf(target) == stationId;
+        } catch (IllegalArgumentException e) {
+            return false;
         }
     }
 

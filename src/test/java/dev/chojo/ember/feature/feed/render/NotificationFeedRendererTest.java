@@ -374,7 +374,10 @@ class NotificationFeedRendererTest {
                         LocalDate.of(2026, 10, 7),
                         99,
                         Instant.now(),
-                        Instant.now())));
+                        Instant.now(),
+                        null,
+                        null,
+                        "")));
         var n = notification(
                 52,
                 NotificationType.LENDING_NEW_REQUEST,

@@ -28,9 +28,13 @@ import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
 import dev.chojo.ember.feature.cluster.service.ClusterContentService;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
+import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
+import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
+import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
@@ -300,6 +304,12 @@ class DemoServiceTest extends RepositoryTestBase {
                 itemCustodyService,
                 borrowedGearService,
                 new InventoryShareService(new InventoryShareRepository(), federationService, inventoryRepo, artRepo),
+                lineTargetService,
+                new EquipmentAvailabilityService(
+                        new EquipmentAvailabilityRepository(),
+                        new EquipmentNeedRepository(),
+                        eventRepo,
+                        new EventBreakService(eventBreakRepo)),
                 noOpBus);
         var federatedBoardService = new FederatedBoardService(federatedBoardRepo);
 

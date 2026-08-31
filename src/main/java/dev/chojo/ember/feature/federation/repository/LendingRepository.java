@@ -35,9 +35,9 @@ import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 public class LendingRepository {
     private static final String LENDING_REQUEST_COLUMNS = """
             id, requesting_station_uid, owning_station_uid, status, requested_date_from, \
-            requested_date_to, created_by, created_at, updated_at""";
+            requested_date_to, created_by, created_at, updated_at, event_id, event_date, occasion""";
     private static final String LENDING_REQUEST_ITEM_COLUMNS =
-            "id, request_id, inventory_id, item_id, quantity, assigned_item_id";
+            "id, request_id, inventory_id, item_id, art_id, quantity, need_id";
     private static final String LENDING_MESSAGE_COLUMNS =
             "id, request_id, sender_station_uid, sender_member_id, message, is_system, created_at";
     private static final String INVENTORY_BLOCK_COLUMNS =
@@ -46,20 +46,46 @@ public class LendingRepository {
     // -- Lending Requests --
 
     public LendingRequest createRequest(
-            UUID requestingStationUid, UUID owningStationUid, LocalDate dateFrom, LocalDate dateTo, int createdBy) {
+            UUID requestingStationUid,
+            UUID owningStationUid,
+            LocalDate dateFrom,
+            LocalDate dateTo,
+            int createdBy,
+            Integer eventId,
+            LocalDate eventDate,
+            String occasion) {
         return insertReturning(
                 """
-                INSERT INTO federation_lending_request(requesting_station_uid, owning_station_uid, status, requested_date_from, requested_date_to, created_by)
-                VALUES (:requesting_station_uid::uuid, :owning_station_uid::uuid, :status, :date_from, :date_to, :created_by)
+                INSERT INTO federation_lending_request(requesting_station_uid, owning_station_uid, status, requested_date_from, requested_date_to, created_by, event_id, event_date, occasion)
+                VALUES (:requesting_station_uid::uuid, :owning_station_uid::uuid, :status, :date_from, :date_to, :created_by, :event_id, :event_date, :occasion)
                 RETURNING %s;""",
                 call().bind("requesting_station_uid", requestingStationUid, StandardValueConverter.UUID_STRING)
                         .bind("owning_station_uid", owningStationUid, StandardValueConverter.UUID_STRING)
                         .bind("status", LendingStatus.REQUESTED)
                         .bind("date_from", dateFrom)
                         .bind("date_to", dateTo)
-                        .bind("created_by", createdBy),
+                        .bind("created_by", createdBy)
+                        .bind("event_id", eventId)
+                        .bind("event_date", eventDate)
+                        .bind("occasion", occasion == null ? "" : occasion),
                 LendingRequest.map(),
                 LENDING_REQUEST_COLUMNS);
+    }
+
+    /**
+     * The open requests one appointment has sent, which cancelling it has to withdraw.
+     *
+     * @param eventId the appointment
+     * @return the requests that have not been settled yet
+     */
+    public List<LendingRequest> findOpenRequestsForEvent(int eventId) {
+        return query("""
+                SELECT %s FROM federation_lending_request
+                WHERE event_id = :event_id AND status IN ('REQUESTED', 'APPROVED')
+                ORDER BY id;""", LENDING_REQUEST_COLUMNS)
+                .single(call().bind("event_id", eventId))
+                .map(LendingRequest.map())
+                .all();
     }
 
     public Optional<LendingRequest> findRequestById(int id) {
@@ -88,16 +114,19 @@ public class LendingRepository {
 
     // -- Lending Request Items --
 
-    public LendingRequestItem addRequestItem(int requestId, Integer inventoryId, Integer itemId, int quantity) {
+    public LendingRequestItem addRequestItem(
+            int requestId, Integer inventoryId, Integer itemId, Integer artId, int quantity, Integer needId) {
         return insertReturning(
                 """
-                INSERT INTO federation_lending_request_item(request_id, inventory_id, item_id, quantity)
-                VALUES (:request_id, :inventory_id, :item_id, :quantity)
+                INSERT INTO federation_lending_request_item(request_id, inventory_id, item_id, art_id, quantity, need_id)
+                VALUES (:request_id, :inventory_id, :item_id, :art_id, :quantity, :need_id)
                 RETURNING %s;""",
                 call().bind("request_id", requestId)
                         .bind("inventory_id", inventoryId)
                         .bind("item_id", itemId)
-                        .bind("quantity", quantity),
+                        .bind("art_id", artId)
+                        .bind("quantity", quantity)
+                        .bind("need_id", needId),
                 LendingRequestItem.map(),
                 LENDING_REQUEST_ITEM_COLUMNS);
     }
@@ -111,10 +140,55 @@ public class LendingRepository {
                 .all();
     }
 
+    /**
+     * Sets one more piece aside for a line.
+     *
+     * <p>Adding rather than replacing, which is the whole reason the assignment left the request line:
+     * a line asking for four blue radios is answered with four of them, and a single column could only
+     * ever hold the last one written.
+     *
+     * @param requestItemId  the line
+     * @param assignedItemId the piece
+     * @return {@code true} when the piece was not already set aside for that line
+     */
     public boolean assignItem(int requestItemId, int assignedItemId) {
-        return query("UPDATE federation_lending_request_item SET assigned_item_id = :assigned_item_id WHERE id = :id;")
-                .single(call().bind("id", requestItemId).bind("assigned_item_id", assignedItemId))
-                .update()
+        return query("""
+                INSERT INTO federation_lending_request_item_assignment(request_item_id, item_id)
+                VALUES (:request_item_id, :item_id)
+                ON CONFLICT (request_item_id, item_id) DO NOTHING;""")
+                .single(call().bind("request_item_id", requestItemId).bind("item_id", assignedItemId))
+                .insert()
+                .changed();
+    }
+
+    /**
+     * The pieces set aside for one line.
+     *
+     * @param requestItemId the line
+     * @return the piece IDs, in a stable order
+     */
+    public List<Integer> findAssignedItems(int requestItemId) {
+        return query("""
+                SELECT item_id FROM federation_lending_request_item_assignment
+                WHERE request_item_id = :request_item_id ORDER BY item_id;""")
+                .single(call().bind("request_item_id", requestItemId))
+                .map(row -> row.getInt("item_id"))
+                .all();
+    }
+
+    /**
+     * Takes a piece back out of a line.
+     *
+     * @param requestItemId  the line
+     * @param assignedItemId the piece
+     * @return {@code true} if a row went
+     */
+    public boolean unassignItem(int requestItemId, int assignedItemId) {
+        return query("""
+                DELETE FROM federation_lending_request_item_assignment
+                WHERE request_item_id = :request_item_id AND item_id = :item_id;""")
+                .single(call().bind("request_item_id", requestItemId).bind("item_id", assignedItemId))
+                .delete()
                 .changed();
     }
 
@@ -125,7 +199,7 @@ public class LendingRepository {
                     r.id                  AS request_id,
                     ri.item_id,
                     ri.quantity,
-                    ri.assigned_item_id,
+                    a.item_id             AS assigned_item_id,
                     r.status,
                     r.requested_date_from AS date_from,
                     r.requested_date_to   AS date_to,
@@ -134,6 +208,8 @@ public class LendingRepository {
                     federation_lending_request_item ri
                         JOIN federation_lending_request r
                         ON r.id = ri.request_id
+                        LEFT JOIN federation_lending_request_item_assignment a
+                        ON a.request_item_id = ri.id
                         LEFT JOIN station s
                         ON s.uid = r.requesting_station_uid
                 WHERE ri.inventory_id = :inventory_id
