@@ -258,9 +258,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         }
 
         service.setValues(
-                member3.id(),
-                List.of(new FieldValueEntry(chooser.id(), "\"A\"", FieldOrigin.STATION)),
-                member3.id());
+                member3.id(), List.of(new FieldValueEntry(chooser.id(), "\"A\"", FieldOrigin.STATION)), member3.id());
         assertTrue(service.isProfileComplete(member3.id()));
 
         service.delete(chooser.id());
