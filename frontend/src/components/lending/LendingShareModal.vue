@@ -19,7 +19,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import * as federation from '@/api/federation'
 import * as lending from '@/api/lending'
-import type {ShareGrantName, ShareScopeName} from '@/api/lending'
+import type {ShareGrantName, ShareScopeName, ShareTarget} from '@/api/lending'
 
 /**
  * The one place a station says what it offers a partner, used from the inventory and from a single
@@ -29,7 +29,7 @@ import type {ShareGrantName, ShareScopeName} from '@/api/lending'
 const open = defineModel<boolean>({default: false})
 
 const props = defineProps<{
-  target: 'inventory' | 'item'
+  target: ShareTarget
   targetId: number
   targetName: string
 }>()
@@ -47,7 +47,7 @@ const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
 
-const isItem = computed(() => props.target === 'item')
+const grantHint = computed(() => t(`lendingShare.grantHint.${props.target}`))
 
 async function load() {
   loading.value = true
@@ -55,9 +55,7 @@ async function load() {
   try {
     const partners = await federation.listPartners()
     partnerOptions.value = partners.map(p => ({value: String(p.partner.id), label: p.partnerStationName}))
-    const setting = isItem.value
-        ? await lending.getItemShare(props.targetId)
-        : await lending.getInventoryShare(props.targetId)
+    const setting = await lending.getShare(props.target, props.targetId)
     shared.value = setting.shared
     grant.value = setting.grant ?? 'GRANT'
     scope.value = setting.scope ?? 'ALL_PARTNERS'
@@ -78,8 +76,7 @@ async function save() {
   error.value = ''
   try {
     const payload = {grant: grant.value, scope: scope.value, partnerIds: partnerIds.value.map(Number)}
-    if (isItem.value) await lending.setItemShare(props.targetId, payload)
-    else await lending.setInventoryShare(props.targetId, payload)
+    await lending.setShare(props.target, props.targetId, payload)
     shared.value = true
     emit('saved')
     open.value = false
@@ -94,8 +91,7 @@ async function clear() {
   saving.value = true
   error.value = ''
   try {
-    if (isItem.value) await lending.removeItemShare(props.targetId)
-    else await lending.removeInventoryShare(props.targetId)
+    await lending.removeShare(props.target, props.targetId)
     shared.value = false
     emit('saved')
     open.value = false
@@ -123,7 +119,7 @@ async function clear() {
             <option value="GRANT">{{ t('lendingShare.grantValues.GRANT') }}</option>
             <option value="WITHHOLD">{{ t('lendingShare.grantValues.WITHHOLD') }}</option>
           </SelectInput>
-          <FieldHint>{{ isItem ? t('lendingShare.grantHintItem') : t('lendingShare.grantHintInventory') }}</FieldHint>
+          <FieldHint>{{ grantHint }}</FieldHint>
         </div>
 
         <div>

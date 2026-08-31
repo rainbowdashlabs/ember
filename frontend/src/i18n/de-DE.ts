@@ -4123,11 +4123,12 @@ export default {
     },
     lendingShare: {
         overview: 'Ausleih-Angebot',
-        overviewHint: 'Nichts wird angeboten, bis es hier steht. Der engste Eintrag entscheidet: ein einzelner Gegenstand schlägt sein Inventar.',
+        overviewHint: 'Nichts wird angeboten, bis es hier steht. Der engste Eintrag entscheidet: ein Gegenstand schlägt seine Art, eine Art schlägt ihr Inventar.',
         offered: 'Angeboten',
         withheld: 'Zurückgehalten',
         nothingOffered: 'Diese Wache bietet ihren Partnern derzeit nichts an.',
         levelInventory: 'Inventar',
+        levelArt: 'Art',
         levelItem: 'Gegenstand',
         noPartnersNamed: 'Keine Partnerwache benannt',
         panelTitle: 'Ausleihe an Partner',
@@ -4143,8 +4144,11 @@ export default {
             GRANT: 'Anbieten',
             WITHHOLD: 'Zurückhalten',
         },
-        grantHintInventory: 'Angeboten heißt: alles in diesem Inventar, außer wo ein einzelner Gegenstand etwas anderes sagt.',
-        grantHintItem: 'Ein Gegenstand schlägt sein Inventar, in beide Richtungen.',
+        grantHint: {
+            inventory: 'Angeboten heißt: alles in diesem Inventar, außer wo eine Art oder ein einzelner Gegenstand etwas anderes sagt.',
+            art: 'Eine Art schlägt ihr Inventar, in beide Richtungen, und wird ihrerseits von einem einzelnen Gegenstand geschlagen.',
+            item: 'Ein Gegenstand schlägt seine Art und sein Inventar, in beide Richtungen.',
+        },
         scope: 'Für wen',
         scopeValues: {
             ALL_PARTNERS: 'Alle Partnerwachen',

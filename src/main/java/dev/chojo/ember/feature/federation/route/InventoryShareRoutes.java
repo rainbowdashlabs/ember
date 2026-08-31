@@ -13,6 +13,8 @@ import dev.chojo.ember.feature.federation.entity.ShareGrant;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.InventoryShareService;
+import dev.chojo.ember.feature.inventory.entity.InventoryArt;
+import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
@@ -37,6 +39,7 @@ public class InventoryShareRoutes implements Routes {
 
     private final InventoryShareService service;
     private final InventoryRepository inventoryRepository;
+    private final InventoryArtRepository artRepository;
     private final FederationService federationService;
     private final StationRepository stationRepository;
 
@@ -44,10 +47,12 @@ public class InventoryShareRoutes implements Routes {
     public InventoryShareRoutes(
             InventoryShareService service,
             InventoryRepository inventoryRepository,
+            InventoryArtRepository artRepository,
             FederationService federationService,
             StationRepository stationRepository) {
         this.service = service;
         this.inventoryRepository = inventoryRepository;
+        this.artRepository = artRepository;
         this.federationService = federationService;
         this.stationRepository = stationRepository;
     }
@@ -66,6 +71,14 @@ public class InventoryShareRoutes implements Routes {
         routes.delete(
                 prefix + "/lending/shares/inventory/{inventoryId}",
                 this::deleteInventoryShare,
+                StationPermission.INVENTORY_LENDING_MANAGER);
+        routes.get(
+                prefix + "/lending/shares/art/{artId}", this::getArtShare, StationPermission.INVENTORY_LENDING_MANAGER);
+        routes.put(
+                prefix + "/lending/shares/art/{artId}", this::setArtShare, StationPermission.INVENTORY_LENDING_MANAGER);
+        routes.delete(
+                prefix + "/lending/shares/art/{artId}",
+                this::deleteArtShare,
                 StationPermission.INVENTORY_LENDING_MANAGER);
         routes.get(
                 prefix + "/lending/shares/item/{itemId}",
@@ -96,21 +109,38 @@ public class InventoryShareRoutes implements Routes {
 
     private ShareDetail describe(
             InventoryShare share, Map<Integer, String> inventoryNames, Map<Integer, String> partnerNames) {
-        String inventoryName;
+        String inventoryName = null;
+        String artName = null;
         String itemName = null;
         String itemInternalId = null;
-        if (share.aboutItem()) {
-            var item = inventoryRepository.findItemById(share.itemId()).orElse(null);
-            itemName = item != null ? item.name() : null;
-            itemInternalId = item != null ? item.internalId() : null;
-            inventoryName = item != null ? inventoryNames.get(item.inventoryId()) : null;
-        } else {
-            inventoryName = inventoryNames.get(share.inventoryId());
+        switch (share.level()) {
+            case ITEM -> {
+                var item = inventoryRepository.findItemById(share.itemId()).orElse(null);
+                if (item != null) {
+                    itemName = item.name();
+                    itemInternalId = item.internalId();
+                    inventoryName = inventoryNames.get(item.inventoryId());
+                    if (item.artId() != null) {
+                        artName = artRepository
+                                .findById(item.artId())
+                                .map(InventoryArt::name)
+                                .orElse(null);
+                    }
+                }
+            }
+            case ART -> {
+                var art = artRepository.findById(share.artId()).orElse(null);
+                if (art != null) {
+                    artName = art.name();
+                    inventoryName = inventoryNames.get(art.inventoryId());
+                }
+            }
+            case INVENTORY -> inventoryName = inventoryNames.get(share.inventoryId());
         }
         var targets = service.findTargets(share.id()).stream()
                 .map(partnerId -> new SharePartner(partnerId, partnerNames.getOrDefault(partnerId, "?")))
                 .toList();
-        return new ShareDetail(share, inventoryName, itemName, itemInternalId, targets);
+        return new ShareDetail(share, inventoryName, artName, itemName, itemInternalId, targets);
     }
 
     private Map<Integer, String> partnerNames(int stationId) {
@@ -129,6 +159,14 @@ public class InventoryShareRoutes implements Routes {
         var session = UserSession.from(ctx);
         int inventoryId = pathInt(ctx, "inventoryId");
         ctx.json(service.findForInventory(session.stationId(), inventoryId)
+                .map(this::toSetting)
+                .orElseGet(ShareSetting::unshared));
+    }
+
+    private void getArtShare(Context ctx) {
+        var session = UserSession.from(ctx);
+        int artId = pathInt(ctx, "artId");
+        ctx.json(service.findForArt(session.stationId(), artId)
                 .map(this::toSetting)
                 .orElseGet(ShareSetting::unshared));
     }
@@ -154,6 +192,14 @@ public class InventoryShareRoutes implements Routes {
         ctx.json(toSetting(share));
     }
 
+    private void setArtShare(Context ctx) {
+        var session = UserSession.from(ctx);
+        int artId = pathInt(ctx, "artId");
+        var body = readBody(ctx);
+        var share = service.setArtShare(session.stationId(), artId, body.scope(), body.grant(), body.partnerIdList());
+        ctx.json(toSetting(share));
+    }
+
     private void setItemShare(Context ctx) {
         var session = UserSession.from(ctx);
         int itemId = pathInt(ctx, "itemId");
@@ -165,6 +211,12 @@ public class InventoryShareRoutes implements Routes {
     private void deleteInventoryShare(Context ctx) {
         var session = UserSession.from(ctx);
         service.removeInventoryShare(session.stationId(), pathInt(ctx, "inventoryId"));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    private void deleteArtShare(Context ctx) {
+        var session = UserSession.from(ctx);
+        service.removeArtShare(session.stationId(), pathInt(ctx, "artId"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -205,6 +257,7 @@ public class InventoryShareRoutes implements Routes {
     public record ShareDetail(
             InventoryShare share,
             String inventoryName,
+            String artName,
             String itemName,
             String itemInternalId,
             List<SharePartner> partners) {}

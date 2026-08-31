@@ -75,7 +75,7 @@ class LendingServiceTest extends RepositoryTestBase {
         federationRepo = new FederationRepository();
         shareRepo = new InventoryShareRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
-        shareService = new InventoryShareService(shareRepo, federationService, inventoryRepo);
+        shareService = new InventoryShareService(shareRepo, federationService, inventoryRepo, artRepo);
         httpClient = mock(FederationHttpClient.class);
         service = new LendingService(
                 lendingRepo,

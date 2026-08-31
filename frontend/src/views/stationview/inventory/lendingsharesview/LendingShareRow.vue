@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -11,7 +12,7 @@ import StationBadge from '@/components/badge/StationBadge.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import type {ShareDetail} from '@/api/lending'
 
-defineProps<{
+const props = defineProps<{
   detail: ShareDetail
   label: string
 }>()
@@ -19,6 +20,12 @@ defineProps<{
 defineEmits<{ edit: [] }>()
 
 const {t} = useI18n()
+
+const levelLabel = computed(() => {
+  if (props.detail.share.itemId != null) return t('lendingShare.levelItem')
+  if (props.detail.share.artId != null) return t('lendingShare.levelArt')
+  return t('lendingShare.levelInventory')
+})
 </script>
 
 <template>
@@ -27,9 +34,7 @@ const {t} = useI18n()
       <div class="flex flex-col gap-1">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="font-medium">{{ label }}</span>
-          <InfoBadge>
-            {{ detail.share.itemId != null ? t('lendingShare.levelItem') : t('lendingShare.levelInventory') }}
-          </InfoBadge>
+          <InfoBadge>{{ levelLabel }}</InfoBadge>
         </div>
         <div class="flex items-center gap-1 flex-wrap text-xs text-[var(--text-muted)]">
           <template v-if="detail.share.shareScope === 'ALL_PARTNERS'">

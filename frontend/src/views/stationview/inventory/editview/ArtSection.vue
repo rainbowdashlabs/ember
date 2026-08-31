@@ -19,6 +19,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import LendingShareButton from '@/components/lending/LendingShareButton.vue'
 import {inventoryArts} from '@/api'
 import type {ArtStock, InventoryArt} from '@/api/inventoryArts'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
@@ -144,6 +145,7 @@ watch(() => props.inventoryId, load, {immediate: true})
         <MutedText size="sm">
           {{ t('inventory.art.pieces', {pieces: stockByArt.get(art.id)?.pieces ?? 0, free: stockByArt.get(art.id)?.free ?? 0}) }}
         </MutedText>
+        <LendingShareButton :target-id="art.id" :target-name="art.name" target="art"/>
         <EditButton @click="openEdit(art)"/>
         <DeleteButton @click="requestDelete(art)"/>
       </div>

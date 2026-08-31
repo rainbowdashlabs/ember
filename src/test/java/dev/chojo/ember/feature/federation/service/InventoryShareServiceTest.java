@@ -42,9 +42,12 @@ class InventoryShareServiceTest extends RepositoryTestBase {
     private static Station partnerStation;
     private static Station strangerStation;
     private static int inventoryId;
-    private static int firstItemId;
-    private static int secondItemId;
+    private static int radioArtId;
+    private static int firstRadioId;
+    private static int secondRadioId;
+    private static int looseItemId;
     private static int foreignInventoryId;
+    private static int foreignArtId;
     private static int foreignItemId;
     private static int partnerId;
 
@@ -53,7 +56,7 @@ class InventoryShareServiceTest extends RepositoryTestBase {
         shareRepo = new InventoryShareRepository();
         federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
-        service = new InventoryShareService(shareRepo, federationService, inventoryRepo);
+        service = new InventoryShareService(shareRepo, federationService, inventoryRepo, artRepo);
 
         owner = stationRepo.create("ShareSvcOwner");
         partnerStation = stationRepo.create("ShareSvcPartner");
@@ -62,16 +65,22 @@ class InventoryShareServiceTest extends RepositoryTestBase {
         inventoryId = inventoryRepo
                 .create(owner.id(), "ShareSvcInventory", InventoryType.INTERNAL, false)
                 .id();
-        firstItemId = inventoryRepo
-                .createItem(inventoryId, "SSV-001", "Share Svc One", null, null)
+        radioArtId = artRepo.create(inventoryId, "Funkgerät", "", 0).id();
+        firstRadioId = inventoryRepo
+                .createItem(inventoryId, "SSV-001", "Funkgerät blau", null, null)
                 .id();
-        secondItemId = inventoryRepo
-                .createItem(inventoryId, "SSV-002", "Share Svc Two", null, null)
+        secondRadioId = inventoryRepo
+                .createItem(inventoryId, "SSV-002", "Funkgerät grün", null, null)
                 .id();
+        looseItemId = inventoryRepo
+                .createItem(inventoryId, "SSV-003", "Ladeschale", null, null)
+                .id();
+        artRepo.setArt(radioArtId, List.of(firstRadioId, secondRadioId));
 
         foreignInventoryId = inventoryRepo
                 .create(strangerStation.id(), "ShareSvcForeign", InventoryType.INTERNAL, false)
                 .id();
+        foreignArtId = artRepo.create(foreignInventoryId, "Fremde Art", "", 0).id();
         foreignItemId = inventoryRepo
                 .createItem(foreignInventoryId, "SSV-F01", "Foreign Item", null, null)
                 .id();
@@ -85,8 +94,10 @@ class InventoryShareServiceTest extends RepositoryTestBase {
     @AfterEach
     void clearShares() {
         service.removeInventoryShare(owner.id(), inventoryId);
-        service.removeItemShare(owner.id(), firstItemId);
-        service.removeItemShare(owner.id(), secondItemId);
+        service.removeArtShare(owner.id(), radioArtId);
+        service.removeItemShare(owner.id(), firstRadioId);
+        service.removeItemShare(owner.id(), secondRadioId);
+        service.removeItemShare(owner.id(), looseItemId);
         federationService.setCapability(partnerId, CapabilityType.INVENTORY_LEND, Direction.EXPORT, true);
     }
 
@@ -103,7 +114,7 @@ class InventoryShareServiceTest extends RepositoryTestBase {
     void gearNobodyHasSpokenAboutIsNotOffered() {
         var policy = service.policyFor(owner.id(), partnerStation.uid());
         assertFalse(policy.offersAnything());
-        assertFalse(policy.allows(inventoryId, firstItemId));
+        assertFalse(policy.allows(inventoryId, radioArtId, firstRadioId));
         assertFalse(policy.allowsInventory(inventoryId));
     }
 
@@ -116,59 +127,92 @@ class InventoryShareServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void sharingAnInventoryReachesEveryItemInIt() {
+    void sharingAnInventoryReachesEveryPieceInIt() {
         service.setInventoryShare(owner.id(), inventoryId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
         var policy = service.policyFor(owner.id(), partnerStation.uid());
 
         assertTrue(policy.offersAnything());
         assertTrue(policy.allowsInventory(inventoryId));
-        assertTrue(policy.allows(inventoryId, firstItemId));
-        assertTrue(policy.allows(inventoryId, secondItemId));
+        assertTrue(policy.allows(inventoryId, radioArtId, firstRadioId));
+        assertTrue(policy.allows(inventoryId, null, looseItemId));
         assertEquals(
-                2,
+                3,
                 service.filterShared(policy, inventoryRepo.findItems(inventoryId))
                         .size());
     }
 
     @Test
-    void anItemRowBeatsTheInventoryRowAboveIt() {
+    void aKindRowBeatsTheInventoryRowAboveIt() {
         service.setInventoryShare(owner.id(), inventoryId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
-        service.setItemShare(owner.id(), firstItemId, ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of());
+        service.setArtShare(owner.id(), radioArtId, ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of());
 
         var policy = service.policyFor(owner.id(), partnerStation.uid());
-        assertFalse(policy.allows(inventoryId, firstItemId));
-        assertTrue(policy.allows(inventoryId, secondItemId));
+        assertFalse(policy.allows(inventoryId, radioArtId, firstRadioId));
+        assertFalse(policy.allows(inventoryId, radioArtId, secondRadioId));
+        assertTrue(policy.allows(inventoryId, null, looseItemId));
         assertEquals(
-                List.of(secondItemId),
+                List.of(looseItemId),
                 service.filterShared(policy, inventoryRepo.findItems(inventoryId)).stream()
                         .map(item -> item.id())
                         .toList());
     }
 
     @Test
+    void aPieceRowBeatsItsKindRow() {
+        service.setInventoryShare(owner.id(), inventoryId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+        service.setArtShare(owner.id(), radioArtId, ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of());
+        service.setItemShare(owner.id(), firstRadioId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+
+        var policy = service.policyFor(owner.id(), partnerStation.uid());
+        assertTrue(policy.allows(inventoryId, radioArtId, firstRadioId));
+        assertFalse(policy.allows(inventoryId, radioArtId, secondRadioId));
+    }
+
+    @Test
+    void aKindCanBeOfferedOutOfAnInventoryNobodyOffers() {
+        service.setArtShare(owner.id(), radioArtId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+
+        var policy = service.policyFor(owner.id(), partnerStation.uid());
+        assertTrue(policy.offersAnything());
+        assertTrue(policy.allows(inventoryId, radioArtId, firstRadioId));
+        assertFalse(policy.allows(inventoryId, null, looseItemId));
+    }
+
+    @Test
+    void anItemRowBeatsTheInventoryRowAboveIt() {
+        service.setInventoryShare(owner.id(), inventoryId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+        service.setItemShare(owner.id(), looseItemId, ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of());
+
+        var policy = service.policyFor(owner.id(), partnerStation.uid());
+        assertFalse(policy.allows(inventoryId, null, looseItemId));
+        assertTrue(policy.allows(inventoryId, radioArtId, firstRadioId));
+    }
+
+    @Test
     void withholdingOnItsOwnDoesNothing() {
-        service.setItemShare(owner.id(), firstItemId, ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of());
+        service.setItemShare(owner.id(), firstRadioId, ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of());
+        service.setArtShare(owner.id(), radioArtId, ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of());
         var policy = service.policyFor(owner.id(), partnerStation.uid());
         assertFalse(policy.offersAnything());
-        assertFalse(policy.allows(inventoryId, firstItemId));
+        assertFalse(policy.allows(inventoryId, radioArtId, firstRadioId));
     }
 
     @Test
     void aRowThatNamesOtherPartnersStillBeatsTheRowAboveIt() {
         service.setInventoryShare(owner.id(), inventoryId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
-        service.setItemShare(owner.id(), firstItemId, ShareScope.SPECIFIC, ShareGrant.GRANT, List.of());
+        service.setArtShare(owner.id(), radioArtId, ShareScope.SPECIFIC, ShareGrant.GRANT, List.of());
 
         var policy = service.policyFor(owner.id(), partnerStation.uid());
-        assertFalse(policy.allows(inventoryId, firstItemId));
-        assertTrue(policy.allows(inventoryId, secondItemId));
+        assertFalse(policy.allows(inventoryId, radioArtId, firstRadioId));
+        assertTrue(policy.allows(inventoryId, null, looseItemId));
     }
 
     @Test
     void aRowThatNamesThisPartnerReachesIt() {
-        service.setItemShare(owner.id(), firstItemId, ShareScope.SPECIFIC, ShareGrant.GRANT, List.of(partnerId));
+        service.setItemShare(owner.id(), firstRadioId, ShareScope.SPECIFIC, ShareGrant.GRANT, List.of(partnerId));
 
         var policy = service.policyFor(owner.id(), partnerStation.uid());
-        assertTrue(policy.allows(inventoryId, firstItemId));
+        assertTrue(policy.allows(inventoryId, radioArtId, firstRadioId));
         assertTrue(policy.offersAnything());
         assertEquals(
                 List.of(partnerId),
@@ -177,12 +221,13 @@ class InventoryShareServiceTest extends RepositoryTestBase {
 
     @Test
     void switchingToEverybodyDropsTheNamedPartners() {
-        service.setItemShare(owner.id(), firstItemId, ShareScope.SPECIFIC, ShareGrant.GRANT, List.of(partnerId));
-        service.setItemShare(owner.id(), firstItemId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of(partnerId));
+        service.setItemShare(owner.id(), firstRadioId, ShareScope.SPECIFIC, ShareGrant.GRANT, List.of(partnerId));
+        service.setItemShare(owner.id(), firstRadioId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of(partnerId));
 
-        int shareId = service.findForItem(owner.id(), firstItemId).orElseThrow().id();
+        int shareId =
+                service.findForItem(owner.id(), firstRadioId).orElseThrow().id();
         assertTrue(service.findTargets(shareId).isEmpty());
-        assertTrue(service.policyFor(owner.id(), partnerStation.uid()).allows(inventoryId, firstItemId));
+        assertTrue(service.policyFor(owner.id(), partnerStation.uid()).allows(inventoryId, radioArtId, firstRadioId));
     }
 
     @Test
@@ -193,7 +238,7 @@ class InventoryShareServiceTest extends RepositoryTestBase {
         var policy = service.policyFor(owner.id(), partnerStation.uid());
         assertFalse(policy.lendingEnabled());
         assertFalse(policy.offersAnything());
-        assertFalse(policy.allows(inventoryId, firstItemId));
+        assertFalse(policy.allows(inventoryId, radioArtId, firstRadioId));
     }
 
     @Test
@@ -204,20 +249,30 @@ class InventoryShareServiceTest extends RepositoryTestBase {
                         owner.id(), foreignInventoryId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of()));
         assertThrows(
                 NotFoundResponse.class,
+                () -> service.setArtShare(
+                        owner.id(), foreignArtId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of()));
+        assertThrows(
+                NotFoundResponse.class,
                 () -> service.setItemShare(
                         owner.id(), foreignItemId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of()));
         assertThrows(
                 NotFoundResponse.class,
                 () -> service.setItemShare(
                         owner.id(), Integer.MAX_VALUE, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of()));
+        assertThrows(
+                NotFoundResponse.class,
+                () -> service.setArtShare(
+                        owner.id(), Integer.MAX_VALUE, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of()));
     }
 
     @Test
     void removingAShareThatWasNeverThereChangesNothing() {
         assertFalse(service.removeInventoryShare(owner.id(), inventoryId));
-        assertFalse(service.removeItemShare(owner.id(), firstItemId));
+        assertFalse(service.removeArtShare(owner.id(), radioArtId));
+        assertFalse(service.removeItemShare(owner.id(), firstRadioId));
         assertTrue(service.findShares(owner.id()).isEmpty());
         assertTrue(service.findForInventory(owner.id(), inventoryId).isEmpty());
+        assertTrue(service.findForArt(owner.id(), radioArtId).isEmpty());
     }
 
     @Test
@@ -225,13 +280,14 @@ class InventoryShareServiceTest extends RepositoryTestBase {
         var closed = SharePolicy.closed();
         assertFalse(closed.lendingEnabled());
         assertFalse(closed.offersAnything());
-        assertFalse(closed.allows(1, 1));
+        assertFalse(closed.allows(1, 1, 1));
         assertFalse(closed.allowsInventory(1));
     }
 
     @Test
     void aPolicyWithoutAGrantOffersNothing() {
-        var withheldOnly = new SharePolicy(true, Map.of(inventoryId, false), Map.of(firstItemId, false));
+        var withheldOnly = new SharePolicy(
+                true, Map.of(inventoryId, false), Map.of(radioArtId, false), Map.of(firstRadioId, false));
         assertFalse(withheldOnly.offersAnything());
         assertFalse(withheldOnly.allowsInventory(inventoryId));
     }

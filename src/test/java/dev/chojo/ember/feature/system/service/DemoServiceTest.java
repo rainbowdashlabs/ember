@@ -299,7 +299,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 clusterRepo,
                 itemCustodyService,
                 borrowedGearService,
-                new InventoryShareService(new InventoryShareRepository(), federationService, inventoryRepo),
+                new InventoryShareService(new InventoryShareRepository(), federationService, inventoryRepo, artRepo),
                 noOpBus);
         var federatedBoardService = new FederatedBoardService(federatedBoardRepo);
 
@@ -409,8 +409,9 @@ class DemoServiceTest extends RepositoryTestBase {
                 apiConfig);
         var lendingSeeder = new DemoLendingSeeder(
                 lendingService,
-                new InventoryShareService(new InventoryShareRepository(), federationService, inventoryRepo),
-                inventoryRepo);
+                new InventoryShareService(new InventoryShareRepository(), federationService, inventoryRepo, artRepo),
+                inventoryRepo,
+                artRepo);
         var boardSeeder = new DemoBoardSeeder(
                 boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory);
         var procedureSeeder = new DemoProcedureSeeder(procedureRepo);

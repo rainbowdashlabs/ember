@@ -164,10 +164,14 @@ export interface InventoryShare {
     id: number
     stationId: number
     inventoryId: number | null
+    artId: number | null
     itemId: number | null
     shareScope: ShareScopeName
     shareGrant: ShareGrantName
 }
+
+/** Which of the three levels a sharing row speaks at. The narrowest one that exists decides. */
+export type ShareTarget = 'inventory' | 'art' | 'item'
 
 export interface SharePartner {
     partnerId: number
@@ -177,6 +181,7 @@ export interface SharePartner {
 export interface ShareDetail {
     share: InventoryShare
     inventoryName: string | null
+    artName: string | null
     itemName: string | null
     itemInternalId: string | null
     partners: SharePartner[]
@@ -223,32 +228,23 @@ export async function listShares(): Promise<ShareDetail[]> {
     return res.data
 }
 
-export async function getInventoryShare(inventoryId: number): Promise<ShareSetting> {
-    const res = await client.get<ShareSetting>(`/lending/shares/inventory/${inventoryId}`)
+/**
+ * What is currently said about one inventory, one kind or one piece. The three levels answer the
+ * same shape, so the level travels as an argument rather than splitting into three near-identical
+ * calls that every caller would then have to choose between.
+ */
+export async function getShare(target: ShareTarget, id: number): Promise<ShareSetting> {
+    const res = await client.get<ShareSetting>(`/lending/shares/${target}/${id}`)
     return res.data
 }
 
-export async function setInventoryShare(inventoryId: number, payload: SetSharePayload): Promise<ShareSetting> {
-    const res = await client.put<ShareSetting>(`/lending/shares/inventory/${inventoryId}`, payload)
+export async function setShare(target: ShareTarget, id: number, payload: SetSharePayload): Promise<ShareSetting> {
+    const res = await client.put<ShareSetting>(`/lending/shares/${target}/${id}`, payload)
     return res.data
 }
 
-export async function removeInventoryShare(inventoryId: number): Promise<void> {
-    await client.delete(`/lending/shares/inventory/${inventoryId}`)
-}
-
-export async function getItemShare(itemId: number): Promise<ShareSetting> {
-    const res = await client.get<ShareSetting>(`/lending/shares/item/${itemId}`)
-    return res.data
-}
-
-export async function setItemShare(itemId: number, payload: SetSharePayload): Promise<ShareSetting> {
-    const res = await client.put<ShareSetting>(`/lending/shares/item/${itemId}`, payload)
-    return res.data
-}
-
-export async function removeItemShare(itemId: number): Promise<void> {
-    await client.delete(`/lending/shares/item/${itemId}`)
+export async function removeShare(target: ShareTarget, id: number): Promise<void> {
+    await client.delete(`/lending/shares/${target}/${id}`)
 }
 
 // -- Requests --

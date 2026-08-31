@@ -27,6 +27,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryLendingShares.narrowestText') }}</p>
       <HelpList>
         <li>{{ t('helpCenter.inventoryLendingShares.narrowestItem') }}</li>
+        <li>{{ t('helpCenter.inventoryLendingShares.narrowestArt') }}</li>
         <li>{{ t('helpCenter.inventoryLendingShares.narrowestInventory') }}</li>
         <li>{{ t('helpCenter.inventoryLendingShares.narrowestNone') }}</li>
       </HelpList>
