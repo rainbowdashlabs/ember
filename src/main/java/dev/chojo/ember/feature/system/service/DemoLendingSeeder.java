@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.federation.entity.ShareGrant;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
+import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -25,11 +28,16 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoLendingSeeder.class);
 
     private final LendingService lendingService;
+    private final InventoryShareService shareService;
     private final InventoryRepository inventoryRepository;
 
     @Inject
-    public DemoLendingSeeder(LendingService lendingService, InventoryRepository inventoryRepository) {
+    public DemoLendingSeeder(
+            LendingService lendingService,
+            InventoryShareService shareService,
+            InventoryRepository inventoryRepository) {
         this.lendingService = lendingService;
+        this.shareService = shareService;
         this.inventoryRepository = inventoryRepository;
     }
 
@@ -82,6 +90,10 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 partnerStationId,
                 "Zelte",
                 List.of(new Stock("Z-001", "Mannschaftszelt 6x4m"), new Stock("Z-002", "Faltzelt 3x3m")));
+
+        offerToPartners(partnerStationId, partnerFeuerloescher.id());
+        offerToPartners(partnerStationId, partnerSchlaeuche.id());
+        offerToPartners(partnerStationId, partnerZelte.id());
 
         // -- Request 1: APPROVED - partner lends Feuerlöscher to main station --
         var approvedRequest = lendingService.createRequest(
@@ -152,8 +164,11 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
         var wt2 = inventoryRepository.createItem(walkieTalkies.id(), "FG-002", "Motorola DP1400", null, null);
         inventoryRepository.createItem(walkieTalkies.id(), "FG-003", "Motorola DP1400", null, null);
         inventoryRepository.createItem(walkieTalkies.id(), "FG-004", "Motorola DP1400", null, null);
-        inventoryRepository.createItem(walkieTalkies.id(), "FG-005", "Motorola DP3441e", null, null);
+        var goodRadio = inventoryRepository.createItem(walkieTalkies.id(), "FG-005", "Motorola DP3441e", null, null);
         inventoryRepository.createItem(walkieTalkies.id(), "FG-006", "Motorola DP3441e", null, null);
+
+        offerToPartners(stationId, walkieTalkies.id());
+        shareService.setItemShare(stationId, goodRadio.id(), ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of());
 
         // -- Request 4 (INCOMING): partner requests Funkgeräte from main station (LENT - currently out) --
         var lentRequest = lendingService.createRequest(
@@ -239,6 +254,14 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 "Kreisfeuerwehrtag");
 
         log.info("Demo: Created lending requests, messages, and blocks");
+    }
+
+    /**
+     * Puts a whole inventory on offer to every partner, which is what a demo station has to say
+     * before anything of it can be found: sharing is opt-in and an unshared shelf is invisible.
+     */
+    private void offerToPartners(int stationId, int inventoryId) {
+        shareService.setInventoryShare(stationId, inventoryId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
     }
 
     /** One piece on the partner's shelf: what it is called on the label, and what it is. */
