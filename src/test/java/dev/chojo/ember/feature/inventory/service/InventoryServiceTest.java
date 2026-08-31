@@ -37,7 +37,13 @@ class InventoryServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new InventoryService(inventoryRepo, itemCustodyService, clusterRepo, clusterStationGroupRepo);
+        service = new InventoryService(
+                inventoryRepo,
+                artRepo,
+                fieldDefinitionService,
+                itemCustodyService,
+                clusterRepo,
+                clusterStationGroupRepo);
         station = stationRepo.create("InvSvcStation");
         account = accountRepo.create("inv-svc@test.com", "Inv", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());

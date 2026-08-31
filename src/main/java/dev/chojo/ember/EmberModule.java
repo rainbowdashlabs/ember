@@ -128,6 +128,7 @@ import dev.chojo.ember.feature.form.route.FormRoutes;
 import dev.chojo.ember.feature.form.route.PublicFormRoutes;
 import dev.chojo.ember.feature.insights.route.StationInsightsRoutes;
 import dev.chojo.ember.feature.inventory.route.ExchangeRoutes;
+import dev.chojo.ember.feature.inventory.route.InventoryArtRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryCheckRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryContainerRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryFieldDefinitionRoutes;
@@ -326,6 +327,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(ProcurementRoutes.class);
         routesBinder.addBinding().to(InventoryContainerRoutes.class);
         routesBinder.addBinding().to(InventoryFieldDefinitionRoutes.class);
+        routesBinder.addBinding().to(InventoryArtRoutes.class);
         routesBinder.addBinding().to(UserTagRoutes.class);
         routesBinder.addBinding().to(NotificationRoutes.class);
         routesBinder.addBinding().to(FormRoutes.class);

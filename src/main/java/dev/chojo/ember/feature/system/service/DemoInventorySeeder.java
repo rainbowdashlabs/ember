@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
@@ -67,6 +68,7 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
             ExchangeStatus.RECEIVED);
 
     private final InventoryRepository inventoryRepository;
+    private final InventoryArtRepository artRepository;
     private final InventoryCheckRepository inventoryCheckRepository;
     private final AccountRepository accountRepository;
     private final InventoryContainerService containerService;
@@ -78,6 +80,7 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
     @Inject
     public DemoInventorySeeder(
             InventoryRepository inventoryRepository,
+            InventoryArtRepository artRepository,
             InventoryCheckRepository inventoryCheckRepository,
             AccountRepository accountRepository,
             InventoryContainerService containerService,
@@ -86,6 +89,7 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
             ProcurementService procurementService,
             ItemCustodyService custodyService) {
         this.inventoryRepository = inventoryRepository;
+        this.artRepository = artRepository;
         this.inventoryCheckRepository = inventoryCheckRepository;
         this.accountRepository = accountRepository;
         this.containerService = containerService;
@@ -287,14 +291,7 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         // offered on it.
         var gemeindematerial =
                 inventoryRepository.create(stationId, "Gemeindematerial", InventoryType.EXTERNAL, false, false);
-        inventoryRepository.createItem(
-                gemeindematerial.id(), "GM-0001", "Funkgerät der Gemeinde", null, null, ItemOwner.CLUSTER, null);
-        inventoryRepository.createItem(
-                gemeindematerial.id(), "GM-0002", "Laminiergerät", null, null, ItemOwner.CLUSTER, null);
-        inventoryRepository.createItem(
-                gemeindematerial.id(), "GM-0003", "Beamer der Gemeinde", null, null, ItemOwner.CLUSTER, null);
-        inventoryRepository.createItem(
-                gemeindematerial.id(), "GM-0004", "Kaffeemaschine", null, null, ItemOwner.CLUSTER, null);
+        seedGemeindematerial(gemeindematerial.id());
 
         // Requirements: Anfänger and Fortgeschritten members each need 1 of each (2 T-shirts)
         for (int groupId : List.of(anfaengerGroupId, fortgeschrittenGroupId)) {
@@ -613,6 +610,59 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         }
     }
 
+    /**
+     * The mixed drawer, with kinds in it.
+     *
+     * <p>The one inventory here that holds different things, so the one that can have kinds at all.
+     * It is written the way a real drawer looks: two kinds with several pieces each, whose pieces
+     * need no names of their own, and four one-offs with no kind, which is the ordinary state of
+     * most pieces and the state every screen has to read without complaining. A field hangs on one
+     * of the kinds rather than on the inventory, because a call sign is nonsense on a coffee machine
+     * standing in the same cupboard.
+     */
+    private void seedGemeindematerial(int inventoryId) {
+        var blau = artRepository.create(inventoryId, "Funkgerät blau", "Kanal 1 bis 4", 10);
+        var gruen = artRepository.create(inventoryId, "Funkgerät grün", "Kanal 5 bis 8", 20);
+        for (int i = 1; i <= 3; i++) {
+            inventoryRepository.createItem(
+                    inventoryId,
+                    "GM-B%02d".formatted(i),
+                    "Funkgerät blau",
+                    null,
+                    blau.id(),
+                    null,
+                    ItemOwner.CLUSTER,
+                    null);
+        }
+        for (int i = 1; i <= 2; i++) {
+            inventoryRepository.createItem(
+                    inventoryId,
+                    "GM-G%02d".formatted(i),
+                    "Funkgerät grün",
+                    null,
+                    gruen.id(),
+                    null,
+                    ItemOwner.CLUSTER,
+                    null);
+        }
+        fieldDefinitionService.create(
+                inventoryId,
+                blau.id(),
+                null,
+                "call_sign",
+                "Rufname",
+                FieldType.TEXT,
+                false,
+                10,
+                fieldDefinitionService.defaultConfig(FieldType.TEXT));
+
+        inventoryRepository.createItem(inventoryId, "GM-0001", "Ladestation", null, null, ItemOwner.CLUSTER, null);
+        inventoryRepository.createItem(inventoryId, "GM-0002", "Laminiergerät", null, null, ItemOwner.CLUSTER, null);
+        inventoryRepository.createItem(
+                inventoryId, "GM-0003", "Beamer der Gemeinde", null, null, ItemOwner.CLUSTER, null);
+        inventoryRepository.createItem(inventoryId, "GM-0004", "Kaffeemaschine", null, null, ItemOwner.CLUSTER, null);
+    }
+
     private void seedCustomFields(int stiefelId, int helmId) {
         FieldConfig.EnumConfig condition = new FieldConfig.EnumConfig(List.of(
                 new FieldConfig.EnumConfig.EnumOption("new", "Neu"),
@@ -668,6 +718,7 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                     item.internalId(),
                     item.name(),
                     item.sizeId(),
+                    item.artId(),
                     new InventoryItemMetadata(new ItemFieldValues(values)));
             idx++;
         }

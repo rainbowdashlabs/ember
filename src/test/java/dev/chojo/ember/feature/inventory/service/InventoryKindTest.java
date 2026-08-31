@@ -47,7 +47,13 @@ class InventoryKindTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new InventoryService(inventoryRepo, itemCustodyService, clusterRepo, clusterStationGroupRepo);
+        service = new InventoryService(
+                inventoryRepo,
+                artRepo,
+                fieldDefinitionService,
+                itemCustodyService,
+                clusterRepo,
+                clusterStationGroupRepo);
         procurementService = new ProcurementService(
                 procurementRepo, service, inventoryRepo, clusterRepo, itemCustodyService, new DomainEventBus(Set.of()));
         exchangeService = new ExchangeService(itemMovementService, inventoryRepo);

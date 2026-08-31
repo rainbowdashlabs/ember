@@ -68,6 +68,7 @@ import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.insights.repository.PageHitRepository;
+import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryContainerKindRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryContainerRepository;
@@ -80,6 +81,8 @@ import dev.chojo.ember.feature.inventory.repository.MovementFlowRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
 import dev.chojo.ember.feature.inventory.service.ClusterItemHandoverService;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
+import dev.chojo.ember.feature.inventory.service.InventoryArtService;
+import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
@@ -238,6 +241,9 @@ public abstract class RepositoryTestBase {
     protected static InventoryContainerRepository containerRepo;
     protected static InventoryContainerKindRepository containerKindRepo;
     protected static InventoryFieldDefinitionRepository fieldDefinitionRepo;
+    protected static InventoryFieldDefinitionService fieldDefinitionService;
+    protected static InventoryArtRepository artRepo;
+    protected static InventoryArtService artService;
     protected static LostAndFoundRepository lostAndFoundRepo;
     protected static EmailQueueRepository emailQueueRepo;
     protected static ProfileFieldChangeRepository profileFieldChangeRepo;
@@ -393,6 +399,9 @@ public abstract class RepositoryTestBase {
         containerRepo = new InventoryContainerRepository();
         containerKindRepo = new InventoryContainerKindRepository();
         fieldDefinitionRepo = new InventoryFieldDefinitionRepository();
+        fieldDefinitionService = new InventoryFieldDefinitionService(fieldDefinitionRepo);
+        artRepo = new InventoryArtRepository();
+        artService = new InventoryArtService(artRepo, inventoryRepo);
         lostAndFoundRepo = new LostAndFoundRepository();
         emailQueueRepo = new EmailQueueRepository();
         profileFieldChangeRepo = new ProfileFieldChangeRepository();
@@ -407,8 +416,13 @@ public abstract class RepositoryTestBase {
                 memberGroupRepo,
                 memberPermissionResolver);
         clusterStationGroupRepo = new ClusterStationGroupRepository();
-        inventoryService =
-                new InventoryService(inventoryRepo, itemCustodyService, clusterRepo, clusterStationGroupRepo);
+        inventoryService = new InventoryService(
+                inventoryRepo,
+                artRepo,
+                fieldDefinitionService,
+                itemCustodyService,
+                clusterRepo,
+                clusterStationGroupRepo);
         clusterStationGroupService = new ClusterStationGroupService(clusterStationGroupRepo, clusterRepo, stationRepo);
         clusterProfileFieldService = new ClusterProfileFieldService(
                 clusterProfileFieldRepo,

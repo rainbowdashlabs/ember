@@ -694,6 +694,7 @@ public class InventoryRoutes implements Routes {
                         request.internalId(),
                         request.name(),
                         request.sizeId(),
+                        request.artId(),
                         request.metadata(),
                         owner,
                         request.ownerClusterId()));
@@ -797,6 +798,7 @@ public class InventoryRoutes implements Routes {
                         request.internalId(),
                         request.name(),
                         request.sizeId(),
+                        request.artId(),
                         request.metadata(),
                         describingClusterId(session))
                 .ifPresentOrElse(ctx::json, () -> {
@@ -1327,10 +1329,17 @@ public class InventoryRoutes implements Routes {
 
     public record SizeRequest(String label, int position, String note) {}
 
+    /**
+     * @param name   what the piece is called, which the kind never replaces: {@code Pager 01} is a
+     *               piece of the kind {@code Pager} and both readings are wanted at once
+     * @param artId  the kind of thing it is, or {@code null} when nobody has said, which is the
+     *               ordinary state for most pieces
+     */
     public record ItemRequest(
             String internalId,
             String name,
             Integer sizeId,
+            Integer artId,
             InventoryItemMetadata metadata,
             ItemOwner ownerKind,
             Integer ownerClusterId) {}

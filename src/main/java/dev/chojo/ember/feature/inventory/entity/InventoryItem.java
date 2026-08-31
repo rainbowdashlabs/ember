@@ -19,6 +19,10 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param internalId     an internal identifier for the item (e.g. serial number)
  * @param name           the display name of the item
  * @param sizeId         the size variant of the item, or {@code null} if not applicable
+ * @param artId          the kind of thing this piece is, or {@code null} when nobody has said. Null
+ *                       is the ordinary state and not a gap: five of the seven ways a piece comes
+ *                       into being have nobody present to name a kind, so every read of this
+ *                       tolerates its absence rather than treating it as unfinished
  * @param metadata       JSON metadata associated with the item
  * @param assignedTo     the member this item is assigned to, or {@code null} if unassigned
  * @param lostAt         when the item was marked as lost, or {@code null} if not lost
@@ -37,6 +41,7 @@ public record InventoryItem(
         String internalId,
         String name,
         Integer sizeId,
+        Integer artId,
         InventoryItemMetadata metadata,
         Integer assignedTo,
         Instant lostAt,
@@ -58,6 +63,7 @@ public record InventoryItem(
                 row.getString("internal_id"),
                 row.getString("name"),
                 row.getObject("size_id", Integer.class),
+                row.getObject("art_id", Integer.class),
                 InventoryItemMetadata.parse(row.getString("metadata")),
                 row.getObject("assigned_to", Integer.class),
                 row.get("lost_at", INSTANT_TIMESTAMP),

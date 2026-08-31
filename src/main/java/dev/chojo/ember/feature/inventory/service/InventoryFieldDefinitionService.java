@@ -8,13 +8,18 @@ package dev.chojo.ember.feature.inventory.service;
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
 import dev.chojo.ember.feature.inventory.entity.FieldType;
 import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
+import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.repository.InventoryFieldDefinitionRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -38,10 +43,32 @@ public class InventoryFieldDefinitionService {
     }
 
     /**
-     * Returns every field definition for the given inventory, ordered for display.
+     * Returns every field definition anywhere in the given inventory, at all three levels, ordered
+     * for display.
      */
     public List<InventoryFieldDefinition> findByInventory(int inventoryId) {
         return repository.findByInventory(inventoryId);
+    }
+
+    /**
+     * The fields defined for the whole inventory and nothing narrower.
+     */
+    public List<InventoryFieldDefinition> findInventoryLevel(int inventoryId) {
+        return repository.findInventoryLevel(inventoryId);
+    }
+
+    /**
+     * The fields defined for one kind of thing.
+     */
+    public List<InventoryFieldDefinition> findByArt(int artId) {
+        return repository.findByArt(artId);
+    }
+
+    /**
+     * The fields defined for one single piece.
+     */
+    public List<InventoryFieldDefinition> findByItem(int itemId) {
+        return repository.findByItem(itemId);
     }
 
     /**
@@ -52,12 +79,73 @@ public class InventoryFieldDefinitionService {
     }
 
     /**
-     * Creates a new field definition for an inventory. Validates that the key
-     * is a stable machine identifier, the config matches the field type, and
-     * no other field on the inventory uses the same key.
+     * The fields that describe one piece, with the collision rule applied.
+     *
+     * <p>Values live in one map keyed by the field key, so the same key defined at two levels would
+     * otherwise describe one value twice. The narrowest definition wins: what somebody wrote about
+     * this piece beats what they wrote about its kind, and that beats what they wrote about the
+     * whole drawer. The wider definition is not deleted and comes back into force the moment the
+     * narrow one goes.
+     *
+     * <p>A piece with no kind simply gets the inventory's fields and its own, which is why a piece
+     * that never had a kind needs no special case anywhere.
+     *
+     * <p>What is <em>not</em> here is the other half of the rule: a value whose describing field has
+     * gone, because the kind was removed or changed, is kept on the piece and stops being shown.
+     * Nothing in this list mentions it and nothing deletes it, so it reads again the day a kind of
+     * that name comes back.
+     *
+     * @param item the piece
+     * @return its fields, in display order, one entry per key
+     */
+    public List<InventoryFieldDefinition> resolveForItem(InventoryItem item) {
+        Map<String, InventoryFieldDefinition> byKey = new LinkedHashMap<>();
+        List<InventoryFieldDefinition> levels = new ArrayList<>(repository.findInventoryLevel(item.inventoryId()));
+        if (item.artId() != null) levels.addAll(repository.findByArt(item.artId()));
+        levels.addAll(repository.findByItem(item.id()));
+        for (InventoryFieldDefinition definition : levels) {
+            InventoryFieldDefinition standing = byKey.get(definition.key());
+            if (standing == null || definition.level().compareTo(standing.level()) >= 0) {
+                byKey.put(definition.key(), definition);
+            }
+        }
+        return byKey.values().stream()
+                .sorted(Comparator.comparingInt(InventoryFieldDefinition::sortOrder)
+                        .thenComparing(InventoryFieldDefinition::key))
+                .toList();
+    }
+
+    /**
+     * Creates a new field definition for a whole inventory.
      */
     public InventoryFieldDefinition create(
             int inventoryId,
+            String key,
+            String label,
+            FieldType fieldType,
+            boolean required,
+            int sortOrder,
+            FieldConfig config) {
+        return create(inventoryId, null, null, key, label, fieldType, required, sortOrder, config);
+    }
+
+    /**
+     * Creates a new field definition at one of the three levels. Validates that the key is a stable
+     * machine identifier, that the config matches the field type, that at most one of the two narrow
+     * levels is named, and that nothing at the same level already uses the key.
+     *
+     * <p>The same key at two different levels is allowed on purpose: that is the collision the
+     * narrowest-wins rule exists to settle, and refusing it would take away the only way to say
+     * "this one is different" about a single piece.
+     *
+     * @param inventoryId the inventory, always
+     * @param artId       the kind this field describes, or {@code null}
+     * @param itemId      the single piece this field describes, or {@code null}
+     */
+    public InventoryFieldDefinition create(
+            int inventoryId,
+            Integer artId,
+            Integer itemId,
             String key,
             String label,
             FieldType fieldType,
@@ -74,26 +162,37 @@ public class InventoryFieldDefinitionService {
         if (fieldType == null) {
             throw new IllegalArgumentException("Field type is required");
         }
+        if (artId != null && itemId != null) {
+            throw new IllegalArgumentException("A field belongs to a kind or to a single piece, never to both");
+        }
         FieldConfig effectiveConfig = config != null ? config : defaultConfig(fieldType);
         if (effectiveConfig.fieldType() != fieldType) {
             throw new IllegalArgumentException("Field config type does not match field type");
         }
-        for (InventoryFieldDefinition existing : repository.findByInventory(inventoryId)) {
+        for (InventoryFieldDefinition existing : sameLevel(inventoryId, artId, itemId)) {
             if (existing.key().equals(key)) {
-                throw new IllegalArgumentException("Field key already exists on this inventory");
+                throw new IllegalArgumentException("Field key already exists at this level");
             }
         }
-        InventoryFieldDefinition created =
-                repository.create(inventoryId, key, label, fieldType, required, sortOrder, effectiveConfig);
+        InventoryFieldDefinition created = repository.create(
+                inventoryId, artId, itemId, key, label, fieldType, required, sortOrder, effectiveConfig);
         log.info(
-                "Created field definition {} (key='{}', label='{}', type={}, required={}) in inventory {}",
+                "Created field definition {} (key='{}', label='{}', type={}, required={}, artId={}, itemId={}) in inventory {}",
                 created.id(),
                 key,
                 label,
                 fieldType,
                 required,
+                artId,
+                itemId,
                 inventoryId);
         return created;
+    }
+
+    private List<InventoryFieldDefinition> sameLevel(int inventoryId, Integer artId, Integer itemId) {
+        if (itemId != null) return repository.findByItem(itemId);
+        if (artId != null) return repository.findByArt(artId);
+        return repository.findInventoryLevel(inventoryId);
     }
 
     /**

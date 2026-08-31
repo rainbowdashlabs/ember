@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.cluster.entity.ClusterStationGroup;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemHistory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
@@ -18,9 +19,11 @@ import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlocker;
+import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
@@ -31,8 +34,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Service for managing inventories, their items, sizes, history, and requirements.
@@ -42,6 +49,8 @@ import java.util.Optional;
 public class InventoryService {
     private static final Logger log = LoggerFactory.getLogger(InventoryService.class);
     private final InventoryRepository inventoryRepository;
+    private final InventoryArtRepository artRepository;
+    private final InventoryFieldDefinitionService fieldService;
     private final ClusterRepository clusterRepository;
     private final ClusterStationGroupRepository stationGroupRepository;
     private final ItemCustodyService custodyService;
@@ -49,10 +58,14 @@ public class InventoryService {
     @Inject
     public InventoryService(
             InventoryRepository inventoryRepository,
+            InventoryArtRepository artRepository,
+            InventoryFieldDefinitionService fieldService,
             ItemCustodyService custodyService,
             ClusterRepository clusterRepository,
             ClusterStationGroupRepository stationGroupRepository) {
         this.inventoryRepository = inventoryRepository;
+        this.artRepository = artRepository;
+        this.fieldService = fieldService;
         this.custodyService = custodyService;
         this.clusterRepository = clusterRepository;
         this.stationGroupRepository = stationGroupRepository;
@@ -173,8 +186,9 @@ public class InventoryService {
      *
      * <p>Leaving the homogeneous half strands the three features that only make sense there, plus the
      * size list, which belongs to that half and whose values the items are already carrying. Coming
-     * back the other way will one day be blocked by the Arten a heterogeneous inventory has been given;
-     * there is no such thing yet, so nothing stands in that direction and the list comes back empty.
+     * back the other way is blocked by the kinds the inventory has been given, for the mirror reason:
+     * the pieces are carrying those, and a kind cannot exist in an inventory of one thing in many
+     * copies.
      *
      * @param inventory     the inventory as it stands
      * @param toHomogeneous the kind it is being asked to become
@@ -182,8 +196,9 @@ public class InventoryService {
      */
     public List<SwitchBlocker> blockersForSwitch(Inventory inventory, boolean toHomogeneous) {
         if (toHomogeneous) {
-            // Nothing lives only on the heterogeneous side yet. The Arten will, and the clause goes here.
-            return List.of();
+            // The kinds are the one thing that lives only on the heterogeneous side. Going back with
+            // them still there would leave every piece pointing at a level the inventory no longer has.
+            return inventoryRepository.findArtBlockers(inventory.id());
         }
         var blockers = new ArrayList<SwitchBlocker>();
         blockers.addAll(inventoryRepository.findRequirementBlockers(inventory.id()));
@@ -418,22 +433,73 @@ public class InventoryService {
             InventoryItemMetadata metadata,
             ItemOwner ownerKind,
             Integer ownerClusterId) {
+        return createItem(inventoryId, internalId, name, sizeId, null, metadata, ownerKind, ownerClusterId);
+    }
+
+    /**
+     * Creates a new inventory item that names the kind of thing it is.
+     *
+     * <p>The kind sits beside the name and never replaces it: a piece may be called {@code Pager 01}
+     * and be of the kind {@code Pager}, and both readings are wanted at once.
+     *
+     * <p>The overload without a kind is the one the five automatic paths use, and their pieces have
+     * none. That is by design rather than a gap: stock-taking, hand-out, quick assign, check
+     * correction and procurement fulfilment all run with nobody present to say what a thing is.
+     *
+     * @param inventoryId    the inventory ID
+     * @param internalId     the internal identifier
+     * @param name           the item name
+     * @param sizeId         the size ID, or {@code null}
+     * @param artId          the kind, or {@code null} when nobody said
+     * @param metadata       JSON metadata
+     * @param ownerKind      who owns the item
+     * @param ownerClusterId the owning body when it runs on this instance, or {@code null}
+     * @return the created item
+     * @throws BadRequestResponse when the named body is not the one this station answers to, or when
+     *                            the kind belongs to another inventory
+     */
+    public InventoryItem createItem(
+            int inventoryId,
+            String internalId,
+            String name,
+            Integer sizeId,
+            Integer artId,
+            InventoryItemMetadata metadata,
+            ItemOwner ownerKind,
+            Integer ownerClusterId) {
         requireOwnerFits(inventoryId, ownerKind);
         Integer owner =
                 ownerKind == ItemOwner.CLUSTER && ownerClusterId == null ? clusterAbove(inventoryId) : ownerClusterId;
         requireOwningCluster(inventoryId, owner);
-        InventoryItem item =
-                inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata, ownerKind, owner);
+        requireArtOfInventory(inventoryId, artId);
+        InventoryItem item = inventoryRepository.createItem(
+                inventoryId, internalId, name, sizeId, artId, metadata, ownerKind, owner);
         log.info(
-                "Created item {} (name='{}', internalId='{}', sizeId={}, owner={}, ownerClusterId={}) in inventory {}",
+                "Created item {} (name='{}', internalId='{}', sizeId={}, artId={}, owner={}, ownerClusterId={}) in inventory {}",
                 item.id(),
                 name,
                 internalId,
                 sizeId,
+                artId,
                 ownerKind,
                 owner,
                 inventoryId);
         return item;
+    }
+
+    /**
+     * Refuses a kind that belongs somewhere else.
+     *
+     * <p>A kind belongs to exactly one inventory, so pairing a piece with a kind from another drawer
+     * would describe nothing. No kind at all is always allowed and is the ordinary state.
+     */
+    private void requireArtOfInventory(int inventoryId, Integer artId) {
+        if (artId == null) return;
+        boolean fits = artRepository
+                .findById(artId)
+                .map(art -> art.inventoryId() == inventoryId)
+                .orElse(false);
+        if (!fits) throw new BadRequestResponse("That kind belongs to another inventory");
     }
 
     /**
@@ -545,7 +611,7 @@ public class InventoryService {
     }
 
     /**
-     * Updates an inventory item.
+     * Updates an inventory item, leaving the kind it carries alone.
      *
      * @param id              the item ID
      * @param internalId      the new internal identifier
@@ -562,13 +628,102 @@ public class InventoryService {
             Integer sizeId,
             InventoryItemMetadata metadata,
             Integer actingClusterId) {
+        Integer artId =
+                inventoryRepository.findItemById(id).map(InventoryItem::artId).orElse(null);
+        return updateItem(id, internalId, name, sizeId, artId, metadata, actingClusterId);
+    }
+
+    /**
+     * Updates an inventory item, including which kind of thing it is.
+     *
+     * <p>Setting a kind leaves the name where it is. That is the whole reason the tidying screen has
+     * a merge of its own: the name is what every list and both exports read, so a kind on its own
+     * corrects nothing anybody can see.
+     *
+     * <p>Values whose describing field has gone, because the kind changed or was cleared, are kept
+     * on the piece rather than thrown away. They stop being shown and they read again the day a kind
+     * of that name comes back, because losing them is the one choice that cannot be undone.
+     *
+     * @param id              the item ID
+     * @param internalId      the new internal identifier
+     * @param name            the new name, which the kind never replaces
+     * @param sizeId          the new size ID, or {@code null}
+     * @param artId           the kind it is now, or {@code null} for none
+     * @param metadata        the new JSON metadata
+     * @param actingClusterId the body the caller answers for, or {@code null} when they act as the station
+     * @return the updated item, or empty if not found
+     */
+    public Optional<InventoryItem> updateItem(
+            int id,
+            String internalId,
+            String name,
+            Integer sizeId,
+            Integer artId,
+            InventoryItemMetadata metadata,
+            Integer actingClusterId) {
         requireOwned(id, "described", actingClusterId);
-        if (inventoryRepository.updateItem(id, internalId, name, sizeId, metadata)) {
-            log.info("Updated item {} (name='{}', internalId='{}', sizeId={})", id, name, internalId, sizeId);
+        InventoryItem before = inventoryRepository.findItemById(id).orElse(null);
+        if (before == null) {
+            log.warn("Update of item {} did not find a row to change", id);
+            return Optional.empty();
+        }
+        requireArtOfInventory(before.inventoryId(), artId);
+        InventoryItemMetadata kept = keepUndescribedValues(before, artId, metadata);
+        if (inventoryRepository.updateItem(id, internalId, name, sizeId, artId, kept)) {
+            log.info(
+                    "Updated item {} (name='{}', internalId='{}', sizeId={}, artId={})",
+                    id,
+                    name,
+                    internalId,
+                    sizeId,
+                    artId);
             return inventoryRepository.findItemById(id);
         }
         log.warn("Update of item {} did not find a row to change", id);
         return Optional.empty();
+    }
+
+    /**
+     * Carries forward every value the form could not have shown.
+     *
+     * <p>A screen sends back the fields it displayed. Once a kind is cleared or swapped, the values
+     * that kind's fields described are no longer displayed anywhere, so a plain overwrite would
+     * quietly delete them. Anything the piece still holds under a key that nothing describes after
+     * the change is therefore kept exactly as it was, and what arrives from the form wins for every
+     * key that is described.
+     */
+    private InventoryItemMetadata keepUndescribedValues(
+            InventoryItem before, Integer artId, InventoryItemMetadata incoming) {
+        InventoryItemMetadata arriving = incoming != null ? incoming : InventoryItemMetadata.empty();
+        Map<String, ItemFieldValues.FieldValue> existing =
+                before.metadata().fields().values();
+        if (existing.isEmpty()) return arriving;
+        InventoryItem after = new InventoryItem(
+                before.id(),
+                before.inventoryId(),
+                before.internalId(),
+                before.name(),
+                before.sizeId(),
+                artId,
+                arriving,
+                before.assignedTo(),
+                before.lostAt(),
+                before.lostNote(),
+                before.lostNoteBy(),
+                before.ownerKind(),
+                before.ownerClusterId(),
+                before.custody(),
+                before.custodyStationId(),
+                before.custodyMovementId(),
+                before.containerId());
+        Set<String> described = fieldService.resolveForItem(after).stream()
+                .map(InventoryFieldDefinition::key)
+                .collect(Collectors.toSet());
+        var merged = new LinkedHashMap<>(existing);
+        merged.keySet().removeIf(described::contains);
+        if (merged.isEmpty()) return arriving;
+        merged.putAll(arriving.fields().values());
+        return new InventoryItemMetadata(new ItemFieldValues(merged));
     }
 
     /**

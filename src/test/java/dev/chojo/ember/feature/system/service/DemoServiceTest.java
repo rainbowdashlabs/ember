@@ -165,8 +165,13 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 memberLookupService,
                 accountRepo);
-        var inventoryService =
-                new InventoryService(inventoryRepo, itemCustodyService, clusterRepo, clusterStationGroupRepo);
+        var inventoryService = new InventoryService(
+                inventoryRepo,
+                artRepo,
+                fieldDefinitionService,
+                itemCustodyService,
+                clusterRepo,
+                clusterStationGroupRepo);
         var exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         var procurementService = new ProcurementService(
                 procurementRepo, inventoryService, inventoryRepo, clusterRepo, itemCustodyService, noOpBus);
@@ -337,6 +342,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var fieldDefSvc = new InventoryFieldDefinitionService(fieldDefinitionRepo);
         var inventorySeeder = new DemoInventorySeeder(
                 inventoryRepo,
+                artRepo,
                 inventoryCheckRepo,
                 accountRepo,
                 containerSvc,

@@ -34,8 +34,13 @@ class ExchangeServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var inventoryService =
-                new InventoryService(inventoryRepo, itemCustodyService, clusterRepo, clusterStationGroupRepo);
+        var inventoryService = new InventoryService(
+                inventoryRepo,
+                artRepo,
+                fieldDefinitionService,
+                itemCustodyService,
+                clusterRepo,
+                clusterStationGroupRepo);
         service = new ExchangeService(itemMovementService, inventoryRepo);
         station = stationRepo.create("ExchStation");
         account = accountRepo.create("exch-svc@test.com", "Exch", "Tester");
