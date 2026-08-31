@@ -65,6 +65,7 @@ public class LendingService {
     private final ClusterRepository clusterRepository;
     private final ItemCustodyService custodyService;
     private final BorrowedGearService borrowedGearService;
+    private final InventoryShareService shareService;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -77,6 +78,7 @@ public class LendingService {
             ClusterRepository clusterRepository,
             ItemCustodyService custodyService,
             BorrowedGearService borrowedGearService,
+            InventoryShareService shareService,
             DomainEventBus eventBus) {
         this.repository = repository;
         this.httpClient = httpClient;
@@ -86,6 +88,7 @@ public class LendingService {
         this.clusterRepository = clusterRepository;
         this.custodyService = custodyService;
         this.borrowedGearService = borrowedGearService;
+        this.shareService = shareService;
         this.eventBus = eventBus;
     }
 
@@ -519,20 +522,27 @@ public class LendingService {
 
     /**
      * Finds available inventory across all active federation partners, with parallel fetching.
+     *
+     * <p>An empty answer says which of two situations it is, and no more than that. Listing the
+     * inventories that were held back would be the more helpful search and the wrong product: it
+     * would tell another station what you own and which of it you are deliberately keeping.
      */
-    public List<AvailableInventoryEntry> findAvailableInventory(
+    public AvailableInventoryResult findAvailableInventory(
             int stationId, String query, LocalDate dateFrom, LocalDate dateTo) {
         var partners = federationService.findPartners(stationId).stream()
                 .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
                 .filter(this::lendsWith)
                 .toList();
+        UUID askingStationUid = stationRepository.resolveUid(stationId);
 
-        var futures = new ArrayList<CompletableFuture<List<AvailableInventoryEntry>>>();
+        var futures = new ArrayList<CompletableFuture<PartnerAvailability>>();
         for (var partner : partners) {
-            futures.add(CompletableFuture.supplyAsync(() -> findAvailableForPartner(partner, query, dateFrom, dateTo)));
+            futures.add(CompletableFuture.supplyAsync(
+                    () -> findAvailableForPartner(partner, askingStationUid, query, dateFrom, dateTo)));
         }
 
         var results = new ArrayList<AvailableInventoryEntry>();
+        boolean anyOffer = false;
         var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
         try {
             allFuture.join();
@@ -541,12 +551,16 @@ public class LendingService {
         }
         for (var future : futures) {
             try {
-                results.addAll(future.get());
+                var availability = future.get();
+                results.addAll(availability.entries());
+                anyOffer |= availability.offersAnything();
             } catch (Exception e) {
                 log.error("Error collecting available inventory results", e);
             }
         }
-        return enrichWithDistance(stationId, results);
+        var entries = enrichWithDistance(stationId, results);
+        if (!entries.isEmpty()) return new AvailableInventoryResult(entries, null);
+        return new AvailableInventoryResult(entries, anyOffer ? EmptyReason.NOTHING_FREE : EmptyReason.NOTHING_SHARED);
     }
 
     private String stationName(int stationId) {
@@ -713,16 +727,18 @@ public class LendingService {
         return decorated;
     }
 
-    private List<AvailableInventoryEntry> findAvailableForPartner(
-            FederationPartner partner, String query, LocalDate dateFrom, LocalDate dateTo) {
+    private PartnerAvailability findAvailableForPartner(
+            FederationPartner partner, UUID askingStationUid, String query, LocalDate dateFrom, LocalDate dateTo) {
         var partnerStation =
                 stationRepository.findByUid(partner.partnerStationId()).orElse(null);
-        if (partnerStation == null) return List.of();
+        if (partnerStation == null) return PartnerAvailability.nothing();
         int partnerStationId = partnerStation.id();
         String name = partnerStation.name();
 
+        var policy = shareService.policyFor(partnerStationId, askingStationUid);
+        if (!policy.offersAnything()) return PartnerAvailability.nothing();
         if (dateFrom != null && isBlocked(partnerStationId, null, null, dateFrom, dateTo)) {
-            return List.of();
+            return new PartnerAvailability(List.of(), true);
         }
 
         var lender = lenderAt(partnerStationId);
@@ -738,23 +754,36 @@ public class LendingService {
                 continue;
             }
 
-            var unassigned = inventoryRepository.findUnassignedItems(inv.id()).stream()
-                    .filter(lender::owns)
-                    .toList();
+            var offered = shareService.filterShared(
+                    policy,
+                    inventoryRepository.findUnassignedItems(inv.id()).stream()
+                            .filter(lender::owns)
+                            .toList());
             int availableCount;
             if (dateFrom != null) {
-                availableCount = (int) unassigned.stream()
+                availableCount = (int) offered.stream()
                         .filter(item -> !isBlocked(partnerStationId, null, item.id(), dateFrom, dateTo))
                         .count();
             } else {
-                availableCount = unassigned.size();
+                availableCount = offered.size();
             }
             if (availableCount > 0) {
                 entries.add(new AvailableInventoryEntry(
                         inv.id(), inv.name(), partnerStationId, name, availableCount, null));
             }
         }
-        return entries;
+        return new PartnerAvailability(entries, true);
+    }
+
+    /**
+     * What one partner offers the asking station: the inventories with something free in them, and
+     * whether that partner offers anything at all. The second answer is what separates "nothing is
+     * shared with you" from "nothing is free just now".
+     */
+    private record PartnerAvailability(List<AvailableInventoryEntry> entries, boolean offersAnything) {
+        static PartnerAvailability nothing() {
+            return new PartnerAvailability(List.of(), false);
+        }
     }
 
     /**
@@ -772,4 +801,24 @@ public class LendingService {
             String stationName,
             int availableCount,
             Double distanceKm) {}
+
+    /**
+     * The browse answer, with the reason an empty one is empty.
+     *
+     * @param entries     what is free at the partners right now
+     * @param emptyReason why nothing came back, or {@code null} when something did
+     */
+    public record AvailableInventoryResult(List<AvailableInventoryEntry> entries, EmptyReason emptyReason) {}
+
+    /**
+     * The two situations an empty browse answer can mean. It says nothing finer on purpose: which
+     * inventories a station holds back is its own business, and naming them would defeat the point
+     * of holding them back.
+     */
+    public enum EmptyReason {
+        /** No partner offers this station anything at all. */
+        NOTHING_SHARED,
+        /** Something is offered, but nothing of it is free in the window that was asked for. */
+        NOTHING_FREE
+    }
 }

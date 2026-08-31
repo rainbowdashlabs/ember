@@ -35,6 +35,7 @@ import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.service.FederationContractRefreshService;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
@@ -42,6 +43,7 @@ import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
+import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
@@ -297,6 +299,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 clusterRepo,
                 itemCustodyService,
                 borrowedGearService,
+                new InventoryShareService(new InventoryShareRepository(), federationService, inventoryRepo),
                 noOpBus);
         var federatedBoardService = new FederatedBoardService(federatedBoardRepo);
 

@@ -115,6 +115,7 @@ import dev.chojo.ember.feature.events.service.EventReminderChecker;
 import dev.chojo.ember.feature.events.service.EventThresholdChecker;
 import dev.chojo.ember.feature.federation.route.FederatedLendingRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRoutes;
+import dev.chojo.ember.feature.federation.route.InventoryShareRoutes;
 import dev.chojo.ember.feature.federation.route.LendingRoutes;
 import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
@@ -367,6 +368,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(FederationRoutes.class);
         routesBinder.addBinding().to(RemoteFederationRoutes.class);
         routesBinder.addBinding().to(LendingRoutes.class);
+        routesBinder.addBinding().to(InventoryShareRoutes.class);
         routesBinder.addBinding().to(FederatedLendingRoutes.class);
         routesBinder.addBinding().to(RemoteLendingRoutes.class);
         routesBinder.addBinding().to(DiscoveryRoutes.class);
