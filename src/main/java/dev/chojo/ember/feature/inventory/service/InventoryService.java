@@ -753,8 +753,11 @@ public class InventoryService {
                 before.lostNoteBy(),
                 before.ownerKind(),
                 before.ownerClusterId(),
+                before.ownerStationId(),
+                before.loanRequestItemId(),
                 before.custody(),
                 before.custodyStationId(),
+                before.custodyPartnerStationId(),
                 before.custodyMovementId(),
                 before.containerId());
         Set<String> described = fieldService.resolveForItem(after).stream()
