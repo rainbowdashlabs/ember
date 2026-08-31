@@ -214,15 +214,15 @@ class InventoryCollectionServiceTest extends RepositoryTestBase {
      */
     @Test
     void theDerivedNumbersReachTheWire() {
-        String line = Json.MAPPER.writeValueAsString(
-                new ResolvedCollectionLine(1, null, 2, null, "Funk blau", 4, 6, 0));
+        String line =
+                Json.MAPPER.writeValueAsString(new ResolvedCollectionLine(1, null, 2, null, "Funk blau", 4, 6, 0));
         assertTrue(line.contains("\"filled\":true"), line);
         assertTrue(line.contains("\"missing\":0"), line);
 
-        String short_ = Json.MAPPER.writeValueAsString(
-                new ResolvedCollectionLine(1, null, 2, null, "Funk blau", 4, 1, 0));
-        assertTrue(short_.contains("\"filled\":false"), short_);
-        assertTrue(short_.contains("\"missing\":3"), short_);
+        String shortLine =
+                Json.MAPPER.writeValueAsString(new ResolvedCollectionLine(1, null, 2, null, "Funk blau", 4, 1, 0));
+        assertTrue(shortLine.contains("\"filled\":false"), shortLine);
+        assertTrue(shortLine.contains("\"missing\":3"), shortLine);
 
         String collection = Json.MAPPER.writeValueAsString(new ResolvedCollection(
                 new InventoryCollection(1, station.id(), "Funkset", "", null, java.time.Instant.EPOCH),
