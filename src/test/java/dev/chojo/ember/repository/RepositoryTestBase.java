@@ -66,8 +66,8 @@ import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
-import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
 import dev.chojo.ember.feature.form.repository.FormRepository;
@@ -420,8 +420,11 @@ public abstract class RepositoryTestBase {
         artRepo = new InventoryArtRepository();
         artService = new InventoryArtService(artRepo, inventoryRepo);
         inventoryTagRepo = new InventoryTagRepository();
-        inventoryShareService = new InventoryShareService(new InventoryShareRepository(),
-                new FederationService(new FederationRepository(), stationRepo, new Api()), inventoryRepo, artRepo);
+        inventoryShareService = new InventoryShareService(
+                new InventoryShareRepository(),
+                new FederationService(new FederationRepository(), stationRepo, new Api()),
+                inventoryRepo,
+                artRepo);
         inventoryTagService = new InventoryTagService(inventoryTagRepo, inventoryRepo, inventoryShareService);
         clusterInventoryTagRepo = new ClusterInventoryTagRepository();
         clusterInventoryTagService = new ClusterInventoryTagService(clusterInventoryTagRepo, inventoryTagRepo);
