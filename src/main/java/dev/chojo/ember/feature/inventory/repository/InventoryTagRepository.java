@@ -210,8 +210,13 @@ public class InventoryTagRepository {
 
     /**
      * The items a station serves to one partner for a tag: the same query as
-     * {@link #findItemsByTag}, narrowed to what the station has actually offered. Nothing is
-     * offered by default, so a station that has shared nothing serves nothing.
+     * {@link #findItemsByTag}, narrowed to what the station offers that partner.
+     *
+     * <p>Where the station has named what it offers, only that is served, whether it named whole
+     * inventories or single pieces and whether it named every partner or a few. Where it has named
+     * nothing at all, the answer is the free stock, which is exactly what the same partner is
+     * already shown when it browses for something to borrow. So a word can never reach further than
+     * browsing already does, and it narrows to the offer the day a station makes one.
      *
      * @param stationId the station serving the request
      * @param partnerId the partnership the request arrived on
@@ -222,12 +227,17 @@ public class InventoryTagRepository {
         return query(TAGGED_ITEM_SELECT + """
                         WHERE t.canonical_name = :canonical
                           AND inv.station_id = :station_id
-                          AND EXISTS (SELECT 1
-                                      FROM federation_inventory_share sh
-                                               LEFT JOIN federation_inventory_share_target st ON st.share_id = sh.id
-                                      WHERE sh.station_id = inv.station_id
-                                        AND (sh.inventory_id = inv.id OR sh.item_id = i.id)
-                                        AND (sh.share_scope = 'ALL_PARTNERS' OR st.partner_id = :partner_id))
+                          AND (EXISTS (SELECT 1
+                                       FROM federation_inventory_share sh
+                                                LEFT JOIN federation_inventory_share_target st ON st.share_id = sh.id
+                                       WHERE sh.station_id = inv.station_id
+                                         AND (sh.inventory_id = inv.id OR sh.item_id = i.id)
+                                         AND (sh.share_scope = 'ALL_PARTNERS' OR st.partner_id = :partner_id))
+                               OR (NOT EXISTS (SELECT 1
+                                               FROM federation_inventory_share sh
+                                               WHERE sh.station_id = inv.station_id)
+                                   AND i.assigned_to IS NULL
+                                   AND i.lost_at IS NULL))
                         ORDER BY inv.name, i.name, i.id;""")
                 .single(call().bind("canonical", InventoryTag.canonical(name))
                         .bind("station_id", stationId)
