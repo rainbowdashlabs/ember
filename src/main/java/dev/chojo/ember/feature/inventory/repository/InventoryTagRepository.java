@@ -227,8 +227,7 @@ public class InventoryTagRepository {
                         WHERE t.canonical_name = :canonical
                           AND inv.station_id = :station_id
                         ORDER BY inv.name, i.name, i.id;""")
-                .single(call().bind("canonical", InventoryTag.canonical(name))
-                        .bind("station_id", stationId))
+                .single(call().bind("canonical", InventoryTag.canonical(name)).bind("station_id", stationId))
                 .map(TaggedItemSummary.map())
                 .all();
     }

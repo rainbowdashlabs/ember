@@ -181,7 +181,9 @@ class InventoryTagRepositoryTest extends RepositoryTestBase {
         inventoryTagRepo.setItemTags(kept.id(), station.id(), List.of(funk.id()));
 
         assertTrue(
-                inventoryTagService.findSharedItemsByTag(station.id(), partnerId, "Funk").isEmpty(),
+                inventoryTagService
+                        .findSharedItemsByTag(station.id(), partnerId, "Funk")
+                        .isEmpty(),
                 "a station that has offered nothing serves nothing for a word either");
 
         shareItem(station.id(), offered.id());
@@ -192,7 +194,9 @@ class InventoryTagRepositoryTest extends RepositoryTestBase {
         withholdItem(station.id(), kept.id());
         assertEquals(
                 1,
-                inventoryTagService.findSharedItemsByTag(station.id(), partnerId, "funk").size(),
+                inventoryTagService
+                        .findSharedItemsByTag(station.id(), partnerId, "funk")
+                        .size(),
                 "a row that expressly withholds a piece does not serve it for a word");
 
         clearShares(station.id());

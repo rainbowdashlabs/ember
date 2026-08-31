@@ -5,11 +5,11 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryTag;
 import dev.chojo.ember.feature.inventory.entity.TaggedItemSummary;
-import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryTagRepository;
 import io.javalin.http.BadRequestResponse;
@@ -45,7 +45,9 @@ public class InventoryTagService {
     private final InventoryShareService shareService;
 
     @Inject
-    public InventoryTagService(InventoryTagRepository tagRepository, InventoryRepository inventoryRepository,
+    public InventoryTagService(
+            InventoryTagRepository tagRepository,
+            InventoryRepository inventoryRepository,
             InventoryShareService shareService) {
         this.tagRepository = tagRepository;
         this.inventoryRepository = inventoryRepository;
