@@ -12,6 +12,7 @@
 - **An inventory says whether it holds one thing or many different ones.** Requirements, procurements and exchanges only mean something for a shelf of the same thing in many copies, and they were offered just as readily on a drawer of odds and ends, where "everybody needs one" and "order three more" say nothing at all. Every inventory starts as a shelf of one thing, so nothing changes until a station marks a drawer as a drawer, and the three then stop offering themselves for it.
 - **An inventory can be split without the equipment losing its history.** Where one inventory turns out to hold two different things, its pieces can now be moved into another inventory of the same station under Inventory, keeping their number, who has them and everywhere they have been. Until now the only way was to delete them and write them down again, which threw all of that away.
 - **A custom field can belong to one kind of thing or to one single piece.** A field used to hang on the whole inventory, which is why a mixed drawer had none worth adding: a call sign is nonsense on the charging station standing beside the radios. A field can now be written for one Art or for one piece alone, and the values still belong to each piece separately.
+- **A procedure starts from who is coming.** The same menu in the sign-ups of an appointment now also prepares one shared procedure for the people holding a place on that evening, taking its steps from a template and its due date from the evening itself. Everybody on it works through the same steps together, it links back to the appointment, and pressing the entry again offers the procedure already there instead of a second one.
 
 ### Changes
 
@@ -22,6 +23,8 @@
 - **Gear belonging to the body above the station could be lent to a partner.** A station only holds such gear, and lending it on put it somewhere its owner never agreed to and cannot look. Only what a station owns itself is now offered, suggested and handed over, while a body running a station of its own still lends its own gear freely.
 - **Turning lending off for a partner did not stop them asking.** The setting was there to be switched and then went unread, so a partner kept browsing the whole inventory and kept sending requests. Lending now follows it the same way shared wikis, quizzes and boards already do.
 - **A request could name gear the asked station does not keep.** The inventory and the piece a request names were taken as given, so approving one could set aside something standing on another station's shelf. What is set aside is now checked against the lending station's own stock first.
+- **A due date on a procedure was thrown away.** The date was picked and saved, and the whole save was refused without a word, so the procedure ended up with no due date and never counted as overdue. A date now arrives as picked, and one already set shows in the field when the procedure is edited.
+- **A notice about a procedure led nowhere near it.** Being put on one, a step being ticked, and the procedure being closed or opened again all sent a notice whose link landed on the dashboard, leaving the reader to find the procedure themselves. Every one of them now opens the procedure it is about.
 
 ## v26.13.10
 
