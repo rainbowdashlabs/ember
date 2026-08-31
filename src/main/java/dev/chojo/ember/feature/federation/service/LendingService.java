@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.service.BorrowedGearService;
 import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -45,7 +46,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.IntConsumer;
 
 /**
  * Business logic for cross-station inventory lending. Internally peer references travel as
@@ -64,6 +64,7 @@ public class LendingService {
     private final InventoryRepository inventoryRepository;
     private final ClusterRepository clusterRepository;
     private final ItemCustodyService custodyService;
+    private final BorrowedGearService borrowedGearService;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -75,6 +76,7 @@ public class LendingService {
             InventoryRepository inventoryRepository,
             ClusterRepository clusterRepository,
             ItemCustodyService custodyService,
+            BorrowedGearService borrowedGearService,
             DomainEventBus eventBus) {
         this.repository = repository;
         this.httpClient = httpClient;
@@ -83,6 +85,7 @@ public class LendingService {
         this.inventoryRepository = inventoryRepository;
         this.clusterRepository = clusterRepository;
         this.custodyService = custodyService;
+        this.borrowedGearService = borrowedGearService;
         this.eventBus = eventBus;
     }
 
@@ -256,11 +259,15 @@ public class LendingService {
      * it owns, so the shell lending the cluster's gear is the owner acting and is not refused here;
      * a member station holding the same gear is refused.
      *
+     * <p>Gear borrowed from another partner is refused for the same reason and more plainly: lending
+     * it on would put a third station's radio somewhere its owner never agreed to and cannot see.
+     *
      * @param stationId     the station doing the lending
      * @param homeClusterId the cluster this station is the shell of, or {@code null} when it is not one
      */
     private record Lender(int stationId, Integer homeClusterId) {
         boolean owns(InventoryItem item) {
+            if (item.ownerKind() == ItemOwner.PARTNER_STATION) return false;
             if (item.ownerKind() != ItemOwner.CLUSTER) return true;
             return homeClusterId != null && homeClusterId.equals(item.ownerClusterId());
         }
@@ -297,10 +304,36 @@ public class LendingService {
         return updated;
     }
 
+    /**
+     * Hands the gear over, which is where a borrowed piece becomes a thing at the borrower.
+     *
+     * <p>Two rows come out of one radio and they are different sentences. The owner's row is the
+     * truth about the thing and now says which partner has it; the borrower's row is the truth about
+     * where it is this fortnight, and it goes away again when the gear does.
+     *
+     * @param requestId the lending request
+     * @param stationId the station handing the gear over
+     * @return {@code true} when the request moved to lent
+     */
     public boolean markLent(int requestId, int stationId) {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.LENT);
         if (updated) {
-            forEachLentItem(requestId, custodyService::lendToPartner);
+            var request = repository.findRequestById(requestId);
+            Integer borrower = request.flatMap(r -> stationRepository.findByUid(r.requestingStationUid()))
+                    .map(Station::id)
+                    .orElse(null);
+            Integer owner = request.flatMap(r -> stationRepository.findByUid(r.owningStationUid()))
+                    .map(Station::id)
+                    .orElse(null);
+            forEachLentItem(requestId, (requestItemId, itemId) -> {
+                custodyService.lendToPartner(itemId, borrower);
+                // A partner on another instance has no rows here to write, so the owner's side is the
+                // whole of the handover and the borrower keeps only the request, as it always did.
+                if (borrower == null || owner == null) return;
+                inventoryRepository
+                        .findItemById(itemId)
+                        .ifPresent(item -> borrowedGearService.handOver(item, owner, borrower, requestItemId));
+            });
             repository.createMessage(
                     requestId, stationRepository.resolveUid(stationId), null, "Ausrüstung ausgeliehen", true);
             repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.LENT));
@@ -313,10 +346,24 @@ public class LendingService {
 
     // -- Status transitions --
 
+    /**
+     * Takes the gear back, which is where the borrower's row goes away.
+     *
+     * <p>The row goes rather than being marked returned: it was a copy of somebody else's gear taken
+     * for the length of one loan, and a snapshot that outlives its loan is only a way of being wrong
+     * later. The loan stays at both ends, which is the history worth having.
+     *
+     * @param requestId the lending request
+     * @param stationId the station taking the gear back
+     * @return {@code true} when the request moved to returned
+     */
     public boolean markReturned(int requestId, int stationId) {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.RETURNED);
         if (updated) {
-            forEachLentItem(requestId, custodyService::returnFromPartner);
+            forEachLentItem(requestId, (requestItemId, itemId) -> {
+                borrowedGearService.handBack(requestItemId);
+                custodyService.returnFromPartner(itemId);
+            });
             repository.createMessage(
                     requestId, stationRepository.resolveUid(stationId), null, "Ausrüstung zurückgegeben", true);
             repository
@@ -335,12 +382,22 @@ public class LendingService {
      * assigned carry nothing to move.
      *
      * @param requestId the lending request
-     * @param action    what to do with each assigned item
+     * @param action    what to do with each assigned item, given the line it was set aside on and the
+     *                  item itself
      */
-    private void forEachLentItem(int requestId, IntConsumer action) {
+    private void forEachLentItem(int requestId, LentItemAction action) {
         for (var requestItem : repository.findItemsByRequest(requestId)) {
-            if (requestItem.assignedItemId() != null) action.accept(requestItem.assignedItemId());
+            if (requestItem.assignedItemId() != null) action.accept(requestItem.id(), requestItem.assignedItemId());
         }
+    }
+
+    /**
+     * What to do with one piece of gear that is actually changing hands, told both which line of the
+     * request it is on and which item it is. The line is what pairs the two stations' rows.
+     */
+    @FunctionalInterface
+    private interface LentItemAction {
+        void accept(int requestItemId, int itemId);
     }
 
     public boolean closeRequest(int requestId, int stationId) {

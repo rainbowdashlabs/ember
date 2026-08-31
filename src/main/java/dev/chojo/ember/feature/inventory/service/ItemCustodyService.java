@@ -128,10 +128,16 @@ public class ItemCustodyService {
      * until it wants something done about it, and wanting something done is a separate act: the
      * station raises a report, and that is what reaches the owner.
      *
+     * <p>Gear borrowed from a partner is refused. The borrower's row is a copy that disappears when
+     * the loan ends, so a loss written on it would be gone by the time it mattered, and the owner's
+     * row would go on saying the partner has the piece. The fact belongs to the owner, and it travels
+     * on the loan the gear came in on, which is the one channel both stations already read.
+     *
      * @param itemId the item ID
      * @param note   what whoever reported it wrote, or {@code null} when they wrote nothing
      * @param noteBy who wrote that note, which is the guardian when one acted for a member
      * @return the updated item, or empty if the item was not found
+     * @throws BadRequestResponse if the item is borrowed from a federation partner
      */
     public Optional<InventoryItem> markLost(int itemId, String note, Integer noteBy) {
         var found = inventoryRepository.findItemById(itemId);
@@ -140,6 +146,10 @@ public class ItemCustodyService {
             return Optional.empty();
         }
         var item = found.get();
+        if (item.borrowed()) {
+            throw new BadRequestResponse(
+                    "This gear belongs to a partner station. Tell them on the lending request it came in on");
+        }
         Integer holder = item.custodyStationId() != null ? item.custodyStationId() : stationOf(item);
         inventoryRepository.updateCustody(itemId, ItemCustody.LOST, holder, item.assignedTo(), null);
         inventoryRepository.setLostNote(itemId, note, noteBy);
@@ -177,10 +187,17 @@ public class ItemCustodyService {
      * Records that a federation partner has the item. The lending flow keeps its own status; this
      * is only where the item is while that status stands.
      *
-     * @param itemId the item ID
+     * <p>Two stations are named and they are different questions. The custody station stays the
+     * lender, because that is what keeps the piece in the lender's own lists while it is away. The
+     * partner station is who actually has it, which until now lived in the lending request, one join
+     * away from anything asking where a radio is.
+     *
+     * @param itemId           the item ID
+     * @param partnerStationId the partner taking it, or {@code null} when the partner is on another
+     *                         instance and has no row here
      * @return the updated item, or empty if the item was not found
      */
-    public Optional<InventoryItem> lendToPartner(int itemId) {
+    public Optional<InventoryItem> lendToPartner(int itemId, Integer partnerStationId) {
         var found = inventoryRepository.findItemById(itemId);
         if (found.isEmpty()) {
             log.warn("Lend skipped: item {} not found", itemId);
@@ -188,8 +205,9 @@ public class ItemCustodyService {
         }
         var item = found.get();
         closeCurrentSpell(item);
-        inventoryRepository.updateCustody(itemId, ItemCustody.WITH_PARTNER, stationOf(item), null, null);
-        log.info("Item {} lent to a federation partner", itemId);
+        inventoryRepository.updateCustody(
+                itemId, ItemCustody.WITH_PARTNER, stationOf(item), null, null, partnerStationId);
+        log.info("Item {} lent to federation partner {}", itemId, partnerStationId);
         return inventoryRepository.findItemById(itemId);
     }
 
@@ -288,7 +306,9 @@ public class ItemCustodyService {
 
     /**
      * The custody an item falls back to when nobody in particular has it: with the owner when the
-     * station owns it, and at the station when the body above it does.
+     * station owns it, and at the station when anybody else does. A borrowed piece rests at the
+     * station that borrowed it for the same reason a cluster's jacket does, which is that the store
+     * it is lying in is that station's own.
      *
      * @param item the item
      * @return the resting custody

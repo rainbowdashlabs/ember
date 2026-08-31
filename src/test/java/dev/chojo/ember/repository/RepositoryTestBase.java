@@ -79,6 +79,7 @@ import dev.chojo.ember.feature.inventory.repository.ItemMovementItemRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
 import dev.chojo.ember.feature.inventory.repository.MovementFlowRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
+import dev.chojo.ember.feature.inventory.service.BorrowedGearService;
 import dev.chojo.ember.feature.inventory.service.ClusterItemHandoverService;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryArtService;
@@ -212,6 +213,7 @@ public abstract class RepositoryTestBase {
     protected static ClusterStorageQuotaService clusterStorageQuotaService;
 
     protected static ItemCustodyService itemCustodyService;
+    protected static BorrowedGearService borrowedGearService;
     protected static MovementFlowRepository movementFlowRepo;
     protected static ItemMovementRepository itemMovementRepo;
     protected static MovementFlowService movementFlowService;
@@ -356,6 +358,7 @@ public abstract class RepositoryTestBase {
         clusterApplicationRepo = new ClusterApplicationRepository();
         clusterProfileFieldRepo = new ClusterProfileFieldRepository();
         itemCustodyService = new ItemCustodyService(inventoryRepo);
+        borrowedGearService = new BorrowedGearService(inventoryRepo);
         movementFlowRepo = new MovementFlowRepository();
         itemMovementRepo = new ItemMovementRepository();
         movementFlowService = new MovementFlowService(movementFlowRepo, itemMovementRepo, clusterRepo);

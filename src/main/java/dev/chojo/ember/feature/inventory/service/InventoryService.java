@@ -263,14 +263,48 @@ public class InventoryService {
     /**
      * Deletes an inventory.
      *
+     * <p>The shelf for gear belonging to somebody else is refused while anything is still on it.
+     * Deleting it would take away rows the station does not own and cannot replace, and the loans
+     * they came in on would have nothing to hand back. Once it is empty it goes like any other, and
+     * the next handover makes a new one.
+     *
      * @param id the inventory ID
      * @return {@code true} if deleted
+     * @throws BadRequestResponse when it is the borrowed shelf and it still holds something
      */
     public boolean delete(int id) {
+        requireEmptyIfBorrowed(id);
         boolean deleted = inventoryRepository.delete(id);
         if (deleted) log.info("Deleted inventory {}", id);
         else log.warn("Delete of inventory {} did not change any row", id);
         return deleted;
+    }
+
+    /**
+     * Keeps the shelf for gear belonging to somebody else holding exactly that.
+     *
+     * <p>It answers one question, "what have we got here that is not ours", and a piece of the
+     * station's own filed on it makes the answer wrong. Nothing reaches it except a handover.
+     *
+     * @param inventoryId the inventory something would be written into or moved onto
+     * @throws BadRequestResponse when it is the borrowed shelf
+     */
+    private void requireNotTheBorrowedShelf(int inventoryId) {
+        boolean borrowed = inventoryRepository
+                .findById(inventoryId)
+                .map(Inventory::borrowed)
+                .orElse(false);
+        if (borrowed) {
+            throw new BadRequestResponse("This shelf only holds gear borrowed from a partner station");
+        }
+    }
+
+    private void requireEmptyIfBorrowed(int id) {
+        Inventory inventory = inventoryRepository.findById(id).orElse(null);
+        if (inventory == null || !inventory.borrowed()) return;
+        if (inventoryRepository.findItems(id).isEmpty()) return;
+        log.info("Refused to delete the borrowed shelf of inventory {}: it still holds gear", id);
+        throw new BadRequestResponse("This shelf still holds gear belonging to somebody else");
     }
 
     // -- Sizes --
@@ -401,6 +435,7 @@ public class InventoryService {
      */
     public InventoryItem createItem(
             int inventoryId, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
+        requireNotTheBorrowedShelf(inventoryId);
         InventoryItem item = inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata);
         log.info(
                 "Created item {} (name='{}', internalId='{}', sizeId={}) in inventory {}",
@@ -467,6 +502,12 @@ public class InventoryService {
             InventoryItemMetadata metadata,
             ItemOwner ownerKind,
             Integer ownerClusterId) {
+        // Gear belonging to a partner arrives by handover and by nothing else, so it is never
+        // written down here. The rows for it are the lending flow's to make and to take away again.
+        if (ownerKind == ItemOwner.PARTNER_STATION) {
+            throw new BadRequestResponse("Gear belonging to a partner station arrives by handover, not by hand");
+        }
+        requireNotTheBorrowedShelf(inventoryId);
         requireOwnerFits(inventoryId, ownerKind);
         Integer owner =
                 ownerKind == ItemOwner.CLUSTER && ownerClusterId == null ? clusterAbove(inventoryId) : ownerClusterId;
@@ -747,6 +788,7 @@ public class InventoryService {
      */
     public Optional<InventoryItem> moveItem(int itemId, int inventoryId, Integer actingClusterId) {
         requireOwned(itemId, "moved", actingClusterId);
+        requireNotTheBorrowedShelf(inventoryId);
         InventoryItem item = inventoryRepository.findItemById(itemId).orElseThrow(NotFoundResponse::new);
         Inventory target = inventoryRepository
                 .findById(inventoryId)
@@ -891,6 +933,13 @@ public class InventoryService {
      */
     private void requireOwned(int itemId, String verb, Integer actingClusterId) {
         inventoryRepository.findItemById(itemId).ifPresent(item -> {
+            // A borrowed piece has an owner who is right there and reading the same thing from the other
+            // end. What it is stays theirs; where it is stays the borrower's, and none of those verbs is
+            // about where it is.
+            if (item.borrowed()) {
+                throw new ForbiddenResponse(
+                        "This gear belongs to a partner station and can only be %s by them".formatted(verb));
+            }
             // Only where the owner is actually here to do it themselves. Gear kept for a body that does not
             // use Ember belongs to nobody who could ever correct a name, so refusing the station would leave
             // the record wrong for good with no way to put it right.

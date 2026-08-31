@@ -170,9 +170,7 @@ public class InventoryCheckService {
             checkRepository.createCheckItem(
                     check.id(), result.itemId(), result.inventoryId(), result.result(), result.note());
 
-            if (result.result() == CheckResult.LOST && result.itemId() != null) {
-                custodyService.markLost(result.itemId(), result.note(), checkedBy);
-            }
+            markMissing(result, checkedBy);
         }
 
         checkRepository.releaseLock(memberId);
@@ -243,9 +241,7 @@ public class InventoryCheckService {
         for (CheckItemRequest result : results) {
             checkRepository.createCheckItem(
                     check.id(), result.itemId(), result.inventoryId(), result.result(), result.note());
-            if (result.result() == CheckResult.LOST && result.itemId() != null) {
-                custodyService.markLost(result.itemId(), result.note(), checkedBy);
-            }
+            markMissing(result, checkedBy);
         }
         log.info(
                 "Completed container check {} on container {} by member {} (station={}, deep={}, results={})",
@@ -256,6 +252,35 @@ public class InventoryCheckService {
                 deep,
                 results.size());
         return check;
+    }
+
+    /**
+     * Writes the loss a walk found, where there is a loss to write and it is this station's to write.
+     *
+     * <p>Borrowed gear is walked with everything else, because it is in the building and a shelf that
+     * skips a third of what is on it is not a shelf that has been walked. What it does not get is the
+     * loss: the borrower's row is a copy that goes away when the loan ends, and writing a loss on it
+     * would leave the owner's row still saying a partner has the piece. The check keeps the result, so
+     * the walk still says plainly that the piece was not there, and telling the owner happens on the
+     * lending request the gear came in on.
+     *
+     * @param result    one line of the walk
+     * @param checkedBy the member walking it
+     */
+    private void markMissing(CheckItemRequest result, int checkedBy) {
+        if (result.result() != CheckResult.LOST || result.itemId() == null) return;
+        boolean borrowed = inventoryRepository
+                .findItemById(result.itemId())
+                .map(InventoryItem::borrowed)
+                .orElse(false);
+        if (borrowed) {
+            log.info(
+                    "Check found borrowed item {} missing; the loss stays on the check and goes to the owner "
+                            + "on the lending request",
+                    result.itemId());
+            return;
+        }
+        custodyService.markLost(result.itemId(), result.note(), checkedBy);
     }
 
     /**
@@ -483,6 +508,12 @@ public class InventoryCheckService {
                 if (correction.ownerKind() == null) {
                     throw new BadRequestResponse("This inventory holds both owners, so the new piece needs one named");
                 }
+                // Gear belonging to a partner arrives by handover and by nothing else. A correction
+                // writing a new piece is the station saying what it has, and it cannot say that
+                // about somebody else's radio.
+                if (correction.ownerKind() == ItemOwner.PARTNER_STATION) {
+                    throw new BadRequestResponse("A new piece cannot be written down as a partner station's");
+                }
                 yield correction.ownerKind();
             }
         };
@@ -521,8 +552,11 @@ public class InventoryCheckService {
             return;
         }
         inventoryRepository.markSpellCorrected(itemId, memberId);
-        if (item.ownedByStation()) custodyService.takeBack(itemId);
-        else custodyService.returnToOwner(itemId);
+        // Only gear the body above the station owns goes back to an owner with a store of its own.
+        // A borrowed piece rests on the shelf of the station that borrowed it, exactly as its own
+        // gear does, so it is taken back rather than sent anywhere.
+        if (item.ownerKind() == ItemOwner.CLUSTER) custodyService.returnToOwner(itemId);
+        else custodyService.takeBack(itemId);
     }
 
     /**
