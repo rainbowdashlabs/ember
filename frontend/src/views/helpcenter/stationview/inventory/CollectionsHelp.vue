@@ -24,6 +24,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.inventoryCollections.linesTitle')">
       <p>{{ t('helpCenter.inventoryCollections.linesItem') }}</p>
+      <p>{{ t('helpCenter.inventoryCollections.linesArt') }}</p>
       <p>{{ t('helpCenter.inventoryCollections.linesCount') }}</p>
     </HelpSection>
 
@@ -34,6 +35,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.inventoryCollections.againstTagsTitle')">
       <p>{{ t('helpCenter.inventoryCollections.againstTagsText') }}</p>
+      <p>{{ t('helpCenter.inventoryCollections.artGoneText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.inventoryCollections.tip') }}</HelpTip>

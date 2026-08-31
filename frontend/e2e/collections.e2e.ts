@@ -39,6 +39,34 @@ test.describe('Collections', () => {
         await expect(page.getByTestId('collection-line')).toHaveCount(1)
     })
 
+    /**
+     * The line the whole idea turns on: four of one kind, not four of whatever the drawer holds. The
+     * seeded radio drawer has six blue radios and a case nobody gave a kind to, so a line asking for
+     * four blue ones fills and would not have if it had counted the drawer.
+     */
+    test('a line asks for a count of one kind', async ({managerPage: page}) => {
+        const name = unique('Artzeile')
+
+        await page.goto('/station/inventory/collections')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+
+        await page.getByTestId('collection-create').click()
+        await page.getByTestId('collection-name').fill(name)
+        await page.getByTestId('collection-save').click()
+
+        await page.getByTestId('collection-add-line').click()
+        await page.getByTestId('collection-line-kind').selectOption('art')
+        await page.getByTestId('collection-line-art').selectOption({label: 'Funkgerät blau (Handfunkgeräte)'})
+        await page.getByTestId('collection-line-art-quantity').fill('4')
+        await page.getByTestId('collection-line-submit').click()
+
+        await expect(page.getByTestId('collection-line')).toHaveCount(1)
+        await expect(page.getByTestId('collection-line-filled')).toHaveText('4 von 4')
+
+        await page.getByTestId('collection-line-count').fill('9')
+        await expect(page.getByTestId('collection-line-short')).toHaveText('6 von 9')
+    })
+
     /** An association's gear is a station's gear, so its collections are the home station's, shown here. */
     test('the association reads the collections of its home station', async ({browser, request}) => {
         const account = await clusterAccountWith(request, 'CLUSTER_INVENTORY_MANAGER')

@@ -9,8 +9,9 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {inventory} from '@/api'
+import {inventory, inventoryArts} from '@/api'
 import type {Inventory, InventoryItem} from '@/api/inventory'
+import type {InventoryArt} from '@/api/inventoryArts'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useSession} from '@/composables/useSession'
 import {StationPermission} from '@/api/types'
@@ -24,6 +25,7 @@ const {hasPermission} = useSession()
 
 const inventories = ref<Inventory[]>([])
 const items = ref<InventoryItem[]>([])
+const arts = ref<InventoryArt[]>([])
 const editable = computed(() => hasPermission(StationPermission.INVENTORY_EDIT))
 
 const editing = useCollectionEditing()
@@ -32,6 +34,9 @@ const {loading, error} = useAsyncLoader(async () => {
   const [invs, allItems] = await Promise.all([inventory.listInventories(), inventory.listAllItems()])
   inventories.value = invs
   items.value = allItems
+  arts.value = (
+      await Promise.all(invs.filter(inv => !inv.homogeneous).map(inv => inventoryArts.listArts(inv.id)))
+  ).flat()
   await editing.reload()
 })
 </script>
@@ -72,7 +77,7 @@ const {loading, error} = useAsyncLoader(async () => {
         />
       </div>
 
-      <CollectionModals :editing="editing" :inventories="inventories" :items="items"/>
+      <CollectionModals :editing="editing" :inventories="inventories" :items="items" :arts="arts"/>
     </div>
   </ViewContent>
 </template>

@@ -39,10 +39,11 @@ CREATE TABLE ember_schema.inventory_collection_line
     id            SERIAL PRIMARY KEY,
     collection_id INT NOT NULL REFERENCES ember_schema.inventory_collection (id) ON DELETE CASCADE,
     item_id       INT REFERENCES ember_schema.inventory_item (id) ON DELETE CASCADE,
+    art_id        INT REFERENCES ember_schema.inventory_art (id) ON DELETE CASCADE,
     inventory_id  INT REFERENCES ember_schema.inventory (id) ON DELETE CASCADE,
     quantity      INT NOT NULL DEFAULT 1,
     position      INT NOT NULL DEFAULT 0,
-    CONSTRAINT chk_collection_line_one_target CHECK (num_nonnulls(item_id, inventory_id) = 1),
+    CONSTRAINT chk_collection_line_one_target CHECK (num_nonnulls(item_id, art_id, inventory_id) = 1),
     CONSTRAINT chk_collection_line_quantity CHECK (quantity >= 1),
     CONSTRAINT chk_collection_line_named_item_single CHECK (item_id IS NULL OR quantity = 1)
 );
@@ -51,17 +52,21 @@ CREATE INDEX idx_inventory_collection_line_collection
     ON ember_schema.inventory_collection_line (collection_id);
 CREATE INDEX idx_inventory_collection_line_item
     ON ember_schema.inventory_collection_line (item_id) WHERE item_id IS NOT NULL;
+CREATE INDEX idx_inventory_collection_line_art
+    ON ember_schema.inventory_collection_line (art_id) WHERE art_id IS NOT NULL;
 CREATE INDEX idx_inventory_collection_line_inventory
     ON ember_schema.inventory_collection_line (inventory_id) WHERE inventory_id IS NOT NULL;
 
 COMMENT ON TABLE ember_schema.inventory_collection_line IS
-    'One line of a collection: either a named piece or a count out of an inventory, never both and never neither.';
+    'One line of a collection: a named piece, a count of one kind of thing, or a count out of a whole inventory. Exactly one of the three, never two and never none.';
 COMMENT ON COLUMN ember_schema.inventory_collection_line.id IS 'Auto-generated primary key.';
 COMMENT ON COLUMN ember_schema.inventory_collection_line.collection_id IS 'References the collection.';
 COMMENT ON COLUMN ember_schema.inventory_collection_line.item_id IS
-    'The named piece this line asks for. Exactly one of item_id/inventory_id is set. The line goes when the piece goes.';
+    'The named piece this line asks for. Exactly one of item_id/art_id/inventory_id is set. The line goes when the piece goes.';
+COMMENT ON COLUMN ember_schema.inventory_collection_line.art_id IS
+    'The kind of thing a counted line asks for, which is how a line says four blue radios rather than four of whatever is in the drawer. Exactly one of item_id/art_id/inventory_id is set. The line goes when the kind goes.';
 COMMENT ON COLUMN ember_schema.inventory_collection_line.inventory_id IS
-    'The inventory a counted line draws from. Exactly one of item_id/inventory_id is set.';
+    'The inventory a counted line draws from, for the inventories that hold one thing in many copies and therefore carry no kinds. Exactly one of item_id/art_id/inventory_id is set.';
 COMMENT ON COLUMN ember_schema.inventory_collection_line.quantity IS
     'How many pieces the line asks for. Always 1 on a named-item line, because a named piece is one piece.';
 COMMENT ON COLUMN ember_schema.inventory_collection_line.position IS 'Display order within the collection.';

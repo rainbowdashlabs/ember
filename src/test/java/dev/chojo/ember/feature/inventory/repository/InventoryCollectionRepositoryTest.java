@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.entity.CollectionLine;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryCollection;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
@@ -49,7 +50,7 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
         partner = stationRepo.create("CollectionPartner");
         member = stationMemberRepo.create(station.id(), account.id());
         games = inventoryRepo.create(station.id(), "Spiele", InventoryType.INTERNAL, false);
-        radios = inventoryRepo.create(station.id(), "Funkgeraete", InventoryType.INTERNAL, false);
+        radios = inventoryRepo.create(station.id(), "Funkgeraete", InventoryType.INTERNAL, false, false);
         lendingRepo = new LendingRepository();
     }
 
@@ -69,6 +70,10 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
                 inventory.id(), null, name, null, InventoryItemMetadata.empty(), ItemOwner.CLUSTER, null);
     }
 
+    private static InventoryItem itemOfKind(Inventory inventory, String name, int artId) {
+        return inventoryRepo.createItem(inventory.id(), null, name, null, artId, null, null, null);
+    }
+
     @Test
     void collectionCrudAndSummaries() {
         InventoryCollection evening =
@@ -85,8 +90,8 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
                 collectionRepo.findById(evening.id()).orElseThrow().id());
         assertTrue(collectionRepo.findById(-1).isEmpty());
 
-        collectionRepo.addLine(evening.id(), item(games, "Siedler").id(), null, 1);
-        collectionRepo.addLine(evening.id(), null, games.id(), 2);
+        collectionRepo.addLine(evening.id(), item(games, "Siedler").id(), null, null, 1);
+        collectionRepo.addLine(evening.id(), null, null, games.id(), 2);
 
         List<InventoryCollectionRepository.CollectionSummary> summaries =
                 collectionRepo.findSummariesByStation(station.id()).stream()
@@ -119,9 +124,9 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
         InventoryItem first = item(radios, "Funk blau");
         InventoryItem second = item(radios, "Funk gruen");
 
-        CollectionLine one = collectionRepo.addLine(kit.id(), first.id(), null, 1);
-        CollectionLine two = collectionRepo.addLine(kit.id(), second.id(), null, 1);
-        CollectionLine three = collectionRepo.addLine(kit.id(), null, radios.id(), 4);
+        CollectionLine one = collectionRepo.addLine(kit.id(), first.id(), null, null, 1);
+        CollectionLine two = collectionRepo.addLine(kit.id(), second.id(), null, null, 1);
+        CollectionLine three = collectionRepo.addLine(kit.id(), null, null, radios.id(), 4);
         assertEquals(0, one.position());
         assertEquals(1, two.position());
         assertEquals(2, three.position());
@@ -158,14 +163,21 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
-    void aLineRefusesBothTargetsAndNeither() {
+    void aLineRefusesTwoTargetsAndNone() {
         InventoryCollection kit = collectionRepo.create(station.id(), "Verboten", "", null);
         InventoryItem piece = item(radios, "Funk rot");
-        assertThrows(Exception.class, () -> collectionRepo.addLine(kit.id(), piece.id(), radios.id(), 1));
-        assertThrows(Exception.class, () -> collectionRepo.addLine(kit.id(), null, null, 1));
-        assertThrows(Exception.class, () -> collectionRepo.addLine(kit.id(), piece.id(), null, 2));
-        assertThrows(Exception.class, () -> collectionRepo.addLine(kit.id(), null, radios.id(), 0));
+        InventoryArt kind = artRepo.create(radios.id(), "Funk rot", "", 0);
+
+        assertThrows(Exception.class, () -> collectionRepo.addLine(kit.id(), piece.id(), null, radios.id(), 1));
+        assertThrows(Exception.class, () -> collectionRepo.addLine(kit.id(), piece.id(), kind.id(), null, 1));
+        assertThrows(Exception.class, () -> collectionRepo.addLine(kit.id(), null, kind.id(), radios.id(), 1));
+        assertThrows(Exception.class, () -> collectionRepo.addLine(kit.id(), null, null, null, 1));
+        assertThrows(Exception.class, () -> collectionRepo.addLine(kit.id(), piece.id(), null, null, 2));
+        assertThrows(Exception.class, () -> collectionRepo.addLine(kit.id(), null, null, radios.id(), 0));
+        assertThrows(Exception.class, () -> collectionRepo.addLine(kit.id(), null, kind.id(), null, 0));
+
         collectionRepo.delete(kit.id(), station.id());
+        artRepo.delete(kind.id());
         inventoryRepo.deleteItem(piece.id());
     }
 
@@ -184,12 +196,12 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
         inventoryRepo.updateCustody(withPartner.id(), ItemCustody.WITH_PARTNER, station.id(), null, null);
         inventoryRepo.updateCustody(lost.id(), ItemCustody.LOST, station.id(), null, null);
 
-        CollectionLine restingLine = collectionRepo.addLine(kit.id(), resting.id(), null, 1);
-        CollectionLine memberLine = collectionRepo.addLine(kit.id(), withMember.id(), null, 1);
-        CollectionLine partnerLine = collectionRepo.addLine(kit.id(), withPartner.id(), null, 1);
-        CollectionLine lostLine = collectionRepo.addLine(kit.id(), lost.id(), null, 1);
-        CollectionLine clusterLine = collectionRepo.addLine(kit.id(), owned.id(), null, 1);
-        CollectionLine countLine = collectionRepo.addLine(kit.id(), null, drawer.id(), 4);
+        CollectionLine restingLine = collectionRepo.addLine(kit.id(), resting.id(), null, null, 1);
+        CollectionLine memberLine = collectionRepo.addLine(kit.id(), withMember.id(), null, null, 1);
+        CollectionLine partnerLine = collectionRepo.addLine(kit.id(), withPartner.id(), null, null, 1);
+        CollectionLine lostLine = collectionRepo.addLine(kit.id(), lost.id(), null, null, 1);
+        CollectionLine clusterLine = collectionRepo.addLine(kit.id(), owned.id(), null, null, 1);
+        CollectionLine countLine = collectionRepo.addLine(kit.id(), null, null, drawer.id(), 4);
 
         List<ResolvedCollectionLine> resolved = collectionRepo.resolve(kit.id(), station.id(), null, null);
         assertEquals(6, resolved.size());
@@ -227,6 +239,55 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
         inventoryRepo.delete(drawer.id());
     }
 
+    /**
+     * A line asking for a kind counts the pieces of that kind and nothing else, which is the whole
+     * difference between asking for four blue radios and asking for four things out of the drawer.
+     */
+    @Test
+    void aKindLineCountsOnlyThePiecesOfThatKind() {
+        Inventory drawer = inventoryRepo.create(station.id(), "Kinds", InventoryType.INTERNAL, false, false);
+        InventoryArt blau = artRepo.create(drawer.id(), "Funkgeraet blau", "", 0);
+        InventoryArt gruen = artRepo.create(drawer.id(), "Funkgeraet gruen", "", 1);
+        InventoryCollection kit = collectionRepo.create(station.id(), "Kinds", "", null);
+
+        InventoryItem blueHere = itemOfKind(drawer, "Blau 1", blau.id());
+        itemOfKind(drawer, "Blau 2", blau.id());
+        InventoryItem blueLost = itemOfKind(drawer, "Blau 3", blau.id());
+        itemOfKind(drawer, "Gruen 1", gruen.id());
+        item(drawer, "Koffer ohne Art");
+        inventoryRepo.updateCustody(blueLost.id(), ItemCustody.LOST, station.id(), null, null);
+
+        CollectionLine blueLine = collectionRepo.addLine(kit.id(), null, blau.id(), null, 4);
+        CollectionLine wholeDrawer = collectionRepo.addLine(kit.id(), null, null, drawer.id(), 4);
+
+        List<ResolvedCollectionLine> resolved = collectionRepo.resolve(kit.id(), station.id(), null, null);
+        assertEquals(blueLine.id(), resolved.get(0).lineId());
+        assertEquals(blau.id(), resolved.get(0).artId());
+        assertEquals("Funkgeraet blau", resolved.get(0).label());
+        assertEquals(4, resolved.get(0).requested());
+        assertEquals(2, resolved.get(0).available());
+        assertEquals(2, resolved.get(0).missing());
+        assertFalse(resolved.get(0).filled());
+
+        assertEquals(wholeDrawer.id(), resolved.get(1).lineId());
+        assertEquals(4, resolved.get(1).available());
+        assertTrue(resolved.get(1).filled());
+
+        assertEquals(
+                List.of("Kinds"),
+                collectionRepo.findCollectionsAskingForArt(blau.id()).stream()
+                        .map(InventoryCollection::name)
+                        .toList());
+        assertTrue(collectionRepo.findCollectionsAskingForArt(gruen.id()).isEmpty());
+
+        artRepo.delete(blau.id());
+        assertTrue(collectionRepo.findLines(kit.id()).stream().noneMatch(line -> line.id() == blueLine.id()));
+        assertTrue(inventoryRepo.findItemById(blueHere.id()).isPresent());
+
+        collectionRepo.delete(kit.id(), station.id());
+        inventoryRepo.delete(drawer.id());
+    }
+
     @Test
     void aWindowSubtractsWhatIsAlreadyPromised() {
         Inventory drawer = inventoryRepo.create(station.id(), "Fenster", InventoryType.INTERNAL, false);
@@ -234,8 +295,8 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
         InventoryItem promised = item(drawer, "Versprochen");
         InventoryItem free = item(drawer, "Frei");
 
-        collectionRepo.addLine(kit.id(), promised.id(), null, 1);
-        collectionRepo.addLine(kit.id(), null, drawer.id(), 2);
+        collectionRepo.addLine(kit.id(), promised.id(), null, null, 1);
+        collectionRepo.addLine(kit.id(), null, null, drawer.id(), 2);
 
         var request = lendingRepo.createRequest(
                 partner.uid(), station.uid(), LocalDate.of(2026, 5, 10), LocalDate.of(2026, 5, 12), member.id());
@@ -269,15 +330,18 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
 
     @Test
     void whatWouldLoseALine() {
-        Inventory drawer = inventoryRepo.create(station.id(), "Warnung", InventoryType.INTERNAL, false);
+        Inventory drawer = inventoryRepo.create(station.id(), "Warnung", InventoryType.INTERNAL, false, false);
         InventoryItem piece = item(drawer, "Laminator");
+        InventoryArt kind = artRepo.create(drawer.id(), "Laminiergeraet", "", 0);
         InventoryCollection named = collectionRepo.create(station.id(), "Nennt das Stueck", "", null);
         InventoryCollection counted = collectionRepo.create(station.id(), "Zaehlt das Fach", "", null);
+        InventoryCollection perKind = collectionRepo.create(station.id(), "Zaehlt die Art", "", null);
         InventoryCollection untouched = collectionRepo.create(station.id(), "Unbeteiligt", "", null);
 
-        collectionRepo.addLine(named.id(), piece.id(), null, 1);
-        collectionRepo.addLine(counted.id(), null, drawer.id(), 2);
-        collectionRepo.addLine(untouched.id(), null, games.id(), 1);
+        collectionRepo.addLine(named.id(), piece.id(), null, null, 1);
+        collectionRepo.addLine(counted.id(), null, null, drawer.id(), 2);
+        collectionRepo.addLine(perKind.id(), null, kind.id(), null, 2);
+        collectionRepo.addLine(untouched.id(), null, null, games.id(), 1);
 
         assertEquals(
                 List.of("Nennt das Stueck"),
@@ -287,13 +351,14 @@ class InventoryCollectionRepositoryTest extends RepositoryTestBase {
         assertTrue(collectionRepo.findCollectionsHoldingItem(-1).isEmpty());
 
         assertEquals(
-                List.of("Nennt das Stueck", "Zaehlt das Fach"),
+                List.of("Nennt das Stueck", "Zaehlt das Fach", "Zaehlt die Art"),
                 collectionRepo.findCollectionsTouchingInventory(drawer.id()).stream()
                         .map(InventoryCollection::name)
                         .toList());
 
         collectionRepo.delete(named.id(), station.id());
         collectionRepo.delete(counted.id(), station.id());
+        collectionRepo.delete(perKind.id(), station.id());
         collectionRepo.delete(untouched.id(), station.id());
         inventoryRepo.delete(drawer.id());
     }

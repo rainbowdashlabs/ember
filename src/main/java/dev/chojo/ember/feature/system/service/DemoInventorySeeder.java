@@ -513,8 +513,10 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
      * The two everyday shapes of a collection, each with the drawers its pieces are spread over.
      *
      * <p>The games evening names every piece, because a count of games means nothing. The radio kit
-     * mixes the two: four radios out of the drawer, and the charger and the antenna by name, because
-     * nobody takes radios and leaves the charger behind.
+     * mixes the two: four of the blue kind, and the charging station and the antenna by name, because
+     * nobody takes radios and leaves the charger behind. The radio drawer also holds a case nobody
+     * gave a kind to, so the count of blue ones has something to be wrong about if it ever counted
+     * the drawer instead.
      */
     private void seedCollections(int stationId) {
         var spiele = inventoryRepository.create(stationId, "Spiele", InventoryType.INTERNAL, false);
@@ -528,22 +530,26 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         var ladestation = inventoryRepository.createItem(sonstiges.id(), null, "Ladestation", null, null);
         var antenne = inventoryRepository.createItem(sonstiges.id(), null, "Antenne", null, null);
 
-        var funk = inventoryRepository.create(stationId, "Handfunkgeräte", InventoryType.INTERNAL, false);
+        var funk = inventoryRepository.create(stationId, "Handfunkgeräte", InventoryType.INTERNAL, false, false);
+        var blau = artRepository.create(funk.id(), "Funkgerät blau", "Kanal 1 bis 4", 10);
         for (int i = 1; i <= 6; i++) {
-            inventoryRepository.createItem(funk.id(), "FUNK-%02d".formatted(i), "Funkgerät blau", null, null);
+            inventoryRepository.createItem(
+                    funk.id(), "FUNK-B%02d".formatted(i), "Funkgerät blau", null, blau.id(), null, null, null);
         }
+        inventoryRepository.createItem(funk.id(), "FUNK-K01", "Koffer", null, null);
 
         var abend = collectionRepository.create(
                 stationId, "Jugendabend", "Was für den Spieleabend aus den Schränken geholt wird", null);
-        collectionRepository.addLine(abend.id(), siedler.id(), null, 1);
-        collectionRepository.addLine(abend.id(), uno.id(), null, 1);
-        collectionRepository.addLine(abend.id(), twister.id(), null, 1);
-        collectionRepository.addLine(abend.id(), laminator.id(), null, 1);
+        collectionRepository.addLine(abend.id(), siedler.id(), null, null, 1);
+        collectionRepository.addLine(abend.id(), uno.id(), null, null, 1);
+        collectionRepository.addLine(abend.id(), twister.id(), null, null, 1);
+        collectionRepository.addLine(abend.id(), laminator.id(), null, null, 1);
 
-        var funkset = collectionRepository.create(stationId, "Funkset", "Vier Geräte, Ladestation, Antenne", null);
-        collectionRepository.addLine(funkset.id(), null, funk.id(), 4);
-        collectionRepository.addLine(funkset.id(), ladestation.id(), null, 1);
-        collectionRepository.addLine(funkset.id(), antenne.id(), null, 1);
+        var funkset =
+                collectionRepository.create(stationId, "Funkset", "Vier blaue Geräte, Ladestation, Antenne", null);
+        collectionRepository.addLine(funkset.id(), null, blau.id(), null, 4);
+        collectionRepository.addLine(funkset.id(), ladestation.id(), null, null, 1);
+        collectionRepository.addLine(funkset.id(), antenne.id(), null, null, 1);
 
         log.info("Demo: Created 2 inventory collections in station {}", stationId);
     }

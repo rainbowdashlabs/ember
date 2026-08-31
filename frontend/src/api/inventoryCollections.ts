@@ -17,11 +17,13 @@ export interface InventoryCollection {
 
 /**
  * One line read against the stock. A line naming a piece carries an itemId, a line asking for a
- * count carries an inventoryId, never both.
+ * count of one kind carries an artId, and a line counting out of a whole inventory carries an
+ * inventoryId. Exactly one of the three.
  */
 export interface ResolvedCollectionLine {
     lineId: number
     itemId: number | null
+    artId: number | null
     inventoryId: number | null
     label: string
     requested: number
@@ -80,6 +82,10 @@ export async function addItemLine(id: number, itemId: number): Promise<void> {
     await client.post(`/inventory-collections/${id}/lines`, {itemId, quantity: 1})
 }
 
+export async function addArtLine(id: number, artId: number, quantity: number): Promise<void> {
+    await client.post(`/inventory-collections/${id}/lines`, {artId, quantity})
+}
+
 export async function addInventoryLine(id: number, inventoryId: number, quantity: number): Promise<void> {
     await client.post(`/inventory-collections/${id}/lines`, {inventoryId, quantity})
 }
@@ -109,5 +115,13 @@ export async function holdingItem(itemId: number): Promise<string[]> {
  */
 export async function touchingInventory(inventoryId: number): Promise<string[]> {
     const res = await client.get<string[]>(`/inventories/${inventoryId}/collections`)
+    return res.data
+}
+
+/**
+ * The collections that would lose a line if this kind of thing went.
+ */
+export async function askingForArt(inventoryId: number, artId: number): Promise<string[]> {
+    const res = await client.get<string[]>(`/inventories/${inventoryId}/arts/${artId}/collections`)
     return res.data
 }

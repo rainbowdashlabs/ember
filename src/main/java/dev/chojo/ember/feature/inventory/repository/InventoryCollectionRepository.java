@@ -25,7 +25,8 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class InventoryCollectionRepository {
 
     private static final String COLLECTION_COLUMNS = "id, station_id, name, note, created_by, created_at";
-    private static final String LINE_COLUMNS = "id, collection_id, item_id, inventory_id, quantity, position";
+    private static final String LINE_COLUMNS =
+            "id, collection_id, item_id, art_id, inventory_id, quantity, position";
 
     /**
      * Finds a collection by its ID.
@@ -143,21 +144,24 @@ public class InventoryCollectionRepository {
      * Appends a line to a collection, behind whatever is already there.
      *
      * @param collectionId the collection ID
-     * @param itemId       the named piece, or {@code null} on a counted line
-     * @param inventoryId  the inventory drawn from, or {@code null} on a named line
+     * @param itemId       the named piece, or {@code null}
+     * @param artId        the kind of thing counted, or {@code null}
+     * @param inventoryId  the inventory drawn from, or {@code null}
      * @param quantity     how many pieces the line asks for
      * @return the created line
      */
-    public CollectionLine addLine(int collectionId, Integer itemId, Integer inventoryId, int quantity) {
+    public CollectionLine addLine(
+            int collectionId, Integer itemId, Integer artId, Integer inventoryId, int quantity) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO inventory_collection_line(collection_id, item_id, inventory_id, quantity, position)
-                VALUES (:collection_id, :item_id, :inventory_id, :quantity,
+                INSERT INTO inventory_collection_line(collection_id, item_id, art_id, inventory_id, quantity, position)
+                VALUES (:collection_id, :item_id, :art_id, :inventory_id, :quantity,
                         (SELECT coalesce(max(position) + 1, 0) FROM inventory_collection_line
                           WHERE collection_id = :collection_id))
                 RETURNING %s;""",
                 call().bind("collection_id", collectionId)
                         .bind("item_id", itemId)
+                        .bind("art_id", artId)
                         .bind("inventory_id", inventoryId)
                         .bind("quantity", quantity),
                 CollectionLine.map(),
@@ -217,20 +221,24 @@ public class InventoryCollectionRepository {
         return query("""
                 SELECT l.id            AS line_id,
                        l.item_id,
+                       l.art_id,
                        l.inventory_id,
                        l.quantity,
-                       coalesce(it.name, inv.name, '') AS label,
+                       coalesce(it.name, art.name, inv.name, '') AS label,
                        found.available,
                        found.cluster_owned
                 FROM inventory_collection_line l
                 LEFT JOIN inventory_item it ON it.id = l.item_id
+                LEFT JOIN inventory_art art ON art.id = l.art_id
                 LEFT JOIN inventory inv ON inv.id = l.inventory_id
                 LEFT JOIN LATERAL (
                     SELECT count(*)                                          AS available,
                            count(*) FILTER (WHERE ci.owner_kind <> 'STATION') AS cluster_owned
                     FROM inventory_item ci
                     %1$s
-                    WHERE (ci.id = l.item_id OR (l.item_id IS NULL AND ci.inventory_id = l.inventory_id))
+                    WHERE (ci.id = l.item_id
+                           OR ci.art_id = l.art_id
+                           OR ci.inventory_id = l.inventory_id)
                       AND %2$s
                       AND NOT EXISTS (
                           SELECT 1 FROM federation_lending_request_item li
@@ -251,6 +259,7 @@ public class InventoryCollectionRepository {
                 .map(row -> new ResolvedCollectionLine(
                         row.getInt("line_id"),
                         row.getObject("item_id", Integer.class),
+                        row.getObject("art_id", Integer.class),
                         row.getObject("inventory_id", Integer.class),
                         row.getString("label"),
                         row.getInt("quantity"),
@@ -280,10 +289,31 @@ public class InventoryCollectionRepository {
     }
 
     /**
+     * The collections that stand to lose a line when a kind of thing goes.
+     *
+     * <p>Removing a kind leaves its pieces alone, which is what makes this warning worth showing: the
+     * radios are all still there, and the line that asked for four blue ones is not.
+     *
+     * @param artId the kind about to go
+     * @return the collections asking for it, ordered by name
+     */
+    public List<InventoryCollection> findCollectionsAskingForArt(int artId) {
+        return query("""
+                SELECT %s FROM inventory_collection c
+                WHERE EXISTS (SELECT 1 FROM inventory_collection_line l
+                               WHERE l.collection_id = c.id AND l.art_id = :art_id)
+                ORDER BY lower(c.name), c.id;""", SqlSupport.alias("c", COLLECTION_COLUMNS))
+                .single(call().bind("art_id", artId))
+                .map(InventoryCollection.map())
+                .all();
+    }
+
+    /**
      * The collections that stand to lose a line when an inventory goes.
      *
-     * <p>Two ways to lose one: a counted line drawing from the inventory, and a named line pointing at
-     * a piece filed in it, because deleting an inventory takes its pieces with it.
+     * <p>Three ways to lose one, because deleting an inventory takes both its pieces and its kinds
+     * with it: a counted line drawing from the inventory, a line asking for one of its kinds, and a
+     * named line pointing at a piece filed in it.
      *
      * @param inventoryId the inventory about to go
      * @return the collections affected, ordered by name
@@ -293,8 +323,11 @@ public class InventoryCollectionRepository {
                 SELECT %s FROM inventory_collection c
                 WHERE EXISTS (SELECT 1 FROM inventory_collection_line l
                                LEFT JOIN inventory_item it ON it.id = l.item_id
+                               LEFT JOIN inventory_art art ON art.id = l.art_id
                                WHERE l.collection_id = c.id
-                                 AND (l.inventory_id = :inventory_id OR it.inventory_id = :inventory_id))
+                                 AND (l.inventory_id = :inventory_id
+                                      OR it.inventory_id = :inventory_id
+                                      OR art.inventory_id = :inventory_id))
                 ORDER BY lower(c.name), c.id;""", SqlSupport.alias("c", COLLECTION_COLUMNS))
                 .single(call().bind("inventory_id", inventoryId))
                 .map(InventoryCollection.map())

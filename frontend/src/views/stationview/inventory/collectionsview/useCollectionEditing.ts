@@ -35,8 +35,9 @@ export function useCollectionEditing() {
     const draftNote = ref('')
 
     const showLineModal = ref(false)
-    const lineKind = ref<'item' | 'inventory'>('item')
+    const lineKind = ref<'item' | 'art' | 'inventory'>('item')
     const lineItemId = ref('')
+    const lineArtId = ref('')
     const lineInventoryId = ref('')
     const lineQuantity = ref(1)
 
@@ -120,6 +121,7 @@ export function useCollectionEditing() {
     function openAddLine() {
         lineKind.value = 'item'
         lineItemId.value = ''
+        lineArtId.value = ''
         lineInventoryId.value = ''
         lineQuantity.value = 1
         showLineModal.value = true
@@ -130,6 +132,8 @@ export function useCollectionEditing() {
             if (selectedId.value === null) return
             if (lineKind.value === 'item') {
                 await inventoryCollections.addItemLine(selectedId.value, Number(lineItemId.value))
+            } else if (lineKind.value === 'art') {
+                await inventoryCollections.addArtLine(selectedId.value, Number(lineArtId.value), lineQuantity.value)
             } else {
                 await inventoryCollections.addInventoryLine(
                     selectedId.value, Number(lineInventoryId.value), lineQuantity.value)
@@ -181,6 +185,7 @@ export function useCollectionEditing() {
         showLineModal,
         lineKind,
         lineItemId,
+        lineArtId,
         lineInventoryId,
         lineQuantity,
         showDeleteModal,
