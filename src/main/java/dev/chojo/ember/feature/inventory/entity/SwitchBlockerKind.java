@@ -30,8 +30,11 @@ public enum SwitchBlockerKind {
      * A size the inventory offers. The size list belongs to the homogeneous half, so leaving it
      * behind would strand the sizes the items already carry.
      */
-    SIZE
-    // The Arten of a heterogeneous inventory belong here too, as the one thing that blocks the move
-    // back to homogeneous. They do not exist yet, so nothing produces that kind: the way back is
-    // open in the meantime, and the clause goes in beside these when there is something to count.
+    SIZE,
+    /**
+     * A kind of thing the inventory has been given. The one thing that blocks the move back to an
+     * inventory of one thing in many copies: kinds live only in a drawer of different things, so
+     * going the other way would leave every piece pointing at a level that no longer exists there.
+     */
+    ART
 }

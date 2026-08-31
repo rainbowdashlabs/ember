@@ -153,7 +153,8 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(23)
     void updateItem() {
-        assertTrue(inventoryRepo.updateItem(itemId, "H-002", "Blue Helmet", sizeId, InventoryItemMetadata.empty()));
+        assertTrue(
+                inventoryRepo.updateItem(itemId, "H-002", "Blue Helmet", sizeId, null, InventoryItemMetadata.empty()));
         InventoryItem updated = inventoryRepo.findItemById(itemId).orElseThrow();
         assertEquals("H-002", updated.internalId());
         assertEquals("Blue Helmet", updated.name());

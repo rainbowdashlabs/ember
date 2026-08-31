@@ -41,7 +41,7 @@ public class InventoryRepository {
     private static final String INVENTORY_COLUMNS = "id, station_id, name, inventory_type, has_sizes, homogeneous";
     private static final String INVENTORY_SIZE_COLUMNS = "id, inventory_id, label, position, note";
     private static final String INVENTORY_ITEM_COLUMNS =
-            "id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, lost_note, lost_note_by, owner_kind, owner_cluster_id, custody, custody_station_id, custody_movement_id, container_id";
+            "id, inventory_id, internal_id, name, size_id, art_id, metadata, assigned_to, lost_at, lost_note, lost_note_by, owner_kind, owner_cluster_id, custody, custody_station_id, custody_movement_id, container_id";
     private static final String INVENTORY_ITEM_HISTORY_COLUMNS =
             "id, item_id, member_id, member_name, given_out, returned, corrected";
     private static final String INVENTORY_REQUIREMENT_COLUMNS =
@@ -255,6 +255,26 @@ public class InventoryRepository {
         return findSizes(inventoryId).stream()
                 .map(size -> new SwitchBlocker(SwitchBlockerKind.SIZE, size.id(), size.label()))
                 .toList();
+    }
+
+    /**
+     * The kinds of thing an inventory has been given, as things standing in the way of it becoming
+     * an inventory of one thing in many copies.
+     *
+     * <p>The one thing that blocks the move in that direction, and it names them rather than
+     * counting them, so somebody reading the refusal can go and clear them.
+     *
+     * @param inventoryId the inventory ID
+     * @return one entry per kind, labelled with the kind's name
+     */
+    public List<SwitchBlocker> findArtBlockers(int inventoryId) {
+        return query("""
+                SELECT id, name FROM inventory_art
+                WHERE inventory_id = :inventory_id
+                ORDER BY position, name;""")
+                .single(call().bind("inventory_id", inventoryId))
+                .map(row -> new SwitchBlocker(SwitchBlockerKind.ART, row.getInt("id"), row.getString("name")))
+                .all();
     }
 
     /**
@@ -744,13 +764,43 @@ public class InventoryRepository {
             InventoryItemMetadata metadata,
             ItemOwner ownerKind,
             Integer ownerClusterId) {
+        return createItem(inventoryId, internalId, name, sizeId, null, metadata, ownerKind, ownerClusterId);
+    }
+
+    /**
+     * Creates a new inventory item that names the kind of thing it is.
+     *
+     * <p>Only the paths where somebody is present to say reach this one. The five that stamp the
+     * inventory's name on a piece with nobody watching go through the overload above and leave the
+     * kind unset, which is not a gap to be filled in later but the ordinary state of most pieces.
+     *
+     * @param inventoryId    the inventory ID
+     * @param internalId     the internal identifier
+     * @param name           the item name, which the kind never replaces
+     * @param sizeId         the size ID, or {@code null}
+     * @param artId          the kind of thing it is, or {@code null} when nobody said
+     * @param metadata       JSON metadata
+     * @param ownerKind      who owns the item, or {@code null} for the station
+     * @param ownerClusterId the owning body when it runs on this instance, only ever set for
+     *                       {@link ItemOwner#CLUSTER}
+     * @return the created item
+     */
+    public InventoryItem createItem(
+            int inventoryId,
+            String internalId,
+            String name,
+            Integer sizeId,
+            Integer artId,
+            InventoryItemMetadata metadata,
+            ItemOwner ownerKind,
+            Integer ownerClusterId) {
         ItemOwner owner = ownerKind != null ? ownerKind : ItemOwner.STATION;
         boolean heldByStation = owner == ItemOwner.CLUSTER;
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, owner_kind,
+                INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, art_id, metadata, owner_kind,
                                            owner_cluster_id, custody, custody_station_id)
-                SELECT :inventory_id, :internal_id, :name, :size_id, :metadata::JSONB, :owner_kind,
+                SELECT :inventory_id, :internal_id, :name, :size_id, :art_id, :metadata::JSONB, :owner_kind,
                        :owner_cluster_id, :custody,
                        CASE WHEN :held_by_station THEN i.station_id ELSE NULL END
                 FROM inventory i
@@ -760,6 +810,7 @@ public class InventoryRepository {
                         .bind("internal_id", internalId)
                         .bind("name", name)
                         .bind("size_id", sizeId)
+                        .bind("art_id", artId)
                         .bind("metadata", (metadata != null ? metadata : InventoryItemMetadata.empty()).toJson())
                         .bind("owner_kind", owner)
                         .bind("owner_cluster_id", owner == ItemOwner.CLUSTER ? ownerClusterId : null)
@@ -776,25 +827,45 @@ public class InventoryRepository {
      * @param internalId the new internal identifier
      * @param name       the new name
      * @param sizeId     the new size ID, or {@code null}
+     * @param artId      the new kind, or {@code null} when the piece is to have none
      * @param metadata   the new JSON metadata
      * @return {@code true} if the item was updated
      */
-    public boolean updateItem(int id, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
+    public boolean updateItem(
+            int id, String internalId, String name, Integer sizeId, Integer artId, InventoryItemMetadata metadata) {
         return query("""
                 UPDATE inventory_item
                 SET
                     internal_id = :internal_id,
                     name        = :name,
                     size_id     = :size_id,
+                    art_id      = :art_id,
                     metadata    = :metadata::JSONB
                 WHERE id = :id;""")
                 .single(call().bind("internal_id", internalId)
                         .bind("name", name)
                         .bind("size_id", sizeId)
+                        .bind("art_id", artId)
                         .bind("metadata", (metadata != null ? metadata : InventoryItemMetadata.empty()).toJson())
                         .bind("id", id))
                 .update()
                 .changed();
+    }
+
+    /**
+     * The pieces of one kind, whatever state they are in.
+     *
+     * @param artId the kind
+     * @return its pieces, in the order a list shows them
+     */
+    public List<InventoryItem> findItemsOfArt(int artId) {
+        return query("""
+                SELECT %s FROM inventory_item
+                WHERE art_id = :art_id
+                ORDER BY name, internal_id, id;""", INVENTORY_ITEM_COLUMNS)
+                .single(call().bind("art_id", artId))
+                .map(InventoryItem.map())
+                .all();
     }
 
     /**
@@ -808,6 +879,10 @@ public class InventoryRepository {
      * caller has either found the same label in the new inventory or has nothing to put there, and
      * either way what arrives here is a size of the target or {@code null}.
      *
+     * <p>The kind goes the same way and for the same reason, except that nothing is remapped: a kind
+     * belongs to the inventory being left, so a piece arrives in the new drawer without one and
+     * somebody says what it is there.
+     *
      * @param id          the item ID
      * @param inventoryId the inventory it is moving into
      * @param sizeId      its size in the new inventory, or {@code null} when it has none there
@@ -817,7 +892,8 @@ public class InventoryRepository {
         return query("""
                 UPDATE inventory_item
                 SET inventory_id = :inventory_id,
-                    size_id      = :size_id
+                    size_id      = :size_id,
+                    art_id       = NULL
                 WHERE id = :id;""")
                 .single(call().bind("inventory_id", inventoryId)
                         .bind("size_id", sizeId)

@@ -29,14 +29,16 @@ class InventoryFieldDefinitionServiceTest {
     private final InventoryFieldDefinitionService service = new InventoryFieldDefinitionService(repository);
 
     private static InventoryFieldDefinition definition(int inventoryId, String key, FieldType type, FieldConfig cfg) {
-        return new InventoryFieldDefinition(7, inventoryId, key, "Label", type, false, 0, cfg);
+        return new InventoryFieldDefinition(7, inventoryId, null, null, key, "Label", type, false, 0, cfg);
     }
 
     @Test
     void createValidatesAndDelegates() {
-        Mockito.when(repository.findByInventory(1)).thenReturn(List.of());
+        Mockito.when(repository.findInventoryLevel(1)).thenReturn(List.of());
         Mockito.when(repository.create(
                         Mockito.eq(1),
+                        Mockito.isNull(),
+                        Mockito.isNull(),
                         Mockito.eq("weight"),
                         Mockito.eq("Weight"),
                         Mockito.eq(FieldType.NUMBER),
@@ -51,6 +53,8 @@ class InventoryFieldDefinitionServiceTest {
         Mockito.verify(repository)
                 .create(
                         Mockito.eq(1),
+                        Mockito.isNull(),
+                        Mockito.isNull(),
                         Mockito.eq("weight"),
                         Mockito.eq("Weight"),
                         Mockito.eq(FieldType.NUMBER),
@@ -58,6 +62,13 @@ class InventoryFieldDefinitionServiceTest {
                         Mockito.eq(0),
                         configCaptor.capture());
         assertEquals(service.defaultConfig(FieldType.NUMBER), configCaptor.getValue());
+    }
+
+    @Test
+    void createRefusesBothLevelsAtOnce() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.create(1, 2, 3, "key", "Lbl", FieldType.TEXT, false, 0, null));
     }
 
     @Test
@@ -90,7 +101,7 @@ class InventoryFieldDefinitionServiceTest {
 
     @Test
     void createRejectsDuplicateKey() {
-        Mockito.when(repository.findByInventory(1))
+        Mockito.when(repository.findInventoryLevel(1))
                 .thenReturn(
                         List.of(definition(1, "weight", FieldType.NUMBER, service.defaultConfig(FieldType.NUMBER))));
         assertThrows(

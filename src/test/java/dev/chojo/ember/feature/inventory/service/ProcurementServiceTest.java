@@ -34,8 +34,13 @@ class ProcurementServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var inventoryService =
-                new InventoryService(inventoryRepo, itemCustodyService, clusterRepo, clusterStationGroupRepo);
+        var inventoryService = new InventoryService(
+                inventoryRepo,
+                artRepo,
+                fieldDefinitionService,
+                itemCustodyService,
+                clusterRepo,
+                clusterStationGroupRepo);
         service = new ProcurementService(
                 procurementRepo,
                 inventoryService,
