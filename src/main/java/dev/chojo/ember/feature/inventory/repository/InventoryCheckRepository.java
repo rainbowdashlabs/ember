@@ -33,7 +33,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class InventoryCheckRepository {
     private static final String INVENTORY_CHECK_COLUMNS =
-            "id, station_id, member_id, checked_by, checked_at, scope, container_id, deep";
+            "id, station_id, member_id, checked_by, checked_at, scope, container_id, deep, reported_by";
     private static final String INVENTORY_CHECK_ITEM_COLUMNS = "id, check_id, item_id, inventory_id, result, note";
     private static final String INVENTORY_CHECK_LOCK_COLUMNS = "id, station_id, member_id, locked_by, locked_at";
 
@@ -46,12 +46,29 @@ public class InventoryCheckRepository {
      * @return the created check
      */
     public InventoryCheck createCheck(int stationId, int memberId, int checkedBy) {
+        return createCheck(stationId, memberId, checkedBy, null);
+    }
+
+    /**
+     * Creates a check that carries two people: whoever said what was there, and whoever signed it
+     * off.
+     *
+     * @param stationId  the station ID
+     * @param memberId   the member being checked
+     * @param checkedBy  the member who signed the check off
+     * @param reportedBy who reported it, where that is somebody else, or {@code null}
+     * @return the created check
+     */
+    public InventoryCheck createCheck(int stationId, int memberId, int checkedBy, Integer reportedBy) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO inventory_check(station_id, member_id, checked_by, scope)
-                VALUES (:station_id, :member_id, :checked_by, 'MEMBER')
+                INSERT INTO inventory_check(station_id, member_id, checked_by, scope, reported_by)
+                VALUES (:station_id, :member_id, :checked_by, 'MEMBER', :reported_by)
                 RETURNING %s;""",
-                call().bind("station_id", stationId).bind("member_id", memberId).bind("checked_by", checkedBy),
+                call().bind("station_id", stationId)
+                        .bind("member_id", memberId)
+                        .bind("checked_by", checkedBy)
+                        .bind("reported_by", reportedBy),
                 InventoryCheck.map(),
                 INVENTORY_CHECK_COLUMNS);
     }

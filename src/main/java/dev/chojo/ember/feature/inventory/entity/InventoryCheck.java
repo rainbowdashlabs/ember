@@ -25,6 +25,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param scope       discriminator for the check target
  * @param containerId target container for container-scope checks, or {@code null}
  * @param deep        whether a container-scope check walks descendant containers
+ * @param reportedBy  who reported what the check records, where that is somebody other than the
+ *                    person who signed it off, and {@code null} on a check somebody walked
+ *                    themselves. A piece checked at arm's length can be told from one somebody held.
  */
 public record InventoryCheck(
         int id,
@@ -34,7 +37,8 @@ public record InventoryCheck(
         Instant checkedAt,
         InventoryCheckScope scope,
         Integer containerId,
-        boolean deep) {
+        boolean deep,
+        Integer reportedBy) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -47,6 +51,7 @@ public record InventoryCheck(
                 row.get("checked_at", INSTANT_TIMESTAMP),
                 row.getEnum("scope", InventoryCheckScope.class),
                 row.getObject("container_id", Integer.class),
-                row.getBoolean("deep"));
+                row.getBoolean("deep"),
+                row.getObject("reported_by", Integer.class));
     }
 }

@@ -116,42 +116,76 @@ public class InventoryCheckService {
      * @throws ConflictResponse if the member is already locked by a different checker
      */
     public MemberCheckState startCheck(int stationId, int memberId, int lockedBy) {
+        acquireLock(stationId, memberId, lockedBy);
+        return checkState(stationId, memberId);
+    }
+
+    /**
+     * Takes the lock that stops two checkers walking the same member at once, or confirms the caller
+     * already holds it.
+     *
+     * <p>Kept apart from reading the state because what looks like a start is also the load path: the
+     * check screen calls it again after every assignment, and anything hung on it would fire several
+     * times through one walk.
+     */
+    private void acquireLock(int stationId, int memberId, int lockedBy) {
         checkRepository.releaseExpiredLocks(LOCK_TIMEOUT_MINUTES);
 
-        // Check if this member is already locked
         var existingLock = checkRepository.findLock(memberId);
         if (existingLock.isPresent()) {
             if (existingLock.get().lockedBy() != lockedBy) {
                 throw new ConflictResponse("Member is already being checked by another user");
             }
-            // Same user already holds the lock - continue the check
-        } else {
-            // Release any other lock held by this checker, then acquire on this member
-            checkRepository.releaseLockByLocker(lockedBy);
-            Optional<InventoryCheckLock> lock = checkRepository.acquireLock(stationId, memberId, lockedBy);
-            if (lock.isEmpty()) {
-                throw new ConflictResponse("Member is already being checked by another user");
-            }
-            log.info("Started check on member {} by member {} (station={})", memberId, lockedBy, stationId);
+            return;
         }
+        checkRepository.releaseLockByLocker(lockedBy);
+        Optional<InventoryCheckLock> lock = checkRepository.acquireLock(stationId, memberId, lockedBy);
+        if (lock.isEmpty()) {
+            throw new ConflictResponse("Member is already being checked by another user");
+        }
+        log.info("Started check on member {} by member {} (station={})", memberId, lockedBy, stationId);
+    }
 
-        // Look up member name
+    /**
+     * What the station has recorded against a member: what their role asks of them, what they are
+     * holding towards it, and when they were last checked.
+     *
+     * <p>Nothing is locked and nothing is begun. This is what a member reading their own list gets,
+     * so it carries no free stock: the shape a walk returns names every unheld piece of the station,
+     * and that is a checker's view of the store rather than an answer about one person's boots.
+     *
+     * @param stationId the station ID
+     * @param memberId  the member to read
+     * @return the member's own gear and what is required of them
+     */
+    public MemberGear readGear(int stationId, int memberId) {
         var member = stationMemberRepository.findById(memberId).orElseThrow();
         var account = accountRepository.findById(member.accountId()).orElseThrow();
-        String memberName = account.fullName();
 
         var required = getRequiredItems(stationId, memberId);
         var assigned = inventoryRepository.findItemsByMember(memberId);
         var lastCheck = checkRepository.latestCheckForMember(memberId).orElse(null);
+        MemberIdentity identity = memberIdentityFactory.local(stationId, memberId);
+        return new MemberGear(account.fullName(), identity, required, assigned, lastCheck);
+    }
 
-        // Collect unassigned items for each required inventory
+    /**
+     * The walk's own view, which is the member's gear widened by the free stock a checker may hand
+     * out from.
+     */
+    private MemberCheckState checkState(int stationId, int memberId) {
+        MemberGear gear = readGear(stationId, memberId);
         Map<Integer, List<InventoryItem>> unassigned = new HashMap<>();
-        for (RequiredInventoryItem req : required) {
+        for (RequiredInventoryItem req : gear.required()) {
             unassigned.put(req.inventoryId(), inventoryRepository.findUnassignedItems(req.inventoryId()));
         }
-
-        MemberIdentity identity = memberIdentityFactory.local(stationId, memberId);
-        return new MemberCheckState(memberName, identity, required, assigned, lastCheck, unassigned);
+        return new MemberCheckState(
+                gear.memberName(),
+                gear.memberIdentity(),
+                gear.required(),
+                gear.assigned(),
+                gear.lastCheck(),
+                unassigned);
     }
 
     /**
@@ -575,4 +609,20 @@ public class InventoryCheckService {
             List<InventoryItem> assigned,
             InventoryCheck lastCheck,
             Map<Integer, List<InventoryItem>> unassigned) {}
+
+    /**
+     * What the station has recorded against one member, and nothing about anybody else's gear.
+     *
+     * @param memberName     the member's full name
+     * @param memberIdentity the member as the rest of the instance names them
+     * @param required       what their role asks of them
+     * @param assigned       what they are holding towards it
+     * @param lastCheck      their most recent check, or {@code null} if never checked
+     */
+    public record MemberGear(
+            String memberName,
+            MemberIdentity memberIdentity,
+            List<RequiredInventoryItem> required,
+            List<InventoryItem> assigned,
+            InventoryCheck lastCheck) {}
 }
