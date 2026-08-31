@@ -3577,6 +3577,30 @@ export default {
                 + 'nicht rückgängig machen. „Nur Art setzen“ lässt die Bezeichnungen unverändert.',
             tidied: '{count} Gegenstände aufgeräumt.',
         },
+        tag: {
+            title: 'Schlagwörter',
+            intro: 'Ein Schlagwort sagt, wozu ein Gegenstand gehört, und gilt über alle Inventare hinweg. '
+                + 'Die Funkgeräte, die Ladestation und die Antenne tragen so dasselbe Wort, obwohl sie '
+                + 'nicht dasselbe sind.',
+            field: 'Schlagwörter',
+            fieldHint: 'Darf leer bleiben. Ein neues Wort wird erst beim Speichern angelegt.',
+            column: 'Schlagwörter',
+            add: 'Schlagwort anlegen',
+            edit: 'Schlagwort bearbeiten',
+            name: 'Wort',
+            namePlaceholder: 'z. B. Funk',
+            color: 'Farbe',
+            none: 'Keine Schlagwörter',
+            none2: 'Diese Abteilung verwendet noch keine Schlagwörter.',
+            empty: 'Kein Schlagwort gefunden',
+            itemCount: '{count} Gegenstände',
+            deleteConfirm: 'Schlagwort „{name}“ löschen? Die Gegenstände bleiben erhalten und verlieren nur '
+                + 'dieses Wort.',
+            recommended: 'Vom Verband empfohlen',
+            recommendedHint: 'Der Verband schlägt diese Wörter vor. Ein Wort, das ihr schon verwendet, ist '
+                + 'bereits dasselbe Wort und muss nicht angelegt werden.',
+            recommendedAdopted: '{name} (bereits in Verwendung)',
+        },
         move: {
             back: 'Zurück zum Inventar',
             explainer:

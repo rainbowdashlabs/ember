@@ -154,6 +154,22 @@ public class InventoryTagService {
     }
 
     /**
+     * The tags every thing in one inventory wears, so a table can show a column of them and filter
+     * on it without asking once per row.
+     *
+     * @param stationId   the station the inventory has to belong to
+     * @param inventoryId the inventory
+     * @return item id to its tags, holding only the things that wear one
+     */
+    public Map<Integer, List<InventoryTag>> findTagsInInventory(int stationId, int inventoryId) {
+        Inventory inventory = inventoryRepository.findById(inventoryId).orElseThrow(NotFoundResponse::new);
+        if (inventory.stationId() != stationId) throw new NotFoundResponse();
+        return tagRepository.findTagsForItems(inventoryRepository.findItems(inventoryId).stream()
+                .map(InventoryItem::id)
+                .toList());
+    }
+
+    /**
      * Says which words a thing wears, writing down any that the station does not have yet.
      *
      * <p>The form speaks in words rather than identifiers because that is what somebody typed, and
