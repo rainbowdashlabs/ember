@@ -260,6 +260,7 @@ export function useMemberCheck(
     anyMarked,
     uncheckedEntries,
     setResult,
+    forgetResult,
     setNote,
     updateSelection,
     assignedForInventory,

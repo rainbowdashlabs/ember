@@ -25,6 +25,8 @@ export interface TokensConfigResponse {
     tokenBytes: number
     verifyTokenHours: number
     passwordTokenHours: number
+    /** How many days the link in a setup mail stays good for. */
+    setupTokenDays: number
     sessionMinutes: number
     /** How long a session lasts on a machine the person signing in did not vouch for. */
     untrustedSessionMinutes: number
@@ -35,6 +37,7 @@ export interface TokensConfigRequest {
     tokenBytes: number
     verifyTokenHours: number
     passwordTokenHours: number
+    setupTokenDays: number
     sessionMinutes: number
     untrustedSessionMinutes: number
 }

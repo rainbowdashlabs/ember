@@ -3807,6 +3807,7 @@ export default {
             sortByName: 'Nach Name sortieren',
             sortByLastChecked: 'Nach letzter Prüfung sortieren',
             skip: 'Überspringen',
+            previousItem: 'Zurück',
             correct: {
                 action: 'Korrigieren',
                 title: 'Eintrag korrigieren',
@@ -4630,6 +4631,11 @@ export default {
             verifyTokenHoursHint: 'Gültigkeitsdauer des E-Mail-Verifizierungstokens (1–720).',
             passwordTokenHours: 'Passworttoken (Stunden)',
             passwordTokenHoursHint: 'Gültigkeitsdauer des Passwort-Reset-Tokens (1–720).',
+            setupTokenDays: 'Einrichtungslink (Tage)',
+            setupTokenDaysHint: 'Wie lange der Link aus der Einrichtungsmail gültig bleibt (1 bis 30). '
+                + 'In Tagen statt Stunden, weil eine Einladung auf die Ferien oder den nächsten Blick '
+                + 'ins Postfach wartet. Ein Link, der über ein langes Wochenende verfällt, führt dazu, '
+                + 'dass Einladungen zweimal verschickt werden.',
             sessionMinutes: 'Sitzungsdauer auf vertrauten Geräten (Minuten)',
             sessionMinutesHint: 'Gilt, wenn beim Anmelden „Auf diesem Gerät angemeldet bleiben" '
                 + 'angekreuzt wurde (5 bis 43200, also bis zu 30 Tage). Lange Sitzungen ersparen '

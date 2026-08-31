@@ -684,3 +684,18 @@ WHERE assigned_item_id IS NOT NULL;
 
 ALTER TABLE ember_schema.federation_lending_request_item
     DROP COLUMN assigned_item_id;
+
+-- What a check may say twice about one member.
+--
+-- The key held every row of a check apart by the piece it names, counting two rows with no piece
+-- as the same row. A row with no piece is an empty place the member should have something in, and
+-- a member who needs two of a thing and holds neither has two of them. Closing such a check failed
+-- outright, which is a check that cannot be finished for as long as the gap is two wide.
+--
+-- Emptiness is no longer taken to mean sameness. A piece is still named once per check.
+ALTER TABLE ember_schema.inventory_check_item
+    DROP CONSTRAINT inventory_check_item_check_id_item_id_key;
+
+ALTER TABLE ember_schema.inventory_check_item
+    ADD CONSTRAINT inventory_check_item_check_id_item_id_key
+        UNIQUE NULLS DISTINCT (check_id, item_id, inventory_id);

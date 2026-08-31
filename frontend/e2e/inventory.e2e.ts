@@ -287,6 +287,39 @@ test.describe('Inventory', () => {
     })
 
     /**
+     * A walk goes forwards one piece at a time, and a wrong tap used to stand until the whole check
+     * was closed and reopened from the list behind it. The step back is proved by the count of what
+     * is left: deciding takes one off it, and going back puts it on again, which can only happen if
+     * the decision was taken off the piece as well.
+     */
+    test('a decision made during the quick check is taken back', async ({managerPage: page}) => {
+        await page.goto('/station/inventory/checks/member')
+
+        const starts = page.getByRole('button', {name: 'Prüfung starten'})
+        await expect(starts.first()).toBeVisible({timeout: 15000})
+        await starts.first().click()
+        await page.waitForURL(/\/station\/inventory\/checks\/(\d+)/)
+
+        await page.getByRole('button', {name: 'Schnellprüfung'}).click()
+
+        const remaining = async () => {
+            const text = await page.getByText(/Gegenstände verbleibend/).first().textContent()
+            return Number(text?.match(/(\d+)/)?.[1] ?? 0)
+        }
+        const present = page.getByRole('button', {name: 'Vorhanden'})
+        const neverHeld = page.getByRole('button', {name: 'Nicht im Besitz'})
+        await expect(present.or(neverHeld).first()).toBeVisible({timeout: 15000})
+
+        const before = await remaining()
+        if (await present.isVisible()) await present.click()
+        else await neverHeld.click()
+        await expect.poll(remaining, {timeout: 15000}).toBe(before - 1)
+
+        await page.getByTestId('rapid-back').click()
+        await expect.poll(remaining, {timeout: 15000}).toBe(before)
+    })
+
+    /**
      * Procurement is the list of what the station is short of. It is read rather than filled in:
      * what stands in it follows from the requirements and the stock.
      */
