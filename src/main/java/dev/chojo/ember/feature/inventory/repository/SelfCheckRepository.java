@@ -85,6 +85,25 @@ public class SelfCheckRepository {
     }
 
     /**
+     * Every task of one station, newest first, for the checker chasing the ones nobody answered.
+     *
+     * @param stationId    the station
+     * @param includeEnded whether tasks that ask for nothing any more are wanted too
+     * @return the tasks
+     */
+    public List<SelfCheck> findForStation(int stationId, boolean includeEnded) {
+        return query("""
+                SELECT %s
+                FROM inventory_self_check
+                WHERE station_id = :station_id
+                  AND (:include_ended OR state IN ('OPEN', 'SUBMITTED'))
+                ORDER BY id DESC;""", SelfCheck.COLUMNS)
+                .single(call().bind("station_id", stationId).bind("include_ended", includeEnded))
+                .map(SelfCheck.map())
+                .all();
+    }
+
+    /**
      * How many tasks belonging to one of the given members still ask for something.
      */
     public int countUnfinishedForMembers(Collection<Integer> memberIds) {
@@ -138,6 +157,22 @@ public class SelfCheckRepository {
                 .single(call().bind("id", taskId).bind("state", state).bind("check_id", checkId))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Writes the check a finished task produced onto the task.
+     *
+     * <p>Kept apart from finishing it so the claim comes first: whoever wins the conditional finish is
+     * the one that writes the check, and nobody else reaches this.
+     *
+     * @param taskId  the task
+     * @param checkId the check it wrote
+     */
+    public void attachCheck(int taskId, int checkId) {
+        query("""
+                UPDATE inventory_self_check SET check_id = :check_id WHERE id = :id;""")
+                .single(call().bind("id", taskId).bind("check_id", checkId))
+                .update();
     }
 
     /**
@@ -303,6 +338,36 @@ public class SelfCheckRepository {
                         .bind("reviewed_by", reviewedBy))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Points one answer at the piece a correction produced, so a true statement about a stale record
+     * settles against the piece the member is actually holding.
+     *
+     * @param rowId       the answer
+     * @param itemId      the piece it now names
+     * @param inventoryId the inventory that piece sits in
+     * @return {@code true} where the row was still outstanding and took the new piece
+     */
+    public boolean repointRow(int rowId, int itemId, int inventoryId) {
+        return query("""
+                UPDATE inventory_self_check_item
+                SET item_id = :item_id, inventory_id = :inventory_id
+                WHERE id = :id AND state = 'OUTSTANDING';""")
+                .single(call().bind("id", rowId)
+                        .bind("item_id", itemId)
+                        .bind("inventory_id", inventoryId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Whether anything on the task came back with a reason, which is what sends it to the member
+     * again instead of writing a check.
+     */
+    public boolean hasRefusedRows(int taskId) {
+        return SqlSupport.exists("""
+                SELECT 1 FROM inventory_self_check_item WHERE task_id = :task_id AND state = 'REFUSED';""", call().bind("task_id", taskId));
     }
 
     /**

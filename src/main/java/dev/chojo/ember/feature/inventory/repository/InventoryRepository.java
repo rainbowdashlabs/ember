@@ -435,6 +435,32 @@ public class InventoryRepository {
     }
 
     /**
+     * Every piece a station holds under a number somebody typed, ignoring case and the spaces around
+     * it.
+     *
+     * <p>Nothing in the schema makes a number unique, so answering with one of several would let the
+     * reader believe there is only one. Every match is returned and whoever reads them decides.
+     *
+     * @param stationId  the station whose gear is searched
+     * @param internalId the number as it was typed
+     * @return every piece carrying it, oldest first
+     */
+    public List<InventoryItem> findAllByInternalId(int stationId, String internalId) {
+        return query(
+                        """
+                SELECT %s FROM inventory_item ii
+                %s
+                WHERE %s AND lower(btrim(ii.internal_id)) = lower(btrim(:internal_id))
+                ORDER BY ii.id ASC;""",
+                        SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS),
+                        ItemCustodySql.joinInventory("ii", "i"),
+                        ItemCustodySql.heldBy("ii", "i"))
+                .single(call().bind(ItemCustodySql.STATION_BIND, stationId).bind("internal_id", internalId))
+                .map(InventoryItem.map())
+                .all();
+    }
+
+    /**
      * Every row of an inventory, whatever state it is in.
      *
      * <p>For readers that answer "what is recorded here": the export, which is read to prove what a

@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
@@ -17,6 +19,10 @@ import dev.chojo.ember.feature.inventory.entity.SelfCheckRow;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.SelfCheckRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.service.NotificationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
 import io.javalin.http.ForbiddenResponse;
@@ -30,6 +36,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -52,17 +60,23 @@ public class SelfCheckService {
     private final InventoryCheckService checkService;
     private final InventoryRepository inventoryRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final AccountRepository accountRepository;
+    private final NotificationService notificationService;
 
     @Inject
     public SelfCheckService(
             SelfCheckRepository repository,
             InventoryCheckService checkService,
             InventoryRepository inventoryRepository,
-            StationMemberRepository stationMemberRepository) {
+            StationMemberRepository stationMemberRepository,
+            AccountRepository accountRepository,
+            NotificationService notificationService) {
         this.repository = repository;
         this.checkService = checkService;
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.accountRepository = accountRepository;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -94,10 +108,53 @@ public class SelfCheckService {
                 throw new BadRequestResponse("A former member cannot be asked to check their gear");
             }
             if (repository.countUnfinishedForMembers(List.of(memberId)) > 0) continue;
-            handed.add(repository.create(stationId, memberId, handedOutBy, dueOn));
+            SelfCheck task = repository.create(stationId, memberId, handedOutBy, dueOn);
+            handed.add(task);
+            announce(task, handedOutBy);
         }
         log.info("Handed out {} self-checks at station {} by member {}", handed.size(), stationId, handedOutBy);
         return handed;
+    }
+
+    /**
+     * Tells the member their gear is being asked about, and every guardian who answers for them.
+     *
+     * <p>A child with no address of their own is reached through their guardian, so a task that only
+     * told the child would sit unanswered.
+     */
+    private void announce(SelfCheck task, int handedOutBy) {
+        var params = new NotificationParams.SelfCheckAssigned(
+                nameOf(task.memberId()), nameOf(handedOutBy), task.dueOn() == null ? "" : task.dueOn().toString());
+        var data = NotificationData.of(
+                params, new NotificationData.NotificationLink("inventory-self-check", Map.of("id", task.id())));
+        notificationService.notifyIfAbsent(task.memberId(), NotificationType.SELF_CHECK_ASSIGNED, data);
+        for (var manager : stationMemberRepository.findManagers(task.memberId())) {
+            notificationService.notifyIfAbsent(manager.id(), NotificationType.SELF_CHECK_ASSIGNED, data);
+        }
+    }
+
+    /**
+     * Tells whoever holds the check permission that a submission is waiting to be read.
+     */
+    private void announceSubmission(SelfCheck task, int submittedBy) {
+        var params = new NotificationParams.SelfCheckSubmitted(nameOf(task.memberId()), nameOf(submittedBy));
+        var data = NotificationData.of(
+                params,
+                new NotificationData.NotificationLink("inventory-self-check-review", Map.of("id", task.id())));
+        notificationService.notifyMembersWithRole(
+                task.stationId(), StationPermission.INVENTORY_CHECK.name(), NotificationType.SELF_CHECK_SUBMITTED,
+                data, submittedBy);
+    }
+
+    /**
+     * The name a notification puts to a member, which is the only place this service reads accounts.
+     */
+    private String nameOf(int memberId) {
+        return stationMemberRepository
+                .findById(memberId)
+                .flatMap(m -> m.accountId() == null ? Optional.empty() : accountRepository.findById(m.accountId()))
+                .map(account -> account.fullName().strip())
+                .orElse("");
     }
 
     /**
@@ -179,6 +236,7 @@ public class SelfCheckService {
             throw new ConflictResponse("This task has already been handed in");
         }
         log.info("Self-check {} submitted by member {}", taskId, memberId);
+        announceSubmission(task, memberId);
         return repository.findById(taskId).orElseThrow();
     }
 

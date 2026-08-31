@@ -42,6 +42,9 @@ public enum NotificationType {
     PROCEDURE_RESOLVED(NotificationParams.ProcedureResolvedParams.class, "notification.procedureResolved"),
     PROCEDURE_REOPENED(NotificationParams.ProcedureReopenedParams.class, "notification.procedureReopened"),
     PROCEDURE_ITEM_CHECKED(NotificationParams.ProcedureItemCheckedParams.class, "notification.procedureItemChecked"),
+    SELF_CHECK_ASSIGNED(NotificationParams.SelfCheckAssigned.class, "notification.selfCheckAssigned"),
+    SELF_CHECK_SUBMITTED(NotificationParams.SelfCheckSubmitted.class, "notification.selfCheckSubmitted"),
+    SELF_CHECK_ROW_REFUSED(NotificationParams.SelfCheckRowRefused.class, "notification.selfCheckRowRefused"),
     WAITLIST_PUBLIC_REGISTRATION(
             NotificationParams.WaitlistPublicRegistration.class, "notification.waitlistPublicRegistration"),
     WAITLIST_INVITATION_ANSWERED(
