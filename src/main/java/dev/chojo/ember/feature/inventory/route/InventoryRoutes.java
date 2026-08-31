@@ -34,6 +34,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryIntakeService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.InventorySwitchRefusedException;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
+import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -77,6 +78,7 @@ public class InventoryRoutes implements Routes {
     private final LossReportService lossReportService;
     private final InventoryIntakeService intakeService;
     private final BorrowedGearService borrowedGearService;
+    private final SelfCheckService selfCheckService;
 
     @Inject
     public InventoryRoutes(
@@ -89,7 +91,8 @@ public class InventoryRoutes implements Routes {
             StationMemberRepository stationMemberRepository,
             LossReportService lossReportService,
             InventoryIntakeService intakeService,
-            BorrowedGearService borrowedGearService) {
+            BorrowedGearService borrowedGearService,
+            SelfCheckService selfCheckService) {
         this.intakeService = intakeService;
         this.borrowedGearService = borrowedGearService;
         this.inventoryService = inventoryService;
@@ -100,6 +103,7 @@ public class InventoryRoutes implements Routes {
         this.stationRepository = stationRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.lossReportService = lossReportService;
+        this.selfCheckService = selfCheckService;
     }
 
     private static boolean isBlank(String s) {
@@ -935,8 +939,8 @@ public class InventoryRoutes implements Routes {
         int id = pathInt(ctx, "id");
         verifyItemOwnership(id, session);
         var item = inventoryService.findItemById(id).orElseThrow(NotFoundResponse::new);
-        String note =
-                ctx.body().isBlank() ? null : ctx.bodyAsClass(LostRequest.class).note();
+        LostRequest request = ctx.body().isBlank() ? null : ctx.bodyAsClass(LostRequest.class);
+        String note = request == null ? null : request.note();
         note = isBlank(note) ? null : note.trim();
 
         // Whoever looks after the station's gear reaches all of it. Everybody else reaches what they hold.
@@ -949,9 +953,17 @@ public class InventoryRoutes implements Routes {
         Integer noteBy = note == null || session.member() == null
                 ? null
                 : session.member().id();
-        inventoryService.markLost(id, note, noteBy).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
-        });
+        var lost = inventoryService.markLost(id, note, noteBy).orElseThrow(NotFoundResponse::new);
+        Integer selfCheckId = request == null ? null : request.selfCheckId();
+        if (selfCheckId != null) {
+            selfCheckService.recordLoss(
+                    selfCheckId,
+                    session.stationId(),
+                    session.member().id(),
+                    session.hasPermission(StationPermission.MEMBER_GUARDIAN),
+                    id);
+        }
+        ctx.json(lost);
     }
 
     /**
@@ -1392,7 +1404,15 @@ public class InventoryRoutes implements Routes {
     public record AssignRequest(Integer memberId, String memberName) {}
 
     /** What was written when gear was reported missing. */
-    public record LostRequest(String note) {}
+    /**
+     * A loss as it arrives over the wire.
+     *
+     * @param note        what the person reporting it wrote
+     * @param selfCheckId the self-check they were answering when they said it, so a reviewer reading
+     *                    the submission can see it happened, or {@code null} where the loss was
+     *                    raised on its own
+     */
+    public record LostRequest(String note, Integer selfCheckId) {}
 
     /** What a station has decided about its gear beyond any one inventory. */
     public record InventorySettings(boolean lossNoteRequired) {}
