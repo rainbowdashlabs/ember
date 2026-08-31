@@ -99,6 +99,10 @@ const LOCKED_ITEM: ProcedureItem = {
       <p>{{ t('helpCenter.procedureDetail.lockedText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.procedureDetail.fromEventTitle')">
+      <p>{{ t('helpCenter.procedureDetail.fromEventText') }}</p>
+    </HelpSection>
+
     <HelpPermissionGuard :permissions="[StationPermission.PROCEDURE_EDIT]"
                          :label="t('helpCenter.permissionLabel.procedureEdit')">
       <HelpSection :title="t('helpCenter.procedureDetail.resolveTitle')">
