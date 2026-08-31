@@ -1824,7 +1824,7 @@ export default {
         columns: 'Spalten',
     },
     membersList: {
-        accountPending: 'Konto noch nicht eingerichtet - die Person hat sich noch nicht das erste Mal angemeldet.',
+        accountPending: 'Konto noch nicht eingerichtet - die Person hat sich noch kein Passwort gesetzt.',
         accountPendingExpires: 'Der zugesendete Link ist gültig bis {date}.',
         accountPendingResend: 'Einrichtungs-Mail erneut senden',
         setupMailToMember: 'Die Mail geht an die Adresse des Mitglieds.',
@@ -8119,6 +8119,8 @@ export default {
         selfRegisterForbidden: 'Du erfüllst die Voraussetzung für dieses Feld nicht.',
         selfRegisterFailed: 'Eintragung fehlgeschlagen.',
         attendanceLink: 'Anwesenheitsfeld',
+        fromAttendance: 'Aus der Anwesenheitsvorlage übernehmen:',
+        takeAllFromAttendance: 'Alle übernehmen',
         value: 'Wert',
         defaultValue: 'Standardwert',
         public: 'Öffentlich',

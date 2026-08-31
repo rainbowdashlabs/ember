@@ -553,7 +553,9 @@ public class StationMemberRoutes implements Routes {
         var account = accountRepository
                 .findById(member.accountId())
                 .orElseThrow(() -> new BadRequestResponse("Account not found"));
-        if (account.setupCompletedAt() != null) {
+        // The same rule the member list draws its hourglass by: a password the person chose is as
+        // good as a sign-in, and either one makes a second invitation pointless.
+        if (account.setupCompletedAt() != null || accountRepository.hasChosenPassword(account.id())) {
             throw new BadRequestResponse("Account is already set up");
         }
         if (!mailRecipientService.isReachable(account.id())) {

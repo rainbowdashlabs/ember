@@ -172,6 +172,33 @@ test.describe('Event templates', () => {
     })
 
     /**
+     * A question of the attendance sheet is taken into the appointment, already tied to it.
+     *
+     * <p>Filling a field of the sheet from the appointment meant typing the same name and the same
+     * type out again and then picking the sheet's field from a dropdown by hand. Taken over here it
+     * arrives tied, which is what makes the answer land in the sheet at all. What has been taken is
+     * not offered a second time, because the field has only one answer to give.
+     */
+    test('a question of the attendance sheet is taken into the appointment', async ({managerPage: page}) => {
+        await page.goto('/station/events/new')
+
+        const sheet = page.getByTestId('event-attendance-template')
+        await sheet.selectOption({index: 1})
+
+        const take = page.locator('[data-testid^="take-attendance-field-"]').first()
+        await expect(take, 'the chosen sheet offers its fields').toBeVisible({timeout: 15000})
+        const offered = (await take.textContent())?.trim().replace(/^\+\s*/, '') ?? ''
+        const taken = await take.getAttribute('data-testid')
+        await take.click()
+
+        // It arrives as a question of the appointment, under the sheet's own name
+        await expect(page.getByTestId('event-field-name').last()).toHaveValue(offered)
+        // and tied to the field it came from, which is what the dropdown would otherwise be for
+        await expect(page.locator(`[data-testid="${taken}"]`),
+            'a field already taken is not offered again').toHaveCount(0)
+    })
+
+    /**
      * A template says who its appointments are for, and applying it says so on the appointment.
      *
      * <p>A template could only ever name a kind of member, so a station running one evening for the

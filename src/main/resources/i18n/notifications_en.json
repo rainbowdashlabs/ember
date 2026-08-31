@@ -116,6 +116,7 @@
     "EVENT_REGISTRATION_STATUS": "Registration {statusLabel}: {eventName}",
     "EXCHANGE_STATUS_CHANGE": "Exchange: {stepLabel} ({inventoryName})",
     "MOVEMENT_DECLINED": "Movement declined: {inventoryName}",
+    "MOVEMENT_CANCELLED": "Movement called off: {itemName} ({inventoryName})",
     "EXCHANGE_NEW_REQUEST": "Exchange request: {inventoryName}",
     "MEMBER_ADDED_TO_GROUP": "Added to group: {groupName}",
     "PROFILE_FIELD_CHANGED": "Profile change: {memberName} - {fieldName}",
@@ -134,6 +135,8 @@
     "EVENT_CANCELLED": "Cancelled: {eventName}",
     "EVENT_REMINDER.one": "Reminder: {eventName} tomorrow",
     "EVENT_REMINDER.other": "Reminder: {eventName} in {daysBefore} days",
+    "REGISTRATION_CLOSING.one": "Registration closes tomorrow: {eventName} - {memberName} pending",
+    "REGISTRATION_CLOSING.other": "Registration closes in {daysBefore} days: {eventName} - {memberName} pending",
     "PROCEDURE_ASSIGNED": "Procedure assigned: {procedureName}",
     "PROCEDURE_RESOLVED": "Resolved: {procedureName}",
     "PROCEDURE_REOPENED": "Reopened: {procedureName}",
@@ -148,7 +151,9 @@
     "CLUSTER_MODULE_DENIED": "{module} switched off by the cluster",
     "CLUSTER_QUOTA_CHANGED": "New storage allowance: {quota}",
     "CLUSTER_MEMBER_ROLE_CHANGED": "Your rights at {clusterName}",
-    "CLUSTER_FIELD_VALUE_CHANGED": "Profile changed by the cluster: {fields}"
+    "CLUSTER_FIELD_VALUE_CHANGED": "Profile changed by the cluster: {fields}",
+    "CLUSTER_ITEM_ISSUED": "On its way from {clusterName}: {itemName}",
+    "CLUSTER_ITEM_LOST": "Reported missing at {stationName}: {itemName}"
   },
   "digest": {
     "subject.one": "{stationName}: 1 new notification",
@@ -177,6 +182,7 @@
     "REGISTRATION_DEADLINE_EXPIRED": "Registration Deadline Expired",
     "EVENT_CANCELLED": "Event Cancelled",
     "EVENT_REMINDER": "Event Reminder",
+    "REGISTRATION_CLOSING": "Registration Closing",
     "PROCEDURE_ASSIGNED": "Procedure Assigned",
     "PROCEDURE_RESOLVED": "Procedure Resolved",
     "PROCEDURE_REOPENED": "Procedure Reopened",
@@ -185,6 +191,7 @@
     "WAITLIST_PUBLIC_REGISTRATION": "New Public Registration",
     "STORAGE_WARNING": "Storage Warning",
     "MOVEMENT_DECLINED": "Movement refused",
+    "MOVEMENT_CANCELLED": "Movement called off",
     "CLUSTER_APPLICATION_SUBMITTED": "New request to join",
     "CLUSTER_APPLICATION_APPROVED": "Join confirmed",
     "CLUSTER_APPLICATION_DENIED": "Join refused",
@@ -193,7 +200,9 @@
     "CLUSTER_MODULE_DENIED": "Module switched off",
     "CLUSTER_QUOTA_CHANGED": "Storage allowance changed",
     "CLUSTER_MEMBER_ROLE_CHANGED": "Rights changed",
-    "CLUSTER_FIELD_VALUE_CHANGED": "Profile changed by the cluster"
+    "CLUSTER_FIELD_VALUE_CHANGED": "Profile changed by the cluster",
+    "CLUSTER_ITEM_ISSUED": "Item on its way",
+    "CLUSTER_ITEM_LOST": "Item reported missing"
   },
   "message": {
     "notification.newNews": "{title} - by {author}",

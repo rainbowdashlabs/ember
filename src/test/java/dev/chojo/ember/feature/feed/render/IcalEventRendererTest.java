@@ -45,6 +45,11 @@ class IcalEventRendererTest {
     @BeforeEach
     void setup() {
         eventFieldService = mock(EventFieldService.class);
+        // Stand-in for the real resolution: everything but a member field renders its stored text.
+        when(eventFieldService.displayValue(any())).thenAnswer(inv -> {
+            EventField field = inv.getArgument(0);
+            return field == null || field.value() == null ? "" : field.value().trim();
+        });
         NotificationService notificationService = mock(NotificationService.class);
         // Mirror NotificationService: echo the key, but interpolate {name} placeholders from the
         // params map when present so cancelledWithReason etc. surface their substitution values.

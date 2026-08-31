@@ -2058,6 +2058,8 @@ volumes:
             remindersText: 'Eine Erinnerung sagt, wie viele Tage vor dem Termin die Mitglieder eine Nachricht bekommen. Du kannst mehrere anlegen, zum Beispiel sieben und einen Tag vorher.',
             fieldsTitle: 'Eigene Felder',
             fieldsText: 'Eigene Felder sind Zusatzangaben wie Ort oder Treffpunkt. Für die häufigsten gibt es Schnell-Schaltflächen; alle anderen legst du selbst an und entscheidest, ob sie in der Übersicht und öffentlich sichtbar sind.',
+            fromAttendanceTitle: 'Felder aus der Anwesenheitsvorlage',
+            fromAttendanceText: 'Hast du oben eine Anwesenheitsvorlage gewählt, kannst du deren Felder direkt übernehmen - einzeln oder alle auf einmal. Sie kommen mit Namen, Typ und Einstellungen an und sind gleich mit dem Feld auf dem Bogen verknüpft, sodass die Antwort vom Termin später dort landet. Ein schon übernommenes Feld wird nicht noch einmal angeboten.',
             fieldValueTitle: 'Standardwert',
             fieldValueText: 'Unter jedem Feld kannst du einen Standardwert hinterlegen. Er steht schon im Formular, sobald jemand einen Termin aus der Vorlage erstellt, und lässt sich dort jederzeit überschreiben. Felder, die nach einem Mitglied fragen, bekommen keinen Standardwert.',
             fieldOrderTitle: 'Reihenfolge und Breite',
@@ -3943,6 +3945,8 @@ volumes:
             tip: 'Mitglieder mit aktivierten E-Mail-Benachrichtigungen werden automatisch informiert.',
         },
         eventEdit: {
+            fromAttendanceTitle: 'Felder aus der Anwesenheitsvorlage',
+            fromAttendanceText: 'Hast du eine Anwesenheitsvorlage gewählt, kannst du deren Felder direkt übernehmen - einzeln oder alle auf einmal. Sie kommen mit Namen, Typ und Einstellungen an und sind gleich mit dem Feld auf dem Bogen verknüpft, sodass die Antwort vom Termin später dort landet. Ein schon übernommenes Feld wird nicht noch einmal angeboten.',
             registrationFieldsTitle: 'Fragen bei der Anmeldung',
             registrationFieldsText: 'Bei Terminen mit Anmeldung kannst du zusätzliche Angaben abfragen - zum Beispiel die Shirtgröße, die Anzahl der Begleitpersonen oder was jemand mitbringt. Jede Frage hat einen Antworttyp und kann Pflicht sein.',
             registrationFieldsDefaults: 'Ein Vorgabewert wird beim Öffnen des Anmeldeformulars vorausgefüllt und kann geändert werden. Er zählt erst als Antwort, wenn die Anmeldung abgeschickt wird.',
