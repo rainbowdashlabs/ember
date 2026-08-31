@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -28,6 +30,7 @@ public record ResolvedCollection(
      *
      * @return {@code true} when nothing is missing
      */
+    @JsonProperty("complete")
     public boolean complete() {
         return lines.stream().allMatch(ResolvedCollectionLine::filled);
     }
@@ -37,6 +40,7 @@ public record ResolvedCollection(
      *
      * @return {@code true} when at least one available piece is owned above
      */
+    @JsonProperty("holdsClusterOwned")
     public boolean holdsClusterOwned() {
         return lines.stream().anyMatch(line -> line.clusterOwned() > 0);
     }
