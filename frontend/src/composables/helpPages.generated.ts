@@ -164,6 +164,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-inventory-lending-browse', path: '/helpcenter/station/inventory/lending/browse', i18nPrefix: 'helpCenter.inventoryLendingBrowse'},
     {route: 'help-inventory-lending-request', path: '/helpcenter/station/inventory/lending/request/0', i18nPrefix: 'helpCenter.inventoryLendingRequest'},
     {route: 'help-inventory-lending-create', path: '/helpcenter/station/inventory/lending/request/new', i18nPrefix: ['helpCenter.inventoryLendingCreate', 'helpCenter.scanShared']},
+    {route: 'help-inventory-lending-shares', path: '/helpcenter/station/inventory/lending/shares', i18nPrefix: 'helpCenter.inventoryLendingShares'},
     {route: 'help-inventory-manage', path: '/helpcenter/station/inventory/manage', i18nPrefix: ['helpCenter.inventoryManage', 'helpCenter.scanShared']},
     {route: 'help-inventory-member', path: '/helpcenter/station/inventory/member', i18nPrefix: 'helpCenter.inventoryMember'},
     {route: 'help-inventory-members', path: '/helpcenter/station/inventory/members', i18nPrefix: 'helpCenter.inventoryMembers'},

@@ -55,7 +55,7 @@ async function loadItems() {
   loadingItems.value = true
   itemsError.value = ''
   try {
-    availableItems.value = await lending.listAvailable()
+    availableItems.value = (await lending.listAvailable()).entries
   } catch {
     itemsError.value = t('lending.loadError')
   } finally {
