@@ -70,7 +70,7 @@ class BorrowedGearServiceTest extends RepositoryTestBase {
                 clusterRepo,
                 itemCustodyService,
                 borrowedGearService,
-                new InventoryShareService(new InventoryShareRepository(), federationService, inventoryRepo),
+                new InventoryShareService(new InventoryShareRepository(), federationService, inventoryRepo, artRepo),
                 new DomainEventBus(Set.of()));
 
         owner = stationRepo.create("BorrowedGearOwner");

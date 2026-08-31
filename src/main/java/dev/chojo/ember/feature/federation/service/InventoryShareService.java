@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.federation.entity.SharePolicy;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
@@ -45,15 +46,18 @@ public class InventoryShareService {
     private final InventoryShareRepository repository;
     private final FederationService federationService;
     private final InventoryRepository inventoryRepository;
+    private final InventoryArtRepository artRepository;
 
     @Inject
     public InventoryShareService(
             InventoryShareRepository repository,
             FederationService federationService,
-            InventoryRepository inventoryRepository) {
+            InventoryRepository inventoryRepository,
+            InventoryArtRepository artRepository) {
         this.repository = repository;
         this.federationService = federationService;
         this.inventoryRepository = inventoryRepository;
+        this.artRepository = artRepository;
     }
 
     /**
@@ -76,13 +80,17 @@ public class InventoryShareService {
         }
 
         var byInventory = new HashMap<Integer, Boolean>();
+        var byArt = new HashMap<Integer, Boolean>();
         var byItem = new HashMap<Integer, Boolean>();
         for (var share : repository.findByStation(ownerStationId)) {
             boolean grants = share.shareGrant() == ShareGrant.GRANT && reaches(share, targets, partner.id());
-            if (share.aboutItem()) byItem.put(share.itemId(), grants);
-            else byInventory.put(share.inventoryId(), grants);
+            switch (share.level()) {
+                case ITEM -> byItem.put(share.itemId(), grants);
+                case ART -> byArt.put(share.artId(), grants);
+                case INVENTORY -> byInventory.put(share.inventoryId(), grants);
+            }
         }
-        return new SharePolicy(true, Map.copyOf(byInventory), Map.copyOf(byItem));
+        return new SharePolicy(true, Map.copyOf(byInventory), Map.copyOf(byArt), Map.copyOf(byItem));
     }
 
     private static boolean reaches(InventoryShare share, Map<Integer, Set<Integer>> targets, int partnerId) {
@@ -112,6 +120,10 @@ public class InventoryShareService {
         return repository.findForInventory(stationId, inventoryId);
     }
 
+    public Optional<InventoryShare> findForArt(int stationId, int artId) {
+        return repository.findForArt(stationId, artId);
+    }
+
     public Optional<InventoryShare> findForItem(int stationId, int itemId) {
         return repository.findForItem(stationId, itemId);
     }
@@ -127,6 +139,22 @@ public class InventoryShareService {
         var share = repository.upsertInventoryShare(stationId, inventoryId, scope, grant);
         repository.setTargets(share.id(), scope == ShareScope.SPECIFIC ? partnerIds : List.of());
         log.info("Station {} set lending share {} on inventory {}", stationId, grant, inventoryId);
+        return share;
+    }
+
+    /**
+     * Puts one kind of thing on offer, or takes it back out of whatever its inventory offers. It is
+     * the level the drawer of odds and ends is really described at: the good radios go, the cheap
+     * ones stay, and neither choice has to be made again when a piece is added.
+     *
+     * @throws NotFoundResponse when the kind is not in one of this station's inventories
+     */
+    public InventoryShare setArtShare(
+            int stationId, int artId, ShareScope scope, ShareGrant grant, List<Integer> partnerIds) {
+        requireOwnArt(stationId, artId);
+        var share = repository.upsertArtShare(stationId, artId, scope, grant);
+        repository.setTargets(share.id(), scope == ShareScope.SPECIFIC ? partnerIds : List.of());
+        log.info("Station {} set lending share {} on kind {}", stationId, grant, artId);
         return share;
     }
 
@@ -151,7 +179,14 @@ public class InventoryShareService {
         return removed;
     }
 
-    /** Removes what was said about an item, which puts it back under whatever its inventory says. */
+    /** Removes what was said about a kind, which puts it back under whatever its inventory says. */
+    public boolean removeArtShare(int stationId, int artId) {
+        boolean removed = repository.deleteArtShare(stationId, artId);
+        if (removed) log.info("Station {} cleared the lending share on kind {}", stationId, artId);
+        return removed;
+    }
+
+    /** Removes what was said about an item, which puts it back under whatever its kind says. */
     public boolean removeItemShare(int stationId, int itemId) {
         boolean removed = repository.deleteItemShare(stationId, itemId);
         if (removed) log.info("Station {} cleared the lending share on item {}", stationId, itemId);
@@ -163,15 +198,20 @@ public class InventoryShareService {
         if (!own) throw new NotFoundResponse("This inventory does not belong to this station");
     }
 
+    private void requireOwnArt(int stationId, int artId) {
+        var art = artRepository.findById(artId).orElseThrow(NotFoundResponse::new);
+        requireOwnInventory(stationId, art.inventoryId());
+    }
+
     private void requireOwnItem(int stationId, int itemId) {
         var item = inventoryRepository.findItemById(itemId).orElseThrow(NotFoundResponse::new);
         requireOwnInventory(stationId, item.inventoryId());
     }
 
-    /** The item ids of one inventory that are on offer to a partner. */
+    /** The pieces of one inventory that are on offer to a partner. */
     public List<InventoryItem> filterShared(SharePolicy policy, List<InventoryItem> items) {
         return items.stream()
-                .filter(item -> policy.allows(item.inventoryId(), item.id()))
+                .filter(item -> policy.allows(item.inventoryId(), item.artId(), item.id()))
                 .toList();
     }
 }

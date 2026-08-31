@@ -70,27 +70,47 @@ test.describe('Lending offer', () => {
         throw new Error('No station borrows from this one, so there is no offer to show')
     }
 
-    /** An inventory of two pieces on the acting station, made for one story and named after it. */
-    async function stockedInventory(page: Page, name: string): Promise<number> {
+    /**
+     * A drawer of two pieces on the acting station, one of them of a kind of its own, made for one
+     * story and named after it. It is a drawer of different things rather than a shelf of one thing,
+     * because that is the only kind of inventory that may have kinds at all.
+     */
+    async function stockedInventory(page: Page, name: string): Promise<{ inventoryId: number; artId: number }> {
         const headers = await apiHeaders(page)
         const created = await page.request.post('/api/v1/inventories', {
             headers,
-            data: {name, inventoryType: 'INTERNAL', hasSizes: false},
+            data: {name, inventoryType: 'INTERNAL', hasSizes: false, homogeneous: false},
         })
         if (!created.ok()) throw new Error(`Creating the inventory answered ${created.status()}`)
         const inventory = await created.json()
+
+        const madeArt = await page.request.post(`/api/v1/inventories/${inventory.id}/arts`, {
+            headers,
+            data: {name: `${name} gut`, note: ''},
+        })
+        if (!madeArt.ok()) throw new Error(`Creating the kind answered ${madeArt.status()}`)
+        const art = await madeArt.json()
+
         for (const label of ['A', 'B']) {
-            await page.request.post(`/api/v1/inventories/${inventory.id}/items`, {
+            const item = await page.request.post(`/api/v1/inventories/${inventory.id}/items`, {
                 headers,
                 data: {internalId: `${name}-${label}`, name: `${name} ${label}`},
             })
+            if (label === 'A') {
+                const body = await item.json()
+                await page.request.put(`/api/v1/inventories/${inventory.id}/item-arts`, {
+                    headers,
+                    data: {artId: art.id, itemIds: [body.id]},
+                })
+            }
         }
-        return inventory.id
+        return {inventoryId: inventory.id, artId: art.id}
     }
 
     /**
-     * The whole of the opt-in: nothing reaches the partner until the owner says so, and holding the
-     * gear back takes it off the partner's screen again.
+     * The whole of the opt-in, and the narrowest row deciding. Nothing reaches the partner until the
+     * owner offers the inventory; holding one kind back out of it takes that kind and no more; and
+     * holding the inventory back takes the rest.
      */
     test('a partner finds gear only once the owning station offers it', async ({managerPage, browser, request}) => {
         const ownerHeaders = await apiHeaders(managerPage)
@@ -100,7 +120,7 @@ test.describe('Lending offer', () => {
         const borrowerHeaders = await apiHeaders(borrowerPage)
 
         const name = unique('Ausleihregal')
-        const inventoryId = await stockedInventory(managerPage, name)
+        const {inventoryId} = await stockedInventory(managerPage, name)
 
         const before = await browse(request, borrowerHeaders)
         expect(before?.some(entry => entry.inventoryName === name)).toBe(false)
@@ -124,6 +144,18 @@ test.describe('Lending offer', () => {
         await managerPage.goto('/station/inventory/lending/shares')
         await expect(managerPage.getByTestId('app-shell')).toBeVisible()
         await expect(managerPage.getByTestId('lending-shares-offered').getByText(name)).toBeVisible()
+
+        await managerPage.goto(`/station/inventory/edit/${inventoryId}`)
+        await expect(managerPage.getByTestId('inventory-arts')).toBeVisible()
+        await managerPage.getByTestId('lending-share-button').first().click()
+        await expect(managerPage.getByTestId('lending-share-modal')).toBeVisible()
+        await managerPage.getByTestId('lending-share-grant').selectOption('WITHHOLD')
+        await managerPage.getByTestId('lending-share-save').click()
+
+        await expect(async () => {
+            const offered = await browse(request, borrowerHeaders)
+            expect(offered?.find(entry => entry.inventoryName === name)?.availableCount).toBe(1)
+        }).toPass()
 
         await managerPage.goto(`/station/inventory/detail/${inventoryId}`)
         await managerPage.getByTestId('lending-share-edit').click()

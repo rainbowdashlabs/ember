@@ -28,7 +28,7 @@ public class InventoryShareRepository {
         return query("""
                 SELECT %s FROM federation_inventory_share
                 WHERE station_id = :station_id
-                ORDER BY inventory_id NULLS LAST, item_id NULLS LAST;""", InventoryShare.COLUMNS)
+                ORDER BY inventory_id NULLS LAST, art_id NULLS LAST, item_id NULLS LAST;""", InventoryShare.COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(InventoryShare.map())
                 .all();
@@ -39,6 +39,15 @@ public class InventoryShareRepository {
                 SELECT %s FROM federation_inventory_share
                 WHERE station_id = :station_id AND inventory_id = :inventory_id;""", InventoryShare.COLUMNS)
                 .single(call().bind("station_id", stationId).bind("inventory_id", inventoryId))
+                .map(InventoryShare.map())
+                .first();
+    }
+
+    public Optional<InventoryShare> findForArt(int stationId, int artId) {
+        return query("""
+                SELECT %s FROM federation_inventory_share
+                WHERE station_id = :station_id AND art_id = :art_id;""", InventoryShare.COLUMNS)
+                .single(call().bind("station_id", stationId).bind("art_id", artId))
                 .map(InventoryShare.map())
                 .first();
     }
@@ -68,6 +77,22 @@ public class InventoryShareRepository {
                 InventoryShare.COLUMNS);
     }
 
+    public InventoryShare upsertArtShare(int stationId, int artId, ShareScope scope, ShareGrant grant) {
+        return insertReturning(
+                """
+                INSERT INTO federation_inventory_share(station_id, art_id, share_scope, share_grant)
+                VALUES (:station_id, :art_id, :share_scope, :share_grant)
+                ON CONFLICT (station_id, art_id) WHERE art_id IS NOT NULL
+                DO UPDATE SET share_scope = :share_scope, share_grant = :share_grant
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
+                        .bind("art_id", artId)
+                        .bind("share_scope", scope)
+                        .bind("share_grant", grant),
+                InventoryShare.map(),
+                InventoryShare.COLUMNS);
+    }
+
     public InventoryShare upsertItemShare(int stationId, int itemId, ShareScope scope, ShareGrant grant) {
         return insertReturning(
                 """
@@ -89,6 +114,15 @@ public class InventoryShareRepository {
                 DELETE FROM federation_inventory_share
                 WHERE station_id = :station_id AND inventory_id = :inventory_id;""")
                 .single(call().bind("station_id", stationId).bind("inventory_id", inventoryId))
+                .delete()
+                .changed();
+    }
+
+    public boolean deleteArtShare(int stationId, int artId) {
+        return query("""
+                DELETE FROM federation_inventory_share
+                WHERE station_id = :station_id AND art_id = :art_id;""")
+                .single(call().bind("station_id", stationId).bind("art_id", artId))
                 .delete()
                 .changed();
     }

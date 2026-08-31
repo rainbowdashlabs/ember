@@ -7,7 +7,7 @@
 - **Lists made out of who is coming.** The sign-ups of an appointment carry a menu that turns the people holding a place on that one evening into a checklist to tick off, or into a survey addressed to exactly them. The set is taken as it stands, so the dialog says how many people come across, who cannot be carried over, and that anybody signing up later is added by hand.
 - **A drawer of different things says what kind each piece is.** An inventory holding six blue radios, five green ones and a charging station can give every piece an Art beside its name, which leaves "Pager 01" reading as "Pager 01" while making "the blue ones" something that can be counted and asked for; an empty Art is perfectly normal and most pieces will have none. A tidying screen under Inventory lists the names actually written on the pieces with a count each, which is where one word spelled two ways shows itself, and bringing them together writes the chosen name onto those pieces so the misspelling leaves every list and export as well.
 - **A checklist can be tied to one evening of an appointment.** Instead of describing who belongs on it by role, group or name, a list can now name an appointment and a date, and Refresh brings in everybody who has taken a place since. Somebody who cancels keeps their row and is marked as no longer belonging, so nothing already ticked off is lost, and what a list is made of can now be changed after it exists.
-- **A station decides what it offers its partner stations.** An inventory or a single piece can now be put on offer, to every partner station or only to named ones, and a piece can be held back out of an inventory that is otherwise offered. One screen under Inventory, Lending lists everything the station currently offers and everything it keeps.
+- **A station decides what it offers its partner stations.** An inventory, one kind of thing in it, or a single piece can now be put on offer, to every partner station or only to named ones, and the narrower decision wins, so the drawer goes out while the good radios stay. One screen under Inventory, Lending lists everything the station currently offers and everything it keeps.
 
 ### Improvements
 
@@ -24,7 +24,7 @@
 ### Changes
 
 - **Crowded button rows keep one button and a menu.** The attendance sheet, a wiki file, a question catalogue and a test sheet showed as many as seven buttons above the page at once, which on a phone filled the screen before the page began. Each now shows the one action it is opened for and keeps the rest, exports and deletion included, in a menu beside it.
-- **Nothing reaches a partner station until somebody offers it.** Partner stations used to browse every inventory a station had. From this version a station offers nothing until it says so, on the inventory or on the single piece, so every station starts this version offering nothing at all.
+- **Nothing reaches a partner station until somebody offers it.** Partner stations used to browse every inventory a station had. From this version a station offers nothing until it says so, on the inventory, on a kind of thing or on the single piece, so every station starts this version offering nothing at all.
 
 ### Fixes
 

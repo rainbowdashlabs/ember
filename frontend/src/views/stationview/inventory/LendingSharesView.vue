@@ -13,7 +13,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import LendingShareRow from '@/views/stationview/inventory/lendingsharesview/LendingShareRow.vue'
 import LendingShareModal from '@/components/lending/LendingShareModal.vue'
 import * as lending from '@/api/lending'
-import type {ShareDetail} from '@/api/lending'
+import type {ShareDetail, ShareTarget} from '@/api/lending'
 
 const {t} = useI18n()
 
@@ -32,7 +32,18 @@ function labelOf(detail: ShareDetail): string {
     const internal = detail.itemInternalId ? ` (${detail.itemInternalId})` : ''
     return `${detail.itemName ?? t('common.unknown')}${internal}`
   }
+  if (detail.share.artId != null) return detail.artName ?? t('common.unknown')
   return detail.inventoryName ?? t('common.unknown')
+}
+
+function targetOf(detail: ShareDetail): ShareTarget {
+  if (detail.share.itemId != null) return 'item'
+  if (detail.share.artId != null) return 'art'
+  return 'inventory'
+}
+
+function targetIdOf(detail: ShareDetail): number {
+  return detail.share.itemId ?? detail.share.artId ?? detail.share.inventoryId ?? 0
 }
 
 function edit(detail: ShareDetail) {
@@ -102,8 +113,8 @@ onMounted(load)
     <LendingShareModal
         v-if="editing"
         v-model="editorOpen"
-        :target="editing.share.itemId != null ? 'item' : 'inventory'"
-        :target-id="editing.share.itemId ?? editing.share.inventoryId ?? 0"
+        :target="targetOf(editing)"
+        :target-id="targetIdOf(editing)"
         :target-name="labelOf(editing)"
         @saved="load"
     />

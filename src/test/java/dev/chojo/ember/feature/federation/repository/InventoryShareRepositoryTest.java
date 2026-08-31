@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.federation.repository;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.ShareGrant;
+import dev.chojo.ember.feature.federation.entity.ShareLevel;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -32,6 +33,7 @@ class InventoryShareRepositoryTest extends RepositoryTestBase {
     private static Station owner;
     private static Station partnerStation;
     private static int inventoryId;
+    private static int artId;
     private static int itemId;
     private static int partnerId;
 
@@ -46,6 +48,7 @@ class InventoryShareRepositoryTest extends RepositoryTestBase {
 
         var inventory = inventoryRepo.create(owner.id(), "ShareRepoInventory", InventoryType.INTERNAL, false);
         inventoryId = inventory.id();
+        artId = artRepo.create(inventoryId, "Funkgerät", "", 0).id();
         itemId = inventoryRepo
                 .createItem(inventoryId, "SHR-001", "Share Repo Item", null, null)
                 .id();
@@ -85,11 +88,30 @@ class InventoryShareRepositoryTest extends RepositoryTestBase {
 
         assertEquals(first.id(), second.id());
         assertEquals(ShareGrant.WITHHOLD, second.shareGrant());
-        assertTrue(second.aboutItem());
+        assertEquals(ShareLevel.ITEM, second.level());
         assertNull(second.inventoryId());
 
         assertTrue(repository.deleteItemShare(owner.id(), itemId));
         assertFalse(repository.deleteItemShare(owner.id(), itemId));
+    }
+
+    @Test
+    void writingAKindShareTwiceOverwritesTheFirstRow() {
+        var first = repository.upsertArtShare(owner.id(), artId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT);
+        var second = repository.upsertArtShare(owner.id(), artId, ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD);
+
+        assertEquals(first.id(), second.id());
+        assertEquals(ShareLevel.ART, second.level());
+        assertEquals(ShareGrant.WITHHOLD, second.shareGrant());
+        assertNull(second.inventoryId());
+        assertNull(second.itemId());
+
+        var found = repository.findForArt(owner.id(), artId).orElseThrow();
+        assertEquals(second.id(), found.id());
+        assertTrue(repository.findForArt(partnerStation.id(), artId).isEmpty());
+
+        assertTrue(repository.deleteArtShare(owner.id(), artId));
+        assertFalse(repository.deleteArtShare(owner.id(), artId));
     }
 
     @Test
@@ -98,7 +120,7 @@ class InventoryShareRepositoryTest extends RepositoryTestBase {
         repository.upsertItemShare(owner.id(), itemId, ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD);
 
         var forInventory = repository.findForInventory(owner.id(), inventoryId).orElseThrow();
-        assertFalse(forInventory.aboutItem());
+        assertEquals(ShareLevel.INVENTORY, forInventory.level());
         assertEquals(inventoryId, forInventory.inventoryId());
 
         var forItem = repository.findForItem(owner.id(), itemId).orElseThrow();

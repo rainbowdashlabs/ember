@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -30,15 +31,18 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
     private final LendingService lendingService;
     private final InventoryShareService shareService;
     private final InventoryRepository inventoryRepository;
+    private final InventoryArtRepository artRepository;
 
     @Inject
     public DemoLendingSeeder(
             LendingService lendingService,
             InventoryShareService shareService,
-            InventoryRepository inventoryRepository) {
+            InventoryRepository inventoryRepository,
+            InventoryArtRepository artRepository) {
         this.lendingService = lendingService;
         this.shareService = shareService;
         this.inventoryRepository = inventoryRepository;
+        this.artRepository = artRepository;
     }
 
     /**
@@ -165,10 +169,15 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
         inventoryRepository.createItem(walkieTalkies.id(), "FG-003", "Motorola DP1400", null, null);
         inventoryRepository.createItem(walkieTalkies.id(), "FG-004", "Motorola DP1400", null, null);
         var goodRadio = inventoryRepository.createItem(walkieTalkies.id(), "FG-005", "Motorola DP3441e", null, null);
-        inventoryRepository.createItem(walkieTalkies.id(), "FG-006", "Motorola DP3441e", null, null);
+        var otherGoodRadio =
+                inventoryRepository.createItem(walkieTalkies.id(), "FG-006", "Motorola DP3441e", null, null);
+
+        var goodRadios = artRepository.create(walkieTalkies.id(), "Motorola DP3441e", "Die guten Geräte", 10);
+        artRepository.setArt(goodRadios.id(), List.of(goodRadio.id(), otherGoodRadio.id()));
 
         offerToPartners(stationId, walkieTalkies.id());
-        shareService.setItemShare(stationId, goodRadio.id(), ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of());
+        shareService.setArtShare(stationId, goodRadios.id(), ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of());
+        shareService.setItemShare(stationId, goodRadio.id(), ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
 
         // -- Request 4 (INCOMING): partner requests Funkgeräte from main station (LENT - currently out) --
         var lentRequest = lendingService.createRequest(

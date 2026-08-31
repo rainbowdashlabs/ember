@@ -11,11 +11,10 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import LendingShareModal from '@/components/lending/LendingShareModal.vue'
-import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
+import {useLendingShare} from '@/composables/useLendingShare'
 import {useSession} from '@/composables/useSession'
-import {StationPermission} from '@/api/types'
 import * as lending from '@/api/lending'
-import type {ShareSetting} from '@/api/lending'
+import type {ShareSetting, ShareTarget} from '@/api/lending'
 
 /**
  * What this inventory or this item is offered as, on the screen the gear itself lives on.
@@ -24,19 +23,17 @@ import type {ShareSetting} from '@/api/lending'
  * association issues its gear rather than lending it, and its screens name no lending route.
  */
 const props = defineProps<{
-  target: 'inventory' | 'item'
+  target: ShareTarget
   targetId: number
   targetName: string
 }>()
 
 const {t} = useI18n()
-const routes = useInventoryRoutes()
-const {loaded, hasPermission} = useSession()
+const {loaded} = useSession()
+const {visible} = useLendingShare()
 
 const setting = ref<ShareSetting | null>(null)
 const editorOpen = ref(false)
-
-const visible = computed(() => Boolean(routes.lendingShares) && hasPermission(StationPermission.INVENTORY_LENDING_MANAGER))
 
 const stateLabel = computed(() => {
   if (!setting.value?.shared) return t('lendingShare.stateUnshared')
@@ -48,9 +45,7 @@ const stateLabel = computed(() => {
 async function load() {
   if (!visible.value) return
   try {
-    setting.value = props.target === 'item'
-        ? await lending.getItemShare(props.targetId)
-        : await lending.getInventoryShare(props.targetId)
+    setting.value = await lending.getShare(props.target, props.targetId)
   } catch {
     setting.value = null
   }

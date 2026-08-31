@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "schemaHash": "sha256:b7c9ac0ed0125554fa784d3e9690d3ef1d39573832344d6b113a5bd67c5e1f5e",
+  "schemaHash": "sha256:1f144a6669a3a8fc74c0bf2b57fbe601ab0657feb02244e86f5f7a0d0b1be912",
   "generatedAt": "2026-08-31T10:35:39Z",
   "tables": {
     "account": {
@@ -7753,7 +7753,7 @@
     "federation_inventory_share": {
       "feature": "federation",
       "scope": "STATION",
-      "tableHash": "sha256:97da557e1110c319b64390f4a1bc8f3df4831cfa32565f8538433923d3a9ed07",
+      "tableHash": "sha256:15efaaab5c354734fc8c4be330f20b8948989526623857051e2a1b24aa6f8df3",
       "columns": [
         {
           "name": "id",
@@ -7796,9 +7796,22 @@
           "nullable": false,
           "verified": true,
           "description": "GRANT puts the gear on offer, WITHHOLD takes it back out of a wider offer. The narrowest row that exists decides."
+        },
+        {
+          "name": "art_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "References the kind of thing. Exactly one of inventory_id/art_id/item_id must be set."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "art_id",
+          "refTable": "inventory_art",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
         {
           "column": "inventory_id",
           "refTable": "inventory",
