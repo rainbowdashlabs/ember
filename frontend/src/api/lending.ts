@@ -123,6 +123,73 @@ export interface AvailableInventoryEntry {
     distanceKm: number | null
 }
 
+/**
+ * Why a browse answer came back empty. It names the situation and never the gear: which
+ * inventories a partner holds back is that partner's business.
+ */
+export const LendingEmptyReason = {
+    NOTHING_SHARED: 'NOTHING_SHARED',
+    NOTHING_FREE: 'NOTHING_FREE',
+} as const
+
+export type LendingEmptyReasonName = (typeof LendingEmptyReason)[keyof typeof LendingEmptyReason]
+
+export interface AvailableInventoryResult {
+    entries: AvailableInventoryEntry[]
+    emptyReason: LendingEmptyReasonName | null
+}
+
+// -- What this station offers --
+
+export const ShareGrant = {
+    GRANT: 'GRANT',
+    WITHHOLD: 'WITHHOLD',
+} as const
+
+export type ShareGrantName = (typeof ShareGrant)[keyof typeof ShareGrant]
+
+export const ShareScope = {
+    ALL_PARTNERS: 'ALL_PARTNERS',
+    SPECIFIC: 'SPECIFIC',
+} as const
+
+export type ShareScopeName = (typeof ShareScope)[keyof typeof ShareScope]
+
+export interface ShareSetting {
+    shared: boolean
+    grant: ShareGrantName | null
+    scope: ShareScopeName | null
+    partnerIds: number[]
+}
+
+export interface InventoryShare {
+    id: number
+    stationId: number
+    inventoryId: number | null
+    itemId: number | null
+    shareScope: ShareScopeName
+    shareGrant: ShareGrantName
+}
+
+export interface SharePartner {
+    partnerId: number
+    stationName: string
+}
+
+export interface ShareDetail {
+    share: InventoryShare
+    inventoryName: string | null
+    itemName: string | null
+    itemInternalId: string | null
+    partners: SharePartner[]
+}
+
+export interface SetSharePayload {
+    grant: ShareGrantName
+    scope: ShareScopeName
+    partnerIds: number[]
+}
+
 // -- Lent-out items by inventory --
 
 export interface LentOutItem {
@@ -144,13 +211,48 @@ export async function getLentOutByInventory(inventoryId: number): Promise<LentOu
 
 // -- Available inventory --
 
-export async function listAvailable(options?: { q?: string; from?: string; to?: string }): Promise<AvailableInventoryEntry[]> {
+export async function listAvailable(options?: { q?: string; from?: string; to?: string }): Promise<AvailableInventoryResult> {
     const params: Record<string, string> = {}
     if (options?.q) params.q = options.q
     if (options?.from) params.from = options.from
     if (options?.to) params.to = options.to
-    const res = await client.get<AvailableInventoryEntry[]>('/federated/lending/available', {params})
+    const res = await client.get<AvailableInventoryResult>('/federated/lending/available', {params})
     return res.data
+}
+
+// -- Sharing --
+
+export async function listShares(): Promise<ShareDetail[]> {
+    const res = await client.get<ShareDetail[]>('/lending/shares')
+    return res.data
+}
+
+export async function getInventoryShare(inventoryId: number): Promise<ShareSetting> {
+    const res = await client.get<ShareSetting>(`/lending/shares/inventory/${inventoryId}`)
+    return res.data
+}
+
+export async function setInventoryShare(inventoryId: number, payload: SetSharePayload): Promise<ShareSetting> {
+    const res = await client.put<ShareSetting>(`/lending/shares/inventory/${inventoryId}`, payload)
+    return res.data
+}
+
+export async function removeInventoryShare(inventoryId: number): Promise<void> {
+    await client.delete(`/lending/shares/inventory/${inventoryId}`)
+}
+
+export async function getItemShare(itemId: number): Promise<ShareSetting> {
+    const res = await client.get<ShareSetting>(`/lending/shares/item/${itemId}`)
+    return res.data
+}
+
+export async function setItemShare(itemId: number, payload: SetSharePayload): Promise<ShareSetting> {
+    const res = await client.put<ShareSetting>(`/lending/shares/item/${itemId}`, payload)
+    return res.data
+}
+
+export async function removeItemShare(itemId: number): Promise<void> {
+    await client.delete(`/lending/shares/item/${itemId}`)
 }
 
 // -- Requests --

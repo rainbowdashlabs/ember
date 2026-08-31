@@ -15,6 +15,7 @@ import ItemTableFilterModal from '../itemtable/ItemTableFilterModal.vue'
 import ItemListControls from '../itemtable/ItemListControls.vue'
 import InventoryStatsPanel from './InventoryStatsPanel.vue'
 import LentOutTable from './LentOutTable.vue'
+import LendingSharePanel from '@/components/lending/LendingSharePanel.vue'
 import ProcurementTable from './ProcurementTable.vue'
 import LostItemsTable from './LostItemsTable.vue'
 import FreeItemsGrid from './FreeItemsGrid.vue'
@@ -99,6 +100,8 @@ const { t } = useI18n()
     @fulfill="$emit('fulfillProcurement', $event)"
     @create="$emit('openProcurementModal')"
   />
+
+  <LendingSharePanel :target-id="detail.id" :target-name="detail.name ?? ''" target="inventory" />
 
   <LentOutTable :lent-out-items="lentOutItems" :lent-out-count="counts.lentOut" />
 

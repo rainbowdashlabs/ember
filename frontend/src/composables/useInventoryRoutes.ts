@@ -73,6 +73,8 @@ export interface InventoryRoutes {
     lendingBlocksCreate?: string
     lendingCreate?: string
     lendingRequest?: string
+    /** What the station currently puts on offer to its partners. Absent at an association for the same reason. */
+    lendingShares?: string
 }
 
 export const STATION_INVENTORY_ROUTES: InventoryRoutes = {
@@ -101,6 +103,7 @@ export const STATION_INVENTORY_ROUTES: InventoryRoutes = {
     lendingBlocksCreate: 'inventory-lending-blocks-create',
     lendingCreate: 'inventory-lending-create',
     lendingRequest: 'inventory-lending-request',
+    lendingShares: 'inventory-lending-shares',
 }
 
 const INVENTORY_ROUTES: InjectionKey<InventoryRoutes> = Symbol('inventoryRoutes')
