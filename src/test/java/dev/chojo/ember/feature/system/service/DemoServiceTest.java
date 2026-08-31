@@ -429,6 +429,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var boardSeeder = new DemoBoardSeeder(
                 boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory);
         var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
+        var selfCheckSeeder = new DemoSelfCheckSeeder(selfCheckRepo, inventoryRepo, itemCustodyService);
         var demoStorageConfig = new Storage();
         var demoBackend = new LocalStorageBackend();
         var demoResolver = new StorageBackendResolver(demoBackend);
@@ -512,6 +513,7 @@ class DemoServiceTest extends RepositoryTestBase {
                         kbSeeder,
                         protocolSeeder,
                         procedureSeeder,
+                        selfCheckSeeder,
                         avatarSeeder,
                         federationSeeder,
                         settingsSeeder,
