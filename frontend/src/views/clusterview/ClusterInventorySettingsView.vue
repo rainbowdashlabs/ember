@@ -15,6 +15,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import InventoryTabs from './clusterinventoryview/InventoryTabs.vue'
 import FlowSettingsPanel from './clusterinventoryview/FlowSettingsPanel.vue'
 import LossReportSettingPanel from './clusterinventoryview/LossReportSettingPanel.vue'
+import RecommendedTagsPanel from './clusterinventoryview/RecommendedTagsPanel.vue'
 import {clusterInventory, clusters} from '@/api'
 import {ClusterPermission} from '@/api/clusters'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -40,6 +41,7 @@ const {hasClusterPermission} = useSession()
  */
 const canSetModule = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_MODULES))
 const canSetFlows = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_MANAGER))
+const canRecommendTags = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_EDIT))
 
 const usesInventory = ref(false)
 
@@ -76,6 +78,8 @@ const {running: busy, error: writeError, run: toggleUses} = useAsyncAction(async
         <FlowSettingsPanel v-if="canSetFlows"/>
 
         <LossReportSettingPanel v-if="canSetFlows"/>
+
+        <RecommendedTagsPanel v-if="canRecommendTags"/>
       </template>
     </div>
   </ViewContent>

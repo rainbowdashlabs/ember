@@ -560,4 +560,52 @@ test.describe('Inventory', () => {
         expect(pieces.some((p: {name?: string}) => p.name === typo),
             'and the misspelling is gone from the names as well').toBeFalsy()
     })
+
+    /**
+     * A word put on a piece finds that piece again, whatever inventory it is filed under and
+     * however the word is typed the second time. The word is written into the picker rather than
+     * created beforehand, because making one up on the spot is the ordinary way a word comes to
+     * exist.
+     */
+    test('a word is put on a piece and finds it again', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const stamp = Date.now()
+        const word = `Funk${stamp}`
+
+        const drawer = await page.request.post('/api/v1/inventories', {
+            headers,
+            data: {name: `Funklager ${stamp}`, inventoryType: 'INTERNAL', hasSizes: false, homogeneous: true},
+        }).then(r => r.json())
+        const made = await page.request.post(`/api/v1/inventories/${drawer.id}/items`, {
+            headers,
+            data: {internalId: `FK-${stamp}`, name: 'Ladestation', sizeId: null, artId: null, metadata: null,
+                ownerKind: 'STATION', ownerClusterId: null},
+        })
+        expect(made.ok(), `a piece is recorded (${await made.text()})`).toBeTruthy()
+        const piece = await made.json()
+
+        await page.goto(`/station/inventory/detail/${drawer.id}`)
+        await page.getByTestId('actions-menu-trigger').first().click()
+        await page.getByTestId('actions-menu').getByText('Bearbeiten').click()
+
+        const picker = page.getByTestId('item-tags')
+        await expect(picker).toBeVisible()
+        await picker.getByTestId('label-select').click()
+        await picker.getByPlaceholder('Suchen oder erstellen...').fill(word)
+        await picker.getByTestId('label-select-create').click()
+        await page.getByTestId('modal').getByRole('button', {name: 'Speichern'}).click()
+
+        await expect(async () => {
+            const worn = await page.request.get(`/api/v1/inventory-items/${piece.id}/tags`, {headers})
+                .then(r => r.json())
+            expect(worn.map((tag: {name: string}) => tag.name), 'the piece wears the word').toContain(word)
+        }).toPass()
+
+        const found = await page.request.get('/api/v1/inventory-tags/items', {
+            headers,
+            params: {tag: ` ${word.toLowerCase()} `},
+        }).then(r => r.json())
+        expect(found.map((item: {itemId: number}) => item.itemId),
+            'and the word finds it again however it is typed').toContain(piece.id)
+    })
 })

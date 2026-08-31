@@ -10,8 +10,9 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import type {InventoryItem, InventorySize} from '@/api/inventory'
-import {inventory, inventoryArts, inventoryContainers, inventoryFields} from '@/api'
+import {inventory, inventoryArts, inventoryContainers, inventoryFields, inventoryTags} from '@/api'
 import type {InventoryArt} from '@/api/inventoryArts'
+import type {InventoryTag} from '@/api/inventoryTags'
 import EditItemFields from './edititemmodal/EditItemFields.vue'
 import EditItemCustomFields from './edititemmodal/EditItemCustomFields.vue'
 import EditItemFooter from './edititemmodal/EditItemFooter.vue'
@@ -46,6 +47,8 @@ const containerId = ref<number | null>(null)
 const artId = ref<number | null>(null)
 const artDraft = ref('')
 const arts = ref<InventoryArt[]>([])
+const tags = ref<InventoryTag[]>([])
+const tagNames = ref<string[]>([])
 const fieldDefs = ref<InventoryFieldDefinition[]>([])
 const fieldValues = ref<Record<string, any>>({})
 const containers = ref<InventoryContainer[]>([])
@@ -62,18 +65,24 @@ const fieldsInvalid = computed(() => inventoryFields.hasInvalidFieldValues(field
  */
 async function loadForItem(item: InventoryItem) {
   try {
-    const [defs, allContainers, allArts] = await Promise.all([
+    const [defs, allContainers, allArts, allTags, worn] = await Promise.all([
       inventoryFields.listItemFields(item.id),
       inventoryContainers.listContainers(),
       props.heterogeneous ? inventoryArts.listArts(item.inventoryId) : Promise.resolve([]),
+      inventoryTags.listTags(),
+      inventoryTags.itemTags(item.id),
     ])
     fieldDefs.value = defs
     containers.value = allContainers
     arts.value = allArts
+    tags.value = allTags
+    tagNames.value = worn.map(tag => tag.name)
   } catch {
     fieldDefs.value = []
     containers.value = []
     arts.value = []
+    tags.value = []
+    tagNames.value = []
   }
 }
 
@@ -119,6 +128,7 @@ async function save() {
     if (containerId.value !== (props.item.containerId ?? null)) {
       await inventoryContainers.setItemContainer(props.item.id, containerId.value)
     }
+    await inventoryTags.setItemTags(props.item.id, tagNames.value)
     show.value = false
     emit('saved')
   } catch (e) {
@@ -139,11 +149,13 @@ async function save() {
           v-model:containerId="containerId"
           v-model:artId="artId"
           v-model:artDraft="artDraft"
+          v-model:tagNames="tagNames"
           :hasSizes="props.hasSizes"
           :sizes="props.sizes"
           :containers="sortedContainers"
           :arts="arts"
           :showArt="props.heterogeneous"
+          :tags="tags"
       />
       <EditItemCustomFields :defs="fieldDefs" v-model="fieldValues"/>
       <EditItemFooter

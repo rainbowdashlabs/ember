@@ -3582,6 +3582,30 @@ export default {
                 + 'nicht rückgängig machen. „Nur Art setzen“ lässt die Bezeichnungen unverändert.',
             tidied: '{count} Gegenstände aufgeräumt.',
         },
+        tag: {
+            title: 'Schlagwörter',
+            intro: 'Ein Schlagwort sagt, wozu ein Gegenstand gehört, und gilt über alle Inventare hinweg. '
+                + 'Die Funkgeräte, die Ladestation und die Antenne tragen so dasselbe Wort, obwohl sie '
+                + 'nicht dasselbe sind.',
+            field: 'Schlagwörter',
+            fieldHint: 'Darf leer bleiben. Ein neues Wort wird erst beim Speichern angelegt.',
+            column: 'Schlagwörter',
+            add: 'Schlagwort anlegen',
+            edit: 'Schlagwort bearbeiten',
+            name: 'Wort',
+            namePlaceholder: 'z. B. Funk',
+            color: 'Farbe',
+            none: 'Keine Schlagwörter',
+            none2: 'Diese Abteilung verwendet noch keine Schlagwörter.',
+            empty: 'Kein Schlagwort gefunden',
+            itemCount: '{count} Gegenstände',
+            deleteConfirm: 'Schlagwort „{name}“ löschen? Die Gegenstände bleiben erhalten und verlieren nur '
+                + 'dieses Wort.',
+            recommended: 'Vom Verband empfohlen',
+            recommendedHint: 'Der Verband schlägt diese Wörter vor. Ein Wort, das ihr schon verwendet, ist '
+                + 'bereits dasselbe Wort und muss nicht angelegt werden.',
+            recommendedAdopted: '{name} (bereits in Verwendung)',
+        },
         move: {
             back: 'Zurück zum Inventar',
             explainer:
@@ -6304,6 +6328,23 @@ export default {
         },
         usesTitle: 'Material im Verband führen',
         usesHint: 'Ist das aus, verhalten sich alle Wachen so, als gäbe es keinen Verband über ihnen, wenn es um Material geht: sie tauschen und geben zurück in ihren eigenen Abläufen, ohne Schritte, die auf euch warten.',
+        tags: {
+            title: 'Empfohlene Schlagwörter',
+            intro: 'Wörter, die ihr euren Abteilungen für ihr Material vorschlagt. Sie erscheinen dort '
+                + 'neben den eigenen Wörtern der Abteilung.',
+            standsBeside: 'Eine Empfehlung ersetzt nie das Wort einer Abteilung. Beide bleiben stehen und '
+                + 'meinen dasselbe, denn verglichen wird ohne Rücksicht auf Groß- und Kleinschreibung. '
+                + 'Zurückgezogen wird nur der Vorschlag, nichts bei den Abteilungen.',
+            add: 'Wort empfehlen',
+            edit: 'Empfehlung bearbeiten',
+            name: 'Wort',
+            namePlaceholder: 'z. B. Funk',
+            color: 'Farbe',
+            forStations: 'Für welche Abteilungen',
+            allStations: 'Alle Abteilungen',
+            empty: 'Ihr empfehlt noch keine Wörter.',
+            deleteConfirm: 'Empfehlung „{name}“ zurückziehen? Bei den Abteilungen ändert sich nichts.',
+        },
         empty: 'Dem Verband gehört noch kein Material.',
         custody: {
             WITH_OWNER: 'Im Lager',
