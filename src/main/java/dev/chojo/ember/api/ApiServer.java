@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
+import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
@@ -969,6 +970,16 @@ public class ApiServer {
             log.warn("Storage move refused on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
             ctx.json(new ErrorResponseWrapper("Storage Unavailable", err.getMessage()))
                     .status(HttpStatus.BAD_REQUEST);
+        });
+
+        // Somebody who cannot be given an account is the same kind of answer: the address is already
+        // somebody's, and the caller has to be told so. It is mapped here rather than at each route
+        // because provisioning happens as a side effect of several acts, naming a manager for a
+        // station among them, and every route that forgot the mapping turned a refusal into a fault
+        // with no message at all.
+        routes.exception(StationMemberInviteService.ProvisionException.class, (err, ctx) -> {
+            log.warn("Member could not be provisioned on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+            ctx.json(new ErrorResponseWrapper("Conflict", err.getMessage())).status(HttpStatus.CONFLICT);
         });
 
         routes.exception(StreamReadException.class, (err, ctx) -> {

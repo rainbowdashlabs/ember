@@ -13,6 +13,7 @@
 
 ### Fixes
 
+- **Naming a station's manager could fail with nothing but a server error.** Where the address given already belonged to somebody, the page answered with a fault and no explanation, so there was nothing to do but press the button again. The refusal now says that the address is taken, and it says it wherever an account is handed out rather than only on the pages that remembered to ask.
 - **Calling off an exchange made it look as though it had been completed.** An exchange that was called off, or refused by the owner, jumped from wherever it stood to Done, so pressing the button that stops one looked exactly like pressing the one that finishes it. Such an exchange now says Cancelled or Declined, drops out of the lists of open exchanges, and no longer offers to be advanced.
 - **The same piece of gear could be sent out on two exchanges at once.** Because an exchange reads where it stands from where the piece actually is, the two then moved each other: a step taken on one made the other appear to advance on its own. Raising a second movement for a piece that is already on its way is now refused, naming the one that has it.
 

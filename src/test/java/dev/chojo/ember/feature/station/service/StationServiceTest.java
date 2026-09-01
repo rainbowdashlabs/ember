@@ -343,6 +343,24 @@ class StationServiceTest extends RepositoryTestBase {
         accountRepo.delete(account.id());
     }
 
+    /**
+     * A made-up address is not a key to the account behind it. Naming one as a station's manager is
+     * refused, and the refusal has to carry its reason: an operator who sees only a fault presses the
+     * button again, which is exactly what happened.
+     */
+    @Test
+    @Order(47)
+    void updateWithManagerRefusesAMadeUpAddressOfAnotherAccount() {
+        Account other = accountRepo.create("svc-upd-taken@ember.local", "Taken", "Local");
+
+        var refused = assertThrows(
+                StationMemberInviteService.ProvisionException.class,
+                () -> service.updateWithManager(stationId, "UpdatedWithTaken", other.email()));
+        assertTrue(refused.getMessage().contains(other.email()));
+
+        accountRepo.delete(other.id());
+    }
+
     @Test
     @Order(50)
     void updatePublicWaitlistEnabled() {
