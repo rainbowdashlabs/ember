@@ -1,5 +1,16 @@
 # Changelog
 
+## v26.13.12
+
+### Security
+
+- **Mail credentials were written into the application log in plain text.** The whole configuration is recorded once when Ember starts, and the mail password, the API key and the two webhook secrets were spelled out in it; that log is kept in the database and can be read from the administration pages. They are now reported only as set or not set. Treat any mail password, API key or webhook secret this instance has used as compromised and replace it.
+
+### Fixes
+
+- **Calling off an exchange made it look as though it had been completed.** An exchange that was called off, or refused by the owner, jumped from wherever it stood to Done, so pressing the button that stops one looked exactly like pressing the one that finishes it. Such an exchange now says Cancelled or Declined, drops out of the lists of open exchanges, and no longer offers to be advanced.
+- **The same piece of gear could be sent out on two exchanges at once.** Because an exchange reads where it stands from where the piece actually is, the two then moved each other: a step taken on one made the other appear to advance on its own. Raising a second movement for a piece that is already on its way is now refused, naming the one that has it.
+
 ## v26.13.11
 
 ### Changes
