@@ -26,6 +26,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryCollections.linesItem') }}</p>
       <p>{{ t('helpCenter.inventoryCollections.linesArt') }}</p>
       <p>{{ t('helpCenter.inventoryCollections.linesCount') }}</p>
+      <p>{{ t('helpCenter.inventoryCollections.linesPick') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryCollections.windowTitle')">

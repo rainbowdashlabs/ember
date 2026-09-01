@@ -24,6 +24,8 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.lendingCollect.linesTitle')">
       <p>{{ t('helpCenter.lendingCollect.linesText') }}</p>
+      <p>{{ t('helpCenter.lendingCollect.pickText') }}</p>
+      <p>{{ t('helpCenter.lendingCollect.tooManyText') }}</p>
       <p>{{ t('helpCenter.lendingCollect.leadText') }}</p>
     </HelpSection>
 
