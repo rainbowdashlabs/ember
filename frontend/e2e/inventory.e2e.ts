@@ -4,6 +4,34 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, apiHeaders, stationPeers} from './fixtures/auth'
+import type {Locator, Page} from '@playwright/test'
+
+/** Which of the two modes the page is painted in right now. */
+async function darkModeClass(page: Page): Promise<'dark' | 'light'> {
+    const dark = await page.locator('html').evaluate(html => html.classList.contains('dark'))
+    return dark ? 'dark' : 'light'
+}
+
+/**
+ * Presses the theme toggle until the page is painted the way the story needs it.
+ *
+ * <p>The toggle walks the three settings in a circle and one of them follows the system, so which
+ * press lands where depends on what the account was left on. Reading the result back is the only
+ * way to know where the circle stands.
+ */
+async function switchThemeTo(page: Page, mode: 'dark' | 'light'): Promise<void> {
+    const toggle = page.getByRole('button', {name: 'Toggle theme'})
+    for (let press = 0; press < 4; press++) {
+        if (await darkModeClass(page) === mode) return
+        await toggle.click()
+    }
+    throw new Error(`The theme toggle never reached the ${mode} mode`)
+}
+
+/** The colour the browser paints an element's letters in. */
+function lettersOf(element: Locator): Promise<string> {
+    return element.evaluate(node => getComputedStyle(node).color)
+}
 
 test.describe('Inventory', () => {
     test('the inventory list shows the inventories of the station', async ({managerPage: page}) => {
@@ -690,5 +718,31 @@ test.describe('Inventory', () => {
             const carried: number[] = sent.postDataJSON().exchangeIds
             expect([...carried].sort(), 'only the rows the filter left standing are exported')
                 .toEqual([...expected].sort())
+        })
+
+    /**
+     * Every row of the exchange list wears a status badge, and a badge picks light or dark letters
+     * from the colours behind it. Switching the theme repaints those colours, so the badge has to
+     * answer again: the pale status is the one that turns, and white letters on it are the thing
+     * this story stands guard over.
+     */
+    test('the badges take readable letters after the theme is switched',
+        async ({managerPage: page}) => {
+            await page.goto('/station/inventory/exchanges')
+            const row = page.getByTestId('exchange-row').filter({hasText: 'Angekündigt'}).first()
+            await expect(row).toBeVisible()
+            const badge = row.getByText('Angekündigt')
+
+            const started = await darkModeClass(page)
+
+            await switchThemeTo(page, 'dark')
+            await expect.poll(() => lettersOf(badge), {message: 'light letters on the dark page'})
+                .toBe('rgb(255, 255, 255)')
+
+            await switchThemeTo(page, 'light')
+            await expect.poll(() => lettersOf(badge), {message: 'dark letters on the light page'})
+                .toBe('rgb(26, 26, 26)')
+
+            await switchThemeTo(page, started)
         })
 })
