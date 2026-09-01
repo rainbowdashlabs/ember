@@ -339,6 +339,21 @@ export default {
         requestAnother: 'Neuen Link anfordern',
         backToLogin: 'Zur Anmeldung',
     },
+    setAddress: {
+        title: 'E-Mail-Adresse hinterlegen',
+        hint: 'Dieses Konto verwaltet die Instanz, ist aber unter keiner Adresse erreichbar. Ohne '
+            + 'eine erreichbare Adresse kommt weder eine Passwortzurücksetzung noch eine '
+            + 'Sicherheitsmeldung bei dir an.',
+        email: 'E-Mail-Adresse',
+        placeholder: 'name@beispiel.de',
+        submit: 'Adresse hinterlegen und anmelden',
+        malformed: 'Das ist keine gültige E-Mail-Adresse.',
+        unreachable: 'An diese Adresse kann nichts zugestellt werden. Bitte hinterlege eine Adresse, '
+            + 'unter der du wirklich erreichbar bist.',
+        taken: 'Diese E-Mail-Adresse gehört bereits zu einem anderen Konto.',
+        tokenInvalid: 'Der Vorgang ist ungültig. Melde dich erneut an, um es noch einmal zu versuchen.',
+        tokenExpired: 'Der Vorgang ist abgelaufen. Melde dich erneut an, um es noch einmal zu versuchen.',
+    },
     storageConsent: {
         title: 'Einwilligung zur Datenverarbeitung',
         description: 'Diese Anwendung speichert ein Sitzungs-Token und Einstellungen im lokalen Speicher deines Browsers, um dich angemeldet zu halten. Deine Daten werden ausschließlich zur Organisation deiner Jugendgruppe verwendet. Wir geben keine personenbezogenen Daten an Dritte weiter.',

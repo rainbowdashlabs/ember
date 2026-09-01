@@ -64,12 +64,18 @@ onMounted(async () => {
  * <p>Choosing a password proves what typing it into the sign-in form would prove, so the server
  * hands back a session and the reader carries on rather than signing in with the password they
  * chose ten seconds earlier. What it does not stand in for is a second factor: an account that has
- * one is sent to give it, exactly as signing in would. An answer with neither leaves the sign-in
- * form to say what is still missing, which is where an unverified address is explained.
+ * one is sent to give it, exactly as signing in would, nor for an address the instance can write
+ * to, which an administrator carrying none is sent to give first. An answer with none of the three
+ * leaves the sign-in form to say what is still missing, which is where an unverified address is
+ * explained.
  */
 const {running: loading, error: submitError, run: runSetPassword} = useAsyncAction(async () => {
   const result = await auth.setPassword({token, password: newPassword.value})
 
+  if (result.addressRequired && result.addressToken) {
+    await router.push({path: '/set-address', query: {token: result.addressToken}})
+    return
+  }
   if (result.twoFactorRequired && result.preAuthToken) {
     await router.push({path: '/2fa-verify', query: {token: result.preAuthToken}})
     return
