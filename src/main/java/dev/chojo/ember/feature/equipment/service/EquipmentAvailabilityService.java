@@ -151,12 +151,7 @@ public class EquipmentAvailabilityService {
      * @return the stock and everything already holding some of it
      */
     public EquipmentAvailability availability(
-            int stationId,
-            LineTarget target,
-            Instant from,
-            Instant to,
-            Integer ignoreNeedId,
-            Integer ignoreRequestId) {
+            int stationId, LineTarget target, Instant from, Instant to, Integer ignoreNeedId, Integer ignoreRequestId) {
         ResolvedTarget question = availabilityRepository
                 .resolve(target)
                 .orElseThrow(() -> new IllegalArgumentException("The equipment does not exist"));

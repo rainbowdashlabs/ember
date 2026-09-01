@@ -156,8 +156,7 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
 
         var station = clusterService.createStation(clusterId, "Wache Bedarf " + NAMES.incrementAndGet());
         var inventory = inventoryRepo.create(station.id(), "Gruppenbedarf", InventoryType.INTERNAL, false);
-        var requirement =
-                inventoryRepo.createRequirement(inventory.id(), StationUserType.MEMBER, 0, group.id(), 2);
+        var requirement = inventoryRepo.createRequirement(inventory.id(), StationUserType.MEMBER, 0, group.id(), 2);
 
         var refusedForRequirement =
                 assertThrows(BadRequestResponse.class, () -> clusterStationGroupService.delete(clusterId, group.id()));

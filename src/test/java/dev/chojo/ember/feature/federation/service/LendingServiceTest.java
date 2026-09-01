@@ -1207,7 +1207,8 @@ class LendingServiceTest extends RepositoryTestBase {
 
         assertTrue(service.approveRequest(request.id(), stationA.id()));
         assertEquals(
-                LendingStatus.APPROVED, service.findRequest(request.id()).orElseThrow().status());
+                LendingStatus.APPROVED,
+                service.findRequest(request.id()).orElseThrow().status());
         assertTrue(lendingRepo.findMessagesByRequest(request.id()).stream().anyMatch(LendingMessage::isSystem));
         assertFalse(lendingRepo
                 .findAssignedItems(
@@ -1234,8 +1235,7 @@ class LendingServiceTest extends RepositoryTestBase {
         var event = EquipmentTestSupport.oneOff(eventRepo, stationA.id(), "LendSvcOwnNeedEvent", day);
         equipmentNeedRepo.create(event.id(), null, null, null, inventory.id(), 2, 0, 0);
 
-        var request =
-                service.createRequest(stationB.id(), stationA.id(), day, day, memberB.id(), null, null, "");
+        var request = service.createRequest(stationB.id(), stationA.id(), day, day, memberB.id(), null, null, "");
         var line = service.addRequestItem(request.id(), inventory.id(), null, null, 3, null);
 
         assertTrue(service.approveRequest(request.id(), stationA.id()));
