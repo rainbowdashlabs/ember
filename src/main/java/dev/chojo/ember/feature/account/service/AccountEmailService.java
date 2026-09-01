@@ -63,7 +63,7 @@ public class AccountEmailService {
     }
 
     /** The address as it is stored: trimmed, and in one case. */
-    public static String normalise(String email) {
+    private static String normalise(String email) {
         return email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
     }
 

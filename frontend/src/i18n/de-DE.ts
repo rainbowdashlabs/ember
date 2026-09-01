@@ -345,7 +345,7 @@ export default {
             + 'eine erreichbare Adresse kommt weder eine Passwortzurücksetzung noch eine '
             + 'Sicherheitsmeldung bei dir an.',
         email: 'E-Mail-Adresse',
-        placeholder: 'name@beispiel.de',
+        placeholder: "name{'@'}beispiel.de",
         submit: 'Adresse hinterlegen und anmelden',
         malformed: 'Das ist keine gültige E-Mail-Adresse.',
         unreachable: 'An diese Adresse kann nichts zugestellt werden. Bitte hinterlege eine Adresse, '

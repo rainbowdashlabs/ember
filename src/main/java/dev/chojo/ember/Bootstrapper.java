@@ -96,9 +96,10 @@ public class Bootstrapper {
      */
     private static String freeLoginName(AccountRepository accountRepository) {
         if (!accountRepository.usernameTaken(ADMIN_LOGIN_NAME, null)) return ADMIN_LOGIN_NAME;
+        var random = new SecureRandom();
         String name;
         do {
-            name = ADMIN_LOGIN_NAME + "-" + Integer.toString(new SecureRandom().nextInt(0x10000), 16);
+            name = ADMIN_LOGIN_NAME + "-" + Integer.toString(random.nextInt(0x10000), 16);
         } while (accountRepository.usernameTaken(name, null));
         return name;
     }
