@@ -46,9 +46,10 @@ async function partnerWith(api: APIRequestContext, stationUid: string): Promise<
  * Two installations of the application, not two stations of one.
  *
  * Everything federation does happens between instances, so a suite with one instance can only ever
- * tell the story of a station talking to a station beside it in the same database. These two
- * stories are the ground the federation stories stand on: that the second instance is genuinely a
- * second one, and that each of them can call the other over the network.
+ * tell the story of a station talking to a station beside it in the same database. These stories are
+ * the ground the federation stories stand on: that the second instance is genuinely a second one,
+ * that each of them can call the other over the network, and that two of their stations pair up
+ * over it.
  */
 test.describe('Two instances', () => {
     /**
@@ -143,16 +144,12 @@ test.describe('Two instances', () => {
      */
     test('a station takes up an invite code from the other instance', async ({peerAdminApi, homeManagerApi}) => {
         const name = unique('E2E-Gegenstelle')
-        const created = await peerAdminApi.post('/api/v1/stations', {
-            data: {name, managerEmail: `${name.toLowerCase()}@e2e.ember`},
-        })
+        const managerEmail = `${name.toLowerCase()}@e2e.ember`
+        const created = await peerAdminApi.post('/api/v1/stations', {data: {name, managerEmail}})
         expect(created.status()).toBe(201)
         const {id: invitingStation} = await created.json()
 
-        const inviting = await instanceRequestAs(peerBaseUrl(), {
-            email: `${name.toLowerCase()}@e2e.ember`,
-            stationId: invitingStation,
-        })
+        const inviting = await instanceRequestAs(peerBaseUrl(), {email: managerEmail, stationId: invitingStation})
         try {
             const invited = await inviting.post('/api/v1/federation/invite')
             expect(invited.ok()).toBe(true)
