@@ -101,7 +101,7 @@ public class MemberRoutes implements Routes {
             pathParams = @OpenApiParam(name = "accountId", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UpdateAccountRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = UpdateAccountResponse.class)),
                 @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
@@ -133,7 +133,7 @@ public class MemberRoutes implements Routes {
         }
 
         if (!emailChanged) {
-            ctx.json(new MessageResponse("Account updated"));
+            ctx.json(new UpdateAccountResponse("Account updated", null));
             return;
         }
 
@@ -143,11 +143,14 @@ public class MemberRoutes implements Routes {
         // half of that confirmation would go to.
         if (actsForSomebodyElse) {
             accountEmailService.setEmail(accountId, request.email());
-            ctx.json(new MessageResponse("Account updated"));
+            ctx.json(new UpdateAccountResponse("Account updated", AuthService.EmailChangeResult.COMMITTED));
             return;
         }
-        authService.requestEmailChange(accountId, request.email());
-        ctx.json(new MessageResponse("Name updated. A confirmation email has been sent to the new address."));
+        var outcome = authService.requestEmailChange(accountId, request.email());
+        if (outcome == AuthService.EmailChangeResult.DUPLICATE) {
+            throw new BadRequestResponse("This email address already belongs to another account");
+        }
+        ctx.json(new UpdateAccountResponse("Account updated", outcome));
     }
 
     @OpenApi(
@@ -230,4 +233,13 @@ public class MemberRoutes implements Routes {
      *                 as it is; empty clears it.
      */
     public record UpdateAccountRequest(String email, String username, String firstName, String lastName) {}
+
+    /**
+     * The answer to an account update.
+     *
+     * @param emailChange what became of an address given in the same call: {@code null} when the
+     *                    address was left alone, COMMITTED when it is already the account's, and
+     *                    WAITING when it becomes so once a link in the reader's mail is clicked
+     */
+    public record UpdateAccountResponse(String message, AuthService.EmailChangeResult emailChange) {}
 }

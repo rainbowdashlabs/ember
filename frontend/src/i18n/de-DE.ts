@@ -3633,6 +3633,8 @@ export default {
         deleteRequest: 'Löschung beantragen',
         deleteRequesting: 'Wird gesendet...',
         deleteRequested: 'Bestätigungs-E-Mail wurde gesendet. Prüfe deinen Posteingang.',
+        deleteDone: 'Die Wache wurde gelöscht. Diese Instanz kann keine E-Mails versenden, daher gab es '
+            + 'keine Rückfrage per E-Mail.',
         importTitle: 'Wache importieren',
         importHint: 'Importiere Daten von einer anderen Ember-Instanz in diese Wache. Der Manager der Quell-Wache erstellt einen Transfer-Code; die Quell-URL ist im Code enthalten.',
         importToken: 'Transfer-Code',

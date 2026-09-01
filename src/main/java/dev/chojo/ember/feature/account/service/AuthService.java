@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.account.entity.RegistrationResult;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailConfirmationPolicy;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.RegistrationCode;
@@ -63,6 +64,7 @@ public class AuthService {
 
     private final AccountRepository accountRepository;
     private final AccountEmailService accountEmailService;
+    private final MailConfirmationPolicy confirmationPolicy;
     private final MailLocaleService mailLocaleService;
     private final MailRecipientService mailRecipientService;
     private final RegistrationCodeRepository registrationCodeRepository;
@@ -89,6 +91,7 @@ public class AuthService {
     public AuthService(
             AccountRepository accountRepository,
             AccountEmailService accountEmailService,
+            MailConfirmationPolicy confirmationPolicy,
             MailLocaleService mailLocaleService,
             MailRecipientService mailRecipientService,
             RegistrationCodeRepository registrationCodeRepository,
@@ -104,6 +107,7 @@ public class AuthService {
             TrustedDeviceService trustedDeviceService) {
         this.accountRepository = accountRepository;
         this.accountEmailService = accountEmailService;
+        this.confirmationPolicy = confirmationPolicy;
         this.mailLocaleService = mailLocaleService;
         this.mailRecipientService = mailRecipientService;
         this.registrationCodeRepository = registrationCodeRepository;
@@ -158,7 +162,8 @@ public class AuthService {
         }
 
         String hash = passwordHasher.hash(password);
-        var account = accountRepository.create(email, firstName, lastName, false);
+        boolean verifiedAtOnce = confirmationPolicy.confirmationCountsAsGranted();
+        var account = accountRepository.create(email, firstName, lastName, verifiedAtOnce);
         int accountId = account.id();
 
         accountRepository.createCredential(accountId, hash);
@@ -177,15 +182,18 @@ public class AuthService {
             registrationCodeRepository.incrementUses(code.id());
         }
 
-        // Send verification email
-        String token = generateToken();
-        accountRepository.deleteTokensByAccountAndType(accountId, TokenType.VERIFY_EMAIL);
-        accountRepository.createToken(
-                accountId,
-                token,
-                TokenType.VERIFY_EMAIL,
-                Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
-        emailService.sendVerificationEmail(email, firstName, token, mailLocaleService.forAccount(accountId));
+        if (verifiedAtOnce) {
+            log.info("Account {} counts as verified: this instance has no way of asking", accountId);
+        } else {
+            String token = generateToken();
+            accountRepository.deleteTokensByAccountAndType(accountId, TokenType.VERIFY_EMAIL);
+            accountRepository.createToken(
+                    accountId,
+                    token,
+                    TokenType.VERIFY_EMAIL,
+                    Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
+            emailService.sendVerificationEmail(email, firstName, token, mailLocaleService.forAccount(accountId));
+        }
 
         log.info("Account registered via self-registration: account {} ({})", accountId, email);
         return RegistrationResult.success(accountRepository.findById(accountId).orElseThrow());
@@ -559,6 +567,12 @@ public class AuthService {
      * Resends the verification email for an unverified account. Does nothing if the email is not found
      * or already verified.
      *
+     * <p>On an instance that cannot send at all the address is marked verified instead. Such an
+     * account was left unverified by an instance that could still send when it registered, and would
+     * otherwise be refused at every sign-in for want of a mail nobody can write to it any more. What
+     * a stranger can do with this is unlock an account they still have no password for, on an
+     * instance where the address gate was worth nothing to begin with.
+     *
      * @param email the email address
      * @return {@code true} if the verification email was sent
      */
@@ -570,6 +584,13 @@ public class AuthService {
         }
 
         Account account = accountOpt.get();
+        if (confirmationPolicy.confirmationCountsAsGranted()) {
+            accountRepository.setEmailVerified(account.id());
+            accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.VERIFY_EMAIL);
+            log.info("Account {} counts as verified: this instance has no way of asking", account.id());
+            return true;
+        }
+
         String token = generateToken();
         accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.VERIFY_EMAIL);
         accountRepository.createToken(
@@ -811,9 +832,9 @@ public class AuthService {
         }
 
         int accountId = accountToken.accountId();
-        var problem = accountEmailService.problemWith(accountId, email);
-        if (problem != AccountEmailService.AddressProblem.NONE) {
-            return new AddressResult(AddressOutcome.of(problem), null);
+        AddressOutcome verdict = AddressOutcome.of(accountEmailService.problemWith(accountId, email));
+        if (verdict != AddressOutcome.OK) {
+            return new AddressResult(verdict, null);
         }
 
         accountEmailService.setEmail(accountId, email);
@@ -964,35 +985,61 @@ public class AuthService {
     // -- Login / Session --
 
     /**
-     * Initiates an email change by sending a confirmation email to the new address.
-     * The new email is stored as token metadata and applied upon confirmation.
+     * Asks for an address change, in as many steps as this instance and this account can afford.
+     *
+     * <p>Three shapes, and which one applies is decided here rather than by the caller. Where the
+     * instance cannot send at all, there is nobody to ask and the address is written at once. Where
+     * it can send but the address on the account is a made-up one, only the new address is asked:
+     * the old one has no reader, and a release sent to it would wait for a click nobody can make,
+     * which is how such an account used to be left unable to correct itself. Where the old address
+     * has a reader, both are asked, exactly as before, because that pair is what stops a stolen
+     * session walking off with the account.
      *
      * @param accountId the account identifier
      * @param newEmail  the new email address to change to
+     * @return {@link EmailChangeResult#COMMITTED} when the address is already written,
+     *         {@link EmailChangeResult#WAITING} when a link went out and it is not,
+     *         {@link EmailChangeResult#DUPLICATE} when the address is somebody else's, and
+     *         {@link EmailChangeResult#INVALID} when there is no such account
      */
-    public void requestEmailChange(int accountId, String newEmail) {
+    public EmailChangeResult requestEmailChange(int accountId, String newEmail) {
         var account = accountRepository.findById(accountId).orElse(null);
-        if (account == null) return;
+        if (account == null) return EmailChangeResult.INVALID;
 
         accountRepository.deleteTokensByAccountAndType(accountId, TokenType.EMAIL_CHANGE);
         accountRepository.deleteTokensByAccountAndType(accountId, TokenType.EMAIL_CHANGE_RELEASE);
         accountRepository.deleteTokensByAccountAndType(accountId, TokenType.EMAIL_CHANGE_CLAIM);
 
+        if (confirmationPolicy.confirmationCountsAsGranted()) {
+            if (accountEmailService.problemWith(accountId, newEmail) == AccountEmailService.AddressProblem.TAKEN) {
+                return EmailChangeResult.DUPLICATE;
+            }
+            accountEmailService.setEmail(accountId, newEmail);
+            log.info("Address of account {} written at once: this instance has no way of asking", accountId);
+            return EmailChangeResult.COMMITTED;
+        }
+
         String requestId = UUID.randomUUID().toString();
         String metadata = requestId + "|" + newEmail;
         Instant expiresAt = Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS);
+        String mailLocale = mailLocaleService.forAccount(accountId);
 
-        String releaseToken = generateToken();
         String claimToken = generateToken();
-        accountRepository.createToken(accountId, releaseToken, TokenType.EMAIL_CHANGE_RELEASE, metadata, expiresAt);
         accountRepository.createToken(accountId, claimToken, TokenType.EMAIL_CHANGE_CLAIM, metadata, expiresAt);
 
-        String mailLocale = mailLocaleService.forAccount(accountId);
-        emailService.sendEmailChangeReleaseRequest(
-                account.email(), account.firstName(), newEmail, releaseToken, mailLocale);
+        if (account.hasRealEmail()) {
+            String releaseToken = generateToken();
+            accountRepository.createToken(accountId, releaseToken, TokenType.EMAIL_CHANGE_RELEASE, metadata, expiresAt);
+            emailService.sendEmailChangeReleaseRequest(
+                    account.email(), account.firstName(), newEmail, releaseToken, mailLocale);
+        } else {
+            log.info("Address change for account {} asks only the new address: the old one has no reader", accountId);
+        }
+
         emailService.sendEmailChangeClaimRequest(
                 newEmail, account.firstName(), account.email(), claimToken, mailLocale);
         log.info("Email change requested for account {}: {} -> {}", accountId, account.email(), newEmail);
+        return EmailChangeResult.WAITING;
     }
 
     /**
@@ -1000,6 +1047,11 @@ public class AuthService {
      * EMAIL_CHANGE_RELEASE token (sent to the old address) and the EMAIL_CHANGE_CLAIM
      * token (sent to the new address) have been clicked; the first click marks
      * the token as awaiting its partner, the second click commits.
+     *
+     * <p>One step where the address being left behind is a made-up one. No release was ever asked
+     * for in that case, so waiting for its click would be waiting forever: the account would keep
+     * an address nobody reads and have no way of putting it right. The single click that can be
+     * made is the one that matters, at the address that is about to become the account's.
      */
     public EmailChangeResult confirmEmailChange(String token) {
         Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
@@ -1020,21 +1072,22 @@ public class AuthService {
         String requestId = metadata.substring(0, sep);
         String newEmail = metadata.substring(sep + 1);
 
-        var partnerOpt = accountRepository.findEmailChangePartner(self.accountId(), requestId, self.id());
-        if (partnerOpt.isEmpty() || partnerOpt.get().isExpired()) {
-            // First click of the pair, or the other half has already expired.
-            accountRepository.markTokenConfirmed(self.id());
-            return EmailChangeResult.WAITING;
-        }
-        AccountToken partner = partnerOpt.get();
-        if (partner.confirmedAt() == null) {
-            accountRepository.markTokenConfirmed(self.id());
-            return EmailChangeResult.WAITING;
-        }
-
         var accountOpt = accountRepository.findById(self.accountId());
         if (accountOpt.isEmpty()) return EmailChangeResult.INVALID;
         Account account = accountOpt.get();
+
+        if (account.hasRealEmail()) {
+            var partnerOpt = accountRepository.findEmailChangePartner(self.accountId(), requestId, self.id());
+            if (partnerOpt.isEmpty() || partnerOpt.get().isExpired()) {
+                // First click of the pair, or the other half has already expired.
+                accountRepository.markTokenConfirmed(self.id());
+                return EmailChangeResult.WAITING;
+            }
+            if (partnerOpt.get().confirmedAt() == null) {
+                accountRepository.markTokenConfirmed(self.id());
+                return EmailChangeResult.WAITING;
+            }
+        }
 
         var existing = accountRepository.findByEmail(newEmail);
         if (existing.isPresent() && existing.get().id() != account.id()) {
@@ -1048,7 +1101,9 @@ public class AuthService {
         accountRepository.updateEmail(account.id(), newEmail);
         invalidateAfterPasswordRotation(account.id(), null);
         String mailLocale = mailLocaleService.forAccount(account.id());
-        emailService.sendEmailChangedNotice(oldEmail, account.firstName(), oldEmail, newEmail, mailLocale);
+        if (Account.isRealEmail(oldEmail)) {
+            emailService.sendEmailChangedNotice(oldEmail, account.firstName(), oldEmail, newEmail, mailLocale);
+        }
         emailService.sendEmailChangedNotice(newEmail, account.firstName(), oldEmail, newEmail, mailLocale);
         log.info("Email changed for account {}: {} -> {}", account.id(), oldEmail, newEmail);
         return EmailChangeResult.COMMITTED;
@@ -1058,11 +1113,25 @@ public class AuthService {
      * Initiates a station deletion by sending a confirmation email to the account owner.
      * The station ID is stored as token metadata.
      *
+     * <p>Where the instance cannot send at all there is nobody to ask, and the question would only
+     * leave the station undeletable rather than safe: the answer counts as given and the caller is
+     * handed the station to delete straight away. This is a question of intent rather than of an
+     * address, and it is deliberately treated the same way, because an unanswerable question is
+     * useless whichever of the two it asks.
+     *
      * @param accountId the account identifier of the station owner
      * @param stationId the station to be deleted
+     * @return the station to delete now, or empty when a confirmation link went out for it
      */
-    public void requestStationDeletion(int accountId, int stationId) {
+    public Optional<Integer> requestStationDeletion(int accountId, int stationId) {
         accountRepository.deleteTokensByAccountAndType(accountId, TokenType.STATION_DELETE);
+        if (confirmationPolicy.confirmationCountsAsGranted()) {
+            log.info(
+                    "Station {} deleted at once for account {}: this instance has no way of asking",
+                    stationId,
+                    accountId);
+            return Optional.of(stationId);
+        }
         String token = generateToken();
         accountRepository.createToken(
                 accountId,
@@ -1075,6 +1144,7 @@ public class AuthService {
                 .ifPresent(account -> emailService.sendStationDeletionConfirmation(
                         account.email(), account.firstName(), token, mailLocaleService.forAccount(account.id())));
         log.info("Station deletion requested by account {} for station {}", accountId, stationId);
+        return Optional.empty();
     }
 
     /**
