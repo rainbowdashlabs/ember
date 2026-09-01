@@ -218,7 +218,12 @@ public class EquipmentNeedService {
      *
      * <p>The line is the question and where the gear comes from is part of the answer: the station's
      * own free stock, what a partner has already sent, and what has been asked for and not arrived.
-     * An over-claim is reported beside the line with the appointments involved rather than being
+     * Those last two never overlap: what has arrived is here as a row of its own and its request is
+     * finished, while what is outstanding is still on a request nobody has handed over. Reading one
+     * off the other would hide an open request behind a delivered one and advise borrowing gear that
+     * is already on its way.
+     *
+     * <p>An over-claim is reported beside the line with the appointments involved rather than being
      * prevented, because two people planning the same weekend both writing down what they need is
      * planning, and refusing the second one does not remove the conflict.
      *
@@ -238,7 +243,7 @@ public class EquipmentNeedService {
             EquipmentAvailability availability =
                     availabilityService.availability(event.stationId(), need.target(), from, to, need.id());
             int borrowed = availabilityRepository.borrowedAgainstNeed(need.id());
-            int outstanding = Math.max(0, availabilityRepository.outstandingAgainstNeed(need.id()) - borrowed);
+            int outstanding = availabilityRepository.outstandingAgainstNeed(need.id());
             int own = Math.min(need.quantity(), Math.max(0, availability.free()));
             boolean overClaimed = availability.claimed() + need.quantity() > availability.stock();
             List<EquipmentClaim> overClaim = overClaimed
