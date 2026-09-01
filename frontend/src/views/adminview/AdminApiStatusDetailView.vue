@@ -24,6 +24,7 @@ import {GridComponent, TooltipComponent} from 'echarts/components'
 import * as apiStatus from '@/api/apiStatus'
 import type {EndpointDetail} from '@/api/apiStatus'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {darkThemeActive as isDark} from '@/util/themeState'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent])
 
@@ -31,7 +32,6 @@ const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const isDark = computed(() => document.documentElement.classList.contains('dark'))
 const textColor = computed(() => isDark.value ? '#ccc' : '#333')
 
 const method = computed(() => route.query.method as string)

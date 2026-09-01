@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, onUnmounted, ref, watch} from 'vue'
+import {computed, onMounted, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {use} from 'echarts/core'
 import {CanvasRenderer} from 'echarts/renderers'
@@ -20,25 +20,15 @@ import SummaryCards from '@/views/dashboardview/statisticsview/SummaryCards.vue'
 import ChartGrid from '@/views/dashboardview/statisticsview/ChartGrid.vue'
 import type {StatsData} from '@/views/dashboardview/statisticsview/statsData'
 import {bottomLegend, cartesianGrid, DONUT_CENTER, DONUT_RADIUS, chartTitle} from '@/util/chartLayout'
+import {darkThemeActive as isDark} from '@/util/themeState'
 
 use([CanvasRenderer, BarChart, PieChart, LineChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
 const {t} = useI18n()
 const {loaded} = useSession()
 
-const isDark = ref(document.documentElement.classList.contains('dark'))
-let observer: MutationObserver | null = null
-
 onMounted(() => {
-  observer = new MutationObserver(() => {
-    isDark.value = document.documentElement.classList.contains('dark')
-  })
-  observer.observe(document.documentElement, {attributes: true, attributeFilter: ['class']})
   if (loaded.value) loadStats()
-})
-
-onUnmounted(() => {
-  observer?.disconnect()
 })
 
 const textColor = computed(() => isDark.value ? '#e0e0e0' : '#333333')

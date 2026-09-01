@@ -21,6 +21,7 @@ import FeedMetricsCharts from './adminfeedmetricsview/FeedMetricsCharts.vue'
 import FeedMetricsTables from './adminfeedmetricsview/FeedMetricsTables.vue'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {bottomLegend, cartesianGrid} from '@/util/chartLayout'
+import {darkThemeActive as isDark} from '@/util/themeState'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
@@ -30,7 +31,6 @@ const daily = ref<FeedMetricDaily[]>([])
 const userAgents = ref<FeedUserAgentStat[]>([])
 const totalRequests = ref(0)
 
-const isDark = computed(() => typeof document !== 'undefined' && document.documentElement.classList.contains('dark'))
 const textColor = computed(() => (isDark.value ? '#ccc' : '#333'))
 
 const {loading} = useAsyncLoader(async () => {
