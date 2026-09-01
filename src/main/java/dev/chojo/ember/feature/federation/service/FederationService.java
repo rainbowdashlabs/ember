@@ -118,6 +118,92 @@ public class FederationService {
         return consumed;
     }
 
+    /**
+     * Why a pairing code was turned away. Each value names one situation the reader can act on,
+     * because a single refusal covering all of them reads as "the code is gone" when the code is
+     * fine.
+     */
+    public enum CodeRefusal {
+        /** Not a pairing code at all: mistyped, truncated or from somewhere else entirely. */
+        MALFORMED,
+        /** Made on a different instance, where the station it names lives. */
+        OTHER_INSTANCE,
+        /** Well formed, but this instance has no station with that identity. */
+        UNKNOWN_STATION,
+        /** The station that entered the code is the station the code was made for. */
+        OWN_STATION,
+        /** The two stations are already connected, or their connection is paused. */
+        ALREADY_PARTNERED,
+        /** A request to this station is already waiting for its answer. */
+        REQUEST_PENDING,
+        /** The code carried a token this station has no record of, or that was already used. */
+        SPENT_TOKEN
+    }
+
+    /**
+     * What entering a pairing code produced.
+     *
+     * <p>Nothing here expires: a token stands until it is redeemed, so a refusal always names a
+     * situation and never the passing of time.
+     */
+    public sealed interface CodeOutcome {
+        /** The code carried the other station's consent and the partnership now stands. */
+        record Partnered(FederationPartner partner) implements CodeOutcome {}
+
+        /** The code only named a station, so it is now waiting for that station to answer. */
+        record Requested(FederationPartner partner) implements CodeOutcome {}
+
+        /** The code was turned away, for the named reason. */
+        record Refused(CodeRefusal reason, String detail) implements CodeOutcome {}
+    }
+
+    /**
+     * Enters a pairing code on behalf of the station that typed it.
+     *
+     * <p>A code carrying a token is the issuing station's consent and settles the partnership at
+     * once. A request either side had left open is dropped as part of that: asking to connect and
+     * then being handed a code is one connection reached twice, and treating the open request as an
+     * existing partnership used to make every code between those two stations unusable.
+     */
+    public CodeOutcome enterPairingCode(int enteringStationId, String code) {
+        var parsed = parsePairingCode(code);
+        if (parsed.isEmpty()) return new CodeOutcome.Refused(CodeRefusal.MALFORMED, null);
+        var parts = parsed.get();
+        if (!parts.host().equalsIgnoreCase(instanceHost)) {
+            return new CodeOutcome.Refused(CodeRefusal.OTHER_INSTANCE, parts.host());
+        }
+
+        var target = stationRepository.findByUid(parts.stationUid());
+        if (target.isEmpty()) return new CodeOutcome.Refused(CodeRefusal.UNKNOWN_STATION, null);
+        int targetStationId = target.get().id();
+        if (targetStationId == enteringStationId) {
+            return new CodeOutcome.Refused(CodeRefusal.OWN_STATION, null);
+        }
+
+        var towardsTarget = repository.findPartners(enteringStationId).stream()
+                .filter(partner ->
+                        partner.partnerStationId().equals(target.get().uid()))
+                .toList();
+        if (towardsTarget.stream()
+                .anyMatch(partner -> partner.status() != FederationPartner.FederationStatus.PENDING)) {
+            return new CodeOutcome.Refused(CodeRefusal.ALREADY_PARTNERED, null);
+        }
+
+        if (!parts.isStationInvite()) {
+            if (!towardsTarget.isEmpty()) return new CodeOutcome.Refused(CodeRefusal.REQUEST_PENDING, null);
+            return new CodeOutcome.Requested(createPairRequest(enteringStationId, targetStationId));
+        }
+
+        if (!consumeInviteToken(targetStationId, parts.token())) {
+            return new CodeOutcome.Refused(CodeRefusal.SPENT_TOKEN, null);
+        }
+        repository.deletePendingRequest(enteringStationId, target.get().uid());
+        repository.deletePendingRequest(targetStationId, resolveStationUid(enteringStationId));
+        var keyPair = generateKeyPair();
+        return new CodeOutcome.Partnered(
+                acceptInvite(enteringStationId, targetStationId, encodePublicKey(keyPair), null, null));
+    }
+
     public String getInstanceHost() {
         return instanceHost;
     }

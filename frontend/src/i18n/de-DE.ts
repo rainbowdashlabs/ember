@@ -7755,7 +7755,16 @@ export default {
         codePlaceholder: 'Einladungscode einfügen...',
         connect: 'Verbinden',
         connected: 'Erfolgreich verbunden!',
-        invalidCode: 'Ungültiger oder abgelaufener Einladungscode.',
+        refused: {
+            malformed: 'Das ist kein Einladungscode. Bitte kopiere ihn noch einmal vollständig.',
+            otherInstance: 'Dieser Code wurde auf einer anderen Instanz erstellt. Codes gelten nur innerhalb einer Instanz.',
+            unknownStation: 'Zu diesem Code gehört keine Wache auf dieser Instanz.',
+            ownStation: 'Das ist der Code dieser Wache. Gib ihn der anderen Wache.',
+            alreadyPartnered: 'Diese beiden Wachen sind bereits verbunden.',
+            requestPending: 'Eine Anfrage an diese Wache wartet bereits auf Antwort.',
+            spentToken: 'Dieser Code wurde bereits eingelöst. Lass dir einen neuen geben.',
+            unknown: 'Der Code konnte nicht eingelöst werden.',
+        },
         cap: {
             kb: 'Wiki',
             quiz: 'Quiz-Kataloge',

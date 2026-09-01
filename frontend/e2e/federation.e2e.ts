@@ -63,6 +63,25 @@ test.describe('Federation', () => {
         await expect(page.getByTestId('app-shell')).toBeVisible()
     })
 
+    /**
+     * A pairing code never runs out, so a refusal has to name what is actually in the way. Entering
+     * a station's own code is the one refusal a single station can produce on its own.
+     */
+    test('a code says what is in the way instead of claiming it expired', async ({managerPage: page}) => {
+        await page.goto('/station/federate')
+        await page.getByRole('button', {name: /Partner hinzufügen/}).click()
+
+        const dialog = page.getByTestId('modal')
+        await dialog.getByRole('button', {name: /Code generieren/}).click()
+        const code = await dialog.getByTestId('federation-invite-code').innerText()
+
+        await dialog.getByPlaceholder('Einladungscode einfügen...').fill(code.trim())
+        await dialog.getByRole('button', {name: 'Verbinden'}).click()
+
+        await expect(dialog.getByTestId('federation-accept-error'))
+            .toHaveText(/Code dieser Wache/)
+    })
+
     test('a member does not configure what the station shares', async ({memberPage: page}) => {
         await page.goto('/station/federate/settings')
 

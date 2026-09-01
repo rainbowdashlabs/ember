@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -177,6 +178,10 @@ public class FederationRoutes implements Routes {
         ctx.json(new InviteResponse(code));
     }
 
+    /**
+     * A refusal is reported with the reason as its own field, so the page can say what actually
+     * stands in the way instead of guessing at an expiry that no pairing code has.
+     */
     private void acceptInvite(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(AcceptRequest.class);
@@ -184,52 +189,27 @@ public class FederationRoutes implements Routes {
             throw new BadRequestResponse("inviteCode is required");
         }
 
-        String code = req.inviteCode().trim();
-
-        // Parse the code to extract station UID, host, and optional token
-        var parts = service.parsePairingCode(code);
-        if (parts.isEmpty()) {
-            throw new BadRequestResponse("Invalid code format");
+        switch (service.enterPairingCode(session.stationId(), req.inviteCode().trim())) {
+            case FederationService.CodeOutcome.Partnered partnered ->
+                ctx.status(HttpStatus.CREATED).json(partnered.partner());
+            case FederationService.CodeOutcome.Requested requested ->
+                ctx.status(HttpStatus.CREATED).json(requested.partner());
+            case FederationService.CodeOutcome.Refused refused ->
+                ctx.status(HttpStatus.BAD_REQUEST)
+                        .json(new ErrorResponseWrapper(refused.reason().name(), refusalMessage(refused)));
         }
+    }
 
-        // Check if the code is for this instance
-        if (!parts.get().host().equalsIgnoreCase(service.getInstanceHost())) {
-            throw new BadRequestResponse(
-                    "This code is for a different instance: " + parts.get().host());
-        }
-
-        // Find the target station by UID
-        var targetStation = stationRepository
-                .findByUid(parts.get().stationUid())
-                .orElseThrow(() -> new BadRequestResponse("Station not found"));
-        if (targetStation.id() == session.stationId()) {
-            throw new BadRequestResponse("Cannot federate with yourself");
-        }
-
-        // Check not already federated
-        var existingPartners = service.findPartners(session.stationId());
-        if (existingPartners.stream().anyMatch(p -> p.partnerStationId().equals(targetStation.uid()))) {
-            throw new BadRequestResponse("Already federated with this station");
-        }
-
-        if (parts.get().isStationInvite()) {
-            // Station invite (with token) - validate token and auto-activate
-            if (!service.consumeInviteToken(targetStation.id(), parts.get().token())) {
-                throw new BadRequestResponse("Invalid or already used invite code");
-            }
-            var keyPair = service.generateKeyPair();
-            var partner = service.acceptInvite(
-                    session.stationId(), targetStation.id(), service.encodePublicKey(keyPair), null, null);
-            ctx.status(HttpStatus.CREATED).json(partner);
-        } else {
-            // Discovery code (no token) - create pending request
-            var pendingRequests = service.findPendingRequests(targetStation.id());
-            if (pendingRequests.stream().anyMatch(p -> p.stationId() == session.stationId())) {
-                throw new BadRequestResponse("Request already pending");
-            }
-            var partner = service.createPairRequest(session.stationId(), targetStation.id());
-            ctx.status(HttpStatus.CREATED).json(partner);
-        }
+    private String refusalMessage(FederationService.CodeOutcome.Refused refused) {
+        return switch (refused.reason()) {
+            case MALFORMED -> "Not a pairing code";
+            case OTHER_INSTANCE -> "This code was made on " + refused.detail();
+            case UNKNOWN_STATION -> "No station on this instance answers to that code";
+            case OWN_STATION -> "A station cannot federate with itself";
+            case ALREADY_PARTNERED -> "These stations are already connected";
+            case REQUEST_PENDING -> "A request to this station is already waiting";
+            case SPENT_TOKEN -> "This code has already been used";
+        };
     }
 
     private void listPendingRequests(Context ctx) {

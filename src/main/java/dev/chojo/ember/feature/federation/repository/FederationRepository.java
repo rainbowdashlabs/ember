@@ -246,6 +246,25 @@ public class FederationRepository {
     }
 
     /**
+     * Drops a request the station still has open towards the given partner.
+     *
+     * <p>An unanswered request and a finished partnership are the same connection at two moments,
+     * so once the partnership stands the request has nothing left to say.
+     *
+     * @return how many open requests were dropped
+     */
+    public int deletePendingRequest(int stationId, UUID partnerStationUid) {
+        return query("""
+                        DELETE FROM federation_partner
+                        WHERE station_id = :station_id
+                          AND partner_station_id = :partner_station_id::UUID
+                          AND status = 'PENDING';""")
+                .single(call().bind("station_id", stationId).bind("partner_station_id", partnerStationUid, UUID_STRING))
+                .delete()
+                .rows();
+    }
+
+    /**
      * Updates the remote_host on all partner records where the given station is the partner.
      */
     public void updateRemoteHostForPartnerStation(UUID partnerStationUid, String remoteHost) {
