@@ -28,7 +28,7 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, stationMembers, memberGroups, userTags } from '@/api'
 import type { TestProtocol, TestProtocolRun } from '@/api/protocol'
 import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
-import { formatDate } from '@/util/format'
+import { formatDate, todayIsoDate } from '@/util/format'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -44,7 +44,7 @@ const allTags = ref<UserTag[]>([])
 const showCreateModal = ref(false)
 const newProtocolId = ref<string>('')
 const newName = ref('')
-const newDate = ref(new Date().toISOString().split('T')[0])
+const newDate = ref(todayIsoDate())
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 
 const memberOptions = computed(() =>
@@ -92,7 +92,7 @@ async function handleCreate() {
 function resetCreateModal() {
   newProtocolId.value = ''
   newName.value = ''
-  newDate.value = new Date().toISOString().split('T')[0]
+  newDate.value = todayIsoDate()
   restriction.value = emptyRestriction()
 }
 

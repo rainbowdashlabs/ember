@@ -14,6 +14,7 @@ import DateInput from '@/components/input/datetime/DateInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import {todayIsoDate} from '@/util/format'
 
 export interface LostItemCreatePayload {
   description: string
@@ -34,7 +35,7 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const newDescription = ref('')
-const newFoundAt = ref(new Date().toISOString().substring(0, 10))
+const newFoundAt = ref(todayIsoDate())
 const newImageFile = ref<File | null>(null)
 const newImagePreview = ref<string | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
@@ -60,7 +61,7 @@ function clearNewImage() {
 
 function resetForm() {
   newDescription.value = ''
-  newFoundAt.value = new Date().toISOString().substring(0, 10)
+  newFoundAt.value = todayIsoDate()
   clearNewImage()
 }
 

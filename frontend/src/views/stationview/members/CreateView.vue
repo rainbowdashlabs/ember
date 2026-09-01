@@ -16,6 +16,7 @@ import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
 import {StationUserType, type MemberGroup, type StationMember} from '@/api/types'
 import {memberGroups, members, profileFields, stationMembers} from '@/api'
 import {setFieldValue as writeFieldValue} from '@/util/profileFields'
+import {todayIsoDate} from '@/util/format'
 import {useStations} from '@/composables/useStations'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -62,7 +63,7 @@ function nextFromIdentity() {
     const cfg = parseFieldConfig(field.config)
     if (cfg.defaultValue !== undefined && cfg.defaultValue !== null && !fieldValues.value.has(field.id)) {
       if (cfg.defaultValue === '__TODAY__') {
-        setFieldValue(field.id, new Date().toISOString().slice(0, 10))
+        setFieldValue(field.id, todayIsoDate())
       } else {
         setFieldValue(field.id, String(cfg.defaultValue))
       }

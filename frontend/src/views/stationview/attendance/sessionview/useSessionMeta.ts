@@ -7,6 +7,7 @@ import type {Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {attendance} from '@/api'
 import type {AttendanceSession} from '@/api/attendance'
+import {todayIsoDate} from '@/util/format'
 
 export function useSessionMeta(
     sessionId: Ref<number>,
@@ -39,14 +40,14 @@ export function useSessionMeta(
 
   function setSessionStartTime(time: string) {
     if (!session.value || !time) return
-    const today = new Date().toISOString().slice(0, 10)
+    const today = todayIsoDate()
     session.value = {...session.value, startTime: new Date(`${today}T${time}:00`).toISOString()}
     saveSessionMeta()
   }
 
   function setSessionEndTime(time: string) {
     if (!session.value || !time) return
-    const today = new Date().toISOString().slice(0, 10)
+    const today = todayIsoDate()
     session.value = {...session.value, endTime: new Date(`${today}T${time}:00`).toISOString()}
     saveSessionMeta()
   }
