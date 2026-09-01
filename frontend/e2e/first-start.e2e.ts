@@ -17,6 +17,10 @@ import {test, expect} from '@playwright/test'
  * and every other story here holds one.
  */
 test.describe('First start', () => {
+    // One after another: every story here signs in as the same account, and each sign-in throws
+    // away the step token the one before it was handed. Run at once they take each other's turn.
+    test.describe.configure({mode: 'serial'})
+
     const MADE_UP = 'admin@ember.local'
     const PASSWORD = 'demo'
 
