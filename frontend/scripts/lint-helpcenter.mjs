@@ -48,7 +48,7 @@ const KNOWN_SHARED_HELP_COMPONENTS = new Set([
 const panels = [
     {
         label: 'Station',
-        appFilter: (r) => !['help-', 'admin-', 'cluster-', 'account-', 'login', 'forgot', 'set-password', 'station-select',
+        appFilter: (r) => !['help-', 'admin-', 'cluster-', 'account-', 'login', 'forgot', 'set-password', 'set-address', 'station-select',
             'cross-station-dashboard', '2fa-verify', 'apply', 'waitlist-', 'waiting-list', 'home', 'privacy', 'terms', 'reconsent', 'imprint',
             'patch-notes', 'reset-password', 'confirm-email-change', 'install', 'public-', 'not-found', 'style', 'helpcenter-', 'requirements',
             'pitch']
@@ -232,7 +232,7 @@ for (const file of sidebarFiles) {
 const SIDEBAR_SKIP = (r) =>
     r.name.startsWith('help-') || r.name.startsWith('helpcenter-')
     || r.path.includes(':id') || r.path.includes('pathMatch')
-    || ['home', 'login', 'forgot-password', 'set-password', 'reset-password', 'confirm-email-change', 'install', 'apply',
+    || ['home', 'login', 'forgot-password', 'set-password', 'set-address', 'reset-password', 'confirm-email-change', 'install', 'apply',
         'privacy', 'terms', 'reconsent', 'imprint', 'patch-notes', 'not-found', 'style',
         'station-select', 'profile-settings'].includes(r.name)
     || r.name.startsWith('public-') || r.name.startsWith('waiting-list') || r.name.startsWith('waitlist-')

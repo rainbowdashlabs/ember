@@ -76,4 +76,13 @@ class AccountEmailServiceTest extends RepositoryTestBase {
     void anAddressAnotherAccountHasIsRefused() {
         assertThrows(BadRequestResponse.class, () -> service.setEmail(account.id(), other.email()));
     }
+
+    /** Shaped like an address, but nothing can be delivered to it, which is the whole objection. */
+    @Test
+    void aMadeUpAddressIsRefused() {
+        assertEquals(
+                AccountEmailService.AddressProblem.UNREACHABLE,
+                service.problemWith(account.id(), "somebody@made.local"));
+        assertThrows(BadRequestResponse.class, () -> service.setEmail(account.id(), "somebody@made.local"));
+    }
 }
