@@ -10,6 +10,7 @@ import { getItem, setItem } from '@/api/storage'
 import { userSettings } from '@/api'
 import { usePride } from '@/composables/usePride'
 import { sessionInfo } from '@/util/sessionState'
+import { themeRepainted } from '@/util/themeState'
 import { reportCaughtError } from '@/util/devErrorReporter'
 
 const activeTheme = ref<string>('ember')
@@ -79,6 +80,8 @@ function applyModeColors(themeColors?: ThemeColors) {
     root.setProperty('--color-info-badge', ensureContrast(mode.infoAccent, pageBg))
     root.setProperty('--color-success-badge', ensureContrast(mode.success, pageBg))
     root.setProperty('--color-error-badge', ensureContrast(mode.error, pageBg))
+
+    themeRepainted()
 }
 
 function applyFeel(feel: FeelValue) {
@@ -104,6 +107,7 @@ function applyDarkModeClass(mode: DarkModeValue) {
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
         html.classList.add(prefersDark ? 'dark' : 'light')
     }
+    themeRepainted()
 }
 
 function applyDarkMode(mode: DarkModeValue) {
