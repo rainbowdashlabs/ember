@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -37,6 +38,11 @@ import java.util.UUID;
  * The address in a code was typed by somebody this instance has never met, so it is checked against
  * {@link RemoteUrlValidator} before anything is fetched from it. And the far side is a stranger
  * until it has signed something, so its half of the exchange is verified before a row is written.
+ *
+ * <p>A code names an address and never a scheme, so the instance entering it decides. HTTPS, except
+ * where {@code federation.allowPrivateHosts} is set: a deployment that waives the public-HTTPS rule
+ * for the addresses it calls is one federating inside a private network, where nothing terminates
+ * TLS and insisting on it would only fail the connection the flag was set to allow.
  */
 @Singleton
 public class FederationEnrollmentService {
@@ -49,6 +55,7 @@ public class FederationEnrollmentService {
     private final FederationSigningService signingService;
     private final RemoteUrlValidator urlValidator;
     private final String localBaseUrl;
+    private final String remoteScheme;
 
     @Inject
     public FederationEnrollmentService(
@@ -58,7 +65,8 @@ public class FederationEnrollmentService {
             FederationHttpClient httpClient,
             FederationSigningService signingService,
             RemoteUrlValidator urlValidator,
-            Api apiConfig) {
+            Api apiConfig,
+            Federation federationConfig) {
         this.federationService = federationService;
         this.repository = repository;
         this.stationRepository = stationRepository;
@@ -66,6 +74,7 @@ public class FederationEnrollmentService {
         this.signingService = signingService;
         this.urlValidator = urlValidator;
         this.localBaseUrl = apiConfig.baseUrl();
+        this.remoteScheme = federationConfig.allowPrivateHosts() ? "http://" : "https://";
     }
 
     /**
@@ -174,7 +183,7 @@ public class FederationEnrollmentService {
         if (!parts.isStationInvite()) {
             return new CodeOutcome.Refused(CodeRefusal.OTHER_INSTANCE, parts.host());
         }
-        String remoteBaseUrl = "https://" + parts.host();
+        String remoteBaseUrl = remoteScheme + parts.host();
         if (!urlValidator.isAllowed(remoteBaseUrl)) {
             return new CodeOutcome.Refused(CodeRefusal.HOST_REFUSED, parts.host());
         }
@@ -205,7 +214,7 @@ public class FederationEnrollmentService {
                 parts.stationUid(),
                 keys.publicKey(),
                 answer.publicKey(),
-                agreedRemoteHost(remoteBaseUrl, parts.host(), answer.baseUrl()),
+                agreedRemoteHost(remoteBaseUrl, answer.baseUrl()),
                 answer.stationName(),
                 answer.contract());
         log.info("Station {} joined station {} on {}", enteringStationId, parts.stationUid(), remoteBaseUrl);
@@ -243,14 +252,17 @@ public class FederationEnrollmentService {
      * taking. It may not name a different host: an answer that redirects the connection somewhere
      * else is an answer to a code somebody else wrote, so the address from the code stands.
      */
-    private String agreedRemoteHost(String fromCode, String codeHost, String announced) {
+    private String agreedRemoteHost(String fromCode, String announced) {
         if (announced == null || announced.isBlank() || !urlValidator.isAllowed(announced)) return fromCode;
         String announcedHost;
+        String codeHost;
         try {
             announcedHost = URI.create(announced).getHost();
+            codeHost = URI.create(fromCode).getHost();
         } catch (IllegalArgumentException e) {
             return fromCode;
         }
+        if (announcedHost == null || codeHost == null) return fromCode;
         return codeHost.equalsIgnoreCase(announcedHost) ? announced : fromCode;
     }
 

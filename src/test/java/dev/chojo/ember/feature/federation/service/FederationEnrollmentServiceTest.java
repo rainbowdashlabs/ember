@@ -114,9 +114,23 @@ class FederationEnrollmentServiceTest extends RepositoryTestBase {
         serviceThere = new FederationService(federationRepo, stationRepo, api(HOST_THERE));
         httpClient = mock(FederationHttpClient.class);
         here = new FederationEnrollmentService(
-                serviceHere, federationRepo, stationRepo, httpClient, signingService, urlValidator, api(HOST_HERE));
+                serviceHere,
+                federationRepo,
+                stationRepo,
+                httpClient,
+                signingService,
+                urlValidator,
+                api(HOST_HERE),
+                new Federation());
         there = new FederationEnrollmentService(
-                serviceThere, federationRepo, stationRepo, httpClient, signingService, urlValidator, api(HOST_THERE));
+                serviceThere,
+                federationRepo,
+                stationRepo,
+                httpClient,
+                signingService,
+                urlValidator,
+                api(HOST_THERE),
+                new Federation());
 
         stationHere = stationRepo.create("EnrollHere" + UUID.randomUUID());
         stationThere = stationRepo.create("EnrollThere" + UUID.randomUUID());

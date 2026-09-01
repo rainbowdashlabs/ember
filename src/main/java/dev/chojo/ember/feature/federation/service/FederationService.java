@@ -50,9 +50,19 @@ public class FederationService {
         this.instanceHost = extractHost(apiConfig.baseUrl());
     }
 
+    /**
+     * The address this instance goes by in a code, taken from the one it publishes.
+     *
+     * <p>The port comes with it when the base URL names one. Without it a code from an instance
+     * that does not sit on the standard port names something nobody can reach: the side entering
+     * the code has only the code to go by, and would call the same host on a port it was never
+     * told about.
+     */
     private static String extractHost(String baseUrl) {
         try {
-            return URI.create(baseUrl).getHost();
+            var uri = URI.create(baseUrl);
+            if (uri.getHost() == null) return baseUrl;
+            return uri.getPort() == -1 ? uri.getHost() : uri.getHost() + ":" + uri.getPort();
         } catch (Exception e) {
             return baseUrl;
         }

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {request, type APIRequestContext} from '@playwright/test'
-import {test as base, demoAccounts, instanceAdmin, stationPeers, type DemoAccount} from './auth'
+import {demoStationGroups, instanceAdmin, test as base, type DemoAccount} from './auth'
 
 /**
  * The second instance: a whole other installation of the application, not a second station of the
@@ -45,6 +45,19 @@ export function peerInternalUrl(): string {
 /** The address the second instance names the first one by, for the same reason. */
 export function homeInternalUrl(): string {
     return process.env.E2E_HOME_INTERNAL_URL ?? 'http://ember-e2e:8080'
+}
+
+/**
+ * The address the first instance publishes as its own, and hands to anybody who asks.
+ *
+ * The one address in this stack that is not a container address: it also has to work in a browser,
+ * for the links it appears in and for the origin the second factor is bound to. It is therefore the
+ * address the second instance writes down for the first when the two pair, and one the second
+ * instance cannot actually call. Which is why a code always travels from the second instance to the
+ * first here, and never back.
+ */
+export function homePublishedUrl(): string {
+    return process.env.E2E_HOME_PUBLISHED_URL ?? 'http://localhost:3010'
 }
 
 /**
@@ -91,7 +104,10 @@ export async function instanceRequest(baseUrl: string): Promise<APIRequestContex
  * which a dev instance answers with a session for whoever is named. The station travels on the
  * header, because an account can be at a station and nothing guesses which one is meant.
  */
-export async function instanceRequestAs(baseUrl: string, account: DemoAccount): Promise<APIRequestContext> {
+export async function instanceRequestAs(
+    baseUrl: string,
+    account: {email: string; stationId?: string},
+): Promise<APIRequestContext> {
     const anonymous = await instanceRequest(baseUrl)
     let token: string
     try {
@@ -119,22 +135,38 @@ export async function adminOf(baseUrl: string): Promise<DemoAccount> {
     }
 }
 
-/** Somebody who runs a station of that instance, with the station they run. */
+/**
+ * Somebody who runs a station of that instance and can act without a second factor.
+ *
+ * The federation actions all ask for a fresh second factor, and the demo gives one person at each
+ * station a real authenticator with a secret nobody holds: a story acting as that person is stopped
+ * before it begins, and no amount of retrying produces the six digits. Asked by what the account is
+ * rather than by name, because which of them the seeder picks is the seeder's business.
+ */
 export async function stationManagerOf(baseUrl: string): Promise<DemoAccount> {
     const context = await instanceRequest(baseUrl)
     try {
-        return (await stationPeers(context)).manager
+        for (const group of await demoStationGroups(context)) {
+            for (const account of group.accounts ?? []) {
+                const runsIt = account.permissions.includes('STATION_ADMINISTRATOR')
+                    || account.permissions.includes('STATION_MANAGER')
+                if (!account.email || !group.stationId || !runsIt) continue
+                const candidate = {...account, stationId: group.stationId}
+                if (await actsWithoutSecondFactor(baseUrl, candidate)) return candidate
+            }
+        }
     } finally {
         await context.dispose()
     }
+    throw new Error(`No station on ${baseUrl} has a manager who can act without a second factor`)
 }
 
-/** Every station that instance has, by the uid the network knows it under. */
-export async function stationUidsOf(baseUrl: string): Promise<string[]> {
-    const context = await instanceRequest(baseUrl)
+/** Whether the account is free of the second factor that would stop a story acting as it. */
+async function actsWithoutSecondFactor(baseUrl: string, account: DemoAccount): Promise<boolean> {
+    const context = await instanceRequestAs(baseUrl, account)
     try {
-        const accounts = await demoAccounts(context)
-        return [...new Set(accounts.map(account => account.stationId).filter((uid): uid is string => !!uid))]
+        const status = await context.get('/api/v1/account/2fa/status')
+        return status.ok() && !(await status.json()).enrolled
     } finally {
         await context.dispose()
     }
@@ -143,8 +175,6 @@ export async function stationUidsOf(baseUrl: string): Promise<string[]> {
 interface PeerFixtures {
     /** The second instance, asked as the person who administers it. */
     peerAdminApi: APIRequestContext
-    /** The second instance, asked as somebody who runs one of its stations. */
-    peerManagerApi: APIRequestContext
     /**
      * The first instance's backend, asked as the person who administers it.
      *
@@ -153,6 +183,8 @@ interface PeerFixtures {
      * the wrong one.
      */
     homeAdminApi: APIRequestContext
+    /** The first instance, asked as somebody who runs one of its stations. */
+    homeManagerApi: APIRequestContext
 }
 
 export const test = base.extend<PeerFixtures>({
@@ -162,14 +194,14 @@ export const test = base.extend<PeerFixtures>({
         await context.dispose()
     },
 
-    peerManagerApi: async ({}, use) => {
-        const context = await instanceRequestAs(peerBaseUrl(), await stationManagerOf(peerBaseUrl()))
+    homeAdminApi: async ({}, use) => {
+        const context = await instanceRequestAs(homeBaseUrl(), await adminOf(homeBaseUrl()))
         await use(context)
         await context.dispose()
     },
 
-    homeAdminApi: async ({}, use) => {
-        const context = await instanceRequestAs(homeBaseUrl(), await adminOf(homeBaseUrl()))
+    homeManagerApi: async ({}, use) => {
+        const context = await instanceRequestAs(homeBaseUrl(), await stationManagerOf(homeBaseUrl()))
         await use(context)
         await context.dispose()
     },
