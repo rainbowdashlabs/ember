@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EntitySearchPicker from './EntitySearchPicker.vue'
-import {listSearch, numericPickerModel} from '@/composables/useListSearch'
+import {listSearch, numericPickerModel} from '@/util/listSearch'
 import type {Inventory} from '@/api/inventory'
 import type {InventoryArt} from '@/api/inventoryArts'
 
@@ -39,11 +39,9 @@ const subtitleFn = (art: InventoryArt) => inventoryName(art.inventoryId)
 const keyFn = (art: InventoryArt) => art.id
 const iconFn = (): string[] => ['fas', 'layer-group']
 
-const pieces = (art: InventoryArt) => props.stock?.get(art.id) ?? 0
-
 function badgeFn(art: InventoryArt) {
   if (!props.stock) return null
-  const count = pieces(art)
+  const count = props.stock.get(art.id) ?? 0
   return {text: t('inventory.stock.pieces', {count}), variant: count > 0 ? 'neutral' as const : 'error' as const}
 }
 
