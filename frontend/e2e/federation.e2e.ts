@@ -63,6 +63,27 @@ test.describe('Federation', () => {
         await expect(page.getByTestId('app-shell')).toBeVisible()
     })
 
+    /**
+     * Making a code asks for the second factor, and that question is raised over the dialog the
+     * reader is standing in. The click is what proves it: it only lands when nothing covers the
+     * field, which is exactly what used to be wrong.
+     */
+    test('the security question opens in front of the dialog that raised it', async ({managerPage: page}) => {
+        await page.goto('/station/federate')
+        await page.getByRole('button', {name: /Partner hinzufügen/}).click()
+
+        const addPartner = page.getByRole('dialog').filter({hasText: 'Einladung erstellen'})
+        await addPartner.getByRole('button', {name: /Code generieren/}).click()
+
+        const confirmation = page.getByRole('dialog').filter({hasText: 'Sicherheitsbestätigung'})
+        const factor = confirmation.getByPlaceholder('000000')
+        await factor.click()
+        await factor.fill('123456')
+
+        await expect(factor).toHaveValue('123456')
+        await confirmation.getByRole('button', {name: 'Abbrechen'}).click()
+    })
+
     test('a member does not configure what the station shares', async ({memberPage: page}) => {
         await page.goto('/station/federate/settings')
 

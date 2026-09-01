@@ -311,7 +311,7 @@ public class WaitingListRoutes implements Routes {
     @StationFree("the entry token is what a family holds instead of a login, and it names one entry")
     private void getEntryByToken(Context ctx) {
         String token = ctx.pathParam("token");
-        if (rateLimited(ctx, token)) return;
+        if (readRateLimited(ctx)) return;
         var entry = service.findEntryByToken(token).orElseThrow(NotFoundResponse::new);
         var values = service.findEntryValues(entry.id());
         var guardians = service.findGuardiansByEntry(entry.id());
@@ -409,7 +409,26 @@ public class WaitingListRoutes implements Routes {
      * @return whether the request has been answered and the handler should stop
      */
     private boolean rateLimited(Context ctx, String token) {
-        var retryAfter = rateLimiter.tryAcquire(ClientIp.resolve(ctx, network).getHostAddress(), "entry:" + token);
+        return answerWhenLimited(
+                ctx, rateLimiter.tryAcquire(ClientIp.resolve(ctx, network).getHostAddress(), "entry:" + token));
+    }
+
+    /**
+     * Answers the request itself when the caller has read entry pages too often, and says so.
+     *
+     * <p>Reading is held apart from registering. The status page is a link a family opens again
+     * whenever they wonder where they stand, and behind a shared connection one address speaks for
+     * many families; spending the registration allowance on those visits took from a family the
+     * ability to sign up at all.
+     *
+     * @return whether the request has been answered and the handler should stop
+     */
+    private boolean readRateLimited(Context ctx) {
+        return answerWhenLimited(
+                ctx, rateLimiter.tryAcquireRead(ClientIp.resolve(ctx, network).getHostAddress()));
+    }
+
+    private boolean answerWhenLimited(Context ctx, Optional<Long> retryAfter) {
         if (retryAfter.isEmpty()) return false;
         ctx.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header("Retry-After", String.valueOf(retryAfter.get()))

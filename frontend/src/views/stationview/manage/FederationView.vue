@@ -28,6 +28,7 @@ import type { FederationContract, PartnerResponse, PairRequest } from '@/api/fed
 import { resolveFederationVersion } from '@/util/federationVersion'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useFlashMessage } from '@/composables/useFlashMessage'
+import { apiErrorBody } from '@/util/apiError'
 import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
@@ -43,6 +44,7 @@ const {message: success, flash} = useFlashMessage(3000)
 const showInviteModal = ref(false)
 const generatedCode = ref('')
 const acceptCode = ref('')
+const acceptError = ref('')
 
 const {loading, error, reload} = useAsyncLoader(async () => {
   const [p, r, info] = await Promise.all([
@@ -72,6 +74,11 @@ async function handleDeclineRequest(id: number) {
   } catch { error.value = t('common.error') }
 }
 
+function openInviteModal() {
+  acceptError.value = ''
+  showInviteModal.value = true
+}
+
 async function generateInvite() {
   try {
     const res = await federation.createInvite()
@@ -79,8 +86,27 @@ async function generateInvite() {
   } catch { error.value = t('common.error') }
 }
 
+/**
+ * A code stands until it is used, so a refusal names what is in the way. The reason travels as its
+ * own field and each one has its own sentence; anything unforeseen falls back to the general one
+ * rather than claiming the code has run out.
+ */
+function refusalMessage(e: unknown): string {
+  switch (apiErrorBody(e)?.error) {
+    case 'MALFORMED': return t('federation.refused.malformed')
+    case 'OTHER_INSTANCE': return t('federation.refused.otherInstance')
+    case 'UNKNOWN_STATION': return t('federation.refused.unknownStation')
+    case 'OWN_STATION': return t('federation.refused.ownStation')
+    case 'ALREADY_PARTNERED': return t('federation.refused.alreadyPartnered')
+    case 'REQUEST_PENDING': return t('federation.refused.requestPending')
+    case 'SPENT_TOKEN': return t('federation.refused.spentToken')
+    default: return t('federation.refused.unknown')
+  }
+}
+
 async function handleAccept() {
   if (!acceptCode.value.trim()) return
+  acceptError.value = ''
   try {
     const result = await federation.acceptInvite(acceptCode.value.trim())
     showInviteModal.value = false
@@ -88,7 +114,7 @@ async function handleAccept() {
     generatedCode.value = ''
     flash(result.status === 'ACTIVE' ? t('federation.connected') : t('federation.requestSent'))
     await reload()
-  } catch { error.value = t('federation.invalidCode') }
+  } catch (e) { acceptError.value = refusalMessage(e) }
 }
 
 watch(loaded, (v) => { if (v) reload() }, { immediate: true })
@@ -100,7 +126,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       :subtitle="t('pages.station-federation.subtitle')"
   >
     <div class="flex items-center justify-end mb-4">
-      <PrimaryButton v-if="canManageFederation()" @click="showInviteModal = true">
+      <PrimaryButton v-if="canManageFederation()" @click="openInviteModal">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('federation.addPartner') }}
       </PrimaryButton>
     </div>
@@ -166,6 +192,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
             <TextInput v-model="acceptCode" :placeholder="t('federation.codePlaceholder')" class="flex-1 font-mono text-sm" />
             <PrimaryButton type="submit" :disabled="!acceptCode.trim()">{{ t('federation.connect') }}</PrimaryButton>
           </form>
+          <Alert v-if="acceptError" variant="error" class="mt-2">{{ acceptError }}</Alert>
         </div>
       </div>
     </Modal>
