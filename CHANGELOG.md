@@ -43,6 +43,7 @@
 - **Two of the first steps now ask you to look rather than to act.** Answering an appointment has become a short explanation of the two kinds, the ones you sign up for and the ones where you are simply expected, and it no longer ends in a sign-up nobody asked for. Going through your profile is offered even when nothing is missing, because a profile that looks complete is the one worth reading over.
 - **Crowded button rows keep one button and a menu.** The attendance sheet, a wiki file, a question catalogue and a test sheet showed as many as seven buttons above the page at once, which on a phone filled the screen before the page began. Each now shows the one action it is opened for and keeps the rest, exports and deletion included, in a menu beside it.
 - **Nothing reaches a partner station until somebody offers it.** Partner stations used to browse every inventory a station had. From this version a station offers nothing until it says so, on the inventory, on a kind of thing or on the single piece, so every station starts this version offering nothing at all.
+- **The start page carries you back to where you were.** Opening it while signed in now leads straight to the area you last worked in, your station, your association or the administration. The Ember logo still opens the start page itself, as does `/?home` in the address bar.
 
 ### Fixes
 

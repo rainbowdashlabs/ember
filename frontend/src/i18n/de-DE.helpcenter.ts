@@ -499,6 +499,9 @@ export default {
                 nav2: 'Die einzelnen Module (Mitglieder, Inventar, Anwesenheit etc.) - je nach aktivierten Modulen.',
                 nav3: 'Profil - Dein persönliches Profil, Einstellungen und Abwesenheiten.',
                 nav4: 'Wache verwalten - Einstellungen der Wache (nur für Verwalter).',
+                nav5: 'Das Ember-Logo oben links führt zur Startseite von Ember. Rufst du die Startseite '
+                    + 'stattdessen über die Adresszeile auf, während du angemeldet bist, landest du wieder '
+                    + 'in dem Bereich, in dem du zuletzt gearbeitet hast: Wache, Verband oder Verwaltung.',
                 notifications: 'Benachrichtigungen',
                 notificationsText: 'Ember informiert dich über wichtige Änderungen per Benachrichtigung im Dashboard. Die Zahl neben dem Glockensymbol zeigt, wie viele ungelesene Benachrichtigungen du hast.',
                 notificationsText2: 'Du kannst in deinen Einstellungen festlegen, welche Benachrichtigungen du auch per E-Mail erhalten möchtest.',

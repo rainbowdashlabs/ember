@@ -48,7 +48,7 @@ const logoSizeClass = computed(() => collapsed.value ? 'h-8 w-8 lg:h-10 lg:w-10 
   >
     <div class="flex items-stretch min-h-14 border-b border-bg-light dark:border-bg-dark shrink-0">
       <router-link
-          to="/"
+          to="/?home"
           :class="collapsed ? 'lg:justify-center lg:px-2' : ''"
           class="flex items-center gap-3 flex-1 min-w-0 px-4 py-2 no-underline hover:bg-(--bg-accent) transition-colors"
       >

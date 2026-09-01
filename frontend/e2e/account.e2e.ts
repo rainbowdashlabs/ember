@@ -173,4 +173,39 @@ test.describe('Account & session', () => {
         await page.goto('/station/dashboard/overview')
         await page.waitForURL(/\/login/)
     })
+
+    /**
+     * The manager belongs to two stations, which is what makes this readable: without a last area
+     * the landing page hands them the picker, and with one it hands them the station itself. The
+     * same page, two answers, and only where they were decides between them.
+     */
+    test.describe('the landing page of somebody who is signed in', () => {
+        test('offers the picker while nothing has been worked in yet', async ({managerPage: page}) => {
+            await page.goto('/')
+
+            await expect(page).toHaveURL(/\/cross-station/)
+        })
+
+        test('leads back to the area last worked in', async ({managerPage: page}) => {
+            await page.goto('/station/members/list')
+            await expect(page.getByTestId('app-shell')).toBeVisible()
+            await expect(page.getByRole('link', {name: /Profil/}).first()).toBeVisible()
+
+            await page.goto('/')
+
+            await expect(page).toHaveURL(/\/station\/dashboard\/overview/)
+            await expect(page.getByTestId('app-shell')).toBeVisible()
+        })
+
+        test('stands where it is when it is asked for by name', async ({managerPage: page}) => {
+            await page.goto('/station/members/list')
+            await expect(page.getByTestId('app-shell')).toBeVisible()
+            await expect(page.getByRole('link', {name: /Profil/}).first()).toBeVisible()
+
+            await page.goto('/?home')
+
+            await expect(page).toHaveURL(/\/\?home$/)
+            await expect(page.getByRole('banner').getByTestId('account-menu')).toBeVisible()
+        })
+    })
 })

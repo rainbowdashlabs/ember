@@ -43,7 +43,7 @@ const confirmOpen = ref(false)
 
 const {running: deleting, error, run: runDelete} = useAsyncAction(async () => {
   await transfer.deleteMovedStation()
-  window.location.href = '/'
+  window.location.href = '/?home'
 }, {formatError: () => t('pages.station-moved.deleteError')})
 
 async function performDelete() {

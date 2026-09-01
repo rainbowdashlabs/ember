@@ -29,6 +29,8 @@ const state = vi.hoisted(() => ({
     demoLogins: [] as string[],
     demoLoginFails: false,
     sessionCleared: 0,
+    remembered: [] as string[],
+    forgotten: 0,
 }))
 
 mockNuxtImport('navigateTo', () => (target: unknown) => {
@@ -82,6 +84,15 @@ vi.mock('~/composables/useCluster', () => ({
     }),
 }))
 
+vi.mock('~/util/landingMemoryState', () => ({
+    rememberVisitedArea: (path: string) => {
+        state.remembered.push(path)
+    },
+    forgetLandingMemory: () => {
+        state.forgotten++
+    },
+}))
+
 vi.mock('~/composables/useStations', () => ({
     useStations: () => ({
         setActiveStation: (stationId: string) => {
@@ -131,6 +142,8 @@ describe('auth route guard', () => {
         state.demoLogins = []
         state.demoLoginFails = false
         state.sessionCleared = 0
+        state.remembered = []
+        state.forgotten = 0
         localStorage.clear()
     })
 
@@ -320,5 +333,32 @@ describe('auth route guard', () => {
         await run(route('/cluster'))
 
         expect(state.navigations).toEqual([])
+    })
+
+    describe('noting the area somebody is in', () => {
+        it('notes a navigation that is let through', async () => {
+            state.store.set('station_id', STATION)
+
+            await run(route('/station/events/upcoming'))
+
+            expect(state.remembered).toEqual(['/station/events/upcoming'])
+        })
+
+        it('notes nothing about a navigation that is turned away', async () => {
+            state.store.set('station_id', STATION)
+            state.admin = false
+
+            await run(route('/admin/settings/legal'))
+
+            expect(state.remembered).toEqual([])
+        })
+
+        it('forgets the area when a link makes this browser somebody else', async () => {
+            state.demo = {demo: false, dev: true}
+
+            await run(route('/station/dashboard/overview', {as: 'tim@berger.local'}))
+
+            expect(state.forgotten).toBe(1)
+        })
     })
 })
