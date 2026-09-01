@@ -439,8 +439,8 @@ public abstract class RepositoryTestBase {
         collectionRepo = new InventoryCollectionRepository();
         containerKindRepo = new InventoryContainerKindRepository();
         fieldDefinitionRepo = new InventoryFieldDefinitionRepository();
-        fieldDefinitionService = new InventoryFieldDefinitionService(fieldDefinitionRepo);
         artRepo = new InventoryArtRepository();
+        fieldDefinitionService = new InventoryFieldDefinitionService(fieldDefinitionRepo, artRepo, inventoryRepo);
         artService = new InventoryArtService(artRepo, inventoryRepo);
         lineTargetService = new LineTargetService(inventoryRepo, artRepo);
         equipmentNeedRepo = new EquipmentNeedRepository();
