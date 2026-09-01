@@ -4,9 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, nextTick, ref, watch} from 'vue'
+import {computed, nextTick, onUnmounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
+import {baseDialogLayer, claimDialogLayer, releaseDialogLayer} from '@/components/feedback/dialogLayers'
 
 const {t} = useI18n()
 
@@ -33,6 +34,21 @@ const sizeClass = computed(() => {
 })
 
 const dialog = ref<HTMLElement | null>(null)
+const layer = ref(baseDialogLayer)
+let claimed = false
+
+watch(model, (open) => {
+  if (import.meta.server || open === claimed) return
+  claimed = open
+  if (open) layer.value = claimDialogLayer()
+  else releaseDialogLayer()
+}, {immediate: true})
+
+onUnmounted(() => {
+  if (!claimed) return
+  claimed = false
+  releaseDialogLayer()
+})
 
 /**
  * The button this dialog is answered with.
@@ -77,7 +93,8 @@ function onKeydown(e: KeyboardEvent) {
     <Transition name="modal">
       <div
           v-if="model"
-          class="fixed inset-0 z-50 flex items-center justify-center"
+          class="fixed inset-0 flex items-center justify-center"
+          :style="{zIndex: layer}"
       >
         <!-- Backdrop -->
         <div
