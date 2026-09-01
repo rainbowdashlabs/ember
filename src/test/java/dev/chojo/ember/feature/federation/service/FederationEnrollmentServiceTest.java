@@ -473,6 +473,41 @@ class FederationEnrollmentServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void aHandshakeAskingAStationToFederateWithItselfIsTurnedAway() {
+        var code = inviteFromThere();
+        String token = code.substring(code.lastIndexOf('-') + 1);
+
+        var rejected = assertInstanceOf(
+                FederationEnrollmentService.Handshake.Rejected.class,
+                there.acceptHandshake(signedRequest(
+                        stationThere,
+                        stationThere.uid(),
+                        token,
+                        FederationContractVersions.current(),
+                        "https://" + HOST_HERE)));
+
+        assertEquals(FederationEnrollmentService.HandshakeRejection.INVALID_REQUEST, rejected.reason());
+    }
+
+    /** An answer naming a different station than the code did is not the partnership that was asked for. */
+    @Test
+    void anAnswerFromAnotherStationIsNotAPartnership() {
+        when(httpClient.handshake(anyString(), any()))
+                .thenReturn(new FederationHttpClient.HandshakeAttempt(
+                        FederationHttpClient.HandshakeStatus.ESTABLISHED,
+                        new HandshakeResponse(
+                                UUID.randomUUID(),
+                                "Jemand anders",
+                                "https://" + HOST_THERE,
+                                FederationContractVersions.current(),
+                                "einSchluessel")));
+
+        assertEquals(
+                FederationService.CodeRefusal.REMOTE_REFUSED,
+                refusal(here.enterCode(stationHere.id(), inviteFromThere())));
+    }
+
+    @Test
     void aHandshakeMissingWhatItNeedsIsTurnedAway() {
         var empty = new HandshakeRequest(null, null, null, null, null, null, null, null);
 

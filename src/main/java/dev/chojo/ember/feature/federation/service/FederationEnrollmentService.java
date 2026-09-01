@@ -134,6 +134,11 @@ public class FederationEnrollmentService {
             return new Handshake.Rejected(HandshakeRejection.HOST_REFUSED);
         }
 
+        if (request.stationUid().equals(request.targetStationUid())) {
+            log.warn("A handshake asks station {} to federate with itself", request.stationUid());
+            return new Handshake.Rejected(HandshakeRejection.INVALID_REQUEST);
+        }
+
         var target = stationRepository.findByUid(request.targetStationUid());
         if (target.isEmpty()) {
             return new Handshake.Rejected(HandshakeRejection.UNKNOWN_STATION);
@@ -190,20 +195,20 @@ public class FederationEnrollmentService {
             return new CodeOutcome.Refused(refusalFor(attempt.status()), parts.host());
         }
         var answer = attempt.response();
-        if (answer == null || answer.publicKey() == null || answer.stationUid() == null) {
+        if (answer == null || answer.publicKey() == null || !parts.stationUid().equals(answer.stationUid())) {
             return new CodeOutcome.Refused(CodeRefusal.REMOTE_REFUSED, parts.host());
         }
 
         repository.deletePendingRequest(enteringStationId, parts.stationUid());
         var partner = establish(
                 enteringStationId,
-                answer.stationUid(),
+                parts.stationUid(),
                 keys.publicKey(),
                 answer.publicKey(),
                 agreedRemoteHost(remoteBaseUrl, parts.host(), answer.baseUrl()),
                 answer.stationName(),
                 answer.contract());
-        log.info("Station {} joined station {} on {}", enteringStationId, answer.stationUid(), remoteBaseUrl);
+        log.info("Station {} joined station {} on {}", enteringStationId, parts.stationUid(), remoteBaseUrl);
         return new CodeOutcome.Partnered(partner);
     }
 
