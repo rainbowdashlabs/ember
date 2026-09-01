@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.federation.service;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.equipment.EquipmentTestSupport;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
@@ -24,6 +25,7 @@ import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -1185,5 +1187,92 @@ class LendingServiceTest extends RepositoryTestBase {
         var results = service.findAvailableInventory(stationB.id(), "LendSvcNamed", null, null);
         assertTrue(results.entries().isEmpty());
         assertEquals(LendingService.EmptyReason.NOTHING_FREE, results.emptyReason());
+    }
+
+    /**
+     * A request that names no return date is approved and filled like any other. The open end is a
+     * window reaching forward, not a moment outside every calendar.
+     */
+    @Test
+    @Order(500)
+    void aRequestWithNoReturnDateIsApproved() {
+        var inventory = inventoryRepo.create(stationA.id(), "LendSvcOpenEnd", InventoryType.INTERNAL, false);
+        inventoryRepo.createItem(inventory.id(), "OE-001", "Offenes Ende", null, null);
+        shareService.setInventoryShare(
+                stationA.id(), inventory.id(), ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+
+        var request = service.createRequest(
+                stationB.id(), stationA.id(), LocalDate.now(), null, memberB.id(), null, null, "");
+        service.addRequestItem(request.id(), inventory.id(), null, null, 1, null);
+
+        assertTrue(service.approveRequest(request.id(), stationA.id()));
+        assertEquals(
+                LendingStatus.APPROVED,
+                service.findRequest(request.id()).orElseThrow().status());
+        assertTrue(lendingRepo.findMessagesByRequest(request.id()).stream().anyMatch(LendingMessage::isSystem));
+        assertFalse(lendingRepo
+                .findAssignedItems(
+                        service.findRequestItems(request.id()).getFirst().id())
+                .isEmpty());
+        assertTrue(service.closeRequest(request.id(), stationA.id()));
+    }
+
+    /**
+     * What the station's own evening needs is not on offer, even though no piece has been picked for
+     * it: a loose claim takes a count out of the drawer all the same.
+     */
+    @Test
+    @Order(501)
+    void anOwnAppointmentKeepsBackWhatItNeeds() {
+        var inventory = inventoryRepo.create(stationA.id(), "LendSvcOwnNeed", InventoryType.INTERNAL, false);
+        for (int piece = 1; piece <= 3; piece++) {
+            inventoryRepo.createItem(inventory.id(), "ON-00" + piece, "Funkgerät " + piece, null, null);
+        }
+        shareService.setInventoryShare(
+                stationA.id(), inventory.id(), ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+
+        var day = LocalDate.now().plusDays(20);
+        var event = EquipmentTestSupport.oneOff(eventRepo, stationA.id(), "LendSvcOwnNeedEvent", day);
+        equipmentNeedRepo.create(event.id(), null, null, null, inventory.id(), 2, 0, 0);
+
+        var request = service.createRequest(stationB.id(), stationA.id(), day, day, memberB.id(), null, null, "");
+        var line = service.addRequestItem(request.id(), inventory.id(), null, null, 3, null);
+
+        assertTrue(service.approveRequest(request.id(), stationA.id()));
+        assertEquals(1, lendingRepo.findAssignedItems(line.id()).size());
+
+        assertTrue(service.closeRequest(request.id(), stationA.id()));
+        equipmentNeedRepo.deleteByEvent(event.id());
+        eventRepo.delete(event.id());
+    }
+
+    /**
+     * A piece that is already at a partner is owned by the station and is not there to be lent, so it
+     * is not promised a second time.
+     */
+    @Test
+    @Order(502)
+    void aPieceAlreadyAtAPartnerIsNotPromisedAgain() {
+        var inventory = inventoryRepo.create(stationA.id(), "LendSvcAway", InventoryType.INTERNAL, false);
+        var away = inventoryRepo.createItem(inventory.id(), "AW-001", "Schon unterwegs", null, null);
+        shareService.setInventoryShare(
+                stationA.id(), inventory.id(), ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+        inventoryRepo.updateCustody(away.id(), ItemCustody.WITH_PARTNER, stationA.id(), null, null, stationB.id());
+
+        var request = service.createRequest(
+                stationB.id(),
+                stationA.id(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(2),
+                memberB.id(),
+                null,
+                null,
+                "");
+        var line = service.addRequestItem(request.id(), inventory.id(), away.id(), null, 1, null);
+
+        assertTrue(service.approveRequest(request.id(), stationA.id()));
+        assertTrue(lendingRepo.findAssignedItems(line.id()).isEmpty());
+
+        assertTrue(service.closeRequest(request.id(), stationA.id()));
     }
 }

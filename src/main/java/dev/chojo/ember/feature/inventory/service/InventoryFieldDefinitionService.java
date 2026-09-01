@@ -9,7 +9,9 @@ import dev.chojo.ember.feature.inventory.entity.FieldConfig;
 import dev.chojo.ember.feature.inventory.entity.FieldType;
 import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryFieldDefinitionRepository;
+import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -36,10 +38,17 @@ public class InventoryFieldDefinitionService {
     private static final Pattern KEY_PATTERN = Pattern.compile("^[a-z][a-z0-9_]*$");
 
     private final InventoryFieldDefinitionRepository repository;
+    private final InventoryArtRepository artRepository;
+    private final InventoryRepository inventoryRepository;
 
     @Inject
-    public InventoryFieldDefinitionService(InventoryFieldDefinitionRepository repository) {
+    public InventoryFieldDefinitionService(
+            InventoryFieldDefinitionRepository repository,
+            InventoryArtRepository artRepository,
+            InventoryRepository inventoryRepository) {
         this.repository = repository;
+        this.artRepository = artRepository;
+        this.inventoryRepository = inventoryRepository;
     }
 
     /**
@@ -138,6 +147,11 @@ public class InventoryFieldDefinitionService {
      * narrowest-wins rule exists to settle, and refusing it would take away the only way to say
      * "this one is different" about a single piece.
      *
+     * <p>The narrow level has to sit inside the named inventory, and that is checked here rather
+     * than left to the caller. A route knows only the inventory in its path, so a kind or a piece id
+     * from somebody else's station paired with an inventory of one's own would otherwise write a
+     * definition onto another station's gear.
+     *
      * @param inventoryId the inventory, always
      * @param artId       the kind this field describes, or {@code null}
      * @param itemId      the single piece this field describes, or {@code null}
@@ -165,6 +179,7 @@ public class InventoryFieldDefinitionService {
         if (artId != null && itemId != null) {
             throw new IllegalArgumentException("A field belongs to a kind or to a single piece, never to both");
         }
+        requireInInventory(inventoryId, artId, itemId);
         FieldConfig effectiveConfig = config != null ? config : defaultConfig(fieldType);
         if (effectiveConfig.fieldType() != fieldType) {
             throw new IllegalArgumentException("Field config type does not match field type");
@@ -187,6 +202,30 @@ public class InventoryFieldDefinitionService {
                 itemId,
                 inventoryId);
         return created;
+    }
+
+    /**
+     * Refuses a kind or a piece that does not sit in the named inventory.
+     *
+     * @param inventoryId the inventory the definition is being written into
+     * @param artId       the kind the definition names, or {@code null}
+     * @param itemId      the piece the definition names, or {@code null}
+     */
+    private void requireInInventory(int inventoryId, Integer artId, Integer itemId) {
+        if (artId != null
+                && artRepository
+                        .findById(artId)
+                        .filter(art -> art.inventoryId() == inventoryId)
+                        .isEmpty()) {
+            throw new IllegalArgumentException("The kind is not part of this inventory");
+        }
+        if (itemId != null
+                && inventoryRepository
+                        .findItemById(itemId)
+                        .filter(item -> item.inventoryId() == inventoryId)
+                        .isEmpty()) {
+            throw new IllegalArgumentException("The piece is not part of this inventory");
+        }
     }
 
     private List<InventoryFieldDefinition> sameLevel(int inventoryId, Integer artId, Integer itemId) {

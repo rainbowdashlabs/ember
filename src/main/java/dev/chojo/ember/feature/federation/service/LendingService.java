@@ -677,6 +677,12 @@ public class LendingService {
      * requesting side chooses both the inventory and, where it wants one piece in particular, the
      * piece, and neither naming was checked before.
      *
+     * <p>How much may be filled in is what is free over the window, which is more than which pieces
+     * nobody has named: an appointment of the station's own asking for four radios that weekend names
+     * no piece and still takes four. So the count is bounded by the whole reckoning of free and the
+     * choice of pieces by the ones nobody has spoken for, and the request being filled is left out of
+     * both, because it is approved by now and would otherwise read as its own competition.
+     *
      * @param requestId the request that was just approved
      */
     private void autoAssignItems(int requestId) {
@@ -688,7 +694,7 @@ public class LendingService {
         var lender = lenderAt(owningStation.id());
         Instant from = request.requestedDateFrom().atStartOfDay(ZoneOffset.UTC).toInstant();
         Instant to = request.requestedDateTo() == null
-                ? Instant.MAX
+                ? EquipmentAvailabilityService.openEndAfter(from)
                 : request.requestedDateTo()
                         .plusDays(1)
                         .atStartOfDay(ZoneOffset.UTC)
@@ -700,6 +706,7 @@ public class LendingService {
                 inventoryRepository
                         .findItemById(ri.itemId())
                         .filter(item -> isLendable(lender, item))
+                        .filter(item -> isFree(owningStation.id(), LineTarget.item(item.id()), from, to))
                         .ifPresent(item -> repository.assignItem(ri.id(), item.id()));
                 continue;
             }
@@ -710,10 +717,31 @@ public class LendingService {
                     .flatMap(Optional::stream)
                     .filter(lender::owns)
                     .toList();
-            for (int q = 0; q < ri.quantity() - alreadySet && q < free.size(); q++) {
+            int room = availability
+                            .availability(owningStation.id(), target, from, to, null, requestId)
+                            .free()
+                    - alreadySet;
+            for (int q = 0; q < ri.quantity() - alreadySet && q < free.size() && q < room; q++) {
                 repository.assignItem(ri.id(), free.get(q).id());
             }
         }
+    }
+
+    /**
+     * Whether one named piece is still there to be promised over a window.
+     *
+     * <p>Ownership says a station may lend a piece; it does not say the piece is here. Gear already at
+     * a partner, in the post or set aside for another evening is owned all the same, and promising it
+     * a second time is how one radio is lent twice.
+     *
+     * @param stationId the station doing the lending
+     * @param target    the piece
+     * @param from      the first moment of the window
+     * @param to        the last moment of the window
+     * @return {@code true} when nobody has it and nobody has spoken for it
+     */
+    private boolean isFree(int stationId, LineTarget target, Instant from, Instant to) {
+        return !availability.freePieces(stationId, target, from, to).isEmpty();
     }
 
     /**

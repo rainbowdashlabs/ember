@@ -354,7 +354,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo, stationMemberRepo);
         var containerSvc =
                 new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService);
-        var fieldDefSvc = new InventoryFieldDefinitionService(fieldDefinitionRepo);
+        var fieldDefSvc = new InventoryFieldDefinitionService(fieldDefinitionRepo, artRepo, inventoryRepo);
         var inventorySeeder = new DemoInventorySeeder(
                 inventoryRepo,
                 artRepo,

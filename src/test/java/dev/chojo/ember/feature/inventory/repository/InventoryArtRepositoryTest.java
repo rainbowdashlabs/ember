@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.repository;
 
+import de.chojo.sadu.queries.exception.WrappedQueryExecutionException;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -22,6 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -108,6 +110,18 @@ class InventoryArtRepositoryTest extends RepositoryTestBase {
 
         assertEquals(2, artRepo.setArt(null, List.of(typo.id(), pager.id())));
         assertNull(inventoryRepo.findItemById(typo.id()).orElseThrow().artId());
+    }
+
+    /**
+     * The check made before writing compares merge keys, and two people saving at the same moment both
+     * pass it. The database is the one that has to refuse the second, so it is asked here directly.
+     */
+    @Test
+    void twoSpellingsOfOneWordCannotBothBeFiled() {
+        Inventory drawer = drawer();
+        artRepo.create(drawer.id(), "Funk", "", 0);
+        assertThrows(WrappedQueryExecutionException.class, () -> artRepo.create(drawer.id(), "  FUNK  ", "", 1));
+        assertEquals(1, artRepo.findByInventory(drawer.id()).size());
     }
 
     @Test

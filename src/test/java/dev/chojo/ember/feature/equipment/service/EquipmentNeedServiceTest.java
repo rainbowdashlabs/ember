@@ -174,6 +174,46 @@ class EquipmentNeedServiceTest extends RepositoryTestBase {
         equipmentNeedRepo.deleteByEvent(event.id());
     }
 
+    /**
+     * A delivered request and an open one answer different parts of the line, so neither cancels the
+     * other out.
+     */
+    @Test
+    void whatHasArrivedDoesNotHideWhatIsStillComing() {
+        LocalDate day = EquipmentTestSupport.SATURDAY.plusDays(360);
+        var event = EquipmentTestSupport.oneOff(eventRepo, station.id(), "NeedSvcUnterwegs", day);
+        var line = needs.add(event.id(), station.id(), null, LineTarget.art(blue.id()), 14, 0, 0);
+
+        var delivered = lendingRepo.createRequest(
+                station.uid(), partner.uid(), day, day, member.id(), event.id(), day, "NeedSvcUnterwegs");
+        var deliveredLine = lendingRepo.addRequestItem(delivered.id(), foreign.id(), null, null, 4, line.id());
+        lendingRepo.updateRequestStatus(delivered.id(), LendingStatus.LENT);
+        for (int copy = 1; copy <= 4; copy++) {
+            inventoryRepo.createBorrowedItem(
+                    drawer.id(),
+                    "NSV-L%02d".formatted(copy),
+                    "Geliehen " + copy,
+                    InventoryItemMetadata.empty(),
+                    partner.id(),
+                    deliveredLine.id());
+        }
+
+        var open = lendingRepo.createRequest(
+                station.uid(), partner.uid(), day, day, member.id(), event.id(), day, "NeedSvcUnterwegs");
+        lendingRepo.addRequestItem(open.id(), foreign.id(), null, null, 6, line.id());
+
+        var coverage = needs.coverage(event.id(), day).getFirst();
+        assertEquals(4, coverage.borrowed());
+        assertEquals(6, coverage.outstanding());
+
+        lendingRepo.updateRequestStatus(open.id(), LendingStatus.CLOSED);
+        lendingRepo.updateRequestStatus(delivered.id(), LendingStatus.CLOSED);
+        for (var borrowed : inventoryRepo.findBorrowedByLoanItem(deliveredLine.id())) {
+            inventoryRepo.deleteItem(borrowed.id());
+        }
+        equipmentNeedRepo.deleteByEvent(event.id());
+    }
+
     @Test
     void anOverClaimIsNamedBesideTheLine() {
         LocalDate day = EquipmentTestSupport.SATURDAY.plusDays(330);

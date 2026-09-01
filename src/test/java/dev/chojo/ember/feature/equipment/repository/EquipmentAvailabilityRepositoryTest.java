@@ -125,20 +125,30 @@ class EquipmentAvailabilityRepositoryTest extends RepositoryTestBase {
         lendingRepo.updateRequestStatus(request.id(), LendingStatus.APPROVED);
 
         var open = equipmentAvailabilityRepo.loanClaims(
-                station.id(), EquipmentTestSupport.SATURDAY, EquipmentTestSupport.SATURDAY.plusDays(1));
+                station.id(), EquipmentTestSupport.SATURDAY, EquipmentTestSupport.SATURDAY.plusDays(1), null);
         assertTrue(open.stream().anyMatch(c -> c.requestItemId() == line.id() && c.assignedItemId() == null));
         assertTrue(open.stream().anyMatch(c -> c.quantity() == 2 && blue.id() == c.artId()));
 
+        assertTrue(equipmentAvailabilityRepo
+                .loanClaims(
+                        station.id(),
+                        EquipmentTestSupport.SATURDAY,
+                        EquipmentTestSupport.SATURDAY.plusDays(1),
+                        request.id())
+                .stream()
+                .noneMatch(c -> c.requestItemId() == line.id()));
+
         lendingRepo.assignItem(line.id(), first.id());
         var assigned = equipmentAvailabilityRepo.loanClaims(
-                station.id(), EquipmentTestSupport.SATURDAY, EquipmentTestSupport.SATURDAY.plusDays(1));
+                station.id(), EquipmentTestSupport.SATURDAY, EquipmentTestSupport.SATURDAY.plusDays(1), null);
         assertTrue(assigned.stream().anyMatch(c -> Integer.valueOf(first.id()).equals(c.assignedItemId())));
 
         assertTrue(equipmentAvailabilityRepo
-                .loanClaims(station.id(), EquipmentTestSupport.SATURDAY.plusDays(30), null)
+                .loanClaims(station.id(), EquipmentTestSupport.SATURDAY.plusDays(30), null, null)
                 .isEmpty());
-        assertFalse(
-                equipmentAvailabilityRepo.loanClaims(station.id(), null, null).isEmpty());
+        assertFalse(equipmentAvailabilityRepo
+                .loanClaims(station.id(), null, null, null)
+                .isEmpty());
         lendingRepo.updateRequestStatus(request.id(), LendingStatus.CLOSED);
     }
 
@@ -195,7 +205,7 @@ class EquipmentAvailabilityRepositoryTest extends RepositoryTestBase {
     @Test
     void aWindowWithoutADayReachesEverything() {
         assertTrue(equipmentAvailabilityRepo
-                .loanClaims(station.id(), LocalDate.of(1990, 1, 1), null)
+                .loanClaims(station.id(), LocalDate.of(1990, 1, 1), null, null)
                 .isEmpty());
     }
 }

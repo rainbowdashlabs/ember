@@ -23,6 +23,8 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
 import java.util.List;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SelfCheckRepositoryTest extends RepositoryTestBase {
@@ -296,5 +298,22 @@ class SelfCheckRepositoryTest extends RepositoryTestBase {
         assertEquals(2, raised.size());
         assertEquals(loss.id(), raised.getFirst().id());
         selfCheckRepo.overtake(taskId);
+    }
+
+    /**
+     * Every read of a task's answers filters on the task alone. The two indexes the table carries
+     * besides this one are partial and cannot serve such a read, so without a plain one every read
+     * walks the whole table.
+     */
+    @Test
+    void aTasksAnswersAreReachedByAnIndexOnTheTask() {
+        assertTrue(indexDefinitions("inventory_self_check_item").stream().anyMatch(def -> def.endsWith("(task_id)")));
+    }
+
+    private static List<String> indexDefinitions(String table) {
+        return query("SELECT indexdef FROM pg_indexes WHERE schemaname = :schema AND tablename = :table;")
+                .single(call().bind("schema", schemaName).bind("table", table))
+                .map(row -> row.getString("indexdef"))
+                .all();
     }
 }

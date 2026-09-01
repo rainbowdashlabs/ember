@@ -7,8 +7,15 @@ package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
 import dev.chojo.ember.feature.inventory.entity.FieldType;
+import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
+import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryFieldDefinitionRepository;
+import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -26,10 +33,41 @@ class InventoryFieldDefinitionServiceTest {
 
     private final InventoryFieldDefinitionRepository repository =
             Mockito.mock(InventoryFieldDefinitionRepository.class);
-    private final InventoryFieldDefinitionService service = new InventoryFieldDefinitionService(repository);
+    private final InventoryArtRepository artRepository = Mockito.mock(InventoryArtRepository.class);
+    private final InventoryRepository inventoryRepository = Mockito.mock(InventoryRepository.class);
+    private final InventoryFieldDefinitionService service =
+            new InventoryFieldDefinitionService(repository, artRepository, inventoryRepository);
 
     private static InventoryFieldDefinition definition(int inventoryId, String key, FieldType type, FieldConfig cfg) {
         return new InventoryFieldDefinition(7, inventoryId, null, null, key, "Label", type, false, 0, cfg);
+    }
+
+    private static InventoryArt art(int id, int inventoryId) {
+        return new InventoryArt(id, inventoryId, "Funk", "", 0, "funk");
+    }
+
+    private static InventoryItem item(int id, int inventoryId) {
+        return new InventoryItem(
+                id,
+                inventoryId,
+                "INT-1",
+                "Piece",
+                null,
+                null,
+                InventoryItemMetadata.empty(),
+                null,
+                null,
+                null,
+                null,
+                ItemOwner.STATION,
+                null,
+                null,
+                null,
+                ItemCustody.WITH_OWNER,
+                null,
+                null,
+                null,
+                null);
     }
 
     @Test
@@ -69,6 +107,66 @@ class InventoryFieldDefinitionServiceTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> service.create(1, 2, 3, "key", "Lbl", FieldType.TEXT, false, 0, null));
+    }
+
+    @Test
+    void createRefusesAKindOfAnotherInventory() {
+        Mockito.when(artRepository.findById(42)).thenReturn(Optional.of(art(42, 9)));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.create(1, 42, null, "key", "Lbl", FieldType.TEXT, false, 0, null));
+        Mockito.verify(repository, Mockito.never())
+                .create(
+                        Mockito.anyInt(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.anyString(),
+                        Mockito.anyString(),
+                        Mockito.any(),
+                        Mockito.anyBoolean(),
+                        Mockito.anyInt(),
+                        Mockito.any());
+    }
+
+    @Test
+    void createRefusesAPieceOfAnotherInventory() {
+        Mockito.when(inventoryRepository.findItemById(42)).thenReturn(Optional.of(item(42, 9)));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.create(1, null, 42, "key", "Lbl", FieldType.TEXT, false, 0, null));
+    }
+
+    @Test
+    void createRefusesAKindOrPieceThatIsGone() {
+        Mockito.when(artRepository.findById(42)).thenReturn(Optional.empty());
+        Mockito.when(inventoryRepository.findItemById(43)).thenReturn(Optional.empty());
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.create(1, 42, null, "key", "Lbl", FieldType.TEXT, false, 0, null));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.create(1, null, 43, "key", "Lbl", FieldType.TEXT, false, 0, null));
+    }
+
+    @Test
+    void createAcceptsAKindOfTheSameInventory() {
+        Mockito.when(artRepository.findById(42)).thenReturn(Optional.of(art(42, 1)));
+        Mockito.when(repository.findByArt(42)).thenReturn(List.of());
+        Mockito.when(repository.create(
+                        Mockito.eq(1),
+                        Mockito.eq(42),
+                        Mockito.isNull(),
+                        Mockito.eq("band"),
+                        Mockito.eq("Band"),
+                        Mockito.eq(FieldType.TEXT),
+                        Mockito.eq(false),
+                        Mockito.eq(0),
+                        Mockito.any(FieldConfig.class)))
+                .thenAnswer(inv -> definition(1, "band", FieldType.TEXT, service.defaultConfig(FieldType.TEXT)));
+        assertEquals(
+                "band",
+                service.create(1, 42, null, "band", "Band", FieldType.TEXT, false, 0, null)
+                        .key());
     }
 
     @Test

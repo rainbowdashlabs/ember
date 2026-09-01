@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
@@ -133,6 +135,39 @@ class ClusterStationGroupServiceTest extends RepositoryTestBase {
         clusterStationGroupService.delete(clusterId, group.id());
         assertTrue(clusterStationGroupService.findByCluster(clusterId).isEmpty());
 
+        clusterService.delete(clusterId);
+    }
+
+    /**
+     * A tag recommended to a group and a stock requirement counting at one both hold the filing in
+     * place, and the screen is told which of them does rather than being handed a failed statement.
+     */
+    @Test
+    void aGroupSomethingElseIsKeyedToCannotBeRemoved() {
+        int clusterId = freshCluster();
+        var group = clusterStationGroupService.create(clusterId, "Geraetewart " + NAMES.incrementAndGet());
+        var tag = clusterInventoryTagService.create(clusterId, "Funk " + NAMES.incrementAndGet(), null, group.id());
+
+        var refusedForTag =
+                assertThrows(BadRequestResponse.class, () -> clusterStationGroupService.delete(clusterId, group.id()));
+        assertTrue(refusedForTag.getMessage().contains("1 tag"));
+
+        clusterInventoryTagService.delete(clusterId, tag.id());
+
+        var station = clusterService.createStation(clusterId, "Wache Bedarf " + NAMES.incrementAndGet());
+        var inventory = inventoryRepo.create(station.id(), "Gruppenbedarf", InventoryType.INTERNAL, false);
+        var requirement = inventoryRepo.createRequirement(inventory.id(), StationUserType.MEMBER, 0, group.id(), 2);
+
+        var refusedForRequirement =
+                assertThrows(BadRequestResponse.class, () -> clusterStationGroupService.delete(clusterId, group.id()));
+        assertTrue(refusedForRequirement.getMessage().contains("1 stock requirement"));
+
+        inventoryRepo.deleteRequirement(requirement.id());
+        clusterStationGroupService.delete(clusterId, group.id());
+        assertTrue(clusterStationGroupService.findByCluster(clusterId).isEmpty());
+
+        clusterService.releaseStation(clusterId, station.id());
+        stationRepo.delete(station.id());
         clusterService.delete(clusterId);
     }
 
