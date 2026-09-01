@@ -24,6 +24,7 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -54,6 +55,11 @@ public class EquipmentAvailabilityService {
      */
     static final int MAX_LEAD_TRAIL_DAYS = 60;
 
+    /**
+     * How far a window reaches when nobody said where it ends.
+     */
+    private static final int OPEN_END_DAYS = 366;
+
     private final EquipmentAvailabilityRepository availabilityRepository;
     private final EquipmentNeedRepository needRepository;
     private final EventRepository eventRepository;
@@ -79,6 +85,22 @@ public class EquipmentAvailabilityService {
      */
     public Optional<ResolvedTarget> resolve(LineTarget target) {
         return availabilityRepository.resolve(target);
+    }
+
+    /**
+     * The far end of a window whose end nobody wrote down.
+     *
+     * <p>A loan with no return date runs until the gear comes back, which is not a date. A window is
+     * nonetheless read as days and walked day by day, so the far end has to be a day the arithmetic
+     * can reach and the walk can finish on. The largest instant there is answers neither: it names a
+     * year no date can hold, so the first question about which day it falls on throws, and a walk
+     * towards it would not end.
+     *
+     * @param from the first moment of the window
+     * @return a far but real end
+     */
+    public static Instant openEndAfter(Instant from) {
+        return from.plus(OPEN_END_DAYS, ChronoUnit.DAYS);
     }
 
     /**
@@ -109,11 +131,37 @@ public class EquipmentAvailabilityService {
      */
     public EquipmentAvailability availability(
             int stationId, LineTarget target, Instant from, Instant to, Integer ignoreNeedId) {
+        return availability(stationId, target, from, to, ignoreNeedId, null);
+    }
+
+    /**
+     * What a station has free of one thing over one window, leaving one line and one lending request
+     * out.
+     *
+     * <p>The request is left out for the same reason a line is: what fills an approved request must
+     * not read that request's own promise as gear somebody else has taken, and by the time it is
+     * filled the request is approved and therefore already counts as a loan.
+     *
+     * @param stationId       the station asking
+     * @param target          what is being asked about
+     * @param from            the first moment of the window
+     * @param to              the last moment of the window
+     * @param ignoreNeedId    the line not to count, or {@code null} to count every one
+     * @param ignoreRequestId the lending request not to count, or {@code null} to count every one
+     * @return the stock and everything already holding some of it
+     */
+    public EquipmentAvailability availability(
+            int stationId,
+            LineTarget target,
+            Instant from,
+            Instant to,
+            Integer ignoreNeedId,
+            Integer ignoreRequestId) {
         ResolvedTarget question = availabilityRepository
                 .resolve(target)
                 .orElseThrow(() -> new IllegalArgumentException("The equipment does not exist"));
         int stock = availabilityRepository.stockOf(stationId, target);
-        List<EquipmentClaim> claims = claims(stationId, from, to, ignoreNeedId).stream()
+        List<EquipmentClaim> claims = claims(stationId, from, to, ignoreNeedId, ignoreRequestId).stream()
                 .filter(claim -> claim.touches(question, from, to))
                 .map(claim -> sizeAgainst(claim, stock))
                 .toList();
@@ -156,10 +204,26 @@ public class EquipmentAvailabilityService {
      * @return the claims
      */
     public List<EquipmentClaim> claims(int stationId, Instant from, Instant to, Integer ignoreNeedId) {
+        return claims(stationId, from, to, ignoreNeedId, null);
+    }
+
+    /**
+     * Everything holding some of a station's stock over a window, from all three origins, leaving one
+     * line and one lending request out.
+     *
+     * @param stationId       the station
+     * @param from            the first moment of the window
+     * @param to              the last moment of the window
+     * @param ignoreNeedId    the line not to count, or {@code null} to count every one
+     * @param ignoreRequestId the lending request not to count, or {@code null} to count every one
+     * @return the claims
+     */
+    public List<EquipmentClaim> claims(
+            int stationId, Instant from, Instant to, Integer ignoreNeedId, Integer ignoreRequestId) {
         var resolved = new HashMap<LineTarget, ResolvedTarget>();
         var claims = new ArrayList<EquipmentClaim>();
         claims.addAll(ownClaims(stationId, from, to, ignoreNeedId, resolved));
-        claims.addAll(loanClaims(stationId, from, to, resolved));
+        claims.addAll(loanClaims(stationId, from, to, ignoreRequestId, resolved));
         claims.addAll(blockClaims(stationId, from, to, resolved));
         return claims;
     }
@@ -284,11 +348,15 @@ public class EquipmentAvailabilityService {
     }
 
     private List<EquipmentClaim> loanClaims(
-            int stationId, Instant from, Instant to, Map<LineTarget, ResolvedTarget> resolved) {
+            int stationId,
+            Instant from,
+            Instant to,
+            Integer ignoreRequestId,
+            Map<LineTarget, ResolvedTarget> resolved) {
         LocalDate dayFrom = from.atZone(ZoneOffset.UTC).toLocalDate();
         LocalDate dayTo = to.atZone(ZoneOffset.UTC).toLocalDate();
         var claims = new ArrayList<EquipmentClaim>();
-        for (var loan : availabilityRepository.loanClaims(stationId, dayFrom, dayTo)) {
+        for (var loan : availabilityRepository.loanClaims(stationId, dayFrom, dayTo, ignoreRequestId)) {
             LineTarget target = loan.assignedItemId() != null
                     ? LineTarget.item(loan.assignedItemId())
                     : targetOf(loan.itemId(), loan.artId(), loan.inventoryId());

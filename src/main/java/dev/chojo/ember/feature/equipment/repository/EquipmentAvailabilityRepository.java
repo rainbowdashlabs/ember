@@ -111,12 +111,17 @@ public class EquipmentAvailabilityRepository {
      * count claims that count out of whatever it named, which is the honest reading before anybody has
      * picked.
      *
-     * @param stationId the station whose gear it is
-     * @param from      the first day of the window
-     * @param to        the last day of the window, or {@code null} to reach forward without an end
+     * <p>One request may be left out. A request being filled must not count itself as competition for
+     * the gear it is asking for, and by the time it is filled it is already approved and therefore
+     * already one of these rows.
+     *
+     * @param stationId       the station whose gear it is
+     * @param from            the first day of the window
+     * @param to              the last day of the window, or {@code null} to reach forward without an end
+     * @param ignoreRequestId the request not to count, or {@code null} to count every one
      * @return the loans overlapping the window
      */
-    public List<LoanClaim> loanClaims(int stationId, LocalDate from, LocalDate to) {
+    public List<LoanClaim> loanClaims(int stationId, LocalDate from, LocalDate to, Integer ignoreRequestId) {
         return query("""
                 SELECT ri.id                    AS request_item_id,
                        ri.quantity,
@@ -134,13 +139,15 @@ public class EquipmentAvailabilityRepository {
                 LEFT JOIN station s ON s.uid = r.requesting_station_uid
                 WHERE owner.id = :station_id
                   AND r.status IN ('APPROVED', 'LENT')
+                  AND (:ignore_request::INT IS NULL OR r.id <> :ignore_request::INT)
                   AND (:date_to::DATE IS NULL OR r.requested_date_from <= :date_to::DATE)
                   AND (r.requested_date_to IS NULL OR :date_from::DATE IS NULL
                        OR r.requested_date_to >= :date_from::DATE)
                 ORDER BY ri.id, a.item_id;""")
                 .single(call().bind("station_id", stationId)
                         .bind("date_from", from)
-                        .bind("date_to", to))
+                        .bind("date_to", to)
+                        .bind("ignore_request", ignoreRequestId))
                 .map(row -> new LoanClaim(
                         row.getInt("request_item_id"),
                         row.getInt("quantity"),
