@@ -7,6 +7,7 @@ import client from './client'
 import {createCrudResource} from './crud'
 import {uploadFile} from './upload'
 import type {MessageResponse} from './types'
+import {prepareImageUpload} from '@/util/imageUpload'
 
 export interface LostAndFoundItem {
     id: number
@@ -37,8 +38,12 @@ export const getItem = items.get
 export const createItem = items.create
 export const deleteItem = items.remove
 
+/**
+ * Sends the picture of a found item, redrawn to a format and a size the endpoint takes. A photo
+ * straight off a phone is neither, so the browser does the shrinking before anything is uploaded.
+ */
 export async function uploadImage(id: number, file: File): Promise<void> {
-    await uploadFile(`/lost-and-found/${id}/image`, {image: file})
+    await uploadFile(`/lost-and-found/${id}/image`, {image: await prepareImageUpload(file)})
 }
 
 export function imageUrl(id: number, size?: number): string {
@@ -48,6 +53,11 @@ export function imageUrl(id: number, size?: number): string {
 
 export async function claimItem(id: number, request?: ClaimLostAndFoundRequest): Promise<MessageResponse> {
     const res = await client.post<MessageResponse>(`/lost-and-found/${id}/claim`, request ?? {})
+    return res.data
+}
+
+export async function releaseItem(id: number): Promise<MessageResponse> {
+    const res = await client.post<MessageResponse>(`/lost-and-found/${id}/release`)
     return res.data
 }
 

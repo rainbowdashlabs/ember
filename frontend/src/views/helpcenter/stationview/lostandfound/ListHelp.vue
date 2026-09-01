@@ -10,6 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import ExampleItemCard from './listhelp/ExampleItemCard.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -41,15 +42,8 @@ const {t} = useI18n()
     </div>
 
     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <NeutralContainer class="space-y-3">
-        <div class="w-full h-28 rounded bg-bg-light-accent dark:bg-bg-dark-accent flex items-center justify-center text-(--text-muted)">
-          <font-awesome-icon :icon="['fas', 'image']" class="text-2xl"/>
-        </div>
-        <div class="space-y-1">
-          <p class="text-sm font-medium">Roter Handschuh (links)</p>
-          <p class="text-xs text-(--text-muted)">{{ t('lostAndFound.foundAt') }}: 18.05.2026</p>
-          <SuccessBadge>{{ t('lostAndFound.claimedByYou') }}</SuccessBadge>
-        </div>
+      <ExampleItemCard name="Roter Handschuh (links)" found-at="18.05.2026" has-image
+                       :claim-label="t('lostAndFound.claimedByYou')">
         <HelpPermissionGuard :permissions="[StationPermission.LOST_AND_FOUND_MANAGE]" :label="t('helpCenter.permissionLabel.lostAndFoundManage')">
           <div class="flex gap-2">
             <SuccessButton :icon="['fas', 'circle-check']" class="text-xs flex-1" disabled>
@@ -58,34 +52,25 @@ const {t} = useI18n()
             <DeleteButton disabled/>
           </div>
         </HelpPermissionGuard>
-      </NeutralContainer>
+        <SecondaryButton :icon="['fas', 'rotate-left']" class="text-xs w-full" disabled>
+          {{ t('lostAndFound.release') }}
+        </SecondaryButton>
+      </ExampleItemCard>
 
-      <NeutralContainer class="space-y-3">
-        <div class="w-full h-28 rounded bg-bg-light-accent dark:bg-bg-dark-accent flex items-center justify-center text-(--text-muted)">
-          <font-awesome-icon :icon="['fas', 'image']" class="text-2xl"/>
-        </div>
-        <div class="space-y-1">
-          <p class="text-sm font-medium">Blaue Trinkflasche</p>
-          <p class="text-xs text-(--text-muted)">{{ t('lostAndFound.foundAt') }}: 15.05.2026</p>
-          <SuccessBadge>{{ t('lostAndFound.claimedBy', {name: 'Max Mustermann'}) }}</SuccessBadge>
-        </div>
-      </NeutralContainer>
+      <ExampleItemCard name="Blaue Trinkflasche" found-at="15.05.2026" has-image
+                       :claim-label="t('lostAndFound.claimedBy', {name: 'Max Mustermann'})"/>
 
-      <NeutralContainer class="space-y-3">
-        <div class="w-full h-28 rounded bg-bg-light-accent dark:bg-bg-dark-accent flex items-center justify-center text-(--text-muted)">
-          <font-awesome-icon :icon="['fas', 'box-open']" class="text-2xl"/>
-        </div>
-        <div class="space-y-1">
-          <p class="text-sm font-medium">Schwarze Mütze</p>
-          <p class="text-xs text-(--text-muted)">{{ t('lostAndFound.foundAt') }}: 12.05.2026</p>
-        </div>
+      <ExampleItemCard name="Schwarze Mütze" found-at="12.05.2026" :has-image="false">
         <div class="flex gap-2">
           <SuccessButton class="text-xs flex-1" disabled>
             {{ t('lostAndFound.claim') }}
           </SuccessButton>
           <DeleteButton disabled/>
         </div>
-      </NeutralContainer>
+        <SecondaryButton :icon="['fas', 'camera']" class="text-xs w-full" disabled>
+          {{ t('lostAndFound.addImage') }}
+        </SecondaryButton>
+      </ExampleItemCard>
     </div>
 
     <HelpPermissionGuard :permissions="[StationPermission.LOST_AND_FOUND_CREATE]" :label="t('helpCenter.permissionLabel.lostAndFoundCreate')">
@@ -116,10 +101,20 @@ const {t} = useI18n()
           <DateInput model-value="" disabled/>
         </div>
       </NeutralContainer>
+
+      <HelpSection :title="t('helpCenter.lostAndFound.photoTitle')">
+        <p>{{ t('helpCenter.lostAndFound.photoText') }}</p>
+        <p>{{ t('helpCenter.lostAndFound.photoText2') }}</p>
+      </HelpSection>
     </HelpPermissionGuard>
 
     <HelpSection :title="t('helpCenter.lostAndFound.claimTitle')">
       <p>{{ t('helpCenter.lostAndFound.claimText') }}</p>
+      <p>{{ t('helpCenter.lostAndFound.claimForText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.lostAndFound.releaseTitle')">
+      <p>{{ t('helpCenter.lostAndFound.releaseText') }}</p>
     </HelpSection>
 
     <HelpPermissionGuard :permissions="[StationPermission.LOST_AND_FOUND_MANAGE]" :label="t('helpCenter.permissionLabel.lostAndFoundManage')">
