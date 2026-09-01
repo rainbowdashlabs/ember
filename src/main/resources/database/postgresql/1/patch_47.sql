@@ -784,6 +784,7 @@ CREATE TABLE ember_schema.inventory_self_check_item
     answer            TEXT    NOT NULL,
     note              TEXT    NOT NULL DEFAULT '',
     typed_internal_id TEXT,
+    size_id           INTEGER REFERENCES ember_schema.inventory_size (id) ON DELETE SET NULL,
     answered_by       INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
     answered_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     state             TEXT    NOT NULL DEFAULT 'OUTSTANDING',
@@ -807,6 +808,7 @@ COMMENT ON COLUMN ember_schema.inventory_self_check_item.slot IS 'Which of the e
 COMMENT ON COLUMN ember_schema.inventory_self_check_item.answer IS 'What the member said: HAVE_IT, DO_NOT_HAVE_IT, TURNED_UP, WRONG_RECORD, NEVER_HAD or HAVE_ONE.';
 COMMENT ON COLUMN ember_schema.inventory_self_check_item.note IS 'What the member wrote beside the answer, which is usually the useful part.';
 COMMENT ON COLUMN ember_schema.inventory_self_check_item.typed_internal_id IS 'The number the member read off a piece nobody wrote down. Matched when the reviewer reads it, never trusted, and NULL where nothing was typed.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.size_id IS 'The size the member gave for a piece nobody wrote down, in an inventory that keeps sizes. Freely given rather than asked for, so NULL means they did not say and the reviewer reads it as unanswered. The reviewer writes it onto the piece when the answer is taken.';
 COMMENT ON COLUMN ember_schema.inventory_self_check_item.answered_by IS 'Who entered the answer, which is the member or one of their guardians. NULL once that person is no longer a member here.';
 COMMENT ON COLUMN ember_schema.inventory_self_check_item.answered_at IS 'When the answer was last written.';
 COMMENT ON COLUMN ember_schema.inventory_self_check_item.state IS 'OUTSTANDING until a reviewer settles it, then TAKEN or REFUSED.';

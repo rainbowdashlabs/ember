@@ -155,11 +155,16 @@ class SelfCheckServiceTest extends RepositoryTestBase {
     }
 
     private static SelfCheckAnswerInput aboutPiece(int itemId, SelfCheckAnswer answer) {
-        return new SelfCheckAnswerInput(itemId, null, null, answer, "", null);
+        return new SelfCheckAnswerInput(itemId, null, null, answer, "", null, null);
     }
 
     private static SelfCheckAnswerInput aboutPlace(int slot, SelfCheckAnswer answer, String typed) {
-        return new SelfCheckAnswerInput(null, inventory.id(), slot, answer, "nothing was ever handed to me", typed);
+        return aboutPlace(slot, answer, typed, null);
+    }
+
+    private static SelfCheckAnswerInput aboutPlace(int slot, SelfCheckAnswer answer, String typed, Integer sizeId) {
+        return new SelfCheckAnswerInput(
+                null, inventory.id(), slot, answer, "nothing was ever handed to me", typed, sizeId);
     }
 
     @Test
@@ -323,7 +328,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         station.id(),
                         member.id(),
                         false,
-                        List.of(new SelfCheckAnswerInput(owned.id(), null, null, null, "", null))));
+                        List.of(new SelfCheckAnswerInput(owned.id(), null, null, null, "", null, null))));
         selfCheckService.closeAllFor(member.id());
     }
 
@@ -403,7 +408,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         station.id(),
                         member.id(),
                         false,
-                        List.of(new SelfCheckAnswerInput(null, null, 0, SelfCheckAnswer.NEVER_HAD, "", null))));
+                        List.of(new SelfCheckAnswerInput(null, null, 0, SelfCheckAnswer.NEVER_HAD, "", null, null))));
         assertThrows(
                 BadRequestResponse.class,
                 () -> selfCheckService.answer(
@@ -412,7 +417,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         member.id(),
                         false,
                         List.of(new SelfCheckAnswerInput(
-                                null, inventory.id(), -1, SelfCheckAnswer.NEVER_HAD, "", null))));
+                                null, inventory.id(), -1, SelfCheckAnswer.NEVER_HAD, "", null, null))));
         assertThrows(
                 BadRequestResponse.class,
                 () -> selfCheckService.answer(
@@ -420,7 +425,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         station.id(),
                         member.id(),
                         false,
-                        List.of(new SelfCheckAnswerInput(null, -1, 0, SelfCheckAnswer.NEVER_HAD, "", null))));
+                        List.of(new SelfCheckAnswerInput(null, -1, 0, SelfCheckAnswer.NEVER_HAD, "", null, null))));
         assertThrows(
                 BadRequestResponse.class,
                 () -> selfCheckService.answer(

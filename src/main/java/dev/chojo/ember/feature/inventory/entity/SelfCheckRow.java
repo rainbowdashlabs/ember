@@ -27,6 +27,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param answer          what the member said
  * @param note            what they wrote beside it
  * @param typedInternalId the number they read off a piece nobody wrote down, or {@code null}
+ * @param sizeId          the size they gave for such a piece, or {@code null} where they gave none
  * @param answeredBy      who entered it, which is the member or one of their guardians
  * @param answeredAt      when it was last written
  * @param state           whether a reviewer has settled it
@@ -43,6 +44,7 @@ public record SelfCheckRow(
         SelfCheckAnswer answer,
         String note,
         String typedInternalId,
+        Integer sizeId,
         Integer answeredBy,
         Instant answeredAt,
         SelfCheckRowState state,
@@ -54,7 +56,7 @@ public record SelfCheckRow(
      * The columns every read of this table selects, in the order the mapping expects them.
      */
     public static final String COLUMNS = "id, task_id, item_id, inventory_id, slot, answer, note, typed_internal_id,"
-            + " answered_by, answered_at, state, reviewer_reason, reviewed_by, reviewed_at";
+            + " size_id, answered_by, answered_at, state, reviewer_reason, reviewed_by, reviewed_at";
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -69,6 +71,7 @@ public record SelfCheckRow(
                 row.getEnum("answer", SelfCheckAnswer.class),
                 row.getString("note"),
                 row.getString("typed_internal_id"),
+                row.getObject("size_id", Integer.class),
                 row.getObject("answered_by", Integer.class),
                 row.get("answered_at", INSTANT_TIMESTAMP),
                 row.getEnum("state", SelfCheckRowState.class),

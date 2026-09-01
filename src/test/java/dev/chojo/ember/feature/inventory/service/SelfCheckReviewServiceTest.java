@@ -129,7 +129,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
     void anEmptyPlaceTheMemberNeverHadGoesDownAsNotHeld() {
         SelfCheck task = submitted();
         SelfCheckRow row = selfCheckRepo.answerForPlace(
-                task.id(), inventory.id(), 0, SelfCheckAnswer.NEVER_HAD, "never got one", null, member.id());
+                task.id(), inventory.id(), 0, SelfCheckAnswer.NEVER_HAD, "never got one", null, null, member.id());
 
         var review = selfCheckReviewService.take(task.id(), row.id(), station.id(), reviewer.id());
 
@@ -184,7 +184,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
     void anEmptyPlaceTheMemberIsHoldingSomethingForCannotSimplyBeTaken() {
         SelfCheck task = submitted();
         SelfCheckRow row = selfCheckRepo.answerForPlace(
-                task.id(), inventory.id(), 1, SelfCheckAnswer.HAVE_ONE, "", "SCR-TYPED", member.id());
+                task.id(), inventory.id(), 1, SelfCheckAnswer.HAVE_ONE, "", "SCR-TYPED", null, member.id());
 
         assertThrows(
                 BadRequestResponse.class,
@@ -218,7 +218,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         InventoryItem unwritten = inventoryRepo.createItem(inventory.id(), "SCR-UNWRITTEN", "Spare", null, null);
         SelfCheck task = submitted();
         SelfCheckRow row = selfCheckRepo.answerForPlace(
-                task.id(), inventory.id(), 2, SelfCheckAnswer.HAVE_ONE, "", "SCR-UNWRITTEN", member.id());
+                task.id(), inventory.id(), 2, SelfCheckAnswer.HAVE_ONE, "", "SCR-UNWRITTEN", null, member.id());
 
         var review = selfCheckReviewService.correctAndTake(
                 task.id(),
@@ -426,7 +426,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         InventoryItem free = inventoryRepo.createItem(inventory.id(), "SCR-CASE", "Free piece", null, null);
         SelfCheck task = submitted();
         selfCheckRepo.answerForPlace(
-                task.id(), inventory.id(), 3, SelfCheckAnswer.HAVE_ONE, "", "  scr-case ", member.id());
+                task.id(), inventory.id(), 3, SelfCheckAnswer.HAVE_ONE, "", "  scr-case ", null, member.id());
 
         var match = selfCheckReviewService
                 .read(task.id(), station.id(), reviewer.id())
@@ -444,7 +444,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         itemCustodyService.assignToMember(theirs.id(), guardian.id(), "");
         SelfCheck task = submitted();
         selfCheckRepo.answerForPlace(
-                task.id(), inventory.id(), 4, SelfCheckAnswer.HAVE_ONE, "", "SCR-THEIRS", member.id());
+                task.id(), inventory.id(), 4, SelfCheckAnswer.HAVE_ONE, "", "SCR-THEIRS", null, member.id());
 
         var match = selfCheckReviewService
                 .read(task.id(), station.id(), reviewer.id())
@@ -459,7 +459,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
     void aNumberNothingCarriesIsAFindingOfItsOwn() {
         SelfCheck task = submitted();
         selfCheckRepo.answerForPlace(
-                task.id(), inventory.id(), 5, SelfCheckAnswer.HAVE_ONE, "", "SCR-NOWHERE", member.id());
+                task.id(), inventory.id(), 5, SelfCheckAnswer.HAVE_ONE, "", "SCR-NOWHERE", null, member.id());
 
         var match = selfCheckReviewService
                 .read(task.id(), station.id(), reviewer.id())
@@ -476,7 +476,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         inventoryRepo.createItem(inventory.id(), "SCR-DOUBLE", "Second", null, null);
         SelfCheck task = submitted();
         selfCheckRepo.answerForPlace(
-                task.id(), inventory.id(), 0, SelfCheckAnswer.HAVE_ONE, "", "SCR-DOUBLE", member.id());
+                task.id(), inventory.id(), 0, SelfCheckAnswer.HAVE_ONE, "", "SCR-DOUBLE", null, member.id());
 
         var match = selfCheckReviewService
                 .read(task.id(), station.id(), reviewer.id())
@@ -492,7 +492,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         containerRepo.create(station.id(), null, "SCR-BOX", "The box", null, "", reviewer.id());
         SelfCheck task = submitted();
         selfCheckRepo.answerForPlace(
-                task.id(), inventory.id(), 1, SelfCheckAnswer.HAVE_ONE, "", "scr-box", member.id());
+                task.id(), inventory.id(), 1, SelfCheckAnswer.HAVE_ONE, "", "scr-box", null, member.id());
 
         var match = selfCheckReviewService
                 .read(task.id(), station.id(), reviewer.id())
@@ -521,7 +521,8 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
     @Test
     void anAnswerAboutAnEmptyPlaceTakesNoPieceOffTheRecord() {
         SelfCheck task = submitted();
-        selfCheckRepo.answerForPlace(task.id(), inventory.id(), 2, SelfCheckAnswer.NEVER_HAD, "", null, member.id());
+        selfCheckRepo.answerForPlace(
+                task.id(), inventory.id(), 2, SelfCheckAnswer.NEVER_HAD, "", null, null, member.id());
 
         var row = selfCheckReviewService
                 .read(task.id(), station.id(), reviewer.id())
