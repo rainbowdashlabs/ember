@@ -11,11 +11,11 @@ import {unique} from './fixtures/unique'
  * Picks a row by typing part of its name. The dialogue offers a search rather than a list, because a
  * station with hundreds of pieces has no list worth scrolling.
  */
-async function pickByName(page: Page, testId: string, term: string, label: string): Promise<void> {
+async function pickByName(page: Page, testId: string, term: string, inventory: string): Promise<void> {
     const picker = page.getByTestId(testId)
     await picker.getByRole('searchbox').click()
     await picker.getByRole('searchbox').fill(term)
-    await picker.getByText(label).click()
+    await picker.getByRole('button').filter({hasText: inventory}).click()
 }
 
 /** Picks whatever the search offers first, where the story does not care which row it is. */
@@ -75,7 +75,7 @@ test.describe('Collections', () => {
 
         await page.getByTestId('collection-add-line').click()
         await page.getByTestId('collection-line-kind').selectOption('art')
-        await pickByName(page, 'line-target-art', 'blau', 'Funkgerät blau')
+        await pickByName(page, 'line-target-art', 'blau', 'Handfunkgeräte')
         await page.getByTestId('line-target-art-quantity').fill('4')
         await expect(page.getByTestId('line-target-stock'), 'the reader is told how many there are')
             .toHaveText('Vorhanden: 6 Stück')

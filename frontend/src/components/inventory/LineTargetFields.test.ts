@@ -66,6 +66,15 @@ describe('LineTargetFields', () => {
     expect(fields('art', '', 1).find('input[type="search"]').exists()).toBe(true)
   })
 
+  it('writes the chosen kind back to the form', async () => {
+    const wrapper = fields('art', '', 1)
+    await wrapper.get('input[type="search"]').trigger('focusin')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    await wrapper.get('[data-testid="line-target-art"] button').trigger('click')
+
+    expect(wrapper.emitted('update:artId')?.at(-1)).toEqual(['7'])
+  })
+
   it('offers only the inventories that hold one thing in many copies', async () => {
     const wrapper = fields('inventory', '', 1)
     await wrapper.get('input[type="search"]').trigger('focusin')

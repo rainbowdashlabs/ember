@@ -40,6 +40,11 @@ function badgeFn(entry: Inventory) {
 
 const innerModel = numericPickerModel(model)
 
+function pickInventory(entry: Inventory) {
+  model.value = entry.id
+  emit('pick', entry)
+}
+
 const selectedDisplay = computed(() => {
   if (model.value == null) return null
   const entry = props.inventories.find(candidate => candidate.id === model.value)
@@ -59,6 +64,6 @@ const selectedDisplay = computed(() => {
       :placeholder="placeholder ?? t('inventory.inventoryPicker.placeholder')"
       :disabled="disabled"
       :empty-label="t('inventory.inventoryPicker.empty')"
-      @pick="(entry: Inventory) => emit('pick', entry)"
+      @pick="pickInventory"
   />
 </template>

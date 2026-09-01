@@ -10,11 +10,13 @@ import type {APIRequestContext, Page} from '@playwright/test'
  * Picks a kind by typing part of its name, which is the only way in: a station with hundreds of
  * kinds has no list worth scrolling, so the dialogue offers a search.
  */
-async function pickArt(page: Page, term: string): Promise<void> {
+async function pickArt(page: Page, term: string, inventory: string): Promise<void> {
     const picker = page.getByTestId('line-target-art')
     await picker.getByRole('searchbox').click()
     await picker.getByRole('searchbox').fill(term)
-    await picker.getByText('Funkgerät blau').click()
+    const row = picker.getByRole('button').filter({hasText: inventory})
+    await expect(row, 'a row says how many pieces there are before it is chosen').toContainText('Stück')
+    await row.click()
 }
 
 /** A day far enough out that nothing the demo data seeded is planned on it. */
@@ -74,7 +76,7 @@ test.describe('Appointment equipment', () => {
 
             await page.getByTestId('equipment-add').click()
             await page.getByTestId('equipment-line-kind').selectOption('art')
-            await pickArt(page, 'blau')
+            await pickArt(page, 'blau', 'Handfunkgeräte')
             await page.getByTestId('line-target-art-quantity').fill('4')
             await expect(page.getByTestId('line-target-stock'), 'the reader is told how many there are')
                 .toHaveText('Vorhanden: 6 Stück')
@@ -107,7 +109,7 @@ test.describe('Appointment equipment', () => {
 
             await page.getByTestId('equipment-add').click()
             await page.getByTestId('equipment-line-kind').selectOption('art')
-            await pickArt(page, 'blau')
+            await pickArt(page, 'blau', 'Handfunkgeräte')
 
             await expect(page.getByTestId('line-target-short'), 'four of six is not short').toHaveCount(0)
 
