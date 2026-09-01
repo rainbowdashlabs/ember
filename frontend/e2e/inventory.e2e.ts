@@ -643,4 +643,52 @@ test.describe('Inventory', () => {
         expect(found.map((item: {itemId: number}) => item.itemId),
             'and the word finds it again however it is typed').toContain(piece.id)
     })
+
+    /**
+     * Narrowing the exchange list is what makes exporting part of it possible.
+     *
+     * <p>The export sends the numbers of the rows that are ticked, so whoever wants the requests of
+     * one inventory used to pick them out of every request the station has. The story filters the
+     * list, ticks everything left standing, and reads the numbers that actually leave the browser:
+     * the ones the filter hid must not be among them, or the button would quietly export the whole
+     * station.
+     */
+    test('the exchange list narrows down and the export carries only what is left',
+        async ({managerPage: page}) => {
+            const headers = await apiHeaders(page)
+            const raised: {id: number; inventoryId: number; status: string}[] =
+                await page.request.get('/api/v1/exchanges', {headers}).then(r => r.json())
+            const open = raised.filter(exchange => exchange.status !== 'DONE')
+            expect(open.length, 'the seeded station has exchanges to narrow down').toBeGreaterThan(1)
+
+            const inventories = [...new Set(open.map(exchange => exchange.inventoryId))]
+            expect(inventories.length, 'spread over more than one inventory').toBeGreaterThan(1)
+
+            const inInventory = (id: number) => open.filter(exchange => exchange.inventoryId === id)
+            const chosen = inventories.reduce((best, id) =>
+                inInventory(id).length > inInventory(best).length ? id : best)
+            const expected = inInventory(chosen).map(exchange => exchange.id)
+
+            await page.goto('/station/inventory/exchanges')
+            const rows = page.getByTestId('exchange-row')
+            await expect(rows.first()).toBeVisible()
+            await expect(rows, 'the list opens on the requests still running').toHaveCount(open.length)
+
+            await page.getByTestId('exchange-filter-inventory').selectOption(String(chosen))
+            await expect(rows, 'and shows only the chosen inventory once it is picked').toHaveCount(expected.length)
+
+            await page.getByRole('button', {name: 'Exportieren'}).click()
+            const selectAll = page.getByTestId('exchange-select-all')
+            await selectAll.click()
+            await expect(selectAll, 'nothing is ticked after clearing the selection').not.toBeChecked()
+            await selectAll.click()
+
+            const [sent] = await Promise.all([
+                page.waitForRequest(req => req.url().includes('/exchanges/export') && req.method() === 'POST'),
+                page.getByRole('button', {name: /Herunterladen/}).click(),
+            ])
+            const carried: number[] = sent.postDataJSON().exchangeIds
+            expect([...carried].sort(), 'only the rows the filter left standing are exported')
+                .toEqual([...expected].sort())
+        })
 })
