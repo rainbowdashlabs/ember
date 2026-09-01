@@ -95,6 +95,12 @@ function refusalMessage(e: unknown): string {
   switch (apiErrorBody(e)?.error) {
     case 'MALFORMED': return t('federation.refused.malformed')
     case 'OTHER_INSTANCE': return t('federation.refused.otherInstance')
+    case 'HOST_REFUSED': return t('federation.refused.hostRefused')
+    case 'REMOTE_UNREACHABLE': return t('federation.refused.remoteUnreachable')
+    case 'REMOTE_TIMEOUT': return t('federation.refused.remoteTimeout')
+    case 'REMOTE_REFUSED': return t('federation.refused.remoteRefused')
+    case 'REMOTE_STATION_GONE': return t('federation.refused.remoteStationGone')
+    case 'CONTRACT_MISMATCH': return t('federation.refused.contractMismatch')
     case 'UNKNOWN_STATION': return t('federation.refused.unknownStation')
     case 'OWN_STATION': return t('federation.refused.ownStation')
     case 'ALREADY_PARTNERED': return t('federation.refused.alreadyPartnered')

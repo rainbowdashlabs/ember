@@ -16,7 +16,9 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.interfaces.RSAKey;
+import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Duration;
 import java.time.Instant;
@@ -231,6 +233,28 @@ public class FederationSigningService {
             return key;
         } catch (Exception e) {
             throw new RuntimeException("Failed to decode public key", e);
+        }
+    }
+
+    /**
+     * Derives the Base64-encoded public key belonging to a Base64-encoded RSA private key.
+     *
+     * <p>A station signs everything it federates with one key pair, and only the private half is
+     * kept. Deriving the public half rather than generating a fresh pair is what lets a station
+     * enter a second partnership without invalidating the first: the partners it already has hold
+     * the public key of the pair it still signs with.
+     */
+    public String derivePublicKey(String base64PrivateKey) {
+        try {
+            var privateKey = decodePrivateKey(base64PrivateKey);
+            if (!(privateKey instanceof RSAPrivateCrtKey crt)) {
+                throw new IllegalArgumentException("Private key carries no public exponent");
+            }
+            var spec = new RSAPublicKeySpec(crt.getModulus(), crt.getPublicExponent());
+            var publicKey = KeyFactory.getInstance("RSA").generatePublic(spec);
+            return Base64.getEncoder().encodeToString(publicKey.getEncoded());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to derive public key", e);
         }
     }
 

@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
+import dev.chojo.ember.feature.federation.service.FederationEnrollmentService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -37,15 +38,18 @@ import java.util.UUID;
 public class FederationRoutes implements Routes {
 
     private final FederationService service;
+    private final FederationEnrollmentService enrollmentService;
     private final KnowledgeBaseFederationService kbFederationService;
     private final StationRepository stationRepository;
 
     @Inject
     public FederationRoutes(
             FederationService service,
+            FederationEnrollmentService enrollmentService,
             KnowledgeBaseFederationService kbFederationService,
             StationRepository stationRepository) {
         this.service = service;
+        this.enrollmentService = enrollmentService;
         this.kbFederationService = kbFederationService;
         this.stationRepository = stationRepository;
     }
@@ -189,7 +193,8 @@ public class FederationRoutes implements Routes {
             throw new BadRequestResponse("inviteCode is required");
         }
 
-        switch (service.enterPairingCode(session.stationId(), req.inviteCode().trim())) {
+        switch (enrollmentService.enterCode(
+                session.stationId(), req.inviteCode().trim())) {
             case FederationService.CodeOutcome.Partnered partnered ->
                 ctx.status(HttpStatus.CREATED).json(partnered.partner());
             case FederationService.CodeOutcome.Requested requested ->
@@ -203,7 +208,15 @@ public class FederationRoutes implements Routes {
     private String refusalMessage(FederationService.CodeOutcome.Refused refused) {
         return switch (refused.reason()) {
             case MALFORMED -> "Not a pairing code";
-            case OTHER_INSTANCE -> "This code was made on " + refused.detail();
+            case OTHER_INSTANCE -> "A code from " + refused.detail() + " must carry an invite token";
+            case HOST_REFUSED -> refused.detail() + " is not an address this instance will call";
+            case REMOTE_UNREACHABLE -> refused.detail() + " did not answer";
+            case REMOTE_TIMEOUT -> refused.detail() + " took too long to answer";
+            case REMOTE_REFUSED -> refused.detail() + " would not accept this station";
+            case REMOTE_STATION_GONE -> "The station this code was made for no longer exists on " + refused.detail();
+            case CONTRACT_MISMATCH ->
+                "This instance and " + refused.detail() + " run federation versions that "
+                        + "cannot talk to each other";
             case UNKNOWN_STATION -> "No station on this instance answers to that code";
             case OWN_STATION -> "A station cannot federate with itself";
             case ALREADY_PARTNERED -> "These stations are already connected";

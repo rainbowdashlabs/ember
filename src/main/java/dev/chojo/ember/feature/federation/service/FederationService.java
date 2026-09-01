@@ -126,8 +126,26 @@ public class FederationService {
     public enum CodeRefusal {
         /** Not a pairing code at all: mistyped, truncated or from somewhere else entirely. */
         MALFORMED,
-        /** Made on a different instance, where the station it names lives. */
+        /**
+         * Made on a different instance and carrying no consent, so there is nothing to redeem
+         * there. Only an invite code, which carries a token, reaches across instances.
+         */
         OTHER_INSTANCE,
+        /**
+         * The address in the code is not one this instance will call: not public, not HTTPS, or
+         * pointing into a network nobody outside it should be able to make this server visit.
+         */
+        HOST_REFUSED,
+        /** The other instance did not answer at all. */
+        REMOTE_UNREACHABLE,
+        /** The other instance took too long to answer. */
+        REMOTE_TIMEOUT,
+        /** The other instance answered, and would not accept this station. */
+        REMOTE_REFUSED,
+        /** The other instance no longer has the station the code names. */
+        REMOTE_STATION_GONE,
+        /** The two instances run federation versions that cannot talk to each other. */
+        CONTRACT_MISMATCH,
         /** Well formed, but this instance has no station with that identity. */
         UNKNOWN_STATION,
         /** The station that entered the code is the station the code was made for. */
@@ -158,7 +176,9 @@ public class FederationService {
     }
 
     /**
-     * Enters a pairing code on behalf of the station that typed it.
+     * Enters a pairing code naming a station on this instance, on behalf of the station that typed
+     * it. A code made elsewhere is turned away here and belongs to
+     * {@link FederationEnrollmentService}, which is the only caller that reaches another instance.
      *
      * <p>A code carrying a token is the issuing station's consent and settles the partnership at
      * once. A request either side had left open is dropped as part of that: asking to connect and
@@ -496,7 +516,7 @@ public class FederationService {
      * <p>Stations under one cluster have already agreed to share; asking them to tick seven boxes each would
      * be a formality with no decision behind it. A capability added later is enabled here for free.
      */
-    private void enableEveryCapability(FederationPartner partner) {
+    public void enableEveryCapability(FederationPartner partner) {
         for (CapabilityType capability : CapabilityType.values()) {
             repository.upsertCapability(partner.id(), capability, Direction.EXPORT, true);
             repository.upsertCapability(partner.id(), capability, Direction.IMPORT, true);

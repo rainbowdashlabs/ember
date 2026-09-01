@@ -9,6 +9,12 @@ import {test, expect} from './fixtures/auth'
  * The station's own side of federation. Connecting two stations and reading a partner's content
  * needs both of them answering, which the seeded partner stations allow; those stories follow once
  * the suite knows how to drive two stations at once.
+ *
+ * <p>Connecting two stations that live on different instances has no story here and cannot have
+ * one: this suite runs a single instance, and the whole of that feature is one instance calling
+ * another. A story pretending otherwise would be checking a refusal on the way out rather than the
+ * connection it claims to be about. The two sides meet in the backend tests instead, where both
+ * instances can be stood up at once.
  */
 test.describe('Federation', () => {
     /**
