@@ -287,6 +287,7 @@ public class ItemMovementService {
             Integer pickedItemId,
             boolean lostReport,
             List<Integer> carriedIncoming) {
+        requireItIsNotAlreadyOnItsWay(outgoingItemId);
         ItemOwner ownerKind = resolveOwner(outgoingItemId, inventoryId);
         Integer ownerClusterId = resolveOwnerId(outgoingItemId, stationId);
         MovementParty party = memberId != null ? MovementParty.MEMBER : MovementParty.STORE;
@@ -335,6 +336,25 @@ public class ItemMovementService {
                 ownerKind == ItemOwner.CLUSTER ? ownerClusterId : null));
         announceIssue(purpose, ownerKind, ownerClusterId, stationId, started);
         return started;
+    }
+
+    /**
+     * Refuses to send a piece out on a second chain while it is still walking the first.
+     *
+     * <p>A piece can only be in one place, and every chain says where it is by moving it. Two chains on
+     * one piece therefore read each other's work: a step walked on one shifts custody, and the other
+     * reports itself further along without anybody having touched it. Stations really did end up with
+     * two exchanges raised for the same jacket, and both of them then drifted.
+     *
+     * @param outgoingItemId the piece that would be setting out, or {@code null} when nothing does
+     * @throws BadRequestResponse naming the movement that already has it
+     */
+    private void requireItIsNotAlreadyOnItsWay(Integer outgoingItemId) {
+        if (outgoingItemId == null) return;
+        movementRepository.findOpenByOutgoingItem(outgoingItemId).ifPresent(open -> {
+            throw new BadRequestResponse(
+                    "This piece is already on movement %d, so finish or call that one off first".formatted(open.id()));
+        });
     }
 
     /**

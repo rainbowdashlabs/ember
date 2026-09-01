@@ -248,4 +248,24 @@ class ExchangeServiceTest extends RepositoryTestBase {
         service.delete(exchange.id());
     }
 
+    @Test
+    @Order(33)
+    void aPieceAlreadyOnItsWayCannotBeSentOutAgain() {
+        var item = inventoryRepo.createItem(inventoryId, "B-DUP", "Blouson M", null, null);
+        itemCustodyService.assignToMember(item.id(), member.id(), "");
+        var first = service.create(
+                station.id(), member.id(), "Exch Tester", item.id(), inventoryId, null, null, "First", null);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.create(
+                        station.id(), member.id(), "Exch Tester", item.id(), inventoryId, null, null, "Second", null));
+
+        assertEquals(
+                1,
+                service.findByStation(station.id()).stream()
+                        .filter(e -> e.itemId() != null && e.itemId() == item.id())
+                        .count());
+        service.delete(first.id());
+    }
 }

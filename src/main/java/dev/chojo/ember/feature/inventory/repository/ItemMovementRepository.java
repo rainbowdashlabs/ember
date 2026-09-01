@@ -89,6 +89,24 @@ public class ItemMovementRepository {
                 call().bind("flow_id", flowId).bind("open", MovementState.OPEN));
     }
 
+    /**
+     * The movement that is already under way with this piece, if there is one.
+     *
+     * <p>A piece can only be in one place, so it can only be on one chain: a second chain reads the
+     * custody the first one is moving and walks itself on the strength of it.
+     *
+     * @param itemId the piece that would be setting out
+     * @return the open movement holding it, or empty when it is free to set out
+     */
+    public Optional<ItemMovement> findOpenByOutgoingItem(int itemId) {
+        return query("""
+                SELECT %s FROM item_movement WHERE outgoing_item_id = :item_id AND state = :open \
+                ORDER BY created_at LIMIT 1;""", MOVEMENT_COLUMNS)
+                .single(call().bind("item_id", itemId).bind("open", MovementState.OPEN))
+                .map(ItemMovement.map())
+                .first();
+    }
+
     public int countOpenByStation(int stationId) {
         return SqlSupport.count(
                 "SELECT count(*) FROM item_movement WHERE station_id = :station_id AND state = :open;",
