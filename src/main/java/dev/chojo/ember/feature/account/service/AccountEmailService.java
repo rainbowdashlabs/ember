@@ -49,6 +49,39 @@ public class AccountEmailService {
     }
 
     /**
+     * What stands in the way of an address, so a caller that has something of its own to say about
+     * each answer can ask before it writes.
+     */
+    public enum AddressProblem {
+        NONE,
+        /** Not shaped like an address at all. */
+        MALFORMED,
+        /** Shaped like one, but made up: nothing can be delivered to it. */
+        UNREACHABLE,
+        /** Somebody else's. */
+        TAKEN
+    }
+
+    /** The address as it is stored: trimmed, and in one case. */
+    public static String normalise(String email) {
+        return email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Whether this address may be written onto this account.
+     *
+     * @param accountId the account it is meant for, which may already carry it
+     * @param email     the address, as it was typed
+     */
+    public AddressProblem problemWith(int accountId, String email) {
+        String normalised = normalise(email);
+        if (!EMAIL.matcher(normalised).matches()) return AddressProblem.MALFORMED;
+        if (!Account.isRealEmail(normalised)) return AddressProblem.UNREACHABLE;
+        var existing = accountRepository.findByEmail(normalised);
+        return existing.isPresent() && existing.get().id() != accountId ? AddressProblem.TAKEN : AddressProblem.NONE;
+    }
+
+    /**
      * Writes a new address onto an account and ends every session it had.
      *
      * @param accountId the account
@@ -59,15 +92,13 @@ public class AccountEmailService {
      */
     public boolean setEmail(int accountId, String email) {
         Account account = accountRepository.findById(accountId).orElseThrow(NotFoundResponse::new);
-        String normalised = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
-        if (!EMAIL.matcher(normalised).matches() || !Account.isRealEmail(normalised)) {
-            throw new BadRequestResponse("A valid email address is required");
+        String normalised = normalise(email);
+        switch (problemWith(accountId, email)) {
+            case MALFORMED, UNREACHABLE -> throw new BadRequestResponse("A valid email address is required");
+            case TAKEN -> throw new BadRequestResponse("This email address already belongs to another account");
+            case NONE -> {}
         }
         if (normalised.equalsIgnoreCase(account.email())) return false;
-        var existing = accountRepository.findByEmail(normalised);
-        if (existing.isPresent() && existing.get().id() != accountId) {
-            throw new BadRequestResponse("This email address already belongs to another account");
-        }
 
         String previous = account.email();
         accountRepository.updateEmail(accountId, normalised);

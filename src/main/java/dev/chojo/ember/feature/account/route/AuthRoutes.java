@@ -85,6 +85,7 @@ public class AuthRoutes implements Routes {
         routes.post(prefix + "/auth/verify-email", this::verifyEmail);
         routes.post(prefix + "/auth/resend-verification", this::resendVerification);
         routes.post(prefix + "/auth/set-password", this::setPassword);
+        routes.post(prefix + "/auth/set-address", this::setAddress);
         routes.post(prefix + "/auth/forgot-password", this::forgotPassword);
         routes.post(prefix + "/auth/password-link", this::passwordLinkStatus);
         routes.post(prefix + "/auth/login", this::login);
@@ -221,7 +222,7 @@ public class AuthRoutes implements Routes {
         // not an English sentence. The frontend localises it via vue-i18n. Translations live in
         // src/i18n/<locale>.ts under the same key path.
         switch (result.outcome()) {
-            case OK -> ctx.status(HttpStatus.OK).json(sessionAfterPassword(result.login()));
+            case OK -> ctx.status(HttpStatus.OK).json(LoginResponse.of(result.login()));
             case PASSWORD_TOO_SHORT -> throw new BadRequestResponse("setPassword.passwordTooShort");
             case PASSWORD_BREACHED -> throw new BadRequestResponse("setPassword.passwordBreached");
             case TOKEN_INVALID -> throw new BadRequestResponse("setPassword.tokenInvalid");
@@ -229,20 +230,35 @@ public class AuthRoutes implements Routes {
         }
     }
 
-    /**
-     * The answer to a password that was accepted: the session it earned, or what still stands in
-     * the way of one. An empty answer means the password was set and the account still has to sign
-     * in by hand, which is what the form falls back to.
-     */
-    private static LoginResponse sessionAfterPassword(LoginResult login) {
-        if (login == null || !login.success()) {
-            return new LoginResponse(null, null, false, null, null, false, null, null);
+    @OpenApi(
+            path = "/api/v1/auth/set-address",
+            methods = HttpMethod.POST,
+            summary = "Put a reachable address on an account that owes one",
+            description =
+                    "Spends the one-time token a sign-in hands out instead of a session when the account administers the instance and carries no address mail can reach. Writes the address and answers as the login endpoint does. A made-up address is refused: the point of the step is that the person can be written to.",
+            tags = {"Auth"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetAddressRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = LoginResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void setAddress(Context ctx) {
+        enforceLimit(rateLimiter.trySetPassword(clientIp(ctx)));
+        var request = ctx.bodyAsClass(SetAddressRequest.class);
+        if (isBlank(request.token()) || isBlank(request.email())) {
+            throw new BadRequestResponse("token and email are required");
         }
-        if (login.twoFactorRequired()) {
-            return new LoginResponse(
-                    null, null, false, null, null, true, login.preAuthToken(), login.preAuthTokenExpiresAt());
+
+        var result = authService.setRequiredAddress(
+                request.token(), request.email(), ctx.userAgent(), ctx.header("CF-IPCountry"));
+        switch (result.outcome()) {
+            case OK -> ctx.status(HttpStatus.OK).json(LoginResponse.of(result.login()));
+            case TOKEN_INVALID -> throw new BadRequestResponse("setAddress.tokenInvalid");
+            case TOKEN_EXPIRED -> throw new BadRequestResponse("setAddress.tokenExpired");
+            case ADDRESS_MALFORMED -> throw new BadRequestResponse("setAddress.malformed");
+            case ADDRESS_UNREACHABLE -> throw new BadRequestResponse("setAddress.unreachable");
+            case ADDRESS_TAKEN -> throw new BadRequestResponse("setAddress.taken");
         }
-        return new LoginResponse(login.token(), login.expiresAt(), false, null, null, false, null, null);
     }
 
     @OpenApi(
@@ -314,24 +330,7 @@ public class AuthRoutes implements Routes {
             throw new UnauthorizedResponse(result.message());
         }
 
-        if (result.passwordChangeRequired()) {
-            ctx.status(HttpStatus.OK)
-                    .json(new LoginResponse(null, null, true, result.token(), result.expiresAt(), false, null, null));
-        } else if (result.twoFactorRequired()) {
-            ctx.status(HttpStatus.OK)
-                    .json(new LoginResponse(
-                            null,
-                            null,
-                            false,
-                            null,
-                            null,
-                            true,
-                            result.preAuthToken(),
-                            result.preAuthTokenExpiresAt()));
-        } else {
-            ctx.status(HttpStatus.OK)
-                    .json(new LoginResponse(result.token(), result.expiresAt(), false, null, null, false, null, null));
-        }
+        ctx.status(HttpStatus.OK).json(LoginResponse.of(result));
     }
 
     @OpenApi(
@@ -355,8 +354,7 @@ public class AuthRoutes implements Routes {
         if (!result.success()) {
             throw new UnauthorizedResponse(result.message());
         }
-        ctx.status(HttpStatus.OK)
-                .json(new LoginResponse(result.token(), result.expiresAt(), false, null, null, false, null, null));
+        ctx.status(HttpStatus.OK).json(LoginResponse.of(result));
     }
 
     @OpenApi(
@@ -509,6 +507,11 @@ public class AuthRoutes implements Routes {
     public record SetPasswordRequest(String token, String password) {}
 
     /**
+     * Request body for putting a reachable address on an account that a sign-in stopped for one.
+     */
+    public record SetAddressRequest(String token, String email) {}
+
+    /**
      * Response body returned after successful registration.
      */
     public record RegisterResponse(int id, String email, String firstName, String lastName, boolean emailVerified) {}
@@ -523,9 +526,46 @@ public class AuthRoutes implements Routes {
             boolean passwordChangeRequired,
             String passwordChangeToken,
             Instant passwordChangeTokenExpiresAt,
+            boolean addressRequired,
+            String addressToken,
+            Instant addressTokenExpiresAt,
             boolean twoFactorRequired,
             String preAuthToken,
-            Instant preAuthTokenExpiresAt) {}
+            Instant preAuthTokenExpiresAt) {
+
+        /** Neither a session nor a way to one: whoever asked has to sign in by hand. */
+        public static LoginResponse none() {
+            return new LoginResponse(null, null, false, null, null, false, null, null, false, null, null);
+        }
+
+        public static LoginResponse session(String token, Instant expiresAt) {
+            return new LoginResponse(token, expiresAt, false, null, null, false, null, null, false, null, null);
+        }
+
+        public static LoginResponse passwordChange(String token, Instant expiresAt) {
+            return new LoginResponse(null, null, true, token, expiresAt, false, null, null, false, null, null);
+        }
+
+        public static LoginResponse address(String token, Instant expiresAt) {
+            return new LoginResponse(null, null, false, null, null, true, token, expiresAt, false, null, null);
+        }
+
+        public static LoginResponse twoFactor(String preAuthToken, Instant expiresAt) {
+            return new LoginResponse(null, null, false, null, null, false, null, null, true, preAuthToken, expiresAt);
+        }
+
+        /**
+         * Whatever the sign-in decided, said the way the API says it: a session, or the one step
+         * still standing in the way of one.
+         */
+        public static LoginResponse of(LoginResult login) {
+            if (login == null || !login.success()) return none();
+            if (login.passwordChangeRequired()) return passwordChange(login.token(), login.expiresAt());
+            if (login.addressRequired()) return address(login.token(), login.expiresAt());
+            if (login.twoFactorRequired()) return twoFactor(login.preAuthToken(), login.preAuthTokenExpiresAt());
+            return session(login.token(), login.expiresAt());
+        }
+    }
 
     /**
      * Response body for a refreshed session with the new token and expiration.

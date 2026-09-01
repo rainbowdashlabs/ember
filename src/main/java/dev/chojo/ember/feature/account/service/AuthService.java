@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.account.service;
 
+import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.auth.BreachCheckWorker;
 import dev.chojo.ember.auth.HibpClient;
 import dev.chojo.ember.auth.PasswordHasher;
@@ -40,6 +41,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.BiFunction;
 
 /**
  * Service handling authentication, registration, session management, password operations,
@@ -51,14 +53,16 @@ public class AuthService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     /**
-     * How long the token handed out in place of a session lasts when a login has to change its
-     * password first. It sets a password without knowing the old one, so it is a short-lived
-     * credential and deliberately does not follow the session length: how long somebody stays
-     * signed in on their own machine has nothing to say about how long that may lie around.
+     * How long the token handed out in place of a session lasts when a login has to do something
+     * first: rotate its password, or put a reachable address on the account. Either one is done
+     * without proving anything a second time, so it is a short-lived credential and deliberately
+     * does not follow the session length: how long somebody stays signed in on their own machine
+     * has nothing to say about how long that may lie around.
      */
-    private static final int FORCE_PASSWORD_CHANGE_MINUTES = 30;
+    private static final int FORCED_STEP_MINUTES = 30;
 
     private final AccountRepository accountRepository;
+    private final AccountEmailService accountEmailService;
     private final MailLocaleService mailLocaleService;
     private final MailRecipientService mailRecipientService;
     private final RegistrationCodeRepository registrationCodeRepository;
@@ -84,6 +88,7 @@ public class AuthService {
     @Inject
     public AuthService(
             AccountRepository accountRepository,
+            AccountEmailService accountEmailService,
             MailLocaleService mailLocaleService,
             MailRecipientService mailRecipientService,
             RegistrationCodeRepository registrationCodeRepository,
@@ -98,6 +103,7 @@ public class AuthService {
             TwoFactorRepository twoFactorRepository,
             TrustedDeviceService trustedDeviceService) {
         this.accountRepository = accountRepository;
+        this.accountEmailService = accountEmailService;
         this.mailLocaleService = mailLocaleService;
         this.mailRecipientService = mailRecipientService;
         this.registrationCodeRepository = registrationCodeRepository;
@@ -677,8 +683,12 @@ public class AuthService {
      * <p>Signing in and setting a password both end here, because both have just proved the same
      * thing: that whoever is asking holds the account's password. Everything that stands between
      * that proof and a session has to stand in both places or the weaker of the two becomes the way
-     * in, so the second factor, the forced rotation and the unverified address are decided once,
-     * here, rather than once per caller.
+     * in, so the second factor, the forced rotation, the missing address and the unverified one are
+     * decided once, here, rather than once per caller.
+     *
+     * <p>The steps chain rather than nest: each one hands back a token instead of a session, and
+     * whoever spends that token comes through here again, so an account owing two of them is asked
+     * for both, one after the other, in this order.
      *
      * @param account             the account the password belongs to
      * @param forcePasswordChange whether the credential is flagged for rotation
@@ -698,11 +708,12 @@ public class AuthService {
         // Force password change - issue a one-time token instead of a session
         if (forcePasswordChange) {
             log.info("Account {} requires a password change - issuing password-change token", account.id());
-            String token = generateToken();
-            accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.FORCE_PASSWORD_CHANGE);
-            Instant expiresAt = Instant.now().plus(FORCE_PASSWORD_CHANGE_MINUTES, ChronoUnit.MINUTES);
-            accountRepository.createToken(account.id(), token, TokenType.FORCE_PASSWORD_CHANGE, expiresAt);
-            return LoginResult.passwordChangeRequired(token, expiresAt);
+            return forcedStep(account, TokenType.FORCE_PASSWORD_CHANGE, LoginResult::passwordChangeRequired);
+        }
+
+        if (needsReachableAddress(account)) {
+            log.info("Account {} administers the instance without a reachable address", account.id());
+            return forcedStep(account, TokenType.FORCE_ADDRESS, LoginResult::addressRequired);
         }
 
         // Two-factor authentication - issue a pre-auth token if enrolled
@@ -737,6 +748,108 @@ public class AuthService {
 
         return createSession(account.id(), userAgent, location, trustedDevice);
     }
+
+    /**
+     * A step that has to be taken before there can be a session, handed out as a one-time token.
+     *
+     * <p>Only one of each kind may be outstanding: the previous one is thrown away, so a login
+     * repeated four times leaves four dead tokens behind rather than four live ones.
+     *
+     * @param type    the kind of step the token stands for
+     * @param outcome what to answer the caller with, given the token and how long it lasts
+     */
+    private LoginResult forcedStep(Account account, TokenType type, BiFunction<String, Instant, LoginResult> outcome) {
+        String token = generateToken();
+        accountRepository.deleteTokensByAccountAndType(account.id(), type);
+        Instant expiresAt = Instant.now().plus(FORCED_STEP_MINUTES, ChronoUnit.MINUTES);
+        accountRepository.createToken(account.id(), token, type, expiresAt);
+        return outcome.apply(token, expiresAt);
+    }
+
+    /**
+     * Whether this account may not have a session until somebody can write to it.
+     *
+     * <p>Asked of whoever administers the instance, because an administrator nobody can write to is
+     * half an account: no password reset reaches them, no security notice does, and no warning about
+     * their own instance does either. The first start used to hand that person a made-up address, so
+     * the instances this catches are mostly the ones that were set up before it stopped, which is why
+     * the question is what the account carries now and not when it was made.
+     *
+     * <p>An ordinary member is never asked. A station holds people who never sign in at all and were
+     * deliberately entered without an address, and demanding one of them would be demanding it of
+     * whoever entered them.
+     */
+    private boolean needsReachableAddress(Account account) {
+        return account.instanceUserType() == InstanceUserType.ADMINISTRATOR && !account.hasRealEmail();
+    }
+
+    /**
+     * Spends an address token: writes the address the administrator chose, and signs them in.
+     *
+     * <p>Written at once rather than confirmed by mail, which is the one place that trade is worth
+     * making. The account has no address the old half of a confirmation could go to, and the new half
+     * would have to travel over a mail setup that a freshly installed instance does not have yet, so
+     * asking for it would lock the only administrator out of the instance they are installing. What
+     * the address is worth is instead paid for at the moment it is chosen: it is typed by somebody
+     * who has just proved they hold the password, in a step they cannot walk past. That is what the
+     * address counts as verified on, and it is marked so here rather than left to whatever the
+     * account carried before, because a real address left unverified refuses every later sign-in.
+     *
+     * @param token     the one-time token handed out in place of a session
+     * @param email     the address as it was typed
+     * @return what became of it, and the session where there is one
+     */
+    public AddressResult setRequiredAddress(String token, String email, String userAgent, String location) {
+        Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
+        if (tokenOpt.isEmpty() || tokenOpt.get().tokenType() != TokenType.FORCE_ADDRESS) {
+            return new AddressResult(AddressOutcome.TOKEN_INVALID, null);
+        }
+        AccountToken accountToken = tokenOpt.get();
+        if (accountToken.isExpired()) {
+            accountRepository.deleteToken(token);
+            return new AddressResult(AddressOutcome.TOKEN_EXPIRED, null);
+        }
+
+        int accountId = accountToken.accountId();
+        var problem = accountEmailService.problemWith(accountId, email);
+        if (problem != AccountEmailService.AddressProblem.NONE) {
+            return new AddressResult(AddressOutcome.of(problem), null);
+        }
+
+        accountEmailService.setEmail(accountId, email);
+        accountRepository.setEmailVerified(accountId);
+        accountRepository.deleteToken(token);
+        var account = accountRepository.findById(accountId);
+        if (account.isEmpty()) return new AddressResult(AddressOutcome.TOKEN_INVALID, null);
+
+        log.info("Account {} was given an address it can be reached at and signed in", accountId);
+        return new AddressResult(
+                AddressOutcome.OK, admitVerifiedAccount(account.get(), false, userAgent, location, null, false));
+    }
+
+    /** What became of an attempt to put a reachable address on an account that owes one. */
+    public enum AddressOutcome {
+        OK,
+        TOKEN_INVALID,
+        TOKEN_EXPIRED,
+        ADDRESS_MALFORMED,
+        ADDRESS_UNREACHABLE,
+        ADDRESS_TAKEN;
+
+        static AddressOutcome of(AccountEmailService.AddressProblem problem) {
+            return switch (problem) {
+                case MALFORMED -> ADDRESS_MALFORMED;
+                case UNREACHABLE -> ADDRESS_UNREACHABLE;
+                case TAKEN -> ADDRESS_TAKEN;
+                case NONE -> OK;
+            };
+        }
+    }
+
+    /**
+     * @param login the session the address earned, or null where the address was refused
+     */
+    public record AddressResult(AddressOutcome outcome, LoginResult login) {}
 
     /**
      * Refreshes a session by handing it a new token and pushing back its expiry.

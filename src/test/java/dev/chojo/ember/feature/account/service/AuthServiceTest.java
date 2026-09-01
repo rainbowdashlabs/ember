@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.account.service;
 
+import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.auth.BreachCheckWorker;
 import dev.chojo.ember.auth.HibpClient;
@@ -65,6 +66,10 @@ class AuthServiceTest extends RepositoryTestBase {
                 twoFactorRepoLocal, TokenHasher.forTesting("test-pepper"), new TwoFactorSettings());
         service = new AuthService(
                 accountRepo,
+                new AccountEmailService(
+                        accountRepo,
+                        new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
+                        emailService),
                 new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
                 new MailRecipientService(accountRepo, stationMemberRepo),
                 registrationCodeRepo,
@@ -970,6 +975,10 @@ class AuthServiceTest extends RepositoryTestBase {
         when(hibpClient.isPwned(anyString())).thenReturn(false);
         return new AuthService(
                 accountRepo,
+                new AccountEmailService(
+                        accountRepo,
+                        new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
+                        mock(EmailService.class)),
                 new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
                 new MailRecipientService(accountRepo, stationMemberRepo),
                 registrationCodeRepo,
@@ -1159,6 +1168,109 @@ class AuthServiceTest extends RepositoryTestBase {
 
         assertEquals(AuthService.SetPasswordOutcome.TOKEN_INVALID, result.outcome());
         assertNull(result.login());
+    }
+
+    /**
+     * An administrator carrying a made-up address, which is what the first start used to hand out.
+     */
+    private TrustedDeviceFixture createAdministratorWithoutAddress() {
+        var fixture = createLoginCapableAccount("admin-unreachable");
+        String madeUp = "admin-" + UUID.randomUUID() + "@ember.local";
+        accountRepo.updateEmail(fixture.accountId(), madeUp);
+        accountRepo.setInstanceUserType(fixture.accountId(), InstanceUserType.ADMINISTRATOR);
+        return new TrustedDeviceFixture(fixture.accountId(), madeUp, fixture.stationId());
+    }
+
+    /**
+     * An administrator nobody can write to is stopped at the sign-in and asked where to write.
+     *
+     * <p>The password was right, so what comes back is the step and not a refusal, and it carries no
+     * session: the point of the step is that it cannot be walked past.
+     */
+    @Test
+    @Order(93)
+    void anAdministratorWithoutAReachableAddressIsAskedForOne() {
+        var fixture = createAdministratorWithoutAddress();
+
+        var result = service.login(fixture.email(), PASSWORD, "agent", "DE", null);
+
+        assertTrue(result.success(), result.message());
+        assertTrue(result.addressRequired(), "an administrator with a made-up address owes a real one");
+        assertNotNull(result.token(), "the step is handed out as a one-time token");
+        assertTrue(accountRepo.findSession(result.token()).isEmpty(), "the token must not be a session");
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /** Another made-up address answers the step with the same thing it was asked about. */
+    @Test
+    @Order(94)
+    void aMadeUpAddressIsRefusedAtTheStep() {
+        var fixture = createAdministratorWithoutAddress();
+        var login = service.login(fixture.email(), PASSWORD, "agent", "DE", null);
+
+        var refused = service.setRequiredAddress(login.token(), "somebody@else.local", "agent", "DE");
+
+        assertEquals(AuthService.AddressOutcome.ADDRESS_UNREACHABLE, refused.outcome());
+        assertNull(refused.login(), "a refused address earns nothing");
+        assertEquals(
+                fixture.email(),
+                accountRepo.findById(fixture.accountId()).orElseThrow().email(),
+                "the account keeps the address it had");
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /**
+     * A real address ends the step: it is written, it counts as verified, and the session it was
+     * standing in the way of is handed over at once.
+     */
+    @Test
+    @Order(95)
+    void aRealAddressEndsTheStepAndSignsThemIn() {
+        var fixture = createAdministratorWithoutAddress();
+        var login = service.login(fixture.email(), PASSWORD, "agent", "DE", null);
+        String address = "reachable-" + UUID.randomUUID() + "@example.com";
+
+        var accepted = service.setRequiredAddress(login.token(), address, "agent", "DE");
+
+        assertEquals(AuthService.AddressOutcome.OK, accepted.outcome());
+        assertNotNull(accepted.login());
+        assertNotNull(accepted.login().token());
+        assertFalse(accepted.login().addressRequired());
+        var account = accountRepo.findById(fixture.accountId()).orElseThrow();
+        assertEquals(address, account.email());
+        assertTrue(account.emailVerified(), "an unverified real address would refuse every later sign-in");
+
+        var again = service.login(address, PASSWORD, "agent", "DE", null);
+        assertFalse(again.addressRequired(), "the step is over once there is an address");
+        assertNotNull(accountRepo.findSession(again.token()).orElse(null));
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /**
+     * Nobody else is asked. A station holds people entered without an address on purpose, and the
+     * step is about the one account the instance itself has to be able to write to.
+     */
+    @Test
+    @Order(96)
+    void anOrdinaryMemberWithAMadeUpAddressStillSignsIn() {
+        var fixture = createLoginCapableAccount("member-unreachable");
+        String madeUp = "member-" + UUID.randomUUID() + "@ember.local";
+        accountRepo.updateEmail(fixture.accountId(), madeUp);
+
+        var result = service.login(madeUp, PASSWORD, "agent", "DE", null);
+
+        assertTrue(result.success(), result.message());
+        assertFalse(result.addressRequired());
+        assertNotNull(accountRepo.findSession(result.token()).orElse(null));
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
     }
 
     @Test
