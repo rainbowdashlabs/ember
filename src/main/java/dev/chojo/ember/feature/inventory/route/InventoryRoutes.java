@@ -240,6 +240,14 @@ public class InventoryRoutes implements Routes {
      * 404 both when absent and when owned by another station.
      */
     /** Whose gear somebody may write down: their own station's, the association's, or both. */
+    /**
+     * Who a piece taken into this inventory belongs to, which is what says whose permission it takes
+     * to create one. The service works this out the same way when it creates the piece.
+     */
+    private static ItemOwner ownerOf(Inventory inventory) {
+        return inventory.inventoryType() == InventoryType.EXTERNAL ? ItemOwner.CLUSTER : ItemOwner.STATION;
+    }
+
     private void requireMayCreate(UserSession session, ItemOwner owner) {
         StationPermission required = owner == ItemOwner.CLUSTER
                 ? StationPermission.INVENTORY_CREATE_EXTERNAL
@@ -352,6 +360,7 @@ public class InventoryRoutes implements Routes {
                 .findById(request.inventoryId())
                 .orElseThrow(() -> new NotFoundResponse("Inventory not found"));
         RouteSupport.requireSameStation(session, inventory.stationId());
+        requireMayCreate(session, ownerOf(inventory));
         String actor = session.account().firstName() + " " + session.account().lastName();
         var item = inventoryService.createAndHandOut(request.inventoryId(), request.sizeId(), memberId, actor);
         ctx.status(HttpStatus.CREATED).json(item);

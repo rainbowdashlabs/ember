@@ -125,7 +125,13 @@ export function useSelfCheck(task: Ref<SelfCheckResponse | null>) {
         drafts.value = next
     }
 
-    /** Reads what was already saved back into the drafts, so coming back shows what was left. */
+    /**
+     * Reads what was already saved back into the drafts, so coming back shows what was left.
+     *
+     * <p>What is on the screen and not yet saved survives this. The list is read again in the middle
+     * of the walk, after a loss or an exchange is set going, and taking the server's word for the
+     * whole map there would throw away every answer given since the last save.
+     */
     function adoptSaved(rows: SelfCheckRow[]) {
         const next = new Map<string, SelfCheckDraft>()
         for (const row of rows) {
@@ -135,6 +141,7 @@ export function useSelfCheck(task: Ref<SelfCheckResponse | null>) {
                 typedInternalId: row.typedInternalId ?? '',
             })
         }
+        for (const [key, draft] of drafts.value) next.set(key, draft)
         drafts.value = next
     }
 
