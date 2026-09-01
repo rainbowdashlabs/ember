@@ -4,7 +4,26 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, apiHeaders, clusterAccountWith, clusterPage} from './fixtures/auth'
+import type {Page} from '@playwright/test'
 import {unique} from './fixtures/unique'
+
+/**
+ * Picks a row by typing part of its name. The dialogue offers a search rather than a list, because a
+ * station with hundreds of pieces has no list worth scrolling.
+ */
+async function pickByName(page: Page, testId: string, term: string, label: string): Promise<void> {
+    const picker = page.getByTestId(testId)
+    await picker.getByRole('searchbox').click()
+    await picker.getByRole('searchbox').fill(term)
+    await picker.getByText(label).click()
+}
+
+/** Picks whatever the search offers first, where the story does not care which row it is. */
+async function pickFirst(page: Page, testId: string): Promise<void> {
+    const picker = page.getByTestId(testId)
+    await picker.getByRole('searchbox').click()
+    await picker.getByRole('button').first().click()
+}
 
 test.describe('Collections', () => {
     /**
@@ -25,7 +44,7 @@ test.describe('Collections', () => {
 
         await page.getByTestId('collection-add-line').click()
         await page.getByTestId('collection-line-kind').selectOption('inventory')
-        await page.getByTestId('line-target-inventory').selectOption({index: 1})
+        await pickFirst(page, 'line-target-inventory')
         await page.getByTestId('line-target-quantity').fill('2')
         await page.getByTestId('collection-line-submit').click()
 
@@ -56,8 +75,10 @@ test.describe('Collections', () => {
 
         await page.getByTestId('collection-add-line').click()
         await page.getByTestId('collection-line-kind').selectOption('art')
-        await page.getByTestId('line-target-art').selectOption({label: 'Funkgerät blau (Handfunkgeräte)'})
+        await pickByName(page, 'line-target-art', 'blau', 'Funkgerät blau')
         await page.getByTestId('line-target-art-quantity').fill('4')
+        await expect(page.getByTestId('line-target-stock'), 'the reader is told how many there are')
+            .toHaveText('Vorhanden: 6 Stück')
         await page.getByTestId('collection-line-submit').click()
 
         await expect(page.getByTestId('collection-line')).toHaveCount(1)

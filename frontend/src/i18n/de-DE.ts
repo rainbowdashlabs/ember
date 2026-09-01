@@ -3235,6 +3235,20 @@ export default {
             badgeLost: 'Verloren',
             badgeFree: 'Frei',
         },
+        artPicker: {
+            placeholder: 'Art suchen…',
+            empty: 'Keine passende Art.',
+        },
+        inventoryPicker: {
+            placeholder: 'Inventar suchen…',
+            empty: 'Kein passendes Inventar.',
+        },
+        stock: {
+            pieces: '{count} Stück',
+            available: 'Vorhanden: {count} Stück',
+            none: 'Davon ist gerade nichts an der Wache.',
+            short: 'Verlangt sind {requested}, an der Wache sind {available}. Eintragen lässt sich das trotzdem, gedeckt ist es nicht.',
+        },
         assign: {
             selectMember: 'Mitglied',
             pickMember: '- Bitte wählen -',

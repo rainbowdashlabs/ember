@@ -4,7 +4,18 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, apiHeaders} from './fixtures/auth'
-import type {APIRequestContext} from '@playwright/test'
+import type {APIRequestContext, Page} from '@playwright/test'
+
+/**
+ * Picks a kind by typing part of its name, which is the only way in: a station with hundreds of
+ * kinds has no list worth scrolling, so the dialogue offers a search.
+ */
+async function pickArt(page: Page, term: string): Promise<void> {
+    const picker = page.getByTestId('line-target-art')
+    await picker.getByRole('searchbox').click()
+    await picker.getByRole('searchbox').fill(term)
+    await picker.getByText('Funkgerät blau').click()
+}
 
 /** A day far enough out that nothing the demo data seeded is planned on it. */
 function inDays(days: number): string {
@@ -63,8 +74,10 @@ test.describe('Appointment equipment', () => {
 
             await page.getByTestId('equipment-add').click()
             await page.getByTestId('equipment-line-kind').selectOption('art')
-            await page.getByTestId('line-target-art').selectOption({label: 'Funkgerät blau (Handfunkgeräte)'})
+            await pickArt(page, 'blau')
             await page.getByTestId('line-target-art-quantity').fill('4')
+            await expect(page.getByTestId('line-target-stock'), 'the reader is told how many there are')
+                .toHaveText('Vorhanden: 6 Stück')
             await page.getByTestId('equipment-line-submit').click()
 
             await expect(page.getByTestId('equipment-need')).toHaveCount(1)
@@ -74,6 +87,37 @@ test.describe('Appointment equipment', () => {
             await page.reload()
             await page.getByRole('button', {name: 'Ausrüstung'}).click()
             await expect(page.getByTestId('equipment-need'), 'the line survives a reload').toHaveCount(1)
+
+            await page.request.delete(`/api/v1/events/${eventId}`, {headers})
+        })
+
+    /**
+     * The number beside the kind is what makes the count something other than a guess, and asking for
+     * more than there is says so on the spot and is written down all the same.
+     */
+    test('the dialogue says how many there are and reports asking for more without refusing it',
+        async ({managerPage: page}) => {
+            const headers = await apiHeaders(page)
+            const start = inDays(63)
+            const eventId = await appointment(page.request, headers, `Zuviel ${Date.now()}`, start)
+
+            await page.goto(`/station/events/${eventId}/${dayOf(start)}`)
+            await expect(page.getByTestId('app-shell')).toBeVisible()
+            await page.getByRole('button', {name: 'Ausrüstung'}).click()
+
+            await page.getByTestId('equipment-add').click()
+            await page.getByTestId('equipment-line-kind').selectOption('art')
+            await pickArt(page, 'blau')
+
+            await expect(page.getByTestId('line-target-short'), 'four of six is not short').toHaveCount(0)
+
+            await page.getByTestId('line-target-art-quantity').fill('9')
+            await expect(page.getByTestId('line-target-short'), 'the shortfall is named where it is typed')
+                .toContainText('9')
+
+            await page.getByTestId('equipment-line-submit').click()
+            await expect(page.getByTestId('equipment-need'), 'it is reported, not refused').toHaveCount(1)
+            await expect(page.getByTestId('equipment-need-missing')).toBeVisible()
 
             await page.request.delete(`/api/v1/events/${eventId}`, {headers})
         })
