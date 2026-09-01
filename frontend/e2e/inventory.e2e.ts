@@ -33,6 +33,23 @@ function lettersOf(element: Locator): Promise<string> {
     return element.evaluate(node => getComputedStyle(node).color)
 }
 
+/**
+ * Every distinct colour the member names carrying no colour of their own are painted in, with the
+ * page's own colour named rather than spelled out, so a failure reads as the colour that is wrong.
+ *
+ * <p>Both readings are taken in one go: the theme can be repainted between two separate ones, and
+ * a name compared against the colour of the theme before says nothing.
+ */
+function namesAgainstThePage(page: Page): Promise<string[]> {
+    return page.evaluate(() => {
+        const pageColour = getComputedStyle(document.body).color
+        const names = [...document.querySelectorAll<HTMLElement>('[data-testid="member-name"]')]
+        const painted = names.filter(name => !name.style.color)
+            .map(name => getComputedStyle(name).color)
+        return [...new Set(painted)].map(colour => colour === pageColour ? 'the page colour' : colour)
+    })
+}
+
 test.describe('Inventory', () => {
     test('the inventory list shows the inventories of the station', async ({managerPage: page}) => {
         await page.goto('/station/inventory')
@@ -742,6 +759,27 @@ test.describe('Inventory', () => {
             await switchThemeTo(page, 'light')
             await expect.poll(() => lettersOf(badge), {message: 'dark letters on the light page'})
                 .toBe('rgb(26, 26, 26)')
+
+            await switchThemeTo(page, started)
+        })
+
+    /**
+     * A member's name in the list leads to their page, and a name nobody gave a colour has no
+     * colour of its own to defend: it belongs in whatever the page writes its text in. The story
+     * is here because the colour comes out of the stylesheet, which is the one thing a mounted
+     * component in a unit test does not have.
+     */
+    test('a member name without a colour of its own reads in the page colour',
+        async ({managerPage: page}) => {
+            await page.goto('/station/inventory/exchanges')
+            await expect(page.getByTestId('exchange-row').first()).toBeVisible()
+
+            const started = await darkModeClass(page)
+            await switchThemeTo(page, 'light')
+
+            await expect.poll(() => namesAgainstThePage(page),
+                {message: 'every name carrying no colour of its own reads in the page colour'})
+                .toEqual(['the page colour'])
 
             await switchThemeTo(page, started)
         })
