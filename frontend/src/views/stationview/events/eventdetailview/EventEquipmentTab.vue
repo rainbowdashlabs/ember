@@ -53,6 +53,7 @@ onMounted(async () => {
 watch(date, () => needs.loadCoverage())
 
 function openModal() {
+  needs.clearSaveError()
   itemId.value = ''
   artId.value = ''
   inventoryId.value = ''
@@ -90,12 +91,17 @@ async function submit() {
       </PrimaryButton>
     </div>
 
-    <Alert v-if="needs.error.value" variant="error">{{ needs.error.value }}</Alert>
+    <Alert v-if="needs.error.value" variant="error" data-testid="equipment-error">{{ needs.error.value }}</Alert>
+    <Alert v-if="needs.saveError.value && !showModal" variant="error">{{ needs.saveError.value }}</Alert>
     <Spinner v-if="needs.loading.value" size="sm"/>
 
     <p v-else-if="!effectiveDate" class="text-sm text-(--text-muted)">{{ t('eventEquipment.noDate') }}</p>
 
-    <p v-else-if="needs.coverage.value.length === 0" class="text-sm text-(--text-muted)" data-testid="equipment-empty">
+    <p
+        v-else-if="!needs.error.value && needs.coverage.value.length === 0"
+        class="text-sm text-(--text-muted)"
+        data-testid="equipment-empty"
+    >
       {{ t('eventEquipment.empty') }}
     </p>
 
@@ -128,6 +134,7 @@ async function submit() {
         :arts="needs.arts.value"
         :recurring="recurring"
         :saving="needs.saving.value"
+        :error="needs.saveError.value"
         @submit="submit"
     />
   </NeutralContainer>

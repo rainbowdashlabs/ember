@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
+import Alert from '@/components/feedback/Alert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
@@ -36,6 +37,8 @@ defineProps<{
   /** Whether the appointment repeats at all, which is what makes an evening of its own possible. */
   recurring: boolean
   saving: boolean
+  /** Why the last attempt did not take, shown here because this is where the reader is looking. */
+  error: string
 }>()
 
 const emit = defineEmits<{
@@ -55,6 +58,8 @@ const incomplete = computed(() => {
   <Modal v-model="show" size="md">
     <div class="space-y-4">
       <SubHeader>{{ t('eventEquipment.addLine') }}</SubHeader>
+
+      <Alert v-if="error" variant="error" data-testid="equipment-line-error">{{ error }}</Alert>
 
       <FieldLabel>{{ t('inventory.collections.lineKind') }}</FieldLabel>
       <SelectInput v-model="kind" data-testid="equipment-line-kind">

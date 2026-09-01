@@ -4,10 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref, type Ref} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {equipment, inventory as inventoryApi, inventoryArts} from '@/api'
 import type {NeedCoverage} from '@/api/equipment'
 import type {Inventory, InventoryItem} from '@/api/inventory'
 import type {InventoryArt} from '@/api/inventoryArts'
+import {apiErrorMessage} from '@/util/apiError'
 
 /** How the modal's hours reach the line, which counts in minutes because a lead is not whole days. */
 const MINUTES_PER_HOUR = 60
@@ -17,8 +19,14 @@ const MINUTES_PER_HOUR = 60
  *
  * <p>The pickers need the station's own gear, which is loaded once: every inventory, every piece in
  * them and every kind of every mixed inventory, so one picker covers the lot.
+ *
+ * <p>Reading and writing keep their failures apart: {@code error} is what the panel could not read,
+ * {@code saveError} is what a line could not be written as, which is what the dialog shows while it
+ * is open. A read that failed says so rather than showing an empty list, because nothing planned and
+ * nothing readable are different answers.
  */
 export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>) {
+  const {t} = useI18n()
   const coverage = ref<NeedCoverage[]>([])
   const inventories = ref<Inventory[]>([])
   const items = ref<InventoryItem[]>([])
@@ -26,6 +34,12 @@ export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>
   const loading = ref(false)
   const saving = ref(false)
   const error = ref('')
+  const saveError = ref('')
+
+  /** What the server said went wrong, or a general refusal when it said nothing at all. */
+  function failureText(e: unknown): string {
+    return apiErrorMessage(e) ?? t('common.error')
+  }
 
   async function loadCoverage() {
     if (!date.value) {
@@ -36,8 +50,9 @@ export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>
     try {
       coverage.value = await equipment.coverage(eventId.value, date.value)
       error.value = ''
-    } catch {
+    } catch (e) {
       coverage.value = []
+      error.value = failureText(e)
     } finally {
       loading.value = false
     }
@@ -51,7 +66,9 @@ export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>
     inventories.value = entries
     items.value = allItems
     arts.value = (
-        await Promise.all(entries.filter(entry => !entry.homogeneous).map(entry => inventoryArts.listArts(entry.id)))
+        await Promise.all(entries
+            .filter(entry => !entry.homogeneous)
+            .map(entry => inventoryArts.listArts(entry.id).catch(() => [] as InventoryArt[])))
     ).flat()
   }
 
@@ -66,6 +83,7 @@ export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>
     thisEveningOnly: boolean
   }) {
     saving.value = true
+    saveError.value = ''
     try {
       await equipment.add(eventId.value, {
         itemId: payload.kind === 'item' ? Number(payload.itemId) : null,
@@ -76,11 +94,10 @@ export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>
         trailMinutes: payload.trailHours * MINUTES_PER_HOUR,
         eventDate: payload.thisEveningOnly ? date.value : null,
       })
-      error.value = ''
       await loadCoverage()
       return true
     } catch (e) {
-      error.value = (e as {response?: {data?: {message?: string}}}).response?.data?.message ?? ''
+      saveError.value = failureText(e)
       return false
     } finally {
       saving.value = false
@@ -88,9 +105,21 @@ export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>
   }
 
   async function remove(needId: number) {
-    await equipment.remove(eventId.value, needId)
-    await loadCoverage()
+    saveError.value = ''
+    try {
+      await equipment.remove(eventId.value, needId)
+      await loadCoverage()
+    } catch (e) {
+      saveError.value = failureText(e)
+    }
   }
 
-  return {coverage, inventories, items, arts, loading, saving, error, loadCoverage, loadPickers, add, remove}
+  function clearSaveError() {
+    saveError.value = ''
+  }
+
+  return {
+    coverage, inventories, items, arts, loading, saving, error, saveError,
+    loadCoverage, loadPickers, add, remove, clearSaveError,
+  }
 }
