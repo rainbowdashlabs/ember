@@ -27,10 +27,10 @@ import java.util.Optional;
  * The exchange screens, served from movements.
  *
  * <p>An exchange is one purpose a movement can have, and the machinery under it now records every
- * step and the party that acknowledged it. The pages that read exchanges still speak of five
- * statuses, so this translates between the two until they are rewritten: the status is read off
- * where the two items actually are, and asking for a status walks the movement forward until they
- * are there.
+ * step and the party that acknowledged it. The pages that read exchanges still speak of a handful of
+ * statuses, so this translates between the two until they are rewritten: the status is read off where
+ * the two items actually are, and asking for a status walks the movement forward until they are
+ * there.
  *
  * <p>That translation is why the derived status survives a station editing its flow. It never counts
  * steps; it looks at custody, which is the thing the steps were moving all along.
@@ -125,10 +125,14 @@ public class ExchangeService {
      * @param note            an optional note, recorded against the last step walked
      * @param exchangedItemId the replacement, handed to the step that names it
      * @return the exchange as the pages read it
-     * @throws BadRequestResponse if the exchange is not found or is already closed
+     * @throws BadRequestResponse if the exchange is not found, is already closed, or is asked to walk
+     *                            to an end rather than to a station
      */
     public ExchangeRequest updateStatus(
             int id, ExchangeStatus newStatus, int changedBy, String note, Integer exchangedItemId) {
+        if (!newStatus.walkable()) {
+            throw new BadRequestResponse("An exchange is called off or refused on its chain, not walked there");
+        }
         ItemMovement movement = movementService
                 .findById(id)
                 .filter(this::isExchange)
@@ -223,14 +227,11 @@ public class ExchangeService {
     }
 
     /**
-     * Reads the old five-value status off where the two items are.
+     * How far along an exchange is, read off where the two pieces are.
      *
      * <p>Custody is what the steps were moving all along, so this holds whatever a station has done
-     * to its flow: a chain with the owner's leg collapsed into one step still reports the same
-     * status at the same point as the seven-step one.
-     */
-    /**
-     * How far along an exchange is, read off where the two pieces are.
+     * to its flow: a chain with the owner's leg collapsed into one step still reports the same status
+     * at the same point as the seven-step one.
      *
      * <p>"With the owner" means two different things and has to be told apart, which is what this got
      * wrong: for the station's own gear it is the station's shelf, so the piece has come back and the
@@ -238,9 +239,16 @@ public class ExchangeService {
      * has left for good and the exchange is past shipped. Reading both the same way made an exchange
      * of somebody else's gear jump backwards from shipped to received the moment the owner confirmed
      * it had arrived, and there was no way forward from there.
+     *
+     * <p>An exchange that has stopped moving is not read off custody at all, because custody no longer
+     * says anything about it: calling one off puts the piece back where it started, which reads as
+     * announced, and refusing one does the same. It reports the end it came to instead. Reading every
+     * closed exchange as done was what made calling one off look like finishing it.
      */
     private ExchangeStatus deriveStatus(ItemMovement movement) {
-        if (movement.state() != MovementState.OPEN) return ExchangeStatus.DONE;
+        if (movement.state() == MovementState.DONE) return ExchangeStatus.DONE;
+        if (movement.state() == MovementState.CANCELLED) return ExchangeStatus.CANCELLED;
+        if (movement.state() == MovementState.DECLINED) return ExchangeStatus.DECLINED;
         ItemCustody incoming = custodyOf(movement.incomingItemId());
         ItemCustody outgoing = custodyOf(movement.outgoingItemId());
         if (incoming == ItemCustody.WITH_MEMBER) return ExchangeStatus.DONE;

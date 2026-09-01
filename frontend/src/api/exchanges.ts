@@ -9,15 +9,33 @@ import type { ItemOwnerName } from './inventory'
 import type { MovementPurposeName } from './movements'
 import type { MemberIdentity } from './types'
 
+/**
+ * Where an exchange stands. The first five are the stations it passes through, in order; the last two
+ * are ends it stopped at, which an exchange never walks towards.
+ */
 export const ExchangeStatus = {
     ANNOUNCED: 'ANNOUNCED',
     RECEIVED: 'RECEIVED',
     SHIPPED: 'SHIPPED',
     ARRIVED: 'ARRIVED',
     DONE: 'DONE',
+    CANCELLED: 'CANCELLED',
+    DECLINED: 'DECLINED',
 } as const
 
 export type ExchangeStatusName = (typeof ExchangeStatus)[keyof typeof ExchangeStatus]
+
+const closedStatuses: ExchangeStatusName[] = [ExchangeStatus.DONE, ExchangeStatus.CANCELLED, ExchangeStatus.DECLINED]
+
+/**
+ * Whether the exchange is still on its way, which is what puts it on the lists of open ones and what
+ * makes advancing it something to offer.
+ *
+ * @param status where the exchange stands
+ */
+export function stillMoving(status: ExchangeStatusName): boolean {
+    return !closedStatuses.includes(status)
+}
 
 export interface ExchangeRequestEntry {
     id: number

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -200,4 +201,51 @@ class ExchangeServiceTest extends RepositoryTestBase {
         assertTrue(logs.stream().anyMatch(l -> "Shipped note".equals(l.note())));
         service.delete(exchange.id());
     }
+
+    @Test
+    @Order(30)
+    void callingOffAnExchangeDoesNotMakeItLookFinished() {
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", null, inventoryId, null, null, "Called off", null);
+        assertEquals(ExchangeStatus.ANNOUNCED, exchange.status());
+
+        itemMovementService.cancel(exchange.id(), new ItemMovementService.Actor(member.id(), true), "Fits after all");
+
+        assertEquals(
+                ExchangeStatus.CANCELLED,
+                service.findById(exchange.id()).orElseThrow().status());
+        service.delete(exchange.id());
+    }
+
+    @Test
+    @Order(31)
+    void refusingAnExchangeDoesNotMakeItLookFinished() {
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", null, inventoryId, null, null, "Refused", null);
+
+        itemMovementService.decline(
+                exchange.id(), new ItemMovementService.Actor(member.id(), true), "Nothing in stock");
+
+        assertEquals(
+                ExchangeStatus.DECLINED,
+                service.findById(exchange.id()).orElseThrow().status());
+        service.delete(exchange.id());
+    }
+
+    @Test
+    @Order(32)
+    void anExchangeIsNotWalkedToAnEnd() {
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", null, inventoryId, null, null, "Not walkable", null);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.updateStatus(exchange.id(), ExchangeStatus.CANCELLED, member.id(), null));
+
+        assertEquals(
+                ExchangeStatus.ANNOUNCED,
+                service.findById(exchange.id()).orElseThrow().status());
+        service.delete(exchange.id());
+    }
+
 }

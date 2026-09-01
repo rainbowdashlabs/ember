@@ -146,7 +146,9 @@ async function createProcurementFromExchange() {
       <PrimaryButton :disabled="updateSaving || !updateTargetStatus" @click="submitStatusUpdate">
         {{ updateSaving ? t('common.loading') : t('exchanges.updateStatus') }}
       </PrimaryButton>
-      <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
+      <SecondaryButton data-testid="exchange-status-cancel" @click="emit('cancel')">
+        {{ t('common.cancel') }}
+      </SecondaryButton>
     </div>
   </div>
 </template>

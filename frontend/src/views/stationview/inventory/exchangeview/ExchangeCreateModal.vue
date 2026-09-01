@@ -8,7 +8,7 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import {ExchangeStatus, type CreateExchangeRequest, type ExchangeRequestEntry} from '@/api/exchanges'
+import {stillMoving, type CreateExchangeRequest, type ExchangeRequestEntry} from '@/api/exchanges'
 import type {InventorySize} from '@/api/inventory'
 import type {StationMember} from '@/api/types'
 import type { ManagedMember } from '@/api/managedMembers'
@@ -101,7 +101,7 @@ async function loadCreateMemberItems() {
     }
     const activeExchangeItemIds = new Set(
       props.requests
-        .filter(r => r.status !== ExchangeStatus.DONE && r.itemId)
+        .filter(r => stillMoving(r.status) && r.itemId)
         .map(r => r.itemId!)
     )
     createMemberItems.value = items

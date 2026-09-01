@@ -224,9 +224,6 @@ public class ExchangeRoutes implements Routes {
             throw new BadRequestResponse("status is required");
         }
         ExchangeStatus status = request.status();
-        if (status == ExchangeStatus.DONE && request.exchangedItemId() == null) {
-            // For DONE status, exchangedItemId is optional but recommended
-        }
         var exchange = exchangeService.updateStatus(
                 id, status, session.member().id(), request.note(), request.exchangedItemId());
         ctx.json(toResponse(exchange));

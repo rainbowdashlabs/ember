@@ -6,7 +6,7 @@
 import { ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { InventorySize, MemberRequirements, MyInventoryItem } from '@/api/inventory'
-import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
+import {stillMoving, type ExchangeRequestEntry} from '@/api/exchanges'
 import { exchanges, inventory } from '@/api'
 
 /**
@@ -34,7 +34,7 @@ export function useMemberInventory(memberId: Ref<number>, error: Ref<string>) {
     await loadRequirements()
     try {
       const allExch = await exchanges.listExchanges()
-      exchangeRequests.value = allExch.filter(e => e.memberId === memberId.value && e.status !== ExchangeStatus.DONE)
+      exchangeRequests.value = allExch.filter(e => e.memberId === memberId.value && stillMoving(e.status))
     } catch { exchangeRequests.value = [] }
   }
 

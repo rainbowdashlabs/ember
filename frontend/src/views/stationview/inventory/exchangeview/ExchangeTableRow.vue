@@ -14,7 +14,7 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import ExchangeStatusBadge from './ExchangeStatusBadge.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
-import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
+import {stillMoving, type ExchangeRequestEntry} from '@/api/exchanges'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import { itemOwnerBadge, itemOwnerLabel as toItemOwnerLabel } from '@/util/inventoryType'
 import { formatDate } from '@/util/format'
@@ -46,7 +46,7 @@ function ownerLabel(ownerKind?: string | null): string {
 </script>
 
 <template>
-  <TRow>
+  <TRow data-testid="exchange-row">
     <td v-if="exportMode" class="px-1 py-2.5 w-8">
       <CheckboxInput :model-value="selected" @update:model-value="emit('toggle-export')" />
     </td>
@@ -79,7 +79,7 @@ function ownerLabel(ownerKind?: string | null): string {
           <font-awesome-icon :icon="['fas', 'clock-rotate-left']" />
         </SecondaryButton>
         <SecondaryButton
-            v-if="canManageExchanges && request.status !== ExchangeStatus.DONE"
+            v-if="canManageExchanges && stillMoving(request.status)"
             data-testid="exchange-advance"
             @click="emit('start-update')"
         >
