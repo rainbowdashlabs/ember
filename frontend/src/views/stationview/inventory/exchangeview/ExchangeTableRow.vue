@@ -36,6 +36,7 @@ const emit = defineEmits<{
   (e: 'toggle-export'): void
   (e: 'open-log'): void
   (e: 'start-update'): void
+  (e: 'start-correct'): void
   (e: 'delete'): void
 }>()
 
@@ -84,6 +85,14 @@ function ownerLabel(ownerKind?: string | null): string {
             @click="emit('start-update')"
         >
           <font-awesome-icon :icon="['fas', 'arrow-right']" />
+        </SecondaryButton>
+        <SecondaryButton
+            v-if="canManageExchanges"
+            data-testid="exchange-correct"
+            :title="t('exchanges.correct')"
+            @click="emit('start-correct')"
+        >
+          <font-awesome-icon :icon="['fas', 'pen']" />
         </SecondaryButton>
         <DeleteButton v-if="canManageExchanges" @click="emit('delete')" />
       </div>

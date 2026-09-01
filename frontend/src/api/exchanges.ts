@@ -68,6 +68,7 @@ export const AckKind = {
     CONFIRMED: 'CONFIRMED',
     ASSERTED: 'ASSERTED',
     FORCED: 'FORCED',
+    CORRECTED: 'CORRECTED',
 } as const
 
 export type AckKindName = (typeof AckKind)[keyof typeof AckKind]
@@ -111,6 +112,17 @@ export async function getLogs(id: number): Promise<ExchangeLogEntry[]> {
 
 export async function updateStatus(id: number, data: UpdateStatusRequest): Promise<ExchangeRequestEntry> {
     const res = await client.put<ExchangeRequestEntry>(`/exchanges/${id}/status`, data)
+    return res.data
+}
+
+/** Setting an exchange to a status by hand, which the history keeps together with the reason. */
+export interface CorrectStatusRequest {
+    status: ExchangeStatusName
+    reason: string
+}
+
+export async function correctStatus(id: number, data: CorrectStatusRequest): Promise<ExchangeRequestEntry> {
+    const res = await client.put<ExchangeRequestEntry>(`/exchanges/${id}/correct`, data)
     return res.data
 }
 

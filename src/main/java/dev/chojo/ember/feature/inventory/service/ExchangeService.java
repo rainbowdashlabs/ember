@@ -157,6 +157,71 @@ public class ExchangeService {
         return toRequest(movement);
     }
 
+    /**
+     * Sets an exchange to a status somebody says it should have, forwards or backwards.
+     *
+     * <p>An exchange has no status of its own to write: it is read off where its two pieces are. Setting a
+     * field would therefore do nothing at all, and the old value would be back the next time anybody
+     * looked. Correcting one means making the world say what it should have said, so this puts the pieces
+     * where the wanted status reads them, and the chain follows to whichever step that world has not
+     * reached yet. What each status asks for:
+     *
+     * <ul>
+     *   <li>Announced: the old piece is back with the member and no replacement is named, so an
+     *       already-named one is unhooked from the exchange. Its own whereabouts are left alone, because
+     *       the correction is about this exchange and not about that piece.
+     *   <li>Received: the old piece is on the station's shelf, and again no replacement is named.
+     *   <li>Shipped: the old piece is in the post. That is what shipped means for gear the station owns as
+     *       well as for gear a body above it owns, which is why this one custody covers both.
+     *   <li>Arrived: the replacement is at the station, which is why this status needs one to exist. Where
+     *       the old piece got to no longer decides anything once the new one is here.
+     *   <li>Done: the replacement is with the member and the chain is closed as finished.
+     *   <li>Cancelled and Declined: the chain is closed that way and the pieces are left exactly where
+     *       they are. Somebody correcting the end of an exchange is saying the record was wrong, not that
+     *       the gear moved.
+     * </ul>
+     *
+     * <p>Nothing is announced. A correction is somebody tidying a row, and the people on it did nothing
+     * that deserves a notice.
+     *
+     * @param id        the exchange
+     * @param wanted    the status it should have
+     * @param changedBy who is correcting it
+     * @param reason    why, which is mandatory and appears in the exchange's history
+     * @return the exchange as the pages read it
+     * @throws BadRequestResponse when the exchange is unknown, the reason is missing, or the wanted status
+     *                            needs a replacement piece the exchange does not have
+     */
+    public ExchangeRequest forceStatus(int id, ExchangeStatus wanted, int changedBy, String reason) {
+        ItemMovement movement = movementService
+                .findById(id)
+                .filter(this::isExchange)
+                .orElseThrow(() -> new BadRequestResponse("Exchange request not found"));
+        if (wanted == ExchangeStatus.ARRIVED && movement.incomingItemId() == null) {
+            throw new BadRequestResponse("Arrived means the replacement is here, so name it before setting that");
+        }
+        if (wanted == ExchangeStatus.DONE && movement.incomingItemId() == null) {
+            throw new BadRequestResponse("Done means the member has the replacement, so name it before setting that");
+        }
+        var actor = new ItemMovementService.Actor(changedBy, true);
+        ItemMovement corrected = movementService.correct(id, correctionFor(wanted), actor, reason);
+        log.info("Exchange {} set to {} by member {}", id, wanted, changedBy);
+        return toRequest(corrected);
+    }
+
+    /** The world each status is read off, as {@link #forceStatus} describes it. */
+    private ItemMovementService.Correction correctionFor(ExchangeStatus wanted) {
+        return switch (wanted) {
+            case ANNOUNCED -> new ItemMovementService.Correction(ItemCustody.WITH_MEMBER, null, true, null);
+            case RECEIVED -> new ItemMovementService.Correction(ItemCustody.AT_STATION, null, true, null);
+            case SHIPPED -> new ItemMovementService.Correction(ItemCustody.IN_TRANSIT, null, true, null);
+            case ARRIVED -> new ItemMovementService.Correction(null, ItemCustody.AT_STATION, false, null);
+            case DONE -> new ItemMovementService.Correction(null, ItemCustody.WITH_MEMBER, false, MovementState.DONE);
+            case CANCELLED -> new ItemMovementService.Correction(null, null, false, MovementState.CANCELLED);
+            case DECLINED -> new ItemMovementService.Correction(null, null, false, MovementState.DECLINED);
+        };
+    }
+
     public List<ExchangeLog> findLogs(int requestId) {
         return movementService.findLogs(requestId).stream()
                 .map(entry -> new ExchangeLog(

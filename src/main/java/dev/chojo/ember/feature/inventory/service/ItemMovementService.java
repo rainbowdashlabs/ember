@@ -233,6 +233,10 @@ public class ItemMovementService {
      * what the station owns goes back on its shelf and what the body above it owns goes into the
      * post. A single movement would have to be in two places at the end.
      *
+     * <p>A piece that is already on a chain of its own is passed over rather than refused. Somebody
+     * leaving usually has an exchange or two still running, and the whole request failing because of
+     * one of them would leave the station with nothing asked back at all.
+     *
      * @param stationId  the station asking
      * @param memberId   the member holding the gear
      * @param memberName their name, for what the member is told
@@ -242,6 +246,8 @@ public class ItemMovementService {
     public List<ItemMovement> requestEverythingBack(int stationId, int memberId, String memberName, Actor actor) {
         var held = inventoryRepository.findItemsByMember(memberId).stream()
                 .filter(item -> item.custody() == ItemCustody.WITH_MEMBER)
+                .filter(item ->
+                        movementRepository.findOpenByOutgoingItem(item.id()).isEmpty())
                 .toList();
 
         var started = new ArrayList<ItemMovement>();
@@ -336,6 +342,108 @@ public class ItemMovementService {
                 ownerKind == ItemOwner.CLUSTER ? ownerClusterId : null));
         announceIssue(purpose, ownerKind, ownerClusterId, stationId, started);
         return started;
+    }
+
+    /**
+     * What a correction is to make true of the world, rather than which step it pretends was walked.
+     *
+     * @param outgoing     the custody the piece that set out is to be in, or {@code null} to leave it
+     * @param incoming     the custody the arriving piece is to be in, or {@code null} to leave it
+     * @param detachArrival whether the arriving piece is to be unhooked from the movement, which is what
+     *                      putting an exchange back before the replacement was named means
+     * @param closeAs      the state to close the movement in, or {@code null} to leave it open and put it
+     *                      back on whichever step the corrected world has not reached yet
+     */
+    public record Correction(
+            ItemCustody outgoing, ItemCustody incoming, boolean detachArrival, MovementState closeAs) {}
+
+    /**
+     * Puts a movement where somebody says it should have been, without pretending anybody walked it there.
+     *
+     * <p>Silent by design. Nothing is published, so nobody is told that a record was tidied up: a member
+     * who did nothing wrong should not be sent a notice because an administrator corrected a row. The log
+     * carries the correction instead, marked as such, with the person and the reason, so the history stays
+     * honest without anybody being disturbed.
+     *
+     * <p>Where the movement is left standing follows from the world rather than from a step number: the last
+     * step whose custody the pieces already match has happened, so the movement stands on the one after it.
+     * A movement whose whole chain is satisfied has nothing left to walk and closes.
+     *
+     * @param movementId the movement to correct
+     * @param correction what is to become true
+     * @param actor      who is correcting it
+     * @param reason     why, which is mandatory and goes into the log
+     * @return the corrected movement
+     * @throws BadRequestResponse when the reason is missing or the movement's flow is gone
+     */
+    public ItemMovement correct(int movementId, Correction correction, Actor actor, String reason) {
+        if (reason == null || reason.isBlank()) {
+            throw new BadRequestResponse("Correcting a movement needs a reason saying why");
+        }
+        ItemMovement movement =
+                movementRepository.findById(movementId).orElseThrow(() -> new BadRequestResponse("No such movement"));
+        if (movement.flowId() == null) throw new BadRequestResponse("The flow this movement walked is gone");
+
+        if (correction.detachArrival()) movementRepository.setIncomingItem(movementId, null);
+        applyCorrectedCustody(movement, StepSubject.OUTGOING, correction.outgoing());
+        if (!correction.detachArrival()) {
+            applyCorrectedCustody(movement, StepSubject.INCOMING, correction.incoming());
+        }
+
+        ItemMovement moved = movementRepository.findById(movementId).orElseThrow();
+        if (correction.closeAs() != null) {
+            movementRepository.close(movementId, correction.closeAs(), reason);
+        } else {
+            movementRepository.reopen(movementId);
+            MovementFlowStep standing = stepTheWorldHasNotReached(moved);
+            if (standing == null) movementRepository.close(movementId, MovementState.DONE, reason);
+            else movementRepository.moveToStep(movementId, standing.id());
+        }
+
+        ItemMovement corrected = movementRepository.findById(movementId).orElseThrow();
+        MovementFlowStep standing = currentStep(corrected);
+        movementRepository.createLog(
+                movementId,
+                standing != null ? standing.id() : null,
+                standing != null ? standing.label() : "",
+                AckKind.CORRECTED,
+                actor.memberIdOrNull(),
+                reason);
+        log.info(
+                "Movement {} corrected by member {} to state {} ({})",
+                movementId,
+                actor.memberId(),
+                corrected.state(),
+                reason);
+        return corrected;
+    }
+
+    private void applyCorrectedCustody(ItemMovement movement, StepSubject subject, ItemCustody custody) {
+        if (custody == null) return;
+        Integer itemId = movement.itemFor(subject);
+        if (itemId == null) return;
+        custodyService.applyStepCustody(itemId, custody, movement.memberId(), movement.id(), movement.stationId());
+    }
+
+    /**
+     * The first step of the chain that the corrected world has not made true, which is where the movement
+     * now stands. Empty when every step is satisfied, and the chain is therefore over.
+     */
+    private MovementFlowStep stepTheWorldHasNotReached(ItemMovement movement) {
+        List<MovementFlowStep> steps = stepsOf(movement);
+        if (steps.isEmpty()) return null;
+        int satisfied = -1;
+        for (int index = 0; index < steps.size(); index++) {
+            MovementFlowStep step = steps.get(index);
+            Integer itemId = movement.itemFor(step.subject());
+            if (itemId == null) continue;
+            ItemCustody now = inventoryRepository
+                    .findItemById(itemId)
+                    .map(InventoryItem::custody)
+                    .orElse(null);
+            if (now == step.custodyAfter()) satisfied = index;
+        }
+        return satisfied + 1 < steps.size() ? steps.get(satisfied + 1) : null;
     }
 
     /**

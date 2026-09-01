@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.inventory.entity.AckKind;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
@@ -267,5 +268,88 @@ class ExchangeServiceTest extends RepositoryTestBase {
                         .filter(e -> e.itemId() != null && e.itemId() == item.id())
                         .count());
         service.delete(first.id());
+    }
+
+    @Test
+    @Order(40)
+    void anExchangeThatStandsTooFarIsSetBack() {
+        var item = inventoryRepo.createItem(inventoryId, "B-BACK", "Blouson M", null, null);
+        itemCustodyService.assignToMember(item.id(), member.id(), "");
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", item.id(), inventoryId, null, null, "Too far", null);
+        service.updateStatus(exchange.id(), ExchangeStatus.RECEIVED, member.id(), null);
+        assertEquals(
+                ExchangeStatus.RECEIVED,
+                service.findById(exchange.id()).orElseThrow().status());
+
+        var corrected =
+                service.forceStatus(exchange.id(), ExchangeStatus.ANNOUNCED, member.id(), "Was never handed in");
+
+        assertEquals(ExchangeStatus.ANNOUNCED, corrected.status());
+        assertEquals(
+                ExchangeStatus.ANNOUNCED,
+                service.findById(exchange.id()).orElseThrow().status());
+        assertEquals(
+                ItemCustody.WITH_MEMBER,
+                inventoryRepo.findItemById(item.id()).orElseThrow().custody());
+        service.delete(exchange.id());
+    }
+
+    @Test
+    @Order(41)
+    void aCorrectionSaysInTheHistoryThatItWasOneAndWhy() {
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", null, inventoryId, null, null, "History", null);
+
+        service.forceStatus(exchange.id(), ExchangeStatus.CANCELLED, member.id(), "Raised twice by mistake");
+
+        assertEquals(
+                ExchangeStatus.CANCELLED,
+                service.findById(exchange.id()).orElseThrow().status());
+        assertTrue(service.findLogs(exchange.id()).stream()
+                .anyMatch(entry -> entry.ackKind() == AckKind.CORRECTED
+                        && "Raised twice by mistake".equals(entry.note())
+                        && entry.changedBy() == member.id()));
+        service.delete(exchange.id());
+    }
+
+    @Test
+    @Order(42)
+    void aCorrectionWithoutAReasonIsRefused() {
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", null, inventoryId, null, null, "No reason", null);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.forceStatus(exchange.id(), ExchangeStatus.CANCELLED, member.id(), " "));
+
+        assertEquals(
+                ExchangeStatus.ANNOUNCED,
+                service.findById(exchange.id()).orElseThrow().status());
+        service.delete(exchange.id());
+    }
+
+    @Test
+    @Order(43)
+    void anExchangeCalledOffByMistakeIsSetGoingAgain() {
+        var item = inventoryRepo.createItem(inventoryId, "B-REOPEN", "Blouson M", null, null);
+        itemCustodyService.assignToMember(item.id(), member.id(), "");
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", item.id(), inventoryId, null, null, "Reopen", null);
+        itemMovementService.cancel(
+                exchange.id(), new ItemMovementService.Actor(member.id(), true), "Called off by mistake");
+        assertEquals(
+                ExchangeStatus.CANCELLED,
+                service.findById(exchange.id()).orElseThrow().status());
+
+        service.forceStatus(exchange.id(), ExchangeStatus.RECEIVED, member.id(), "It really was handed in");
+
+        assertEquals(
+                ExchangeStatus.RECEIVED,
+                service.findById(exchange.id()).orElseThrow().status());
+        assertEquals(
+                ItemCustody.AT_STATION,
+                inventoryRepo.findItemById(item.id()).orElseThrow().custody());
+        service.delete(exchange.id());
     }
 }

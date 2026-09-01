@@ -2,6 +2,10 @@
 
 ## v26.13.12
 
+### New Features
+
+- **An exchange can be set to the right status by hand.** Whoever manages exchanges can put one where it belongs, forwards or backwards, giving a reason that the exchange's history keeps beside their name. It exists for exchanges that ended up in the wrong place and could not be moved back, and it moves the gear to match the status rather than only relabelling the row; nobody is notified about a correction.
+
 ### Security
 
 - **Mail credentials were written into the application log in plain text.** The whole configuration is recorded once when Ember starts, and the mail password, the API key and the two webhook secrets were spelled out in it; that log is kept in the database and can be read from the administration pages. They are now reported only as set or not set. Treat any mail password, API key or webhook secret this instance has used as compromised and replace it.

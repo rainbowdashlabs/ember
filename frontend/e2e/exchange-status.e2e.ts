@@ -123,4 +123,44 @@ test.describe('Exchange status', () => {
         await expect(row.getByTestId('exchange-advance'),
             'and there is nothing left to advance it to').toBeHidden()
     })
+
+    /**
+     * EXS-3 - An exchange standing further along than it should is set back by hand.
+     *
+     * There is no status to overwrite: it is read off where the two pieces are, so setting one means
+     * putting the pieces where that status reads them. The reason is not optional, and the history says
+     * afterwards that a person set this rather than that anybody walked it.
+     */
+    test('an exchange that stands too far is set back, with the reason on record',
+        async ({managerPage: page}) => {
+            const headers = await apiHeaders(page)
+            const {id, inventoryName} = await exchangeOnItsWay(page, headers, 'BACK')
+
+            const walked = await page.request.put(`/api/v1/exchanges/${id}/status`,
+                {headers, data: {status: 'RECEIVED'}})
+            expect(walked.ok(), await walked.text()).toBeTruthy()
+            expect(await statusOf(page, headers, id)).toBe('RECEIVED')
+
+            await page.goto('/station/inventory/exchanges')
+            const row = page.getByTestId('exchange-row').filter({hasText: inventoryName})
+            await expect(row).toBeVisible({timeout: 15000})
+
+            await row.getByTestId('exchange-correct').click()
+            await expect(page.getByTestId('exchange-correct-panel')).toBeVisible()
+            await page.getByTestId('exchange-correct-status').selectOption('ANNOUNCED')
+            await page.getByTestId('exchange-correct-reason').fill('Wurde nie abgegeben')
+            await page.getByTestId('exchange-correct-submit').click()
+
+            await expect(row).toContainText('Angekündigt')
+            expect(await statusOf(page, headers, id), 'and it stands there when asked again').toBe('ANNOUNCED')
+
+            const history = await page.request
+                .get(`/api/v1/exchanges/${id}/logs`, {headers})
+                .then(r => r.json())
+            expect(
+                history.some((entry: {ackKind: string, note: string}) =>
+                    entry.ackKind === 'CORRECTED' && entry.note === 'Wurde nie abgegeben'),
+                'the history says a person set this, and why',
+            ).toBeTruthy()
+        })
 })

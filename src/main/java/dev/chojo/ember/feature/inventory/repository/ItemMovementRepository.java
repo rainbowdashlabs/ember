@@ -189,6 +189,24 @@ public class ItemMovementRepository {
                 .changed();
     }
 
+    /**
+     * Sets a movement walking again, clearing how it ended last time.
+     *
+     * <p>Only a correction does this: a chain does not reopen on its own, and one that closed keeps its
+     * closing reason until somebody says out loud that it should never have closed.
+     */
+    public boolean reopen(int id) {
+        return query("""
+                UPDATE item_movement
+                SET state        = :state,
+                    closed_at    = NULL,
+                    close_reason = NULL
+                WHERE id = :id;""")
+                .single(call().bind("state", MovementState.OPEN).bind("id", id))
+                .update()
+                .changed();
+    }
+
     public boolean delete(int id) {
         return SqlSupport.deleteById("item_movement", id);
     }
