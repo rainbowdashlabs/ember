@@ -50,7 +50,7 @@ onMounted(async () => {
   <div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
     <div class="flex items-center justify-between">
       <PageHeader>{{ t('patchNotes.title') }}</PageHeader>
-      <router-link to="/" class="text-sm text-[var(--link)] hover:underline">{{ t('common.back') }}</router-link>
+      <router-link to="/?home" class="text-sm text-[var(--link)] hover:underline">{{ t('common.back') }}</router-link>
     </div>
 
     <Spinner v-if="loading" size="lg" />

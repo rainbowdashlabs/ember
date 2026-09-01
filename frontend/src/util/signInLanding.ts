@@ -4,6 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {clusters, session} from '@/api'
+import type {Cluster} from '@/api/clusters'
+import type {StationMembership} from '@/api/session'
+import type {SessionInfo} from '@/api/types'
 
 /**
  * Where a fresh session belongs, and what it makes current.
@@ -16,6 +19,56 @@ export interface SignInLanding {
     path: string
     stationId?: string
     clusterUid?: string
+}
+
+/**
+ * What an account may act for, which is what every landing decision is made from.
+ *
+ * <p>Fetched in one round so a decision that first weighs something else, such as the area the reader
+ * was last in, does not pay for the same three answers twice.
+ */
+export interface LandingMemberships {
+    stations: StationMembership[]
+    info: SessionInfo | null
+    clusters: Cluster[]
+}
+
+export async function loadLandingMemberships(): Promise<LandingMemberships> {
+    const [stations, info, myClusters] = await Promise.all([
+        session.getStations(),
+        session.getSessionInfo().catch(() => null),
+        clusters.listMine().catch(() => []),
+    ])
+    return {stations, info, clusters: myClusters}
+}
+
+/**
+ * Works out where somebody belongs from what they may act for.
+ *
+ * @param memberships what the account may act for
+ * @param redirect    where the reader was headed before they were asked to sign in
+ */
+export function landingFromMemberships(memberships: LandingMemberships, redirect?: string): SignInLanding {
+    const {stations, info} = memberships
+    const [onlyStation] = stations
+    if (stations.length === 1 && onlyStation) {
+        return {path: redirect || '/station/requirements', stationId: onlyStation.stationId}
+    }
+    if (stations.length > 1) {
+        return {path: redirect || '/cross-station'}
+    }
+    if (info?.instanceUserType === 'ADMINISTRATOR') {
+        return {path: redirect || '/admin/dashboard/overview'}
+    }
+    // Somebody who runs an association and belongs to no station has it as their whole reason to be here
+    const [onlyCluster] = memberships.clusters
+    if (memberships.clusters.length > 0) {
+        return {
+            path: redirect || '/cluster',
+            clusterUid: memberships.clusters.length === 1 && onlyCluster ? onlyCluster.uid : undefined,
+        }
+    }
+    return {path: redirect || '/account'}
 }
 
 /**
@@ -32,29 +85,5 @@ export interface SignInLanding {
  * @param redirect where the reader was headed before they were asked to sign in
  */
 export async function decideSignInLanding(redirect?: string): Promise<SignInLanding> {
-    const [stations, info, myClusters] = await Promise.all([
-        session.getStations(),
-        session.getSessionInfo().catch(() => null),
-        clusters.listMine().catch(() => []),
-    ])
-
-    const [onlyStation] = stations
-    if (stations.length === 1 && onlyStation) {
-        return {path: redirect || '/station/requirements', stationId: onlyStation.stationId}
-    }
-    if (stations.length > 1) {
-        return {path: redirect || '/cross-station'}
-    }
-    if (info?.instanceUserType === 'ADMINISTRATOR') {
-        return {path: redirect || '/admin/dashboard/overview'}
-    }
-    // Somebody who runs an association and belongs to no station has it as their whole reason to be here
-    const [onlyCluster] = myClusters
-    if (myClusters.length > 0) {
-        return {
-            path: redirect || '/cluster',
-            clusterUid: myClusters.length === 1 && onlyCluster ? onlyCluster.uid : undefined,
-        }
-    }
-    return {path: redirect || '/account'}
+    return landingFromMemberships(await loadLandingMemberships(), redirect)
 }
