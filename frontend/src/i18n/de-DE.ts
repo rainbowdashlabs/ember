@@ -6074,7 +6074,6 @@ export default {
         emptyFiltered: 'Keine Tausch-Anfrage passt zu den gewählten Filtern.',
         filterNamePlaceholder: 'Nach Mitglied suchen',
         allInventories: 'Alle Ausstattungen',
-        filterOpen: 'Nur offene',
         filterAllStatuses: 'Alle Status',
         sortLabel: 'Sortierung',
         newSize: 'Gewünschte Größe',

@@ -6,15 +6,10 @@
 import {ExchangeStatus, type ExchangeRequestEntry, type ExchangeStatusName} from '@/api/exchanges'
 import {byDate, byValue, type SortComparator} from '@/composables/useSortable'
 
-/** Status filter standing for every exchange that is still on its way. */
-export const OPEN_STATUSES = 'open'
-
-/** Status filter standing for every exchange, the finished ones included. */
-export const ALL_STATUSES = ''
-
 /**
  * The statuses in the order an exchange passes through them. An inventory of the station's own
- * skips the two postal steps, so this one order holds for both flows.
+ * skips the two postal steps, so this one order holds for both flows. A further status is a
+ * further entry here, and one that ends an exchange is also named in {@link finishedStatuses}.
  */
 export const statusChain: ExchangeStatusName[] = [
     ExchangeStatus.ANNOUNCED,
@@ -24,24 +19,31 @@ export const statusChain: ExchangeStatusName[] = [
     ExchangeStatus.DONE,
 ]
 
+/** The statuses at which an exchange is over, whatever came of it. */
+const finishedStatuses: ExchangeStatusName[] = [ExchangeStatus.DONE]
+
+/** The statuses an exchange can still be sitting in, which are the ones that are still tasks. */
+export const openStatuses: ExchangeStatusName[] = statusChain.filter(name => !finishedStatuses.includes(name))
+
 export interface ExchangeFilter {
     /** Part of a member name, matched without regard to case. */
     search: string
-    /** Id of an inventory as text, empty for every inventory. */
-    inventoryId: string
-    /** A single status, {@link OPEN_STATUSES} or {@link ALL_STATUSES}. */
-    status: string
+    /** Ids of the inventories that were ticked, as text. */
+    inventoryIds: string[]
+    /** The statuses that were ticked. */
+    statuses: string[]
 }
 
 /**
- * What the page starts with: every inventory, every name, and only the exchanges still running.
- * A finished exchange is a record rather than a task, and whoever opens the list is looking at
- * the tasks.
+ * What the page starts with: every inventory, every name, and the statuses an exchange can still
+ * be sitting in. A finished exchange is a record rather than a task, and whoever opens the list is
+ * looking at the tasks. The statuses stand ticked rather than hidden in a mode of their own, so
+ * whoever wants the finished ones back only has to tick them.
  */
 export const defaultExchangeFilter: ExchangeFilter = {
     search: '',
-    inventoryId: '',
-    status: OPEN_STATUSES,
+    inventoryIds: [],
+    statuses: [...openStatuses],
 }
 
 /** The member name a row shows, which is the one a search has to match. */
@@ -55,22 +57,27 @@ export function statusRank(status: ExchangeStatusName): number {
     return index < 0 ? statusChain.length : index
 }
 
-function matchesStatus(request: ExchangeRequestEntry, status: string): boolean {
-    if (status === ALL_STATUSES) return true
-    if (status === OPEN_STATUSES) return request.status !== ExchangeStatus.DONE
-    return request.status === status
+/**
+ * Whether a value is among the ones that were ticked. Nothing ticked is no restriction at all,
+ * because a filter that empties the list when its last tick is taken away reads as a fault.
+ */
+function amongTicked(ticked: string[], value: string): boolean {
+    return ticked.length === 0 || ticked.includes(value)
 }
 
 /**
- * The rows left once all three filters have had their say. They narrow together: a row survives
- * only where it matches the name, the inventory and the status at once.
+ * The rows left once all three filters have had their say. Within a filter the ticks stand beside
+ * one another, so three ticked statuses show the rows of all three; between the filters they
+ * narrow together, and a row survives only where it answers the name, the inventory and the
+ * status at once.
  */
 export function filterExchanges(requests: ExchangeRequestEntry[], filter: ExchangeFilter): ExchangeRequestEntry[] {
     const needle = filter.search.trim().toLowerCase()
     return requests.filter(request => {
         const nameMatches = needle === '' || memberNameOf(request).toLowerCase().includes(needle)
-        const inventoryMatches = filter.inventoryId === '' || String(request.inventoryId) === filter.inventoryId
-        return nameMatches && inventoryMatches && matchesStatus(request, filter.status)
+        return nameMatches
+            && amongTicked(filter.inventoryIds, String(request.inventoryId))
+            && amongTicked(filter.statuses, request.status)
     })
 }
 

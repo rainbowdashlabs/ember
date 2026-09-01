@@ -52,11 +52,30 @@ describe('useExchangeTable', () => {
     })
 
     it('keeps sorting and filtering working together', () => {
-        const {visible, status, inventoryId, selectSort} = table()
-        status.value = ''
-        inventoryId.value = '2'
+        const {visible, statuses, inventoryIds, selectSort} = table()
+        statuses.value = []
+        inventoryIds.value = ['2']
         selectSort('member')
         expect(visible.value.map(r => r.id)).toEqual([2, 4])
+    })
+
+    it('shows the rows of every status that was ticked', () => {
+        const {visible, statuses} = table()
+        statuses.value = [ExchangeStatus.SHIPPED, ExchangeStatus.DONE]
+        expect(visible.value.map(r => r.id)).toEqual([2, 3])
+    })
+
+    it('shows the rows of every inventory that was ticked', () => {
+        const {visible, statuses, inventoryIds} = table()
+        statuses.value = []
+        inventoryIds.value = ['1', '2']
+        expect(visible.value.map(r => r.id)).toEqual([4, 2, 3, 1])
+    })
+
+    it('takes an emptied tick list as no restriction rather than as nothing left', () => {
+        const {visible, statuses} = table()
+        statuses.value = []
+        expect(visible.value.map(r => r.id)).toEqual([4, 2, 3, 1])
     })
 
     it('says nothing is left rather than silently showing everything', () => {
@@ -68,19 +87,27 @@ describe('useExchangeTable', () => {
 
 describe('the export selection', () => {
     it('takes exactly the rows the filter shows', () => {
-        const {visible, inventoryId} = table()
-        inventoryId.value = '1'
+        const {visible, inventoryIds} = table()
+        inventoryIds.value = ['1']
         const {startExport, selectedRows} = exportOf(() => visible.value)
         startExport()
         expect(selectedRows.value.map(r => r.id)).toEqual([3, 1])
     })
 
     it('never carries a row the filter hides', () => {
-        const {visible, inventoryId} = table()
+        const {visible, inventoryIds} = table()
         const {startExport, selectedRows} = exportOf(() => visible.value)
         startExport()
-        inventoryId.value = '2'
+        inventoryIds.value = ['2']
         expect(selectedRows.value.map(r => r.id)).toEqual([4])
+    })
+
+    it('carries the rows of every status ticked once they are all selected', () => {
+        const {visible, statuses} = table()
+        statuses.value = [ExchangeStatus.SHIPPED, ExchangeStatus.DONE]
+        const {startExport, selectedRows} = exportOf(() => visible.value)
+        startExport()
+        expect(selectedRows.value.map(r => r.id)).toEqual([2, 3])
     })
 
     it('survives a change of order with the same rows selected', () => {

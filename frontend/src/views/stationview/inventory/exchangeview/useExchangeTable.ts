@@ -21,15 +21,15 @@ import type {ExchangeRequestEntry} from '@/api/exchanges'
  */
 export function useExchangeTable(requests: () => ExchangeRequestEntry[]) {
     const search = ref(defaultExchangeFilter.search)
-    const inventoryId = ref(defaultExchangeFilter.inventoryId)
-    const status = ref(defaultExchangeFilter.status)
+    const inventoryIds = ref([...defaultExchangeFilter.inventoryIds])
+    const statuses = ref<string[]>([...defaultExchangeFilter.statuses])
 
     const inventories = computed(() => inventoryChoices(requests()))
 
     const matching = computed(() => filterExchanges(requests(), {
         search: search.value,
-        inventoryId: inventoryId.value,
-        status: status.value,
+        inventoryIds: inventoryIds.value,
+        statuses: statuses.value,
     }))
 
     const sortKey = ref<ExchangeSortKey>('date')
@@ -50,8 +50,8 @@ export function useExchangeTable(requests: () => ExchangeRequestEntry[]) {
 
     return {
         search,
-        inventoryId,
-        status,
+        inventoryIds,
+        statuses,
         inventories,
         visible: sorted,
         sortKey,

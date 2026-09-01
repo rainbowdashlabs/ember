@@ -39,8 +39,8 @@ const emit = defineEmits<{
 }>()
 
 const search = defineModel<string>('search', {required: true})
-const inventoryId = defineModel<string>('inventoryId', {required: true})
-const status = defineModel<string>('status', {required: true})
+const inventoryIds = defineModel<string[]>('inventoryIds', {required: true})
+const statuses = defineModel<string[]>('statuses', {required: true})
 
 const { t } = useI18n()
 </script>
@@ -54,7 +54,7 @@ const { t } = useI18n()
 
   <ExchangeFilterBar
       v-if="showFilters"
-      v-model:search="search" v-model:inventory-id="inventoryId" v-model:status="status"
+      v-model:search="search" v-model:inventory-ids="inventoryIds" v-model:statuses="statuses"
       :inventories="inventories" :sort-key="sortKey" :show-sort="showSort"
       @sort="emit('sort', $event)"
   />
