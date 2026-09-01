@@ -17,6 +17,8 @@ import {equipment, events as eventsApi, lending} from '@/api'
 import type {AvailableInventoryEntry} from '@/api/lending'
 import type {LineCheck, NeedCoverage} from '@/api/equipment'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -29,9 +31,13 @@ const emptyReason = ref<string | null>(null)
 const open = ref<NeedCoverage[]>([])
 const entries = ref<CollectedEntry[]>([])
 const checks = ref<LineCheck[]>([])
-const sending = ref(false)
 const sent = ref('')
 const occasion = ref('')
+
+/** What the server said went wrong, or a general refusal when it said nothing at all. */
+function failureText(e: unknown): string {
+  return apiErrorMessage(e) ?? t('common.error')
+}
 
 const {loading, error, reload} = useAsyncLoader(async () => {
   const answer = await lending.listAvailable(date.value ? {from: date.value, to: date.value} : undefined)
@@ -50,6 +56,61 @@ function needFor(offer: AvailableInventoryEntry): number | null {
   const match = open.value.find(line => line.label === (offer.artName ?? offer.inventoryName))
   return match ? match.need.id : null
 }
+
+/** Counts again what the picked lines are still worth, which nothing has been holding meanwhile. */
+async function refreshChecks() {
+  if (!date.value || entries.value.length === 0) {
+    checks.value = []
+    return
+  }
+  const answer = await equipment.checkCollected(
+      date.value,
+      date.value,
+      entries.value.map(entry => ({
+        owningStationId: entry.owningStationId,
+        inventoryId: entry.inventoryId,
+        artId: entry.artId,
+        quantity: entry.quantity,
+        needId: entry.needId,
+      })))
+  checks.value = answer.lines
+}
+
+const {error: recheckError, run: recheck} = useAsyncAction(refreshChecks, {formatError: failureText})
+
+/**
+ * Sends the list, one request per station. Availability is counted again first and what has moved is
+ * shown, because nothing was held while the list was assembled.
+ */
+const {running: sending, error: sendError, run: send} = useAsyncAction(async () => {
+  if (!date.value) return
+  sent.value = ''
+  await refreshChecks()
+  const stations = [...new Set(entries.value.map(entry => entry.owningStationId))]
+  for (const stationId of stations) {
+    await lending.createRequest({
+      owningStationId: stationId,
+      dateFrom: date.value,
+      dateTo: date.value,
+      eventId: eventId.value,
+      eventDate: date.value,
+      items: entries.value
+          .filter(entry => entry.owningStationId === stationId)
+          .map(entry => ({
+            inventoryId: entry.inventoryId,
+            itemId: null,
+            artId: entry.artId,
+            quantity: entry.quantity,
+            needId: entry.needId,
+          })),
+    })
+  }
+  sent.value = t('lendingCollect.sentCount', {count: stations.length})
+  entries.value = []
+  checks.value = []
+}, {formatError: failureText})
+
+const actionError = computed(() => sendError.value || recheckError.value)
 
 async function pick(offer: AvailableInventoryEntry) {
   const key = `${offer.stationId}-${offer.inventoryId}-${offer.artId ?? 'all'}`
@@ -73,65 +134,14 @@ function remove(key: string) {
   recheck()
 }
 
-async function recheck() {
-  if (!date.value || entries.value.length === 0) {
-    checks.value = []
-    return
-  }
-  const answer = await equipment.checkCollected(
-      date.value,
-      date.value,
-      entries.value.map(entry => ({
-        owningStationId: entry.owningStationId,
-        inventoryId: entry.inventoryId,
-        artId: entry.artId,
-        quantity: entry.quantity,
-        needId: entry.needId,
-      })))
-  checks.value = answer.lines
-}
-
-/**
- * Sends the list, one request per station. Availability is counted again first and what has moved is
- * shown, because nothing was held while the list was assembled.
- */
-async function send() {
-  if (!date.value) return
-  sending.value = true
-  try {
-    await recheck()
-    const stations = [...new Set(entries.value.map(entry => entry.owningStationId))]
-    for (const stationId of stations) {
-      await lending.createRequest({
-        owningStationId: stationId,
-        dateFrom: date.value,
-        dateTo: date.value,
-        eventId: eventId.value,
-        eventDate: date.value,
-        items: entries.value
-            .filter(entry => entry.owningStationId === stationId)
-            .map(entry => ({
-              inventoryId: entry.inventoryId,
-              itemId: null,
-              artId: entry.artId,
-              quantity: entry.quantity,
-              needId: entry.needId,
-            })),
-      })
-    }
-    sent.value = t('lendingCollect.sentCount', {count: stations.length})
-    entries.value = []
-    checks.value = []
-  } finally {
-    sending.value = false
-  }
-}
 </script>
 
 <template>
   <ViewContent :title="t('pages.inventory-lending-collect.title')" :subtitle="t('pages.inventory-lending-collect.subtitle')">
     <Spinner v-if="loading" size="lg"/>
     <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <Alert v-if="actionError" variant="error" data-testid="collected-error">{{ actionError }}</Alert>
+    <Alert v-if="!date" variant="info" data-testid="collect-no-date">{{ t('lendingCollect.noDate') }}</Alert>
     <Alert v-if="sent" variant="success" data-testid="collected-sent">{{ sent }}</Alert>
 
     <NeutralContainer v-if="occasion" class="mb-4" data-testid="collect-occasion">
@@ -143,7 +153,14 @@ async function send() {
         <PartnerOffers :offers="offers" :empty-reason="emptyReason" @pick="pick"/>
       </NeutralContainer>
       <NeutralContainer>
-        <CollectedList :entries="entries" :checks="checks" :sending="sending" @remove="remove" @send="send"/>
+        <CollectedList
+            :entries="entries"
+            :checks="checks"
+            :sending="sending"
+            :can-send="!!date"
+            @remove="remove"
+            @send="send"
+        />
       </NeutralContainer>
     </div>
   </ViewContent>

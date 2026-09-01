@@ -29,6 +29,8 @@ const props = defineProps<{
   entries: CollectedEntry[]
   checks: LineCheck[]
   sending: boolean
+  /** Whether anything can be asked for at all, which needs the evening the list is being built for. */
+  canSend: boolean
 }>()
 
 const emit = defineEmits<{
@@ -102,7 +104,7 @@ function availableFor(entry: CollectedEntry): number | null {
 
     <PrimaryButton
         v-if="entries.length > 0"
-        :disabled="sending"
+        :disabled="sending || !canSend"
         data-testid="collected-send"
         @click="emit('send')"
     >

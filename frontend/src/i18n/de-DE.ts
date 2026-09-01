@@ -2136,6 +2136,7 @@ export default {
         nothingShared: 'Keine Partnerwache bietet dieser Wache im Moment etwas an.',
         nothingFree: 'Angeboten wird etwas, aber in diesem Zeitraum ist nichts davon frei.',
         forOccasion: 'Für {occasion} am {date}',
+        noDate: 'Ohne Termin lässt sich nichts anfragen. Ruf die Seite aus dem Ausrüstungs-Reiter eines Termins auf, dann steht der Abend fest.',
     },
     signupLists: {
         menu: 'Aus den Anmeldungen',

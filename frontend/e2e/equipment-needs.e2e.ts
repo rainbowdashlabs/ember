@@ -140,4 +140,18 @@ test.describe('Appointment equipment', () => {
 
         await page.request.delete(`/api/v1/events/${eventId}`, {headers})
     })
+
+    /**
+     * The collecting screen is reached from an appointment, and that is what fixes the evening the
+     * request is for. Opened without one it used to offer a button that could never do anything and
+     * said nothing about why.
+     */
+    test('collecting without an evening says so rather than offering a button that cannot act',
+        async ({managerPage: page}) => {
+            await page.goto('/station/inventory/lending/collect')
+            await expect(page.getByTestId('app-shell')).toBeVisible()
+
+            await expect(page.getByTestId('collect-no-date'), 'the reader is told what is missing')
+                .toBeVisible()
+        })
 })
