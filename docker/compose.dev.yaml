@@ -77,6 +77,11 @@ services:
       # storage-backend apply answers with a cipher error, and the cause is nowhere near the symptom.
       # What it encrypts here are the credentials of three containers on a private network.
       STORAGE_CREDENTIALENCRYPTIONKEY: "ZTJlLXN0YWNrLW9ubHkta2V5LW5vdC1hLXNlY3JldCE="
+      # Every address a private one, which the outbound URL validator refuses on a real
+      # instance for good reason: a peer named "ember-e2e-peer" or "localhost" is exactly what
+      # an attacker would supply to make the server scan its own network. The flag exists for
+      # this situation and is set nowhere but here and in the tests.
+      FEDERATION_ALLOWPRIVATEHOSTS: "true"
       API_BASEURL: http://localhost:3010
     volumes:
       - ..:/home/gradle/project
@@ -85,6 +90,70 @@ services:
       - ember-e2e-project-gradle:/home/gradle/project/.gradle
       - ./config:/home/gradle/project/config
       - ember-e2e-app-data:/home/gradle/project/data
+    depends_on:
+      postgres-e2e:
+        condition: service_healthy
+    profiles:
+      - e2e
+
+  # The second instance the stories federate against. A real counterpart rather than a second
+  # station of the first one: its own schema, its own port, its own data directory, and no way
+  # of seeing the first instance's rows.
+  #
+  # It shares the database container and splits off by schema. The whole schema is a
+  # parameter - the migrations, the connection's search path and the reset all take it from
+  # DB_SCHEMA - so two instances in one database never meet, and one postgres is one less
+  # container to wait for.
+  #
+  # Reachable two ways, and which one to use depends on who is asking:
+  #   - from the host and from the stories:      http://localhost:8898
+  #   - from the other backend's container:      http://ember-e2e-peer:8080
+  # The second is the address that goes into a federation invite or a discovery peer entry,
+  # because the caller there is a container and not a browser. Hyphens, not underscores: Java's
+  # URI parser answers a null host for a name containing one.
+  #
+  # No frontend of its own. Everything a story does as this instance - discovering its accounts,
+  # signing in, reading and writing - is API work, and a second built Nuxt server would cost
+  # every run a process and a port for no story that exists.
+  ember-e2e-peer:
+    container_name: ember_e2e_peer
+    build:
+      context: ..
+      dockerfile: docker/backend.dev.Dockerfile
+    ports:
+      - "8898:8080"
+    environment:
+      DB_HOST: postgres-e2e
+      DB_PORT: "5432"
+      DB_USER: ember
+      DB_PASSWORD: ember
+      DB_DATABASE: ember
+      # The one line that separates the two instances. It reaches the migrations, the pool's
+      # search path and the reset endpoint alike, so this instance runs its own migrations and
+      # sees none of the first instance's tables.
+      DB_SCHEMA: ember_peer_schema
+      DEMO_DEV: "true"
+      DEMO_ENABLED: "false"
+      STORAGE_CREDENTIALENCRYPTIONKEY: "ZTJlLXN0YWNrLW9ubHkta2V5LW5vdC1hLXNlY3JldCE="
+      FEDERATION_ALLOWPRIVATEHOSTS: "true"
+      # The address the first instance calls this one at, so a peer entry or an invite made
+      # here carries something a container can resolve.
+      API_BASEURL: http://ember-e2e-peer:8080
+    volumes:
+      - ..:/home/gradle/project
+      # Every Gradle volume is this container's own, the Gradle home included. Two runs cannot
+      # share one: the run task stays the foreground process for the life of the container, so
+      # the lock it takes on the Gradle home's journal cache is never released and the second
+      # container dies at startup with a lock timeout. The cost is one more dependency download
+      # the first time, and nothing after that - the volume outlives the container.
+      - ember-e2e-peer-gradle-cache:/home/gradle/.gradle
+      - ember-e2e-peer-gradle-build:/home/gradle/project/build
+      - ember-e2e-peer-project-gradle:/home/gradle/project/.gradle
+      - ./config:/home/gradle/project/config
+      # Its own data directory, which is what gives it its own discovery identity: the keypair
+      # behind the instance id is a file, not a row, so a shared directory would leave both
+      # instances answering with the same name.
+      - ember-e2e-peer-app-data:/home/gradle/project/data
     depends_on:
       postgres-e2e:
         condition: service_healthy
@@ -348,6 +417,10 @@ volumes:
   ember-e2e-gradle-cache:
   ember-e2e-gradle-build:
   ember-e2e-project-gradle:
+  ember-e2e-peer-app-data:
+  ember-e2e-peer-gradle-cache:
+  ember-e2e-peer-gradle-build:
+  ember-e2e-peer-project-gradle:
   ember-dev-data:
   ember-dev-rustfs:
   ember-dev-sftp:

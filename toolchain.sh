@@ -116,12 +116,15 @@ Docker
   docker-app-restart    Build and start the containers again, which is how a change is picked up:
                         the backend compiles on start. Name one to restart only that, e.g.
                         `docker-app-restart ember`
-  docker-e2e            Start the stack the stories run against, detached: its own database and a
-                        backend on 8899. The suite starts it itself when it is down, so this is for
-                        having it up in advance
+  docker-e2e            Start the stack the stories run against, detached: one database and two
+                        instances of the application on it, on 8899 and on 8898. The suite starts
+                        it itself when it is down, so this is for having it up in advance
   docker-e2e-down       Stop it again. Add -v to throw the database away with it
   docker-e2e-restart    Build and start it again, which is how a backend change reaches the stories:
                         a stack that is already up keeps running the sources it started with
+  docker-e2e-logs       Follow what the two instances print, which is where a story that cannot
+                        reach the second one is read: name one to watch only it, e.g.
+                        `docker-e2e-logs ember-e2e-peer`
   docker-app-logs       Follow what the containers print, which is where the first start is
                         watched: `up -d` returns long before the backend has finished building
 
@@ -177,7 +180,7 @@ LOCKFILE="${TMPDIR:-/tmp}/ember-toolchain.lock"
 
 needs_lock() {
     case "$1" in
-        docker-app-logs) return 1 ;;
+        docker-app-logs | docker-e2e-logs) return 1 ;;
         fe-e2e | fe-e2e* | docker-*) return 0 ;;
         *) return 1 ;;
     esac
@@ -335,6 +338,9 @@ case "$cmd" in
         # not do. Recreating them costs nothing, since the caches live in named volumes.
         cd "$ROOT/docker"
         run docker compose -f compose.dev.yaml --profile full up -d --build --force-recreate "$@"
+        ;;
+    docker-e2e-logs)
+        cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile e2e logs -f "$@"
         ;;
     docker-app-logs)
         cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile full logs -f "$@"
