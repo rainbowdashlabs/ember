@@ -50,6 +50,33 @@ function namesAgainstThePage(page: Page): Promise<string[]> {
     })
 }
 
+/** What each status of an exchange is called on screen, which is what a tick is pressed by. */
+const EXCHANGE_STATUS_LABELS: Record<string, string> = {
+    ANNOUNCED: 'Angekündigt',
+    RECEIVED: 'Empfangen',
+    SHIPPED: 'Versendet',
+    ARRIVED: 'Angekommen',
+    DONE: 'Erledigt',
+}
+
+/**
+ * Leaves one exchange filter ticking exactly the named entries, and closes it again.
+ *
+ * <p>The filter is a list to tick rather than a single choice, so whatever it carried is taken off
+ * first and the wanted entries are then pressed one after another with the list left open between
+ * them. An empty list of entries therefore leaves the filter restricting nothing. Closing it again
+ * is what puts the rows underneath back within reach.
+ */
+async function setExchangeFilter(page: Page, testId: string, entries: string[]): Promise<void> {
+    const filter = page.getByTestId(testId)
+    const trigger = filter.getByRole('button').first()
+    await trigger.click()
+    const none = filter.getByRole('button', {name: 'Keine'})
+    if (await none.isEnabled()) await none.click()
+    for (const entry of entries) await filter.getByRole('button', {name: entry, exact: true}).click()
+    await trigger.click()
+}
+
 test.describe('Inventory', () => {
     test('the inventory list shows the inventories of the station', async ({managerPage: page}) => {
         await page.goto('/station/inventory')
@@ -701,7 +728,7 @@ test.describe('Inventory', () => {
     test('the exchange list narrows down and the export carries only what is left',
         async ({managerPage: page}) => {
             const headers = await apiHeaders(page)
-            const raised: {id: number; inventoryId: number; status: string}[] =
+            const raised: {id: number; inventoryId: number; inventoryName: string; status: string}[] =
                 await page.request.get('/api/v1/exchanges', {headers}).then(r => r.json())
             const open = raised.filter(exchange => exchange.status !== 'DONE')
             expect(open.length, 'the seeded station has exchanges to narrow down').toBeGreaterThan(1)
@@ -713,14 +740,15 @@ test.describe('Inventory', () => {
             const chosen = inventories.reduce((best, id) =>
                 inInventory(id).length > inInventory(best).length ? id : best)
             const expected = inInventory(chosen).map(exchange => exchange.id)
+            const chosenName = inInventory(chosen)[0].inventoryName
 
             await page.goto('/station/inventory/exchanges')
             const rows = page.getByTestId('exchange-row')
             await expect(rows.first()).toBeVisible()
             await expect(rows, 'the list opens on the requests still running').toHaveCount(open.length)
 
-            await page.getByTestId('exchange-filter-inventory').selectOption(String(chosen))
-            await expect(rows, 'and shows only the chosen inventory once it is picked').toHaveCount(expected.length)
+            await setExchangeFilter(page, 'exchange-filter-inventory', [chosenName])
+            await expect(rows, 'and shows only the chosen inventory once it is ticked').toHaveCount(expected.length)
 
             await page.getByRole('button', {name: 'Exportieren'}).click()
             const selectAll = page.getByTestId('exchange-select-all')
@@ -734,6 +762,58 @@ test.describe('Inventory', () => {
             ])
             const carried: number[] = sent.postDataJSON().exchangeIds
             expect([...carried].sort(), 'only the rows the filter left standing are exported')
+                .toEqual([...expected].sort())
+        })
+
+    /**
+     * A status filter that takes several ticks is what lets two sorts of request be looked at as
+     * one job.
+     *
+     * <p>Ticking two statuses and quietly keeping only the last one would look exactly the same on
+     * screen as keeping both, so the story counts the rows and then reads the numbers that leave
+     * the browser: both sorts have to travel. Taking every tick off is the other half of it, since
+     * a filter that emptied the list when its last tick went would read as a fault rather than as
+     * a filter asking for nothing.
+     */
+    test('two ticked statuses stand in the list together and both reach the export',
+        async ({managerPage: page}) => {
+            const headers = await apiHeaders(page)
+            const raised: {id: number; status: string}[] =
+                await page.request.get('/api/v1/exchanges', {headers}).then(r => r.json())
+
+            const byStatus = new Map<string, number[]>()
+            for (const exchange of raised) {
+                byStatus.set(exchange.status, [...byStatus.get(exchange.status) ?? [], exchange.id])
+            }
+            const sorts = [...byStatus.keys()].slice(0, 2)
+            expect(sorts.length, 'the seeded station has exchanges in more than one status').toBe(2)
+            const expected = sorts.flatMap(status => byStatus.get(status) ?? [])
+
+            await page.goto('/station/inventory/exchanges')
+            const rows = page.getByTestId('exchange-row')
+            await expect(rows.first()).toBeVisible()
+
+            await setExchangeFilter(page, 'exchange-filter-status', [])
+            await expect(rows, 'taking every tick off asks for nothing rather than for no rows')
+                .toHaveCount(raised.length)
+
+            await setExchangeFilter(page, 'exchange-filter-status',
+                sorts.map(status => EXCHANGE_STATUS_LABELS[status]))
+            await expect(rows, 'and two ticks show the rows of both statuses at once')
+                .toHaveCount(expected.length)
+
+            await page.getByRole('button', {name: 'Exportieren'}).click()
+            const selectAll = page.getByTestId('exchange-select-all')
+            await selectAll.click()
+            await selectAll.click()
+            await expect(selectAll, 'everything the filter shows is ticked again').toBeChecked()
+
+            const [sent] = await Promise.all([
+                page.waitForRequest(req => req.url().includes('/exchanges/export') && req.method() === 'POST'),
+                page.getByRole('button', {name: /Herunterladen/}).click(),
+            ])
+            const carried: number[] = sent.postDataJSON().exchangeIds
+            expect([...carried].sort(), 'both sorts of row travel into the export')
                 .toEqual([...expected].sort())
         })
 
