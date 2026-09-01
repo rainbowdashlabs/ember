@@ -14,6 +14,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {EventBreak} from '@/api/events'
 import MutedText from '@/components/typography/MutedText.vue'
+import {formatDate} from '@/util/format'
 
 const {t} = useI18n()
 
@@ -49,7 +50,7 @@ const emit = defineEmits<{
       <NeutralContainer v-for="br in breaks" :key="br.id" class="flex items-center justify-between flex-wrap gap-2">
         <div>
           <span class="font-medium">{{ br.name }}</span>
-          <MutedText size="sm" class="ml-2">{{ br.startDate }} – {{ br.endDate }}</MutedText>
+          <MutedText size="sm" class="ml-2">{{ formatDate(br.startDate) }} – {{ formatDate(br.endDate) }}</MutedText>
         </div>
         <div class="flex items-center gap-2">
           <EditButton @click="emit('edit', br)"/>

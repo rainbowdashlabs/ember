@@ -13,6 +13,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import RegistrationFieldAnswers from '../RegistrationFieldAnswers.vue'
 import type {EventRegistrationEntry, EventRegistrationField, MemberRegistrationStats} from '@/api/events'
+import {formatDate} from '@/util/format'
 
 /** One member's line on the ranking: what they answered, how often they have been let in, and the decision. */
 const props = defineProps<{
@@ -64,7 +65,7 @@ function scoreClass(): string {
     <template v-else>
       <td class="p-2 text-center text-(--text-muted)" colspan="4">–</td>
     </template>
-    <td class="p-2 text-center text-xs text-(--text-muted)">{{ registration.eventDate }}</td>
+    <td class="p-2 text-center text-xs text-(--text-muted)">{{ formatDate(registration.eventDate) }}</td>
     <td v-if="showActions" class="p-2">
       <div class="flex items-center gap-1 justify-end">
         <PrimaryButton @click="emit('accept', registration.id)">
