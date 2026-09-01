@@ -6,6 +6,8 @@
 
 - **The first start now asks where to write.** A new installation used to be handed an administrator account under a made-up address that nothing could be delivered to, which quietly cost that account every password reset and every security notice. The account is now created with the user name `admin` and no address at all, and the first sign-in asks for a real one right after the new password; an address that cannot be written to is refused.
 - **An instance that is already running asks the same thing once.** Whoever administers it and still carries the made-up address from an earlier first start is asked for a real one the next time they sign in, and reaches the application as soon as it is set.
+- **An instance with no mail set up stops waiting for confirmations it cannot send.** A new account was left unverified, an address change never took effect and a station could not be deleted, each of them waiting for a link that was never written. Where no mail provider is configured, every such confirmation now counts as given and the thing happens straight away; a public demo is unaffected, and password links are untouched because they hand over a credential rather than confirm something already chosen.
+- **Correcting an address nobody can read now takes one confirmation instead of two.** Changing an address used to ask the old address to release it and the new one to claim it, which could never finish when the old one was a made-up address with no reader. The new address alone is now asked in that case, and its confirmation settles it; where the old address does reach somebody, both are still asked.
 
 ## v26.13.11
 

@@ -145,7 +145,7 @@ public class AuthRoutes implements Routes {
                         result.account().email(),
                         result.account().firstName(),
                         result.account().lastName(),
-                        false));
+                        result.account().emailVerified()));
     }
 
     @OpenApi(

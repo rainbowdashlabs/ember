@@ -72,6 +72,10 @@ const requirements = [
       <HelpTip class="mt-3">{{ t('helpCenter.basics.hosting.firstStartWhy') }}</HelpTip>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.basics.hosting.noMail')">
+      <p>{{ t('helpCenter.basics.hosting.noMailText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.basics.hosting.configLinkTitle')">
       <p>{{ t('helpCenter.basics.hosting.configLinkText') }}</p>
       <router-link :to="{name: 'help-basics-hosting-configuration'}">

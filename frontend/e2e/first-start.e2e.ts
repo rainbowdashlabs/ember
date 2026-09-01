@@ -44,6 +44,27 @@ test.describe('First start', () => {
         await expect(page).toHaveURL(/\/login/)
     })
 
+    /**
+     * This instance has no mail provider, which is the state a freshly installed one is in. A
+     * confirmation asked for by mail could never arrive there, so it counts as given: the account is
+     * verified as it is made, and signs in straight away instead of waiting for a link forever.
+     */
+    test('an instance that cannot send asks for no verification', async ({request}) => {
+        const email = `no-mail-${Date.now()}@example.org`
+        const password = 'EinLangesPasswort2026!'
+
+        const registered = await request.post('/api/v1/auth/register', {
+            data: {email, firstName: 'Ohne', lastName: 'Post', password},
+        })
+        expect(registered.status()).toBe(201)
+        expect((await registered.json()).emailVerified).toBe(true)
+
+        const login = await request.post('/api/v1/auth/login', {data: {identifier: email, password}})
+
+        expect(login.status()).toBe(200)
+        expect((await login.json()).token).toBeTruthy()
+    })
+
     test('another made-up address is refused at the step', async ({page}) => {
         await signIn(page, MADE_UP)
         await expect(page).toHaveURL(/\/set-address/)

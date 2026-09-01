@@ -639,7 +639,14 @@ volumes:
                 firstStartWhy: 'Die Adresse ist Pflicht, weil ein Konto, an das niemand schreiben kann, im Ernstfall '
                     + 'nichts wert ist: keine Passwortzurücksetzung, keine Warnung, keine Benachrichtigung. Aus '
                     + 'dem gleichen Grund wird eine erfundene Adresse abgewiesen. Ändern kannst du sie später '
-                    + 'jederzeit unter Konto, dort wird der Wechsel von beiden Adressen aus bestätigt.',
+                    + 'jederzeit unter Konto.',
+                noMail: 'Solange kein Mailversand eingerichtet ist',
+                noMailText: 'Rückfragen, die Ember sonst per E-Mail stellt, kann es dann nicht stellen. Statt auf '
+                    + 'eine Antwort zu warten, die nie kommen kann, führt Ember die Handlung sofort aus: ein neues '
+                    + 'Konto gilt als bestätigt, eine geänderte Adresse wird direkt übernommen, und eine Wache wird '
+                    + 'ohne Rückfrage gelöscht. Sobald ein Mailversand eingerichtet ist, wird wieder nachgefragt. '
+                    + 'Links zum Setzen eines Passworts sind davon nicht betroffen: sie übergeben ein Passwort, '
+                    + 'statt etwas zu bestätigen, und werden weiterhin nur per E-Mail verschickt.',
                 configLinkTitle: 'Konfiguration',
                 configLinkText: 'Die vollständige Liste aller Einstellungen und Umgebungsvariablen ist auf einer eigenen Seite zusammengefasst:',
                 dataDir: 'Datenverzeichnis',
