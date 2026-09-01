@@ -46,7 +46,7 @@ function ownerLabel(ownerKind?: string | null): string {
 </script>
 
 <template>
-  <TRow>
+  <TRow data-testid="exchange-row" :data-exchange-id="request.id">
     <td v-if="exportMode" class="px-1 py-2.5 w-8">
       <CheckboxInput :model-value="selected" @update:model-value="emit('toggle-export')" />
     </td>

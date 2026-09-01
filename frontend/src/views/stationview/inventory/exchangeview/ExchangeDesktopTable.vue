@@ -11,6 +11,8 @@ import ExchangeTableHeader from './ExchangeTableHeader.vue'
 import ExchangeTableRow from './ExchangeTableRow.vue'
 import type { ExchangeRequestEntry, ExchangeStatusName } from '@/api/exchanges'
 import type { InventoryItem } from '@/api/inventory'
+import type { SortDirection } from '@/composables/useSortable'
+import type { ExchangeSortKey } from './exchangeFilter'
 
 const props = defineProps<{
   requests: ExchangeRequestEntry[]
@@ -18,9 +20,12 @@ const props = defineProps<{
   showMemberColumn: boolean
   canManageExchanges: boolean
   selectedForExport: Set<number>
+  allSelected: boolean
   updatingId: number | null
   availableItems: InventoryItem[]
   nextStatusesFor: (request: ExchangeRequestEntry) => ExchangeStatusName[]
+  sortKey: ExchangeSortKey
+  direction: SortDirection
 }>()
 
 const emit = defineEmits<{
@@ -32,9 +37,8 @@ const emit = defineEmits<{
   (e: 'status-done'): void
   (e: 'status-cancel'): void
   (e: 'status-error', msg: string): void
+  (e: 'sort', key: ExchangeSortKey): void
 }>()
-
-const allSelected = computed(() => props.selectedForExport.size === props.requests.length && props.requests.length > 0)
 
 const colSpan = computed(() => (props.showMemberColumn ? 9 : 8) + (props.exportMode ? 1 : 0))
 </script>
@@ -48,7 +52,10 @@ const colSpan = computed(() => (props.showMemberColumn ? 9 : 8) + (props.exportM
           :show-member-column="showMemberColumn"
           :can-manage-exchanges="canManageExchanges"
           :all-selected="allSelected"
+          :sort-key="sortKey"
+          :direction="direction"
           @toggle-select-all="emit('toggle-select-all')"
+          @sort="(key) => emit('sort', key)"
         />
       </thead>
       <tbody>
