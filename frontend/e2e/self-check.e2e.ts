@@ -3,8 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {Page} from '@playwright/test'
-import {test, expect, apiHeaders} from './fixtures/auth'
+import type {APIRequestContext, Browser, Page} from '@playwright/test'
+import {test, expect, apiHeaders, demoAccounts, pageAsThrowaway, stationPeers} from './fixtures/auth'
 
 /**
  * A member answering for their own gear, and a checker reading what they said.
@@ -12,6 +12,11 @@ import {test, expect, apiHeaders} from './fixtures/auth'
  * <p>The point of the feature is that nobody has to be in the room, so the stories put the member
  * and the checker on separate pages throughout: a checker who could sign off their own words would
  * leave one name on a record that exists to carry two.
+ *
+ * <p>Each story asks somebody nobody has asked yet, in a session of its own. A member holding an
+ * unfinished task is passed over rather than asked twice, and the one act that would end such a task
+ * is the checker's own walk, which takes the lock the rest of the suite is walking members under.
+ * Finding a free member costs a login and disturbs nothing.
  */
 
 /** Which member the signed-in page is, asked of the application rather than assumed. */
@@ -21,32 +26,40 @@ async function ownMemberId(page: Page): Promise<number> {
     return (await session.json()).member.id
 }
 
-/**
- * Hands one member a task, having first ended whatever they still hold.
- *
- * <p>A member already holding an unfinished task is passed over rather than asked twice, which is
- * the right behaviour and would leave a story with nothing to walk. Starting the checker's own walk
- * and cancelling it again is the one thing that closes such a task, and it is what the feature says
- * happens: a checker's walk overtakes what the member was asked.
- */
-async function handOut(manager: Page, memberId: number): Promise<number> {
-    const headers = await apiHeaders(manager)
-    await clearTasks(manager, memberId)
-    const response = await manager.request.post('/api/v1/self-checks', {
-        headers,
-        data: {memberIds: [memberId], dueOn: null},
-    })
-    expect(response.ok(), `the checker handed a task out (${await response.text()})`).toBeTruthy()
-    const handed = await response.json()
-    expect(handed.length, 'the member had no unfinished task standing in the way').toBeGreaterThan(0)
-    return handed[0].id
+/** A member of the checker's station holding no task yet, signed in, with the task they were handed. */
+interface Asked {
+    page: Page
+    memberId: number
+    taskId: number
 }
 
-/** Ends whatever the member still holds, so one story does not decide what the next one finds. */
-async function clearTasks(manager: Page, memberId: number): Promise<void> {
+/**
+ * Asks the first member of the station who is free to be asked.
+ *
+ * <p>Being passed over is the endpoint's own answer to a member who already holds an unfinished
+ * task, so an empty answer is read as "try somebody else" rather than as a failure.
+ */
+async function askSomebody(browser: Browser, request: APIRequestContext, manager: Page): Promise<Asked> {
+    const {manager: checker} = await stationPeers(request)
+    const candidates = (await demoAccounts(request)).filter(account =>
+        !!account.email
+        && account.stationId === checker.stationId
+        && account.userType === 'MEMBER'
+        && account.email !== checker.email)
     const headers = await apiHeaders(manager)
-    await manager.request.post(`/api/v1/inventory-checks/${memberId}/start`, {headers})
-    await manager.request.post(`/api/v1/inventory-checks/${memberId}/cancel`, {headers})
+    for (const account of candidates) {
+        const page = await pageAsThrowaway(browser, request, [], account)
+        const memberId = await ownMemberId(page)
+        const response = await manager.request.post('/api/v1/self-checks', {
+            headers,
+            data: {memberIds: [memberId], dueOn: null},
+        })
+        expect(response.ok(), `the checker handed a task out (${await response.text()})`).toBeTruthy()
+        const handed = await response.json()
+        if (handed.length > 0) return {page, memberId, taskId: handed[0].id}
+        await page.context().close()
+    }
+    throw new Error('every member of the station already holds an unfinished self-check')
 }
 
 /** Says everything the screen asks, and answers with how many things that was. */
@@ -88,16 +101,13 @@ async function review(manager: Page, taskId: number) {
 }
 
 test.describe('Self-check', () => {
-    // One member and one station between them: two stories asking the same person at the same
-    // moment would each close what the other had just been handed.
     test.describe.configure({mode: 'serial'})
 
     /**
      * SFC-1: a member is handed a task, says what they have, hands it in and sees it as handed in.
      */
-    test('a member answers for their own gear and hands it in', async ({managerPage, memberPage}) => {
-        const memberId = await ownMemberId(memberPage)
-        const taskId = await handOut(managerPage, memberId)
+    test('a member answers for their own gear and hands it in', async ({browser, request, managerPage}) => {
+        const {page: memberPage, taskId} = await askSomebody(browser, request, managerPage)
 
         await memberPage.goto(`/station/inventory/self-check/${taskId}`)
         await expect(memberPage.getByTestId('app-shell')).toBeVisible()
@@ -114,6 +124,7 @@ test.describe('Self-check', () => {
         const submitted = await review(managerPage, taskId)
         expect(submitted.task.state, 'the task is waiting to be read').toBe('SUBMITTED')
         expect(submitted.submittedByName.length, 'the submission names who entered it').toBeGreaterThan(0)
+        await memberPage.context().close()
     })
 
     /**
@@ -122,9 +133,8 @@ test.describe('Self-check', () => {
      * signed it off.
      */
     test('a checker settles a submission line by line and the check names both people',
-        async ({managerPage, memberPage}) => {
-            const memberId = await ownMemberId(memberPage)
-            const taskId = await handOut(managerPage, memberId)
+        async ({browser, request, managerPage}) => {
+            const {page: memberPage, memberId, taskId} = await askSomebody(browser, request, managerPage)
 
             await memberPage.goto(`/station/inventory/self-check/${taskId}`)
             await expect(memberPage.getByTestId('app-shell')).toBeVisible()
@@ -187,6 +197,7 @@ test.describe('Self-check', () => {
             expect(detail.reporterFirstName.length, 'the check names the reporter').toBeGreaterThan(0)
             expect(detail.checkerFirstName.length, 'the check names who signed it off').toBeGreaterThan(0)
             expect(detail.check.checkedBy).not.toBe(detail.check.reportedBy)
+            await memberPage.context().close()
         })
 
     /**
@@ -194,10 +205,17 @@ test.describe('Self-check', () => {
      * they hold. The two names on a check are the point of it.
      */
     test('a checker cannot sign off a submission they entered themselves', async ({managerPage}) => {
-        const memberId = await ownMemberId(managerPage)
-        const taskId = await handOut(managerPage, memberId)
-
         const headers = await apiHeaders(managerPage)
+        const memberId = await ownMemberId(managerPage)
+        const handed = await managerPage.request.post('/api/v1/self-checks', {
+            headers,
+            data: {memberIds: [memberId], dueOn: null},
+        })
+        expect(handed.ok(), `the checker hands themselves a task (${await handed.text()})`).toBeTruthy()
+        const tasks = await handed.json()
+        expect(tasks.length, 'the checker holds no unfinished task of their own').toBeGreaterThan(0)
+        const taskId = tasks[0].id
+
         const task = await managerPage.request.get(`/api/v1/self-checks/${taskId}`, {headers})
         expect(task.ok(), `the checker reads their own task (${await task.text()})`).toBeTruthy()
         const own = await task.json()
@@ -226,6 +244,5 @@ test.describe('Self-check', () => {
             )
             expect(refused.status(), 'the endpoint refuses it too, not only the screen').toBe(403)
         }
-        await clearTasks(managerPage, memberId)
     })
 })

@@ -25,10 +25,18 @@ const router = useRouter()
 
 const tasks = ref<SelfCheckSummary[]>([])
 
+/**
+ * Reads the list, and says nothing where it cannot be read.
+ *
+ * <p>A tile of the dashboard that fails is one tile missing, not a broken page: the reader came here
+ * for the seven other things on it.
+ */
 async function loadData() {
   try {
     tasks.value = await selfChecks.mine()
-  } catch { /* a dashboard panel that cannot load says nothing rather than breaking the page */ }
+  } catch {
+    tasks.value = []
+  }
 }
 
 onMounted(loadData)
