@@ -59,6 +59,7 @@ const NECESSITY: Record<string, StorageNecessityName> = {
     feel: StorageNecessity.COMFORT,
     theme: StorageNecessity.COMFORT,
     sidebar_collapsed: StorageNecessity.COMFORT,
+    landing_area: StorageNecessity.COMFORT,
     onboarding_tour_completed: StorageNecessity.COMFORT,
     'eventsUpcoming.viewMode': StorageNecessity.COMFORT,
     'stationPages.filesPerPage': StorageNecessity.COMFORT,

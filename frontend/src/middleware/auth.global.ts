@@ -10,6 +10,7 @@ import {useConsentGuard} from '~/composables/useConsentGuard'
 import {useSession} from '~/composables/useSession'
 import {useCluster} from '~/composables/useCluster'
 import {useStations} from '~/composables/useStations'
+import {forgetLandingMemory, rememberVisitedArea} from '~/util/landingMemoryState'
 
 /**
  * How long a session may sit untouched before the requirements of the active station are
@@ -39,9 +40,9 @@ const IDLE_EXEMPT = new Set(['/station/requirements', '/reconsent'])
  * screen every time. The endpoint behind it is registered only on those instances, so the parameter
  * is inert everywhere else; the check here keeps a production instance from even asking.
  *
- * <p>The stored station and cluster go first. They belong to whoever was signed in a moment ago, and
- * the next person is often at another station, where they would be sent to a picker or an emptiness
- * instead of the page the link named.
+ * <p>The stored station, cluster and last area go first. They belong to whoever was signed in a moment
+ * ago, and the next person is often at another station, where they would be sent to a picker or an
+ * emptiness instead of the page the link named.
  *
  * @param email the address to become
  */
@@ -50,6 +51,7 @@ async function switchAccount(email: string): Promise<void> {
     if (!status.demo && !status.dev) return
     removeItem('station_id')
     removeItem('cluster_id')
+    forgetLandingMemory()
     await demoLogin(email)
     useSession().clear()
 }
@@ -128,6 +130,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
             return navigateTo({path: '/cross-station', query: {redirect: to.fullPath}})
         }
     }
+
+    rememberVisitedArea(to.path)
 
     if (!getItem('station_id')) return
 
