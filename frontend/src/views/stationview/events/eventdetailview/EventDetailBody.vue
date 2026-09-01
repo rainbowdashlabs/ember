@@ -19,9 +19,10 @@ import EventRegistrationActions from '../eventshared/EventRegistrationActions.vu
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {isRecurringEvent, type AbsentMember, type EventField, type EventRegistrationEntry, type StationEvent} from '@/api/events'
-import {StationPermission, type StationMember} from '@/api/types'
+import {StationModules, StationPermission, type StationMember} from '@/api/types'
 import {formatDateTime} from '@/util/format'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
+import {useSession} from '@/composables/useSession'
 
 const props = defineProps<{
   event: StationEvent
@@ -64,8 +65,17 @@ const answers = computed(() => localAnswers(props.registrableMembers, props.myRe
 const currentMemberIds = computed(() => props.allMembers.map(member => member.id))
 
 const {t} = useI18n()
+const {isModuleEnabled} = useSession()
 
 const activeTab = ref<'info' | 'registrations' | 'equipment'>('info')
+
+/**
+ * Whether what the appointment needs can be read at all. The gear lives in the inventory, so a
+ * station that has switched it off has nothing to show, and somebody who may not read it is refused
+ * by the server: either way the tab would only stand for an answer nobody can get.
+ */
+const canReadEquipment = computed(() =>
+    isModuleEnabled(StationModules.INVENTORY) && props.hasPermission(StationPermission.INVENTORY_READ))
 
 /**
  * What the second tab is called, which follows what the appointment asks of people.
@@ -77,6 +87,17 @@ const activeTab = ref<'info' | 'registrations' | 'equipment'>('info')
  */
 const answerTabLabel = computed(() =>
     props.event.requiresRegistration ? t('eventDetail.tabRegistrations') : t('eventDetail.tabAttendance'))
+
+const tabs = computed(() => {
+  const entries = [
+    {key: 'info', label: t('eventDetail.tabInfo')},
+    {key: 'registrations', label: answerTabLabel.value},
+  ]
+  if (canReadEquipment.value) {
+    entries.push({key: 'equipment', label: t('eventDetail.tabEquipment')})
+  }
+  return entries
+})
 
 const showCancelModal = ref(false)
 function onCancelled() {
@@ -130,14 +151,7 @@ function onCancelled() {
       <InfoBadge v-for="days in reminders" :key="days">{{ days }} {{ t('eventEdit.daysBefore') }}</InfoBadge>
     </div>
 
-    <TabBar
-        v-model="activeTab"
-        :tabs="[
-          {key: 'info', label: t('eventDetail.tabInfo')},
-          {key: 'registrations', label: answerTabLabel},
-          {key: 'equipment', label: t('eventDetail.tabEquipment')},
-        ]"
-    />
+    <TabBar v-model="activeTab" :tabs="tabs"/>
 
     <EventInfoTab
         v-if="activeTab === 'info'"
@@ -169,7 +183,7 @@ function onCancelled() {
     />
 
     <EventEquipmentTab
-        v-if="activeTab === 'equipment'"
+        v-if="activeTab === 'equipment' && canReadEquipment"
         :event-id="eventId"
         :effective-date="effectiveDate"
         :recurring="isRecurringEvent(event.eventType)"
