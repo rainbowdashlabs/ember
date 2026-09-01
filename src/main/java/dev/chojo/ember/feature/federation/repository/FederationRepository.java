@@ -143,6 +143,61 @@ public class FederationRepository {
     }
 
     /**
+     * Writes this instance's half of a partnership with a station that lives on another instance.
+     *
+     * <p>The row is finished the moment it exists. The handshake it comes out of already carried the
+     * other side's consent, both public keys and the contract vector, so there is no pending state to
+     * activate afterwards. The partner's name travels in the handshake as well, because the station it
+     * names is in another instance's database and no subquery here can find it.
+     *
+     * <p>A pair that is made a second time overwrites the first rather than failing: a station that
+     * ended the connection on its side left this row behind, and a fresh code is the two of them
+     * deciding to start over.
+     *
+     * @param stationId          the local station the row belongs to
+     * @param partnerStationUid  the remote station on the other end
+     * @param publicKey          the local station's public key, which the partner will verify against
+     * @param partnerPublicKey   the remote station's public key
+     * @param remoteHost         the base URL the remote instance is reached at
+     * @param partnerStationName the remote station's name, for display
+     * @param contract           the contract vector the remote instance presented
+     */
+    public FederationPartner createRemotePartner(
+            int stationId,
+            UUID partnerStationUid,
+            String publicKey,
+            String partnerPublicKey,
+            String remoteHost,
+            String partnerStationName,
+            FederationContract contract) {
+        return insertReturning(
+                """
+                INSERT INTO federation_partner(station_id, partner_station_id, public_key, partner_public_key, status,
+                                               remote_host, partner_station_name, federation_contract)
+                VALUES (:station_id, :partner_station_id::UUID, :public_key, :partner_public_key, 'ACTIVE',
+                        :remote_host, :partner_station_name, :contract::jsonb)
+                ON CONFLICT (station_id, partner_station_id) DO UPDATE
+                SET public_key = excluded.public_key,
+                    partner_public_key = excluded.partner_public_key,
+                    status = 'ACTIVE',
+                    invite_code = NULL,
+                    remote_host = excluded.remote_host,
+                    partner_station_name = excluded.partner_station_name,
+                    federation_contract = excluded.federation_contract,
+                    updated_at = now()
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
+                        .bind("partner_station_id", partnerStationUid, UUID_STRING)
+                        .bind("public_key", publicKey)
+                        .bind("partner_public_key", partnerPublicKey)
+                        .bind("remote_host", remoteHost)
+                        .bind("partner_station_name", partnerStationName)
+                        .bind("contract", contract == null ? null : contract.toJson()),
+                FederationPartner.map(),
+                FEDERATION_PARTNER_COLUMNS);
+    }
+
+    /**
      * Creates a pair a cluster made, already active and already trusted.
      *
      * <p>No invite, no acceptance and no key exchange. Both stations are on this instance and both answer to

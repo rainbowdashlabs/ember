@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
+import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.HttpStatus;
@@ -28,6 +29,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublisher;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -56,6 +58,7 @@ import java.util.UUID;
 @Singleton
 public class FederationHttpClient {
     private static final Logger log = LoggerFactory.getLogger(FederationHttpClient.class);
+    private static final Duration HANDSHAKE_TIMEOUT = Duration.ofSeconds(15);
 
     private final HttpClient httpsClient;
     private final HttpClient httpClient1;
@@ -98,6 +101,64 @@ public class FederationHttpClient {
      */
     private HttpClient clientFor(String url) {
         return url != null && url.startsWith("https://") ? httpsClient : httpClient1;
+    }
+
+    /**
+     * Performs the handshake that establishes a partnership between two instances.
+     *
+     * <p>This is the one federation call that carries no request signature, because the two
+     * instances have no partnership yet and therefore no key to sign an envelope with. What
+     * authenticates it instead travels inside the body: the caller's public key and an enrollment
+     * signature over the payload, which the receiver checks before it acts on anything.
+     *
+     * <p>Unlike the typed helpers around it, this one reports what went wrong rather than folding
+     * every failure into {@code null}. A person is waiting on the answer, and "we could not reach
+     * them" and "they say that code is used up" are different things to be told.
+     *
+     * @param remoteBaseUrl the base URL of the instance that issued the code
+     * @param body          the handshake payload
+     * @return what the far side said, or why it could not be asked
+     */
+    public HandshakeAttempt handshake(String remoteBaseUrl, RemoteFederationRoutes.HandshakeRequest body) {
+        String url = apiUrl(remoteBaseUrl) + RemoteFederationRoutes.HANDSHAKE.path();
+        if (!urlValidator.isAllowed(url)) {
+            log.warn("Federation handshake URL rejected by the URL validator: {}", url);
+            return new HandshakeAttempt(HandshakeStatus.HOST_REFUSED, null);
+        }
+        try {
+            var request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(HANDSHAKE_TIMEOUT)
+                    .header("Content-Type", "application/json")
+                    .POST(BodyPublishers.ofString(mapper.writeValueAsString(body)))
+                    .build();
+            //noinspection resource
+            var response = clientFor(url).send(request, HttpResponse.BodyHandlers.ofString());
+            var status = handshakeStatus(response.statusCode());
+            if (status != HandshakeStatus.ESTABLISHED) {
+                log.warn("Federation handshake with {} answered HTTP {}", remoteBaseUrl, response.statusCode());
+                return new HandshakeAttempt(status, null);
+            }
+            return new HandshakeAttempt(
+                    status, mapper.readValue(response.body(), RemoteFederationRoutes.HandshakeResponse.class));
+        } catch (HttpTimeoutException e) {
+            log.warn("Federation handshake with {} timed out", remoteBaseUrl, e);
+            return new HandshakeAttempt(HandshakeStatus.TIMEOUT, null);
+        } catch (Exception e) {
+            log.warn("Federation handshake with {} failed", remoteBaseUrl, e);
+            return new HandshakeAttempt(HandshakeStatus.UNREACHABLE, null);
+        }
+    }
+
+    private static HandshakeStatus handshakeStatus(int statusCode) {
+        return switch (statusCode) {
+            case 200, 201 -> HandshakeStatus.ESTABLISHED;
+            case 404 -> HandshakeStatus.STATION_GONE;
+            case 409 -> HandshakeStatus.CONTRACT_MISMATCH;
+            case 410 -> HandshakeStatus.TOKEN_SPENT;
+            case 400, 403, 422 -> HandshakeStatus.REFUSED;
+            default -> HandshakeStatus.UNREACHABLE;
+        };
     }
 
     /**
@@ -397,6 +458,34 @@ public class FederationHttpClient {
             handleContractMismatch(response.body(), localStationId, partnerStationUid);
         }
         return response;
+    }
+
+    /**
+     * What became of a handshake attempt.
+     *
+     * @param status   how it ended
+     * @param response what the far side answered, only present once it is {@code ESTABLISHED}
+     */
+    public record HandshakeAttempt(HandshakeStatus status, RemoteFederationRoutes.HandshakeResponse response) {}
+
+    /** How a handshake attempt ended, in terms a person entering a code can be told about. */
+    public enum HandshakeStatus {
+        /** The far side accepted, redeemed the token and answered with its own half. */
+        ESTABLISHED,
+        /** The address in the code is not one this instance is willing to call. */
+        HOST_REFUSED,
+        /** Nothing answered at that address. */
+        UNREACHABLE,
+        /** Something is there, but it did not answer in time. */
+        TIMEOUT,
+        /** The far side answered and would not accept this station. */
+        REFUSED,
+        /** The far side no longer has the station the code names. */
+        STATION_GONE,
+        /** The far side has no record of that token, or it has already been redeemed. */
+        TOKEN_SPENT,
+        /** The two instances run federation versions that cannot talk to each other. */
+        CONTRACT_MISMATCH
     }
 
     /**
