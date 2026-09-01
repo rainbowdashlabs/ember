@@ -3636,6 +3636,7 @@ export default {
         ownerHandoverSubmit: 'Übertragen',
         ownerHandoverSuccess: 'Eigentümerschaft wurde übertragen.',
         ownerHandoverNone: 'Keine weiteren Manager vorhanden.',
+        ownerHandoverLoadFailed: 'Die Manager dieser Wache konnten nicht geladen werden.',
         transferTitle: 'Wach-Transfer',
         transferHint: 'Erstelle einen Transfer-Code, um diese Wache auf eine andere Ember-Instanz zu übertragen. Der Code ist 24 Stunden gültig.',
         transferCreate: 'Transfer-Code erstellen',
