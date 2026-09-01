@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -25,18 +26,25 @@ import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class LostAndFoundServiceTest extends RepositoryTestBase {
     private static LostAndFoundService service;
+    private static LostAndFoundImageService imageService;
     private static Station station;
     private static Account account;
     private static StationMember member;
+    /** Somebody other than the reporter, because the report never notifies whoever wrote it. */
+    private static Account bystanderAccount;
+
+    private static StationMember bystander;
     private static int itemId;
 
     @BeforeAll
     static void setup() {
         var emailService = mock(EmailService.class);
+        imageService = mock(LostAndFoundImageService.class);
         var notificationService = new NotificationService(
                 notificationRepo,
                 stationMemberRepo,
@@ -48,7 +56,7 @@ class LostAndFoundServiceTest extends RepositoryTestBase {
                 emailService,
                 new MailRecipientService(accountRepo, stationMemberRepo),
                 new Mailing());
-        service = new LostAndFoundService(lostAndFoundRepo, notificationService);
+        service = new LostAndFoundService(lostAndFoundRepo, notificationService, imageService);
 
         station = stationRepo.create("LostStation");
         account = accountRepo.create("lost@test.com", "Lost", "Finder");
@@ -59,12 +67,19 @@ class LostAndFoundServiceTest extends RepositoryTestBase {
         stationMemberRepo
                 .findPermissionByName(StationPermission.USER)
                 .ifPresent(r -> stationMemberRepo.grantPermission(member.id(), r.id()));
+
+        bystanderAccount = accountRepo.create("lost-bystander@test.com", "Lost", "Bystander");
+        bystander = stationMemberRepo.create(station.id(), bystanderAccount.id());
+        stationMemberRepo
+                .findPermissionByName(StationPermission.LOGIN)
+                .ifPresent(r -> stationMemberRepo.grantPermission(bystander.id(), r.id()));
     }
 
     @AfterAll
     static void cleanup() {
         stationRepo.delete(station.id());
         accountRepo.delete(account.id());
+        accountRepo.delete(bystanderAccount.id());
     }
 
     @Test
@@ -127,9 +142,71 @@ class LostAndFoundServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(14)
+    void releasedItemIsFreeToClaimAgain() {
+        assertTrue(service.release(itemId));
+        assertNull(service.findById(itemId).orElseThrow().claimedBy());
+        assertTrue(service.findUnclaimedByStation(station.id()).stream().anyMatch(i -> i.id() == itemId));
+        assertTrue(service.claim(itemId, member.id(), station.id(), "Lost Finder"));
+    }
+
+    @Test
+    @Order(15)
+    void releasingAnUnclaimedItemReportsNothingDone() {
+        var free = service.create(station.id(), "Never claimed", LocalDate.now(), member.id());
+        assertFalse(service.release(free.id()));
+        assertTrue(service.delete(station.id(), free.id()));
+    }
+
+    /**
+     * Two items reported without a word about them used to share one notification fragment, so
+     * claiming either withdrew the other's notification too. The withdrawal now names the item.
+     */
+    @Test
+    @Order(16)
+    void claimingOneItemLeavesTheOtherNotificationsAlone() {
+        var first = service.create(station.id(), null, LocalDate.now(), member.id());
+        var second = service.create(station.id(), null, LocalDate.now(), member.id());
+        var announced = notificationRepo.findUnacknowledged(bystander.id());
+        assertTrue(announced.stream().anyMatch(n -> pointsAt(n, first.id())));
+        assertTrue(announced.stream().anyMatch(n -> pointsAt(n, second.id())));
+
+        assertTrue(service.claim(first.id(), member.id(), station.id(), "Lost Finder"));
+
+        var left = notificationRepo.findUnacknowledged(bystander.id());
+        assertTrue(left.stream().anyMatch(n -> pointsAt(n, second.id())));
+        assertFalse(left.stream().anyMatch(n -> pointsAt(n, first.id())));
+
+        assertTrue(service.delete(station.id(), first.id()));
+        assertTrue(service.delete(station.id(), second.id()));
+    }
+
+    @Test
+    @Order(17)
+    void deletingAnItemTakesItsNotificationsWithIt() {
+        var item = service.create(station.id(), "Withdrawn again", LocalDate.now(), member.id());
+        assertTrue(notificationRepo.findUnacknowledged(bystander.id()).stream().anyMatch(n -> pointsAt(n, item.id())));
+
+        assertTrue(service.delete(station.id(), item.id()));
+
+        assertFalse(notificationRepo.findUnacknowledged(bystander.id()).stream().anyMatch(n -> pointsAt(n, item.id())));
+    }
+
+    /**
+     * The handover and the removal are one path, so the image cannot outlive the item it belongs to.
+     */
+    @Test
     @Order(20)
-    void deleteItem() {
-        assertTrue(service.delete(itemId));
+    void deleteItemAlsoRemovesItsImage() {
+        assertTrue(service.delete(station.id(), itemId));
         assertTrue(service.findById(itemId).isEmpty());
+        verify(imageService).delete(station.id(), itemId);
+    }
+
+    private static boolean pointsAt(Notification notification, int itemId) {
+        var link = notification.data().link();
+        return link != null
+                && String.valueOf(itemId)
+                        .equals(String.valueOf(link.routeParams().get("id")));
     }
 }

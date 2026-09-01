@@ -507,6 +507,17 @@ public class NotificationService {
     }
 
     /**
+     * Withdraws unacknowledged notifications of a type that point at one particular entity.
+     *
+     * @param type the notification type
+     * @param link the link the notification must carry
+     */
+    public void deleteByTypeAndLink(NotificationType type, NotificationData.NotificationLink link) {
+        notificationRepository.deleteByTypeAndLink(type, link);
+        log.debug("Withdrew the {} notifications pointing at {}", type, link.routeParams());
+    }
+
+    /**
      * Removes acknowledged notifications older than 30 days.
      */
     public void cleanupOld() {

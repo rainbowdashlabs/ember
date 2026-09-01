@@ -139,6 +139,20 @@ public class LostAndFoundRepository {
     }
 
     /**
+     * Takes a claim back off an item, so it stands unclaimed again.
+     *
+     * @param id the item ID
+     * @return true if a claim was actually taken back
+     */
+    public boolean release(int id) {
+        return query("UPDATE lost_and_found_item SET claimed_by = NULL, claimed_at = NULL"
+                        + " WHERE id = :id AND claimed_by IS NOT NULL;")
+                .single(call().bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
      * Deletes a lost and found item.
      *
      * @param id the item ID

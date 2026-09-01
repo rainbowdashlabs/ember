@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.lostandfound.service;
 
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -31,11 +32,16 @@ public class LostAndFoundService {
     private static final Logger log = LoggerFactory.getLogger(LostAndFoundService.class);
     private final LostAndFoundRepository repository;
     private final NotificationService notificationService;
+    private final LostAndFoundImageService imageService;
 
     @Inject
-    public LostAndFoundService(LostAndFoundRepository repository, NotificationService notificationService) {
+    public LostAndFoundService(
+            LostAndFoundRepository repository,
+            NotificationService notificationService,
+            LostAndFoundImageService imageService) {
         this.repository = repository;
         this.notificationService = notificationService;
+        this.imageService = imageService;
     }
 
     /**
@@ -95,15 +101,15 @@ public class LostAndFoundService {
                 NotificationType.LOST_AND_FOUND_NEW,
                 NotificationData.of(
                         new NotificationParams.LostAndFoundNew(description != null ? description : ""),
-                        new NotificationLink("lost-and-found", Map.of("id", item.id()))),
+                        linkTo(item.id())),
                 createdBy);
         log.info("Created lost-and-found item {} at station {} by member {}", item.id(), stationId, createdBy);
         return item;
     }
 
     /**
-     * Claims a lost and found item for a member. On success, notifies managers with the
-     * LOST_AND_FOUND_MANAGER role and removes the "new item" notification.
+     * Claims a lost and found item for a member. On success, notifies the members who look after
+     * the lost and found and withdraws the "new item" notification for this one item.
      *
      * @param id          the item ID to claim
      * @param claimedBy   the member ID claiming the item
@@ -118,15 +124,11 @@ public class LostAndFoundService {
             String desc = item.description() != null ? item.description() : "";
             notificationService.notifyMembersWithRole(
                     stationId,
-                    "LOST_AND_FOUND_MANAGER",
+                    StationPermission.LOST_AND_FOUND_MANAGER.name(),
                     NotificationType.LOST_AND_FOUND_CLAIMED,
-                    NotificationData.of(
-                            new NotificationParams.LostAndFoundClaimed(claimerName, desc),
-                            new NotificationLink("lost-and-found", Map.of("id", id))),
+                    NotificationData.of(new NotificationParams.LostAndFoundClaimed(claimerName, desc), linkTo(id)),
                     claimedBy);
-            notificationService.deleteByTypeContaining(
-                    NotificationType.LOST_AND_FOUND_NEW,
-                    NotificationData.of(new NotificationParams.LostAndFoundNew(desc)));
+            notificationService.deleteByTypeAndLink(NotificationType.LOST_AND_FOUND_NEW, linkTo(id));
             log.info("Claimed lost-and-found item {} by member {} at station {}", id, claimedBy, stationId);
         } else {
             log.warn("Failed to claim lost-and-found item {} by member {} at station {}", id, claimedBy, stationId);
@@ -135,18 +137,46 @@ public class LostAndFoundService {
     }
 
     /**
-     * Deletes a lost and found item.
+     * Takes a claim back off an item, so it stands unclaimed again and anybody may claim it. The
+     * "claimed" notification is withdrawn with it, because it is no longer true.
      *
      * @param id the item ID
+     * @return true if a claim was actually taken back
+     */
+    public boolean release(int id) {
+        boolean released = repository.release(id);
+        if (released) {
+            notificationService.deleteByTypeAndLink(NotificationType.LOST_AND_FOUND_CLAIMED, linkTo(id));
+            log.info("Released the claim on lost-and-found item {}", id);
+        } else {
+            log.warn("Failed to release lost-and-found item {} (not found or unclaimed)", id);
+        }
+        return released;
+    }
+
+    /**
+     * Deletes a lost and found item together with everything that only existed for it: its image
+     * and the notifications pointing at it. One way out for both the handover and the removal, so
+     * neither can leave the other's leftovers behind.
+     *
+     * @param stationId the station the item belongs to
+     * @param id        the item ID
      * @return true if the item was deleted
      */
-    public boolean delete(int id) {
+    public boolean delete(int stationId, int id) {
         boolean deleted = repository.delete(id);
         if (deleted) {
+            imageService.delete(stationId, id);
+            notificationService.deleteByTypeAndLink(NotificationType.LOST_AND_FOUND_NEW, linkTo(id));
+            notificationService.deleteByTypeAndLink(NotificationType.LOST_AND_FOUND_CLAIMED, linkTo(id));
             log.info("Deleted lost-and-found item {}", id);
         } else {
             log.warn("Failed to delete lost-and-found item {} (not found)", id);
         }
         return deleted;
+    }
+
+    private static NotificationLink linkTo(int id) {
+        return new NotificationLink("lost-and-found", Map.of("id", id));
     }
 }

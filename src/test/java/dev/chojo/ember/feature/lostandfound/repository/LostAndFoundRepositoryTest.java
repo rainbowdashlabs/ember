@@ -126,6 +126,23 @@ class LostAndFoundRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(30)
+    void releaseFreesTheItemAgain() {
+        assertTrue(lostAndFoundRepo.release(itemId));
+        var item = lostAndFoundRepo.findById(itemId).orElseThrow();
+        assertNull(item.claimedBy());
+        assertNull(item.claimedAt());
+        assertEquals(1, lostAndFoundRepo.findUnclaimedByStation(station.id()).size());
+        assertEquals(0, lostAndFoundRepo.countClaimedNotProvided(station.id()));
+    }
+
+    @Test
+    @Order(31)
+    void releaseAnUnclaimedItemChangesNothing() {
+        assertFalse(lostAndFoundRepo.release(itemId));
+    }
+
+    @Test
     @Order(99)
     void delete() {
         assertTrue(lostAndFoundRepo.delete(itemId));

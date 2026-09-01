@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.Set;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -82,6 +83,7 @@ public class LostAndFoundRoutes implements Routes {
         routes.get(prefix + "/lost-and-found/{id}/image", this::getImage, StationPermission.LOGIN);
         routes.post(prefix + "/lost-and-found/{id}/image", this::uploadImage, StationPermission.LOST_AND_FOUND_CREATE);
         routes.post(prefix + "/lost-and-found/{id}/claim", this::claim, StationPermission.LOGIN);
+        routes.post(prefix + "/lost-and-found/{id}/release", this::release, StationPermission.LOGIN);
         routes.post(prefix + "/lost-and-found/{id}/provided", this::provided, StationPermission.LOST_AND_FOUND_MANAGE);
         routes.delete(prefix + "/lost-and-found/{id}", this::delete, StationPermission.LOST_AND_FOUND_MANAGE);
     }
@@ -117,7 +119,7 @@ public class LostAndFoundRoutes implements Routes {
     private void create(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreateItemRequest.class);
-        LocalDate foundAt = request.foundAt() != null ? LocalDate.parse(request.foundAt()) : LocalDate.now();
+        LocalDate foundAt = parseFoundAt(request.foundAt());
         var item = lostAndFoundService.create(
                 session.stationId(),
                 request.description(),
@@ -173,6 +175,7 @@ public class LostAndFoundRoutes implements Routes {
     private void uploadImage(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
+        requireOwnedItem(ctx, id);
         var file = ctx.uploadedFile("image");
         if (file == null) {
             throw new BadRequestResponse("No file uploaded");
@@ -204,18 +207,14 @@ public class LostAndFoundRoutes implements Routes {
     private void claim(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
+        requireOwnedItem(ctx, id);
         var request = ctx.bodyAsClass(ClaimRequest.class);
 
-        int claimMemberId;
-        if (request.memberId() != null) {
-            var managed = memberService.findManaged(session.member().id());
-            boolean isManaging = managed.stream().anyMatch(m -> m.id() == request.memberId());
-            if (!isManaging && request.memberId() != session.member().id()) {
-                throw new BadRequestResponse("Not authorized to claim for this member");
-            }
-            claimMemberId = request.memberId();
-        } else {
-            claimMemberId = session.member().id();
+        int claimMemberId = request.memberId() != null
+                ? request.memberId()
+                : session.member().id();
+        if (!maySpeakFor(session, claimMemberId)) {
+            throw new BadRequestResponse("Not authorized to claim for this member");
         }
 
         String claimerName = resolveMemberName(claimMemberId);
@@ -226,6 +225,32 @@ public class LostAndFoundRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/lost-and-found/{id}/release",
+            methods = HttpMethod.POST,
+            summary = "Take a claim back off a lost and found item",
+            description = "Open to whoever the item is claimed for, to whoever claimed it for somebody in "
+                    + "their care, and to the members who look after the lost and found.",
+            tags = {"Lost and Found"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
+    private void release(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        var item = requireOwnedItem(ctx, id);
+        if (item.claimedBy() == null) {
+            throw new BadRequestResponse("Item has not been claimed yet");
+        }
+        boolean isManager = session.hasPermission(StationPermission.LOST_AND_FOUND_MANAGE);
+        if (!isManager && !maySpeakFor(session, item.claimedBy())) {
+            throw new BadRequestResponse("Not authorized to release this claim");
+        }
+        if (!lostAndFoundService.release(id)) {
+            throw new BadRequestResponse("Item has not been claimed yet");
+        }
+        ctx.json(new MessageResponse("Claim released"));
+    }
+
+    @OpenApi(
             path = "/api/v1/lost-and-found/{id}/provided",
             methods = HttpMethod.POST,
             summary = "Mark a claimed item as provided (handed back) and delete it",
@@ -233,12 +258,13 @@ public class LostAndFoundRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void provided(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         var item = requireOwnedItem(ctx, id);
         if (item.claimedBy() == null) {
             throw new BadRequestResponse("Item has not been claimed yet");
         }
-        lostAndFoundService.delete(id);
+        lostAndFoundService.delete(session.stationId(), id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -253,8 +279,7 @@ public class LostAndFoundRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedItem(ctx, id);
-        lostAndFoundService.delete(id);
-        imageService.delete(session.stationId(), id);
+        lostAndFoundService.delete(session.stationId(), id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -264,6 +289,31 @@ public class LostAndFoundRoutes implements Routes {
      */
     private LostAndFoundItem requireOwnedItem(Context ctx, int id) {
         return requireOwnedOrNotFound(ctx, id, lostAndFoundService::findById, LostAndFoundItem::stationId);
+    }
+
+    /**
+     * Whether the caller may act as the given member: themselves, or somebody in their care.
+     */
+    private boolean maySpeakFor(UserSession session, int memberId) {
+        if (memberId == session.member().id()) {
+            return true;
+        }
+        return memberService.findManaged(session.member().id()).stream().anyMatch(m -> m.id() == memberId);
+    }
+
+    /**
+     * Reads the found date the reporter gave, defaulting to today. A date nobody could parse is the
+     * caller's mistake and is answered as one, rather than as a failure of the server.
+     */
+    private static LocalDate parseFoundAt(String foundAt) {
+        if (foundAt == null || foundAt.isBlank()) {
+            return LocalDate.now();
+        }
+        try {
+            return LocalDate.parse(foundAt);
+        } catch (DateTimeParseException e) {
+            throw new BadRequestResponse("Invalid found date");
+        }
     }
 
     private String resolveMemberName(int memberId) {
