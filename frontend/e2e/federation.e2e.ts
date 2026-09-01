@@ -64,22 +64,24 @@ test.describe('Federation', () => {
     })
 
     /**
-     * A pairing code never runs out, so a refusal has to name what is actually in the way. Entering
-     * a station's own code is the one refusal a single station can produce on its own.
+     * Making a code asks for the second factor, and that question is raised over the dialog the
+     * reader is standing in. The click is what proves it: it only lands when nothing covers the
+     * field, which is exactly what used to be wrong.
      */
-    test('a code says what is in the way instead of claiming it expired', async ({managerPage: page}) => {
+    test('the security question opens in front of the dialog that raised it', async ({managerPage: page}) => {
         await page.goto('/station/federate')
         await page.getByRole('button', {name: /Partner hinzufügen/}).click()
 
-        const dialog = page.getByTestId('modal')
-        await dialog.getByRole('button', {name: /Code generieren/}).click()
-        const code = await dialog.getByTestId('federation-invite-code').innerText()
+        const addPartner = page.getByRole('dialog').filter({hasText: 'Einladung erstellen'})
+        await addPartner.getByRole('button', {name: /Code generieren/}).click()
 
-        await dialog.getByPlaceholder('Einladungscode einfügen...').fill(code.trim())
-        await dialog.getByRole('button', {name: 'Verbinden'}).click()
+        const confirmation = page.getByRole('dialog').filter({hasText: 'Sicherheitsbestätigung'})
+        const factor = confirmation.getByPlaceholder('000000')
+        await factor.click()
+        await factor.fill('123456')
 
-        await expect(dialog.getByTestId('federation-accept-error'))
-            .toHaveText(/Code dieser Wache/)
+        await expect(factor).toHaveValue('123456')
+        await confirmation.getByRole('button', {name: 'Abbrechen'}).click()
     })
 
     test('a member does not configure what the station shares', async ({memberPage: page}) => {

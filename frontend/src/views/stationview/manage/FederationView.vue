@@ -181,7 +181,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
           <SubHeader>{{ t('federation.createInvite') }}</SubHeader>
           <p class="text-sm text-[var(--text-muted)] mb-2">{{ t('federation.createInviteHint') }}</p>
           <PrimaryButton @click="generateInvite">{{ t('federation.generate') }}</PrimaryButton>
-          <div v-if="generatedCode" data-testid="federation-invite-code" class="mt-2 p-3 bg-[var(--bg-accent)] rounded font-mono text-sm text-center select-all break-all">
+          <div v-if="generatedCode" class="mt-2 p-3 bg-[var(--bg-accent)] rounded font-mono text-sm text-center select-all break-all">
             {{ generatedCode }}
           </div>
         </div>
@@ -192,7 +192,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
             <TextInput v-model="acceptCode" :placeholder="t('federation.codePlaceholder')" class="flex-1 font-mono text-sm" />
             <PrimaryButton type="submit" :disabled="!acceptCode.trim()">{{ t('federation.connect') }}</PrimaryButton>
           </form>
-          <Alert v-if="acceptError" variant="error" class="mt-2" data-testid="federation-accept-error">{{ acceptError }}</Alert>
+          <Alert v-if="acceptError" variant="error" class="mt-2">{{ acceptError }}</Alert>
         </div>
       </div>
     </Modal>
