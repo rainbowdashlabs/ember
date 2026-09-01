@@ -27,7 +27,7 @@ import {events, managedMembers as managedMembersApi} from '@/api'
 import {getFeedStatus, type FeedStatusResponse} from '@/api/feedToken'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useSession} from '@/composables/useSession'
-import {formatDate, formatTime} from '@/util/format'
+import {formatDate, formatTime, toIsoDate, todayIsoDate, weekdayName} from '@/util/format'
 import {answerableMembers} from '@/util/eventAnswers'
 
 const {t} = useI18n()
@@ -55,13 +55,6 @@ const feedCtaMessage = computed(() => {
   return t('dashboard.feedIcalInactiveHint')
 })
 
-const dayNames = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
-
-/** Weekday label for an ISO day-of-week (1 = Monday … 7 = Sunday). */
-function dayName(dayOfWeek: number): string {
-  return dayNames[dayOfWeek] ?? ''
-}
-
 interface UpcomingEvent {
   event: StationEvent
   date: string
@@ -70,22 +63,22 @@ interface UpcomingEvent {
 
 const upcomingEvents = computed((): UpcomingEvent[] => {
   const now = new Date()
-  const todayStr = now.toISOString().slice(0, 10)
+  const todayStr = todayIsoDate()
   const upcoming: UpcomingEvent[] = []
 
   for (const ev of allEvents.value) {
     if (ev.eventType === EventTypes.ONE_TIME && ev.startTime) {
-      const eventDateStr = new Date(ev.startTime).toISOString().slice(0, 10)
+      const d = new Date(ev.startTime)
+      const eventDateStr = toIsoDate(d)
       if (eventDateStr >= todayStr) {
-        const d = new Date(ev.startTime)
-        const dow = d.getUTCDay() === 0 ? 7 : d.getUTCDay()
-        upcoming.push({event: ev, date: eventDateStr, dayLabel: dayName(dow)})
+        const dow = d.getDay() === 0 ? 7 : d.getDay()
+        upcoming.push({event: ev, date: eventDateStr, dayLabel: weekdayName(dow)})
       }
     }
   }
 
   for (let offset = 0; offset <= 14; offset++) {
-    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offset))
+    const date = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + offset))
     const dateStr = date.toISOString().slice(0, 10)
     const dow = date.getUTCDay() === 0 ? 7 : date.getUTCDay()
     const dayOfMonth = date.getUTCDate()
@@ -98,15 +91,15 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
       if (!ev.dayOfWeek || ev.dayOfWeek !== dow) continue
 
       if (ev.eventType === EventTypes.RECURRING) {
-        upcoming.push({event: ev, date: dateStr, dayLabel: dayName(dow)})
+        upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
       } else if (ev.eventType === EventTypes.MONTHLY_FIRST) {
-        if (dayOfMonth <= 7) upcoming.push({event: ev, date: dateStr, dayLabel: dayName(dow)})
+        if (dayOfMonth <= 7) upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
       } else if (ev.eventType === EventTypes.QUARTERLY) {
-        if (dayOfMonth <= 7 && (month % 3 === 0)) upcoming.push({event: ev, date: dateStr, dayLabel: dayName(dow)})
+        if (dayOfMonth <= 7 && (month % 3 === 0)) upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
       } else if (ev.eventType === EventTypes.YEARLY && ev.startTime) {
         const refDate = new Date(ev.startTime)
-        if (refDate.getUTCMonth() === month && refDate.getUTCDate() === dayOfMonth) {
-          upcoming.push({event: ev, date: dateStr, dayLabel: dayName(dow)})
+        if (refDate.getMonth() === month && refDate.getDate() === dayOfMonth) {
+          upcoming.push({event: ev, date: dateStr, dayLabel: weekdayName(dow)})
         }
       }
     }

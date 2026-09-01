@@ -6,6 +6,7 @@
 import type {EventField, StationEvent} from '@/api/events'
 import type {RestrictionSelection} from '@/components/input/restriction'
 import {eventFieldText} from '@/views/stationview/events/eventshared/eventFieldText'
+import {formatTime, formatWeekdayDate} from '@/util/format'
 
 /** One overview field of the appointment, as it is written into the draft. */
 export interface CarriedField {
@@ -39,16 +40,6 @@ export interface DraftWords {
     no: string
 }
 
-function pad2(value: number): string {
-    return String(value).padStart(2, '0')
-}
-
-function timeOf(iso?: string | null): string {
-    if (!iso) return ''
-    const parsed = new Date(iso)
-    return `${pad2(parsed.getHours())}:${pad2(parsed.getMinutes())}`
-}
-
 /**
  * The one occurrence, written out.
  *
@@ -58,14 +49,9 @@ function timeOf(iso?: string | null): string {
  */
 export function occurrenceLabel(date: string | null, event: StationEvent, words: DraftWords): string {
     if (!date) return ''
-    const day = new Date(`${date}T00:00:00`).toLocaleDateString('de-DE', {
-        weekday: 'long',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-    })
-    const start = timeOf(event.startTime)
-    const end = timeOf(event.endTime)
+    const day = formatWeekdayDate(date)
+    const start = formatTime(event.startTime)
+    const end = formatTime(event.endTime)
     if (!start) return day
     if (!end) return `${day}, ${start}`
     return `${day}, ${start} ${words.until} ${end}`

@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import {formatDate} from '@/util/format'
+import {formatWeekdayDate} from '@/util/format'
 
 /**
  * When an appointment falls, written above its name.
@@ -25,11 +25,6 @@ defineProps<{
 }>()
 
 const {t} = useI18n()
-
-/** The weekday of a plain calendar date, read in the station's own words. */
-function dayLabel(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString('de-DE', {weekday: 'long', timeZone: 'UTC'})
-}
 </script>
 
 <template>
@@ -38,8 +33,8 @@ function dayLabel(date: string): string {
       <MutedIcon :icon="['fas', 'calendar-days']"/>
     </span>
     <MutedText size="sm">
-      <template v-if="endDate">{{ dayLabel(date) }}, {{ formatDate(date) }} – {{ dayLabel(endDate) }}, {{ formatDate(endDate) }}</template>
-      <template v-else>{{ dayLabel(date) }}, {{ formatDate(date) }}</template>
+      <template v-if="endDate">{{ formatWeekdayDate(date) }} – {{ formatWeekdayDate(endDate) }}</template>
+      <template v-else>{{ formatWeekdayDate(date) }}</template>
     </MutedText>
     <MutedText>{{ formatTime(startTime) }} – {{ formatTime(endTime) }}</MutedText>
   </div>
