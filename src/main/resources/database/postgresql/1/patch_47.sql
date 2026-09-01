@@ -844,3 +844,100 @@ COMMENT ON COLUMN ember_schema.inventory_self_check_raised.item_id IS 'The piece
 COMMENT ON COLUMN ember_schema.inventory_self_check_raised.movement_id IS 'The movement an exchange started, where there is one.';
 COMMENT ON COLUMN ember_schema.inventory_self_check_raised.raised_by IS 'Who raised it, which is the member or one of their guardians. NULL once that person is no longer a member here.';
 COMMENT ON COLUMN ember_schema.inventory_self_check_raised.raised_at IS 'When it was raised.';
+
+-- The answers of one task are read by the task, so that is what the index is on.
+--
+-- The two indexes above are partial: one covers the rows about a piece, the other the rows about an
+-- empty place. Neither can serve a plain read of one task's answers, because either one leaves out
+-- rows the read wants, so every such read walks the table. The sibling table that records what a
+-- member raised has had this index from the start.
+
+CREATE INDEX idx_inventory_self_check_item_task ON ember_schema.inventory_self_check_item (task_id);
+
+-- A kind is looked up by its merge key, so that is what may not repeat.
+--
+-- The table was written unique on the raw name, which lets Funk and funk both be filed in one
+-- inventory: the check made before writing compares merge keys and would refuse the second, but two
+-- people saving at the same moment both pass that check and the database lets both through. From
+-- then on every search returns whichever of the two it happens to find first, and the kind is
+-- counted twice. The tags in this same migration already do it the right way round.
+--
+-- Rows that already collide are merged rather than left to break this, the oldest kept: everything
+-- pointing at a duplicate is repointed at the survivor, and a pointer that would then collide with
+-- one the survivor already carries is dropped instead, because the survivor's row says the same
+-- thing. The mapping is written down once and read by every repoint, so no two of them can disagree
+-- about which row survives.
+
+CREATE TABLE ember_schema.inventory_art_merge AS
+SELECT dup.id AS drop_id, keeper.keep_id
+FROM ember_schema.inventory_art dup
+         JOIN (SELECT inventory_id, merge_key, min(id) AS keep_id
+               FROM ember_schema.inventory_art
+               GROUP BY inventory_id, merge_key) keeper
+              ON keeper.inventory_id = dup.inventory_id AND keeper.merge_key = dup.merge_key
+WHERE dup.id <> keeper.keep_id;
+
+DELETE
+FROM ember_schema.inventory_field_definition doomed
+    USING ember_schema.inventory_art_merge merged
+WHERE doomed.art_id = merged.drop_id
+  AND EXISTS (SELECT 1
+              FROM ember_schema.inventory_field_definition standing
+              WHERE standing.inventory_id = doomed.inventory_id
+                AND standing.art_id = merged.keep_id
+                AND standing.key = doomed.key);
+
+DELETE
+FROM ember_schema.federation_inventory_share doomed
+    USING ember_schema.inventory_art_merge merged
+WHERE doomed.art_id = merged.drop_id
+  AND EXISTS (SELECT 1
+              FROM ember_schema.federation_inventory_share standing
+              WHERE standing.station_id = doomed.station_id
+                AND standing.art_id = merged.keep_id);
+
+UPDATE ember_schema.inventory_item item
+SET art_id = merged.keep_id
+FROM ember_schema.inventory_art_merge merged
+WHERE item.art_id = merged.drop_id;
+
+UPDATE ember_schema.inventory_field_definition definition
+SET art_id = merged.keep_id
+FROM ember_schema.inventory_art_merge merged
+WHERE definition.art_id = merged.drop_id;
+
+UPDATE ember_schema.federation_inventory_share share
+SET art_id = merged.keep_id
+FROM ember_schema.inventory_art_merge merged
+WHERE share.art_id = merged.drop_id;
+
+UPDATE ember_schema.inventory_collection_line line
+SET art_id = merged.keep_id
+FROM ember_schema.inventory_art_merge merged
+WHERE line.art_id = merged.drop_id;
+
+UPDATE ember_schema.event_equipment_need need
+SET art_id = merged.keep_id
+FROM ember_schema.inventory_art_merge merged
+WHERE need.art_id = merged.drop_id;
+
+UPDATE ember_schema.federation_lending_request_item line
+SET art_id = merged.keep_id
+FROM ember_schema.inventory_art_merge merged
+WHERE line.art_id = merged.drop_id;
+
+DELETE
+FROM ember_schema.inventory_art art
+    USING ember_schema.inventory_art_merge merged
+WHERE art.id = merged.drop_id;
+
+DROP TABLE ember_schema.inventory_art_merge;
+
+ALTER TABLE ember_schema.inventory_art
+    DROP CONSTRAINT inventory_art_inventory_id_name_key;
+
+ALTER TABLE ember_schema.inventory_art
+    ADD CONSTRAINT inventory_art_inventory_id_merge_key_key UNIQUE (inventory_id, merge_key);
+
+COMMENT ON CONSTRAINT inventory_art_inventory_id_merge_key_key ON ember_schema.inventory_art IS
+    'One kind per merge key per inventory. The name is what a station reads and the merge key is what every search compares, so uniqueness has to sit on the key: on the raw name, two spellings of one word become two kinds that no lookup can tell apart.';
