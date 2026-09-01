@@ -20,6 +20,7 @@ import TestMetadataForm from './testbuilderview/TestMetadataForm.vue'
 import TestRestrictionsForm from './testbuilderview/TestRestrictionsForm.vue'
 import TestSectionsEditor from './testbuilderview/TestSectionsEditor.vue'
 import {moveWithin} from '@/util/reorder'
+import {instantToLocalInput} from '@/util/format'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -139,8 +140,8 @@ const { loading, error } = useAsyncLoader(async () => {
     timeLimitEnabled.value = test.timeLimit !== null
     shuffle.value = test.shuffle
     forced.value = test.forced ?? false
-    startAt.value = test.startAt ? test.startAt.slice(0, 16) : ''
-    endAt.value = test.endAt ? test.endAt.slice(0, 16) : ''
+    startAt.value = instantToLocalInput(test.startAt)
+    endAt.value = instantToLocalInput(test.endAt)
 
     const catalogIds = new Set<number>()
     for (const sec of detail.sections) {

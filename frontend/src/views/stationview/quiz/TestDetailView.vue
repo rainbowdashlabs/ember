@@ -20,6 +20,7 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import TestDetailBody from './testdetailview/TestDetailBody.vue'
 import { useConfirmAction } from '@/composables/useConfirmAction'
+import { instantToLocalInput } from '@/util/format'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -86,11 +87,6 @@ const editStartAt = ref('')
 const editEndAt = ref('')
 const timesDirty = ref(false)
 
-function toLocalInput(dateStr: string | null | undefined): string {
-  if (!dateStr) return ''
-  return dateStr.slice(0, 16)
-}
-
 function markTimesDirty() { timesDirty.value = true }
 
 async function saveTimes() {
@@ -115,8 +111,8 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   const [d, catalogList] = await Promise.all([quiz.getTest(testId.value), quiz.listCatalogs()])
   detail.value = d
   catalogs.value = catalogList.catalogs
-  editStartAt.value = toLocalInput(d.test.startAt)
-  editEndAt.value = toLocalInput(d.test.endAt)
+  editStartAt.value = instantToLocalInput(d.test.startAt)
+  editEndAt.value = instantToLocalInput(d.test.endAt)
   timesDirty.value = false
 
   if (canReadResults()) {
