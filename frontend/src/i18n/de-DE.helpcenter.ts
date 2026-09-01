@@ -624,6 +624,22 @@ export default {
 volumes:
   pgdata:`,
                 dockerText2: 'Ersetze ember.example.com durch deine Domain. Der API-Router hat eine höhere Priorität, sodass /api-Anfragen ans Backend gehen und alles andere ans Frontend. Starte alles mit docker compose up -d. Beim ersten Start wird automatisch eine Konfigurationsdatei unter config/ erstellt und ein Admin-Konto mit zufälligem Passwort generiert (in der Konsole sichtbar).',
+                firstStart: 'Erster Start',
+                firstStartText: 'Beim ersten Start legt Ember ein Konto an, das die Instanz verwaltet, und '
+                    + 'schreibt in die Konsole, womit du dich anmeldest: den Benutzernamen admin und ein '
+                    + 'zufälliges Passwort. Eine E-Mail-Adresse hat das Konto noch nicht, denn welche das '
+                    + 'sein soll, weißt nur du.',
+                firstStartStep1: 'Melde dich mit dem Benutzernamen und dem Passwort aus der Konsole an. Das '
+                    + 'Passwort gilt nur für diese eine Anmeldung, du wirst sofort nach einem neuen gefragt.',
+                firstStartStep2: 'Danach fragt Ember nach einer E-Mail-Adresse, unter der du wirklich erreichbar '
+                    + 'bist. Erst wenn sie hinterlegt ist, kommst du in die Anwendung.',
+                firstStartStep3: 'Richte anschließend den Mailversand ein, damit die Adresse auch etwas nützt: '
+                    + 'ohne Mailversand erreicht dich weder eine Passwortzurücksetzung noch eine '
+                    + 'Sicherheitsmeldung.',
+                firstStartWhy: 'Die Adresse ist Pflicht, weil ein Konto, an das niemand schreiben kann, im Ernstfall '
+                    + 'nichts wert ist: keine Passwortzurücksetzung, keine Warnung, keine Benachrichtigung. Aus '
+                    + 'dem gleichen Grund wird eine erfundene Adresse abgewiesen. Ändern kannst du sie später '
+                    + 'jederzeit unter Konto, dort wird der Wechsel von beiden Adressen aus bestätigt.',
                 configLinkTitle: 'Konfiguration',
                 configLinkText: 'Die vollständige Liste aller Einstellungen und Umgebungsvariablen ist auf einer eigenen Seite zusammengefasst:',
                 dataDir: 'Datenverzeichnis',

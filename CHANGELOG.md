@@ -1,5 +1,12 @@
 # Changelog
 
+## v26.13.13
+
+### Changes
+
+- **The first start now asks where to write.** A new installation used to be handed an administrator account under a made-up address that nothing could be delivered to, which quietly cost that account every password reset and every security notice. The account is now created with the user name `admin` and no address at all, and the first sign-in asks for a real one right after the new password; an address that cannot be written to is refused.
+- **An instance that is already running asks the same thing once.** Whoever administers it and still carries the made-up address from an earlier first start is asked for a real one the next time they sign in, and reaches the application as soon as it is set.
+
 ## v26.13.11
 
 ### Changes
