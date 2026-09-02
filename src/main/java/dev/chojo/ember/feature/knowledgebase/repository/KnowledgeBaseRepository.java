@@ -559,7 +559,21 @@ public class KnowledgeBaseRepository {
                 .insert();
     }
 
-    public List<KbFile> search(int stationId, String query, String tsConfig) {
+    /**
+     * The best-ranked matches in a station, up to the given number.
+     *
+     * <p>The limit is the caller's because every caller throws some of these away again: what a
+     * member may read, what the public page shows, what a partner was offered. Cutting to the number
+     * a caller wants to show before any of that is decided is how a search comes back short, so the
+     * caller asks for more than it means to show.
+     *
+     * @param stationId the station to search in
+     * @param query     the search terms
+     * @param tsConfig  the text search configuration for the station's language
+     * @param limit     how many rows to read
+     * @return the matching files, best first
+     */
+    public List<KbFile> search(int stationId, String query, String tsConfig, int limit) {
         String tsq = FullTextSearch.prefixQuery(tsConfig, "tsquery");
         return query("""
                 SELECT
@@ -572,13 +586,25 @@ public class KnowledgeBaseRepository {
                   %s
                   AND si.search_text @@ %s
                 ORDER BY ts_rank(si.search_text, %s) DESC
-                LIMIT 50;""", FILE_COLUMNS, FILE_RESTRICTED, FILE_ALIVE, tsq, tsq)
-                .single(call().bind("station_id", stationId).bind("tsquery", FullTextSearch.prefixTerms(query)))
+                LIMIT :limit;""", FILE_COLUMNS, FILE_RESTRICTED, FILE_ALIVE, tsq, tsq)
+                .single(call().bind("station_id", stationId)
+                        .bind("tsquery", FullTextSearch.prefixTerms(query))
+                        .bind("limit", limit))
                 .map(KbFile.map())
                 .all();
     }
 
-    public List<KbSearchResult> searchWithSnippets(int stationId, String query, String tsConfig) {
+    /**
+     * The same matches as {@link #search(int, String, String, int)}, each with an excerpt around the
+     * words that matched. The limit is the caller's for the same reason.
+     *
+     * @param stationId the station to search in
+     * @param query     the search terms
+     * @param tsConfig  the text search configuration for the station's language
+     * @param limit     how many rows to read
+     * @return the matching files with their excerpts, best first
+     */
+    public List<KbSearchResult> searchWithSnippets(int stationId, String query, String tsConfig, int limit) {
         String tsq = FullTextSearch.prefixQuery(tsConfig, "tsquery");
         String snippet =
                 FullTextSearch.headline(tsConfig, FullTextSearch.stripMarkup(SNIPPET_SOURCE), tsq, SNIPPET_OPTIONS);
@@ -596,8 +622,10 @@ public class KnowledgeBaseRepository {
                   %s
                   AND si.search_text @@ %s
                 ORDER BY ts_rank(si.search_text, %s) DESC
-                LIMIT 50;""", FILE_COLUMNS, FILE_RESTRICTED, snippet, FILE_ALIVE, tsq, tsq)
-                .single(call().bind("station_id", stationId).bind("tsquery", FullTextSearch.prefixTerms(query)))
+                LIMIT :limit;""", FILE_COLUMNS, FILE_RESTRICTED, snippet, FILE_ALIVE, tsq, tsq)
+                .single(call().bind("station_id", stationId)
+                        .bind("tsquery", FullTextSearch.prefixTerms(query))
+                        .bind("limit", limit))
                 .map(row -> new KbSearchResult(KbFile.map().map(row), row.getString("snippet")))
                 .all();
     }

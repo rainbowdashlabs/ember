@@ -845,6 +845,7 @@ public class KnowledgeBaseFederationService {
                 .filter(hit -> sharedFiles.contains(hit.file().id())
                         || ancestries.getOrDefault(hit.file().folderId(), Set.<Integer>of()).stream()
                                 .anyMatch(sharedFolders::contains))
+                .limit(KbSearchService.RESULT_LIMIT)
                 .toList();
     }
 

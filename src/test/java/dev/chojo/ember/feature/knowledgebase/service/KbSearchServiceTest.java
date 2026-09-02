@@ -151,6 +151,60 @@ class KbSearchServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * A search reads more rows than it means to show, because every caller drops some of them again
+     * for what the reader may not see. Reading only as many as fit on the page is how a search comes
+     * back short: fill the page with restricted articles and the readable ones behind them are never
+     * read at all.
+     *
+     * <p>Written against more restricted articles than a page holds, so it fails on a search that
+     * cuts before it filters and passes on one that cuts after.
+     */
+    @Test
+    void aPageIsStillFullWhenRestrictedArticlesOutrankTheReadableOnes() {
+        var accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
+        var folder = knowledgeBaseRepo.createFolder(station.id(), null, "Hidden Shelf", "", member.id());
+        var hidden = new java.util.ArrayList<KbFile>();
+        for (int i = 0; i < KbSearchService.RESULT_LIMIT + 5; i++) {
+            var file = knowledgeBaseRepo.createFile(
+                    station.id(),
+                    folder.id(),
+                    "Hidden " + i,
+                    "",
+                    KbFileType.MARKDOWN,
+                    "text/markdown",
+                    0,
+                    null,
+                    member.id());
+            service.reindex(file.id(), "Loeschzugverfuegung stands here.");
+            hidden.add(file);
+        }
+        var readable = createFile("Readable Notice", "");
+        service.reindex(readable.id(), "Loeschzugverfuegung stands here too.");
+        accessService.setRestrictions(
+                folder.id(),
+                null,
+                new RestrictionSelection(List.of(StationUserType.MANAGER), List.of(), List.of(), List.of(), null));
+
+        var hits = service.searchWithSnippets(station.id(), "Loeschzugverfuegung");
+        var outsider = accessService.memberAccess(member.id(), StationUserType.MEMBER);
+        var visible = accessService.readableFiles(
+                outsider,
+                hits.stream()
+                        .map(hit -> KbAccessService.FileNode.of(hit.file()))
+                        .toList());
+
+        assertTrue(
+                visible.contains(readable.id()),
+                "the one article the reader may see is behind more restricted ones than a page holds, "
+                        + "and a search that cuts before it filters would never reach it");
+
+        accessService.setRestrictions(folder.id(), null, RestrictionSelection.empty());
+        hidden.forEach(file -> knowledgeBaseRepo.purgeFile(file.id()));
+        knowledgeBaseRepo.purgeFile(readable.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
+    }
+
+    /**
      * The text search configuration follows the station's locale, so German content is stemmed as
      * German; anything unrecognised falls back to verbatim indexing.
      */

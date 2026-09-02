@@ -197,7 +197,7 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
     @Order(40)
     void updateSearchIndexAndSearch() {
         knowledgeBaseRepo.updateSearchIndex(fileId, "welcome safety document fire", "simple");
-        var results = knowledgeBaseRepo.search(station.id(), "safety", "simple");
+        var results = knowledgeBaseRepo.search(station.id(), "safety", "simple", 50);
         // May or may not return results depending on tsvector; just verify no exception
         assertNotNull(results);
     }
@@ -205,7 +205,7 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(41)
     void searchWithSnippets() {
-        var results = knowledgeBaseRepo.searchWithSnippets(station.id(), "safety", "simple");
+        var results = knowledgeBaseRepo.searchWithSnippets(station.id(), "safety", "simple", 50);
         assertNotNull(results);
     }
 

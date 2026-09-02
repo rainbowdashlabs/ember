@@ -949,8 +949,10 @@ public class KnowledgeBaseRoutes implements Routes {
         var readable = accessService.readableFiles(
                 access,
                 hits.stream().map(r -> KbAccessService.FileNode.of(r.file())).toList());
-        var visible =
-                hits.stream().filter(r -> readable.contains(r.file().id())).toList();
+        var visible = hits.stream()
+                .filter(r -> readable.contains(r.file().id()))
+                .limit(KbSearchService.RESULT_LIMIT)
+                .toList();
         var folderPaths = service.findFolderPaths(visible.stream()
                 .map(r -> r.file().folderId())
                 .filter(Objects::nonNull)

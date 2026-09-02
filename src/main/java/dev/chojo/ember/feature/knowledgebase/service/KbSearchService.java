@@ -30,6 +30,23 @@ import java.util.List;
 public class KbSearchService {
     private static final Logger log = LoggerFactory.getLogger(KbSearchService.class);
 
+    /**
+     * How many results a caller shows, once everything the reader may not see has been taken out.
+     */
+    public static final int RESULT_LIMIT = 50;
+
+    /**
+     * How many rows a search reads before any of that filtering happens.
+     *
+     * <p>Every caller of this search throws some of the rows away again, by what a member may read,
+     * by what the public page shows, or by what a partner was offered. Reading only as many as are
+     * to be shown means a search whose best matches are restricted comes back short, and in the
+     * worst case empty, while readable articles sat just past the cut. Reading several times as
+     * many and cutting afterwards costs one query on an indexed lookup and makes that case
+     * disappear for any realistic number of restricted hits.
+     */
+    private static final int FETCH_LIMIT = RESULT_LIMIT * 6;
+
     private final KnowledgeBaseRepository repository;
     private final StationRepository stationRepository;
 
@@ -58,7 +75,7 @@ public class KbSearchService {
      */
     public List<KbFile> search(int stationId, String query) {
         if (query == null || query.isBlank()) return List.of();
-        return repository.search(stationId, query, textSearchConfig(stationId));
+        return repository.search(stationId, query, textSearchConfig(stationId), FETCH_LIMIT);
     }
 
     /**
@@ -71,7 +88,7 @@ public class KbSearchService {
      */
     public List<KbSearchResult> searchWithSnippets(int stationId, String query) {
         if (query == null || query.isBlank()) return List.of();
-        return repository.searchWithSnippets(stationId, query, textSearchConfig(stationId));
+        return repository.searchWithSnippets(stationId, query, textSearchConfig(stationId), FETCH_LIMIT);
     }
 
     /**

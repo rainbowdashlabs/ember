@@ -27,6 +27,8 @@ import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.station.entity.StationFormat;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -40,7 +42,6 @@ import tools.jackson.databind.json.JsonMapper;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -69,6 +70,7 @@ public class AttendanceService {
     private final MemberGroupRepository memberGroupRepository;
     private final DomainEventBus eventBus;
     private final Attendance attendanceConfig;
+    private final StationRepository stationRepository;
 
     @Inject
     public AttendanceService(
@@ -80,7 +82,8 @@ public class AttendanceService {
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
             DomainEventBus eventBus,
-            Attendance attendanceConfig) {
+            Attendance attendanceConfig,
+            StationRepository stationRepository) {
         this.attendanceRepository = attendanceRepository;
         this.eventRepository = eventRepository;
         this.eventFieldRepository = eventFieldRepository;
@@ -90,6 +93,7 @@ public class AttendanceService {
         this.memberGroupRepository = memberGroupRepository;
         this.eventBus = eventBus;
         this.attendanceConfig = attendanceConfig;
+        this.stationRepository = stationRepository;
     }
 
     private static String toJsonValue(Object value) {
@@ -390,9 +394,10 @@ public class AttendanceService {
      * @param alreadyEntered who is on the sheet already, extended by everybody added here
      */
     private void enterExpectedMembers(int sessionId, Set<Integer> expected, Set<Integer> alreadyEntered) {
+        var sessionDate = dateOf(sessionId);
         for (int memberId : expected) {
             if (!alreadyEntered.add(memberId)) continue;
-            if (!hadJoinedBySession(sessionId, memberId)) continue;
+            if (!hadJoinedBy(sessionDate, memberId)) continue;
             attendanceRepository.createEntry(
                     sessionId,
                     memberId,
@@ -503,21 +508,47 @@ public class AttendanceService {
         return attendanceRepository.findSessionById(sessionId);
     }
 
-    private boolean hadJoinedBySession(int sessionId, int memberId) {
+    /**
+     * The evening a sheet is about, as a date.
+     *
+     * <p>Read in the station's own timezone, which is how the report already decides which day and
+     * which month a sheet belongs to. Reading it anywhere else lets the two disagree over an evening
+     * near midnight, and a member left off a sheet the report still counts them on is worse than
+     * either answer on its own.
+     *
+     * @param sessionId the sheet
+     * @return its date, or the furthest date there is where the sheet is unknown, so nobody is
+     *     refused on the strength of a sheet that is not there
+     */
+    private LocalDate dateOf(int sessionId) {
+        return attendanceRepository
+                .findSessionById(sessionId)
+                .map(session -> session.startTime()
+                        .atZone(StationFormat.timezoneOf(attendanceRepository
+                                .findTemplateById(session.templateId())
+                                .flatMap(template -> stationRepository.findById(template.stationId()))
+                                .orElse(null)))
+                        .toLocalDate())
+                .orElse(LocalDate.MAX);
+    }
+
+    /**
+     * Whether the member had joined the station by the given evening.
+     *
+     * <p>Takes the date rather than the sheet so that filling a whole sheet in reads the station and
+     * its timezone once instead of once a member.
+     */
+    private boolean hadJoinedBy(LocalDate sessionDate, int memberId) {
         var joinDate = stationMemberRepository
                 .findById(memberId)
                 .map(StationMember::joinDate)
                 .orElse(null);
-        if (joinDate == null) return true;
-        return !joinDate.isAfter(attendanceRepository
-                .findSessionById(sessionId)
-                .map(session -> LocalDate.ofInstant(session.startTime(), ZoneOffset.UTC))
-                .orElse(LocalDate.MAX));
+        return joinDate == null || !joinDate.isAfter(sessionDate);
     }
 
     public List<AttendanceEntry> createEntry(int sessionId, int memberId, AttendanceEntry.EntrySource source) {
         requireSessionOpen(sessionId);
-        if (!hadJoinedBySession(sessionId, memberId)) {
+        if (!hadJoinedBy(dateOf(sessionId), memberId)) {
             throw new BadRequestResponse("The member had not joined the station on this date");
         }
         AttendanceEntry.AttendanceStatus status;
