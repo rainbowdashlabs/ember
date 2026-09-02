@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
+import {stillMoving, type ExchangeRequestEntry} from '@/api/exchanges'
 import type { Inventory, InventorySize } from '@/api/inventory'
 import type { ProcurementEntry } from '@/api/procurement'
 import type { StationMember } from '@/api/types'
@@ -35,7 +35,7 @@ const inventoryList = ref<Inventory[]>([])
 const ownerAbove = ref<string | null>(null)
 
 const openExchanges = computed(() => exchangeList.value
-    .filter(e => e.status !== ExchangeStatus.DONE)
+    .filter(e => stillMoving(e.status))
     .slice()
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt)))
 

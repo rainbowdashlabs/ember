@@ -15,7 +15,7 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import ExchangeStatusBadge from './ExchangeStatusBadge.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
-import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
+import {stillMoving, type ExchangeRequestEntry} from '@/api/exchanges'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import { itemOwnerBadge, itemOwnerLabel as toItemOwnerLabel } from '@/util/inventoryType'
 import { formatDate } from '@/util/format'
@@ -37,6 +37,7 @@ const emit = defineEmits<{
   (e: 'toggle-export'): void
   (e: 'open-log'): void
   (e: 'start-update'): void
+  (e: 'start-correct'): void
   (e: 'delete'): void
 }>()
 
@@ -79,11 +80,19 @@ function ownerLabel(ownerKind?: string | null): string {
           <font-awesome-icon :icon="['fas', 'clock-rotate-left']" />
         </SecondaryButton>
         <SecondaryButton
-            v-if="canManageExchanges && request.status !== ExchangeStatus.DONE"
+            v-if="canManageExchanges && stillMoving(request.status)"
             data-testid="exchange-advance"
             @click="emit('start-update')"
         >
           <font-awesome-icon :icon="['fas', 'arrow-right']" />
+        </SecondaryButton>
+        <SecondaryButton
+            v-if="canManageExchanges"
+            data-testid="exchange-correct"
+            :title="t('exchanges.correct')"
+            @click="emit('start-correct')"
+        >
+          <font-awesome-icon :icon="['fas', 'pen']" />
         </SecondaryButton>
         <DeleteButton v-if="canManageExchanges" @click="emit('delete')" />
       </div>

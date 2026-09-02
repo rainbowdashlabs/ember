@@ -107,6 +107,53 @@
 - **A card stayed empty where a picture could not be shown.** An entry whose picture failed to load left a blank space rather than the placeholder an entry without a picture gets. It now shows a placeholder saying the picture is unavailable.
 - **Two lines of small print could arrive as one run-on sentence.** In the dialog that loads the shipped legal sections and in the help article about importing a question catalogue, a short line and the one meant to follow it were printed with nothing at all between them, not even a space. Each now stands on a line of its own.
 
+## v26.13.12
+
+### New Features
+
+- **An exchange can be set to the right status by hand.** Whoever manages exchanges can put one where it belongs, forwards or backwards, giving a reason that the exchange's history keeps beside their name. It exists for exchanges that ended up in the wrong place and could not be moved back, and it moves the gear to match the status rather than only relabelling the row; nobody is notified about a correction.
+
+### Security
+
+- **Mail credentials were written into the application log in plain text.** The whole configuration is recorded once when Ember starts, and the mail password, the API key and the two webhook secrets were spelled out in it; that log is kept in the database and can be read from the administration pages. They are now reported only as set or not set. Treat any mail password, API key or webhook secret this instance has used as compromised and replace it.
+- **The container printed every setting it was given, secrets included, each time it started.** The database password, the token pepper, the mail credentials, the storage encryption key and the second-factor key all appeared in the container log, and an instance that cannot reach its database restarts until it can, filling the log with copies of them. Those logs are what gets pasted into a bug report. Nothing is printed there now. Treat any of these values that an affected instance has used as compromised and replace them.
+- **Searching the knowledge base found articles the reader was not allowed to open.** Anybody who could sign in got the title, the description and an excerpt around the matching words of every article of their station, including the ones kept for the leadership or for a single group, and the same held for the articles a partner station had not shared. A search now answers only what the reader may actually open, and a partner is answered only what the station shares with it.
+
+### Fixes
+
+- **Naming a new manager for a station left the old one in charge.** The address given was set up and granted full administrator rights, but the field kept showing the previous manager and the station itself never changed hands, so the new manager could neither pass it on nor take it into an association. Naming a manager now hands the station over, while the previous one keeps their rights and their membership.
+- **A station could not be handed to anybody, however many managers it had.** The list of people to hand it to was built from a role that does not exist, so it came back empty and the page said there was nobody, even where the station had two managers. It now offers every manager but the current owner, and where the list cannot be read at all it says so rather than reading as an empty station.
+- **Naming a station's manager could fail with nothing but a server error.** Where the address given already belonged to somebody, the page answered with a fault and no explanation, so there was nothing to do but press the button again. The refusal now says that the address is taken, and it says it wherever an account is handed out rather than only on the pages that remembered to ask.
+- **Calling off an exchange made it look as though it had been completed.** An exchange that was called off, or refused by the owner, jumped from wherever it stood to Done, so pressing the button that stops one looked exactly like pressing the one that finishes it. Such an exchange now says Cancelled or Declined, drops out of the lists of open exchanges, and no longer offers to be advanced.
+- **The same piece of gear could be sent out on two exchanges at once.** Because an exchange reads where it stands from where the piece actually is, the two then moved each other: a step taken on one made the other appear to advance on its own. Raising a second movement for a piece that is already on its way is now refused, naming the one that has it.
+
+## v26.13.11
+
+### Changes
+
+- **An attendance expects only the groups its sheet names.** Whoever an appointment was not open to used to arrive on the attendance already marked off, which filled the sheet with people the evening never concerned. Whom an appointment is open to now has no say over who is expected, while a sign-up or a refusal still settles what stands beside a name.
+- **Two of the first steps now ask you to look rather than to act.** Answering an appointment has become a short explanation of the two kinds, the ones you sign up for and the ones where you are simply expected, and it no longer ends in a sign-up nobody asked for. Going through your profile is offered even when nothing is missing, because a profile that looks complete is the one worth reading over.
+
+### Improvements
+
+- **A page that walks you through putting your notifications on your phone.** Until now the help named a handful of reader apps to choose from; there is now one route told to the end, with Feeder on Android and NetNewsWire on iPhone. It also says plainly why it is worth doing: a notification left inside Ember waits until you next open Ember.
+- **The questions of an attendance sheet can be taken straight into an appointment.** Where an appointment names a sheet, its fields are now offered above the appointment's own questions, one at a time or all at once. They arrive with their name, their type and their settings, already tied to the field they came from, which is what makes the answer given at the appointment land on the sheet; a field already taken is not offered a second time. The same offer stands in the appointment templates.
+- **Checking an attendance reaches everybody the sheet expects.** It walked only the names something had already been recorded against, so anybody who joined a group after the sheet was opened was passed over and, where that was everybody, the button was not offered at all. Filling the sheet in from its appointment now puts such a member on it as well.
+- **An answer given on an appointment still reaches the sheet afterwards.** Filling an attendance in from its appointment takes over the answers to the questions tied to the sheet's own fields, so an answer entered after the sheet was opened no longer stays behind; a field the sheet already answers is left as it is.
+- **The exchange raised during a quick check asks whether the piece was handed over.** The answer decides whether the exchange stands as announced or with the old piece already back, and the check moves on to the next piece either way instead of offering the same one again.
+- **Two of the same piece are counted off during an inventory check.** Where somebody is owed two shirts, each row reads 1/2 and 2/2, in the list and in the quick check alike, so it is clear which of them is being marked.
+- **An inventory check can be saved before every piece has been marked.** Only what was actually marked is recorded, and a piece nobody looked at keeps what the last check said about it.
+
+### Fixes
+
+- **An attendance made from an appointment could arrive with nobody on it.** Where the appointment answered one of the sheet's own questions, making the attendance broke off halfway: the sheet opened without a single name, and there was nothing to check off. Both the answer and the expected members now arrive.
+- **The guided first steps pointed off the edge of the screen on a phone.** The navigation is present at every width and merely slides out of sight on a narrow one, so the ring was drawn faithfully at a place beyond the left edge and the reader saw nothing at all. It now points at the menu button first, in a dashed ring that says this is the way rather than the destination, and moves on to what it was after once the menu is open.
+- **A first step stayed open after it had been walked to the end.** Looking up where absences are recorded, opening an article, trying a training: each of these ended with Ember saying the task was not settled yet and suggesting the reader check whether their entry had saved, two steps after telling them there was nothing to enter. Walking such a step now settles it, while anything Ember reads from the data is unchanged.
+- **The step about trying a training offered to jump there instead of showing the way.** The point of that step is to show where training lives, and it skipped its own purpose whenever the group in the navigation was folded away. It now points at the group, as the other steps already did.
+- **Four kinds of notification reached a feed reader under their internal name.** A reminder that a sign-up is about to close, a piece the cluster has sent on its way, a piece reported missing and a movement called off all arrived titled in capital letters rather than in a sentence. All four are now titled and filed in German and English, like every other kind of notification.
+- **A question asking for a member showed a number instead of the name.** Where an appointment asks who drives or who supervises, the notification body and the subscribed calendar entry listed the answer as an internal number, which named nobody. Both now write out the members the question holds.
+- **Somebody who had set their password still counted as not set up.** The member list waited for a first sign-in before dropping the hourglass beside a name, so people who had chosen their password and gone no further were chased with another setup mail. Choosing a password is now what settles the account, and only a password an administrator laid down still counts as outstanding.
+
 ## v26.13.10
 
 ### New Features

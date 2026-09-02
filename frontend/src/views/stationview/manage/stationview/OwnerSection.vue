@@ -13,6 +13,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import {stationManage, stationMembers} from '@/api'
+import {StationPermission} from '@/api/types'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const props = defineProps<{
@@ -35,24 +36,34 @@ interface ManagerOption {
 
 const managerMembers = ref<ManagerOption[]>([])
 const newOwnerId = ref('')
+const loadFailed = ref(false)
 
+/**
+ * Collects the members a station can be handed to, which are those holding the station
+ * administrator permission.
+ *
+ * <p>All the roles arrive in one call rather than one per member, because a station of a few
+ * hundred people would otherwise ask a few hundred times to fill a single list.
+ */
 async function loadManagers() {
+  loadFailed.value = false
   try {
-    const members = await stationMembers.listMembers()
-    const allRolesList = await stationMembers.listAllPermissions()
-    const managerRoleId = allRolesList.find(r => r.permission === 'MANAGER')?.id
-    if (!managerRoleId) return
-    const result: {id: number, name: string}[] = []
-    for (const m of members) {
-      if (props.ownerMemberId && m.id === props.ownerMemberId) continue
-      const roles = await stationMembers.getPermissions(m.id)
-      if (roles.some(r => r.id === managerRoleId)) {
-        result.push({id: m.id, name: m.name || m.email || `#${m.id}`})
-      }
+    const [members, allRolesList, rolesByMember] = await Promise.all([
+      stationMembers.listMembers(),
+      stationMembers.listAllPermissions(),
+      stationMembers.getAllMemberRoles(),
+    ])
+    const managerRoleId = allRolesList.find(r => r.permission === StationPermission.STATION_ADMINISTRATOR)?.id
+    if (!managerRoleId) {
+      loadFailed.value = true
+      return
     }
-    managerMembers.value = result
+    managerMembers.value = members
+        .filter(m => m.id !== props.ownerMemberId)
+        .filter(m => (rolesByMember[m.id] ?? []).some(r => r.id === managerRoleId))
+        .map(m => ({id: m.id, name: m.name || m.email || `#${m.id}`}))
   } catch {
-    return
+    loadFailed.value = true
   }
 }
 
@@ -97,6 +108,7 @@ onMounted(loadManagers)
         {{ transferringOwnership ? t('common.loading') : t('stationManage.ownerHandoverSubmit') }}
       </PrimaryButton>
     </div>
+    <p v-else-if="loadFailed" class="text-sm text-(--text-muted)">{{ t('stationManage.ownerHandoverLoadFailed') }}</p>
     <p v-else class="text-sm text-(--text-muted)">{{ t('stationManage.ownerHandoverNone') }}</p>
   </NeutralContainer>
 

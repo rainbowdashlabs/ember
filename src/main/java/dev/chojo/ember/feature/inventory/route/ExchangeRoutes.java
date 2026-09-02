@@ -100,6 +100,7 @@ public class ExchangeRoutes implements Routes {
         routes.get(prefix + "/exchanges/{id}/logs", this::logs, StationPermission.USER);
         routes.post(prefix + "/exchanges", this::create, StationPermission.USER);
         routes.put(prefix + "/exchanges/{id}/status", this::updateStatus, StationPermission.INVENTORY_EXCHANGE);
+        routes.put(prefix + "/exchanges/{id}/correct", this::correctStatus, StationPermission.INVENTORY_EXCHANGE);
         routes.delete(prefix + "/exchanges/{id}", this::delete, StationPermission.INVENTORY_EXCHANGE);
         routes.post(prefix + "/exchanges/export", this::exportPdf, StationPermission.INVENTORY_EXCHANGE);
     }
@@ -238,11 +239,34 @@ public class ExchangeRoutes implements Routes {
             throw new BadRequestResponse("status is required");
         }
         ExchangeStatus status = request.status();
-        if (status == ExchangeStatus.DONE && request.exchangedItemId() == null) {
-            // For DONE status, exchangedItemId is optional but recommended
-        }
         var exchange = exchangeService.updateStatus(
                 id, status, session.member().id(), request.note(), request.exchangedItemId());
+        ctx.json(toResponse(exchange));
+    }
+
+    @OpenApi(
+            path = "/api/v1/exchanges/{id}/correct",
+            methods = HttpMethod.PUT,
+            summary = "Set an exchange to a status it should have, forwards or backwards",
+            tags = {"Exchange"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CorrectStatusRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ExchangeResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void correctStatus(Context ctx) {
+        int id = pathInt(ctx, "id");
+        UserSession session = UserSession.from(ctx);
+        requireOwnedExchange(id, session);
+        var request = ctx.bodyAsClass(CorrectStatusRequest.class);
+        if (request.status() == null) throw new BadRequestResponse("status is required");
+        if (request.reason() == null || request.reason().isBlank()) {
+            throw new BadRequestResponse("A correction needs a reason saying why");
+        }
+        var exchange = exchangeService.forceStatus(
+                id, request.status(), session.member().id(), request.reason());
         ctx.json(toResponse(exchange));
     }
 
@@ -428,4 +452,10 @@ public class ExchangeRoutes implements Routes {
             Integer selfCheckId) {}
 
     public record UpdateStatusRequest(ExchangeStatus status, String note, Integer exchangedItemId) {}
+
+    /**
+     * @param status the status the exchange should have
+     * @param reason why it is being set by hand, which the history keeps
+     */
+    public record CorrectStatusRequest(ExchangeStatus status, String reason) {}
 }

@@ -56,6 +56,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -217,7 +218,20 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void listFolders(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(service.findFolders(session.stationId(), optionalFolderId(ctx, "parentId")));
+        Integer parentId = optionalFolderId(ctx, "parentId");
+        var folders = service.findFolders(session.stationId(), parentId);
+        var levels = accessService.childLevels(
+                KbRouteAccess.accessOf(ctx, accessService),
+                parentId,
+                folders.stream()
+                        .map(folder -> new KbAccessService.ChildNode(folder.id(), folder.restrictionMode()))
+                        .toList(),
+                List.of());
+        ctx.json(folders.stream()
+                .filter(folder -> levels.folders()
+                        .getOrDefault(folder.id(), KbAccessLevel.NONE)
+                        .covers(KbAccessLevel.READ))
+                .toList());
     }
 
     /**
@@ -396,7 +410,12 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void listFiles(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(service.findFiles(session.stationId(), optionalFolderId(ctx, "folderId")).stream()
+        var files = service.findFiles(session.stationId(), optionalFolderId(ctx, "folderId"));
+        var readable = accessService.readableFiles(
+                KbRouteAccess.accessOf(ctx, accessService),
+                files.stream().map(KbAccessService.FileNode::of).toList());
+        ctx.json(files.stream()
+                .filter(file -> readable.contains(file.id()))
                 .map(KbFileSummary::of)
                 .toList());
     }
@@ -760,12 +779,26 @@ public class KnowledgeBaseRoutes implements Routes {
                 readable(access, service.findRelatedFiles(fileId)), readable(access, service.findBacklinks(fileId)));
     }
 
+    /**
+     * The articles of one list the caller may open, resolved for the whole list at once.
+     *
+     * <p>Being allowed to read the article that names them says nothing about the ones it names,
+     * which may sit anywhere in the tree, so each has to be asked about separately. Asking one
+     * query per article turns a page of cross-references into a page of queries, which is why the
+     * levels for the whole list are resolved together.
+     */
     private List<KbFile> readable(KbAccessService.MemberAccess access, List<KbFile> files) {
-        return files.stream()
-                .filter(file -> accessService.canAccess(access, null, file.id()))
-                .toList();
+        var readable = accessService.readableFiles(
+                access, files.stream().map(KbAccessService.FileNode::of).toList());
+        return files.stream().filter(file -> readable.contains(file.id())).toList();
     }
 
+    /**
+     * A search reaches an article without walking the folders above it, so every hit is measured
+     * against the caller's level for that article before it is answered. Both the excerpt and the
+     * title of an article the caller may not open would otherwise be handed over by searching for a
+     * word in it.
+     */
     private void search(Context ctx) {
         var session = UserSession.from(ctx);
         String query = ctx.queryParam("q");
@@ -775,15 +808,28 @@ public class KnowledgeBaseRoutes implements Routes {
             return;
         }
 
+        var access = KbRouteAccess.accessOf(ctx, accessService);
         var localFuture =
                 CompletableFuture.supplyAsync(() -> searchService.searchWithSnippets(session.stationId(), query));
         var federatedFuture = federated
                 ? CompletableFuture.supplyAsync(() -> searchFederated(session.stationId(), query))
                 : CompletableFuture.completedFuture(List.<SearchResultResponse>of());
 
-        var localResults = localFuture.join().stream()
+        var hits = localFuture.join();
+        var readable = accessService.readableFiles(
+                access,
+                hits.stream().map(r -> KbAccessService.FileNode.of(r.file())).toList());
+        var visible =
+                hits.stream().filter(r -> readable.contains(r.file().id())).toList();
+        var folderPaths = service.findFolderPaths(visible.stream()
+                .map(r -> r.file().folderId())
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
+
+        var localResults = visible.stream()
                 .map(r -> new SearchResultResponse(
-                        r.file(), r.snippet(), resolveFolderPath(r.file().folderId()), null, null))
+                        r.file(), r.snippet(), folderPaths.getOrDefault(r.file().folderId(), "/"), null, null))
                 .toList();
 
         var all = new ArrayList<>(localResults);
@@ -796,19 +842,6 @@ public class KnowledgeBaseRoutes implements Routes {
                 .map(r ->
                         new SearchResultResponse(r.file().toKbFile(), r.snippet(), "", r.stationName(), r.stationUid()))
                 .toList();
-    }
-
-    private String resolveFolderPath(Integer folderId) {
-        if (folderId == null) return "/";
-        var parts = new ArrayList<String>();
-        Integer current = folderId;
-        while (current != null) {
-            var folder = service.findFolder(current);
-            if (folder.isEmpty()) break;
-            parts.addFirst(folder.get().name());
-            current = folder.get().parentId();
-        }
-        return "/" + String.join("/", parts);
     }
 
     private void browse(Context ctx) {

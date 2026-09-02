@@ -5,15 +5,19 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -101,6 +105,49 @@ class KbSearchServiceTest extends RepositoryTestBase {
     @Test
     void reindexingAnUnknownFileDoesNothing() {
         service.reindex(999999, "orphaned text");
+    }
+
+    /**
+     * A search reaches an article without walking the folders above it, so a match says nothing
+     * about whether the searcher may see it. A word that appears in one restricted article and
+     * nowhere else must not lead anyone else to its title or its excerpt, while the readers it was
+     * restricted to keep finding it.
+     */
+    @Test
+    void aRestrictedArticleIsNotFoundByTheWordOnlyItContains() {
+        var accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
+        var folder = knowledgeBaseRepo.createFolder(station.id(), null, "Leadership Only", "", member.id());
+        var restricted = knowledgeBaseRepo.createFile(
+                station.id(),
+                folder.id(),
+                "Alarm Chain",
+                "",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                0,
+                null,
+                member.id());
+        service.reindex(restricted.id(), "The Klingelsonderzeichen roster is kept here.");
+        accessService.setRestrictions(
+                folder.id(),
+                null,
+                new RestrictionSelection(List.of(StationUserType.MANAGER), List.of(), List.of(), List.of(), null));
+
+        var hits = service.searchWithSnippets(station.id(), "Klingelsonderzeichen");
+        assertTrue(hits.stream().anyMatch(hit -> hit.file().id() == restricted.id()));
+        var nodes = hits.stream()
+                .map(hit -> KbAccessService.FileNode.of(hit.file()))
+                .toList();
+
+        var outsider = accessService.memberAccess(member.id(), StationUserType.MEMBER);
+        assertFalse(accessService.readableFiles(outsider, nodes).contains(restricted.id()));
+
+        var allowed = accessService.memberAccess(member.id(), StationUserType.MANAGER);
+        assertTrue(accessService.readableFiles(allowed, nodes).contains(restricted.id()));
+
+        accessService.setRestrictions(folder.id(), null, RestrictionSelection.empty());
+        knowledgeBaseRepo.deleteFile(restricted.id());
+        knowledgeBaseRepo.deleteFolder(folder.id());
     }
 
     /**

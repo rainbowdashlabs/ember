@@ -3,9 +3,29 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {Page} from '@playwright/test'
-import {test, expect} from './fixtures/auth'
+import type {APIRequestContext, Page} from '@playwright/test'
+import {test, expect, apiHeaders, demoAccounts, pageAsThrowaway, type DemoAccount} from './fixtures/auth'
 import {unique} from './fixtures/unique'
+
+/**
+ * Somebody of the station's team who runs none of its knowledge base.
+ *
+ * A grant naming the team has to change what such a reader sees, and only such a reader shows that:
+ * anybody who manages the knowledge base reads past every grant by design, so a story driven by a
+ * manager would prove nothing about the grant at all.
+ */
+async function teamReaderAt(request: APIRequestContext, stationId: string | undefined): Promise<DemoAccount> {
+    const accounts = await demoAccounts(request)
+    const reader = accounts.find(account => account.stationId === stationId
+        && account.userType === 'TEAM'
+        && !!account.email
+        && !account.permissions.includes('STATION_ADMINISTRATOR')
+        && !account.permissions.includes('STATION_MANAGER')
+        && !account.permissions.includes('KNOWLEDGE_MANAGER')
+        && !account.permissions.includes('KNOWLEDGE_EDIT'))
+    if (!reader) throw new Error('The seeded station has no team member outside its knowledge base')
+    return reader
+}
 
 /**
  * A folder of its own with one Markdown file in it, opened and ready to be written in.
@@ -433,4 +453,66 @@ test.describe('Knowledge base', () => {
         await expect(backlinks).toContainText(source)
         await expect(backlinks.getByRole('button', {name: 'Entfernen'})).toHaveCount(0)
     })
+
+    /**
+     * A search reaches an article without walking the folders above it, so it is the one place a
+     * reader can meet an entry that browsing would never have shown them. Two articles share a word
+     * that appears nowhere else, one of them behind a folder only the team may open: the same
+     * search has to find one and say nothing at all about the other, neither its name nor the
+     * excerpt around the word.
+     *
+     * The searched word carries no punctuation, because the search splits on it: a name built the
+     * way the other stories build theirs would be taken apart into terms that match nothing.
+     */
+    test('a search does not name an article the reader may not open',
+        async ({managerPage, memberPage, browser, request}) => {
+            const word = `Zauberwort${test.info().workerIndex}${Date.now().toString(36)}`
+            const headers = await apiHeaders(managerPage)
+            const openName = unique('Offener Artikel')
+            const closedName = unique('Verschlossener Artikel')
+
+            const closedFolder = await managerPage.request.post('/api/v1/kb/folders', {
+                headers,
+                data: {parentId: null, name: unique('Nur Team'), description: ''},
+            })
+            expect(closedFolder.ok(), `the folder was created (${await closedFolder.text()})`).toBeTruthy()
+            const closedFolderId = (await closedFolder.json()).id
+
+            for (const [folderId, name] of [[null, openName], [closedFolderId, closedName]] as const) {
+                const written = await managerPage.request.post('/api/v1/kb/files/markdown', {
+                    headers,
+                    data: {folderId, name, description: '', content: `Das ${word} steht hier.`},
+                })
+                expect(written.ok(), `the article was written (${await written.text()})`).toBeTruthy()
+            }
+
+            const restricted = await managerPage.request.put(
+                `/api/v1/kb/folders/${closedFolderId}/restrictions`,
+                {
+                    headers,
+                    data: {
+                        userTypes: ['TEAM'],
+                        groupIds: [],
+                        tagIds: [],
+                        memberIds: [],
+                        grants: [{userType: 'TEAM', level: null}],
+                    },
+                },
+            )
+            expect(restricted.ok(), `the folder was restricted (${await restricted.text()})`).toBeTruthy()
+
+            await memberPage.goto('/station/knowledge')
+            await memberPage.getByPlaceholder('Suchen...').fill(word)
+            await expect(memberPage.getByText(openName)).toBeVisible()
+            await expect(memberPage.getByText(closedName)).toHaveCount(0)
+
+            const reader = await teamReaderAt(request, headers['X-Station-Id'])
+            const readerPage = await pageAsThrowaway(browser, request, [], reader)
+            await readerPage.goto('/station/knowledge')
+            await readerPage.getByPlaceholder('Suchen...').fill(word)
+            await expect(readerPage.getByText(openName)).toBeVisible()
+            await expect(readerPage.getByText(closedName)).toBeVisible()
+
+            await readerPage.context().close()
+        })
 })

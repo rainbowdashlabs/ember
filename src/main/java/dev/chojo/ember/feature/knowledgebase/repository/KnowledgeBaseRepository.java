@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.repository;
 
+import de.chojo.sadu.mapper.wrapper.Row;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.knowledgebase.entity.ConversionStatus;
@@ -24,7 +25,11 @@ import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -532,28 +537,68 @@ public class KnowledgeBaseRepository {
     public List<FolderPathNode> findFolderPath(int folderId) {
         return query("""
                 WITH RECURSIVE ancestry AS (
-                    SELECT id, parent_id, restriction_mode, 0 AS depth
+                    SELECT id, parent_id, name, restriction_mode, 0 AS depth
                     FROM kb_folder
                     WHERE id = :id
                     UNION ALL
-                    SELECT parent.id, parent.parent_id, parent.restriction_mode, ancestry.depth + 1
+                    SELECT parent.id, parent.parent_id, parent.name, parent.restriction_mode, ancestry.depth + 1
                     FROM kb_folder parent
                     JOIN ancestry ON parent.id = ancestry.parent_id
                     WHERE ancestry.depth < %d
                 )
-                SELECT id, restriction_mode
+                SELECT id, name, restriction_mode
                 FROM ancestry
                 ORDER BY depth DESC;""", MAX_TREE_DEPTH)
                 .single(call().bind("id", folderId))
-                .map(row ->
-                        new FolderPathNode(row.getInt("id"), row.getEnum("restriction_mode", RestrictionMode.class)))
+                .map(FolderPathNode::map)
                 .all();
     }
 
     /**
-     * A folder on the path from the root to a node, with the mode its grants combine in.
+     * Walks the ancestry of many folders in one query, so a listing whose rows sit in different
+     * folders costs one round trip rather than one walk per row.
+     *
+     * @param folderIds the folders to walk up from
+     * @return the path from the root down to each of them, keyed by the folder it ends at
      */
-    public record FolderPathNode(int id, RestrictionMode restrictionMode) {}
+    public Map<Integer, List<FolderPathNode>> findFolderPaths(List<Integer> folderIds) {
+        if (folderIds.isEmpty()) return Map.of();
+        var rows = query("""
+                WITH RECURSIVE ancestry AS (
+                    SELECT id AS leaf_id, id, parent_id, name, restriction_mode, 0 AS depth
+                    FROM kb_folder
+                    WHERE id = ANY(:ids)
+                    UNION ALL
+                    SELECT ancestry.leaf_id, parent.id, parent.parent_id, parent.name, parent.restriction_mode,
+                           ancestry.depth + 1
+                    FROM kb_folder parent
+                    JOIN ancestry ON parent.id = ancestry.parent_id
+                )
+                SELECT leaf_id, id, name, restriction_mode
+                FROM ancestry
+                ORDER BY leaf_id, depth DESC;""")
+                .single(call().bind("ids", folderIds, PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt("leaf_id"), FolderPathNode.map(row)))
+                .all();
+
+        var paths = new LinkedHashMap<Integer, List<FolderPathNode>>();
+        for (var row : rows) {
+            paths.computeIfAbsent(row.getKey(), key -> new ArrayList<FolderPathNode>())
+                    .add(row.getValue());
+        }
+        return paths;
+    }
+
+    /**
+     * A folder on the path from the root to a node, with its name and the mode its grants combine
+     * in.
+     */
+    public record FolderPathNode(int id, String name, RestrictionMode restrictionMode) {
+        static FolderPathNode map(Row row) throws SQLException {
+            return new FolderPathNode(
+                    row.getInt("id"), row.getString("name"), row.getEnum("restriction_mode", RestrictionMode.class));
+        }
+    }
 
     /**
      * Reads the grants of many folders and files at once, so listing a folder costs one query for

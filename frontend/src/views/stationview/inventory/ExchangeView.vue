@@ -94,6 +94,7 @@ function nextStatusesFor(request: ExchangeRequestEntry): ExchangeStatusName[] {
 }
 
 const updatingId = ref<number | null>(null)
+const correctingId = ref<number | null>(null)
 const availableItems = ref<InventoryItem[]>([])
 
 const showLogModal = ref(false)
@@ -137,6 +138,7 @@ loading.value = true
 if (loaded.value) reload()
 
 async function startStatusUpdate(request: ExchangeRequestEntry) {
+  correctingId.value = null
   updatingId.value = request.id
   try {
     const allItems = await inventory.listItems(request.inventoryId)
@@ -146,6 +148,20 @@ async function startStatusUpdate(request: ExchangeRequestEntry) {
 
 async function onStatusUpdated() {
   updatingId.value = null
+  requests.value = await exchanges.listExchanges()
+}
+
+/**
+ * Setting a status by hand is the other thing that can be open on a row, and never at the same time
+ * as advancing it: the two mean opposite things, and a row offering both at once invites the wrong one.
+ */
+function startCorrection(request: ExchangeRequestEntry) {
+  updatingId.value = null
+  correctingId.value = request.id
+}
+
+async function onCorrected() {
+  correctingId.value = null
   requests.value = await exchanges.listExchanges()
 }
 
@@ -216,12 +232,13 @@ watch(loaded, (isLoaded) => {
         <ExchangeListView
           :requests="visibleRequests" :show-member-column="showMemberColumn" :can-manage-exchanges="canManageExchanges()"
           :export-mode="exportMode" :selected-for-export="selectedForExport" :all-selected="allRowsSelected"
-          :updating-id="updatingId"
+          :updating-id="updatingId" :correcting-id="correctingId"
           :available-items="availableItems" :next-statuses-for="nextStatusesFor"
           :sort-key="sortKey" :direction="direction"
           @toggle-select-all="toggleAllRows" @toggle-export="toggleRow" @open-log="openLog"
           @start-update="startStatusUpdate" @delete="deleteRequest" @status-done="onStatusUpdated"
           @status-cancel="updatingId = null" @status-error="(msg) => error = msg" @sort="toggleSort"
+          @start-correct="startCorrection" @correct-done="onCorrected" @correct-cancel="correctingId = null"
         />
       </AsyncSection>
 

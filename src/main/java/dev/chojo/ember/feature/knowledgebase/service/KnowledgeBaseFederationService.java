@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
+import dev.chojo.ember.feature.knowledgebase.entity.KbSearchResult;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.RemoteKbFile;
@@ -799,18 +800,51 @@ public class KnowledgeBaseFederationService {
      */
     public List<RemoteKbSearchResultItem> searchForPartner(FederationPartner partner, String query) {
         if (query == null || query.isBlank()) return List.of();
-        var results = searchService.searchWithSnippets(partner.stationId(), query);
-        var sharedFileIds = federationRepository.findKbShares(partner.stationId()).stream()
-                .map(FederationShare::fileId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        var results = sharedHits(
+                partner.stationId(), partner.id(), searchService.searchWithSnippets(partner.stationId(), query));
         return results.stream()
-                .filter(result -> sharedFileIds.contains(result.file().id()))
                 .map(result -> new RemoteKbSearchResultItem(
                         result.file().id(),
                         result.file().name(),
                         result.file().description() != null ? result.file().description() : "",
                         result.snippet() != null ? result.snippet() : ""))
+                .toList();
+    }
+
+    /**
+     * Keeps the search hits one station actually shares with one reader.
+     *
+     * <p>The same rule the single-file guard applies, only for a whole result set at once: an
+     * article counts as shared when it is shared in its own right or sits anywhere below a shared
+     * folder, and a share aimed at named stations reaches only those. The shares and the ancestry
+     * of every hit are read once for the batch, so a search stays a fixed number of queries however
+     * many articles match.
+     *
+     * @param servingStationId the station whose knowledge base was searched
+     * @param readingPartnerId the partnership the reader arrives on, as the serving station keeps it
+     * @param hits             the unfiltered matches
+     * @return the matches the reader may be told about
+     */
+    private List<KbSearchResult> sharedHits(int servingStationId, Integer readingPartnerId, List<KbSearchResult> hits) {
+        if (hits.isEmpty()) return List.of();
+        var shares = sharesReaching(servingStationId, readingPartnerId);
+        var sharedFiles = shares.stream()
+                .map(FederationShare::fileId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        var sharedFolders = shares.stream()
+                .map(FederationShare::folderId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        var ancestries = knowledgeBaseService.findFolderAncestries(hits.stream()
+                .map(hit -> hit.file().folderId())
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
+        return hits.stream()
+                .filter(hit -> sharedFiles.contains(hit.file().id())
+                        || ancestries.getOrDefault(hit.file().folderId(), Set.<Integer>of()).stream()
+                                .anyMatch(sharedFolders::contains))
                 .toList();
     }
 
@@ -1111,10 +1145,18 @@ public class KnowledgeBaseFederationService {
         return new SharedKbLevel(folders, result);
     }
 
+    /**
+     * Searches a partner that lives on this instance. The partner's knowledge base is reachable
+     * without leaving the process, which is exactly why the sharing rule has to be applied here
+     * too: the reader is owed the same answer they would get over the wire.
+     */
     private List<FederatedSearchResult> searchKbDirect(FederationPartner partner, String query) {
         String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "?");
         String stationUid = partner.partnerStationId().toString();
-        return searchService.searchWithSnippets(partnerStationId(partner), query).stream()
+        int servingStationId = partnerStationId(partner);
+        var hits = sharedHits(
+                servingStationId, servingSideId(partner), searchService.searchWithSnippets(servingStationId, query));
+        return hits.stream()
                 .map(result -> new FederatedSearchResult(
                         KbFileSummary.of(result.file()), result.snippet(), stationName, stationUid))
                 .toList();

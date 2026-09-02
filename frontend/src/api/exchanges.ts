@@ -9,15 +9,33 @@ import type { ItemOwnerName } from './inventory'
 import type { MovementPurposeName } from './movements'
 import type { MemberIdentity } from './types'
 
+/**
+ * Where an exchange stands. The first five are the stations it passes through, in order; the last two
+ * are ends it stopped at, which an exchange never walks towards.
+ */
 export const ExchangeStatus = {
     ANNOUNCED: 'ANNOUNCED',
     RECEIVED: 'RECEIVED',
     SHIPPED: 'SHIPPED',
     ARRIVED: 'ARRIVED',
     DONE: 'DONE',
+    CANCELLED: 'CANCELLED',
+    DECLINED: 'DECLINED',
 } as const
 
 export type ExchangeStatusName = (typeof ExchangeStatus)[keyof typeof ExchangeStatus]
+
+const closedStatuses: ExchangeStatusName[] = [ExchangeStatus.DONE, ExchangeStatus.CANCELLED, ExchangeStatus.DECLINED]
+
+/**
+ * Whether the exchange is still on its way, which is what puts it on the lists of open ones and what
+ * makes advancing it something to offer.
+ *
+ * @param status where the exchange stands
+ */
+export function stillMoving(status: ExchangeStatusName): boolean {
+    return !closedStatuses.includes(status)
+}
 
 export interface ExchangeRequestEntry {
     id: number
@@ -50,6 +68,7 @@ export const AckKind = {
     CONFIRMED: 'CONFIRMED',
     ASSERTED: 'ASSERTED',
     FORCED: 'FORCED',
+    CORRECTED: 'CORRECTED',
 } as const
 
 export type AckKindName = (typeof AckKind)[keyof typeof AckKind]
@@ -100,6 +119,17 @@ export async function getLogs(id: number): Promise<ExchangeLogEntry[]> {
 
 export async function updateStatus(id: number, data: UpdateStatusRequest): Promise<ExchangeRequestEntry> {
     const res = await client.put<ExchangeRequestEntry>(`/exchanges/${id}/status`, data)
+    return res.data
+}
+
+/** Setting an exchange to a status by hand, which the history keeps together with the reason. */
+export interface CorrectStatusRequest {
+    status: ExchangeStatusName
+    reason: string
+}
+
+export async function correctStatus(id: number, data: CorrectStatusRequest): Promise<ExchangeRequestEntry> {
+    const res = await client.put<ExchangeRequestEntry>(`/exchanges/${id}/correct`, data)
     return res.data
 }
 
