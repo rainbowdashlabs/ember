@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, apiHeaders} from './fixtures/auth'
-import type {Page} from '@playwright/test'
+import type {Locator, Page} from '@playwright/test'
 
 /** One inventory as the summary endpoint reports it. */
 interface Summary {
@@ -30,6 +30,11 @@ async function theSeededCollection(page: Page): Promise<Summary> {
     return found as Summary
 }
 
+/** The one card of the manage screen carrying exactly this name. */
+function cardNamed(page: Page, name: string): Locator {
+    return page.getByTestId('inventory-card').filter({has: page.getByText(name, {exact: true})})
+}
+
 test.describe('The two kinds of inventory', () => {
     /**
      * The badges are what a list of a dozen inventories is read by. The count of kinds is the one
@@ -43,7 +48,7 @@ test.describe('The two kinds of inventory', () => {
             expect(collection.artCount, 'and two kinds are defined in it').toBe(2)
 
             await page.goto('/station/inventory/manage')
-            const card = page.getByTestId('inventory-card').filter({hasText: 'Gemeindematerial'})
+            const card = cardNamed(page, 'Gemeindematerial')
             await expect(card).toBeVisible()
 
             await expect(card.getByTestId('inventory-badge-kind'), 'it is named a collection')
@@ -57,7 +62,7 @@ test.describe('The two kinds of inventory', () => {
 
             const stock = (await summaries(page)).find(entry => entry.homogeneous)
             expect(stock, 'the demo data also holds a stock').toBeTruthy()
-            const stockCard = page.getByTestId('inventory-card').filter({hasText: stock!.name})
+            const stockCard = cardNamed(page, stock!.name)
             await expect(stockCard.getByTestId('inventory-badge-kind')).toHaveText('Vorrat')
             await expect(stockCard.getByTestId('inventory-badge-arts'),
                 'a stock holds one thing, so a count of kinds would be noise').toHaveCount(0)
@@ -76,7 +81,7 @@ test.describe('The two kinds of inventory', () => {
         await page.getByTestId('inventory-kind').selectOption('COLLECTION')
         await page.getByRole('button', {name: 'Speichern'}).click()
 
-        const card = page.getByTestId('inventory-card').filter({hasText: name})
+        const card = cardNamed(page, name)
         await expect(card).toBeVisible()
         await expect(card.getByTestId('inventory-badge-kind')).toHaveText('Sammlung')
 
