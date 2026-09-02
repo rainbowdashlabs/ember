@@ -7,13 +7,25 @@
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import AuthImage from '@/components/display/AuthImage.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import KbItemActions from './KbItemActions.vue'
 import KbReachEye from './KbReachEye.vue'
 import type {KbItem} from './useKbItems'
 
-defineProps<{
+const props = defineProps<{
     item: KbItem
+    /** Marking is on, and this entry is one of this station's own. */
+    selectable?: boolean
+    selected?: boolean
 }>()
+
+const emit = defineEmits<{
+    toggleSelect: [key: string, value: boolean, shift: boolean]
+}>()
+
+function onCheckboxClick(event: MouseEvent) {
+    emit('toggleSelect', props.item.key, !props.selected, event.shiftKey)
+}
 </script>
 
 <template>
@@ -23,7 +35,16 @@ defineProps<{
         :class="item.open ? 'cursor-pointer' : ''"
         @click="item.open?.()"
     >
-        <KbReachEye v-if="item.shared" :reach="item.shared" class="absolute top-1.5 left-1.5"/>
+        <KbReachEye v-if="item.shared && !selectable" :reach="item.shared" class="absolute top-1.5 left-1.5"/>
+
+        <div
+            v-if="selectable"
+            class="absolute top-1 left-1 z-10 flex cursor-pointer select-none items-center rounded bg-(--bg)/90 p-1 backdrop-blur-sm"
+            data-testid="kb-item-select"
+            @click.stop.prevent="onCheckboxClick($event)"
+        >
+            <CheckboxInput :model-value="selected" class="pointer-events-none"/>
+        </div>
 
         <div class="flex flex-col items-center gap-2 p-2 text-center">
             <AuthImage

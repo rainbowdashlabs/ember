@@ -21,6 +21,7 @@ export function useKbFileMetadata(file: Ref<KbFile | null>, lastEditedByName: Re
   const fileTags = ref<KbTag[]>([])
   const allStationTags = ref<KbTag[]>([])
   const relatedFiles = ref<KbFile[]>([])
+  const backlinks = ref<KbFile[]>([])
 
   const editingDescription = ref(false)
   const editDescriptionValue = ref('')
@@ -39,14 +40,23 @@ export function useKbFileMetadata(file: Ref<KbFile | null>, lastEditedByName: Re
 
   async function addRelatedFile(targetId: number) {
     if (!file.value) return
-    relatedFiles.value = await knowledgeBase.setRelatedFiles(
-      file.value.id, [...relatedFiles.value.map(f => f.id), targetId])
+    applyReferences(await knowledgeBase.setRelatedFiles(
+      file.value.id, [...relatedFiles.value.map(f => f.id), targetId]))
   }
 
   async function removeRelatedFile(targetId: number) {
     if (!file.value) return
     const remaining = relatedFiles.value.map(f => f.id).filter(id => id !== targetId)
-    relatedFiles.value = await knowledgeBase.setRelatedFiles(file.value.id, remaining)
+    applyReferences(await knowledgeBase.setRelatedFiles(file.value.id, remaining))
+  }
+
+  /**
+   * Takes both directions from one answer. The back-references can change with a write too: an
+   * article that stops pointing somewhere disappears from that article's list of what points at it.
+   */
+  function applyReferences(references: {related: KbFile[]; backlinks: KbFile[]}) {
+    relatedFiles.value = references.related
+    backlinks.value = references.backlinks
   }
 
   function startEditDescription() {
@@ -70,6 +80,8 @@ export function useKbFileMetadata(file: Ref<KbFile | null>, lastEditedByName: Re
     fileTags,
     allStationTags,
     relatedFiles,
+    backlinks,
+    applyReferences,
     editingDescription,
     editDescriptionValue,
     addTag,

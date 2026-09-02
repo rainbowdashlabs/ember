@@ -11,12 +11,9 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import IconButton from '@/components/button/IconButton.vue'
 import KbFileHeaderBar from '@/views/stationview/knowledge/kbfileview/KbFileHeaderBar.vue'
+import KbFileDescription from '@/views/stationview/knowledge/kbfileview/KbFileDescription.vue'
 import KbTagsSection from '@/views/stationview/knowledge/kbfileview/KbTagsSection.vue'
 import KbRelatedFilesSection from '@/views/stationview/knowledge/kbfileview/KbRelatedFilesSection.vue'
 import KbCommentSection from '@/components/comment/KbCommentSection.vue'
@@ -27,6 +24,7 @@ import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import type {PageRow, SaveRowRequest, SaveCellRequest} from '@/api/pageManage'
 import KbEditFileModal from '@/views/stationview/knowledge/knowledgebaseview/KbEditFileModal.vue'
 import KbShareModal from '@/views/stationview/knowledge/knowledgebaseview/KbShareModal.vue'
+import KbMoveModal from '@/views/stationview/knowledge/knowledgebaseview/KbMoveModal.vue'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {knowledgeBase} from '@/api'
@@ -39,12 +37,12 @@ import {
     type MarkdownHtmlResponse,
 } from '@/api/knowledgeBase'
 import {useKbFileMetadata} from '@/views/stationview/knowledge/kbfileview/useKbFileMetadata'
+import {useKbMoveTarget} from '@/views/stationview/knowledge/knowledgebaseview/useKbMoveTarget'
 import {STATION_KB_ROUTES, type KbRoutes} from '@/views/stationview/knowledge/knowledgebaseview/useKbNavigation'
 import {getItem} from '@/api/storage'
 import {downloadAuthed} from '@/util/downloadAuthed'
 import {formatDateTime} from '@/util/format'
 import {youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
-import MutedText from '@/components/typography/MutedText.vue'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 
 const props = defineProps<{
@@ -75,7 +73,7 @@ const contentMode = ref<ContentModeName>(ContentMode.SIMPLE)
 const blockRows = ref<RowEditData[]>([])
 const textContent = ref('')
 const {
-    fileTags, allStationTags, relatedFiles,
+    fileTags, allStationTags, relatedFiles, backlinks, applyReferences,
     editingDescription, editDescriptionValue,
     addTag, removeTag, addRelatedFile, removeRelatedFile,
     startEditDescription, saveDescription,
@@ -123,6 +121,21 @@ const mayEdit = computed(() =>
     canEditKnowledge() && !isFederated.value && levelCovers(accessLevel.value, KbAccessLevel.WRITE))
 
 /**
+ * Moving asks for full rights rather than the right to write: the folder an article lands in
+ * decides who reads it from then on, which is a different thing from changing what it says.
+ */
+const mayMove = computed(() =>
+    canEditKnowledge() && !isFederated.value && levelCovers(accessLevel.value, KbAccessLevel.MANAGE))
+
+const move = useKbMoveTarget()
+
+async function openMove() {
+    if (!file.value) return
+    await move.reloadFolders()
+    move.moveFile(file.value)
+}
+
+/**
  * Why editing is unavailable, when a folder is the reason. Silent absence reads as a bug, so the
  * page names the folder that holds the file read-only.
  */
@@ -131,8 +144,6 @@ const readOnlyReason = computed(() => {
     if (!accessLevelSource.value) return t('kb.readOnlyHere')
     return t('kb.readOnlyFrom', {folder: accessLevelSource.value})
 })
-
-const canEditDescription = computed(() => mayEdit.value)
 
 async function copyToStation() {
     if (!file.value) return
@@ -169,14 +180,14 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
     accessLevel.value = fileRes.accessLevel
     accessLevelSource.value = fileRes.accessLevelSource ?? null
 
-    const [tags, stationTags, related] = await Promise.all([
+    const [tags, stationTags, references] = await Promise.all([
         knowledgeBase.getFileTags(file.value.id),
         knowledgeBase.listTags(),
         knowledgeBase.getRelatedFiles(file.value.id),
     ])
     fileTags.value = tags
     allStationTags.value = stationTags
-    relatedFiles.value = related
+    applyReferences(references)
 
     if (file.value.fileType === KbFileType.MARKDOWN) {
         markdownData.value = await knowledgeBase.getMarkdownHtml(file.value.id)
@@ -201,7 +212,7 @@ async function loadFederatedFile(stationUid: string) {
     lastEditedByName.value = null
     fileTags.value = []
     allStationTags.value = []
-    relatedFiles.value = []
+    applyReferences({related: [], backlinks: []})
     markdownData.value = null
     textContent.value = ''
     accessLevel.value = undefined
@@ -343,11 +354,13 @@ watch(() => [props.fileId, props.stationUid], () => {
                 :is-kb-public="isKbPublic()"
                 :share-copied="shareCopied"
                 :can-edit="mayEdit"
+                :can-move="mayMove"
                 :editing="editing"
                 @back="goBack"
                 @copy-share-link="copyShareLink"
                 @copy-to-station="copyToStation"
                 @open-edit-metadata="showEditMetadataModal = true"
+                @open-move="openMove"
                 @open-share="showShareModal = true"
                 @toggle-edit="toggleEdit"
                 @open-versions="router.push({name: routes.versions, params: {id: file.id}})"
@@ -356,30 +369,14 @@ watch(() => [props.fileId, props.stationUid], () => {
                 @download-pdf="downloadPdf"
             />
 
-            <!-- Description -->
-            <div v-if="editingDescription" class="flex items-center gap-2 mb-4">
-                <TextAreaInput v-model="editDescriptionValue" class="flex-1 !text-sm" :placeholder="t('kb.description')"/>
-                <PrimaryButton :aria-label="t('common.save')" :title="t('common.save')" @click="saveDescription">
-                    <font-awesome-icon :icon="['fas', 'check']"/>
-                </PrimaryButton>
-                <SecondaryButton
-                    :aria-label="t('common.cancel')"
-                    :title="t('common.cancel')"
-                    @click="editingDescription = false"
-                >
-                    <font-awesome-icon :icon="['fas', 'xmark']"/>
-                </SecondaryButton>
-            </div>
-            <MutedText tag="p" size="sm" v-else-if="file.description || canEditDescription" class="group/desc">
-                {{ file.description || t('kb.description') }}
-                <IconButton
-                    v-if="canEditDescription"
-                    :icon="['fas', 'pen']"
-                    :label="t('kb.edit')"
-                    class="opacity-0 group-hover/desc:opacity-100 ml-1 text-[var(--primary)] !p-0 text-xs"
-                    @click="startEditDescription"
-                />
-            </MutedText>
+            <KbFileDescription
+                v-model:editing="editingDescription"
+                v-model:value="editDescriptionValue"
+                :description="file.description"
+                :can-edit="mayEdit"
+                @start="startEditDescription"
+                @save="saveDescription"
+            />
 
             <p v-if="readOnlyReason" class="text-xs text-[var(--text-muted)] mb-3 flex items-center gap-1">
                 <font-awesome-icon :icon="['fas', 'lock']" class="h-3 w-3"/>
@@ -406,6 +403,7 @@ watch(() => [props.fileId, props.stationUid], () => {
             <KbRelatedFilesSection
                 v-if="!isFederated"
                 :related-files="relatedFiles"
+                :backlinks="backlinks"
                 :file-id="file.id"
                 :can-manage="mayEdit"
                 @add-related="addRelatedFile"
@@ -469,6 +467,15 @@ watch(() => [props.fileId, props.stationUid], () => {
             :file="file"
             @update:show="showEditMetadataModal = $event"
             @saved="loadData()"
+        />
+
+        <KbMoveModal
+            v-model:show="move.showMove.value"
+            :folder="null"
+            :file="move.movingFile.value"
+            :folders="move.folders.value"
+            @moved="loadData()"
+            @error="(msg) => error = msg"
         />
     </ViewContent>
 </template>
