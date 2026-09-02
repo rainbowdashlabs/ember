@@ -35,12 +35,6 @@ const tabs = computed(() => [
     shown: true,
   },
   {
-    name: 'cluster-inventory-collections',
-    to: '/cluster/inventory/collections',
-    label: t('clusterInventory.tabCollections'),
-    shown: true,
-  },
-  {
     name: 'cluster-inventory-movements',
     to: '/cluster/inventory/movements',
     label: t('clusterInventory.tabMovements'),

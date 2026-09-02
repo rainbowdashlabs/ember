@@ -82,7 +82,6 @@ import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.insights.repository.PageHitRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
-import dev.chojo.ember.feature.inventory.repository.InventoryCollectionRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryContainerKindRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryContainerRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryFieldDefinitionRepository;
@@ -268,7 +267,6 @@ public abstract class RepositoryTestBase {
     protected static FormRepository formRepo;
     protected static ProcurementRepository procurementRepo;
     protected static InventoryContainerRepository containerRepo;
-    protected static InventoryCollectionRepository collectionRepo;
     protected static InventoryContainerKindRepository containerKindRepo;
     protected static InventoryFieldDefinitionRepository fieldDefinitionRepo;
     protected static InventoryFieldDefinitionService fieldDefinitionService;
@@ -436,7 +434,6 @@ public abstract class RepositoryTestBase {
         formRepo = new FormRepository();
         procurementRepo = new ProcurementRepository();
         containerRepo = new InventoryContainerRepository();
-        collectionRepo = new InventoryCollectionRepository();
         containerKindRepo = new InventoryContainerKindRepository();
         fieldDefinitionRepo = new InventoryFieldDefinitionRepository();
         artRepo = new InventoryArtRepository();

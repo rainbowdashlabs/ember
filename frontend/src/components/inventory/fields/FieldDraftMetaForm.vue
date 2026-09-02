@@ -11,22 +11,12 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {FieldType, type FieldTypeName} from '@/api/inventoryFields'
-import type {InventoryItem} from '@/api/inventory'
-import type {InventoryArt} from '@/api/inventoryArts'
 import type {DraftField} from './types'
 import {harmonizeKey} from './harmonize'
-import FieldScopeSelect from './FieldScopeSelect.vue'
 
-const props = withDefaults(
-    defineProps<{
-        draft: DraftField
-        /** The kinds this inventory holds, empty where it holds one thing in many copies. */
-        arts?: InventoryArt[]
-        /** Its pieces, for a field that describes exactly one of them. */
-        items?: InventoryItem[]
-    }>(),
-    {arts: () => [], items: () => []},
-)
+const props = defineProps<{
+    draft: DraftField
+}>()
 
 const emit = defineEmits<{
     (e: 'type-changed', value: FieldTypeName): void
@@ -66,7 +56,6 @@ function onTypeChanged(value: string | number | null | undefined) {
             <span>{{ t('inventory.fields.sortOrder') }}</span>
             <NumberInput v-model="props.draft.sortOrder" />
         </label>
-        <FieldScopeSelect :draft="props.draft" :arts="props.arts" :items="props.items" />
         <label class="flex items-center gap-2 text-sm md:col-span-2">
             <ToggleInput v-model="props.draft.required" />
             <span>{{ t('inventory.fields.required') }}</span>

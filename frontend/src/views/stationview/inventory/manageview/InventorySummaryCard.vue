@@ -9,7 +9,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {InventoryTypes, type InventorySummary} from '@/api/inventory'
+import InventoryBadges from '@/components/inventory/InventoryBadges.vue'
+import type {InventorySummary, InventoryTypeName} from '@/api/inventory'
 
 const props = defineProps<{
   inv: InventorySummary
@@ -27,10 +28,14 @@ const {t} = useI18n()
 <template>
   <NeutralContainer data-testid="inventory-card" clickable @click="emit('open', props.inv)">
     <div class="flex items-center justify-between">
-      <div>
+      <div class="min-w-0 space-y-1">
         <span class="font-medium">{{ props.inv.name }}</span>
-        <MutedText class="ml-2">{{ t('inventory.manage.type.' + (props.inv.inventoryType ?? InventoryTypes.INTERNAL)) }}</MutedText>
-        <span v-if="props.inv.hasSizes" class="ml-2 text-xs text-secondary-accent dark:text-secondary">{{ t('inventory.manage.withSizes') }}</span>
+        <InventoryBadges
+            :inventory-type="props.inv.inventoryType as InventoryTypeName | undefined"
+            :has-sizes="props.inv.hasSizes"
+            :homogeneous="props.inv.homogeneous"
+            :art-count="props.inv.artCount"
+        />
       </div>
       <div class="flex items-center gap-2" @click.stop>
         <EditButton @click="emit('edit', props.inv)" />

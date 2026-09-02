@@ -360,7 +360,6 @@ class DemoServiceTest extends RepositoryTestBase {
                 inventoryRepo,
                 artRepo,
                 inventoryTagRepo,
-                collectionRepo,
                 inventoryCheckRepo,
                 accountRepo,
                 containerSvc,

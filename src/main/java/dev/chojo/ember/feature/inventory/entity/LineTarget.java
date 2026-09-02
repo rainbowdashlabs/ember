@@ -9,9 +9,9 @@ package dev.chojo.ember.feature.inventory.entity;
  * What one line of a list asks for: a named piece, a count of one kind of thing, or a count out of a
  * whole inventory.
  *
- * <p>The same three targets appear on a collection line, on the needs of an appointment and on a
- * lending request line, which are three versions of one thing rather than three things. This record
- * is that one thing, so a fourth list can be written without a fourth idea of what a line points at.
+ * <p>The same three targets appear on the needs of an appointment and on a lending request line,
+ * which are two versions of one thing rather than two things. This record is that one thing, so a
+ * third list can be written without a third idea of what a line points at.
  *
  * <p>Exactly one target is set, and the constructor refuses anything else, the same way the database
  * refuses it.

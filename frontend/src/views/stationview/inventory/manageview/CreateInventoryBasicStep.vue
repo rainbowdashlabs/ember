@@ -10,6 +10,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import InventoryKindField from '@/components/inventory/InventoryKindField.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {InventoryTypes, type InventoryTypeName} from '@/api/inventory'
@@ -26,7 +27,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-/** A drawer of different things keeps no size list, so the one control follows the other. */
+/** A collection keeps no size list, so the one control follows the other. */
 watch(homogeneous, value => {
   if (!value) hasSizes.value = false
 })
@@ -48,13 +49,7 @@ watch(homogeneous, value => {
     <p class="text-xs text-(--text-muted)">{{ t('inventory.manage.typeHint') }}</p>
   </div>
 
-  <div class="flex items-center justify-between gap-4">
-    <div>
-      <label class="text-sm font-medium">{{ t('inventory.manage.homogeneous') }}</label>
-      <p class="text-xs text-(--text-muted)">{{ t('inventory.manage.homogeneousHint') }}</p>
-    </div>
-    <ToggleInput v-model="homogeneous" data-testid="inventory-homogeneous" />
-  </div>
+  <InventoryKindField v-model="homogeneous" />
 
   <div v-if="homogeneous" class="flex items-center justify-between gap-4">
     <div>

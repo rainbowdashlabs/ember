@@ -13,8 +13,8 @@ import Alert from '@/components/feedback/Alert.vue'
  * How many pieces there are, and a word where somebody has asked for more of them than exist.
  *
  * <p>The count is what the station has, not what is free on one evening. A line is written for a
- * whole series of evenings, or in a collection for no date at all, so there is no single evening a
- * free count could be taken over; what is free on a given evening stands beside the line in the
+ * whole series of evenings, so there is no single evening a free count could be taken over; what is
+ * free on a given evening stands beside the line in the
  * panel that answers for that evening, with the appointments it collides with named.
  *
  * <p>Asking for too much is reported and never refused. Planning is writing down: two evenings may

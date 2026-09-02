@@ -9,11 +9,29 @@ import {computed, type ComputedRef, type Ref, type WritableComputedRef} from 'vu
 const RESULT_LIMIT = 25
 
 /**
+ * Whether a row answers a typed query.
+ *
+ * <p>Every word has to appear somewhere in the searchable text, so two words narrow rather than
+ * widen, and an empty query matches everything.
+ *
+ * @param text  everything about a row that a word may match, joined
+ * @param query what was typed
+ * @returns whether the row answers
+ */
+export function matchesWords(text: string, query: string): boolean {
+    const haystack = text.toLowerCase()
+    return query
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean)
+        .every(word => haystack.includes(word))
+}
+
+/**
  * A search over a list that is already to hand, in the shape a search picker expects.
  *
- * <p>Every word typed has to appear somewhere in the searchable text of a row, so two words narrow
- * rather than widen. The list is capped, because a typeahead offering four hundred rows is the
- * dropdown it replaced.
+ * <p>The list is capped, because a typeahead offering four hundred rows is the dropdown it
+ * replaced.
  *
  * @param entries    the rows to search
  * @param textOf     everything about a row that a word may match, joined
@@ -23,15 +41,8 @@ export function listSearch<T>(
     entries: ComputedRef<T[]> | Ref<T[]>,
     textOf: (entry: T) => string,
 ): (query: string) => Promise<T[]> {
-    return async (query: string) => {
-        const words = query.toLowerCase().split(/\s+/).filter(Boolean)
-        return entries.value
-            .filter(entry => {
-                const text = textOf(entry).toLowerCase()
-                return words.every(word => text.includes(word))
-            })
-            .slice(0, RESULT_LIMIT)
-    }
+    return async (query: string) =>
+        entries.value.filter(entry => matchesWords(textOf(entry), query)).slice(0, RESULT_LIMIT)
 }
 
 /**

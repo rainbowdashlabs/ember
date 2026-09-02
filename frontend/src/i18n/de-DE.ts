@@ -436,7 +436,6 @@ export default {
         inventoryBorrowed: 'Geliehenes',
         inventoryAssign: 'Zuweisen',
         inventoryRequirements: 'Benötigt',
-        inventoryCollections: 'Sammlungen',
         inventoryCheck: 'Prüfung',
         inventoryCheckMember: 'Mitglieder-Prüfung',
         inventoryCheckContainer: 'Behälter-Prüfung',
@@ -1387,14 +1386,6 @@ export default {
             title: 'Ausrüstungs-Anforderungen',
             subtitle: 'Pflichtausrüstung pro Mitgliedstyp festlegen',
         },
-        'inventory-collections': {
-            title: 'Sammlungen',
-            subtitle: 'Zusammenstellungen, die immer wieder gebraucht werden',
-        },
-        'cluster-inventory-collections': {
-            title: 'Sammlungen',
-            subtitle: 'Zusammenstellungen, die immer wieder gebraucht werden',
-        },
         'inventory-checks': {
             title: 'Prüfungen',
             subtitle: 'Übersicht aller Prüfungen',
@@ -1588,13 +1579,14 @@ export default {
     quickSearch: {
         openLabel: 'Schnellsuche öffnen (Strg+K)',
         shortcut: 'Strg + K',
-        placeholder: 'Seite, Mitglied, Termin oder Wiki suchen…',
+        placeholder: 'Seite, Mitglied, Termin, Inventar oder Wiki suchen…',
         startTyping: 'Tippe einen Suchbegriff, um Ergebnisse zu sehen.',
         noResults: 'Keine Treffer.',
         loading: 'Lädt…',
         sectionPages: 'Seiten',
         sectionMembers: 'Mitglieder',
         sectionEvents: 'Termine',
+        sectionInventories: 'Inventare',
         sectionKnowledge: 'Wiki',
         hintNavigate: 'Navigieren',
         hintOpen: 'Öffnen',
@@ -3315,7 +3307,11 @@ export default {
         },
         fields: {
             title: 'Benutzerdefinierte Felder',
-            intro: 'Pro Inventar zusätzliche Datenfelder definieren (Datum, Auswahl, Text, Zahl, Ja/Nein).',
+            intro: 'Zusätzliche Datenfelder für alle Gegenstände dieses Inventars (Datum, Auswahl, Text, Zahl, Ja/Nein). '
+                + 'Felder einer Art stehen an der Art, Felder eines einzelnen Gegenstands am Gegenstand.',
+            introArt: 'Zusätzliche Datenfelder für alle Gegenstände dieser Art, zum Beispiel eine Auswahl „Farbe“ '
+                + 'am Funkgerät. Die Werte bleiben bei jedem Gegenstand einzeln.',
+            introItem: 'Zusätzliche Datenfelder für genau diesen Gegenstand und keinen anderen.',
             add: 'Feld hinzufügen',
             edit: 'Feld bearbeiten',
             empty: 'Noch keine benutzerdefinierten Felder.',
@@ -3329,13 +3325,6 @@ export default {
             type: 'Typ',
             sortOrder: 'Sortierung',
             required: 'Pflichtfeld',
-            scope: 'Gilt für',
-            scopeInventory: 'Das ganze Inventar',
-            scopeArt: 'Eine Art',
-            scopeItem: 'Einen einzelnen Gegenstand',
-            scopeUnnamedPiece: 'Ohne Bezeichnung',
-            scopeHint: 'Ein Feld für eine Art gilt für alle Gegenstände dieser Art. Die Werte bleiben trotzdem '
-                + 'bei jedem Gegenstand einzeln. Später lässt sich das nicht mehr ändern.',
             confirmDelete: 'Feld "{label}" wirklich löschen?',
             types: {
                 DATE: 'Datum',
@@ -3431,12 +3420,19 @@ export default {
             },
             hasSizes: 'Größen verwenden',
             hasSizesHint: 'Aktiviere diese Option, wenn die Gegenstände in verschiedenen Größen vorhanden sind.',
-            homogeneous: 'Eine Sache in vielen Exemplaren',
-            homogeneousHint:
-                'Aktiviert: Das Inventar enthält immer dasselbe, nur mehrfach, zum Beispiel Stiefel. ' +
-                'Nur dafür gibt es Vorgaben, Beschaffungen, Tausche und Größen. ' +
-                'Deaktiviert: Das Inventar ist eine Kiste mit lauter verschiedenen Dingen, die bei Bedarf ' +
-                'geholt und wieder zurückgebracht werden.',
+            kindLabel: 'Was das Inventar enthält',
+            kindStockName: 'Vorrat',
+            kindCollectionName: 'Sammlung',
+            kindStockOption: 'Vorrat: eine Sache in vielen Exemplaren',
+            kindCollectionOption: 'Sammlung: verschiedene Dinge, die zusammengehören',
+            kindStockHint:
+                'Das Regal voller Blousons. Jedes Stück ist dasselbe Ding, nur ein weiteres Exemplar. ' +
+                'Nur ein Vorrat kennt Größen, Vorgaben, Beschaffungen und Tausche.',
+            kindCollectionHint:
+                'Die Kiste mit zwölf Funkgeräten, einer Ladestation und einer Antenne. Die Stücke sind ' +
+                'verschieden: gleiche Stücke fasst eine Art zusammen, alles andere liegt lose in der Sammlung.',
+            artCount: '{count} Arten',
+            artCountOne: 'Eine Art',
             withSizes: 'mit Größen',
             quickSizes: 'Schnellauswahl',
             quickSizesHint: 'Felder anklicken oder mit gedrückter Maustaste überstreichen. Eingefügt wird in der Reihenfolge der Anzeige.',
@@ -3499,6 +3495,7 @@ export default {
             save: 'Bestand eintragen',
         },
         detail: {
+            edit: 'Inventar bearbeiten',
             total: 'Gesamt',
             free: 'Verfügbar',
             assigned: 'Zugewiesen',
@@ -3548,6 +3545,7 @@ export default {
         },
         edit: {
             back: 'Zurück zur Übersicht',
+            backToStock: 'Zum Bestand',
             moveItems: 'Gegenstände verschieben',
             settings: 'Einstellungen',
             settingsSaved: 'Einstellungen gespeichert.',
@@ -3620,9 +3618,10 @@ export default {
         },
         art: {
             title: 'Arten',
-            intro: 'Eine Art fasst gleiche Dinge in diesem Inventar zusammen, zum Beispiel alle blauen '
+            intro: 'Eine Art fasst gleiche Dinge in dieser Sammlung zusammen, zum Beispiel alle blauen '
                 + 'Funkgeräte. Die Bezeichnung eines Gegenstands bleibt daneben stehen: „Pager 01“ ist '
-                + 'ein Stück der Art „Pager“.',
+                + 'ein Stück der Art „Pager“. Stücke ohne Art, etwa die Ladestation, liegen einfach '
+                + 'lose in der Sammlung.',
             field: 'Art',
             fieldHint: 'Darf leer bleiben. Die meisten Gegenstände haben keine Art.',
             add: 'Art anlegen',
@@ -3637,8 +3636,9 @@ export default {
             pieces: '{pieces} Stück, davon {free} frei',
             groupCount: '{count} Stück',
             looseTitle: 'Ohne Art',
+            fieldsAfterSave: 'Felder lassen sich vergeben, sobald die Art angelegt ist.',
             deleteConfirm: 'Art „{name}“ löschen? Die Gegenstände bleiben erhalten und verlieren nur ihre Art.',
-            onlyForDrawers: 'Arten gibt es nur in einem Inventar mit verschiedenen Dingen.',
+            onlyForDrawers: 'Arten gibt es nur in einer Sammlung.',
             backToInventory: 'Zurück zum Inventar',
             tidyLink: 'Aufräumen',
             tidyIntro: 'Hier stehen die Bezeichnungen, die auf den Gegenständen dieses Inventars stehen, '
@@ -3712,7 +3712,8 @@ export default {
         },
         requirements: {
             title: 'Benötigt',
-            hint: 'Definiere, welche Inventargegenstände Mitglieder mit einer bestimmten Rolle oder Gruppe besitzen sollen.',
+            hint: 'Definiere, welche Inventargegenstände Mitglieder mit einer bestimmten Rolle oder Gruppe besitzen '
+                + 'sollen. Nur ein Vorrat kommt dafür in Frage, denn in einer Sammlung gibt es nichts, wovon jeder eines braucht.',
             empty: 'Noch kein benötigter Bestand definiert.',
             add: 'Anforderung hinzufügen',
             addItem: 'Hinzufügen',
@@ -3730,41 +3731,16 @@ export default {
             byUserType: 'Nach Benutzertyp',
             byGroup: 'Nach Gruppe',
         },
-        collections: {
-            hint: 'Eine Sammlung hält fest, was zusammengehört: die Spiele für den Jugendabend, das Funkset aus vier blauen Geräten, Ladestation und Antenne. Sie reserviert nichts, sie merkt sich nur die Liste.',
-            empty: 'Noch keine Sammlung angelegt.',
-            create: 'Sammlung anlegen',
-            name: 'Name',
-            namePlaceholder: 'Jugendabend',
-            note: 'Notiz',
-            lineCount: '{count} Zeilen',
-            noLines: 'Diese Sammlung ist noch leer.',
-            addLine: 'Zeile hinzufügen',
+        line: {
             lineKind: 'Art der Zeile',
             kindItem: 'Ein bestimmtes Stück',
             kindArt: 'Eine Anzahl einer Art',
             kindCount: 'Eine Anzahl aus einem Inventar',
-            kindHint: 'Ein benanntes Stück ist immer genau eines. Eine Anzahl einer Art holt vier blaue Funkgeräte und nicht vier beliebige Dinge aus der Schublade. Die Anzahl aus einem Inventar ist für Inventare, die nur eine Sorte in vielen Stücken halten.',
             item: 'Gegenstand',
             art: 'Art',
-            noArts: 'In den gemischten Inventaren ist noch keine Art angelegt.',
+            noArts: 'In den Sammlungen ist noch keine Art angelegt.',
             inventory: 'Inventar',
             quantity: 'Anzahl',
-            from: 'Von',
-            to: 'Bis',
-            windowHint: 'Ohne Zeitraum zeigt die Liste, was heute da ist. Mit Zeitraum wird abgezogen, was in dieser Zeit schon verliehen ist.',
-            fraction: '{available} von {requested}',
-            itemMissing: 'Nicht verfügbar',
-            clusterOwned: '{count} vom Träger',
-            clusterHint: 'Diese Sammlung enthält Ausrüstung des Trägers. Sie ist da, darf aber nicht weiterverliehen werden.',
-            deleteConfirm: 'Soll die Sammlung „{name}“ wirklich gelöscht werden?',
-            addToCollection: 'Zu Sammlung hinzufügen',
-            selectCollection: 'Sammlung auswählen',
-            addedToCollection: 'Zur Sammlung hinzugefügt.',
-            noCollections: 'Es gibt noch keine Sammlung, zu der dieses Stück passen könnte.',
-            deleteWarning: 'Danach fehlt dieses Stück in folgenden Sammlungen: {names}.',
-            artDeleteWarning: 'Danach fehlt diese Art in folgenden Sammlungen: {names}. Die Stücke selbst bleiben, nur die Zeile geht.',
-            inventoryDeleteWarning: 'Danach fehlen Zeilen in folgenden Sammlungen: {names}.',
         },
         check: {
             exchange: 'Tausch',
@@ -6585,7 +6561,6 @@ export default {
         tabStock: 'Lager',
         tabOut: 'Bei den Wachen',
         tabRequirements: 'Vorgaben',
-        tabCollections: 'Sammlungen',
         tabMovements: 'Bewegungen',
         tabStatistics: 'Zahlen',
         tabSettings: 'Einstellungen',

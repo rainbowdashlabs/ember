@@ -211,6 +211,9 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
 })
 
 function goBack() { router.push({ name: routes.manage }) }
+
+/** The way into the settings, the sizes and the kinds of this same inventory. */
+function goEdit() { router.push({ name: routes.edit, params: { id: inventoryId.value } }) }
 </script>
 
 <template>
@@ -223,7 +226,11 @@ function goBack() { router.push({ name: routes.manage }) }
         :name="detail?.name ?? ''"
         :inventory-type="detail?.inventoryType ?? null"
         :has-sizes="detail?.hasSizes ?? false"
+        :homogeneous="detail?.homogeneous ?? true"
+        :art-count="detail?.homogeneous === false ? arts.length : null"
+        :can-edit="permissions.canEdit"
         @back="goBack"
+        @edit="goEdit"
       />
 
       <Spinner v-if="loading" size="lg" />

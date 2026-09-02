@@ -16,6 +16,7 @@ import type {InventoryTag} from '@/api/inventoryTags'
 import EditItemFields from './edititemmodal/EditItemFields.vue'
 import EditItemCustomFields from './edititemmodal/EditItemCustomFields.vue'
 import EditItemFooter from './edititemmodal/EditItemFooter.vue'
+import InventoryFieldsPanel from '@/components/inventory/InventoryFieldsPanel.vue'
 import {parseItemMetadata, buildItemMetadata} from './itemMetadata'
 import type {InventoryContainer} from '@/api/inventoryContainers'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
@@ -86,6 +87,25 @@ async function loadForItem(item: InventoryItem) {
   }
 }
 
+/**
+ * Reads the fields this piece carries again and lays the values out along them.
+ *
+ * <p>Anything already typed into the open form is kept, so writing down a new field beside the form
+ * does not throw away what somebody was in the middle of entering.
+ */
+async function reloadFields() {
+  const item = props.item
+  if (!item) return
+  const typed = fieldValues.value
+  await loadForItem(item)
+  const parsed = parseItemMetadata(item.metadata)
+  const values: Record<string, any> = {}
+  for (const def of fieldDefs.value) {
+    values[def.key] = def.key in typed ? typed[def.key] : parsed.fields[def.key]?.value ?? null
+  }
+  fieldValues.value = values
+}
+
 watch(() => props.item, async (item) => {
   if (!item) return
   itemName.value = item.name ?? ''
@@ -94,14 +114,8 @@ watch(() => props.item, async (item) => {
   containerId.value = item.containerId ?? null
   artId.value = item.artId ?? null
   artDraft.value = ''
-  const parsed = parseItemMetadata(item.metadata)
-  await loadForItem(item)
-  const values: Record<string, any> = {}
-  for (const def of fieldDefs.value) {
-    const stored = parsed.fields[def.key]
-    values[def.key] = stored?.value ?? null
-  }
-  fieldValues.value = values
+  fieldValues.value = {}
+  await reloadFields()
 })
 
 async function save() {
@@ -158,6 +172,14 @@ async function save() {
           :tags="tags"
       />
       <EditItemCustomFields :defs="fieldDefs" v-model="fieldValues"/>
+      <template v-if="props.item">
+        <hr class="border-(--bg-accent)">
+        <InventoryFieldsPanel
+            :inventory-id="props.item.inventoryId"
+            :item-id="props.item.id"
+            @changed="reloadFields"
+        />
+      </template>
       <EditItemFooter
           :saveDisabled="!itemName.trim() || fieldsInvalid"
           :save="save"

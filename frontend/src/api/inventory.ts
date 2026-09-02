@@ -48,6 +48,31 @@ export function isAvailable(custody?: ItemCustodyName | null): boolean {
     return custody === ItemCustody.WITH_OWNER || custody === ItemCustody.AT_STATION
 }
 
+/**
+ * The two kinds of inventory, named on both sides.
+ *
+ * <p>The wire carries a single boolean, which reads as one kind and the absence of it. Screens
+ * speak in names instead, so the reader can tell which of the two they have in front of them.
+ */
+export const InventoryKinds = {
+    /** One thing in many copies: the shelf full of blousons. */
+    STOCK: 'STOCK',
+    /** Different things that belong together: twelve radios, a charging station and an antenna. */
+    COLLECTION: 'COLLECTION',
+} as const
+
+export type InventoryKindName = (typeof InventoryKinds)[keyof typeof InventoryKinds]
+
+/** Which kind the boolean on the wire stands for. */
+export function inventoryKindOf(homogeneous: boolean): InventoryKindName {
+    return homogeneous ? InventoryKinds.STOCK : InventoryKinds.COLLECTION
+}
+
+/** Whether a kind is the one thing in many copies, which is what the wire calls homogeneous. */
+export function isStock(kind: InventoryKindName): boolean {
+    return kind === InventoryKinds.STOCK
+}
+
 export interface Inventory {
     id: number
     stationId: string
@@ -55,8 +80,8 @@ export interface Inventory {
     inventoryType?: InventoryTypeName
     hasSizes: boolean
     /**
-     * Whether the inventory holds one thing in many copies rather than a drawer of different things.
-     * Requirements, orders and exchanges are only offered for the first.
+     * Whether the inventory is a stock rather than a collection. Requirements, orders, exchanges and
+     * sizes are only offered for a stock.
      */
     homogeneous: boolean
     /**
@@ -439,7 +464,7 @@ export interface InventorySummary {
     name?: string
     inventoryType?: string
     hasSizes: boolean
-    /** Whether it holds one thing in many copies rather than a drawer of different things. */
+    /** Whether it is a stock rather than a collection. */
     homogeneous: boolean
     /** Whether it is the station's one shelf for gear belonging to somebody else. */
     borrowed: boolean
@@ -447,6 +472,8 @@ export interface InventorySummary {
     lostCount: number
     procurementCount: number
     lentOutCount: number
+    /** How many kinds are defined in it, which only a collection has any use for. */
+    artCount: number
 }
 
 export async function listSummaries(): Promise<InventorySummary[]> {
