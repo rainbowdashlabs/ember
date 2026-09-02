@@ -672,7 +672,9 @@ test.describe('Members', () => {
         await expect(row.getByTestId('setup-link-expired')).toHaveCount(0)
         await row.getByRole('button', {name: 'Einrichtungs-Mail erneut senden'}).click()
 
-        await page.getByRole('button', {name: 'Erneut senden'}).click()
+        // The row's own button carries "Einrichtungs-Mail erneut senden", so the confirmation has to
+        // be asked for inside the dialog rather than by name alone.
+        await page.getByTestId('modal').getByRole('button', {name: 'Erneut senden'}).click()
         await expect(page.getByText('Einrichtungs-Mail wurde erneut versendet.')).toBeVisible()
     })
 
