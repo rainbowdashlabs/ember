@@ -10,7 +10,6 @@ import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.CommentCreated;
-import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.comment.entity.MentionType;
@@ -247,28 +246,22 @@ class KbCommentServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Deleting a comment announces the removal with the same short preview so subscribers can
-     * retract whatever they rendered for it.
+     * Removing a comment says nothing to anybody: what was written about it points at the file it
+     * sits under, which is still there.
      */
     @Test
-    void deletingACommentAnnouncesTheRemoval() {
+    void deletingACommentAnnouncesNothing() {
         when(commentRepository.findById(600)).thenReturn(Optional.of(storedComment(600, null, "farewell")));
         when(commentRepository.delete(600)).thenReturn(true);
 
         assertTrue(service.deleteComment(station.id(), 600));
 
-        var deleted = publishedEvents().stream()
-                .filter(CommentDeleted.class::isInstance)
-                .map(CommentDeleted.class::cast)
-                .findFirst()
-                .orElseThrow();
-        assertEquals(600, deleted.commentId());
-        assertEquals("farewell", deleted.preview());
+        verify(eventBus, never()).publish(any());
     }
 
     /**
-     * Nothing is announced for a comment that does not exist, or for one the repository refuses
-     * to remove.
+     * Nothing happens for a comment that does not exist, or for one the repository refuses to
+     * remove.
      */
     @Test
     void deletingAMissingCommentAnnouncesNothing() {

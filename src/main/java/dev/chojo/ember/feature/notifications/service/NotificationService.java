@@ -496,25 +496,26 @@ public class NotificationService {
     }
 
     /**
-     * Deletes unacknowledged notifications matching a type and a partial data fragment.
-     *
-     * @param type        the notification type
-     * @param partialData the data fragment used for containment matching
-     */
-    public void deleteByTypeContaining(NotificationType type, NotificationData partialData) {
-        notificationRepository.deleteByTypeContaining(type, partialData);
-        log.debug("Withdrew the {} notifications matching a data fragment", type);
-    }
-
-    /**
-     * Withdraws unacknowledged notifications of a type that point at one particular entity.
+     * Withdraws the unread notifications of a type that point at one particular entity, for the
+     * case where the entity is still there and only the message has stopped being true.
      *
      * @param type the notification type
      * @param link the link the notification must carry
      */
     public void deleteByTypeAndLink(NotificationType type, NotificationData.NotificationLink link) {
         notificationRepository.deleteByTypeAndLink(type, link);
-        log.debug("Withdrew the {} notifications pointing at {}", type, link.routeParams());
+        log.debug("Withdrew the unread {} notifications pointing at {}", type, link.routeParams());
+    }
+
+    /**
+     * Takes every notification pointing at one entity away with it, read or not, for the case where
+     * the entity itself has been deleted and nothing they link to is left.
+     *
+     * @param link the link the notification must carry
+     */
+    public void deleteAllPointingAt(NotificationData.NotificationLink link) {
+        int removed = notificationRepository.deleteAllPointingAt(link);
+        log.debug("Removed {} notifications pointing at the deleted {}", removed, link.routeParams());
     }
 
     /**

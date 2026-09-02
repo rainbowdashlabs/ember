@@ -48,7 +48,6 @@ import dev.chojo.ember.event.handlers.ClusterNewsShareHandler;
 import dev.chojo.ember.event.handlers.ClusterQuotaChangedHandler;
 import dev.chojo.ember.event.handlers.ClusterStationReleasedHandler;
 import dev.chojo.ember.event.handlers.CommentCreatedHandler;
-import dev.chojo.ember.event.handlers.CommentDeletedHandler;
 import dev.chojo.ember.event.handlers.EventCancelledHandler;
 import dev.chojo.ember.event.handlers.EventCreatedHandler;
 import dev.chojo.ember.event.handlers.EventDeletedHandler;
@@ -478,7 +477,6 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(ClusterEventShareHandler.class);
         eventBinder.addBinding().to(NewsDeletedHandler.class);
         eventBinder.addBinding().to(CommentCreatedHandler.class);
-        eventBinder.addBinding().to(CommentDeletedHandler.class);
         eventBinder.addBinding().to(MovementStartedHandler.class);
         eventBinder.addBinding().to(MovementAdvancedHandler.class);
         eventBinder.addBinding().to(MovementDeclinedHandler.class);

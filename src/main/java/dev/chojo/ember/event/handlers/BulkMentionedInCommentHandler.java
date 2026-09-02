@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
@@ -75,11 +76,11 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
 
         var link =
                 switch (event.entityType()) {
-                    case NEWS -> new NotificationData.NotificationLink("news-detail", Map.of("id", event.entityId()));
+                    case NEWS -> NotificationLinks.news(event.entityId());
                     case BOARD_TICKET ->
                         new NotificationData.NotificationLink("ticket-detail", Map.of("ticketId", event.entityId()));
                     case KB -> new NotificationData.NotificationLink("kb-file", Map.of("id", event.entityId()));
-                    case EVENT -> new NotificationData.NotificationLink("event-detail", Map.of("id", event.entityId()));
+                    case EVENT -> NotificationLinks.event(event.entityId());
                 };
 
         var data = NotificationData.of(
