@@ -7,12 +7,11 @@
 import {describe, expect, it} from 'vitest'
 import {ExchangeStatus, type ExchangeRequestEntry, type ExchangeStatusName} from '@/api/exchanges'
 import {
-    ALL_STATUSES,
-    OPEN_STATUSES,
     defaultExchangeFilter,
     exchangeComparators,
     filterExchanges,
     inventoryChoices,
+    openStatuses,
     statusChain,
     type ExchangeFilter,
 } from './exchangeFilter'
@@ -44,25 +43,27 @@ function row(spec: RowSpec): ExchangeRequestEntry {
 
 const HELMETS = {inventoryId: 1, inventoryName: 'Helme'}
 const JACKETS = {inventoryId: 2, inventoryName: 'Jacken'}
+const BOOTS = {inventoryId: 3, inventoryName: 'Stiefel'}
 
 const ANNA = row({id: 1, name: 'Anna Berger', ...HELMETS, status: ExchangeStatus.ANNOUNCED, createdAt: '2026-05-01T08:00:00Z'})
 const BENNO = row({id: 2, name: 'Benno Klein', ...JACKETS, status: ExchangeStatus.DONE, createdAt: '2026-05-03T08:00:00Z'})
 const CARLA = row({id: 3, name: 'Carla Anders', ...HELMETS, status: ExchangeStatus.SHIPPED, createdAt: '2026-05-02T08:00:00Z'})
 const DORA = row({id: 4, name: 'Dora Anders', ...JACKETS, status: ExchangeStatus.ANNOUNCED, createdAt: '2026-05-04T08:00:00Z'})
+const EMIL = row({id: 5, name: 'Emil Zoll', ...BOOTS, status: ExchangeStatus.RECEIVED, createdAt: '2026-05-05T08:00:00Z'})
 
-const ALL = [ANNA, BENNO, CARLA, DORA]
+const ALL = [ANNA, BENNO, CARLA, DORA, EMIL]
 
 function ids(rows: ExchangeRequestEntry[]): number[] {
     return rows.map(r => r.id)
 }
 
 function filter(overrides: Partial<ExchangeFilter> = {}): ExchangeFilter {
-    return {search: '', inventoryId: '', status: ALL_STATUSES, ...overrides}
+    return {search: '', inventoryIds: [], statuses: [], ...overrides}
 }
 
 describe('filterExchanges', () => {
     it('keeps everything when nothing is asked for', () => {
-        expect(ids(filterExchanges(ALL, filter()))).toEqual([1, 2, 3, 4])
+        expect(ids(filterExchanges(ALL, filter()))).toEqual([1, 2, 3, 4, 5])
     })
 
     it('matches part of a member name without regard to case', () => {
@@ -71,28 +72,50 @@ describe('filterExchanges', () => {
     })
 
     it('keeps only the exchanges of one inventory', () => {
-        expect(ids(filterExchanges(ALL, filter({inventoryId: '2'})))).toEqual([2, 4])
+        expect(ids(filterExchanges(ALL, filter({inventoryIds: ['2']})))).toEqual([2, 4])
     })
 
-    it('keeps only one status when one is named', () => {
-        expect(ids(filterExchanges(ALL, filter({status: ExchangeStatus.ANNOUNCED})))).toEqual([1, 4])
+    it('keeps the exchanges of every inventory that was ticked', () => {
+        expect(ids(filterExchanges(ALL, filter({inventoryIds: ['2', '3']})))).toEqual([2, 4, 5])
     })
 
-    it('hides the finished exchanges when only the open ones are asked for', () => {
-        expect(ids(filterExchanges(ALL, filter({status: OPEN_STATUSES})))).toEqual([1, 3, 4])
+    it('keeps only one status when one is ticked', () => {
+        expect(ids(filterExchanges(ALL, filter({statuses: [ExchangeStatus.ANNOUNCED]})))).toEqual([1, 4])
+    })
+
+    it('keeps the exchanges of every status that was ticked', () => {
+        const criteria = filter({statuses: [ExchangeStatus.ANNOUNCED, ExchangeStatus.SHIPPED, ExchangeStatus.DONE]})
+        expect(ids(filterExchanges(ALL, criteria))).toEqual([1, 2, 3, 4])
+    })
+
+    it('lets an empty tick list stand for no restriction rather than for nothing', () => {
+        expect(ids(filterExchanges(ALL, filter({inventoryIds: [], statuses: []})))).toEqual([1, 2, 3, 4, 5])
+    })
+
+    it('hides the finished exchanges when only the open ones are ticked', () => {
+        expect(ids(filterExchanges(ALL, filter({statuses: openStatuses})))).toEqual([1, 3, 4, 5])
     })
 
     it('starts on the open exchanges', () => {
-        expect(ids(filterExchanges(ALL, defaultExchangeFilter))).toEqual([1, 3, 4])
+        expect(ids(filterExchanges(ALL, defaultExchangeFilter))).toEqual([1, 3, 4, 5])
     })
 
     it('narrows by all three at once rather than by one at a time', () => {
-        const criteria = filter({search: 'anders', inventoryId: '2', status: OPEN_STATUSES})
+        const criteria = filter({search: 'anders', inventoryIds: ['2'], statuses: openStatuses})
         expect(ids(filterExchanges(ALL, criteria))).toEqual([4])
     })
 
+    it('lets several ticks of one filter stand beside a name and a set of inventories', () => {
+        const criteria = filter({
+            search: 'anders',
+            inventoryIds: ['1', '2'],
+            statuses: [ExchangeStatus.SHIPPED, ExchangeStatus.ANNOUNCED],
+        })
+        expect(ids(filterExchanges(ALL, criteria))).toEqual([3, 4])
+    })
+
     it('leaves nothing standing where the three contradict each other', () => {
-        const criteria = filter({search: 'anders', inventoryId: '1', status: ExchangeStatus.DONE})
+        const criteria = filter({search: 'anders', inventoryIds: ['1'], statuses: [ExchangeStatus.DONE]})
         expect(filterExchanges(ALL, criteria)).toEqual([])
     })
 })
@@ -102,6 +125,7 @@ describe('inventoryChoices', () => {
         expect(inventoryChoices(ALL)).toEqual([
             {id: 1, name: 'Helme'},
             {id: 2, name: 'Jacken'},
+            {id: 3, name: 'Stiefel'},
         ])
     })
 
@@ -116,15 +140,15 @@ describe('exchangeComparators', () => {
     }
 
     it('orders by the member name shown on the row', () => {
-        expect(sortedBy('member')).toEqual([1, 2, 3, 4])
+        expect(sortedBy('member')).toEqual([1, 2, 3, 4, 5])
     })
 
     it('orders by the name of the inventory', () => {
-        expect(sortedBy('inventory')).toEqual([1, 3, 2, 4])
+        expect(sortedBy('inventory')).toEqual([1, 3, 2, 4, 5])
     })
 
     it('orders by the day the exchange was raised', () => {
-        expect(sortedBy('date')).toEqual([1, 3, 2, 4])
+        expect(sortedBy('date')).toEqual([1, 3, 2, 4, 5])
     })
 
     it('orders the status along the chain rather than by its word', () => {

@@ -46,7 +46,7 @@ const allFields = ref<ProfileField[]>([])
 const { isMobile } = useBreakpoint()
 
 const {
-  search, inventoryId: filterInventoryId, status: filterStatus, inventories: filterInventories,
+  search, inventoryIds: filterInventoryIds, statuses: filterStatuses, inventories: filterInventories,
   visible: visibleRequests, sortKey, direction, toggleSort, selectSort,
 } = useExchangeTable(() => requests.value)
 
@@ -196,7 +196,7 @@ watch(loaded, (isLoaded) => {
   >
     <div class="space-y-6">
       <ExchangeControls
-        v-model:search="search" v-model:inventory-id="filterInventoryId" v-model:status="filterStatus"
+        v-model:search="search" v-model:inventory-ids="filterInventoryIds" v-model:statuses="filterStatuses"
         :export-mode="exportMode" :exporting="exporting" :selected-count="selectedForExport.size"
         :can-export="canManageExchanges() && visibleRequests.length > 0"
         :show-filters="requests.length > 0" :inventories="filterInventories"
