@@ -94,6 +94,7 @@
 - **Whoever runs the station was never told a find had been claimed.** The notice went only to members with that one right written beside their name, so a station administrator, who may do everything in the lost and found, never received one. A wider right that carries the narrower one now counts, wherever a notice goes to the people who look after something.
 - **A find belonging to another station could be reached through its number.** Claiming one and giving one a picture did not check whose station it was, unlike opening or deleting it. Both now answer `404` for an item that is not the station's own.
 - **A card stayed empty where a picture could not be shown.** An entry whose picture failed to load left a blank space rather than the placeholder an entry without a picture gets. It now shows a placeholder saying the picture is unavailable.
+- **Two lines of small print could arrive as one run-on sentence.** In the dialog that loads the shipped legal sections and in the help article about importing a question catalogue, a short line and the one meant to follow it were printed with nothing at all between them, not even a space. Each now stands on a line of its own.
 
 ## v26.13.10
 

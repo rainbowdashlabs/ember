@@ -109,8 +109,8 @@ const {show: showDeleteModal, target: deleteTarget, requestDelete, confirm: conf
         {{ t('clusterInventory.tags.add') }}
       </SecondaryButton>
     </div>
-    <MutedText size="sm">{{ t('clusterInventory.tags.intro') }}</MutedText>
-    <MutedText size="sm">{{ t('clusterInventory.tags.standsBeside') }}</MutedText>
+    <MutedText tag="p" size="sm">{{ t('clusterInventory.tags.intro') }}</MutedText>
+    <MutedText tag="p" size="sm">{{ t('clusterInventory.tags.standsBeside') }}</MutedText>
 
     <Spinner v-if="loading" size="sm"/>
     <Alert v-if="error" variant="error">{{ error }}</Alert>
