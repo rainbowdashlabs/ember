@@ -119,8 +119,7 @@ async function ownTask(member: Page, taskId: number): Promise<{required: Require
 
 /**
  * A kind of gear that comes in sizes, holds one thing in many copies, and the member holds a piece
- * of. Both stories below need exactly that: one to take the piece away and leave a place the member
- * can say they are holding something for, the other to raise a swap on the piece itself.
+ * of. This is only used to make a gap: what the stories then act on they find on the screen.
  */
 function sizedKindTheMemberHolds(task: {required: Required[]; assigned: Assigned[]}): {req: Required; piece: Assigned} {
     for (const req of task.required) {
@@ -133,6 +132,32 @@ function sizedKindTheMemberHolds(task: {required: Required[]; assigned: Assigned
         if (piece) return {req, piece}
     }
     throw new Error('the station keeps no gear in sizes that a member holds a piece of')
+}
+
+/**
+ * The entry on the screen that offers a given control, named by the key the page hangs it on.
+ *
+ * <p>Found in the page rather than worked out from the records first. What a member holds is the
+ * whole station's business, and a story running beside this one may hand a piece out or take one
+ * back between reading the records and clicking: asking the very screen that is about to be clicked
+ * leaves no window between the two at all.
+ *
+ * @param prefix the test id up to the entry's own key, ending in a hyphen
+ */
+async function entryOffering(member: Page, prefix: string): Promise<string> {
+    const offered = member.locator(`[data-testid^="${prefix}"]`).first()
+    await expect(offered, `the screen offers ${prefix} on something`).toBeVisible()
+    return (await offered.getAttribute('data-testid'))!.slice(prefix.length)
+}
+
+/** The piece an entry key names, for a key of the form {@code piece-<id>}. */
+function pieceOf(key: string): number {
+    return Number(key)
+}
+
+/** The inventory an empty place belongs to, for a key of the form {@code place-<inventory>-<slot>}. */
+function inventoryOf(placeKey: string): number {
+    return Number(placeKey.split('-')[0])
 }
 
 /** The task as the review endpoint reads it, which is where the settlement of each answer stands. */
@@ -256,29 +281,34 @@ test.describe('Self-check', () => {
         const {page: memberPage, memberId, taskId} = await askSomebody(browser, request, managerPage)
         const headers = await apiHeaders(managerPage)
 
-        const {req, piece} = sizedKindTheMemberHolds(await ownTask(memberPage, taskId))
+        const {piece} = sizedKindTheMemberHolds(await ownTask(memberPage, taskId))
         const emptied = await managerPage.request.put(`/api/v1/inventory-items/${piece.id}/assign`, {
             headers,
             data: {memberId: null},
         })
         expect(emptied.ok(), `the checker takes the piece back off the record (${await emptied.text()})`).toBeTruthy()
 
-        const wanted = req.sizes[0]!
-        const placeKey = `place-${req.inventoryId}-0`
-
         await memberPage.goto(`/station/inventory/self-check/${taskId}`)
         await expect(memberPage.getByTestId('app-shell')).toBeVisible()
         await answerEverything(memberPage)
-        await memberPage.getByTestId(`self-check-answer-${placeKey}-HAVE_ONE`).click()
-        await memberPage.getByTestId(`self-check-size-${placeKey}`).selectOption(String(wanted.id))
+
+        const places = memberPage.locator('[data-testid^="self-check-answer-place-"][data-testid$="-HAVE_ONE"]')
+        const openPlaces = await places.count()
+        expect(openPlaces, 'the member has a place they can be holding something for').toBeGreaterThan(0)
+        for (let index = 0; index < openPlaces; index++) await places.nth(index).click()
+
+        const placeKey = await entryOffering(memberPage, 'self-check-size-place-')
+        const inventoryId = inventoryOf(placeKey)
+        const wanted = (await ownTask(memberPage, taskId)).required.find(req => req.inventoryId === inventoryId)!
+            .sizes[0]!
+
+        await memberPage.getByTestId(`self-check-size-place-${placeKey}`).selectOption(String(wanted.id))
         await memberPage.getByTestId('self-check-submit').click()
         await expect(memberPage.getByTestId('self-check-submitted')).toBeVisible()
 
         const submitted = await review(managerPage, taskId)
-        const held = submitted.rows.find((entry: {row: {inventoryId: number; slot: number | null}}) =>
-            entry.row.inventoryId === req.inventoryId && entry.row.slot === 0)
+        const held = submitted.rows.find((entry: {row: {sizeId: number | null}}) => entry.row.sizeId === wanted.id)
         expect(held, 'the submission carries the answer about the empty place').toBeTruthy()
-        expect(held.row.sizeId, 'and the size the member gave').toBe(wanted.id)
         expect(held.statedSize, 'spelled the way the inventory spells it').toBe(wanted.label)
 
         await managerPage.goto(`/station/inventory/checks/self/${taskId}`)
@@ -305,22 +335,28 @@ test.describe('Self-check', () => {
      */
     test('a size the record got wrong is put right from the piece itself', async ({browser, request, managerPage}) => {
         const {page: memberPage, memberId, taskId} = await askSomebody(browser, request, managerPage)
-        const {req, piece} = sizedKindTheMemberHolds(await ownTask(memberPage, taskId))
-        const actual = req.sizes.find(size => size.id !== piece.sizeId)
-        expect(actual, 'the gear comes in more than one size').toBeTruthy()
 
         await memberPage.goto(`/station/inventory/self-check/${taskId}`)
         await expect(memberPage.getByTestId('app-shell')).toBeVisible()
         await answerEverything(memberPage)
-        await memberPage.getByTestId(`self-check-actual-size-piece-${piece.id}`).selectOption(String(actual!.id))
-        await expect(memberPage.getByTestId(`self-check-answer-piece-${piece.id}-WRONG_RECORD`)).toHaveClass(
+
+        const pieceId = pieceOf(await entryOffering(memberPage, 'self-check-actual-size-piece-'))
+        const task = await ownTask(memberPage, taskId)
+        const piece = task.assigned.find(item => item.id === pieceId)!
+        const actual = task.required
+            .find(req => req.inventoryId === piece.inventoryId)!
+            .sizes.find(size => size.id !== piece.sizeId)
+        expect(actual, 'the gear comes in more than one size').toBeTruthy()
+
+        await memberPage.getByTestId(`self-check-actual-size-piece-${pieceId}`).selectOption(String(actual!.id))
+        await expect(memberPage.getByTestId(`self-check-answer-piece-${pieceId}-WRONG_RECORD`)).toHaveClass(
             /ring-primary/,
         )
         await memberPage.getByTestId('self-check-submit').click()
         await expect(memberPage.getByTestId('self-check-submitted')).toBeVisible()
 
         const submitted = await review(managerPage, taskId)
-        const wrong = submitted.rows.find((entry: {row: {itemId: number | null}}) => entry.row.itemId === piece.id)
+        const wrong = submitted.rows.find((entry: {row: {itemId: number | null}}) => entry.row.itemId === pieceId)
         expect(wrong.row.answer, 'changing the size says the record is wrong').toBe('WRONG_RECORD')
         expect(wrong.statedSize, 'and carries the size the member actually holds').toBe(actual!.label)
 
@@ -338,7 +374,7 @@ test.describe('Self-check', () => {
         const put = settled.rows.find((entry: {row: {id: number}}) => entry.row.id === wrong.row.id)
         expect(put.item.sizeId, 'the record now says the size the member gave').toBe(actual!.id)
         expect(put.item.assignedTo, 'against the member it was about').toBe(memberId)
-        expect(put.row.itemId, 'which is no longer the piece the record had wrong').not.toBe(piece.id)
+        expect(put.row.itemId, 'which is no longer the piece the record had wrong').not.toBe(pieceId)
         await memberPage.context().close()
     })
 
@@ -348,29 +384,32 @@ test.describe('Self-check', () => {
      */
     test('a broken piece raises a swap that says so and keeps its size', async ({browser, request, managerPage}) => {
         const {page: memberPage, taskId} = await askSomebody(browser, request, managerPage)
-        const {piece} = sizedKindTheMemberHolds(await ownTask(memberPage, taskId))
 
         await memberPage.goto(`/station/inventory/self-check/${taskId}`)
         await expect(memberPage.getByTestId('app-shell')).toBeVisible()
-        await memberPage.getByTestId(`self-check-broken-piece-${piece.id}`).click()
+
+        const pieceId = pieceOf(await entryOffering(memberPage, 'self-check-broken-piece-'))
+        const sizeId = (await ownTask(memberPage, taskId)).assigned.find(item => item.id === pieceId)!.sizeId
+        expect(sizeId, 'the piece is one the record gives a size').toBeTruthy()
+
+        await memberPage.getByTestId(`self-check-broken-piece-${pieceId}`).click()
         await expect(memberPage.getByTestId('exchange-cause')).toContainText('kaputt')
-        await expect(memberPage.getByTestId('exchange-new-size')).toHaveValue(String(piece.sizeId))
+        await expect(memberPage.getByTestId('exchange-new-size')).toHaveValue(String(sizeId))
         await memberPage.getByTestId('exchange-submit').click()
-        await expect(memberPage.getByTestId(`self-check-broken-piece-${piece.id}`)).toBeDisabled()
+        await expect(memberPage.getByTestId(`self-check-broken-piece-${pieceId}`)).toBeDisabled()
 
         const raised = (await ownTask(memberPage, taskId)) as unknown as {raised: {kind: string; itemId: number}[]}
         expect(
-            raised.raised.some(entry => entry.kind === 'EXCHANGE' && entry.itemId === piece.id),
+            raised.raised.some(entry => entry.kind === 'EXCHANGE' && entry.itemId === pieceId),
             'the task records that a swap was set going here',
         ).toBeTruthy()
 
         const exchanges = await managerPage.request.get('/api/v1/exchanges', {headers: await apiHeaders(managerPage)})
         expect(exchanges.ok(), `the station reads its swaps (${await exchanges.text()})`).toBeTruthy()
-        const swap = (await exchanges.json()).find(
-            (entry: {itemId: number | null}) => entry.itemId === piece.id)
+        const swap = (await exchanges.json()).find((entry: {itemId: number | null}) => entry.itemId === pieceId)
         expect(swap, 'the swap reached the station').toBeTruthy()
         expect(swap.reason, 'and says why it arose').toContain('kaputt')
-        expect(swap.newSizeId, 'the same size comes back').toBe(piece.sizeId)
+        expect(swap.newSizeId, 'the same size comes back').toBe(sizeId)
         await memberPage.context().close()
     })
 
