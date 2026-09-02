@@ -27,6 +27,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   setStatus: [entryId: number, status: AttendanceStatus]
+  enter: [memberId: number, status: AttendanceStatus]
   checkIn: [entryId: number, time: string]
   checkOut: [entryId: number, time: string]
   resetTimes: [entryId: number]
@@ -87,6 +88,7 @@ function getEntry(memberId: number): AttendanceEntry | undefined {
           :session-end="sessionEnd"
           :session-start="sessionStart"
           @set-status="(entryId, status) => emit('setStatus', entryId, status)"
+          @enter="(memberId, status) => emit('enter', memberId, status)"
           @check-in="(entryId, time) => emit('checkIn', entryId, time)"
           @check-out="(entryId, time) => emit('checkOut', entryId, time)"
           @reset-times="(entryId) => emit('resetTimes', entryId)"

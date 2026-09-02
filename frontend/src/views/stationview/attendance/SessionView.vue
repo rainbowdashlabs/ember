@@ -32,7 +32,15 @@ const route = useRoute()
 const router = useRouter()
 const {loaded, hasPermission} = useSession()
 
-const canEdit = computed(() => hasPermission(StationPermission.ATTENDANCE_EDIT))
+const canManage = computed(() => hasPermission(StationPermission.ATTENDANCE_MANAGER))
+
+/**
+ * Whether the sheet is closed. Decided by the backend, which owns the span and the two moments that
+ * can override it, so the rule is not written down a second time here where it could drift.
+ */
+const locked = ref(false)
+
+const canEdit = computed(() => hasPermission(StationPermission.ATTENDANCE_EDIT) && !locked.value)
 
 const sessionId = computed(() => Number(route.params.id))
 
@@ -159,6 +167,7 @@ async function loadData() {
     session.value = detail.session ?? null
     sessionFields.value = detail.fields ?? []
     entries.value = detail.entries ?? []
+    locked.value = detail.locked ?? false
     allMembers.value = members
     groups.value = allGroups
 
@@ -269,6 +278,26 @@ async function syncFromEvent() {
   }
 }
 
+async function unlockSession() {
+  error.value = ''
+  try {
+    await attendance.unlockSession(sessionId.value)
+    await loadData()
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
+async function lockSession() {
+  error.value = ''
+  try {
+    await attendance.lockSession(sessionId.value)
+    await loadData()
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
 async function exportPdf() {
   error.value = ''
   try {
@@ -319,6 +348,8 @@ watch(loaded, (isLoaded) => {
         :error="error"
         :session="session"
         :can-edit="canEdit"
+        :locked="locked"
+        :can-manage="canManage"
         :check-mode="checkMode"
         :check-index="checkIndex"
         :open-rows="openRows"
@@ -345,6 +376,9 @@ watch(loaded, (isLoaded) => {
         @field-update="onFieldUpdate"
         @field-member-ids="setFieldMemberIds"
         @set-status="setStatus"
+        @enter="(memberId, status) => markRow({memberId, entryId: null}, status)"
+        @unlock="unlockSession"
+        @lock="lockSession"
         @check-in="setCheckIn"
         @check-out="setCheckOut"
         @reset-times="resetEntryTimes"

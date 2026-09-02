@@ -2010,6 +2010,16 @@ volumes:
                 + 'Durchlaufen werden alle offenen Namen, auch die, zu denen noch nichts eingetragen ist; der Eintrag entsteht erst, wenn du den Status setzt.',
             expectedTitle: 'Wer auf der Liste steht',
             expectedText: 'Erwartet wird, wer in einer Gruppe der Anwesenheitsvorlage steht. Wen der Termin ansprechen darf, spielt dafür keine Rolle: Zu- und Absagen zum Termin bestimmen nur, was neben einem Namen steht, nicht wer auf der Liste erscheint.',
+            missingEntryTitle: 'Namen ohne Eintrag',
+            missingEntryText: 'Wer erst nach dem Anlegen des Bogens in eine Gruppe der Vorlage gekommen ist, steht auf der Liste, hat aber noch keine Zeile. '
+                + 'Die Statusknöpfe stehen trotzdem an der Zeile: Beim ersten Druck entsteht der Eintrag und bekommt sofort den gewählten Status.',
+            beforeJoiningText: 'Liegt das Beitrittsdatum eines Mitglieds nach dem Abend, steht dort statt der Knöpfe "Noch nicht beigetreten". '
+                + 'Diese Person war an dem Abend noch nicht dabei und kann deshalb auch nicht nachgetragen werden. Ist kein Beitrittsdatum hinterlegt, gilt keine Einschränkung.',
+            frozenTitle: 'Abgeschlossene Anwesenheiten',
+            frozenText: 'Ein Bogen lässt sich nur eine begrenzte Zeit nach seinem Abend bearbeiten, standardmäßig sieben Tage. '
+                + 'Danach ist er abgeschlossen: Status, Zeiten, Felder und neue Namen sind gesperrt, Lesen und Exportieren bleiben möglich.',
+            frozenManagerText: 'Wer Anwesenheiten verwaltet, kann einen abgeschlossenen Bogen über "Wieder öffnen" erneut für dieselbe Zeitspanne freigeben oder ihn über das Aktionen-Menü vorzeitig abschließen. '
+                + 'Wie lange die Frist läuft, legt der Betreiber der Instanz fest.',
             addMemberTitle: 'Mitglieder hinzufügen',
             addMemberText: 'Wenn jemand unerwartet erscheint, kannst du über Mitglied hinzufügen zusätzliche Personen zur Sitzung hinzufügen.',
             syncExportTitle: 'Synchronisieren & Export',

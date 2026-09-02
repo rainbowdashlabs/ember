@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
+import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.AttendanceRecorded;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -65,7 +66,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 eventRegistrationRepo,
                 stationMemberRepo,
                 memberGroupRepo,
-                eventBus);
+                eventBus,
+                new Attendance());
         station = stationRepo.create("AttendanceSvc Station");
         account = accountRepo.create("attend-svc@test.com", "Attend", "User");
         member = stationMemberRepo.create(station.id(), account.id());

@@ -17,6 +17,8 @@ const props = defineProps<{
   checkMode: boolean
   uncheckedCount: number
   readonly?: boolean
+  locked?: boolean
+  canManage?: boolean
 }>()
 
 defineEmits<{
@@ -25,6 +27,8 @@ defineEmits<{
   sync: []
   startCheckMode: []
   remove: []
+  unlock: []
+  lock: []
 }>()
 
 /**
@@ -44,7 +48,20 @@ const canCheck = computed(() => !props.checkMode && props.uncheckedCount > 0)
     <SecondaryButton :icon="['fas', 'chevron-left']" @click="$emit('back')">
       {{ t('attendanceSession.back') }}
     </SecondaryButton>
-    <div v-if="!readonly" class="flex items-center gap-2">
+    <div v-if="locked" class="flex items-center gap-2">
+      <PrimaryButton :icon="['fas', 'download']" @click="$emit('export')">
+        {{ t('attendanceSession.export') }}
+      </PrimaryButton>
+      <SecondaryButton
+          v-if="canManage"
+          :icon="['fas', 'lock-open']"
+          data-testid="unlock-session"
+          @click="$emit('unlock')"
+      >
+        {{ t('attendanceSession.reopen') }}
+      </SecondaryButton>
+    </div>
+    <div v-else-if="!readonly" class="flex items-center gap-2">
       <PrimaryButton v-if="canCheck" :icon="['fas', 'clipboard-user']" @click="$emit('startCheckMode')">
         {{ t('attendanceSession.checkMode') }} ({{ uncheckedCount }})
       </PrimaryButton>
@@ -57,6 +74,9 @@ const canCheck = computed(() => !props.checkMode && props.uncheckedCount > 0)
         </DropdownMenuItem>
         <DropdownMenuItem :icon="['fas', 'clipboard-check']" @click="$emit('sync')">
           {{ t('attendanceSession.sync') }}
+        </DropdownMenuItem>
+        <DropdownMenuItem v-if="canManage" :icon="['fas', 'lock']" data-testid="lock-session" @click="$emit('lock')">
+          {{ t('attendanceSession.close') }}
         </DropdownMenuItem>
         <DropdownMenuItem :icon="['fas', 'trash']" data-testid="delete-session" destructive
                           @click="$emit('remove')">

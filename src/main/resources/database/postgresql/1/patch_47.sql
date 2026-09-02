@@ -941,3 +941,24 @@ CREATE UNIQUE INDEX kb_folder_name_unique
 
 COMMENT ON INDEX ember_schema.kb_folder_name_unique IS
     'One folder of a given name beside its siblings, counting only the folders still in use. A folder in the trash keeps its name but stops reserving it, so clearing up and starting again does not run into a collision with something invisible.';
+
+-- An attendance sheet stops being editable once its evening is old.
+--
+-- A sheet anybody may still change months afterwards is not a record of the evening, it is a
+-- document with no settled state, and the report that counts trial evenings reads it as though it
+-- were settled. Age alone decides the ordinary case, so nothing has to be written down for the
+-- common one: a sheet older than the configured span is closed, and nothing about it is stored.
+--
+-- What has to be stored is the two departures from that. A manager who reopens a sheet grants it a
+-- fresh span, and that grant has an end, which is what stops a reopened sheet staying open forever.
+-- A manager who closes one on purpose does so regardless of its age, and that has to outrank both
+-- the age and any grant still running, or closing a sheet somebody just reopened would do nothing.
+
+ALTER TABLE ember_schema.attendance_session
+    ADD COLUMN unlocked_until TIMESTAMPTZ,
+    ADD COLUMN locked_at      TIMESTAMPTZ;
+
+COMMENT ON COLUMN ember_schema.attendance_session.unlocked_until IS
+    'When a manager''s reopening of this sheet runs out, NULL where nobody has reopened it and its age alone decides. A moment in the past reads the same as NULL, so an expired grant needs no clearing up.';
+COMMENT ON COLUMN ember_schema.attendance_session.locked_at IS
+    'When somebody closed this sheet on purpose, NULL where nothing was closed by hand. Set, it outranks both the age and any reopening still running, because closing a sheet that was just reopened has to mean something.';

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {
@@ -26,6 +27,8 @@ interface MemberSection {
   members: StationMember[]
 }
 
+const {t} = useI18n()
+
 const selectedMemberId = defineModel<string>('selectedMemberId', {required: true})
 
 defineProps<{
@@ -33,6 +36,8 @@ defineProps<{
   error: string
   session: AttendanceSession | null
   canEdit: boolean
+  locked: boolean
+  canManage: boolean
   checkMode: boolean
   checkIndex: number
   openRows: CheckRow[]
@@ -62,6 +67,9 @@ const emit = defineEmits<{
   fieldUpdate: [fieldId: number, value: string, immediate: boolean]
   fieldMemberIds: [fieldId: number, memberIds: string[]]
   setStatus: [entryId: number, status: AttendanceStatus]
+  enter: [memberId: number, status: AttendanceStatus]
+  unlock: []
+  lock: []
   checkIn: [entryId: number, time: string]
   checkOut: [entryId: number, time: string]
   resetTimes: [entryId: number]
@@ -75,6 +83,10 @@ const emit = defineEmits<{
         :check-mode="checkMode"
         :unchecked-count="openRows.length"
         :readonly="!canEdit"
+        :locked="locked"
+        :can-manage="canManage"
+        @unlock="emit('unlock')"
+        @lock="emit('lock')"
         @back="emit('back')"
         @export="emit('export')"
         @sync="emit('sync')"
@@ -83,6 +95,9 @@ const emit = defineEmits<{
     />
 
     <Spinner v-if="loading" size="lg"/>
+    <Alert v-if="locked" variant="info">
+      {{ canManage ? t('attendanceSession.frozenForManager') : t('attendanceSession.frozen') }}
+    </Alert>
     <Alert v-if="error" variant="error">{{ error }}</Alert>
 
     <template v-if="!loading && session">
@@ -128,6 +143,7 @@ const emit = defineEmits<{
             :session-end="session.endTime"
             :session-start="session.startTime"
             @set-status="(entryId, status) => emit('setStatus', entryId, status)"
+            @enter="(memberId, status) => emit('enter', memberId, status)"
             @check-in="(entryId, time) => emit('checkIn', entryId, time)"
             @check-out="(entryId, time) => emit('checkOut', entryId, time)"
             @reset-times="emit('resetTimes', $event)"

@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:c9d8f06643e8e3b8bdc2c9325338c68dc3324b606857095511051a2912da56ee",
-  "generatedAt" : "2026-08-31T17:44:01Z",
+  "schemaHash" : "sha256:a7aa96ddfdbc570ddb84ae452ce3d24f8fc794656bafb3460b0df35eb5a432ab",
+  "generatedAt" : "2026-09-02T17:59:54Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -1073,7 +1073,7 @@
     "attendance_session" : {
       "feature" : "attendance",
       "scope" : "STATION",
-      "tableHash" : "sha256:854754b1d53f8581afbd86cc663dec6805fa7ad9f05c6cdfcb517155dd3d650a",
+      "tableHash" : "sha256:f6363d16ee163327fde6682a1244c0d9dacad2c9117906b52853cc2c4d01930d",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -1116,6 +1116,18 @@
         "nullable" : true,
         "verified" : true,
         "description" : "Optional title override for this session."
+      }, {
+        "name" : "unlocked_until",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When a manager's reopening of this sheet runs out, NULL where nobody has reopened it and its age alone decides. A moment in the past reads the same as NULL, so an expired grant needs no clearing up."
+      }, {
+        "name" : "locked_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When somebody closed this sheet on purpose, NULL where nothing was closed by hand. Set, it outranks both the age and any reopening still running, because closing a sheet that was just reopened has to mean something."
       } ],
       "foreignKeys" : [ {
         "column" : "event_id",
@@ -5009,7 +5021,7 @@
         "type" : "date",
         "nullable" : false,
         "verified" : true,
-        "description" : "The evening the piece went out for."
+        "description" : "The evening the piece went out for, which is what pairs a handover with one occurrence of a series."
       }, {
         "name" : "item_id",
         "type" : "int4",
@@ -5021,13 +5033,13 @@
         "type" : "timestamptz",
         "nullable" : false,
         "verified" : true,
-        "description" : "When the piece left: the evening's start less the line's lead."
+        "description" : "When the piece left, taken from the evening and the line's lead rather than from the clock, so the window a firm claim holds is the same window the loose one held."
       }, {
         "name" : "claim_to",
         "type" : "timestamptz",
         "nullable" : false,
         "verified" : true,
-        "description" : "When the piece is due back: the evening's end plus the line's trail."
+        "description" : "When the piece is due back, the evening's end plus the line's trail."
       }, {
         "name" : "handed_by",
         "type" : "int4",
@@ -5045,7 +5057,7 @@
         "type" : "timestamptz",
         "nullable" : true,
         "verified" : true,
-        "description" : "When the piece came back, null while it is still out."
+        "description" : "When the piece came back, null while it is still out. A returned piece claims nothing, whatever its window still says."
       } ],
       "foreignKeys" : [ {
         "column" : "handed_by",
@@ -5076,15 +5088,15 @@
       "gdprExport" : {
         "status" : "TRACKED",
         "identityColumns" : [ {
-            "type" : "MEMBER_ID",
-            "column" : "handed_by"
-          } ]
+          "type" : "MEMBER_ID",
+          "column" : "handed_by"
+        } ]
       },
       "gdprDeletion" : {
         "status" : "IGNORED",
         "reason" : "Equipment record kept as the station's own log, not personal data"
       },
-      "description" : "A piece that actually went out for one evening of an appointment, and the window it is away for."
+      "description" : "A piece that actually went out for one evening of an appointment. The only claim on stock that is a row: everything still merely planned is derived from the recurrence rule when somebody asks."
     },
     "event_equipment_need" : {
       "feature" : "events",
@@ -5107,7 +5119,7 @@
         "type" : "date",
         "nullable" : true,
         "verified" : true,
-        "description" : "Null where the line holds for every evening the series produces. Set where one single evening says something of its own."
+        "description" : "Null where the line holds for every evening the series produces, which is the ordinary case. Set where one single evening says something of its own: a line for that date alone is added to the standing list, and where it names the same thing as a standing line it takes its place for that evening. The one Dienst a year that also needs the trailer is written this way, without touching the series."
       }, {
         "name" : "item_id",
         "type" : "int4",
@@ -5119,31 +5131,31 @@
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
-        "description" : "The kind of thing a counted line asks for. Exactly one of item_id/art_id/inventory_id is set."
+        "description" : "The kind of thing a counted line asks for, which is how a line says four blue radios rather than four of whatever is in the drawer. Exactly one of item_id/art_id/inventory_id is set."
       }, {
         "name" : "inventory_id",
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
-        "description" : "The inventory a counted line draws from. Exactly one of item_id/art_id/inventory_id is set."
+        "description" : "The inventory a counted line draws from, for the inventories that hold one thing in many copies and therefore carry no kinds. Exactly one of item_id/art_id/inventory_id is set."
       }, {
         "name" : "quantity",
         "type" : "int4",
         "nullable" : false,
         "verified" : true,
-        "description" : "How many pieces the line asks for. Always 1 on a named-piece line."
+        "description" : "How many pieces the line asks for. Always 1 on a named-piece line, because a named piece is one piece."
       }, {
         "name" : "lead_minutes",
         "type" : "int4",
         "nullable" : false,
         "verified" : true,
-        "description" : "How long before the appointment begins the gear is already gone from the shelf."
+        "description" : "How long before the appointment begins the gear is already gone from the shelf. The radios are fetched the evening before, so the period the equipment is away is not the period the appointment lasts, and a request asking only for the Saturday would leave the owner finding an empty shelf on the Friday. A day is the default because a day either way is the ordinary case."
       }, {
         "name" : "trail_minutes",
         "type" : "int4",
         "nullable" : false,
         "verified" : true,
-        "description" : "How long after the appointment ends the gear is still away."
+        "description" : "How long after the appointment ends the gear is still away, counted the same way as the lead. Both belong to the need rather than to a lending request, so a station's own reservation and a borrowing request cannot disagree about when the shelf is empty."
       }, {
         "name" : "position",
         "type" : "int4",
@@ -5190,7 +5202,7 @@
         "status" : "IGNORED",
         "reason" : "Appointment planning data, not per-member"
       },
-      "description" : "One line of what an appointment needs: a named piece, a count of one kind of thing, or a count out of a whole inventory."
+      "description" : "One line of what an appointment needs: a named piece, a count of one kind of thing, or a count out of a whole inventory. Exactly one of the three, which is the line shape a lending request already carries."
     },
     "event_federation_registration" : {
       "feature" : "events",
@@ -7340,7 +7352,7 @@
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
-        "description" : "The appointment the request was collected for, at the requesting station, or null. Never sent to the owning station."
+        "description" : "The appointment the request was collected for, at the requesting station, or null where somebody is borrowing a trailer for a house move. Never sent to the owning station."
       }, {
         "name" : "event_date",
         "type" : "date",
@@ -7352,7 +7364,7 @@
         "type" : "text",
         "nullable" : false,
         "verified" : true,
-        "description" : "What the request is for, in words, as the owning station reads it. A copy of the appointment's name taken when the request was sent."
+        "description" : "What the request is for, in words, as the owning station reads it. A copy of the appointment's name taken when the request was sent, so nothing else about the appointment ever travels and a later rename does not rewrite what was asked for. Empty where the request names no occasion."
       } ],
       "foreignKeys" : [ {
         "column" : "created_by",
@@ -7433,16 +7445,11 @@
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
-        "description" : "The line of an appointment's needs this request was sent to fill, at the requesting station, or null."
+        "description" : "The line of an appointment's needs this request was sent to fill, at the requesting station, or null where the request answers no need. What comes back on it counts towards that need like the station's own gear does."
       } ],
       "foreignKeys" : [ {
         "column" : "art_id",
         "refTable" : "inventory_art",
-        "refColumn" : "id",
-        "onDelete" : "SET NULL"
-      }, {
-        "column" : "need_id",
-        "refTable" : "event_equipment_need",
         "refColumn" : "id",
         "onDelete" : "SET NULL"
       }, {
@@ -7455,6 +7462,11 @@
         "refTable" : "inventory_item",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
+      }, {
+        "column" : "need_id",
+        "refTable" : "event_equipment_need",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
       }, {
         "column" : "request_id",
         "refTable" : "federation_lending_request",
@@ -7480,6 +7492,60 @@
         "reason" : "Federation metadata, no personal data"
       },
       "description" : "Individual items requested in a lending request."
+    },
+    "federation_lending_request_item_assignment" : {
+      "feature" : "federation",
+      "scope" : "STATION",
+      "tableHash" : "sha256:afa936abaa031d95f89702ec99ed5ef4e8b4c1b476b459b4040278870ef16553",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "request_item_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The line the piece is set aside for."
+      }, {
+        "name" : "item_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The piece, always one belonging to the owning station."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "item_id",
+        "refTable" : "inventory_item",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "request_item_id",
+        "refTable" : "federation_lending_request_item",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "customScope" : {
+        "viaTable" : "federation_lending_request_item",
+        "viaColumn" : "id",
+        "refColumn" : "request_item_id",
+        "distinct" : false
+      },
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "rationale" : "The assignments inherit the request line's scope so a request moves whole."
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Federation metadata, no personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Federation metadata, no personal data"
+      },
+      "description" : "Which pieces are set aside for one line of a lending request. A table rather than a column, because a line asking for four blue radios is answered with four of them."
     },
     "federation_member_name_cache" : {
       "feature" : "federation",
@@ -7602,60 +7668,6 @@
         "reason" : "Federation metadata, no personal data"
       },
       "description" : "Cached metadata for federated content (for browsing when remote is offline)."
-    },
-    "federation_lending_request_item_assignment" : {
-      "feature" : "federation",
-      "scope" : "STATION",
-      "tableHash" : "sha256:afa936abaa031d95f89702ec99ed5ef4e8b4c1b476b459b4040278870ef16553",
-      "columns" : [ {
-        "name" : "id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Auto-generated primary key."
-      }, {
-        "name" : "request_item_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "The line the piece is set aside for."
-      }, {
-        "name" : "item_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "The piece, always one belonging to the owning station."
-      } ],
-      "foreignKeys" : [ {
-        "column" : "item_id",
-        "refTable" : "inventory_item",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      }, {
-        "column" : "request_item_id",
-        "refTable" : "federation_lending_request_item",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      } ],
-      "customScope" : {
-        "viaTable" : "federation_lending_request_item",
-        "viaColumn" : "id",
-        "refColumn" : "request_item_id",
-        "distinct" : false
-      },
-      "stationTransfer" : {
-        "status" : "TRACKED",
-        "rationale" : "The assignments inherit the request line's scope so a request moves whole."
-      },
-      "gdprExport" : {
-        "status" : "IGNORED",
-        "reason" : "Federation metadata, no personal data"
-      },
-      "gdprDeletion" : {
-        "status" : "IGNORED",
-        "reason" : "Federation metadata, no personal data"
-      },
-      "description" : "Which pieces are set aside for one line of a lending request."
     },
     "federation_partner" : {
       "feature" : "federation",
@@ -8817,7 +8829,7 @@
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
-        "description" : "Who reported what the check records, where that is somebody other than whoever signed it off. NULL on a check somebody walked themselves."
+        "description" : "Who reported what the check records, where that is somebody other than whoever signed it off. NULL on a check somebody walked themselves. Unlinked rather than cascaded when the member is removed, so the check survives them."
       } ],
       "foreignKeys" : [ {
         "column" : "checked_by",
@@ -9755,7 +9767,7 @@
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
-        "description" : "Who entered the submission, which is the member or one of their guardians."
+        "description" : "Who entered the submission, which is the member or one of their guardians. NULL once that person is no longer a member here."
       }, {
         "name" : "closed_at",
         "type" : "timestamptz",
@@ -9890,7 +9902,7 @@
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
-        "description" : "Who entered the answer, which is the member or one of their guardians."
+        "description" : "Who entered the answer, which is the member or one of their guardians. NULL once that person is no longer a member here."
       }, {
         "name" : "answered_at",
         "type" : "timestamptz",
@@ -9914,7 +9926,7 @@
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
-        "description" : "Who settled the row. NULL while it is outstanding."
+        "description" : "Who settled the row. NULL while it is outstanding, and NULL again once that person is no longer a member here."
       }, {
         "name" : "reviewed_at",
         "type" : "timestamptz",
@@ -9979,7 +9991,7 @@
           "reason" : "Answer kept, the reviewer unlinked"
         } ]
       },
-      "description" : "One thing a member said about one piece of their gear or one empty place in it, and what the reviewer made of it. The note is the member's own words about themselves."
+      "description" : "One thing a member said about one piece of their gear or one empty place in it, and what the reviewer made of it."
     },
     "inventory_self_check_raised" : {
       "feature" : "inventory",
@@ -10044,7 +10056,7 @@
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
-        "description" : "Who raised it, which is the member or one of their guardians."
+        "description" : "Who raised it, which is the member or one of their guardians. NULL once that person is no longer a member here."
       }, {
         "name" : "raised_at",
         "type" : "timestamptz",

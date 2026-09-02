@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.attendance.service;
 
+import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.AttendanceRecorded;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
@@ -26,6 +27,7 @@ import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -35,8 +37,10 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.ObjectReader;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -64,6 +68,7 @@ public class AttendanceService {
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final DomainEventBus eventBus;
+    private final Attendance attendanceConfig;
 
     @Inject
     public AttendanceService(
@@ -74,7 +79,8 @@ public class AttendanceService {
             EventRegistrationRepository eventRegistrationRepository,
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
-            DomainEventBus eventBus) {
+            DomainEventBus eventBus,
+            Attendance attendanceConfig) {
         this.attendanceRepository = attendanceRepository;
         this.eventRepository = eventRepository;
         this.eventFieldRepository = eventFieldRepository;
@@ -83,6 +89,7 @@ public class AttendanceService {
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.eventBus = eventBus;
+        this.attendanceConfig = attendanceConfig;
     }
 
     private static String toJsonValue(Object value) {
@@ -385,6 +392,7 @@ public class AttendanceService {
     private void enterExpectedMembers(int sessionId, Set<Integer> expected, Set<Integer> alreadyEntered) {
         for (int memberId : expected) {
             if (!alreadyEntered.add(memberId)) continue;
+            if (!hadJoinedBySession(sessionId, memberId)) continue;
             attendanceRepository.createEntry(
                     sessionId,
                     memberId,
@@ -416,6 +424,7 @@ public class AttendanceService {
     // -- Session Fields (batch) --
 
     public List<AttendanceSessionField> setSessionFields(int sessionId, List<AttendanceFieldValueEntry> fields) {
+        requireSessionOpen(sessionId);
         for (var field : fields) {
             attendanceRepository.setSessionField(sessionId, field.fieldId(), field.value());
         }
@@ -425,7 +434,92 @@ public class AttendanceService {
 
     // -- Entries --
 
+    /**
+     * Whether the member had joined the station by the evening the sheet is about.
+     *
+     * <p>A member entered afterwards was not there, so recording them would invent a presence and
+     * would count towards the trial evenings of somebody who had not started. A member with no join
+     * date carries no restriction: that is the state of every member entered before the field
+     * existed, and refusing them would empty the sheets of every station that has not filled it in.
+     *
+     * @param sessionId the sheet being written
+     * @param memberId  the member a row is wanted for
+     * @return true where the member may be recorded on this sheet
+     */
+    /**
+     * Whether the sheet is still open for writing, by its own state and the configured span.
+     *
+     * @param sessionId the sheet
+     * @return true where anything about it may still be written
+     */
+    public boolean isSessionOpen(int sessionId) {
+        return attendanceRepository
+                .findSessionById(sessionId)
+                .map(session -> session.isOpen(Instant.now(), attendanceConfig.freezeAfterDays()))
+                .orElse(true);
+    }
+
+    /**
+     * Refuses every write to a frozen sheet.
+     *
+     * <p>Guards all four ways of writing to one, because a sheet that refuses a status but takes a
+     * check-out time is not frozen, it is confusing: the late corrections are exactly the times.
+     *
+     * @param sessionId the sheet being written to
+     */
+    private void requireSessionOpen(int sessionId) {
+        if (!isSessionOpen(sessionId)) {
+            throw new BadRequestResponse("This attendance sheet is closed and has to be reopened first");
+        }
+    }
+
+    private void requireSessionOpenForEntry(int entryId) {
+        attendanceRepository.findEntryById(entryId).ifPresent(entry -> requireSessionOpen(entry.sessionId()));
+    }
+
+    /**
+     * Reopens a frozen sheet for another span of the configured length, and clears a deliberate
+     * closing so that reopening always means something.
+     *
+     * @param sessionId the sheet to reopen
+     * @return the sheet as it now stands
+     */
+    public Optional<AttendanceSession> unlockSession(int sessionId) {
+        attendanceRepository.unlockSession(
+                sessionId, Instant.now().plus(Duration.ofDays(attendanceConfig.freezeAfterDays())));
+        log.info("Reopened attendance session {} for {} days", sessionId, attendanceConfig.freezeAfterDays());
+        return attendanceRepository.findSessionById(sessionId);
+    }
+
+    /**
+     * Closes a sheet now, whatever its age and whatever reopening was running.
+     *
+     * @param sessionId the sheet to close
+     * @return the sheet as it now stands
+     */
+    public Optional<AttendanceSession> lockSession(int sessionId) {
+        attendanceRepository.lockSession(sessionId, Instant.now());
+        log.info("Closed attendance session {}", sessionId);
+        return attendanceRepository.findSessionById(sessionId);
+    }
+
+    private boolean hadJoinedBySession(int sessionId, int memberId) {
+        var joinDate = stationMemberRepository
+                .findById(memberId)
+                .map(StationMember::joinDate)
+                .orElse(null);
+        if (joinDate == null) return true;
+        return !joinDate.isAfter(attendanceRepository
+                .findSessionById(sessionId)
+                .map(session -> LocalDate.ofInstant(session.startTime(), ZoneOffset.UTC))
+                .orElse(LocalDate.MAX));
+    }
+
     public List<AttendanceEntry> createEntry(int sessionId, int memberId, AttendanceEntry.EntrySource source) {
+        requireSessionOpen(sessionId);
+        if (!hadJoinedBySession(sessionId, memberId)) {
+            throw new BadRequestResponse("The member had not joined the station on this date");
+        }
         AttendanceEntry.AttendanceStatus status;
         if (attendanceRepository.isAbsent(memberId)) {
             status = AttendanceEntry.AttendanceStatus.DECLINED;
@@ -451,6 +545,7 @@ public class AttendanceService {
      * not count the same evening twice.
      */
     public boolean updateEntryStatus(int entryId, AttendanceEntry.AttendanceStatus status) {
+        requireSessionOpenForEntry(entryId);
         var before = attendanceRepository.findEntryById(entryId).orElse(null);
         if (attendanceRepository.updateEntryStatus(entryId, status)) {
             log.info("Updated attendance entry {} status to {}", entryId, status);
@@ -474,6 +569,7 @@ public class AttendanceService {
     }
 
     public boolean resetTimes(int entryId) {
+        requireSessionOpenForEntry(entryId);
         if (attendanceRepository.resetTimes(entryId)) {
             log.info("Reset check-in/out times for attendance entry {}", entryId);
             return true;
@@ -596,6 +692,7 @@ public class AttendanceService {
     }
 
     public boolean checkIn(int entryId, Instant time) {
+        requireSessionOpenForEntry(entryId);
         if (attendanceRepository.checkIn(entryId, time)) {
             log.info("Checked in attendance entry {} at {}", entryId, time);
             return true;
@@ -605,6 +702,7 @@ public class AttendanceService {
     }
 
     public boolean checkOut(int entryId, Instant time) {
+        requireSessionOpenForEntry(entryId);
         if (attendanceRepository.checkOut(entryId, time)) {
             log.info("Checked out attendance entry {} at {}", entryId, time);
             return true;
