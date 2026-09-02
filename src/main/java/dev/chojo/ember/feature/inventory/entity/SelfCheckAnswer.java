@@ -29,6 +29,16 @@ public enum SelfCheckAnswer {
     TURNED_UP,
     /**
      * The record is wrong and the member knows what they actually hold. Raised, never performed.
+     *
+     * <p>Where the gear comes in sizes, the member may say which size that is, and the screen offers
+     * it as the size of the piece rather than behind this answer: somebody looking at a shirt
+     * recorded as 128 while holding a 134 changes the number, and that is what says the record is
+     * wrong. Choosing an answer first and then saying the thing they came to say is a detour past
+     * the only fact they have.
+     *
+     * <p>It does not narrow what this answer means. A member who holds an entirely different piece
+     * still gives it on its own, with no size and a note, and a size beside it is one thing that can
+     * be wrong about a record rather than the only one.
      */
     WRONG_RECORD,
     /**

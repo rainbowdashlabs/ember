@@ -111,7 +111,12 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
     }
 
     private static SelfCheckRow answer(SelfCheck task, InventoryItem item, SelfCheckAnswer given) {
-        return selfCheckRepo.answerForItem(task.id(), item.id(), item.inventoryId(), given, "", null, member.id());
+        return answer(task, item, given, null);
+    }
+
+    private static SelfCheckRow answer(SelfCheck task, InventoryItem item, SelfCheckAnswer given, Integer sizeId) {
+        return selfCheckRepo.answerForItem(
+                task.id(), item.id(), item.inventoryId(), given, "", null, sizeId, member.id());
     }
 
     @Test
@@ -276,6 +281,47 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void aSizeTheRecordGotWrongIsPutRightOnThePieceTheMemberHolds() {
+        inventoryRepo.createSize(sized.id(), "M", 2, "");
+        InventorySize wanted = inventoryRepo.findSizes(sized.id()).stream()
+                .filter(size -> "M".equals(size.label()))
+                .findFirst()
+                .orElseThrow();
+        InventoryItem shirt = inventoryRepo.createItem(sized.id(), "SCR-SHIRT", "Shirt", large.id(), null);
+        itemCustodyService.assignToMember(shirt.id(), member.id(), "");
+        SelfCheck task = submitted();
+        SelfCheckRow row = answer(task, shirt, SelfCheckAnswer.WRONG_RECORD, wanted.id());
+
+        var read = selfCheckReviewService.read(task.id(), station.id(), reviewer.id());
+        assertEquals(
+                "M",
+                read.rows().stream()
+                        .filter(entry -> entry.row().id() == row.id())
+                        .findFirst()
+                        .orElseThrow()
+                        .statedSize());
+
+        var review = selfCheckReviewService.correctAndTake(
+                task.id(),
+                row.id(),
+                station.id(),
+                reviewer.id(),
+                new ItemCorrection(sized.id(), null, null, null, null, "SCR-SHIRT-B", null));
+
+        Integer put = review.rows().stream()
+                .filter(entry -> entry.row().id() == row.id())
+                .findFirst()
+                .orElseThrow()
+                .row()
+                .itemId();
+        assertEquals(wanted.id(), inventoryRepo.findItemById(put).orElseThrow().sizeId());
+        assertEquals(member.id(), inventoryRepo.findItemById(put).orElseThrow().assignedTo());
+        assertNull(
+                inventoryRepo.findItemById(shirt.id()).orElseThrow().assignedTo(),
+                "the piece the record had wrong comes off the member");
+    }
+
+    @Test
     void aReviewerNamingASizeThemselvesOverridesTheOneTheMemberGave() {
         inventoryRepo.createSize(sized.id(), "S", 1, "");
         InventorySize small = inventoryRepo.findSizes(sized.id()).stream()
@@ -374,7 +420,14 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         selfCheckReviewService.refuse(task.id(), row.id(), station.id(), reviewer.id(), "look again");
 
         SelfCheckRow rewritten = selfCheckRepo.answerForItem(
-                task.id(), again.id(), again.inventoryId(), SelfCheckAnswer.HAVE_IT, "found it", null, member.id());
+                task.id(),
+                again.id(),
+                again.inventoryId(),
+                SelfCheckAnswer.HAVE_IT,
+                "found it",
+                null,
+                null,
+                member.id());
 
         assertEquals(SelfCheckRowState.OUTSTANDING, rewritten.state());
         assertEquals("", rewritten.reviewerReason());
@@ -423,7 +476,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         InventoryItem own = inventoryRepo.createItem(inventory.id(), "SCR-OWN", "Own", null, null);
         itemCustodyService.assignToMember(own.id(), reviewer.id(), "");
         SelfCheckRow row = selfCheckRepo.answerForItem(
-                ownTask.id(), own.id(), inventory.id(), SelfCheckAnswer.HAVE_IT, "", null, reviewer.id());
+                ownTask.id(), own.id(), inventory.id(), SelfCheckAnswer.HAVE_IT, "", null, null, reviewer.id());
 
         assertThrows(
                 ForbiddenResponse.class,
@@ -438,7 +491,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         InventoryItem ward = piece("SCR-WARD", "Ward helmet");
         SelfCheck task = submitted(guardian.id());
         SelfCheckRow row = selfCheckRepo.answerForItem(
-                task.id(), ward.id(), inventory.id(), SelfCheckAnswer.HAVE_IT, "", null, guardian.id());
+                task.id(), ward.id(), inventory.id(), SelfCheckAnswer.HAVE_IT, "", null, null, guardian.id());
 
         assertThrows(
                 ForbiddenResponse.class,
@@ -453,7 +506,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         InventoryItem shared = piece("SCR-WROTE", "Shared");
         SelfCheck task = submitted();
         SelfCheckRow row = selfCheckRepo.answerForItem(
-                task.id(), shared.id(), inventory.id(), SelfCheckAnswer.HAVE_IT, "", null, guardian.id());
+                task.id(), shared.id(), inventory.id(), SelfCheckAnswer.HAVE_IT, "", null, null, guardian.id());
 
         assertThrows(
                 ForbiddenResponse.class,

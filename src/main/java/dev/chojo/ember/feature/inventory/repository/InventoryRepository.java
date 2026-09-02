@@ -73,8 +73,15 @@ public class InventoryRepository {
                 .all();
     }
 
+    /**
+     * The inventories of a station with the figures the overview shows beside each.
+     *
+     * <p>What is counted is the stock, the same list the inventory itself opens on, so the number on
+     * the tile and the rows behind it cannot say different things.
+     */
     public List<InventorySummary> findSummariesByStation(int stationId) {
-        return query("""
+        return query(
+                        """
                 SELECT %s,
                        coalesce(counts.item_count, 0) AS item_count,
                        coalesce(counts.lost_count, 0) AS lost_count,
@@ -82,12 +89,13 @@ public class InventoryRepository {
                        coalesce(lent.lent_out_count, 0) AS lent_out_count
                 FROM inventory i
                 LEFT JOIN (
-                    SELECT inventory_id,
+                    SELECT ii.inventory_id,
                            count(*) AS item_count,
-                           count(*) FILTER (WHERE lost_at IS NOT NULL) AS lost_count
-                    FROM inventory_item
-                    WHERE custody <> 'IN_TRANSIT'
-                    GROUP BY inventory_id
+                           count(*) FILTER (WHERE ii.lost_at IS NOT NULL) AS lost_count
+                    FROM inventory_item ii
+                    %s
+                    WHERE %s
+                    GROUP BY ii.inventory_id
                 ) counts ON counts.inventory_id = i.id
                 LEFT JOIN (
                     SELECT inventory_id,
@@ -106,7 +114,10 @@ public class InventoryRepository {
                     GROUP BY li.inventory_id
                 ) lent ON lent.inventory_id = i.id
                 WHERE i.station_id = :station_id
-                ORDER BY i.name;""", SqlSupport.alias("i", INVENTORY_COLUMNS))
+                ORDER BY i.name;""",
+                        SqlSupport.alias("i", INVENTORY_COLUMNS),
+                        ItemCustodySql.joinInventory("ii", "iinv"),
+                        ItemCustodySql.stockOf("ii", "iinv"))
                 .single(call().bind("station_id", stationId))
                 .map(InventorySummary.map())
                 .all();
@@ -479,19 +490,26 @@ public class InventoryRepository {
     }
 
     /**
-     * The stock of an inventory: everything except what is in the post.
+     * The stock of an inventory: what the station actually holds of it.
      *
-     * <p>A piece on its way to its owner is at neither end. Counting it as stock says the station has
-     * something it cannot lay a hand on, and every figure drawn from the list inherits that. Where it
-     * is instead is the movement carrying it, which the overview lists.
+     * <p>A piece on its way to its owner is at neither end, and a piece its owner has taken back is
+     * at the other one. Counting either as stock says the station has something it cannot lay a hand
+     * on, and every figure drawn from the list inherits that. Where such a piece is instead is the
+     * movement carrying it, which the overview lists, and the association's own screens for what has
+     * gone home.
      *
      * @param inventoryId the inventory ID
      * @return the items that are actually here
      */
     public List<InventoryItem> findStock(int inventoryId) {
-        return query("""
-                SELECT %s FROM inventory_item
-                WHERE inventory_id = :inventory_id AND custody <> 'IN_TRANSIT';""", INVENTORY_ITEM_COLUMNS)
+        return query(
+                        """
+                SELECT %s FROM inventory_item ii
+                %s
+                WHERE ii.inventory_id = :inventory_id AND %s;""",
+                        SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS),
+                        ItemCustodySql.joinInventory("ii", "i"),
+                        ItemCustodySql.stockOf("ii", "i"))
                 .single(call().bind("inventory_id", inventoryId))
                 .map(InventoryItem.map())
                 .all();

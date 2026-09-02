@@ -168,7 +168,13 @@ export function useSelfCheck(task: Ref<SelfCheckResponse | null>) {
         if (!draft.answer) return null
         const note = draft.note.trim()
         if (entry.type === 'piece') {
-            return {itemId: entry.item.id, answer: draft.answer, note}
+            const putsTheRecordRight = draft.answer === SelfCheckAnswer.WRONG_RECORD
+            return {
+                itemId: entry.item.id,
+                answer: draft.answer,
+                note,
+                sizeId: putsTheRecordRight && draft.sizeId ? Number(draft.sizeId) : null,
+            }
         }
         const holdsOne = draft.answer === SelfCheckAnswer.HAVE_ONE
         return {

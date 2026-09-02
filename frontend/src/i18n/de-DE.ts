@@ -6436,6 +6436,7 @@ export default {
         notePlaceholder: 'Anmerkung (freiwillig)',
         identifierPlaceholder: 'Nummer auf dem Stück, falls vorhanden',
         sizeUnknown: 'Größe unbekannt',
+        actualSize: 'Tatsächliche Größe',
         reportLost: 'Finde ich nicht mehr',
         lossRaised: 'Als vermisst gemeldet',
         requestExchange: 'Passt nicht mehr',

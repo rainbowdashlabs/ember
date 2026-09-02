@@ -149,17 +149,25 @@ class SelfCheckRepositoryTest extends RepositoryTestBase {
     void anAnswerAboutAPieceIsWrittenOnceAndThenRewritten() {
         int taskId = newTask();
         var first = selfCheckRepo.answerForItem(
-                taskId, item.id(), inventory.id(), SelfCheckAnswer.HAVE_IT, "still fits", null, member.id());
+                taskId, item.id(), inventory.id(), SelfCheckAnswer.HAVE_IT, "still fits", null, null, member.id());
         assertEquals(SelfCheckRowState.OUTSTANDING, first.state());
         assertEquals(item.id(), first.itemId());
         assertNull(first.slot());
         assertFalse(first.anchorGone());
 
         var second = selfCheckRepo.answerForItem(
-                taskId, item.id(), inventory.id(), SelfCheckAnswer.WRONG_RECORD, "different one", null, member.id());
+                taskId,
+                item.id(),
+                inventory.id(),
+                SelfCheckAnswer.WRONG_RECORD,
+                "different one",
+                null,
+                size.id(),
+                member.id());
         assertEquals(first.id(), second.id());
         assertEquals(SelfCheckAnswer.WRONG_RECORD, second.answer());
         assertEquals("different one", second.note());
+        assertEquals(size.id(), second.sizeId(), "the size the record got wrong travels with the answer");
         assertEquals(1, selfCheckRepo.findRows(taskId).size());
         selfCheckRepo.overtake(taskId);
     }

@@ -115,6 +115,45 @@ class InventoryCheckCorrectionTest extends RepositoryTestBase {
     }
 
     /**
+     * The piece that went home stops being the station's stock, and the station's own does not.
+     *
+     * <p>Both rest with their owner after a correction and both keep their row, so the two look alike
+     * from the row alone. Who the owner is decides which of them the station still has, and reading
+     * that off the custody without the owner is what left a radio the association took back lying in
+     * the station's list.
+     */
+    @Test
+    void whatWentHomeLeavesTheStationsStockAndTheStationsOwnStaysInIt() {
+        var home = stationRepo.create("Träger Bestand");
+        var cluster = clusterRepo.create("Kreisverband Bestand", null, home.id());
+        stationRepo.setCluster(station.id(), cluster.id());
+        int inventoryId = inventory("Funkgeräte", InventoryType.MIXED);
+        var theirs = held(inventoryId, "F-1", ItemOwner.CLUSTER, cluster.id());
+        var ours = held(inventoryId, "F-2", ItemOwner.STATION, null);
+
+        service.correct(member.id(), makesANewPiece(inventoryId, theirs.id(), ItemOwner.STATION));
+        service.correct(member.id(), makesANewPiece(inventoryId, ours.id(), ItemOwner.STATION));
+
+        var stock = inventoryRepo.findStock(inventoryId);
+        assertTrue(
+                stock.stream().noneMatch(item -> item.id() == theirs.id()),
+                "what the association took back is no longer the station's to count");
+        assertTrue(
+                stock.stream().anyMatch(item -> item.id() == ours.id()),
+                "what the station owns is in its own store and stays in the list");
+
+        var summary = inventoryRepo.findSummariesByStation(station.id()).stream()
+                .filter(entry -> entry.id() == inventoryId)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(stock.size(), summary.itemCount(), "and the figure beside the inventory says the same");
+
+        stationRepo.setCluster(station.id(), null);
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(home.id());
+    }
+
+    /**
      * Gear kept for a body that does not use Ember has no store to go back to. Leaving the row behind
      * would leave a piece nobody owns and nobody can ever tidy up, and the correction says exactly that
      * the member never held it.
