@@ -39,10 +39,6 @@ export function useKbSelection(items: Ref<KbItem[]>, currentFolder: Ref<unknown>
 
     const selectedCount = computed(() => selectedKeys.value.length)
 
-    function isSelected(key: string): boolean {
-        return selectedKeys.value.includes(key)
-    }
-
     /**
      * Marks or unmarks one entry, or, held with shift, everything between it and the last one
      * touched. The range runs over the drawn order, so it is the stretch the reader saw.
@@ -86,7 +82,6 @@ export function useKbSelection(items: Ref<KbItem[]>, currentFolder: Ref<unknown>
         selectedCount,
         selectedFolderIds,
         selectedFileIds,
-        isSelected,
         toggle,
         clear,
         toggleSelecting,
