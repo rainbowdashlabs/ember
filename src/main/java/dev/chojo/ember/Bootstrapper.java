@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
 import dev.chojo.ember.feature.system.service.ApplicationLogWriter;
 import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.feature.system.service.DemoService;
+import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import dev.chojo.ember.util.service.CloudflareRangesService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -146,6 +147,8 @@ public class Bootstrapper {
         injector.getInstance(ConsentService.class).initialize();
 
         injector.getInstance(CloudflareRangesService.class).refreshAsync();
+
+        injector.getInstance(UpdateCheckService.class).start();
 
         // Media moved from the page-files prefix onto media/. The move is per station and
         // resumable, so it runs off the boot path and picks up where it left off after a crash.

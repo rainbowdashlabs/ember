@@ -6,6 +6,7 @@
 package dev.chojo.ember.conf.file;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
@@ -17,6 +18,7 @@ import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.conf.file.elements.Theming;
+import dev.chojo.ember.conf.file.elements.Updates;
 
 /**
  * Root configuration file containing all application settings.
@@ -37,6 +39,16 @@ public class File {
     private Federation federation = new Federation();
     private Logging logging = new Logging();
     private KnowledgeBase knowledgeBase = new KnowledgeBase();
+    private Attendance attendance = new Attendance();
+    private Updates updates = new Updates();
+
+    public Attendance attendance() {
+        return attendance;
+    }
+
+    public Updates updates() {
+        return updates;
+    }
 
     public KnowledgeBase knowledgeBase() {
         return knowledgeBase;

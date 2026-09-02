@@ -21,6 +21,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.File;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
@@ -32,6 +33,7 @@ import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
+import dev.chojo.ember.conf.file.elements.Updates;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.handlers.AttendanceRecordedHandler;
 import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
@@ -223,6 +225,7 @@ import dev.chojo.ember.feature.system.route.ProblemRoutes;
 import dev.chojo.ember.feature.system.route.RequirementsRoutes;
 import dev.chojo.ember.feature.system.route.SidebarCountRoutes;
 import dev.chojo.ember.feature.system.route.SitemapRoutes;
+import dev.chojo.ember.feature.system.route.UpdateRoutes;
 import dev.chojo.ember.feature.system.route.UtilRoutes;
 import dev.chojo.ember.feature.system.service.DemoAttendanceSeeder;
 import dev.chojo.ember.feature.system.service.DemoAvatarSeeder;
@@ -363,6 +366,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(ProblemRoutes.class);
         routesBinder.addBinding().to(ProblemReportRoutes.class);
         routesBinder.addBinding().to(ApiStatusRoutes.class);
+        routesBinder.addBinding().to(UpdateRoutes.class);
         routesBinder.addBinding().to(WaitingListRoutes.class);
         routesBinder.addBinding().to(QuizCatalogRoutes.class);
         routesBinder.addBinding().to(QuizQuestionRoutes.class);
@@ -609,6 +613,18 @@ public class EmberModule extends AbstractModule {
     @Singleton
     KnowledgeBase knowledgeBase(File config) {
         return config.knowledgeBase();
+    }
+
+    @Provides
+    @Singleton
+    Attendance attendance(File config) {
+        return config.attendance();
+    }
+
+    @Provides
+    @Singleton
+    Updates updates(File config) {
+        return config.updates();
     }
 
     @Provides

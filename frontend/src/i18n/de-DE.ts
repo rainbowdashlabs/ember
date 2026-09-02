@@ -1614,6 +1614,8 @@ export default {
         copyright: '\u00a9 2026 RainbowDashLabs and Contributor',
         madeWith: 'Made with \u2764\ufe0f and \ud83c\udff3\ufe0f\u200d\ud83c\udf08',
         license: 'Licensed under AGPL-3.0',
+        updateAvailable: 'Version {version} ist verfügbar.',
+        updateLink: 'Release ansehen',
     },
     patchNotes: {
         title: 'Versionshinweise',
@@ -2452,6 +2454,11 @@ export default {
         fields: 'Felder',
         otherMembers: 'Weitere Mitglieder',
         noEntry: 'Kein Eintrag',
+        beforeJoining: 'Noch nicht beigetreten',
+        frozen: 'Diese Anwesenheit ist abgeschlossen und kann nicht mehr bearbeitet werden.',
+        frozenForManager: 'Diese Anwesenheit ist abgeschlossen. Du kannst sie wieder öffnen, um sie zu bearbeiten.',
+        reopen: 'Wieder öffnen',
+        close: 'Abschließen',
         total: 'Gesamt',
     },
     attendanceReport: {
