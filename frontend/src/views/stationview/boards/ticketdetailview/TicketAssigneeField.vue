@@ -32,7 +32,7 @@ const { t } = useI18n()
 </script>
 
 <template>
-    <div>
+    <div data-testid="ticket-assignee">
         <FieldLabel class="mb-1">{{ t('boards.assignee') }}</FieldLabel>
         <MemberSelectInput v-if="editing && canEdit" v-model="assignedMemberId" :members="assignableMembers" :placeholder="t('boards.unassigned')" auto-open @change="editing = false; emit('save')" />
         <div v-else class="flex items-center gap-2 rounded-theme px-2 py-1 text-sm" :class="canEdit ? 'cursor-pointer hover:bg-(--bg-accent)' : ''" @click.stop="canEdit && (emit('open'), editing = true)">

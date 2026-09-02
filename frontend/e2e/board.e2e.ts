@@ -106,7 +106,7 @@ test.describe('Boards', () => {
         // Whoever the picker offers first, read off the picker itself: who is in the station changes
         // as the other stories create people, and the story only needs somebody to hand the ticket
         // to. The first entry is "nobody", which is what the ticket already says.
-        const candidates = page.locator('.absolute button').filter({hasNotText: 'Nicht zugewiesen'})
+        const candidates = page.getByTestId('ticket-assignee').locator('button').filter({hasNotText: 'Nicht zugewiesen'})
         const candidate = candidates.first()
         await expect(candidate).toBeVisible()
         // The last line of the entry: somebody without a picture is drawn with their initials above
