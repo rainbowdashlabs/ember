@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import ExchangeCorrectPanel from './ExchangeCorrectPanel.vue'
 import ExchangeStatusUpdatePanel from './ExchangeStatusUpdatePanel.vue'
 import ExchangeTableHeader from './ExchangeTableHeader.vue'
 import ExchangeTableRow from './ExchangeTableRow.vue'
@@ -19,6 +20,7 @@ const props = defineProps<{
   canManageExchanges: boolean
   selectedForExport: Set<number>
   updatingId: number | null
+  correctingId: number | null
   availableItems: InventoryItem[]
   nextStatusesFor: (request: ExchangeRequestEntry) => ExchangeStatusName[]
 }>()
@@ -28,10 +30,13 @@ const emit = defineEmits<{
   (e: 'toggle-export', id: number): void
   (e: 'open-log', id: number): void
   (e: 'start-update', request: ExchangeRequestEntry): void
+  (e: 'start-correct', request: ExchangeRequestEntry): void
   (e: 'delete', id: number): void
   (e: 'status-done'): void
   (e: 'status-cancel'): void
   (e: 'status-error', msg: string): void
+  (e: 'correct-done'): void
+  (e: 'correct-cancel'): void
 }>()
 
 const allSelected = computed(() => props.selectedForExport.size === props.requests.length && props.requests.length > 0)
@@ -62,6 +67,7 @@ const colSpan = computed(() => (props.showMemberColumn ? 9 : 8) + (props.exportM
             @toggle-export="emit('toggle-export', req.id)"
             @open-log="emit('open-log', req.id)"
             @start-update="emit('start-update', req)"
+            @start-correct="emit('start-correct', req)"
             @delete="emit('delete', req.id)"
           />
           <tr v-if="updatingId === req.id" class="bg-(--bg-accent)/30">
@@ -72,6 +78,16 @@ const colSpan = computed(() => (props.showMemberColumn ? 9 : 8) + (props.exportM
                 :available-items="availableItems"
                 @done="emit('status-done')"
                 @cancel="emit('status-cancel')"
+                @error="(msg) => emit('status-error', msg)"
+              />
+            </td>
+          </tr>
+          <tr v-if="correctingId === req.id" class="bg-(--bg-accent)/30">
+            <td :colspan="colSpan" class="px-3 py-3">
+              <ExchangeCorrectPanel
+                :request="req"
+                @done="emit('correct-done')"
+                @cancel="emit('correct-cancel')"
                 @error="(msg) => emit('status-error', msg)"
               />
             </td>

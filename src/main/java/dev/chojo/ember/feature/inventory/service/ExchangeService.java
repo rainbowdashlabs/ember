@@ -27,10 +27,10 @@ import java.util.Optional;
  * The exchange screens, served from movements.
  *
  * <p>An exchange is one purpose a movement can have, and the machinery under it now records every
- * step and the party that acknowledged it. The pages that read exchanges still speak of five
- * statuses, so this translates between the two until they are rewritten: the status is read off
- * where the two items actually are, and asking for a status walks the movement forward until they
- * are there.
+ * step and the party that acknowledged it. The pages that read exchanges still speak of a handful of
+ * statuses, so this translates between the two until they are rewritten: the status is read off where
+ * the two items actually are, and asking for a status walks the movement forward until they are
+ * there.
  *
  * <p>That translation is why the derived status survives a station editing its flow. It never counts
  * steps; it looks at custody, which is the thing the steps were moving all along.
@@ -125,10 +125,14 @@ public class ExchangeService {
      * @param note            an optional note, recorded against the last step walked
      * @param exchangedItemId the replacement, handed to the step that names it
      * @return the exchange as the pages read it
-     * @throws BadRequestResponse if the exchange is not found or is already closed
+     * @throws BadRequestResponse if the exchange is not found, is already closed, or is asked to walk
+     *                            to an end rather than to a station
      */
     public ExchangeRequest updateStatus(
             int id, ExchangeStatus newStatus, int changedBy, String note, Integer exchangedItemId) {
+        if (!newStatus.walkable()) {
+            throw new BadRequestResponse("An exchange is called off or refused on its chain, not walked there");
+        }
         ItemMovement movement = movementService
                 .findById(id)
                 .filter(this::isExchange)
@@ -151,6 +155,71 @@ public class ExchangeService {
         // Notifying is the movement service's job, since that is where every step actually happens
         log.info("Exchange {} walked to {} by member {}", id, newStatus, changedBy);
         return toRequest(movement);
+    }
+
+    /**
+     * Sets an exchange to a status somebody says it should have, forwards or backwards.
+     *
+     * <p>An exchange has no status of its own to write: it is read off where its two pieces are. Setting a
+     * field would therefore do nothing at all, and the old value would be back the next time anybody
+     * looked. Correcting one means making the world say what it should have said, so this puts the pieces
+     * where the wanted status reads them, and the chain follows to whichever step that world has not
+     * reached yet. What each status asks for:
+     *
+     * <ul>
+     *   <li>Announced: the old piece is back with the member and no replacement is named, so an
+     *       already-named one is unhooked from the exchange. Its own whereabouts are left alone, because
+     *       the correction is about this exchange and not about that piece.
+     *   <li>Received: the old piece is on the station's shelf, and again no replacement is named.
+     *   <li>Shipped: the old piece is in the post. That is what shipped means for gear the station owns as
+     *       well as for gear a body above it owns, which is why this one custody covers both.
+     *   <li>Arrived: the replacement is at the station, which is why this status needs one to exist. Where
+     *       the old piece got to no longer decides anything once the new one is here.
+     *   <li>Done: the replacement is with the member and the chain is closed as finished.
+     *   <li>Cancelled and Declined: the chain is closed that way and the pieces are left exactly where
+     *       they are. Somebody correcting the end of an exchange is saying the record was wrong, not that
+     *       the gear moved.
+     * </ul>
+     *
+     * <p>Nothing is announced. A correction is somebody tidying a row, and the people on it did nothing
+     * that deserves a notice.
+     *
+     * @param id        the exchange
+     * @param wanted    the status it should have
+     * @param changedBy who is correcting it
+     * @param reason    why, which is mandatory and appears in the exchange's history
+     * @return the exchange as the pages read it
+     * @throws BadRequestResponse when the exchange is unknown, the reason is missing, or the wanted status
+     *                            needs a replacement piece the exchange does not have
+     */
+    public ExchangeRequest forceStatus(int id, ExchangeStatus wanted, int changedBy, String reason) {
+        ItemMovement movement = movementService
+                .findById(id)
+                .filter(this::isExchange)
+                .orElseThrow(() -> new BadRequestResponse("Exchange request not found"));
+        if (wanted == ExchangeStatus.ARRIVED && movement.incomingItemId() == null) {
+            throw new BadRequestResponse("Arrived means the replacement is here, so name it before setting that");
+        }
+        if (wanted == ExchangeStatus.DONE && movement.incomingItemId() == null) {
+            throw new BadRequestResponse("Done means the member has the replacement, so name it before setting that");
+        }
+        var actor = new ItemMovementService.Actor(changedBy, true);
+        ItemMovement corrected = movementService.correct(id, correctionFor(wanted), actor, reason);
+        log.info("Exchange {} set to {} by member {}", id, wanted, changedBy);
+        return toRequest(corrected);
+    }
+
+    /** The world each status is read off, as {@link #forceStatus} describes it. */
+    private ItemMovementService.Correction correctionFor(ExchangeStatus wanted) {
+        return switch (wanted) {
+            case ANNOUNCED -> new ItemMovementService.Correction(ItemCustody.WITH_MEMBER, null, true, null);
+            case RECEIVED -> new ItemMovementService.Correction(ItemCustody.AT_STATION, null, true, null);
+            case SHIPPED -> new ItemMovementService.Correction(ItemCustody.IN_TRANSIT, null, true, null);
+            case ARRIVED -> new ItemMovementService.Correction(null, ItemCustody.AT_STATION, false, null);
+            case DONE -> new ItemMovementService.Correction(null, ItemCustody.WITH_MEMBER, false, MovementState.DONE);
+            case CANCELLED -> new ItemMovementService.Correction(null, null, false, MovementState.CANCELLED);
+            case DECLINED -> new ItemMovementService.Correction(null, null, false, MovementState.DECLINED);
+        };
     }
 
     public List<ExchangeLog> findLogs(int requestId) {
@@ -223,14 +292,11 @@ public class ExchangeService {
     }
 
     /**
-     * Reads the old five-value status off where the two items are.
+     * How far along an exchange is, read off where the two pieces are.
      *
      * <p>Custody is what the steps were moving all along, so this holds whatever a station has done
-     * to its flow: a chain with the owner's leg collapsed into one step still reports the same
-     * status at the same point as the seven-step one.
-     */
-    /**
-     * How far along an exchange is, read off where the two pieces are.
+     * to its flow: a chain with the owner's leg collapsed into one step still reports the same status
+     * at the same point as the seven-step one.
      *
      * <p>"With the owner" means two different things and has to be told apart, which is what this got
      * wrong: for the station's own gear it is the station's shelf, so the piece has come back and the
@@ -238,9 +304,16 @@ public class ExchangeService {
      * has left for good and the exchange is past shipped. Reading both the same way made an exchange
      * of somebody else's gear jump backwards from shipped to received the moment the owner confirmed
      * it had arrived, and there was no way forward from there.
+     *
+     * <p>An exchange that has stopped moving is not read off custody at all, because custody no longer
+     * says anything about it: calling one off puts the piece back where it started, which reads as
+     * announced, and refusing one does the same. It reports the end it came to instead. Reading every
+     * closed exchange as done was what made calling one off look like finishing it.
      */
     private ExchangeStatus deriveStatus(ItemMovement movement) {
-        if (movement.state() != MovementState.OPEN) return ExchangeStatus.DONE;
+        if (movement.state() == MovementState.DONE) return ExchangeStatus.DONE;
+        if (movement.state() == MovementState.CANCELLED) return ExchangeStatus.CANCELLED;
+        if (movement.state() == MovementState.DECLINED) return ExchangeStatus.DECLINED;
         ItemCustody incoming = custodyOf(movement.incomingItemId());
         ItemCustody outgoing = custodyOf(movement.outgoingItemId());
         if (incoming == ItemCustody.WITH_MEMBER) return ExchangeStatus.DONE;

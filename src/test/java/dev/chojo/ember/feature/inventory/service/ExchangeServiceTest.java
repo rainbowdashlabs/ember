@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.inventory.entity.AckKind;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
@@ -13,6 +14,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -198,6 +200,156 @@ class ExchangeServiceTest extends RepositoryTestBase {
         service.updateStatus(exchange.id(), ExchangeStatus.RECEIVED, member.id(), "Shipped note");
         var logs = service.findLogs(exchange.id());
         assertTrue(logs.stream().anyMatch(l -> "Shipped note".equals(l.note())));
+        service.delete(exchange.id());
+    }
+
+    @Test
+    @Order(30)
+    void callingOffAnExchangeDoesNotMakeItLookFinished() {
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", null, inventoryId, null, null, "Called off", null);
+        assertEquals(ExchangeStatus.ANNOUNCED, exchange.status());
+
+        itemMovementService.cancel(exchange.id(), new ItemMovementService.Actor(member.id(), true), "Fits after all");
+
+        assertEquals(
+                ExchangeStatus.CANCELLED,
+                service.findById(exchange.id()).orElseThrow().status());
+        service.delete(exchange.id());
+    }
+
+    @Test
+    @Order(31)
+    void refusingAnExchangeDoesNotMakeItLookFinished() {
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", null, inventoryId, null, null, "Refused", null);
+
+        itemMovementService.decline(
+                exchange.id(), new ItemMovementService.Actor(member.id(), true), "Nothing in stock");
+
+        assertEquals(
+                ExchangeStatus.DECLINED,
+                service.findById(exchange.id()).orElseThrow().status());
+        service.delete(exchange.id());
+    }
+
+    @Test
+    @Order(32)
+    void anExchangeIsNotWalkedToAnEnd() {
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", null, inventoryId, null, null, "Not walkable", null);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.updateStatus(exchange.id(), ExchangeStatus.CANCELLED, member.id(), null));
+
+        assertEquals(
+                ExchangeStatus.ANNOUNCED,
+                service.findById(exchange.id()).orElseThrow().status());
+        service.delete(exchange.id());
+    }
+
+    @Test
+    @Order(33)
+    void aPieceAlreadyOnItsWayCannotBeSentOutAgain() {
+        var item = inventoryRepo.createItem(inventoryId, "B-DUP", "Blouson M", null, null);
+        itemCustodyService.assignToMember(item.id(), member.id(), "");
+        var first = service.create(
+                station.id(), member.id(), "Exch Tester", item.id(), inventoryId, null, null, "First", null);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.create(
+                        station.id(), member.id(), "Exch Tester", item.id(), inventoryId, null, null, "Second", null));
+
+        assertEquals(
+                1,
+                service.findByStation(station.id()).stream()
+                        .filter(e -> e.itemId() != null && e.itemId() == item.id())
+                        .count());
+        service.delete(first.id());
+    }
+
+    @Test
+    @Order(40)
+    void anExchangeThatStandsTooFarIsSetBack() {
+        var item = inventoryRepo.createItem(inventoryId, "B-BACK", "Blouson M", null, null);
+        itemCustodyService.assignToMember(item.id(), member.id(), "");
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", item.id(), inventoryId, null, null, "Too far", null);
+        service.updateStatus(exchange.id(), ExchangeStatus.RECEIVED, member.id(), null);
+        assertEquals(
+                ExchangeStatus.RECEIVED,
+                service.findById(exchange.id()).orElseThrow().status());
+
+        var corrected =
+                service.forceStatus(exchange.id(), ExchangeStatus.ANNOUNCED, member.id(), "Was never handed in");
+
+        assertEquals(ExchangeStatus.ANNOUNCED, corrected.status());
+        assertEquals(
+                ExchangeStatus.ANNOUNCED,
+                service.findById(exchange.id()).orElseThrow().status());
+        assertEquals(
+                ItemCustody.WITH_MEMBER,
+                inventoryRepo.findItemById(item.id()).orElseThrow().custody());
+        service.delete(exchange.id());
+    }
+
+    @Test
+    @Order(41)
+    void aCorrectionSaysInTheHistoryThatItWasOneAndWhy() {
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", null, inventoryId, null, null, "History", null);
+
+        service.forceStatus(exchange.id(), ExchangeStatus.CANCELLED, member.id(), "Raised twice by mistake");
+
+        assertEquals(
+                ExchangeStatus.CANCELLED,
+                service.findById(exchange.id()).orElseThrow().status());
+        assertTrue(service.findLogs(exchange.id()).stream()
+                .anyMatch(entry -> entry.ackKind() == AckKind.CORRECTED
+                        && "Raised twice by mistake".equals(entry.note())
+                        && entry.changedBy() == member.id()));
+        service.delete(exchange.id());
+    }
+
+    @Test
+    @Order(42)
+    void aCorrectionWithoutAReasonIsRefused() {
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", null, inventoryId, null, null, "No reason", null);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.forceStatus(exchange.id(), ExchangeStatus.CANCELLED, member.id(), " "));
+
+        assertEquals(
+                ExchangeStatus.ANNOUNCED,
+                service.findById(exchange.id()).orElseThrow().status());
+        service.delete(exchange.id());
+    }
+
+    @Test
+    @Order(43)
+    void anExchangeCalledOffByMistakeIsSetGoingAgain() {
+        var item = inventoryRepo.createItem(inventoryId, "B-REOPEN", "Blouson M", null, null);
+        itemCustodyService.assignToMember(item.id(), member.id(), "");
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", item.id(), inventoryId, null, null, "Reopen", null);
+        itemMovementService.cancel(
+                exchange.id(), new ItemMovementService.Actor(member.id(), true), "Called off by mistake");
+        assertEquals(
+                ExchangeStatus.CANCELLED,
+                service.findById(exchange.id()).orElseThrow().status());
+
+        service.forceStatus(exchange.id(), ExchangeStatus.RECEIVED, member.id(), "It really was handed in");
+
+        assertEquals(
+                ExchangeStatus.RECEIVED,
+                service.findById(exchange.id()).orElseThrow().status());
+        assertEquals(
+                ItemCustody.AT_STATION,
+                inventoryRepo.findItemById(item.id()).orElseThrow().custody());
         service.delete(exchange.id());
     }
 }

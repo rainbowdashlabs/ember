@@ -14,7 +14,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
+import {ExchangeStatus, stillMoving, type ExchangeRequestEntry} from '@/api/exchanges'
 import {exchanges} from '@/api'
 import {useSession} from '@/composables/useSession'
 
@@ -24,7 +24,7 @@ const {isGuardian, sessionInfo} = useSession()
 
 const exchangeList = ref<ExchangeRequestEntry[]>([])
 
-const openExchanges = computed(() => exchangeList.value.filter(e => e.status !== ExchangeStatus.DONE))
+const openExchanges = computed(() => exchangeList.value.filter(e => stillMoving(e.status)))
 
 function isOtherMember(memberId: number): boolean {
   return isGuardian() && memberId !== (sessionInfo.value?.member?.id ?? 0)

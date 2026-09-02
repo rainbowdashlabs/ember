@@ -12,7 +12,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import {inventory, exchanges, stationMembers} from '@/api'
-import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
+import {stillMoving, type ExchangeRequestEntry} from '@/api/exchanges'
 import type {InventoryItem, InventorySize, MyInventoryItem} from '@/api/inventory'
 import {StationPermission, type StationMember} from '@/api/types'
 import {useSession} from '@/composables/useSession'
@@ -133,7 +133,7 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
   member.value = allMembers.find(m => m.id === mid) ?? null
   try {
     const allExch = await exchanges.listExchanges()
-    activeExchanges.value = allExch.filter(e => e.memberId === mid && e.status !== ExchangeStatus.DONE)
+    activeExchanges.value = allExch.filter(e => e.memberId === mid && stillMoving(e.status))
   } catch { activeExchanges.value = [] }
 })
 

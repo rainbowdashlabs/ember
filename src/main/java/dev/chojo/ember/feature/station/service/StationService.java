@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
  * Service for station management including CRUD, manager assignment, ownership transfer,
@@ -278,6 +279,11 @@ public class StationService {
     /**
      * Finds detailed manager information for a station, including account readiness status.
      *
+     * <p>A station can hold several administrators, and naming a new manager leaves the previous
+     * one's role in place. The owner is therefore the answer, and any other administrator only
+     * stands in while the station has none: reading the first administrator the station happens to
+     * list would name whoever was there longest and never the person just put in charge.
+     *
      * @param stationId the station ID
      * @return the manager info, or empty if no manager is found
      */
@@ -287,20 +293,41 @@ public class StationService {
                 .orElse(null);
         if (managerRole == null) return Optional.empty();
 
-        for (StationMember member : memberRepository.findByStation(stationId)) {
-            List<Permission> roles = memberRepository.findPermissions(member.id());
-            if (roles.stream().anyMatch(r -> r.id() == managerRole.id())) {
-                Account account = accountRepository.findById(member.accountId()).orElse(null);
-                if (account == null) continue;
-                Optional<AccountCredential> credential = accountRepository.findCredential(account.id());
-                boolean hasPassword = credential.isPresent();
-                boolean accountReady =
-                        hasPassword && !credential.get().forcePasswordChange() && account.emailVerified();
-                return Optional.of(
-                        new ManagerInfo(account.email(), account.firstName(), account.lastName(), accountReady));
-            }
-        }
-        return Optional.empty();
+        Integer ownerMemberId = stationRepository
+                .findById(stationId)
+                .map(Station::ownerMemberId)
+                .orElse(null);
+        List<StationMember> administrators = memberRepository.findByStation(stationId).stream()
+                .filter(member -> holdsRole(member.id(), managerRole))
+                .toList();
+
+        return Stream.concat(
+                        administrators.stream().filter(member -> isSameMember(member, ownerMemberId)),
+                        administrators.stream().filter(member -> !isSameMember(member, ownerMemberId)))
+                .map(this::managerInfoOf)
+                .flatMap(Optional::stream)
+                .findFirst();
+    }
+
+    private static boolean isSameMember(StationMember member, Integer memberId) {
+        return memberId != null && member.id() == memberId;
+    }
+
+    /**
+     * Reads what a screen shows about a manager, or nothing at all for a member who has no account
+     * behind them any more. A former member keeps their row after being decoupled from their
+     * account, and a decoupled member who still holds the administrator role would otherwise be
+     * asked for an account that is not there.
+     */
+    private Optional<ManagerInfo> managerInfoOf(StationMember member) {
+        if (member.accountId() == null) return Optional.empty();
+        Account account = accountRepository.findById(member.accountId()).orElse(null);
+        if (account == null) return Optional.empty();
+        Optional<AccountCredential> credential = accountRepository.findCredential(account.id());
+        boolean accountReady = credential
+                .map(c -> !c.forcePasswordChange() && account.emailVerified())
+                .orElse(false);
+        return Optional.of(new ManagerInfo(account.email(), account.firstName(), account.lastName(), accountReady));
     }
 
     /**
@@ -312,13 +339,11 @@ public class StationService {
         if (station == null) return false;
         if (station.ownerMemberId() == null || station.ownerMemberId() != currentMemberId) return false;
 
-        // Verify the target has the MANAGER role
         Permission managerRole = memberRepository
                 .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
                 .orElse(null);
         if (managerRole == null) return false;
-        var targetRoles = memberRepository.findPermissions(newOwnerMemberId);
-        if (targetRoles.stream().noneMatch(r -> r.id() == managerRole.id())) return false;
+        if (!holdsRole(newOwnerMemberId, managerRole)) return false;
 
         stationRepository.setOwner(stationId, newOwnerMemberId);
         log.info(
@@ -466,9 +491,15 @@ public class StationService {
     }
 
     /**
-     * Assigns the MANAGER role to the given email and sets them as station owner if no owner
-     * exists yet. The account and membership are provisioned immediately when missing; a new
-     * account receives a password-setup email.
+     * Assigns the MANAGER role to the given email and hands the station to them. The account and
+     * membership are provisioned immediately when missing; a new account receives a password-setup
+     * email.
+     *
+     * <p>Naming somebody the manager of a station that already has one moves the ownership, because
+     * that is what naming a manager means: only the owner may hand the station on again or take it
+     * into a cluster, so a station whose ownership stayed behind cannot be handed over at all. The
+     * previous manager keeps their administrator role and their membership, so nobody loses their
+     * way into a station by somebody else being named.
      */
     private void assignManager(int stationId, String managerEmail) {
         Permission managerRole = memberRepository
@@ -478,14 +509,14 @@ public class StationService {
         var provisioned = inviteService.provision(stationId, managerEmail, "", "", StationUserType.MANAGER, null);
         int memberId = provisioned.memberId();
 
-        List<Permission> currentRoles = memberRepository.findPermissions(memberId);
-        if (currentRoles.stream().noneMatch(r -> r.id() == managerRole.id())) {
+        if (!holdsRole(memberId, managerRole)) {
             memberRepository.grantPermission(memberId, managerRole.id());
         }
 
-        var station = stationRepository.findById(stationId).orElse(null);
-        if (station != null && station.ownerMemberId() == null) {
-            stationRepository.setOwner(stationId, memberId);
-        }
+        stationRepository.setOwner(stationId, memberId);
+    }
+
+    private boolean holdsRole(int memberId, Permission role) {
+        return memberRepository.findPermissions(memberId).stream().anyMatch(r -> r.id() == role.id());
     }
 }
