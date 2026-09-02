@@ -40,7 +40,7 @@ function onTypeChanged(value: string | number | null | undefined) {
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <label class="flex flex-col gap-1 text-sm">
             <span>{{ t('inventory.fields.label') }}</span>
-            <TextInput v-model="props.draft.label" :placeholder="t('inventory.fields.labelPlaceholder')" />
+            <TextInput v-model="props.draft.label" data-testid="field-label" :placeholder="t('inventory.fields.labelPlaceholder')" />
         </label>
         <label class="flex flex-col gap-1 text-sm">
             <span>{{ t('inventory.fields.key') }}</span>
@@ -48,7 +48,7 @@ function onTypeChanged(value: string | number | null | undefined) {
         </label>
         <label class="flex flex-col gap-1 text-sm">
             <span>{{ t('inventory.fields.type') }}</span>
-            <SelectInput :model-value="props.draft.fieldType" :disabled="!!props.draft.id" @update:model-value="onTypeChanged">
+            <SelectInput :model-value="props.draft.fieldType" :disabled="!!props.draft.id" data-testid="field-type" @update:model-value="onTypeChanged">
                 <option v-for="v in Object.values(FieldType)" :key="v" :value="v">{{ t(`inventory.fields.types.${v}`) }}</option>
             </SelectInput>
         </label>

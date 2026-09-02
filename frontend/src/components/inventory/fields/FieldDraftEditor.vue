@@ -59,7 +59,7 @@ function onTypeChanged(value: FieldTypeName) {
         />
         <div class="flex justify-end gap-2 mt-3">
             <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
-            <PrimaryButton :disabled="props.submitting" @click="emit('save')">
+            <PrimaryButton :disabled="props.submitting" data-testid="field-save" @click="emit('save')">
                 {{ props.submitting ? t('common.saving') : t('common.save') }}
             </PrimaryButton>
         </div>

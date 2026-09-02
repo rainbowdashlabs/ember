@@ -26,6 +26,12 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryManage.whatIsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.inventoryManage.kindsTitle')">
+      <p>{{ t('helpCenter.inventoryManage.kindsText') }}</p>
+      <p>{{ t('helpCenter.inventoryManage.kindsExampleText') }}</p>
+      <p>{{ t('helpCenter.inventoryManage.kindsWhyText') }}</p>
+    </HelpSection>
+
     <HelpPermissionGuard :permissions="[StationPermission.INVENTORY_CREATE]" :label="t('helpCenter.permissionLabel.inventoryCreate')">
       <HelpSection :title="t('helpCenter.inventoryManage.createTitle')">
         <p>{{ t('helpCenter.inventoryManage.createName') }}</p>
@@ -59,6 +65,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.inventoryManage.cardsTitle')">
       <p>{{ t('helpCenter.inventoryManage.cardsText') }}</p>
+      <p>{{ t('helpCenter.inventoryManage.badgesText') }}</p>
       <DummyInventoryCards />
     </HelpSection>
 

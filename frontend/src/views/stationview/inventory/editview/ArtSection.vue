@@ -136,7 +136,7 @@ watch(() => props.inventoryId, load, {immediate: true})
 
     <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-    <div v-for="art in arts" :key="art.id"
+    <div v-for="art in arts" :key="art.id" :data-testid="`art-row-${art.name}`"
          class="flex items-center justify-between px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
       <div>
         <span class="text-sm font-medium">{{ art.name }}</span>

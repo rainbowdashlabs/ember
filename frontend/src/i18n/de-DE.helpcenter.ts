@@ -1685,6 +1685,19 @@ volumes:
                 + 'Gegenstand entschieden wird. Gehört die Ausrüstung dem Träger, entstehen die einzelnen '
                 + 'Gegenstände erst bei der Zuweisung.',
             createSizes: 'Aktiviere Größen, wenn die Gegenstände in verschiedenen Größen vorkommen (z.B. S, M, L).',
+            kindsTitle: 'Vorrat oder Sammlung',
+            kindsText: 'Beim Anlegen wählst du, was das Inventar enthält. Ein Vorrat hält eine Sache in vielen '
+                + 'Exemplaren: das Regal voller Blousons, wo jedes Stück dasselbe Ding ist. Eine Sammlung hält '
+                + 'verschiedene Dinge, die zusammengehören.',
+            kindsExampleText: 'Die Kiste mit zwölf Funkgeräten in drei Farben, dazu eine Ladestation und eine '
+                + 'Antenne, ist eine Sammlung. „Funkgerät“ ist darin eine Art, und die Farbe ist ein Feld an dieser '
+                + 'Art. Ladestation und Antenne tragen gar keine Art, sie liegen lose in der Sammlung, und das ist '
+                + 'der Normalfall für alles, was es nur einmal gibt.',
+            kindsWhyText: 'Nur ein Vorrat kennt Größen, Vorgaben, Beschaffungen und Tausche, denn „jeder braucht '
+                + 'eines“ und „drei nachbestellen“ sagen über eine Kiste mit lauter Verschiedenem nichts aus. Nur '
+                + 'eine Sammlung kennt Arten. Umstellen lässt sich das, solange nichts davon daran hängt.',
+            badgesText: 'Auf jeder Inventar-Karte stehen Abzeichen: wem es gehört, ob es Größen führt und ob es ein '
+                + 'Vorrat oder eine Sammlung ist. Bei einer Sammlung steht daneben, wie viele Arten in ihr angelegt sind.',
             itemsTitle: 'Gegenstände hinzufügen',
             itemsText: 'Innerhalb eines Inventars kannst du einzelne Gegenstände anlegen. Jeder Gegenstand kann einen Namen, eine interne Kennung und eine Größe haben.',
             itemsExternal: 'Bei externen Inventaren werden Gegenstände automatisch erstellt, wenn sie einem Mitglied zugewiesen werden.',
@@ -4182,6 +4195,11 @@ volumes:
             subtitle: 'Statistiken und Gegenstände eines einzelnen Inventars.',
             whatShown: 'Was zeigt diese Seite?',
             whatShownText: 'Hier siehst du die Details eines einzelnen Inventars mit Statistiken und Listen.',
+            headerTitle: 'Kopfzeile und Bearbeiten',
+            headerText: 'Neben dem Namen stehen die Abzeichen des Inventars: wem es gehört, ob es Größen führt und '
+                + 'ob es ein Vorrat oder eine Sammlung ist, bei einer Sammlung dazu die Zahl ihrer Arten. Wer das '
+                + 'Inventar bearbeiten darf, kommt über „Inventar bearbeiten“ direkt in dessen Einstellungen und von '
+                + 'dort über „Zum Bestand“ wieder hierher.',
             statsTitle: 'Statistiken',
             statsText: 'Oben siehst du die Gesamtzahlen: wie viele Gegenstände insgesamt, verfügbar, zugewiesen und verloren sind. Bei Inventaren mit Größen werden die Zahlen auch pro Größe aufgeschlüsselt.',
             lostTitle: 'Verlorene Gegenstände',
@@ -4202,7 +4220,14 @@ volumes:
             whatShown: 'Was kannst du hier tun?',
             whatShownText: 'Hier verwaltest du die Gegenstände und Größen innerhalb eines einzelnen Inventars.',
             settingsTitle: 'Einstellungen',
-            settingsText: 'Ändere den Namen und Typ des Inventars.',
+            settingsText: 'Ändere den Namen, den Typ und ob das Inventar ein Vorrat oder eine Sammlung ist.',
+            fieldsTitle: 'Wo ein Feld angelegt wird',
+            fieldsText: 'Ein Feld wird dort angelegt, wo das Ding lebt, zu dem es gehört. Felder des ganzen '
+                + 'Inventars stehen auf dieser Seite, Felder einer Art im Fenster der Art, Felder eines einzelnen '
+                + 'Gegenstands im Fenster des Gegenstands. Einen Geltungsbereich musst du deshalb nicht mehr wählen.',
+            backTitle: 'Hin und zurück',
+            backText: 'Über „Zum Bestand“ kommst du zur Bestandsliste desselben Inventars zurück, und von dort '
+                + 'führt „Inventar bearbeiten“ wieder hierher.',
             sizesTitle: 'Größen',
             sizesText: 'Füge Größen hinzu oder bearbeite sie. Jede Größe hat eine Bezeichnung.',
             sizesDragText: 'Die Reihenfolge der Größen änderst du mit den Pfeilen an jeder Zeile, am Rechner zusätzlich durch Ziehen am Griff daneben.',
@@ -4295,6 +4320,9 @@ volumes:
             fieldsText: 'Ein benutzerdefiniertes Feld kannst du an eine Art hängen statt an das ganze '
                 + 'Inventar. Dann steht das Feld an allen Funkgeräten und nicht an der Ladestation. Die '
                 + 'Werte bleiben trotzdem bei jedem Gegenstand einzeln.',
+            fieldsWhereText: 'Angelegt wird ein solches Feld dort, wo die Art bearbeitet wird: im Inventar '
+                + 'bearbeiten, unter Arten, beim Öffnen einer Art. So wird aus drei Arten „Funkgerät blau“, '
+                + '„Funkgerät grün“ und „Funkgerät gelb“ eine Art „Funkgerät“ mit einem Auswahlfeld „Farbe“.',
             tip: 'Es wird nichts von allein gruppiert. Erst wenn du hier auf eine Schaltfläche klickst, '
                 + 'entsteht eine Art. So wandert kein Tippfehler versehentlich in die Liste.',
         },

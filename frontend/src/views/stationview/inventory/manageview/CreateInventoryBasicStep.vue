@@ -36,7 +36,7 @@ watch(homogeneous, value => {
 <template>
   <div class="space-y-1">
     <FieldLabel>{{ t('inventory.manage.name') }}</FieldLabel>
-    <TextInput v-model="name" :placeholder="t('inventory.manage.namePlaceholder')" />
+    <TextInput v-model="name" data-testid="inventory-name" :placeholder="t('inventory.manage.namePlaceholder')" />
   </div>
 
   <div class="space-y-1">
