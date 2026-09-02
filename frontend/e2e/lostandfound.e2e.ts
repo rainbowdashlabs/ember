@@ -260,6 +260,27 @@ test.describe('Lost and found', () => {
         await expect(card(page, item).locator('img')).toBeVisible()
     })
 
+    /**
+     * A card whose picture will not load used to leave a blank space where an entry without a
+     * picture gets a placeholder, so the reader could not tell the two apart.
+     */
+    test('a card whose picture cannot be shown says so instead of standing empty',
+        async ({managerPage: page}) => {
+            const item = unique('Fundstueck-Bildfehler')
+            const id = await reportWithoutPicture(page, item)
+            const upload = await page.request.post(`/api/v1/lost-and-found/${id}/image`, {
+                headers: await apiHeaders(page),
+                multipart: {image: {name: 'fund.png', mimeType: 'image/png', buffer: ONE_PIXEL_PNG}},
+            })
+            expect(upload.ok(), 'the picture is taken').toBeTruthy()
+
+            await page.route(`**/api/v1/lost-and-found/${id}/image**`, route => route.abort())
+            await page.goto(LIST)
+
+            await expect(card(page, item).getByTestId('item-placeholder')).toBeVisible()
+            await expect(card(page, item).getByText('Bild nicht verfügbar')).toBeVisible()
+        })
+
     test('a member claims a find for themselves', async ({managerPage: page}) => {
         const item = unique('Fundstueck-Meins')
         await reportThroughApi(page, item)
