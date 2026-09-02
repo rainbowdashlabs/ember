@@ -86,7 +86,7 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
             var rows = service.loadBlocks(switched);
             assertEquals("Erst der Text", rows.getFirst().cells().getFirst().content());
         } finally {
-            knowledgeBaseRepo.deleteFile(id);
+            knowledgeBaseRepo.purgeFile(id);
         }
     }
 
@@ -97,7 +97,7 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
             assertThrows(BadRequestResponse.class, () -> service.switchToRich(id));
             assertTrue(service.switchToRich(99999).isEmpty());
         } finally {
-            knowledgeBaseRepo.deleteFile(id);
+            knowledgeBaseRepo.purgeFile(id);
         }
     }
 
@@ -109,7 +109,7 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
             var second = service.switchToRich(id).orElseThrow();
             assertEquals(first.containerId(), second.containerId());
         } finally {
-            knowledgeBaseRepo.deleteFile(id);
+            knowledgeBaseRepo.purgeFile(id);
         }
     }
 
@@ -128,7 +128,7 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
                     service.findVersions(id).isEmpty(),
                     "the projection goes through the same store, so history records it like any edit");
         } finally {
-            knowledgeBaseRepo.deleteFile(id);
+            knowledgeBaseRepo.purgeFile(id);
         }
     }
 
@@ -142,7 +142,7 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
                     .isEmpty());
             assertTrue(service.saveBlocks(99999, rows, member.id()).isEmpty());
         } finally {
-            knowledgeBaseRepo.deleteFile(id);
+            knowledgeBaseRepo.purgeFile(id);
         }
     }
 
@@ -155,7 +155,7 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
                     List.of(row(CellContentType.ACHIEVEMENTS, "", new CellConfig.AchievementsConfig(null, null)));
             assertThrows(BadRequestResponse.class, () -> service.saveBlocks(id, withheld, member.id()));
         } finally {
-            knowledgeBaseRepo.deleteFile(id);
+            knowledgeBaseRepo.purgeFile(id);
         }
     }
 
@@ -171,7 +171,7 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
             service.deleteBlocks(rich);
             assertTrue(contentContainerRepo.findById(containerId).isEmpty());
         } finally {
-            knowledgeBaseRepo.deleteFile(id);
+            knowledgeBaseRepo.purgeFile(id);
         }
     }
 }

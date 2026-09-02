@@ -43,17 +43,20 @@ public class KbBulkService {
     private final KbMoveService moveService;
     private final KbTagService tagService;
     private final KbAccessService accessService;
+    private final KbTrashService trashService;
 
     @Inject
     public KbBulkService(
             KnowledgeBaseRepository repository,
             KbMoveService moveService,
             KbTagService tagService,
-            KbAccessService accessService) {
+            KbAccessService accessService,
+            KbTrashService trashService) {
         this.repository = repository;
         this.moveService = moveService;
         this.tagService = tagService;
         this.accessService = accessService;
+        this.trashService = trashService;
     }
 
     /**
@@ -143,6 +146,60 @@ public class KbBulkService {
         var outcome = collector.outcome();
         log.info(
                 "Station {} tagged {} folder(s) and {} article(s), refusing {}",
+                stationId,
+                outcome.doneFolderIds().size(),
+                outcome.doneFileIds().size(),
+                outcome.refusedTotal());
+        return outcome;
+    }
+
+    /**
+     * Puts a mixed selection of folders and articles in the trash.
+     *
+     * <p>The right asked for is the one that lets a single entry be deleted, so marking twenty and
+     * pressing once can reach nothing that pressing twenty times could not. Nothing is removed: the
+     * entries go where they can be taken back from, which is what makes this button one somebody may
+     * press without reading every name first.
+     *
+     * @param access    the caller's memberships and station rights
+     * @param stationId the caller's station
+     * @param memberId  who is deleting, so the trash can say
+     * @param folderIds the folders picked
+     * @param fileIds   the articles picked
+     * @return what went to the trash and what did not
+     */
+    public BulkOutcome delete(
+            MemberAccess access, int stationId, int memberId, List<Integer> folderIds, List<Integer> fileIds) {
+        var collector = new Collector();
+        for (int folderId : folderIds) {
+            var folder = repository.findFolderById(folderId).orElse(null);
+            if (folder == null || folder.stationId() != stationId) {
+                collector.refuse(null, KbRefusalReason.NOT_FOUND);
+                continue;
+            }
+            if (!accessService.effectiveLevel(access, folderId, null).covers(KbAccessLevel.MANAGE)) {
+                collector.refuse(folder.name(), KbRefusalReason.NO_PERMISSION);
+                continue;
+            }
+            if (trashService.deleteFolder(folderId, memberId)) collector.doneFolder(folderId);
+            else collector.refuse(folder.name(), KbRefusalReason.NOT_FOUND);
+        }
+        for (int fileId : fileIds) {
+            var file = repository.findFileById(fileId).orElse(null);
+            if (file == null || file.stationId() != stationId) {
+                collector.refuse(null, KbRefusalReason.NOT_FOUND);
+                continue;
+            }
+            if (!accessService.effectiveLevel(access, null, fileId).covers(KbAccessLevel.MANAGE)) {
+                collector.refuse(file.name(), KbRefusalReason.NO_PERMISSION);
+                continue;
+            }
+            if (trashService.deleteFile(fileId, memberId)) collector.doneFile(fileId);
+            else collector.refuse(file.name(), KbRefusalReason.NOT_FOUND);
+        }
+        var outcome = collector.outcome();
+        log.info(
+                "Station {} moved {} folder(s) and {} article(s) to the trash, refusing {}",
                 stationId,
                 outcome.doneFolderIds().size(),
                 outcome.doneFileIds().size(),

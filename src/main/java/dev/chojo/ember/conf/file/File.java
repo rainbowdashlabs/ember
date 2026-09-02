@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
+import dev.chojo.ember.conf.file.elements.KnowledgeBase;
 import dev.chojo.ember.conf.file.elements.Logging;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
@@ -35,6 +36,11 @@ public class File {
     private Network network = new Network();
     private Federation federation = new Federation();
     private Logging logging = new Logging();
+    private KnowledgeBase knowledgeBase = new KnowledgeBase();
+
+    public KnowledgeBase knowledgeBase() {
+        return knowledgeBase;
+    }
 
     public Logging logging() {
         return logging;
@@ -92,6 +98,7 @@ public class File {
                 + storage + ", metrics="
                 + metrics + ", network="
                 + network + ", federation="
-                + federation + '}';
+                + federation + ", knowledgeBase="
+                + knowledgeBase + '}';
     }
 }

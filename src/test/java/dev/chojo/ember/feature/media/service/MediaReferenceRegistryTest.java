@@ -102,7 +102,7 @@ class MediaReferenceRegistryTest extends RepositoryTestBase {
             assertTrue(referenced.contains(TEMPLATE_HASH), "an event template description");
             assertTrue(referenced.contains(KB_HASH), "a knowledge-base article");
         } finally {
-            knowledgeBaseRepo.deleteFile(kbFile.id());
+            knowledgeBaseRepo.purgeFile(kbFile.id());
             boardTicketRepo.deleteTicket(ticket.id());
             boardRepo.delete(board.id());
             newsRepo.delete(news.id());

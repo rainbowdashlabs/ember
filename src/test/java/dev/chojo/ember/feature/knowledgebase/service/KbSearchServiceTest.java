@@ -64,7 +64,7 @@ class KbSearchServiceTest extends RepositoryTestBase {
         assertTrue(snippets.stream().anyMatch(r -> r.file().id() == file.id()));
         assertFalse(snippets.getFirst().snippet().isBlank());
 
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     /**
@@ -78,7 +78,7 @@ class KbSearchServiceTest extends RepositoryTestBase {
 
         assertTrue(service.search(station.id(), "Zumischer").stream().anyMatch(f -> f.id() == file.id()));
 
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     /**
@@ -94,8 +94,8 @@ class KbSearchServiceTest extends RepositoryTestBase {
         var blank = createFile(" ", " ");
         service.reindex(blank.id(), null);
 
-        knowledgeBaseRepo.deleteFile(named.id());
-        knowledgeBaseRepo.deleteFile(blank.id());
+        knowledgeBaseRepo.purgeFile(named.id());
+        knowledgeBaseRepo.purgeFile(blank.id());
     }
 
     @Test

@@ -38,6 +38,7 @@ import static org.mockito.Mockito.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class KnowledgeBaseServiceTest extends RepositoryTestBase {
     private static KnowledgeBaseService service;
+    private static KbTrashService trashService;
     private static KbAccessService accessService;
     private static KbFileStorageService fileStorage;
     private static KbLinkMetadataService linkMetadataService;
@@ -71,6 +72,13 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 new PresentationCompressor(storageConfig),
                 new PdfCompressor(storageConfig),
                 new ClusterAutoShareService(new ClusterRepository(), new FederationRepository()));
+        trashService = new KbTrashService(
+                knowledgeBaseRepo,
+                fileStorage,
+                contentService,
+                searchService,
+                accessService,
+                new KbAuthorNameService(stationMemberRepo, accountRepo));
         station = stationRepo.create("KbSvcStation");
         account = accountRepo.create("kb-svc@test.com", "Kb", "SvcTester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -157,8 +165,8 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         assertNotNull(child);
         var children = service.findFolders(station.id(), folderId);
         assertTrue(children.stream().anyMatch(f -> f.id() == child.id()));
-        assertTrue(service.deleteFolder(child.id()));
-        assertFalse(service.deleteFolder(child.id()));
+        assertTrue(trashService.deleteFolder(child.id(), member.id()));
+        assertFalse(trashService.deleteFolder(child.id(), member.id()));
     }
 
     @Test
@@ -170,7 +178,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var related = service.findRelatedFiles(fileId);
         assertTrue(related.stream().anyMatch(f -> f.id() == other.id()));
         service.setRelatedFiles(fileId, List.of());
-        knowledgeBaseRepo.deleteFile(other.id());
+        knowledgeBaseRepo.purgeFile(other.id());
     }
 
     /**
@@ -192,7 +200,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
 
         service.setRelatedFiles(fileId, List.of());
         assertTrue(service.findBacklinks(target.id()).isEmpty());
-        knowledgeBaseRepo.deleteFile(target.id());
+        knowledgeBaseRepo.purgeFile(target.id());
     }
 
     @Test
@@ -204,7 +212,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
 
         assertFalse(files.isEmpty());
         assertEquals(recent.id(), files.getFirst().id());
-        service.deleteFile(recent.id());
+        trashService.deleteFile(recent.id(), member.id());
     }
 
     @Test
@@ -222,7 +230,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         assertTrue(service.removeFavourite(member.id(), favFile.id()));
         assertFalse(service.isFavourite(member.id(), favFile.id()));
 
-        service.deleteFile(favFile.id());
+        trashService.deleteFile(favFile.id(), member.id());
     }
 
     @Test
@@ -232,8 +240,8 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var target = service.createMarkdownFile(station.id(), null, "TgtFile", "", "# Tgt", member.id());
         service.setSourceReference(target.id(), source.id(), station.id());
         assertTrue(service.findFile(target.id()).isPresent());
-        service.deleteFile(source.id());
-        service.deleteFile(target.id());
+        trashService.deleteFile(source.id(), member.id());
+        trashService.deleteFile(target.id(), member.id());
     }
 
     /**
@@ -250,7 +258,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         assertEquals(
                 "plain text content",
                 knowledgeBaseRepo.readTextContent(file.id()).orElseThrow());
-        service.deleteFile(file.id());
+        trashService.deleteFile(file.id(), member.id());
     }
 
     @Test
@@ -261,7 +269,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 service.createUploadedFile(station.id(), null, "photo.png", "A photo", data, "image/png", member.id());
         assertEquals(KbFileType.IMAGE, file.fileType());
         verify(fileStorage).store(eq(station.id()), eq(file.id()), any(), eq("image/png"));
-        service.deleteFile(file.id());
+        trashService.deleteFile(file.id(), member.id());
     }
 
     @Test
@@ -272,7 +280,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 station.id(), null, "document.pdf", "A PDF", pdfHeader, "application/pdf", member.id());
         assertEquals(KbFileType.PDF, file.fileType());
         assertTrue(knowledgeBaseRepo.readTextContent(file.id()).isEmpty());
-        service.deleteFile(file.id());
+        trashService.deleteFile(file.id(), member.id());
     }
 
     @Test
@@ -282,7 +290,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var file = service.createUploadedFile(
                 station.id(), null, "file.dat", "Binary data", data, "application/octet-stream", member.id());
         assertEquals(KbFileType.OTHER, file.fileType());
-        service.deleteFile(file.id());
+        trashService.deleteFile(file.id(), member.id());
     }
 
     /**
@@ -303,7 +311,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 member.id());
         assertEquals(KbFileType.PRESENTATION, file.fileType());
         assertNotNull(service.findFile(file.id()).orElseThrow().conversionStatus());
-        service.deleteFile(file.id());
+        trashService.deleteFile(file.id(), member.id());
     }
 
     @Test
@@ -319,7 +327,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 member.id());
         assertEquals(KbFileType.YOUTUBE, file.fileType());
         assertTrue(knowledgeBaseRepo.readTextContent(file.id()).orElseThrow().contains("Rick Astley"));
-        service.deleteFile(file.id());
+        trashService.deleteFile(file.id(), member.id());
     }
 
     @Test
@@ -330,7 +338,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 station.id(), null, "Offline Video", "", "https://www.youtube.com/watch?v=gone", member.id());
         assertEquals(KbFileType.YOUTUBE, file.fileType());
         assertTrue(knowledgeBaseRepo.readTextContent(file.id()).isEmpty());
-        service.deleteFile(file.id());
+        trashService.deleteFile(file.id(), member.id());
     }
 
     @Test
@@ -341,7 +349,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         assertEquals(KbFileType.LINK, file.fileType());
         assertEquals("Google", file.name());
         verify(linkMetadataService, never()).fetchUrlMetadata("https://google.com");
-        service.deleteFile(file.id());
+        trashService.deleteFile(file.id(), member.id());
     }
 
     /**
@@ -355,7 +363,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var file = service.createLinkFile(station.id(), null, "", "", "https://example.com", member.id());
         assertEquals("Example Domain", file.name());
         assertEquals("An example page", file.description());
-        service.deleteFile(file.id());
+        trashService.deleteFile(file.id(), member.id());
     }
 
     /**
@@ -368,7 +376,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var file = service.createLinkFile(station.id(), null, "", "", "https://silent.example", member.id());
         assertEquals("https://silent.example", file.name());
         assertEquals("", file.description());
-        service.deleteFile(file.id());
+        trashService.deleteFile(file.id(), member.id());
     }
 
     @Test
@@ -380,7 +388,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 station.id(), null, "", "Has a description", "https://example.com/page", member.id());
         assertEquals("Page Title", file.name());
         assertEquals("Has a description", file.description());
-        service.deleteFile(file.id());
+        trashService.deleteFile(file.id(), member.id());
     }
 
     /**
@@ -405,27 +413,14 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         assertTrue(service.findAllPublicFiles(station.id(), PublicKbMode.OFF).isEmpty());
 
         accessService.setRestrictions(null, hidden.id(), RestrictionSelection.empty());
-        service.deleteFile(visible.id());
-        service.deleteFile(hidden.id());
-    }
-
-    /**
-     * Deleting a file drops the binary payload behind it, so storage is not left holding orphans.
-     */
-    @Test
-    @Order(70)
-    void deleteFileAlsoDropsTheStoredPayload() {
-        var file = service.createUploadedFile(
-                station.id(), null, "doomed.bin", "", new byte[] {0x01}, "application/octet-stream", member.id());
-        assertTrue(service.deleteFile(file.id()));
-        verify(fileStorage).delete(station.id(), file.id());
-        assertFalse(service.deleteFile(file.id()));
+        trashService.deleteFile(visible.id(), member.id());
+        trashService.deleteFile(hidden.id(), member.id());
     }
 
     @Test
     @Order(99)
     void deleteFileAndFolder() {
-        assertTrue(service.deleteFile(fileId));
-        assertTrue(service.deleteFolder(folderId));
+        assertTrue(trashService.deleteFile(fileId, member.id()));
+        assertTrue(trashService.deleteFolder(folderId, member.id()));
     }
 }

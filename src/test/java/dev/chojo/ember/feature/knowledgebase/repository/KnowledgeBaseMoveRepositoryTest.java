@@ -64,7 +64,7 @@ class KnowledgeBaseMoveRepositoryTest extends RepositoryTestBase {
         assertTrue(descendants.contains(bottom));
         assertFalse(descendants.contains(top));
         assertTrue(knowledgeBaseRepo.descendantFolderIds(bottom).isEmpty());
-        knowledgeBaseRepo.deleteFolder(top);
+        knowledgeBaseRepo.purgeFolder(top);
     }
 
     @Test
@@ -82,8 +82,8 @@ class KnowledgeBaseMoveRepositoryTest extends RepositoryTestBase {
         assertTrue(knowledgeBaseRepo.moveFolder(source, null));
         assertNull(knowledgeBaseRepo.findFolderById(source).orElseThrow().parentId());
         assertFalse(knowledgeBaseRepo.moveFolder(999999, null));
-        knowledgeBaseRepo.deleteFolder(source);
-        knowledgeBaseRepo.deleteFolder(target);
+        knowledgeBaseRepo.purgeFolder(source);
+        knowledgeBaseRepo.purgeFolder(target);
     }
 
     @Test
@@ -101,8 +101,8 @@ class KnowledgeBaseMoveRepositoryTest extends RepositoryTestBase {
         assertFalse(knowledgeBaseRepo.moveFile(999999, null));
         assertTrue(knowledgeBaseRepo.findFileIdsInFolders(List.of()).isEmpty());
 
-        knowledgeBaseRepo.deleteFile(fileId);
-        knowledgeBaseRepo.deleteFolder(target);
+        knowledgeBaseRepo.purgeFile(fileId);
+        knowledgeBaseRepo.purgeFolder(target);
     }
 
     @Test
@@ -117,8 +117,8 @@ class KnowledgeBaseMoveRepositoryTest extends RepositoryTestBase {
         assertTrue(knowledgeBaseRepo.folderNameTaken(station.id(), null, "taken-root-name", 0));
         assertFalse(knowledgeBaseRepo.folderNameTaken(station.id(), null, "taken-root-name", rootOccupant));
 
-        knowledgeBaseRepo.deleteFolder(parent);
-        knowledgeBaseRepo.deleteFolder(rootOccupant);
+        knowledgeBaseRepo.purgeFolder(parent);
+        knowledgeBaseRepo.purgeFolder(rootOccupant);
     }
 
     @Test
@@ -131,8 +131,8 @@ class KnowledgeBaseMoveRepositoryTest extends RepositoryTestBase {
 
         assertFalse(recent.isEmpty());
         assertEquals(newer, recent.getFirst().id());
-        knowledgeBaseRepo.deleteFile(older);
-        knowledgeBaseRepo.deleteFile(newer);
+        knowledgeBaseRepo.purgeFile(older);
+        knowledgeBaseRepo.purgeFile(newer);
     }
 
     @Test
@@ -146,8 +146,8 @@ class KnowledgeBaseMoveRepositoryTest extends RepositoryTestBase {
         assertEquals(1, backlinks.size());
         assertEquals(source, backlinks.getFirst().id());
         assertTrue(knowledgeBaseRepo.findBacklinks(source).isEmpty());
-        knowledgeBaseRepo.deleteFile(source);
-        knowledgeBaseRepo.deleteFile(target);
+        knowledgeBaseRepo.purgeFile(source);
+        knowledgeBaseRepo.purgeFile(target);
     }
 
     @Test
@@ -178,7 +178,7 @@ class KnowledgeBaseMoveRepositoryTest extends RepositoryTestBase {
         assertTrue(knowledgeBaseRepo.findTagByName(station.id(), "KEPT").isPresent());
         assertTrue(knowledgeBaseRepo.findTagByName(station.id(), "never-used").isEmpty());
 
-        knowledgeBaseRepo.deleteFile(fileId);
-        knowledgeBaseRepo.deleteFolder(folderId);
+        knowledgeBaseRepo.purgeFile(fileId);
+        knowledgeBaseRepo.purgeFolder(folderId);
     }
 }

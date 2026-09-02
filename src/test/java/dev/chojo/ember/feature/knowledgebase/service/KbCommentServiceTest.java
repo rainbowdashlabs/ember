@@ -70,7 +70,7 @@ class KbCommentServiceTest extends RepositoryTestBase {
 
     @AfterAll
     static void cleanup() {
-        knowledgeBaseRepo.deleteFile(fileId);
+        knowledgeBaseRepo.purgeFile(fileId);
         stationRepo.delete(station.id());
         accountRepo.delete(account.id());
     }

@@ -53,6 +53,7 @@ class KbBulkServiceTest extends RepositoryTestBase {
     private static KbBulkService service;
     private static KbAccessService accessService;
     private static KbTagService tagService;
+    private static KbTrashService trashService;
     private static Station station;
     private static Account account;
     private static StationMember member;
@@ -98,11 +99,19 @@ class KbBulkServiceTest extends RepositoryTestBase {
                 mock(KbPdfExportService.class),
                 accessService);
         tagService = new KbTagService(knowledgeBaseRepo);
+        trashService = new KbTrashService(
+                knowledgeBaseRepo,
+                fileStorage,
+                contentService,
+                searchService,
+                accessService,
+                new KbAuthorNameService(stationMemberRepo, accountRepo));
         service = new KbBulkService(
                 knowledgeBaseRepo,
                 new KbMoveService(knowledgeBaseRepo, accessService, kbFederation, stationRepo),
                 tagService,
-                accessService);
+                accessService,
+                trashService);
 
         station = stationRepo.create("KbBulkStation");
         account = accountRepo.create("kb-bulk@test.com", "Kb", "Bulker");
@@ -162,8 +171,8 @@ class KbBulkServiceTest extends RepositoryTestBase {
 
         grant(null, locked.id(), null);
         accessService.setGrants(null, locked.id(), List.of());
-        knowledgeBaseRepo.deleteFile(locked.id());
-        knowledgeBaseRepo.deleteFolder(target.id());
+        knowledgeBaseRepo.purgeFile(locked.id());
+        knowledgeBaseRepo.purgeFolder(target.id());
     }
 
     /**
@@ -182,7 +191,7 @@ class KbBulkServiceTest extends RepositoryTestBase {
         assertEquals(10, outcome.refused().size());
         assertTrue(outcome.doneFileIds().isEmpty());
 
-        knowledgeBaseRepo.deleteFolder(target.id());
+        knowledgeBaseRepo.purgeFolder(target.id());
     }
 
     /**
@@ -211,8 +220,8 @@ class KbBulkServiceTest extends RepositoryTestBase {
                         .map(t -> t.name())
                         .toList());
 
-        knowledgeBaseRepo.deleteFile(article.id());
-        knowledgeBaseRepo.deleteFolder(folder.id());
+        knowledgeBaseRepo.purgeFile(article.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
     }
 
     @Test
@@ -241,8 +250,8 @@ class KbBulkServiceTest extends RepositoryTestBase {
                         .map(t -> t.name())
                         .toList());
 
-        knowledgeBaseRepo.deleteFile(article.id());
-        knowledgeBaseRepo.deleteFolder(folder.id());
+        knowledgeBaseRepo.purgeFile(article.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
     }
 
     @Test
@@ -270,7 +279,7 @@ class KbBulkServiceTest extends RepositoryTestBase {
 
         accessService.setGrants(readOnlyFolder.id(), null, List.of());
         accessService.setGrants(null, readOnlyFile.id(), List.of());
-        knowledgeBaseRepo.deleteFile(readOnlyFile.id());
-        knowledgeBaseRepo.deleteFolder(readOnlyFolder.id());
+        knowledgeBaseRepo.purgeFile(readOnlyFile.id());
+        knowledgeBaseRepo.purgeFolder(readOnlyFolder.id());
     }
 }

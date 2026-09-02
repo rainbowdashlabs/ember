@@ -519,7 +519,7 @@ class FederationServiceTest extends RepositoryTestBase {
         assertNotNull(share);
         assertTrue(service.deleteKbShare(share.id(), stationA.id()));
         assertFalse(service.deleteKbShare(share.id(), stationA.id())); // Already deleted
-        knowledgeBaseRepo.deleteFolder(folder.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
     }
 
     @Test
