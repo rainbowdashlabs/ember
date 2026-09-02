@@ -6439,7 +6439,13 @@ export default {
             BROKEN: 'Ist kaputt, Ersatz nötig',
         },
         exchangeRaised: 'Tausch läuft',
+        lossWaiting: 'Verlustmeldung vorgemerkt',
+        exchangeWaiting: 'Tausch vorgemerkt',
         raisedAtOnce: 'Beides gilt sofort und wartet auf niemanden. Es gehört nicht zu dem, was du abgibst.',
+        raisedAfterCorrection:
+            'Du stellst hier die Größe richtig. Was du zu diesem Stück meldest, wird vorgemerkt und geht hinaus, sobald die Wache die Richtigstellung übernommen hat, dann mit der Größe, die du angegeben hast.',
+        reportFellAway:
+            'Deine Vormerkung ist mit dieser Angabe weggefallen, denn sie hing daran. Du kannst sie neu stellen.',
         save: 'Zwischenspeichern',
         saved: 'Gespeichert. Du kannst später weitermachen.',
         submit: 'Abgeben',
@@ -6492,6 +6498,13 @@ export default {
             raised: {
                 LOSS: '{name} hat {item} als vermisst gemeldet',
                 EXCHANGE: '{name} hat für {item} einen Tausch angefragt',
+            },
+            waitingTitle: 'Wartet auf deine Richtigstellung',
+            waitingHint:
+                'Das hat noch nichts ausgelöst. Es geht hinaus, sobald du die zugehörige Angabe richtigstellst, und zwar mit der richtiggestellten Größe. Gibst du die Angabe stattdessen zurück, fällt es weg.',
+            waiting: {
+                LOSS: '{name} meldet {item} als vermisst, sobald die Erfassung stimmt',
+                EXCHANGE: '{name} fragt für {item} einen Tausch an, sobald die Erfassung stimmt',
             },
             typed: 'Eingetippt: {typed} -',
             heldBy: 'liegt bei {name}',

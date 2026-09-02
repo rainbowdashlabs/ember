@@ -9,6 +9,8 @@ import {
     SelfCheckAnswer,
     type SelfCheckAnswerBody,
     type SelfCheckAnswerName,
+    type SelfCheckRaisedKindName,
+    type SelfCheckRaisedStateName,
     type SelfCheckResponse,
     type SelfCheckRow,
 } from '@/api/selfChecks'
@@ -51,6 +53,45 @@ export const ExchangeCause = {
 
 export type ExchangeCauseName = (typeof ExchangeCause)[keyof typeof ExchangeCause]
 
+/** One thing the member set going about a piece, and how far it has actually got. */
+export interface RaisedReport {
+    kind: SelfCheckRaisedKindName
+    state: SelfCheckRaisedStateName
+}
+
+/**
+ * How far a report of one kind about one piece has got, or {@code null} where the member has not
+ * raised one.
+ *
+ * <p>A dropped one does not count as raised: the answer it hung on came to nothing, so the member is
+ * free to say the same thing again, and the screen says why it fell away rather than barring them.
+ */
+export function standingOf(reports: RaisedReport[], kind: SelfCheckRaisedKindName): SelfCheckRaisedStateName | null {
+    const mine = reports.filter(report => report.kind === kind)
+    if (mine.some(report => report.state === 'RAISED')) return 'RAISED'
+    if (mine.some(report => report.state === 'WAITING')) return 'WAITING'
+    if (mine.some(report => report.state === 'DROPPED')) return 'DROPPED'
+    return null
+}
+
+/**
+ * Whether a report about this entry has to wait for the station before it goes out.
+ *
+ * <p>It waits exactly where the member is putting a size right on the very line they are reporting
+ * about. Putting a record right does not edit the piece: it writes a new one and takes the old one
+ * off their name, so a report raised now would name the piece that is leaving and carry the size
+ * they have just disowned. Nowhere else does anything wait.
+ */
+export function waitsForCorrection(entry: SelfCheckEntry, draft: SelfCheckDraft): boolean {
+    return entry.type === 'piece' && draft.answer === SelfCheckAnswer.WRONG_RECORD && draft.sizeId !== ''
+}
+
+/** The size the member says the piece is, which is the one they put right where they put one right. */
+export function statedSizeOf(entry: SelfCheckEntry, draft: SelfCheckDraft): number | null {
+    if (entry.type !== 'piece') return null
+    return draft.sizeId ? Number(draft.sizeId) : (entry.item.sizeId ?? null)
+}
+
 /** The key a saved answer hangs on, which is the piece where there is one and the place where not. */
 export function entryKey(inventoryId: number, itemId?: number | null, slot?: number | null): string {
     return itemId != null ? `piece-${itemId}` : `place-${inventoryId}-${slot}`
@@ -86,6 +127,9 @@ export function answersFor(entry: SelfCheckEntry): SelfCheckAnswerName[] {
  *
  * <p>Nothing here settles anything. A loss and an exchange are raised through the screens that
  * already accept them and take effect at once, so neither is one of these answers.
+ *
+ * <p>One line breaks that: the one where the member is putting a size right. There the report is
+ * written down and waits, because the correction replaces the piece it would otherwise name.
  */
 export function useSelfCheck(task: Ref<SelfCheckResponse | null>) {
     const drafts = ref<Map<string, SelfCheckDraft>>(new Map())
@@ -202,12 +246,12 @@ export function useSelfCheck(task: Ref<SelfCheckResponse | null>) {
         }),
     )
 
-    /** What the member set going without waiting, keyed by the piece it was about. */
+    /** What the member set going about a piece, and whether each of them has actually gone out. */
     const raisedFor = computed(() => {
-        const map = new Map<number, string[]>()
+        const map = new Map<number, RaisedReport[]>()
         for (const raised of task.value?.raised ?? []) {
             if (raised.itemId == null) continue
-            map.set(raised.itemId, [...(map.get(raised.itemId) ?? []), raised.kind])
+            map.set(raised.itemId, [...(map.get(raised.itemId) ?? []), {kind: raised.kind, state: raised.state}])
         }
         return map
     })
