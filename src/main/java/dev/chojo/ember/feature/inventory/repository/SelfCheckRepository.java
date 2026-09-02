@@ -490,9 +490,7 @@ public class SelfCheckRepository {
                 UPDATE inventory_self_check_raised
                 SET state = 'RAISED', item_id = :item_id, movement_id = :movement_id
                 WHERE id = :id AND state = 'WAITING';""")
-                .single(call().bind("id", raisedId)
-                        .bind("item_id", itemId)
-                        .bind("movement_id", movementId))
+                .single(call().bind("id", raisedId).bind("item_id", itemId).bind("movement_id", movementId))
                 .update()
                 .changed();
     }
@@ -521,10 +519,7 @@ public class SelfCheckRepository {
         return query("""
                 UPDATE inventory_self_check_raised
                 SET state = 'DROPPED'
-                WHERE waits_for_row_id = :row_id AND state = 'WAITING';""")
-                .single(call().bind("row_id", rowId))
-                .update()
-                .rows();
+                WHERE waits_for_row_id = :row_id AND state = 'WAITING';""").single(call().bind("row_id", rowId)).update().rows();
     }
 
     /**

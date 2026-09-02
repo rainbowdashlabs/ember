@@ -353,8 +353,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
 
         assertTrue(held.waiting(), "the swap is written down rather than sent");
         assertNull(held.movementId(), "so no swap has reached the station yet");
-        assertTrue(
-                exchangesOf(shirt.id()).isEmpty(), "and nothing about the piece with the wrong size is on its way");
+        assertTrue(exchangesOf(shirt.id()).isEmpty(), "and nothing about the piece with the wrong size is on its way");
 
         selfCheckRepo.submit(task.id(), member.id());
         var review = selfCheckReviewService.correctAndTake(
