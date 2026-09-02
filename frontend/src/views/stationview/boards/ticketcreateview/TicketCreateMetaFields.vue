@@ -19,7 +19,8 @@ defineProps<{
     assignee: string
     dueDate: string
     createLaneOptions: BoardLane[]
-    members: MemberCompletion[]
+    /** Whom the new ticket may be handed to, which is who the picker offers. */
+    assignableMembers: MemberCompletion[]
     allLabels: BoardLabel[]
     selectedLabels: BoardLabel[]
 }>()
@@ -56,7 +57,7 @@ const { t } = useI18n()
         </div>
         <div>
             <FieldLabel class="mb-1">{{ t('boards.assignee') }}</FieldLabel>
-            <MemberSelectInput :model-value="assignee" :members="members" :placeholder="t('boards.unassigned')" @update:model-value="v => emit('update:assignee', String(v))" />
+            <MemberSelectInput :model-value="assignee" :members="assignableMembers" :placeholder="t('boards.unassigned')" @update:model-value="v => emit('update:assignee', String(v))" />
         </div>
         <div>
             <FieldLabel class="mb-1">{{ t('boards.dueDate') }}</FieldLabel>

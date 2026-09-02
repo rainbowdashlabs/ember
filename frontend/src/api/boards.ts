@@ -177,6 +177,16 @@ export async function getBoardMembers(boardKey: string): Promise<import('./stati
     return res.data
 }
 
+/**
+ * Whom a ticket on this board may be handed to, which is narrower than the station's members. The
+ * full list stays in use for reading names off tickets and comments, so somebody who was assigned
+ * a ticket before losing their write access keeps their name on it.
+ */
+export async function getAssignableMembers(boardKey: string): Promise<import('./stationMembers').MemberCompletion[]> {
+    const res = await client.get<import('./stationMembers').MemberCompletion[]>(`/boards/${boardKey}/assignable-members`)
+    return res.data
+}
+
 // -- Lanes --
 
 export async function getLanes(boardKey: string): Promise<BoardLane[]> {
