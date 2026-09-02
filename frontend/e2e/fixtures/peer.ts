@@ -55,9 +55,13 @@ export function homeInternalUrl(): string {
  * address the second instance writes down for the first when the two pair, and one the second
  * instance cannot actually call. Which is why a code always travels from the second instance to the
  * first here, and never back.
+ *
+ * It is the address the browser is on, so it follows the run's own base address rather than being
+ * named a second time: a checkout whose Nuxt server is on a derived port would otherwise publish a
+ * port nothing listens on.
  */
 export function homePublishedUrl(): string {
-    return process.env.E2E_HOME_PUBLISHED_URL ?? 'http://localhost:3010'
+    return process.env.E2E_HOME_PUBLISHED_URL ?? process.env.E2E_BASE_URL ?? 'http://localhost:3010'
 }
 
 /**
