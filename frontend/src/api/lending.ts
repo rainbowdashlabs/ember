@@ -243,6 +243,22 @@ export async function listAvailable(options?: { q?: string; from?: string; to?: 
     return res.data
 }
 
+/**
+ * What one row of the station's whole offer says, in the shape a single screen reads.
+ *
+ * <p>A row existing at all is what "shared" means: it says somebody has decided about this thing,
+ * and the grant then says which way. Reading the overview and reading one thing therefore give the
+ * same answer instead of two that could drift.
+ */
+export function settingOf(detail: ShareDetail): ShareSetting {
+    return {
+        shared: true,
+        grant: detail.share.shareGrant,
+        scope: detail.share.shareScope,
+        partnerIds: detail.partners.map(partner => partner.partnerId),
+    }
+}
+
 export async function listShares(): Promise<ShareDetail[]> {
     const res = await client.get<ShareDetail[]>('/lending/shares')
     return res.data

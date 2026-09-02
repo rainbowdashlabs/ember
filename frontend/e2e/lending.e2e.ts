@@ -183,6 +183,67 @@ test.describe('Lending offer', () => {
     })
 
     /**
+     * The switch where the inventories are, which is where somebody looking for it looks first.
+     *
+     * <p>The list carries the decision as a label and the control beside it, so turning an offer on
+     * and off again never means opening the inventory, and what every drawer is offered as is read
+     * off one screen.
+     */
+    test('the offer is switched on and off again from the list of inventories', async ({managerPage: page}) => {
+        const name = unique('Listenregal')
+        await stockedInventory(page, name)
+
+        await page.goto('/station/inventory/manage')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+        const card = page.getByTestId('inventory-card').filter({has: page.getByText(name, {exact: true})})
+        await expect(card.getByTestId('inventory-badge-share')).toHaveText('Nicht angeboten')
+
+        await card.getByTestId('lending-share-button').click()
+        await expect(page.getByTestId('lending-share-modal')).toBeVisible()
+        await page.getByTestId('lending-share-grant').selectOption('GRANT')
+        await page.getByTestId('lending-share-scope').selectOption('ALL_PARTNERS')
+        await page.getByTestId('lending-share-save').click()
+        await expect(card.getByTestId('inventory-badge-share')).toHaveText('Allen Partnerwachen angeboten')
+
+        await card.getByTestId('lending-share-button').click()
+        await expect(page.getByTestId('lending-share-modal')).toBeVisible()
+        await page.getByTestId('lending-share-clear').click()
+        await expect(card.getByTestId('inventory-badge-share')).toHaveText('Nicht angeboten')
+    })
+
+    /**
+     * An inventory of the body above the station is not the station's to lend, so the list offers no
+     * decision about it at all rather than one that would be refused on save.
+     */
+    test('an inventory of the body above the station offers no decision', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const name = unique('Kreisregal')
+        const created = await page.request.post('/api/v1/inventories', {
+            headers,
+            data: {name, inventoryType: 'EXTERNAL', hasSizes: false, homogeneous: false},
+        })
+        if (!created.ok()) throw new Error(`Creating the inventory answered ${created.status()}`)
+        const inventory = await created.json()
+
+        await page.goto('/station/inventory/manage')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+        const card = page.getByTestId('inventory-card').filter({has: page.getByText(name, {exact: true})})
+        await expect(card).toBeVisible()
+        await expect(card.getByTestId('inventory-badge-share')).toHaveCount(0)
+        await expect(card.getByTestId('lending-share-button')).toHaveCount(0)
+
+        await page.goto(`/station/inventory/detail/${inventory.id}`)
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+        await expect(page.getByTestId('lending-share-panel')).toHaveCount(0)
+
+        const refused = await page.request.put(`/api/v1/lending/shares/inventory/${inventory.id}`, {
+            headers,
+            data: {grant: 'GRANT', scope: 'ALL_PARTNERS', partnerIds: []},
+        })
+        expect(refused.status(), 'and the backend refuses it rather than writing it down').toBe(400)
+    })
+
+    /**
      * The screen the owning station reads its own offer off, which is the only place the two
      * decisions stand side by side.
      */
