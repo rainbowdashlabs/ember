@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.service;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
+import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
@@ -17,8 +18,10 @@ import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.SelfCheck;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckAnswer;
+import dev.chojo.ember.feature.inventory.entity.SelfCheckAnswerInput;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckIdentifierFinding;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckRaisedKind;
+import dev.chojo.ember.feature.inventory.entity.SelfCheckRaisedState;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckRecordRemoval;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckRow;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckRowState;
@@ -319,6 +322,213 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         assertNull(
                 inventoryRepo.findItemById(shirt.id()).orElseThrow().assignedTo(),
                 "the piece the record had wrong comes off the member");
+    }
+
+    /**
+     * The story this whole holding-back exists for: the record says 128, the member holds a 134 and
+     * says so, and asks for a swap in the same breath.
+     *
+     * <p>Raised at once, the swap would go out against the piece the correction is about to take off
+     * them and against the size they have just disowned. It waits instead, and the swap that reaches
+     * the station afterwards starts from the size that is now on the record.
+     */
+    @Test
+    void aSwapAskedForBesideACorrectedSizeWaitsAndThenStartsFromTheSizePutRight() {
+        InventorySize recorded = sizeOf("128");
+        InventorySize actual = sizeOf("134");
+        InventorySize asked = sizeOf("140");
+        InventoryItem shirt = held("SCR-HELD-SWAP", recorded);
+        SelfCheck task = selfCheckRepo.create(station.id(), member.id(), reviewer.id(), LocalDate.now());
+        SelfCheckRow row = saysTheSizeIsWrong(task, shirt, actual);
+
+        var held = selfCheckService.holdBack(
+                task.id(),
+                station.id(),
+                member.id(),
+                false,
+                SelfCheckRaisedKind.EXCHANGE,
+                shirt.id(),
+                asked.id(),
+                "Passt nicht mehr");
+
+        assertTrue(held.waiting(), "the swap is written down rather than sent");
+        assertNull(held.movementId(), "so no swap has reached the station yet");
+        assertTrue(
+                exchangesOf(shirt.id()).isEmpty(), "and nothing about the piece with the wrong size is on its way");
+
+        selfCheckRepo.submit(task.id(), member.id());
+        var review = selfCheckReviewService.correctAndTake(
+                task.id(),
+                row.id(),
+                station.id(),
+                reviewer.id(),
+                new ItemCorrection(sized.id(), null, null, null, null, "SCR-HELD-SWAP-B", null));
+
+        int put = review.rows().stream()
+                .filter(entry -> entry.row().id() == row.id())
+                .findFirst()
+                .orElseThrow()
+                .row()
+                .itemId();
+        assertEquals(actual.id(), inventoryRepo.findItemById(put).orElseThrow().sizeId(), "the record now says 134");
+
+        var raised = selfCheckRepo.findRaised(task.id()).stream()
+                .filter(entry -> entry.id() == held.id())
+                .findFirst()
+                .orElseThrow();
+        assertEquals(SelfCheckRaisedState.RAISED, raised.state(), "and the swap the member asked for has gone out");
+        assertEquals(put, raised.itemId(), "against the piece they are actually holding");
+        assertNotNull(raised.movementId(), "as a real swap the station can act on");
+
+        var swap = exchangeService.findById(raised.movementId()).orElseThrow();
+        assertEquals(actual.id(), swap.oldSizeId(), "starting from the size that was put right, not the wrong one");
+        assertEquals(asked.id(), swap.newSizeId(), "and asking for the one the member wants");
+        assertEquals("Passt nicht mehr", swap.reason(), "in the member's own words");
+    }
+
+    /**
+     * The counter-check: a line where nobody put anything right reports at once, exactly as it did
+     * before any of this existed. Only the line whose record is being replaced waits.
+     */
+    @Test
+    void aLossOnALineNobodyIsCorrectingStillGoesOutAtOnce() {
+        InventoryItem jacket = piece("SCR-INSTANT", "Jacket");
+        SelfCheck task = selfCheckRepo.create(station.id(), member.id(), reviewer.id(), LocalDate.now());
+
+        itemCustodyService.markLost(jacket.id(), "Weg", member.id());
+        var raised = selfCheckService.recordLoss(task.id(), station.id(), member.id(), false, jacket.id());
+
+        assertEquals(SelfCheckRaisedState.RAISED, raised.state(), "the loss waited for nobody");
+        assertEquals(
+                ItemCustody.LOST,
+                inventoryRepo.findItemById(jacket.id()).orElseThrow().custody(),
+                "and the piece counts as missing from the moment it was said");
+    }
+
+    /**
+     * Nothing waits where there is nothing to wait for. A member who has not said the record has the
+     * wrong size on it cannot write down a report that hangs on a correction nobody will make.
+     */
+    @Test
+    void aReportCannotBeHeldBackOnALineThatAsksForNoCorrection() {
+        InventoryItem shirt = held("SCR-NO-WAIT", sizeOf("128"));
+        SelfCheck task = selfCheckRepo.create(station.id(), member.id(), reviewer.id(), LocalDate.now());
+        selfCheckService.answer(
+                task.id(),
+                station.id(),
+                member.id(),
+                false,
+                List.of(new SelfCheckAnswerInput(shirt.id(), null, null, SelfCheckAnswer.HAVE_IT, "", null, null)));
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> selfCheckService.holdBack(
+                        task.id(),
+                        station.id(),
+                        member.id(),
+                        false,
+                        SelfCheckRaisedKind.LOSS,
+                        shirt.id(),
+                        null,
+                        "Weg"));
+    }
+
+    /**
+     * A held-back report rests on a statement the station has just declined to settle, so it goes
+     * with it rather than reaching the station on its own later.
+     */
+    @Test
+    void aReportHeldBackFallsAwayWithTheAnswerItHungOn() {
+        InventoryItem shirt = held("SCR-HELD-REFUSED", sizeOf("128"));
+        SelfCheck task = selfCheckRepo.create(station.id(), member.id(), reviewer.id(), LocalDate.now());
+        SelfCheckRow row = saysTheSizeIsWrong(task, shirt, sizeOf("134"));
+        var held = selfCheckService.holdBack(
+                task.id(), station.id(), member.id(), false, SelfCheckRaisedKind.LOSS, shirt.id(), null, "Weg");
+        selfCheckRepo.submit(task.id(), member.id());
+
+        selfCheckReviewService.refuse(task.id(), row.id(), station.id(), reviewer.id(), "Bitte noch einmal nachsehen");
+
+        var dropped = selfCheckRepo.findRaised(task.id()).stream()
+                .filter(entry -> entry.id() == held.id())
+                .findFirst()
+                .orElseThrow();
+        assertEquals(SelfCheckRaisedState.DROPPED, dropped.state(), "the report went with the answer");
+        assertEquals(
+                ItemCustody.WITH_MEMBER,
+                inventoryRepo.findItemById(shirt.id()).orElseThrow().custody(),
+                "and nothing was ever written against the piece");
+    }
+
+    /**
+     * The member withdrawing the statement themselves has the same effect, because the report rested
+     * on that statement and on nothing else.
+     */
+    @Test
+    void answeringTheLineDifferentlyLetsGoOfWhatWasHeldBack() {
+        InventoryItem shirt = held("SCR-HELD-REANSWERED", sizeOf("128"));
+        SelfCheck task = selfCheckRepo.create(station.id(), member.id(), reviewer.id(), LocalDate.now());
+        saysTheSizeIsWrong(task, shirt, sizeOf("134"));
+        var held = selfCheckService.holdBack(
+                task.id(), station.id(), member.id(), false, SelfCheckRaisedKind.LOSS, shirt.id(), null, "Weg");
+
+        selfCheckService.answer(
+                task.id(),
+                station.id(),
+                member.id(),
+                false,
+                List.of(new SelfCheckAnswerInput(shirt.id(), null, null, SelfCheckAnswer.HAVE_IT, "", null, null)));
+
+        assertEquals(
+                SelfCheckRaisedState.DROPPED,
+                selfCheckRepo.findRaised(task.id()).stream()
+                        .filter(entry -> entry.id() == held.id())
+                        .findFirst()
+                        .orElseThrow()
+                        .state());
+    }
+
+    /** One of the sizes this test's gear comes in, written down the first time it is asked for. */
+    private static InventorySize sizeOf(String label) {
+        return inventoryRepo.findSizes(sized.id()).stream()
+                .filter(size -> label.equals(size.label()))
+                .findFirst()
+                .orElseGet(() -> {
+                    inventoryRepo.createSize(sized.id(), label, label.hashCode(), "");
+                    return inventoryRepo.findSizes(sized.id()).stream()
+                            .filter(size -> label.equals(size.label()))
+                            .findFirst()
+                            .orElseThrow();
+                });
+    }
+
+    /** A piece of the sized gear, on the member's record at the size the station wrote down. */
+    private static InventoryItem held(String internalId, InventorySize recorded) {
+        InventoryItem item = inventoryRepo.createItem(sized.id(), internalId, "Shirt", recorded.id(), null);
+        itemCustodyService.assignToMember(item.id(), member.id(), "");
+        return inventoryRepo.findItemById(item.id()).orElseThrow();
+    }
+
+    /** The member saying, through their own service, that the record has the wrong size on this piece. */
+    private static SelfCheckRow saysTheSizeIsWrong(SelfCheck task, InventoryItem item, InventorySize actual) {
+        return selfCheckService
+                .answer(
+                        task.id(),
+                        station.id(),
+                        member.id(),
+                        false,
+                        List.of(new SelfCheckAnswerInput(
+                                item.id(), null, null, SelfCheckAnswer.WRONG_RECORD, "", null, actual.id())))
+                .stream()
+                .filter(row -> row.itemId() != null && row.itemId() == item.id())
+                .findFirst()
+                .orElseThrow();
+    }
+
+    /** Every swap on its way about one piece, which before a correction ought to be none. */
+    private static List<ExchangeRequest> exchangesOf(int itemId) {
+        return exchangeService.findByStation(station.id()).stream()
+                .filter(request -> request.itemId() != null && request.itemId() == itemId)
+                .toList();
     }
 
     @Test

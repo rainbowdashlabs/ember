@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.inventory.entity.SelfCheckAnswer;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckAnswerInput;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckRaised;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckRaisedKind;
+import dev.chojo.ember.feature.inventory.entity.SelfCheckRaisedState;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckRow;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.SelfCheckRepository;
@@ -269,6 +270,112 @@ public class SelfCheckService {
     }
 
     /**
+     * Writes down a loss or an exchange the member wants but that must not go out yet, because they
+     * have said in the same breath that the record it names has the wrong size on it.
+     *
+     * <p>Nothing happens here beyond the writing, and that is the point. Putting a record right does
+     * not edit the piece: it writes a new one carrying the size the member gave and takes the old one
+     * off their name. A report raised before that lands on the piece that is leaving and carries the
+     * size the member has just disowned, which is the station acting on a fact its own member has
+     * corrected. It goes out when a reviewer takes the correction, against the piece and the size
+     * that are true by then.
+     *
+     * <p>Only a line that asks for a size to be put right waits. Every other loss and every other
+     * exchange is as immediate here as it is on the member's own equipment page, because there is no
+     * record about to be replaced underneath it.
+     *
+     * @param kind      whether the member cannot find it or wants it swapped
+     * @param itemId    the piece it is about
+     * @param newSizeId the size an exchange asks for, ignored on a loss
+     * @param words     the note on a loss, the reason on an exchange
+     * @return the report as it was written down
+     * @throws BadRequestResponse when the piece is not the member's, when nothing on that line asks
+     *                            for a size to be put right, or when such a report is already waiting
+     */
+    public SelfCheckRaised holdBack(
+            int taskId,
+            int stationId,
+            int memberId,
+            boolean guardian,
+            SelfCheckRaisedKind kind,
+            int itemId,
+            Integer newSizeId,
+            String words) {
+        SelfCheck task = require(taskId, stationId, memberId, guardian);
+        requireOpen(task);
+        InventoryItem item = inventoryRepository
+                .findItemById(itemId)
+                .orElseThrow(() -> new BadRequestResponse("This piece does not exist"));
+        if (item.assignedTo() == null || item.assignedTo() != task.memberId()) {
+            throw new BadRequestResponse("This piece is not on this member's record");
+        }
+        if (kind == SelfCheckRaisedKind.LOSS && item.borrowed()) {
+            throw new BadRequestResponse(
+                    "This gear belongs to a partner station. Tell them on the lending request it came in on");
+        }
+        SelfCheckRow row = correctedSizeRow(taskId, itemId);
+        requireNothingLikeItYet(taskId, kind, itemId);
+        Integer wanted = kind == SelfCheckRaisedKind.EXCHANGE ? wantedSize(item, newSizeId) : null;
+        var held = repository.recordWaiting(
+                taskId, kind, itemId, row.id(), wanted, words == null ? "" : words.strip(), memberId);
+        log.info(
+                "Self-check {} holds a {} on piece {} back until answer {} is put right",
+                taskId,
+                kind,
+                itemId,
+                row.id());
+        return held;
+    }
+
+    /**
+     * The answer this report waits on: the member's own statement, on this very piece, that the
+     * record has the wrong size on it.
+     *
+     * <p>It has to be saved before the report can be written down, because the report hangs on it and
+     * an answer nobody has saved is not something anything can hang on.
+     */
+    private SelfCheckRow correctedSizeRow(int taskId, int itemId) {
+        return repository.findRows(taskId).stream()
+                .filter(row -> row.itemId() != null && row.itemId() == itemId)
+                .filter(row -> row.answer() == SelfCheckAnswer.WRONG_RECORD && row.sizeId() != null)
+                .findFirst()
+                .orElseThrow(() -> new BadRequestResponse(
+                        "Save the size you are actually holding before reporting anything about this piece"));
+    }
+
+    /**
+     * Refuses a second report of the same kind about the same piece, whether the first one went out
+     * or is still waiting. A report that was dropped is not one of them: the line it hung on came to
+     * nothing, and the member may say the same thing again.
+     */
+    private void requireNothingLikeItYet(int taskId, SelfCheckRaisedKind kind, int itemId) {
+        boolean already = repository.findRaised(taskId).stream()
+                .filter(raised -> raised.state() != SelfCheckRaisedState.DROPPED)
+                .anyMatch(raised -> raised.kind() == kind && raised.itemId() != null && raised.itemId() == itemId);
+        if (already) {
+            throw new BadRequestResponse("This has already been reported for this piece");
+        }
+    }
+
+    /**
+     * The size a held-back exchange asks for, which the inventory has to keep and which the exchange
+     * screens only offer where the inventory holds one thing in many copies.
+     */
+    private Integer wantedSize(InventoryItem item, Integer newSizeId) {
+        if (!inventoryRepository
+                .findById(item.inventoryId())
+                .orElseThrow(() -> new BadRequestResponse("This inventory does not exist"))
+                .homogeneous()) {
+            throw new BadRequestResponse("This kind of gear is not swapped by size");
+        }
+        if (newSizeId == null) return null;
+        if (inventoryRepository.findSizes(item.inventoryId()).stream().noneMatch(size -> size.id() == newSizeId)) {
+            throw new BadRequestResponse("This size is not one this kind of gear comes in");
+        }
+        return newSizeId;
+    }
+
+    /**
      * Ends every task a member still holds, which is what leaving the station does to them.
      *
      * @param memberId the member leaving
@@ -350,8 +457,25 @@ public class SelfCheckService {
         }
         Integer sizeId =
                 statedSize(input, inventoryRepository.findSizes(item.inventoryId()), SelfCheckAnswer.WRONG_RECORD);
-        repository.answerForItem(
+        SelfCheckRow row = repository.answerForItem(
                 task.id(), item.id(), item.inventoryId(), input.answer(), note, null, sizeId, enteredBy);
+        dropWhatNoLongerHasAnythingToWaitFor(row);
+    }
+
+    /**
+     * Lets go of any report held back on a line the member has now answered some other way.
+     *
+     * <p>A held-back report rests on one statement: that the record has the wrong size on it. Saying
+     * something else about the same piece withdraws that statement, and a report resting on a
+     * withdrawn statement has nothing left to wait for. The member is the one withdrawing it and is
+     * looking at the line while they do, so the line saying so is the whole telling.
+     */
+    private void dropWhatNoLongerHasAnythingToWaitFor(SelfCheckRow row) {
+        if (row.answer() == SelfCheckAnswer.WRONG_RECORD) return;
+        int dropped = repository.dropWaitingFor(row.id());
+        if (dropped > 0) {
+            log.info("Answer {} was given again, so {} held-back report(s) will not go out", row.id(), dropped);
+        }
     }
 
     private void writeAboutPlace(

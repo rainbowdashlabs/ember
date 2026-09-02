@@ -498,6 +498,20 @@ public class SelfCheckRepository {
     }
 
     /**
+     * Writes the movement an exchange produced onto the report that asked for it.
+     *
+     * <p>Kept apart from the claim above so the claim comes first, the way the check on a finished
+     * task does: whoever wins the claim is the one that raises the exchange, and the movement it
+     * produced can only be named once it exists.
+     */
+    public void attachMovement(int raisedId, int movementId) {
+        query("""
+                UPDATE inventory_self_check_raised SET movement_id = :movement_id WHERE id = :id;""")
+                .single(call().bind("id", raisedId).bind("movement_id", movementId))
+                .update();
+    }
+
+    /**
      * Drops every report still waiting on one answer, because that answer has come to nothing.
      *
      * @param rowId the answer
