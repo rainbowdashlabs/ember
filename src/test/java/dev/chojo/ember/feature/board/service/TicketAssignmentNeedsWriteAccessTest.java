@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.LanePreset;
@@ -29,6 +30,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -195,6 +197,56 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
 
         assertTrue(allowed.contains(writer.id()));
         assertTrue(allowed.contains(boardManager.id()));
-        assertTrue(!allowed.contains(outsider.id()), "somebody outside the board's crew is not offered");
+        assertFalse(allowed.contains(outsider.id()), "somebody outside the board's crew is not offered");
+    }
+
+    /** A board nobody is kept out of offers the whole station. */
+    @Test
+    void aBoardWithoutRestrictionsOffersEverybody() {
+        int open = boardService.create(station.id(), "Open Board", "", "OPN").id();
+
+        var allowed = boardService.findMembersWhoMayEdit(open, station.id());
+
+        assertTrue(allowed.contains(writer.id()));
+        assertTrue(allowed.contains(outsider.id()));
+    }
+
+    /**
+     * Where a board says nothing about who may write, whoever may read it may write on it, and the
+     * list follows that fallback rather than answering with nobody.
+     */
+    @Test
+    void aBoardThatOnlyRestrictsReadingFallsBackToWhoMayRead() {
+        int readOnly =
+                boardService.create(station.id(), "Reading Board", "", "RDG").id();
+        var readers = new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, noBus())
+                .create(station.id(), "Reading Crew");
+        new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, noBus())
+                .setMembers(readers.id(), List.of(writer.id()), null);
+        boardService.setViewAccess(readOnly, List.of(), List.of(readers.id()), List.of());
+
+        var allowed = boardService.findMembersWhoMayEdit(readOnly, station.id());
+
+        assertTrue(allowed.contains(writer.id()));
+        assertFalse(allowed.contains(outsider.id()));
+    }
+
+    /** The other two ways a board names who belongs on it: by what somebody is, and by their tag. */
+    @Test
+    void aBoardOpenedByUserTypeOrByTagOffersThosePeople() {
+        int byType = boardService.create(station.id(), "Type Board", "", "TYP").id();
+        boardService.setEditAccess(byType, List.of(StationUserType.MEMBER), List.of(), List.of());
+
+        assertTrue(boardService.findMembersWhoMayEdit(byType, station.id()).contains(writer.id()));
+
+        int byTag = boardService.create(station.id(), "Tag Board", "", "TAG").id();
+        var tagService = new UserTagService(userTagRepo, memberGroupRepo);
+        var tag = tagService.create(station.id(), "Assignment Tag");
+        tagService.setMembers(tag.id(), List.of(outsider.id()));
+        boardService.setEditAccess(byTag, List.of(), List.of(), List.of(tag.id()));
+
+        var allowed = boardService.findMembersWhoMayEdit(byTag, station.id());
+        assertTrue(allowed.contains(outsider.id()));
+        assertFalse(allowed.contains(writer.id()));
     }
 }
