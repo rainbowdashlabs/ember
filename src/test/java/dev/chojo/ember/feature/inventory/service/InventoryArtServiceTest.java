@@ -84,7 +84,7 @@ class InventoryArtServiceTest extends RepositoryTestBase {
     void kindsExistOnlyInADrawerOfDifferentThings() {
         Inventory uniform = oneThing();
         var refused = assertThrows(BadRequestResponse.class, () -> artService.create(uniform.id(), "blau", "", 0));
-        assertTrue(refused.getMessage().contains("drawer"));
+        assertTrue(refused.getMessage().contains("collection"));
 
         Inventory drawer = drawer();
         InventoryArt art = artService.create(drawer.id(), "Funkgerät blau", "", 0);
