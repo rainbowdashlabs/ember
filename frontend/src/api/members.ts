@@ -11,6 +11,8 @@ export interface InviteRequest {
     email?: string
     firstName?: string
     lastName?: string
+    /** Whether the setup mail leaves with the account. Absent means it does. */
+    sendSetupMail?: boolean
 }
 
 export interface InviteResponse {

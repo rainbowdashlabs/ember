@@ -13,6 +13,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SingleSelectDropdown from '@/components/input/select/SingleSelectDropdown.vue'
+import SetupMailChoice from '@/components/input/toggle/SetupMailChoice.vue'
 import ProfileFieldsDisplay from '@/components/profilefields/ProfileFieldsDisplay.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -39,7 +40,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   linkManager: [managerId: number]
   removeManager: [managerId: number]
-  createManager: [data: { firstName: string; lastName: string; email: string }]
+  createManager: [data: { firstName: string; lastName: string; email: string; sendSetupMail: boolean }]
   editManager: [managerId: number]
 }>()
 
@@ -57,6 +58,7 @@ const showCreateManager = ref(false)
 const newMgrFirstName = ref('')
 const newMgrLastName = ref('')
 const newMgrEmail = ref('')
+const sendSetupMail = ref(true)
 
 function doLinkManager() {
   if (!selectedManagerId.value) return
@@ -71,11 +73,13 @@ function doCreateManager() {
     firstName: newMgrFirstName.value,
     lastName: newMgrLastName.value,
     email: newMgrEmail.value,
+    sendSetupMail: sendSetupMail.value,
   })
   showCreateManager.value = false
   newMgrFirstName.value = ''
   newMgrLastName.value = ''
   newMgrEmail.value = ''
+  sendSetupMail.value = true
 }
 </script>
 
@@ -143,6 +147,7 @@ function doCreateManager() {
         <TextInput v-model="newMgrLastName" :placeholder="t('memberDetail.lastName')" />
         <TextInput v-model="newMgrEmail" :placeholder="t('memberDetail.email')" />
       </div>
+      <SetupMailChoice v-model="sendSetupMail"/>
       <SecondaryButton :icon="['fas', 'plus']" :disabled="!newMgrFirstName || !newMgrLastName || !newMgrEmail" @click="doCreateManager">
         {{ t('memberDetail.createManagerSubmit') }}
       </SecondaryButton>

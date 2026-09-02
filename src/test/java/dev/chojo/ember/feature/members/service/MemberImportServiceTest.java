@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
@@ -49,6 +50,11 @@ class MemberImportServiceTest extends RepositoryTestBase {
     private static Station station;
     private static AuthService authService;
 
+    private static MemberImportService.ImportResult importMembers(
+            int stationId, String csv, String separator, List<ColumnMapping> mappings, List<Integer> ignored) {
+        return service.importMembers(stationId, csv, separator, mappings, ignored, SetupMail.SEND_NOW);
+    }
+
     @BeforeAll
     static void setup() {
         authService = mock(AuthService.class);
@@ -87,7 +93,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
     void anImportedMemberIsInvitedAndCarriesNoPassword() {
         String csv = "Vorname;Name;Mail\nMax;Müller;max.mueller@example.org\n";
 
-        var result = service.importMembers(
+        var result = importMembers(
                 station.id(),
                 csv,
                 ";",
@@ -100,13 +106,57 @@ class MemberImportServiceTest extends RepositoryTestBase {
         verify(authService).sendPasswordSetup(accountId);
     }
 
+    /**
+     * A whole year group is often written down long before anybody is meant to hear about it, so the
+     * import can be told to leave the mails for later without leaving the accounts unusable.
+     */
+    @Test
+    void anImportCanBeToldToHoldTheSetupMailsBack() {
+        String csv = "Vorname;Name;Mail\nMerle;Später;merle.spaeter@example.org\n";
+
+        var result = service.importMembers(
+                station.id(),
+                csv,
+                ";",
+                List.of(map("Vorname", "firstName"), map("Name", "lastName"), map("Mail", "email")),
+                List.of(),
+                SetupMail.LATER);
+
+        assertEquals(1, result.membersCreated());
+        int accountId = stationMemberRepo.findById(onlyMember()).orElseThrow().accountId();
+        assertTrue(accountRepo.findCredential(accountId).isEmpty());
+        verify(authService, never()).sendPasswordSetup(anyInt());
+    }
+
+    /** The contacts a row names are held back with the member they belong to, not sent on their own. */
+    @Test
+    void aHeldBackImportDoesNotWriteToTheContactsEither() {
+        String csv = "Vorname;Name;Mail;EVorname;EName;EMail\n"
+                + "Kai;Später;kai.spaeter@example.org;Petra;Später;petra.spaeter@example.org\n";
+
+        service.importMembers(
+                station.id(),
+                csv,
+                ";",
+                List.of(
+                        map("Vorname", "firstName"),
+                        map("Name", "lastName"),
+                        map("Mail", "email"),
+                        map("EVorname", "manager:1:firstName"),
+                        map("EName", "manager:1:lastName"),
+                        map("EMail", "manager:1:email")),
+                List.of(),
+                SetupMail.LATER);
+
+        verify(authService, never()).sendPasswordSetup(anyInt());
+    }
+
     /** Somebody without an address of their own is not written to, because there is nowhere to write. */
     @Test
     void aMemberWithoutAnAddressIsNotWrittenTo() {
         String csv = "Vorname;Name\nErika;Musterfrau\n";
 
-        service.importMembers(
-                station.id(), csv, ";", List.of(map("Vorname", "firstName"), map("Name", "lastName")), List.of());
+        importMembers(station.id(), csv, ";", List.of(map("Vorname", "firstName"), map("Name", "lastName")), List.of());
 
         verify(authService, never()).sendPasswordSetup(anyInt());
     }
@@ -157,7 +207,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
         int phone = field("Mobilnummer", ProfileFieldType.TEXT);
         String csv = "Vorname;Name;Telefon\nMax;Müller;01700000000\n";
 
-        var result = service.importMembers(
+        var result = importMembers(
                 station.id(),
                 csv,
                 ";",
@@ -174,7 +224,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
         int nickname = field("Spitzname", ProfileFieldType.TEXT);
         String csv = "Vorname;Name;Spitzname\nMax;Müller;der \"Lange\"\n";
 
-        service.importMembers(
+        importMembers(
                 station.id(),
                 csv,
                 ";",
@@ -192,7 +242,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
         int juleica = field("Juleica", ProfileFieldType.BOOLEAN);
         String csv = "Vorname;Name;Geburtstag;Schuhe;Juleica\nMax;Müller;04.03.2011;42;Ja\n";
 
-        service.importMembers(
+        importMembers(
                 station.id(),
                 csv,
                 ";",
@@ -216,7 +266,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
         int nickname = field("Spitzname", ProfileFieldType.TEXT);
         String csv = "Vorname;Name;Spitzname\n  Max  ;  Müller  ;  Maxi  \n";
 
-        service.importMembers(
+        importMembers(
                 station.id(),
                 csv,
                 ";",
@@ -238,8 +288,8 @@ class MemberImportServiceTest extends RepositoryTestBase {
         String csv = "Vorname;Name;Email\nMax;Müller;max@example.com\n";
         var mappings = List.of(map("Vorname", "firstName"), map("Name", "lastName"), map("Email", "email"));
 
-        service.importMembers(station.id(), csv, ";", mappings, List.of());
-        var again = service.importMembers(station.id(), csv, ";", mappings, List.of());
+        importMembers(station.id(), csv, ";", mappings, List.of());
+        var again = importMembers(station.id(), csv, ";", mappings, List.of());
 
         assertEquals(0, again.membersCreated(), "nobody new the second time");
         assertEquals(1, stationMemberRepo.findByStation(station.id()).size());
@@ -257,8 +307,8 @@ class MemberImportServiceTest extends RepositoryTestBase {
         String csv = "Vorname;Name\nMax;Müller\n";
         var mappings = List.of(map("Vorname", "firstName"), map("Name", "lastName"));
 
-        service.importMembers(station.id(), csv, ";", mappings, List.of());
-        var again = service.importMembers(station.id(), "Vorname;Name\n  max  ;  MÜLLER  \n", ";", mappings, List.of());
+        importMembers(station.id(), csv, ";", mappings, List.of());
+        var again = importMembers(station.id(), "Vorname;Name\n  max  ;  MÜLLER  \n", ";", mappings, List.of());
 
         assertEquals(0, again.membersCreated(), "spelling and spacing do not make a second person");
         assertEquals(1, stationMemberRepo.findByStation(station.id()).size());
@@ -270,7 +320,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
         String csv = "Vorname;Name\nMax;Müller\nLena;Fischer\n";
         var mappings = List.of(map("Vorname", "firstName"), map("Name", "lastName"));
 
-        var result = service.importMembers(station.id(), csv, ";", mappings, List.of(0));
+        var result = importMembers(station.id(), csv, ";", mappings, List.of(0));
 
         assertEquals(1, result.membersCreated());
         var members = stationMemberRepo.findByStation(station.id());
@@ -300,7 +350,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
         String csv = "Vorname;Name;Kontakt;Telefon;Kontakt Email\n"
                 + "Lena;Sommer;Rita Sommer;01700000000;rita@example.com\n";
 
-        var result = service.importMembers(
+        var result = importMembers(
                 station.id(),
                 csv,
                 ";",
@@ -328,7 +378,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
     void aParentWithoutAnAddressIsStillWrittenDown() {
         String csv = "Vorname;Name;Kontakt;Telefon\nLena;Sommer;Rita Sommer;01700000000\n";
 
-        var result = service.importMembers(
+        var result = importMembers(
                 station.id(),
                 csv,
                 ";",
@@ -353,7 +403,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
     void aWholeNameInOneColumnIsReadAsTwo() {
         String csv = "Vorname;Name;Kontakt\nLena;Sommer;Rita Sommer\n";
 
-        service.importMembers(
+        importMembers(
                 station.id(),
                 csv,
                 ";",
@@ -391,7 +441,7 @@ class MemberImportServiceTest extends RepositoryTestBase {
             mappings.add(map(type.name(), "field:" + id));
         }
 
-        var result = service.importMembers(station.id(), header + "\n" + row + "\n", ";", mappings, List.of());
+        var result = importMembers(station.id(), header + "\n" + row + "\n", ";", mappings, List.of());
 
         assertEquals(1, result.membersCreated());
         int member = onlyMember();

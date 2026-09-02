@@ -91,10 +91,15 @@ export function useMemberManagers(
     } catch { error.value = t('common.error') }
   }
 
-  async function createManager(data: { firstName: string; lastName: string; email: string }) {
+  async function createManager(data: { firstName: string; lastName: string; email: string; sendSetupMail?: boolean }) {
     error.value = ''
     try {
-      const invited = await members.invite({ email: data.email, firstName: data.firstName, lastName: data.lastName })
+      const invited = await members.invite({
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        sendSetupMail: data.sendSetupMail,
+      })
       const updatedMembers = await stationMembers.listMembers()
       const newMember = updatedMembers.find(m => m.accountId === invited.id)
       if (newMember) {

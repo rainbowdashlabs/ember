@@ -192,6 +192,13 @@ export interface SessionInfo {
      * calendar are kept. Those screens are the station's own, so they ask the station's own question.
      */
     ownStationPermissions?: string[]
+    /**
+     * Whether this instance has anywhere to send system mail through at all. Invitations, setup links
+     * and password resets all leave through the instance rather than through a station's own provider,
+     * so a screen offering to send one can ask this. It says nothing about whether a particular person
+     * can be reached, which is a question about addresses and is answered per member.
+     */
+    canSendMail?: boolean
 }
 
 export interface ThemeSessionInfo {

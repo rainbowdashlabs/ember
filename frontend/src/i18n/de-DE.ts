@@ -1859,6 +1859,14 @@ export default {
         apply: 'Anwenden',
         columns: 'Spalten',
     },
+    setupMailChoice: {
+        label: 'Einrichtungs-Mail sofort senden',
+        hintNow: 'Die Mail mit dem Einrichtungs-Link geht direkt hinaus.',
+        hintLater: 'Es geht keine Mail hinaus. Du versendest sie später über den Knopf in der '
+            + 'Mitgliederliste, der dabei einen frischen Link erzeugt.',
+        noMailServer: 'Diese Instanz hat keinen Mailserver eingerichtet und versendet keine '
+            + 'Einrichtungs-Mails. Gib den Einrichtungs-Link selbst weiter.',
+    },
     membersList: {
         accountPending: 'Konto noch nicht eingerichtet - die Person hat sich noch kein Passwort gesetzt.',
         accountPendingExpires: 'Der zugesendete Link ist gültig bis {date}.',

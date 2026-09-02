@@ -16,6 +16,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import SetupMailChoice from '@/components/input/toggle/SetupMailChoice.vue'
 import {memberGroups, stationMemberInvites} from '@/api'
 import type {MemberGroup} from '@/api/types'
 import type {GuardianRequest, InviteEntry} from '@/api/stationMemberInvites'
@@ -28,6 +29,7 @@ const router = useRouter()
 const {reload} = useSetupStatus()
 
 const tab = ref<'bulk' | 'rich' | 'csv'>('rich')
+const sendSetupMail = ref(true)
 
 const bulkText = ref('')
 const bulkUserType = ref('MEMBER')
@@ -95,7 +97,10 @@ const expandedBulk = computed(() => {
 })
 
 const {running: saving, error, run: runSave, clearError} = useAsyncAction(async (payload: InviteEntry[]) => {
-    const result = await stationMemberInvites.createInvites({invites: payload})
+    const result = await stationMemberInvites.createInvites({
+        invites: payload,
+        sendSetupMail: sendSetupMail.value,
+    })
     successCount.value = result.provisioned.length
     await reload()
     goToNextStep(router, 'invites')
@@ -201,5 +206,7 @@ function save() {
       </div>
       <SecondaryButton @click="addRichRow">{{ t('setup.actions.addRow') }}</SecondaryButton>
     </div>
+
+    <SetupMailChoice v-if="tab !== 'csv'" v-model="sendSetupMail" class="pt-2"/>
   </SetupLayout>
 </template>

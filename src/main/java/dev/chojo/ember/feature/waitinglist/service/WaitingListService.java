@@ -12,6 +12,7 @@ import dev.chojo.ember.event.events.WaitlistInvitationAnswered;
 import dev.chojo.ember.event.events.WaitlistPublicRegistration;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
+import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -1179,7 +1180,7 @@ public class WaitingListService {
                         ? accountInviteService.createWithoutAddress(
                                 stationId, guardian.firstname(), guardian.lastname())
                         : accountInviteService.resolveOrCreate(
-                                stationId, address, guardian.firstname(), guardian.lastname());
+                                stationId, address, guardian.firstname(), guardian.lastname(), SetupMail.SEND_NOW);
             } catch (AccountInviteService.EmailInUseException e) {
                 log.warn("Guardian of member {} was not taken on: {} is somebody else's", entry.memberId(), address);
                 continue;

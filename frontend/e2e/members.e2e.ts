@@ -594,6 +594,47 @@ test.describe('Members', () => {
     })
 
     /**
+     * A whole year group is written down long before anybody is meant to hear about it, so the
+     * wizard can be told to leave the mail for later. What matters afterwards is that the person is
+     * not stranded: the member list still offers to send it, and sending it there is what makes the
+     * link, so nothing has run out in the meantime.
+     */
+    test('a member created without a mail is sent one from the list afterwards', async ({managerPage: page}) => {
+        const surname = unique('Spaeter')
+
+        await page.goto('/station/members/create')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+        await page.getByRole('button', {name: 'Weiter'}).first().click()
+
+        await page.getByPlaceholder('Vorname').fill('Testperson')
+        await page.getByPlaceholder('Nachname').fill(surname)
+        await page.getByPlaceholder('E-Mail-Adresse').fill(`${surname.toLowerCase()}@example.test`)
+
+        const choice = page.getByTestId('setup-mail-choice')
+        await expect(choice).toBeVisible()
+        await choice.getByRole('switch').click()
+        await expect(choice.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+
+        await page.getByRole('button', {name: 'Weiter'}).first().click()
+        for (let step = 0; step < 4; step += 1) {
+            const next = page.getByRole('button', {name: /Weiter|Konto erstellen|Erstellen/}).first()
+            if (!await next.isVisible().catch(() => false)) break
+            await next.click()
+        }
+
+        await page.goto('/station/members/list')
+        await page.getByPlaceholder(/Suche/).first().fill(surname)
+        const row = page.getByTestId('member-row').first()
+        await expect(row).toBeVisible()
+
+        await expect(row.getByTestId('setup-link-expired')).toHaveCount(0)
+        await row.getByRole('button', {name: 'Einrichtungs-Mail erneut senden'}).click()
+
+        await page.getByRole('button', {name: 'Erneut senden'}).click()
+        await expect(page.getByText('Einrichtungs-Mail wurde erneut versendet.')).toBeVisible()
+    })
+
+    /**
      * A permission is not a hidden button: the page has to be unreachable for someone without it,
      * which is what stops a guessed URL from working.
      */
