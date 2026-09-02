@@ -78,7 +78,8 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 contentService,
                 searchService,
                 accessService,
-                new KbAuthorNameService(stationMemberRepo, accountRepo));
+                new KbAuthorNameService(stationMemberRepo, accountRepo),
+                pageRepo);
         station = stationRepo.create("KbSvcStation");
         account = accountRepo.create("kb-svc@test.com", "Kb", "SvcTester");
         member = stationMemberRepo.create(station.id(), account.id());

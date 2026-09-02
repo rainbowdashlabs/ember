@@ -105,7 +105,8 @@ class KbBulkServiceTest extends RepositoryTestBase {
                 contentService,
                 searchService,
                 accessService,
-                new KbAuthorNameService(stationMemberRepo, accountRepo));
+                new KbAuthorNameService(stationMemberRepo, accountRepo),
+                pageRepo);
         service = new KbBulkService(
                 knowledgeBaseRepo,
                 new KbMoveService(knowledgeBaseRepo, accessService, kbFederation, stationRepo),
@@ -281,5 +282,36 @@ class KbBulkServiceTest extends RepositoryTestBase {
         accessService.setGrants(null, readOnlyFile.id(), List.of());
         knowledgeBaseRepo.purgeFile(readOnlyFile.id());
         knowledgeBaseRepo.purgeFolder(readOnlyFolder.id());
+    }
+
+    /**
+     * The button this whole selection was waiting for. It asks for the same right a single delete
+     * does, so one press reaches nothing twenty presses could not, and what it does is reversible,
+     * which is why it may be pressed at all.
+     */
+    @Test
+    void deletingASelectionPutsWhatItMayInTheTrashAndNamesTheRest() {
+        var branch = folder(null, "bulk-delete-branch");
+        var inside = file(branch.id(), "bulk-delete-inside");
+        var article = file(null, "bulk-delete-article");
+        var locked = file(null, "bulk-delete-locked");
+        grant(null, locked.id(), KbAccessLevel.READ);
+
+        var outcome = service.delete(
+                editor(), station.id(), member.id(), List.of(branch.id()), List.of(article.id(), locked.id(), 900003));
+
+        assertEquals(List.of(branch.id()), outcome.doneFolderIds());
+        assertEquals(List.of(article.id()), outcome.doneFileIds());
+        assertEquals(2, outcome.refusedTotal());
+        assertTrue(outcome.refused().stream()
+                .anyMatch(entry ->
+                        "bulk-delete-locked".equals(entry.name()) && entry.reason() == KbRefusalReason.NO_PERMISSION));
+        assertTrue(knowledgeBaseRepo.findFileById(inside.id()).isEmpty(), "the folder took what was in it");
+        assertTrue(knowledgeBaseRepo.findFileById(locked.id()).isPresent());
+
+        accessService.setGrants(null, locked.id(), List.of());
+        knowledgeBaseRepo.purgeFile(locked.id());
+        trashService.purgeFile(article.id());
+        trashService.purgeFolder(branch.id());
     }
 }

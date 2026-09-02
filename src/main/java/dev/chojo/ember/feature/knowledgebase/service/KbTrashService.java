@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository.TrashedFile;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository.TrashedFolder;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService.MemberAccess;
+import dev.chojo.ember.feature.page.repository.PageRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -48,6 +49,7 @@ public class KbTrashService {
     private final KbSearchService searchService;
     private final KbAccessService accessService;
     private final KbAuthorNameService authorNameService;
+    private final PageRepository pageRepository;
 
     @Inject
     public KbTrashService(
@@ -56,13 +58,15 @@ public class KbTrashService {
             KbContentService contentService,
             KbSearchService searchService,
             KbAccessService accessService,
-            KbAuthorNameService authorNameService) {
+            KbAuthorNameService authorNameService,
+            PageRepository pageRepository) {
         this.repository = repository;
         this.fileStorage = fileStorage;
         this.contentService = contentService;
         this.searchService = searchService;
         this.accessService = accessService;
         this.authorNameService = authorNameService;
+        this.pageRepository = pageRepository;
     }
 
     /**
@@ -274,10 +278,15 @@ public class KbTrashService {
      * How much a selection would take with it, counting what is inside the folders in it, so a
      * confirmation can name the true number rather than the number of ticked boxes.
      *
+     * <p>It also names the pages of the station that put one of those articles on themselves. A page
+     * cell holds the article's number in its settings with no foreign key behind it, so a deleted
+     * article turns into a stand-in title on a page nobody thought to look at. Saying so before the
+     * delete is the only moment anybody would notice.
+     *
      * @param stationId the station
      * @param folderIds the folders picked
      * @param fileIds   the articles picked
-     * @return how many folders and articles would go
+     * @return how many folders and articles would go, and which pages would lose something
      */
     public DeleteImpact impactOf(int stationId, List<Integer> folderIds, List<Integer> fileIds) {
         var seenFolders = new HashSet<Integer>();
@@ -292,7 +301,12 @@ public class KbTrashService {
             branch.add(folderId);
             seenFiles.addAll(repository.findFileIdsInFolders(branch));
         }
-        return new DeleteImpact(seenFolders.size(), seenFiles.size());
+        var pages = pageRepository.findPagesEmbeddingArticles(stationId, List.copyOf(seenFiles));
+        return new DeleteImpact(
+                seenFolders.size(),
+                seenFiles.size(),
+                pages.stream().map(PageRepository.EmbeddingPage::title).toList(),
+                pages.stream().anyMatch(PageRepository.EmbeddingPage::published));
     }
 
     private boolean mayManage(MemberAccess access, Integer folderId, Integer fileId) {
@@ -394,6 +408,10 @@ public class KbTrashService {
 
     /**
      * How much a delete would really take.
+     *
+     * @param embeddedOn the pages that carry one of the articles being deleted
+     * @param onPublicPage whether any of those pages is one the public can read, which is the case
+     *                     worth a stronger word than the rest
      */
-    public record DeleteImpact(int folders, int files) {}
+    public record DeleteImpact(int folders, int files, List<String> embeddedOn, boolean onPublicPage) {}
 }

@@ -118,6 +118,37 @@ public class KnowledgeBaseRepository {
     }
 
     /**
+     * Reads a folder whether or not it is in the trash.
+     *
+     * <p>For the permission check only, which has to answer the same way for an entry in the trash
+     * as for one in use: what somebody may take back is decided by the path the entry still sits on,
+     * so that check must not be the one thing that cannot see it.
+     *
+     * @param id the folder to read
+     * @return the folder, or empty when it does not exist
+     */
+    public Optional<KbFolder> findAnyFolderById(int id) {
+        return query("SELECT %s, %s FROM kb_folder fo WHERE fo.id = :id;", FOLDER_COLUMNS, FOLDER_RESTRICTED)
+                .single(call().bind("id", id))
+                .map(KbFolder.map())
+                .first();
+    }
+
+    /**
+     * Reads an article whether or not it is in the trash, for the permission check only. See
+     * {@link #findAnyFolderById(int)}.
+     *
+     * @param id the article to read
+     * @return the article, or empty when it does not exist
+     */
+    public Optional<KbFile> findAnyFileById(int id) {
+        return query("SELECT %s, %s FROM kb_file f WHERE f.id = :id;", FILE_COLUMNS, FILE_RESTRICTED)
+                .single(call().bind("id", id))
+                .map(KbFile.map())
+                .first();
+    }
+
+    /**
      * Reads a folder that is in the trash, which is the one place a deleted folder still answers by
      * id: restoring it and clearing it out both start from the row.
      *

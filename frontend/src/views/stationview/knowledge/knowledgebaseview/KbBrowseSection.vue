@@ -40,6 +40,7 @@ const emit = defineEmits<{
     toggleSelect: [key: string, value: boolean, shift: boolean]
     moveSelection: []
     tagSelection: []
+    deleteSelection: []
     clearSelection: []
 }>()
 </script>
@@ -76,6 +77,7 @@ const emit = defineEmits<{
                 class="mt-3"
                 @move="emit('moveSelection')"
                 @tag="emit('tagSelection')"
+                @remove="emit('deleteSelection')"
                 @clear="emit('clearSelection')"
             />
 

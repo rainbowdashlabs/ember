@@ -432,23 +432,23 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private void restoreFolder(Context ctx) {
-        int id = requireTrashedFolder(ctx);
+        int id = trashedFolder(ctx);
         ctx.json(trashService.restoreFolder(id));
     }
 
     private void restoreFile(Context ctx) {
-        int id = requireTrashedFile(ctx);
+        int id = trashedFile(ctx);
         ctx.json(trashService.restoreFile(id));
     }
 
     private void purgeFolder(Context ctx) {
-        int id = requireTrashedFolder(ctx);
+        int id = trashedFolder(ctx);
         if (!trashService.purgeFolder(id)) throw new NotFoundResponse();
         ctx.status(204);
     }
 
     private void purgeFile(Context ctx) {
-        int id = requireTrashedFile(ctx);
+        int id = trashedFile(ctx);
         if (!trashService.purgeFile(id)) throw new NotFoundResponse();
         ctx.status(204);
     }
@@ -458,20 +458,16 @@ public class KnowledgeBaseRoutes implements Routes {
      * and one the caller may manage. The path a folder was deleted from is still there, so the
      * ordinary reach check answers this without knowing anything about deletion.
      */
-    private int requireTrashedFolder(Context ctx) {
-        var session = UserSession.from(ctx);
+    private int trashedFolder(Context ctx) {
         int id = pathInt(ctx, "id");
-        var folder = service.findDeletedFolder(id).orElseThrow(NotFoundResponse::new);
-        if (folder.stationId() != session.stationId()) throw new NotFoundResponse();
+        KbRouteAccess.requireOwnedTrashedFolder(ctx, service, id);
         requireLevel(ctx, accessService, id, null, KbAccessLevel.MANAGE);
         return id;
     }
 
-    private int requireTrashedFile(Context ctx) {
-        var session = UserSession.from(ctx);
+    private int trashedFile(Context ctx) {
         int id = pathInt(ctx, "id");
-        var file = service.findDeletedFile(id).orElseThrow(NotFoundResponse::new);
-        if (file.stationId() != session.stationId()) throw new NotFoundResponse();
+        KbRouteAccess.requireOwnedTrashedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.MANAGE);
         return id;
     }

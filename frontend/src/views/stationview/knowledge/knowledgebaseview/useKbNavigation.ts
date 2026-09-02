@@ -30,6 +30,13 @@ export function useKbNavigation(routes: KbRoutes = STATION_KB_ROUTES) {
     const isFavouritesView = computed(() => route.query.folderId === 'favourites')
 
     /**
+     * Whether the trash is open. It is a state of the same screen rather than a page of its own, the
+     * way the favourites are, so an association reaches it at its own address without a second set
+     * of pages existing for it.
+     */
+    const isTrashView = computed(() => route.query.folderId === 'trash')
+
+    /**
      * The folder of a partner being read, if one is open.
      *
      * <p>A folder id belongs to the station that owns it, so a partner's folder is addressed by the pair.
@@ -51,7 +58,7 @@ export function useKbNavigation(routes: KbRoutes = STATION_KB_ROUTES) {
 
     const currentFolderId = computed(() => {
         const param = route.query.folderId
-        if (!param || param === 'favourites') return null
+        if (!param || param === 'favourites' || param === 'trash') return null
         return Number(param)
     })
 
@@ -79,9 +86,14 @@ export function useKbNavigation(routes: KbRoutes = STATION_KB_ROUTES) {
         router.push({name: routes.browse, query: {folderId: 'favourites'}})
     }
 
+    function navigateToTrash() {
+        router.push({name: routes.browse, query: {folderId: 'trash'}})
+    }
+
     return {
         folderParam,
         isFavouritesView,
+        isTrashView,
         currentFolderId,
         sharedStationUid,
         sharedFolderId,
@@ -91,5 +103,6 @@ export function useKbNavigation(routes: KbRoutes = STATION_KB_ROUTES) {
         navigateToFile,
         navigateToFederatedFile,
         navigateToFavourites,
+        navigateToTrash,
     }
 }

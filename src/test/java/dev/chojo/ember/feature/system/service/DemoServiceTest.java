@@ -219,7 +219,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 kbContentService,
                 kbSearchService,
                 new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
-                new KbAuthorNameService(stationMemberRepo, accountRepo));
+                new KbAuthorNameService(stationMemberRepo, accountRepo),
+                pageRepo);
         var kbFederationService = new KnowledgeBaseFederationService(
                 kbService,
                 kbContentService,

@@ -204,7 +204,7 @@ public class KbAccessService {
         }
 
         if (fileId != null) {
-            var file = repository.findFileById(fileId);
+            var file = repository.findAnyFileById(fileId);
             if (file.isPresent() && file.get().folderId() != null) {
                 return canAccessFolder(memberId, file.get().folderId(), memberUserType, memberGroupIds, memberTagIds);
             }
@@ -232,14 +232,14 @@ public class KbAccessService {
         if (repository.hasRestrictions(folderId, fileId)) return false;
 
         if (fileId != null) {
-            var file = repository.findFileById(fileId).orElse(null);
+            var file = repository.findAnyFileById(fileId).orElse(null);
             if (file != null && file.folderId() != null && !isPubliclyVisible(mode, file.folderId(), null)) {
                 return false;
             }
         }
 
         if (folderId != null) {
-            var folder = repository.findFolderById(folderId).orElse(null);
+            var folder = repository.findAnyFolderById(folderId).orElse(null);
             if (folder != null && folder.parentId() != null && !isPubliclyVisible(mode, folder.parentId(), null)) {
                 return false;
             }
@@ -331,7 +331,7 @@ public class KbAccessService {
     private String levelSource(MemberAccess access, Integer folderId, Integer fileId) {
         Integer startFolder = folderId;
         if (fileId != null) {
-            var file = repository.findFileById(fileId);
+            var file = repository.findAnyFileById(fileId);
             if (file.isEmpty()) return null;
             startFolder = file.get().folderId();
         }
@@ -384,7 +384,7 @@ public class KbAccessService {
 
         Integer startFolder = folderId;
         if (fileId != null) {
-            var file = repository.findFileById(fileId);
+            var file = repository.findAnyFileById(fileId);
             if (file.isEmpty()) return stationDefault(access);
             startFolder = file.get().folderId();
         }
@@ -595,11 +595,11 @@ public class KbAccessService {
 
     private RestrictionMode restrictionMode(Integer folderId, Integer fileId) {
         if (fileId != null) {
-            var file = repository.findFileById(fileId);
+            var file = repository.findAnyFileById(fileId);
             if (file.isPresent() && file.get().restrictionMode() != null)
                 return file.get().restrictionMode();
         } else if (folderId != null) {
-            var folder = repository.findFolderById(folderId);
+            var folder = repository.findAnyFolderById(folderId);
             if (folder.isPresent() && folder.get().restrictionMode() != null)
                 return folder.get().restrictionMode();
         }
@@ -612,7 +612,7 @@ public class KbAccessService {
             StationUserType memberUserType,
             List<Integer> memberGroupIds,
             List<Integer> memberTagIds) {
-        var folder = repository.findFolderById(folderId);
+        var folder = repository.findAnyFolderById(folderId);
         if (folder.isEmpty()) return true;
 
         var rawRestrictions = repository.findRestrictions(folderId, null);

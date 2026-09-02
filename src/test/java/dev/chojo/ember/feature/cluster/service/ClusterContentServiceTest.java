@@ -72,7 +72,8 @@ class ClusterContentServiceTest extends RepositoryTestBase {
                 contentService,
                 searchService,
                 accessService,
-                new KbAuthorNameService(stationMemberRepo, accountRepo));
+                new KbAuthorNameService(stationMemberRepo, accountRepo),
+                pageRepo);
         service = new ClusterContentService(clusterRepo, stationRepo, stationMemberRepo, kbService, trashService);
     }
 

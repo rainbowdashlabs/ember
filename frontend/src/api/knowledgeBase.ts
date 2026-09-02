@@ -612,6 +612,85 @@ export async function bulkTags(
     return res.data
 }
 
+export async function bulkDelete(selection: {folderIds: number[]; fileIds: number[]}): Promise<BulkOutcome> {
+    const res = await client.post<BulkOutcome>('/kb/bulk/delete', selection)
+    return res.data
+}
+
+// -- Trash --
+
+/**
+ * What a delete would really take, folder contents counted rather than ticked boxes.
+ *
+ * {@code embeddedOn} names the pages that carry one of the articles: a page cell holds an article
+ * number with nothing behind it, so a deleted article turns into a stand-in title on a page nobody
+ * thought to look at.
+ */
+export interface DeleteImpact {
+    folders: number
+    files: number
+    embeddedOn: string[]
+    onPublicPage: boolean
+}
+
+/**
+ * One entry of the trash. A folder stands for its whole branch: {@code contained} says how much went
+ * down with it, and {@code bytes} what that branch is still holding in storage.
+ */
+export interface KbTrashEntry {
+    folder: boolean
+    id: number
+    name: string
+    description: string
+    fileType: KbFileTypeName | null
+    deletedAt: string
+    deletedByName: string | null
+    bytes: number
+    contained: number
+}
+
+/** A station's trash as this reader sees it, with the storage emptying it would give back. */
+export interface KbTrashView {
+    entries: KbTrashEntry[]
+    bytes: number
+}
+
+/** What a restore did, and whether the entry had to come back at the top level. */
+export interface KbRestoreResult {
+    restored: boolean
+    name: string | null
+    movedToRoot: boolean
+}
+
+export async function getDeleteImpact(selection: {
+    folderIds: number[]
+    fileIds: number[]
+}): Promise<DeleteImpact> {
+    const res = await client.post<DeleteImpact>('/kb/bulk/delete/impact', selection)
+    return res.data
+}
+
+export async function listTrash(): Promise<KbTrashView> {
+    const res = await client.get<KbTrashView>('/kb/trash')
+    return res.data
+}
+
+export async function emptyTrash(): Promise<{cleared: number}> {
+    const res = await client.delete<{cleared: number}>('/kb/trash')
+    return res.data
+}
+
+export async function restoreTrashed(entry: KbTrashEntry): Promise<KbRestoreResult> {
+    const path = entry.folder ? `/kb/trash/folders/${entry.id}/restore` : `/kb/trash/files/${entry.id}/restore`
+    const res = await client.post<KbRestoreResult>(path)
+    return res.data
+}
+
+export async function purgeTrashed(entry: KbTrashEntry): Promise<void> {
+    const path = entry.folder ? `/kb/trash/folders/${entry.id}` : `/kb/trash/files/${entry.id}`
+    await client.delete(path)
+}
+
 // -- KB Images --
 
 export interface ImageUploadResponse {

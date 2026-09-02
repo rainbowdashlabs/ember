@@ -22,6 +22,8 @@ const props = defineProps<{
     isKbPublic: boolean
     shareCopied: boolean
     viewMode: 'grid' | 'list'
+    /** Whether the reader may delete anything here, which is also who is offered the trash. */
+    canManage: boolean
 }>()
 
 const emit = defineEmits<{
@@ -29,6 +31,7 @@ const emit = defineEmits<{
     navigateShared: [stationUid: string, folderId: number]
     toggleViewMode: []
     copyShareLink: []
+    openTrash: []
 }>()
 
 /**
@@ -106,6 +109,13 @@ function goUp() {
                 :label="t('kb.shareLink')"
                 :class="shareCopied ? '!text-green-500' : ''"
                 @click="emit('copyShareLink')"
+            />
+            <IconButton
+                v-if="canManage"
+                :icon="['fas', 'trash-can']"
+                :label="t('kb.trash')"
+                data-testid="kb-open-trash"
+                @click="emit('openTrash')"
             />
             <IconButton
                 :icon="['fas', viewMode === 'grid' ? 'table-columns' : 'grip-vertical']"
