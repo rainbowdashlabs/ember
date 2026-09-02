@@ -15,7 +15,7 @@ import java.time.LocalDate;
 /**
  * One line of what an appointment needs.
  *
- * <p>It carries the same three targets a collection line carries, and two more things a list of
+ * <p>It carries the same three targets a lending request line carries, and two more things a list of
  * equipment cannot do without. The lead and the trail say how long the gear is gone either side of
  * the appointment, because the period the equipment is away is not the period the appointment lasts:
  * the radios are fetched the evening before and come back on the Monday, and a request asking only

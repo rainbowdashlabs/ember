@@ -32,10 +32,9 @@ public class EquipmentAvailabilityRepository {
     /**
      * How many pieces of one target a station could put its hands on.
      *
-     * <p>The predicate is {@link ItemCustodySql#atHand(String, String)} rather than free stock, for the
-     * same reason a collection is read with it: radios permanently handed to a group leader are the
-     * ordinary case, and a list reporting them missing because somebody at the station is holding them
-     * is worse than no list. Gear that is lost, in the post or with a partner is out, because it cannot
+     * <p>The predicate is {@link ItemCustodySql#atHand(String, String)} rather than free stock: radios
+     * permanently handed to a group leader are the ordinary case, and a list reporting them missing
+     * because somebody at the station is holding them is worse than no list. Gear that is lost, in the post or with a partner is out, because it cannot
      * be brought along.
      *
      * @param stationId the station asking

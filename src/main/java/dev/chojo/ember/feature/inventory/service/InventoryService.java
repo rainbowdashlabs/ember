@@ -218,8 +218,8 @@ public class InventoryService {
                 blockers.size());
         throw new InventorySwitchRefusedException(
                 toHomogeneous
-                        ? "This inventory still holds things that only exist for a drawer of different things"
-                        : "Requirements, orders, exchanges and sizes only exist for an inventory of one thing, and this one still has some",
+                        ? "This inventory still holds things that only exist for a collection"
+                        : "Requirements, orders, exchanges and sizes only exist for a stock, and this inventory still has some",
                 blockers);
     }
 
@@ -255,8 +255,7 @@ public class InventoryService {
                 .map(Inventory::homogeneous)
                 .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
         if (!homogeneous) {
-            throw new BadRequestResponse(
-                    "This inventory holds a drawer of different things, so " + what + " does not apply to it");
+            throw new BadRequestResponse("This inventory is a collection, so " + what + " does not apply to it");
         }
     }
 

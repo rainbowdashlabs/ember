@@ -86,7 +86,8 @@ public class InventoryRepository {
                        coalesce(counts.item_count, 0) AS item_count,
                        coalesce(counts.lost_count, 0) AS lost_count,
                        coalesce(proc.procurement_count, 0) AS procurement_count,
-                       coalesce(lent.lent_out_count, 0) AS lent_out_count
+                       coalesce(lent.lent_out_count, 0) AS lent_out_count,
+                       coalesce(arts.art_count, 0) AS art_count
                 FROM inventory i
                 LEFT JOIN (
                     SELECT ii.inventory_id,
@@ -113,6 +114,12 @@ public class InventoryRepository {
                     WHERE lr.status IN ('APPROVED', 'LENT')
                     GROUP BY li.inventory_id
                 ) lent ON lent.inventory_id = i.id
+                LEFT JOIN (
+                    SELECT inventory_id,
+                           count(*) AS art_count
+                    FROM inventory_art
+                    GROUP BY inventory_id
+                ) arts ON arts.inventory_id = i.id
                 WHERE i.station_id = :station_id
                 ORDER BY i.name;""",
                         SqlSupport.alias("i", INVENTORY_COLUMNS),

@@ -136,7 +136,6 @@ import dev.chojo.ember.feature.inventory.route.ExchangeRoutes;
 import dev.chojo.ember.feature.inventory.route.FederatedInventoryTagRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryArtRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryCheckRoutes;
-import dev.chojo.ember.feature.inventory.route.InventoryCollectionRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryContainerRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryFieldDefinitionRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryRoutes;
@@ -342,7 +341,6 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(MovementFlowRoutes.class);
         install(new ClusterModule());
         routesBinder.addBinding().to(ProcurementRoutes.class);
-        routesBinder.addBinding().to(InventoryCollectionRoutes.class);
         routesBinder.addBinding().to(InventoryContainerRoutes.class);
         routesBinder.addBinding().to(InventoryFieldDefinitionRoutes.class);
         routesBinder.addBinding().to(InventoryArtRoutes.class);

@@ -122,6 +122,28 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         assertTrue(summaries.stream().anyMatch(s -> s.id() == inventoryId));
     }
 
+    /**
+     * The number a collection shows beside its name counts the kinds written down for it, not the
+     * kinds its pieces happen to carry, so a kind nobody owns a piece of still counts and a piece
+     * lying there without one does not lower it.
+     */
+    @Test
+    @Order(98)
+    void summaryCountsTheKindsDefinedInAnInventory() {
+        var collection = inventoryRepo.create(station.id(), "Funkkiste", InventoryType.INTERNAL, false, false);
+        artRepo.create(collection.id(), "Funkgerät", "", 0);
+        artRepo.create(collection.id(), "Ladegerät", "", 10);
+        inventoryRepo.createItem(collection.id(), null, "Antenne", null, null);
+
+        var summary = inventoryRepo.findSummariesByStation(station.id()).stream()
+                .filter(s -> s.id() == collection.id())
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(2, summary.artCount());
+        assertEquals(1, summary.itemCount());
+    }
+
     @Test
     @Order(20)
     void createItem() {

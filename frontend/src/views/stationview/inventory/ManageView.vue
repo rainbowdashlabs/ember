@@ -14,7 +14,6 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import {useCollectionLossWarning} from '@/composables/useCollectionLossWarning'
 import {inventory} from '@/api'
 import type {InventorySummary} from '@/api/inventory'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
@@ -53,13 +52,6 @@ const {
   onSuccess: () => reload(),
   error,
 })
-
-const collectionLoss = useCollectionLossWarning()
-
-async function askDelete(inv: InventorySummary) {
-  requestDelete(inv)
-  await collectionLoss.forInventory(inv.id)
-}
 
 function viewDetail(inv: InventorySummary) {
   router.push({name: routes.detail, params: {id: inv.id}})
@@ -103,7 +95,7 @@ function onError() {
             :inv="inv"
             @open="viewDetail"
             @edit="editInventory"
-            @remove="askDelete"
+            @remove="requestDelete"
           />
         </div>
 
@@ -121,7 +113,7 @@ function onError() {
 
       <ConfirmDeleteModal
         v-model="showDeleteModal"
-        :message="t('inventory.manage.deleteConfirm', {name: deleteTarget?.name}) + collectionLoss.warning.value"
+        :message="t('inventory.manage.deleteConfirm', {name: deleteTarget?.name})"
         @confirm="confirmDelete"
       />
     </div>

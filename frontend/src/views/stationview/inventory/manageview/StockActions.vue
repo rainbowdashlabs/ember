@@ -36,7 +36,7 @@ const routes = useInventoryRoutes()
     >
       {{ t('inventory.manage.dispatch') }}
     </SecondaryButton>
-    <PrimaryButton :icon="['fas', 'plus']" @click="emit('create')">
+    <PrimaryButton :icon="['fas', 'plus']" data-testid="create-inventory" @click="emit('create')">
       {{ t('inventory.manage.create') }}
     </PrimaryButton>
   </div>

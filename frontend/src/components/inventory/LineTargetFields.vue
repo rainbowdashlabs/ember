@@ -65,12 +65,12 @@ const chosenInventoryStock = computed(() =>
 <template>
   <div class="space-y-4">
     <template v-if="kind === 'item'">
-      <FieldLabel>{{ t('inventory.collections.item') }}</FieldLabel>
+      <FieldLabel>{{ t('inventory.line.item') }}</FieldLabel>
       <ItemSearchPicker v-model="pickedItem" data-testid="line-target-item"/>
     </template>
 
     <template v-else-if="kind === 'art'">
-      <FieldLabel>{{ t('inventory.collections.art') }}</FieldLabel>
+      <FieldLabel>{{ t('inventory.line.art') }}</FieldLabel>
       <ArtSearchPicker
           v-model="pickedArt"
           :arts="arts"
@@ -78,21 +78,21 @@ const chosenInventoryStock = computed(() =>
           :stock="artStock"
           data-testid="line-target-art"
       />
-      <FieldHint v-if="arts.length === 0">{{ t('inventory.collections.noArts') }}</FieldHint>
-      <FieldLabel>{{ t('inventory.collections.quantity') }}</FieldLabel>
+      <FieldHint v-if="arts.length === 0">{{ t('inventory.line.noArts') }}</FieldHint>
+      <FieldLabel>{{ t('inventory.line.quantity') }}</FieldLabel>
       <NumberInput v-model="quantity" :min="1" data-testid="line-target-art-quantity"/>
       <StockHint v-if="chosenArtStock !== null" :stock="chosenArtStock" :quantity="quantity"/>
     </template>
 
     <template v-else>
-      <FieldLabel>{{ t('inventory.collections.inventory') }}</FieldLabel>
+      <FieldLabel>{{ t('inventory.line.inventory') }}</FieldLabel>
       <InventorySearchPicker
           v-model="pickedInventory"
           :inventories="countable"
           :stock="inventoryStock"
           data-testid="line-target-inventory"
       />
-      <FieldLabel>{{ t('inventory.collections.quantity') }}</FieldLabel>
+      <FieldLabel>{{ t('inventory.line.quantity') }}</FieldLabel>
       <NumberInput v-model="quantity" :min="1" data-testid="line-target-quantity"/>
       <StockHint v-if="chosenInventoryStock !== null" :stock="chosenInventoryStock" :quantity="quantity"/>
     </template>

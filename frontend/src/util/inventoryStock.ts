@@ -25,8 +25,8 @@ export function isAtHand(item: InventoryItem): boolean {
  * How many pieces of each kind are at hand.
  *
  * <p>This is the plain count of what exists rather than what is free on one evening. A line is
- * written either for a whole series of evenings or, in a collection, for no date at all, so there is
- * no single evening a free count could be taken over. What is free on one evening is a different
+ * written for a whole series of evenings, so there is no single evening a free count could be taken
+ * over. What is free on one evening is a different
  * question with a different answer for every evening, and it is already answered where it belongs:
  * beside the line, for the evening being looked at, with the appointments it collides with named.
  * What belongs in the dialogue is the ceiling that holds on every evening, because asking for more

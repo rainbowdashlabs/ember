@@ -20,7 +20,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import LendingShareButton from '@/components/lending/LendingShareButton.vue'
-import {useCollectionLossWarning} from '@/composables/useCollectionLossWarning'
+import InventoryFieldsPanel from '@/components/inventory/InventoryFieldsPanel.vue'
 import {inventoryArts} from '@/api'
 import type {ArtStock, InventoryArt} from '@/api/inventoryArts'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
@@ -107,20 +107,13 @@ async function saveArt() {
 const {
   show: showDeleteModal,
   target: deleteTarget,
-  requestDelete: startDelete,
+  requestDelete,
   confirm: confirmDelete,
 } = useConfirmDelete<InventoryArt>({
   onDelete: art => inventoryArts.deleteArt(props.inventoryId, art.id),
   onSuccess: () => load(),
   error,
 })
-
-const collectionLoss = useCollectionLossWarning()
-
-async function requestDelete(art: InventoryArt) {
-  startDelete(art)
-  await collectionLoss.forArt(props.inventoryId, art.id)
-}
 
 watch(() => props.inventoryId, load, {immediate: true})
 </script>
@@ -143,7 +136,7 @@ watch(() => props.inventoryId, load, {immediate: true})
 
     <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-    <div v-for="art in arts" :key="art.id"
+    <div v-for="art in arts" :key="art.id" :data-testid="`art-row-${art.name}`"
          class="flex items-center justify-between px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">
       <div>
         <span class="text-sm font-medium">{{ art.name }}</span>
@@ -179,12 +172,17 @@ watch(() => props.inventoryId, load, {immediate: true})
         <SecondaryButton @click="showModal = false">{{ t('common.cancel') }}</SecondaryButton>
         <SaveButton :disabled="!artName.trim()" :action="saveArt"/>
       </div>
+      <template v-if="editingArt">
+        <hr class="border-(--bg-accent)">
+        <InventoryFieldsPanel :inventory-id="props.inventoryId" :art-id="editingArt.id"/>
+      </template>
+      <p v-else class="text-sm text-(--text-muted)">{{ t('inventory.art.fieldsAfterSave') }}</p>
     </div>
   </Modal>
 
   <ConfirmDeleteModal
       v-model="showDeleteModal"
-      :message="t('inventory.art.deleteConfirm', {name: deleteTarget?.name}) + collectionLoss.warning.value"
+      :message="t('inventory.art.deleteConfirm', {name: deleteTarget?.name})"
       @confirm="confirmDelete"
   />
 </template>

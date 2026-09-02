@@ -71,7 +71,11 @@ function onError(message: string) {
   >
     <div class="space-y-6">
       <div class="flex flex-wrap gap-2">
-        <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: routes.manage })">
+        <SecondaryButton :icon="['fas', 'chevron-left']" data-testid="inventory-edit-back"
+                         @click="router.push({ name: routes.detail, params: { id: inventoryId } })">
+          {{ t('inventory.edit.backToStock') }}
+        </SecondaryButton>
+        <SecondaryButton :icon="['fas', 'boxes-stacked']" @click="router.push({ name: routes.manage })">
           {{ t('inventory.edit.back') }}
         </SecondaryButton>
         <SecondaryButton v-if="routes.move" :icon="['fas', 'right-left']" data-testid="inventory-move"
@@ -92,7 +96,7 @@ function onError(message: string) {
 
         <ArtSection v-if="detail.homogeneous === false" :inventory-id="inventoryId"/>
 
-        <FieldDefinitionsSection :inventory-id="inventoryId" :heterogeneous="detail.homogeneous === false"/>
+        <FieldDefinitionsSection :inventory-id="inventoryId"/>
 
         <ItemListSection :detail="detail" :items="items" :members="members"
                          @items-changed="onItemsChanged" @error="onError"/>

@@ -61,11 +61,11 @@ const incomplete = computed(() => {
 
       <Alert v-if="error" variant="error" data-testid="equipment-line-error">{{ error }}</Alert>
 
-      <FieldLabel>{{ t('inventory.collections.lineKind') }}</FieldLabel>
+      <FieldLabel>{{ t('inventory.line.lineKind') }}</FieldLabel>
       <SelectInput v-model="kind" data-testid="equipment-line-kind">
-        <option value="item">{{ t('inventory.collections.kindItem') }}</option>
-        <option value="art">{{ t('inventory.collections.kindArt') }}</option>
-        <option value="inventory">{{ t('inventory.collections.kindCount') }}</option>
+        <option value="item">{{ t('inventory.line.kindItem') }}</option>
+        <option value="art">{{ t('inventory.line.kindArt') }}</option>
+        <option value="inventory">{{ t('inventory.line.kindCount') }}</option>
       </SelectInput>
 
       <LineTargetFields

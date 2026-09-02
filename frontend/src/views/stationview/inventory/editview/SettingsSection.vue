@@ -13,6 +13,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
+import InventoryKindField from '@/components/inventory/InventoryKindField.vue'
 import {InventoryTypes, switchRefusal, type InventoryDetail, type InventoryTypeName, type SwitchBlocker} from '@/api/inventory'
 import {inventory} from '@/api'
 import SwitchRefusalAlert from './SwitchRefusalAlert.vue'
@@ -33,7 +34,7 @@ const editType = ref<string>(props.detail.inventoryType ?? InventoryTypes.INTERN
 const editHomogeneous = ref(props.detail.homogeneous)
 const editHasSizes = ref(props.detail.hasSizes ?? false)
 
-/** A drawer of different things keeps no size list, so the one control follows the other. */
+/** A collection keeps no size list, so the one control follows the other. */
 watch(editHomogeneous, value => {
   if (!value) editHasSizes.value = false
 })
@@ -86,13 +87,7 @@ async function saveSettings() {
       </div>
     </div>
 
-    <div class="flex items-center justify-between gap-4">
-      <div>
-        <label class="text-sm font-medium">{{ t('inventory.manage.homogeneous') }}</label>
-        <p class="text-xs text-(--text-muted)">{{ t('inventory.manage.homogeneousHint') }}</p>
-      </div>
-      <ToggleInput v-model="editHomogeneous" data-testid="inventory-homogeneous"/>
-    </div>
+    <InventoryKindField v-model="editHomogeneous"/>
 
     <div v-if="editHomogeneous" class="flex items-center justify-between gap-4">
       <div>

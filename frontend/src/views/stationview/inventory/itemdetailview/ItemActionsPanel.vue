@@ -12,7 +12,6 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import type {InventoryItem} from '@/api/inventory'
-import AddToCollectionButton from './AddToCollectionButton.vue'
 
 const props = withDefaults(defineProps<{
   item: InventoryItem
@@ -48,7 +47,6 @@ const {t} = useI18n()
       <SuccessButton v-if="props.item.lostAt" :icon="['fas', 'check']" @click="emit('markFound')">
         {{ t('itemDetail.markFound') }}
       </SuccessButton>
-      <AddToCollectionButton :item-id="props.item.id"/>
     </div>
   </NeutralContainer>
 </template>

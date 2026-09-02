@@ -35,6 +35,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.inventoryTidy.fieldsTitle')">
       <p>{{ t('helpCenter.inventoryTidy.fieldsText') }}</p>
+      <p>{{ t('helpCenter.inventoryTidy.fieldsWhereText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.inventoryTidy.tip') }}</HelpTip>

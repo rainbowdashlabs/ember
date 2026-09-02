@@ -228,8 +228,7 @@ public class ExchangeService {
                 .map(Inventory::homogeneous)
                 .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
         if (!homogeneous) {
-            throw new BadRequestResponse(
-                    "This inventory holds a drawer of different things, so there is nothing to exchange in it");
+            throw new BadRequestResponse("This inventory is a collection, so there is nothing to exchange in it");
         }
     }
 
