@@ -429,6 +429,82 @@ public class KnowledgeBaseFederationService {
     }
 
     /**
+     * Whether putting entries into a target folder would let one of their shares reach further than
+     * the folder above allows.
+     *
+     * <p>The same rule {@link #shareEntry} enforces when a share is created, asked the other way
+     * round. Without it, moving is a second way past a refusal somebody set on purpose: a folder
+     * open to every partner slid under one aimed at two stations would keep reaching everybody.
+     *
+     * @param stationId      the station the entries belong to
+     * @param folderIds      the folders being moved, subfolders included
+     * @param fileIds        the articles being moved, those inside the moved folders included
+     * @param targetFolderId the folder they would go into, or {@code null} for the tree root
+     * @return {@code true} when a share would end up wider than the target folder allows
+     */
+    public boolean wouldOverreach(int stationId, Set<Integer> folderIds, Set<Integer> fileIds, Integer targetFolderId) {
+        var reachable = inheritedAim(stationId, targetFolderId);
+        if (reachable == null) return false;
+        for (var share : federationRepository.findKbShares(stationId)) {
+            boolean moved = (share.folderId() != null && folderIds.contains(share.folderId()))
+                    || (share.fileId() != null && fileIds.contains(share.fileId()));
+            if (!moved) continue;
+            if (share.shareScope() != ShareScope.SPECIFIC) return true;
+            var targets = federationRepository.findKbShareTargets(share.id());
+            if (targets.stream().anyMatch(id -> !reachable.contains(id))) return true;
+        }
+        return false;
+    }
+
+    /**
+     * How far outside this station an entry would be read once it sat in a target folder.
+     *
+     * <p>Its own share decides where it has one, because sharing an entry says something about that
+     * entry. Where it has none, the nearest shared folder above the target decides, which is what
+     * sharing a folder means.
+     *
+     * @param stationId      the station the entry belongs to
+     * @param folderId       the folder being moved, or {@code null} when moving a file
+     * @param fileId         the file being moved, or {@code null} when moving a folder
+     * @param targetFolderId the folder it would go into, or {@code null} for the tree root
+     * @return whether every partner, only named stations, or nobody outside would read it
+     */
+    public PartnerReach reachUnder(int stationId, Integer folderId, Integer fileId, Integer targetFolderId) {
+        var shares = federationRepository.findKbShares(stationId);
+        for (var share : shares) {
+            boolean own = fileId != null
+                    ? Objects.equals(share.fileId(), fileId)
+                    : Objects.equals(share.folderId(), folderId);
+            if (own) return scopeReach(share.shareScope());
+        }
+        for (Integer id = targetFolderId; id != null; ) {
+            for (var share : shares) {
+                if (Objects.equals(share.folderId(), id)) return scopeReach(share.shareScope());
+            }
+            var folder = knowledgeBaseService.findFolder(id).orElse(null);
+            if (folder == null) break;
+            id = folder.parentId();
+        }
+        return PartnerReach.NOBODY;
+    }
+
+    private static PartnerReach scopeReach(ShareScope scope) {
+        return scope == ShareScope.SPECIFIC ? PartnerReach.NAMED_STATIONS : PartnerReach.EVERY_PARTNER;
+    }
+
+    /**
+     * How far an entry is read outside the station that owns it.
+     */
+    public enum PartnerReach {
+        /** Nobody outside the station reads it. */
+        NOBODY,
+        /** Every partner station reads it. */
+        EVERY_PARTNER,
+        /** The stations it names read it, and no others. */
+        NAMED_STATIONS
+    }
+
+    /**
      * The stations the nearest shared folder above reaches, or {@code null} when nothing above narrows
      * anything: either no folder above is shared, or one is shared with everybody.
      */

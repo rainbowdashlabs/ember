@@ -386,6 +386,31 @@ public class KnowledgeBaseService {
     }
 
     /**
+     * Lists the files that cross-reference a file.
+     *
+     * <p>Derived from the rows that already exist rather than written alongside them, so a
+     * reference points both ways without either side being able to take the other's away, and
+     * every reference written so far reads back here without anything being changed.
+     *
+     * @param fileId the file being pointed at
+     * @return the files pointing at it
+     */
+    public List<KbFile> findBacklinks(int fileId) {
+        return repository.findBacklinks(fileId);
+    }
+
+    /**
+     * Lists the articles of a station that were changed most recently.
+     *
+     * @param stationId the station to list for
+     * @param limit     how many to answer with
+     * @return the articles, newest change first
+     */
+    public List<KbFile> findRecentFiles(int stationId, int limit) {
+        return repository.findRecentFiles(stationId, limit);
+    }
+
+    /**
      * Replaces the cross-references of a file.
      *
      * @param fileId        the file to update
