@@ -6,6 +6,7 @@
 import client from './client'
 import {uploadFile} from './upload'
 import type {MessageResponse, SessionInfo} from './types'
+import {prepareImageUpload} from '@/util/imageUpload'
 
 export interface ActiveSession {
     id: number
@@ -111,8 +112,12 @@ export async function invalidateAllSessions(): Promise<MessageResponse> {
     return res.data
 }
 
+/**
+ * Sends a new profile picture, redrawn to a format and a size the endpoint takes: a picture picked
+ * on a phone is regularly neither, and the shrinking belongs on the device rather than in a refusal.
+ */
 export async function uploadAvatar(file: File): Promise<void> {
-    await uploadFile('/session/avatar', {avatar: file})
+    await uploadFile('/session/avatar', {avatar: await prepareImageUpload(file)})
 }
 
 export async function deleteAvatar(): Promise<void> {

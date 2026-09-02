@@ -174,6 +174,28 @@ public class NotificationRepository {
     }
 
     /**
+     * Deletes unacknowledged notifications of a given type that point at one particular entity.
+     *
+     * <p>Matching on the link rather than on the message text is what keeps a withdrawal to the one
+     * thing it is about: two entities may well carry the same words, and an entity with nothing
+     * written about it carries none at all, so a text fragment matches everything.
+     *
+     * @param type the notification type to match
+     * @param link the link the notification must carry
+     * @return the number of notifications deleted
+     */
+    public int deleteByTypeAndLink(NotificationType type, NotificationData.NotificationLink link) {
+        return query("""
+                DELETE FROM notification
+                WHERE type = :type
+                  AND data -> 'link' @> :link::JSONB
+                  AND acknowledged_at IS NULL;""")
+                .single(call().bind("type", type).bind("link", link.toJson()))
+                .delete()
+                .rows();
+    }
+
+    /**
      * Deletes acknowledged notifications older than 30 days.
      */
     public void deleteOldAcknowledged() {

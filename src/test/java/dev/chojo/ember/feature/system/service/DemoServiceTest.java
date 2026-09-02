@@ -319,7 +319,8 @@ class DemoServiceTest extends RepositoryTestBase {
         // read paths don't depend on its behavior and constructing a real one would drag in
         // EmailService + Mailing config that aren't relevant here.
         var notificationServiceMock = mock(NotificationService.class);
-        var lostAndFoundService = new LostAndFoundService(lostAndFoundRepo, notificationServiceMock);
+        var lostAndFoundService = new LostAndFoundService(
+                lostAndFoundRepo, notificationServiceMock, mock(LostAndFoundImageService.class));
         var boardService = new BoardService(boardRepo, memberSvc, groupService, tagService);
         var boardAttachmentSvc = new BoardAttachmentService(kbStorageSvc, stationRepo, kbBackend);
         var boardTicketService = new BoardTicketService(

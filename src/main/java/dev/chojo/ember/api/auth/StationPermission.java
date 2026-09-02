@@ -8,8 +8,10 @@ package dev.chojo.ember.api.auth;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import io.javalin.security.RouteRole;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -534,5 +536,24 @@ public enum StationPermission implements RouteRole {
      */
     public boolean includes(StationPermission permission) {
         return allChildren().contains(permission);
+    }
+
+    /**
+     * Every permission that carries this one, itself included.
+     *
+     * <p>The counterpart of {@link #expand}: expansion answers what a holder may do, this answers
+     * who holds it. Somebody granted only the station administrator right holds every management
+     * right there is, and looking for the management right by name alone would not find them.
+     *
+     * @return the permission names that grant this permission
+     */
+    public List<String> grantedBy() {
+        List<String> names = new ArrayList<>();
+        for (StationPermission candidate : values()) {
+            if (candidate == this || candidate.includes(this)) {
+                names.add(candidate.name());
+            }
+        }
+        return names;
     }
 }

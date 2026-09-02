@@ -101,5 +101,17 @@ public record NotificationData(NotificationParams params, NotificationLink link)
         public NotificationLink(String route) {
             this(route, Map.of());
         }
+
+        /**
+         * Serializes the link on its own, for matching stored notifications by what they point at
+         * rather than by the words they carry.
+         */
+        public String toJson() {
+            try {
+                return MAPPER.writeValueAsString(this);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to serialize NotificationLink", e);
+            }
+        }
     }
 }

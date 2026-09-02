@@ -214,6 +214,30 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         stationMemberRepo.revokePermission(memberId1, 1);
     }
 
+    /**
+     * Somebody who runs the whole station is found when a feature looks for the people who look
+     * after it, without that right ever being written next to their name.
+     */
+    @Test
+    @Order(34)
+    void findMembersWithPermissionFindsAWiderRightThatCarriesIt() {
+        int administrator = stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow()
+                .id();
+        stationMemberRepo.grantPermission(memberId1, administrator);
+
+        var found = stationMemberRepo.findMembersWithPermission(station.id(), StationPermission.LOST_AND_FOUND_MANAGER);
+        assertTrue(found.stream().anyMatch(m -> m.id() == memberId1));
+
+        stationMemberRepo.revokePermission(memberId1, administrator);
+        assertFalse(
+                stationMemberRepo
+                        .findMembersWithPermission(station.id(), StationPermission.LOST_AND_FOUND_MANAGER)
+                        .stream()
+                        .anyMatch(m -> m.id() == memberId1));
+    }
+
     @Test
     @Order(35)
     void findByStationAndUserType() {

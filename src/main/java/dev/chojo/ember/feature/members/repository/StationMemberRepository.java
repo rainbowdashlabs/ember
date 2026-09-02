@@ -641,6 +641,11 @@ public class StationMemberRepository {
 
     /**
      * Find all active members of a station who have the given permission (directly or via group).
+     *
+     * <p>A wider right that carries the asked-for one counts. Somebody holding only the station
+     * administrator right may do everything a manager may do, and a search by the manager's name
+     * alone passed them over: the screens let them in and the notifications about that work never
+     * reached them.
      */
     public List<StationMember> findMembersWithPermission(int stationId, StationPermission permission) {
         return query("""
@@ -650,16 +655,17 @@ public class StationMemberRepository {
                     exists (
                         SELECT 1 FROM station_member_permission smp
                         JOIN station_permission sp ON sp.id = smp.permission_id
-                        WHERE smp.member_id = sm.id AND sp.name = :permission_name
+                        WHERE smp.member_id = sm.id AND sp.name = ANY(:permission_names)
                     )
                     OR exists (
                         SELECT 1 FROM member_group_entry mge
                         JOIN member_group_permission mgp ON mgp.group_id = mge.group_id
                         JOIN station_permission sp ON sp.id = mgp.permission_id
-                        WHERE mge.member_id = sm.id AND sp.name = :permission_name
+                        WHERE mge.member_id = sm.id AND sp.name = ANY(:permission_names)
                     )
                   );""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
-                .single(call().bind("station_id", stationId).bind("permission_name", permission))
+                .single(call().bind("station_id", stationId)
+                        .bind("permission_names", permission.grantedBy(), PostgreSqlTypes.VARCHAR))
                 .map(StationMember.map())
                 .all();
     }
