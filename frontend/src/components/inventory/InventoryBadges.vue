@@ -18,8 +18,8 @@ import {InventoryTypes, type InventoryTypeName} from '@/api/inventory'
  * Sizes appear only where there are sizes, because "no sizes" is not a property anybody looks for.
  *
  * <p>A collection also says how many kinds are defined in it, which is the number that tells a box
- * somebody has sorted from a box nobody has. A stock has no such number: there is only ever one
- * thing in it, and writing a one would be noise.
+ * somebody has sorted from a box nobody has. A uniform inventory has no such number: there is only
+ * ever one thing in it, and writing a one would be noise.
  */
 const props = defineProps<{
   inventoryType: InventoryTypeName | null | undefined

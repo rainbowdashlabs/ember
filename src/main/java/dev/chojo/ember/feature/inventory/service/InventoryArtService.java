@@ -246,7 +246,7 @@ public class InventoryArtService {
                 .orElseThrow(() -> new NotFoundResponse("This inventory does not exist"));
         if (inventory.homogeneous()) {
             throw new BadRequestResponse(
-                    "Kinds exist only in a collection, and this inventory is a stock of one thing in many copies");
+                    "Kinds exist only in a collection, and this inventory is uniform, one thing in many copies");
         }
         return inventory;
     }
