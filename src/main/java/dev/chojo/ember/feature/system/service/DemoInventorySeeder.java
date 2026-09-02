@@ -504,21 +504,19 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
 
         seedStorageContainers(stationId, rng, helm, stiefel, sporttasche, blouson, parka, latzhose);
         seedCustomFields(stiefel.id(), helm.id());
-        seedMixedDrawers(stationId);
+        seedFurtherInventories(stationId);
 
         log.info("Demo: Created {} inventory items with {} history entries", itemCounter - 1, historyCount);
     }
 
     /**
-     * The everyday drawers a station keeps beside its uniform shelves.
+     * The everyday inventories a station keeps beside its uniform shelves.
      *
-     * <p>Games and odds and ends hold pieces nobody would ever count by kind, so every piece stands
-     * under its own name and none of them carries one. The radio drawer is the mixed case: six of
-     * the blue kind, whose pieces need no names of their own, and a case nobody gave a kind to,
-     * which is the ordinary state of most pieces and the state every screen has to read without
-     * complaining.
+     * <p>The radios are the collection worth looking at: six of the blue kind, whose pieces need no
+     * names of their own, and a case nobody gave a kind to, which is the ordinary state of most
+     * pieces and the state every screen has to read without complaining.
      */
-    private void seedMixedDrawers(int stationId) {
+    private void seedFurtherInventories(int stationId) {
         var spiele = inventoryRepository.create(stationId, "Spiele", InventoryType.INTERNAL, false);
         inventoryRepository.createItem(spiele.id(), null, "Die Siedler von Catan", null, null);
         inventoryRepository.createItem(spiele.id(), null, "Uno", null, null);
