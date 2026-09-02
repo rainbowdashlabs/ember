@@ -180,7 +180,13 @@ cmd="${1:-help}"
 shift || true
 
 # Set EMBER_TOOLCHAIN_NO_LOCK=1 to bypass it, for a machine where the ports are known to be free.
-LOCKFILE="${TMPDIR:-/tmp}/ember-toolchain.lock"
+#
+# The path is fixed rather than taken from TMPDIR. What is being guarded is machine-wide: fixed
+# container names, fixed published ports, one shared stack whoever starts it. A lock that follows
+# TMPDIR gives every caller with its own temporary directory a lock of its own, and callers holding
+# different locks do not wait for one another at all, which is a lock that reads as working while
+# guarding nothing. That is what let several checkouts tear each other's e2e runs down.
+LOCKFILE="/tmp/ember-toolchain.lock"
 
 needs_lock() {
     case "$1" in
@@ -277,6 +283,8 @@ case "$cmd" in
         # on a machine where more than one checkout is at work.
         project="${1:-chromium}"; shift || true
         cd "$ROOT/docker"
+        run docker compose -f compose.dev.yaml --profile e2e down
+        run docker volume rm -f "${COMPOSE_PROJECT_NAME:-docker}_ember-e2e-data"
         run docker compose -f compose.dev.yaml --profile e2e up -d --build --force-recreate
         fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
         fe; run npx playwright test --project "$project" "$@"
@@ -338,10 +346,30 @@ case "$cmd" in
         cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile e2e up -d --build "$@"
         ;;
     docker-e2e-down)
-        # Without -v the database volume outlives the stack. The stories do not need it thrown away,
-        # since each run drops the schema and migrates it back, but a stack that will not start is
-        # often quickest cured by taking the volume with it.
-        cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile e2e down "$@"
+        # -v is refused here, and that is the whole point of the check. Dev and e2e are one compose
+        # project, so `down -v` under the e2e profile takes the dev volumes with it: object storage,
+        # the SMB share and the gradle caches, none of which the e2e stories own. Somebody lost a
+        # session's dev data to exactly that. `docker-e2e-reset` throws away the e2e database alone,
+        # which is what the flag was ever reached for.
+        cd "$ROOT/docker"
+        for arg in "$@"; do
+            case "$arg" in
+                -v | --volumes)
+                    echo "toolchain: -v would take the dev volumes with it, dev and e2e share one project." >&2
+                    echo "toolchain: use 'docker-e2e-reset' to throw away the e2e database alone." >&2
+                    exit 2
+                    ;;
+            esac
+        done
+        run docker compose -f compose.dev.yaml --profile e2e down "$@"
+        ;;
+    docker-e2e-reset)
+        # A stack built from one branch will not start against a database another branch has already
+        # migrated further: it reports that the version is ahead and stops. The database is the only
+        # thing worth throwing away for that, so this takes it and leaves every other volume alone.
+        cd "$ROOT/docker"
+        run docker compose -f compose.dev.yaml --profile e2e down
+        run docker volume rm -f "${COMPOSE_PROJECT_NAME:-docker}_ember-e2e-data"
         ;;
     docker-e2e-restart)
         # How a backend change reaches the stories: the suite reuses a stack that is already up, and
