@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.inventory.entity.SelfCheck;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckAnswer;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckAnswerInput;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckRaised;
+import dev.chojo.ember.feature.inventory.entity.SelfCheckRaisedKind;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckRow;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckState;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
@@ -72,6 +73,7 @@ public class SelfCheckRoutes implements Routes {
         routes.get(prefix + "/self-checks/{id}", this::read, StationPermission.USER);
         routes.put(prefix + "/self-checks/{id}/answers", this::answer, StationPermission.USER);
         routes.post(prefix + "/self-checks/{id}/submit", this::submit, StationPermission.USER);
+        routes.post(prefix + "/self-checks/{id}/held-reports", this::holdBack, StationPermission.USER);
     }
 
     @OpenApi(
@@ -156,6 +158,32 @@ public class SelfCheckRoutes implements Routes {
         ctx.json(toSummary(task));
     }
 
+    @OpenApi(
+            path = "/api/v1/self-checks/{id}/held-reports",
+            methods = HttpMethod.POST,
+            summary = "Write down a loss or a swap that waits for the record to be put right first",
+            tags = {"Inventory Checks"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = HeldReportRequest.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = SelfCheckRaised.class)))
+    private void holdBack(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var request = ctx.bodyAsClass(HeldReportRequest.class);
+        if (request.kind() == null || request.itemId() == null) {
+            throw new BadRequestResponse("Say what is being reported and about which piece");
+        }
+        var held = selfCheckService.holdBack(
+                pathInt(ctx, "id"),
+                session.stationId(),
+                session.member().id(),
+                guardian(session),
+                request.kind(),
+                request.itemId(),
+                request.newSizeId(),
+                request.words());
+        ctx.status(HttpStatus.CREATED).json(held);
+    }
+
     private static boolean guardian(UserSession session) {
         return session.hasPermission(StationPermission.MEMBER_GUARDIAN);
     }
@@ -191,6 +219,16 @@ public class SelfCheckRoutes implements Routes {
     }
 
     public record HandOutSelfChecksRequest(List<Integer> memberIds, String dueOn) {}
+
+    /**
+     * A report the member wants that must not go out while the record it names is wrong.
+     *
+     * @param kind      whether they cannot find the piece or want it swapped
+     * @param itemId    the piece it is about
+     * @param newSizeId the size a swap asks for, which a loss does not carry
+     * @param words     the note on a loss, the reason on a swap
+     */
+    public record HeldReportRequest(SelfCheckRaisedKind kind, Integer itemId, Integer newSizeId, String words) {}
 
     public record SelfCheckAnswerRequest(List<AnswerBody> answers) {}
 

@@ -50,6 +50,15 @@ export type SelfCheckFindingName = 'NOTHING_TYPED' | 'NO_MATCH' | 'FREE' | 'HELD
 /** Whether the member said a piece was gone or asked for another size. */
 export type SelfCheckRaisedKindName = 'LOSS' | 'EXCHANGE'
 
+/**
+ * Whether a report the member raised has actually gone out.
+ *
+ * <p>Almost every one has, the moment it was given. The exception is a report about a piece whose
+ * size the same member has just put right: it waits for the station to take that correction, so that
+ * it goes out against the size they hold rather than the one they disowned.
+ */
+export type SelfCheckRaisedStateName = 'RAISED' | 'WAITING' | 'DROPPED'
+
 export interface SelfCheckSummary {
     id: number
     memberId: number
@@ -83,8 +92,15 @@ export interface SelfCheckRaised {
     id: number
     taskId: number
     kind: SelfCheckRaisedKindName
+    state: SelfCheckRaisedStateName
     itemId?: number | null
     movementId?: number | null
+    /** The answer a waiting report hangs on, absent where it went out at once. */
+    waitsForRowId?: number | null
+    /** The size a waiting swap asks for, absent on a loss. */
+    newSizeId?: number | null
+    /** What the member wrote when they raised it, empty where it went out at once. */
+    words: string
     raisedBy?: number | null
     raisedAt: string
 }
@@ -134,6 +150,26 @@ export async function saveAnswers(id: number, answers: SelfCheckAnswerBody[]): P
 
 export async function submitTask(id: number): Promise<SelfCheckSummary> {
     const res = await client.post<SelfCheckSummary>(`/self-checks/${id}/submit`)
+    return res.data
+}
+
+/** A loss or a swap the member wants on a line whose size they are putting right in the same breath. */
+export interface HeldReportRequest {
+    kind: SelfCheckRaisedKindName
+    itemId: number
+    newSizeId?: number | null
+    words: string
+}
+
+/**
+ * Writes a report down without raising it, because the record it names is one the member has just
+ * called wrong.
+ *
+ * <p>It goes out on its own when the station takes that correction, against the piece and the size
+ * that are true by then. The answer it hangs on has to be saved first, which is what it hangs on.
+ */
+export async function holdReport(id: number, data: HeldReportRequest): Promise<SelfCheckRaised> {
+    const res = await client.post<SelfCheckRaised>(`/self-checks/${id}/held-reports`, data)
     return res.data
 }
 

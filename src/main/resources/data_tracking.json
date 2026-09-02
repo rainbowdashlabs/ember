@@ -9984,7 +9984,7 @@
     "inventory_self_check_raised" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:a13d7b809febaae7b2138428782d81cf9794c436071adbb2cf3f4307c033a00f",
+      "tableHash" : "sha256:c39cbac257680ecf7cc2133e12f160904d57b85d97c40b8cc769669895ef48c8",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -10004,17 +10004,41 @@
         "verified" : true,
         "description" : "LOSS where the member said a piece cannot be found, EXCHANGE where they asked for a different size."
       }, {
+        "name" : "state",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "RAISED where it has gone out, which is the ordinary case and immediate. WAITING while it hangs on a correction a reviewer has not taken yet. DROPPED where that correction never came, because the row was refused, settled without being put right, or answered again differently."
+      }, {
         "name" : "item_id",
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
-        "description" : "The piece it was about. NULL once that piece has been deleted."
+        "description" : "The piece it was about, which becomes the piece the correction produced once a waiting report goes out. NULL once that piece has been deleted."
       }, {
         "name" : "movement_id",
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
         "description" : "The movement an exchange started, where there is one."
+      }, {
+        "name" : "waits_for_row_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The answer this report hangs on, which is an answer saying the record has the wrong size. NULL on a report that went out at once, and NULL again once that answer has been cleared from a task sent back."
+      }, {
+        "name" : "new_size_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The size a waiting exchange asks for. NULL on a loss and on an exchange that names no size."
+      }, {
+        "name" : "words",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the member wrote when they raised it: the note on a loss, the reason on an exchange. Empty on a report that went out at once, because it carries its own words on the piece or on the movement."
       }, {
         "name" : "raised_by",
         "type" : "int4",
@@ -10026,7 +10050,7 @@
         "type" : "timestamptz",
         "nullable" : false,
         "verified" : true,
-        "description" : "When it was raised."
+        "description" : "When it was raised, which on a waiting report is when the member asked for it rather than when it went out."
       } ],
       "foreignKeys" : [ {
         "column" : "item_id",
@@ -10039,6 +10063,11 @@
         "refColumn" : "id",
         "onDelete" : "SET NULL"
       }, {
+        "column" : "new_size_id",
+        "refTable" : "inventory_size",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
         "column" : "raised_by",
         "refTable" : "station_member",
         "refColumn" : "id",
@@ -10048,6 +10077,11 @@
         "refTable" : "inventory_self_check",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
+      }, {
+        "column" : "waits_for_row_id",
+        "refTable" : "inventory_self_check_item",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
       } ],
       "stationTransfer" : {
         "status" : "TRACKED"
@@ -10071,7 +10105,7 @@
           "reason" : "Record kept, whoever raised it unlinked"
         } ]
       },
-      "description" : "A loss or an exchange a member raised while answering a self-check, recorded so the reviewer can see it happened."
+      "description" : "A loss or an exchange a member raised while answering a self-check, recorded so the reviewer can see it happened, and held back where the answer beside it says the record it names is wrong."
     },
     "inventory_size" : {
       "feature" : "inventory",

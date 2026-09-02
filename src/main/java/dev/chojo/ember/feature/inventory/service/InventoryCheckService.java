@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCheckHistoryEntry;
 import dev.chojo.ember.feature.inventory.entity.ItemCorrection;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemLastCheck;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
@@ -615,6 +616,17 @@ public class InventoryCheckService {
     /**
      * Takes the wrongly recorded piece off the member and sends it where its owner keeps it, or ends
      * it where nobody keeps it.
+     *
+     * <p>A piece somebody has reported missing goes nowhere. Where a record is put right, the
+     * question answered is whose the piece was, and where the piece is was never asked: shelving a
+     * missing one would grow the store by a thing nobody can find, and end the loss without anybody
+     * deciding to. It comes off the member and stays missing, which is also why it is not ended here
+     * even where its owner has no store, because a loss is a fact about a real thing rather than a
+     * record the correction says was never true.
+     *
+     * <p>Only gear the body above the station owns goes back to an owner with a store of its own. A
+     * borrowed piece rests on the shelf of the station that borrowed it, exactly as its own gear
+     * does, so it is taken back rather than sent anywhere.
      */
     private void release(int itemId, int memberId) {
         InventoryItem item = inventoryRepository
@@ -623,14 +635,16 @@ public class InventoryCheckService {
         if (item.assignedTo() == null || item.assignedTo() != memberId) {
             throw new BadRequestResponse("This piece is not on this member's record");
         }
+        if (item.custody() == ItemCustody.LOST) {
+            inventoryRepository.markSpellCorrected(itemId, memberId);
+            custodyService.releaseLost(itemId);
+            return;
+        }
         if (item.ownerKind() == ItemOwner.CLUSTER && item.ownerClusterId() == null) {
             inventoryService.deleteItem(itemId, null);
             return;
         }
         inventoryRepository.markSpellCorrected(itemId, memberId);
-        // Only gear the body above the station owns goes back to an owner with a store of its own.
-        // A borrowed piece rests on the shelf of the station that borrowed it, exactly as its own
-        // gear does, so it is taken back rather than sent anywhere.
         if (item.ownerKind() == ItemOwner.CLUSTER) custodyService.returnToOwner(itemId);
         else custodyService.takeBack(itemId);
     }

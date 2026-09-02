@@ -20,7 +20,14 @@ import type {InventorySize, RequiredInventoryItem} from '@/api/inventory'
 import {SelfCheckState, type SelfCheckAnswerName, type SelfCheckResponse} from '@/api/selfChecks'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {ExchangeCause, useSelfCheck, type ExchangeCauseName, type SelfCheckEntry} from '@/composables/useSelfCheck'
+import {
+  ExchangeCause,
+  statedSizeOf,
+  useSelfCheck,
+  waitsForCorrection,
+  type ExchangeCauseName,
+  type SelfCheckEntry,
+} from '@/composables/useSelfCheck'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -46,6 +53,33 @@ const saved = ref('')
 function sizeLabel(req: RequiredInventoryItem, sizeId?: number | null): string {
   if (sizeId == null) return ''
   return req.sizes.find(size => size.id === sizeId)?.label ?? ''
+}
+
+/**
+ * The size the member says a piece is, which is what everything they raise about it has to carry.
+ *
+ * <p>Reading the recorded size here is what made a loss and a swap go out saying 128 while the
+ * member was in the middle of telling the station it is a 134. Where they have put the size right,
+ * that is the size, and where they have not, the record and the member agree anyway.
+ */
+function statedSize(entry: SelfCheckEntry): number | null {
+  return statedSizeOf(entry, check.draftOf(entry.key))
+}
+
+/** Whether what the member raises about this entry has to wait for the station to catch up first. */
+function waits(entry: SelfCheckEntry): boolean {
+  return waitsForCorrection(entry, check.draftOf(entry.key))
+}
+
+/**
+ * Puts away everything said so far, because a report that waits hangs on a saved answer.
+ *
+ * <p>Nothing is handed in by this: it is the same save the member could press themselves, done for
+ * them so that pressing a report button does not quietly need a save first.
+ */
+async function saveWhatWasSaid() {
+  if (check.pending.value.length === 0) return
+  await selfChecks.saveAnswers(taskId.value, check.pending.value)
 }
 
 function setAnswer(key: string, answer: SelfCheckAnswerName) {
@@ -93,6 +127,10 @@ const lostNoteRequired = ref(false)
 /**
  * Saying a piece cannot be found, which is the same act as from the member's own gear page: it is
  * not a request and nobody answers it. The task only records that it happened here.
+ *
+ * <p>Except on the one line where the member is putting the size right, where it is written down and
+ * waits. The correction does not edit the piece, it replaces it, so a loss reported now would be
+ * written against the piece that is about to leave their record.
  */
 async function openLost(entry: SelfCheckEntry) {
   if (entry.type !== 'piece') return
@@ -111,10 +149,13 @@ const {running: submittingLost, error: lostError, run: submitLost, clearError: c
     async () => {
       const entry = lostEntry.value
       if (entry?.type !== 'piece') return
-      await inventory.markLost(entry.item.id, {
-        note: lostNote.value.trim() || undefined,
-        selfCheckId: taskId.value,
-      })
+      const note = lostNote.value.trim()
+      if (waits(entry)) {
+        await saveWhatWasSaid()
+        await selfChecks.holdReport(taskId.value, {kind: 'LOSS', itemId: entry.item.id, words: note})
+      } else {
+        await inventory.markLost(entry.item.id, {note: note || undefined, selfCheckId: taskId.value})
+      }
       showLost.value = false
       await reload()
     },
@@ -134,19 +175,22 @@ const wantsAnotherSize = computed(() => exchangeCause.value === ExchangeCause.DO
 const causeText = computed(() => t(`selfCheck.exchangeCause.${exchangeCause.value}`))
 
 /**
- * Asking for a swap, which is on its way rather than waiting: the exchange lands on the station's
- * list at once and the task only records that it was raised here.
+ * Asking for a swap, which is ordinarily on its way rather than waiting: the exchange lands on the
+ * station's list at once and the task only records that it was raised here. Where the member is
+ * putting the size right on the same line it waits instead, so that it starts from the size they
+ * hold rather than the one they have just disowned.
  *
- * <p>A broken piece starts on the size it already is, because the replacement usually is that size.
- * A piece that no longer fits starts on nothing, because the whole point is that the size changes.
+ * <p>A broken piece starts on the size it already is, because the replacement usually is that size,
+ * and "already is" means the size the member says it is. A piece that no longer fits starts on
+ * nothing, because the whole point is that the size changes.
  */
 async function openExchange(entry: SelfCheckEntry, cause: ExchangeCauseName) {
   if (entry.type !== 'piece') return
+  const stated = statedSize(entry)
   exchangeEntry.value = entry
   exchangeCause.value = cause
   exchangeReason.value = ''
-  exchangeNewSizeId.value =
-      cause === ExchangeCause.BROKEN && entry.item.sizeId != null ? String(entry.item.sizeId) : ''
+  exchangeNewSizeId.value = cause === ExchangeCause.BROKEN && stated != null ? String(stated) : ''
   clearExchangeError()
   exchangeSizes.value = entry.req.sizes
   showExchange.value = true
@@ -161,27 +205,45 @@ const {
   const entry = exchangeEntry.value
   if (entry?.type !== 'piece') return
   const ownWords = exchangeReason.value.trim()
-  await exchanges.createExchange({
-    memberId: task.value?.task.memberId,
-    itemId: entry.item.id,
-    inventoryId: entry.req.inventoryId,
-    oldSizeId: entry.item.sizeId ?? undefined,
-    newSizeId: exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined,
-    reason: ownWords ? `${causeText.value} - ${ownWords}` : causeText.value,
-    selfCheckId: taskId.value,
-  })
+  const reason = ownWords ? `${causeText.value} - ${ownWords}` : causeText.value
+  const wanted = exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined
+  if (waits(entry)) {
+    await saveWhatWasSaid()
+    await selfChecks.holdReport(taskId.value, {
+      kind: 'EXCHANGE',
+      itemId: entry.item.id,
+      newSizeId: wanted,
+      words: reason,
+    })
+  } else {
+    await exchanges.createExchange({
+      memberId: task.value?.task.memberId,
+      itemId: entry.item.id,
+      inventoryId: entry.req.inventoryId,
+      oldSizeId: entry.item.sizeId ?? undefined,
+      newSizeId: wanted,
+      reason,
+      selfCheckId: taskId.value,
+    })
+  }
   showExchange.value = false
   await reload()
 })
 
 const anyError = computed(() => error.value || saveError.value || submitError.value || '')
 
+/**
+ * The piece as the dialogs name it, at the size the member says it is.
+ *
+ * <p>Showing the recorded size here would have the dialog read back the very number the member is in
+ * the middle of correcting, which is the one thing they have said is wrong.
+ */
 const lostPiece = computed(() =>
     lostEntry.value?.type === 'piece'
         ? {
           inventoryName: lostEntry.value.req.inventoryName,
           name: lostEntry.value.item.name,
-          sizeName: sizeLabel(lostEntry.value.req, lostEntry.value.item.sizeId) || null,
+          sizeName: sizeLabel(lostEntry.value.req, statedSize(lostEntry.value)) || null,
         }
         : null,
 )
@@ -191,8 +253,8 @@ const exchangePiece = computed(() =>
         ? {
           inventoryName: exchangeEntry.value.req.inventoryName,
           name: exchangeEntry.value.item.name,
-          sizeId: exchangeEntry.value.item.sizeId,
-          sizeName: sizeLabel(exchangeEntry.value.req, exchangeEntry.value.item.sizeId) || null,
+          sizeId: statedSize(exchangeEntry.value),
+          sizeName: sizeLabel(exchangeEntry.value.req, statedSize(exchangeEntry.value)) || null,
         }
         : null,
 )

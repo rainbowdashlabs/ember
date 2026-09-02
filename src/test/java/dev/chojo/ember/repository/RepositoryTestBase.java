@@ -616,6 +616,7 @@ public abstract class RepositoryTestBase {
                 stationMemberRepo,
                 accountRepo,
                 itemCustodyService,
+                exchangeService,
                 selfCheckNotifications);
     }
 

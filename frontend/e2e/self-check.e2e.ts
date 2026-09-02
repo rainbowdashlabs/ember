@@ -150,6 +150,23 @@ async function entryOffering(member: Page, prefix: string): Promise<string> {
     return (await offered.getAttribute('data-testid'))!.slice(prefix.length)
 }
 
+/**
+ * The entry on the screen that offers both of two controls, named by the key the page hangs it on.
+ *
+ * <p>A story acting on two controls at once cannot pick an entry by either alone: the size a member
+ * puts right is offered on any gear that comes in sizes, and a swap only on gear the station keeps
+ * in many copies, so the first entry offering one may well not offer the other.
+ */
+async function entryOfferingBoth(member: Page, first: string, second: string): Promise<string> {
+    const offered = member.locator(`[data-testid^="${first}"]`)
+    await expect(offered.first(), `the screen offers ${first} on something`).toBeVisible()
+    for (let index = 0; index < (await offered.count()); index++) {
+        const key = (await offered.nth(index).getAttribute('data-testid'))!.slice(first.length)
+        if ((await member.getByTestId(`${second}${key}`).count()) > 0) return key
+    }
+    throw new Error(`no entry offers both ${first} and ${second}`)
+}
+
 /** The piece an entry key names, for a key of the form {@code piece-<id>}. */
 function pieceOf(key: string): number {
     return Number(key)
@@ -412,6 +429,129 @@ test.describe('Self-check', () => {
         expect(swap.newSizeId, 'the same size comes back').toBe(sizeId)
         await memberPage.context().close()
     })
+
+    /**
+     * SFC-7: the record has the wrong size, the member puts it right and asks for a swap in the same
+     * breath. The swap waits for the checker to take the correction, and starts from the size that
+     * was put right rather than the one the record had wrong.
+     */
+    test('a swap asked for beside a corrected size waits and then carries the size put right',
+        async ({browser, request, managerPage}) => {
+            const {page: memberPage, taskId} = await askSomebody(browser, request, managerPage)
+
+            await memberPage.goto(`/station/inventory/self-check/${taskId}`)
+            await expect(memberPage.getByTestId('app-shell')).toBeVisible()
+
+            const pieceId = pieceOf(
+                await entryOfferingBoth(memberPage, 'self-check-broken-piece-', 'self-check-actual-size-piece-'),
+            )
+            await answerEverything(memberPage)
+            const task = await ownTask(memberPage, taskId)
+            const piece = task.assigned.find(item => item.id === pieceId)!
+            const sizes = task.required.find(req => req.inventoryId === piece.inventoryId)!.sizes
+            const actual = sizes.find(size => size.id !== piece.sizeId)
+            expect(actual, 'the gear comes in more than one size').toBeTruthy()
+
+            await memberPage.getByTestId(`self-check-actual-size-piece-${pieceId}`).selectOption(String(actual!.id))
+            await expect(memberPage.getByTestId(`self-check-timing-piece-${pieceId}`)).toContainText('vorgemerkt')
+
+            await memberPage.getByTestId(`self-check-broken-piece-${pieceId}`).click()
+            await expect(memberPage.getByTestId('exchange-new-size')).toHaveValue(String(actual!.id))
+            await memberPage.getByTestId('exchange-submit').click()
+            await expect(memberPage.getByTestId(`self-check-broken-piece-${pieceId}`)).toBeDisabled()
+            await expect(memberPage.getByTestId(`self-check-broken-piece-${pieceId}`)).toContainText('vorgemerkt')
+
+            const held = (await ownTask(memberPage, taskId)) as unknown as {
+                raised: {kind: string; state: string; itemId: number}[]
+            }
+            expect(
+                held.raised.some(entry => entry.kind === 'EXCHANGE' && entry.itemId === pieceId
+                    && entry.state === 'WAITING'),
+                'the swap is written down and waiting',
+            ).toBeTruthy()
+
+            const before = await managerPage.request.get('/api/v1/exchanges', {headers: await apiHeaders(managerPage)})
+            expect(
+                (await before.json()).some((entry: {itemId: number | null}) => entry.itemId === pieceId),
+                'and nothing about the piece with the wrong size has reached the station',
+            ).toBeFalsy()
+
+            await memberPage.getByTestId('self-check-submit').click()
+            await expect(memberPage.getByTestId('self-check-submitted')).toBeVisible()
+
+            const submitted = await review(managerPage, taskId)
+            const wrong = submitted.rows.find((entry: {row: {itemId: number | null}}) => entry.row.itemId === pieceId)
+            expect(wrong.row.answer, 'changing the size says the record is wrong').toBe('WRONG_RECORD')
+
+            await managerPage.goto(`/station/inventory/checks/self/${taskId}`)
+            await expect(managerPage.getByTestId('review-people')).toBeVisible()
+            await expect(managerPage.getByTestId('review-waiting').first()).toBeVisible()
+
+            await managerPage.getByTestId(`review-correct-${wrong.row.id}`).click()
+            const source = managerPage.getByTestId('correct-source')
+            if (await source.isVisible()) await source.selectOption('NEW')
+            await managerPage.getByTestId('correct-confirm').click()
+            await expect(managerPage.getByTestId('correct-confirm')).toBeHidden()
+
+            const settled = await review(managerPage, taskId)
+            const put = settled.rows.find((entry: {row: {id: number}}) => entry.row.id === wrong.row.id)
+            expect(put.item.sizeId, 'the record now says the size the member gave').toBe(actual!.id)
+
+            const sent = settled.raised.find(
+                (entry: {raised: {kind: string; state: string}}) =>
+                    entry.raised.kind === 'EXCHANGE' && entry.raised.state === 'RAISED',
+            )
+            expect(sent, 'and the swap that waited has gone out').toBeTruthy()
+
+            const after = await managerPage.request.get('/api/v1/exchanges', {headers: await apiHeaders(managerPage)})
+            const swap = (await after.json()).find(
+                (entry: {id: number}) => entry.id === sent.raised.movementId,
+            )
+            expect(swap, 'the swap reached the station').toBeTruthy()
+            expect(swap.oldSizeId, 'starting from the size that was put right').toBe(actual!.id)
+            expect(swap.itemId, 'against the piece the member actually holds').toBe(put.row.itemId)
+            await memberPage.context().close()
+        })
+
+    /**
+     * SFC-8: the counter-check. A line nobody is correcting reports its loss at once, exactly as it
+     * did before any of the waiting existed.
+     */
+    test('a loss on a line nobody is correcting still goes out at once',
+        async ({browser, request, managerPage}) => {
+            const {page: memberPage, taskId} = await askSomebody(browser, request, managerPage)
+
+            await memberPage.goto(`/station/inventory/self-check/${taskId}`)
+            await expect(memberPage.getByTestId('app-shell')).toBeVisible()
+
+            const pieceId = pieceOf(await entryOffering(memberPage, 'self-check-lost-piece-'))
+            await expect(memberPage.getByTestId(`self-check-timing-piece-${pieceId}`)).toContainText('sofort')
+
+            await memberPage.getByTestId(`self-check-lost-piece-${pieceId}`).click()
+            await memberPage.getByTestId('report-lost-note').fill('Im Zeltlager liegen geblieben')
+            await memberPage.getByTestId('report-lost-submit').click()
+            await expect(
+                memberPage.getByTestId(`self-check-lost-piece-${pieceId}`),
+                'a piece the station has written off stops offering to be reported again',
+            ).toBeHidden()
+            await expect(memberPage.getByTestId(`self-check-entry-piece-${pieceId}`)).toContainText('vermisst')
+
+            const raised = (await ownTask(memberPage, taskId)) as unknown as {
+                raised: {kind: string; state: string; itemId: number}[]
+            }
+            expect(
+                raised.raised.some(entry => entry.kind === 'LOSS' && entry.itemId === pieceId
+                    && entry.state === 'RAISED'),
+                'the loss waited for nobody',
+            ).toBeTruthy()
+
+            const piece = await managerPage.request.get(`/api/v1/inventory-items/${pieceId}`, {
+                headers: await apiHeaders(managerPage),
+            })
+            expect(piece.ok(), `the station reads the piece (${await piece.text()})`).toBeTruthy()
+            expect((await piece.json()).custody, 'and the piece counts as missing at once').toBe('LOST')
+            await memberPage.context().close()
+        })
 
     /**
      * SFC-3: a checker may not sign off a submission they entered themselves, whatever permission

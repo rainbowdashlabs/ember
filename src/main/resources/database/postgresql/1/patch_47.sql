@@ -743,36 +743,56 @@ COMMENT ON COLUMN ember_schema.inventory_self_check_item.reviewer_reason IS 'Why
 COMMENT ON COLUMN ember_schema.inventory_self_check_item.reviewed_by IS 'Who settled the row. NULL while it is outstanding, and NULL again once that person is no longer a member here.';
 COMMENT ON COLUMN ember_schema.inventory_self_check_item.reviewed_at IS 'When the row was settled.';
 
--- What the member set going without waiting for anybody.
+-- What the member set going beside their answers.
 --
 -- A loss and an exchange are both things a member may already raise alone, from screens that exist
--- and were built that way on purpose, and both take effect the moment they are given. Neither is a
--- row of the submission, so neither waits for a reviewer. What the reviewer does need is to see
--- that they happened during this task, and that is all this table is: the link between a task and
--- the thing it set off, kept nowhere else because the loss lives on the piece and the exchange
--- lives on a movement.
+-- and were built that way on purpose, and both ordinarily take effect the moment they are given.
+-- Neither is a row of the submission, so neither ordinarily waits for a reviewer. What the reviewer
+-- does need is to see that they happened during this task, and that is what this table is: the link
+-- between a task and the thing it set off, kept nowhere else because the loss lives on the piece and
+-- the exchange lives on a movement.
+--
+-- One case does wait, and it is the case where raising it at once would carry an untruth. A member
+-- who says the record has the wrong size against a piece has told the station two things: what they
+-- hold, and that the record does not say so. A loss or an exchange raised against that record before
+-- it is put right names a piece that is about to be replaced, so it goes out against the size the
+-- member has just disowned and against a piece the correction takes off their name entirely. Such a
+-- report is written down here instead, waiting on the row it depends on, and goes out for real when
+-- a reviewer takes that correction. It is the answer beneath it that decides this: where nothing was
+-- corrected, nothing waits, and a loss reported from a self-check is as immediate as one reported
+-- from the member's own equipment page.
 CREATE TABLE ember_schema.inventory_self_check_raised
 (
-    id          SERIAL PRIMARY KEY,
-    task_id     INTEGER     NOT NULL REFERENCES ember_schema.inventory_self_check (id) ON DELETE CASCADE,
-    kind        TEXT        NOT NULL,
-    item_id     INTEGER REFERENCES ember_schema.inventory_item (id) ON DELETE SET NULL,
-    movement_id INTEGER REFERENCES ember_schema.item_movement (id) ON DELETE SET NULL,
-    raised_by   INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
-    raised_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+    id               SERIAL PRIMARY KEY,
+    task_id          INTEGER     NOT NULL REFERENCES ember_schema.inventory_self_check (id) ON DELETE CASCADE,
+    kind             TEXT        NOT NULL,
+    state            TEXT        NOT NULL DEFAULT 'RAISED',
+    item_id          INTEGER REFERENCES ember_schema.inventory_item (id) ON DELETE SET NULL,
+    movement_id      INTEGER REFERENCES ember_schema.item_movement (id) ON DELETE SET NULL,
+    waits_for_row_id INTEGER REFERENCES ember_schema.inventory_self_check_item (id) ON DELETE SET NULL,
+    new_size_id      INTEGER REFERENCES ember_schema.inventory_size (id) ON DELETE SET NULL,
+    words            TEXT        NOT NULL DEFAULT '',
+    raised_by        INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    raised_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_inventory_self_check_raised_task ON ember_schema.inventory_self_check_raised (task_id);
+CREATE INDEX idx_inventory_self_check_raised_waiting
+    ON ember_schema.inventory_self_check_raised (waits_for_row_id) WHERE waits_for_row_id IS NOT NULL;
 
 COMMENT ON TABLE ember_schema.inventory_self_check_raised IS
-    'A loss or an exchange a member raised while answering a self-check, recorded so the reviewer can see it happened.';
+    'A loss or an exchange a member raised while answering a self-check, recorded so the reviewer can see it happened, and held back where the answer beside it says the record it names is wrong.';
 COMMENT ON COLUMN ember_schema.inventory_self_check_raised.id IS 'Auto-generated primary key.';
 COMMENT ON COLUMN ember_schema.inventory_self_check_raised.task_id IS 'The task it was raised during.';
 COMMENT ON COLUMN ember_schema.inventory_self_check_raised.kind IS 'LOSS where the member said a piece cannot be found, EXCHANGE where they asked for a different size.';
-COMMENT ON COLUMN ember_schema.inventory_self_check_raised.item_id IS 'The piece it was about. NULL once that piece has been deleted.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.state IS 'RAISED where it has gone out, which is the ordinary case and immediate. WAITING while it hangs on a correction a reviewer has not taken yet. DROPPED where that correction never came, because the row was refused, settled without being put right, or answered again differently.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.item_id IS 'The piece it was about, which becomes the piece the correction produced once a waiting report goes out. NULL once that piece has been deleted.';
 COMMENT ON COLUMN ember_schema.inventory_self_check_raised.movement_id IS 'The movement an exchange started, where there is one.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.waits_for_row_id IS 'The answer this report hangs on, which is an answer saying the record has the wrong size. NULL on a report that went out at once, and NULL again once that answer has been cleared from a task sent back.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.new_size_id IS 'The size a waiting exchange asks for. NULL on a loss and on an exchange that names no size.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.words IS 'What the member wrote when they raised it: the note on a loss, the reason on an exchange. Empty on a report that went out at once, because it carries its own words on the piece or on the movement.';
 COMMENT ON COLUMN ember_schema.inventory_self_check_raised.raised_by IS 'Who raised it, which is the member or one of their guardians. NULL once that person is no longer a member here.';
-COMMENT ON COLUMN ember_schema.inventory_self_check_raised.raised_at IS 'When it was raised.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.raised_at IS 'When it was raised, which on a waiting report is when the member asked for it rather than when it went out.';
 
 -- The answers of one task are read by the task, so that is what the index is on.
 --

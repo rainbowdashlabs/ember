@@ -14,6 +14,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import ReviewRowCard from './selfcheckreviewview/ReviewRowCard.vue'
+import RaisedReportsPanel from './selfcheckreviewview/RaisedReportsPanel.vue'
 import RefuseRowModal from './selfcheckreviewview/RefuseRowModal.vue'
 import CorrectItemModal from './checkmemberview/CorrectItemModal.vue'
 import {selfChecks} from '@/api'
@@ -144,13 +145,7 @@ const outstanding = computed(() => (review.value?.rows ?? []).filter(row => row.
           {{ review.approvalRefusal }}
         </Alert>
 
-        <NeutralContainer v-if="review.raised.length > 0" class="space-y-2">
-          <SubHeader>{{ t('selfCheck.review.raisedTitle') }}</SubHeader>
-          <MutedText size="sm" tag="p">{{ t('selfCheck.review.raisedHint') }}</MutedText>
-          <div v-for="entry in review.raised" :key="entry.raised.id" class="text-sm" data-testid="review-raised">
-            {{ t(`selfCheck.review.raised.${entry.raised.kind}`, {item: entry.itemName, name: entry.raisedByName}) }}
-          </div>
-        </NeutralContainer>
+        <RaisedReportsPanel :reports="review.raised"/>
 
         <div class="space-y-2">
           <ReviewRowCard

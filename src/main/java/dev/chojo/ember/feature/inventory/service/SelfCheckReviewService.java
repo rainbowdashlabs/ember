@@ -76,6 +76,7 @@ public class SelfCheckReviewService {
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
     private final ItemCustodyService custodyService;
+    private final ExchangeService exchangeService;
     private final NotificationService notificationService;
 
     @Inject
@@ -88,6 +89,7 @@ public class SelfCheckReviewService {
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             ItemCustodyService custodyService,
+            ExchangeService exchangeService,
             NotificationService notificationService) {
         this.repository = repository;
         this.checkService = checkService;
@@ -97,6 +99,7 @@ public class SelfCheckReviewService {
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.custodyService = custodyService;
+        this.exchangeService = exchangeService;
         this.notificationService = notificationService;
     }
 
@@ -150,6 +153,7 @@ public class SelfCheckReviewService {
         if (!repository.take(rowId, reviewerId)) {
             throw new ConflictResponse("Somebody has already settled this answer");
         }
+        letGoOfWhatWaited(row, "settled without the record being put right");
         apply(row, settlement, reviewerId);
         return settled(task, reviewerId);
     }
@@ -186,7 +190,73 @@ public class SelfCheckReviewService {
                 rowId,
                 replacement.id(),
                 reviewerId);
+        sendOutWhatWaited(task, row, replacement);
         return settled(task, reviewerId);
+    }
+
+    /**
+     * Raises the loss or the exchange the member asked for and this answer was holding back.
+     *
+     * <p>Held back rather than sent at once because the record was wrong when they asked: the piece
+     * they named is the one this correction has just taken off them, and the size on it is the one
+     * they told the station not to believe. Now that the record says what they hold, the report can
+     * say it too, and it goes out against the piece the correction produced and the size that piece
+     * actually carries.
+     *
+     * <p>Claimed before it is raised, the way the check on a finished task is: whoever wins the claim
+     * is the one that raises it, so an answer settled twice cannot post the same loss twice.
+     */
+    private void sendOutWhatWaited(SelfCheck task, SelfCheckRow row, InventoryItem replacement) {
+        for (SelfCheckRaised waiting : repository.findWaitingFor(row.id())) {
+            if (!repository.markRaised(waiting.id(), replacement.id(), null)) continue;
+            switch (waiting.kind()) {
+                case LOSS -> custodyService.markLost(replacement.id(), waiting.words(), waiting.raisedBy());
+                case EXCHANGE -> repository.attachMovement(waiting.id(), swapFor(task, replacement, waiting));
+            }
+            log.info(
+                    "Self-check {} raised the {} that waited on answer {}, now against piece {}",
+                    task.id(),
+                    waiting.kind(),
+                    row.id(),
+                    replacement.id());
+        }
+    }
+
+    /**
+     * The exchange a held-back request becomes, starting from the size the correction just wrote onto
+     * the piece rather than the one the record had wrong.
+     */
+    private int swapFor(SelfCheck task, InventoryItem replacement, SelfCheckRaised waiting) {
+        Integer onBehalfOf =
+                waiting.raisedBy() == null || waiting.raisedBy() == task.memberId() ? null : waiting.raisedBy();
+        return exchangeService
+                .create(
+                        task.stationId(),
+                        task.memberId(),
+                        nameOf(task.memberId()),
+                        replacement.id(),
+                        replacement.inventoryId(),
+                        replacement.sizeId(),
+                        waiting.newSizeId(),
+                        waiting.words(),
+                        onBehalfOf)
+                .id();
+    }
+
+    /**
+     * Lets go of every report this answer was holding back, because the answer has come to nothing.
+     *
+     * <p>A held-back report rests on the member's statement that the record is wrong. An answer sent
+     * back is a station saying it cannot settle that statement, and an answer taken without the record
+     * being put right is one where there was nothing left to put right, its piece having gone. Neither
+     * leaves the report anything to attach to, and raising it anyway would post a loss against a
+     * record nobody agreed with.
+     */
+    private void letGoOfWhatWaited(SelfCheckRow row, String because) {
+        int dropped = repository.dropWaitingFor(row.id());
+        if (dropped > 0) {
+            log.info("Answer {} was {}, so {} held-back report(s) will not go out", row.id(), because, dropped);
+        }
     }
 
     /**
@@ -214,6 +284,7 @@ public class SelfCheckReviewService {
         if (!repository.refuse(rowId, written, reviewerId)) {
             throw new ConflictResponse("Somebody has already settled this answer");
         }
+        letGoOfWhatWaited(row, "sent back");
         tellTheMember(task, row, written);
         return settled(task, reviewerId);
     }

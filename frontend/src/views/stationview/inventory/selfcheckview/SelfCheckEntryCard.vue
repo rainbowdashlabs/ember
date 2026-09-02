@@ -21,7 +21,10 @@ import {
   borrowed,
   ExchangeCause,
   recordedLost,
+  standingOf,
+  waitsForCorrection,
   type ExchangeCauseName,
+  type RaisedReport,
   type SelfCheckDraft,
   type SelfCheckEntry,
 } from '@/composables/useSelfCheck'
@@ -34,13 +37,20 @@ import {SelfCheckAnswer, type SelfCheckAnswerName} from '@/api/selfChecks'
  * longer fits and saying it is broken all take effect the moment they are given, through the screens
  * that already accept them, so they are offered as the acts they are rather than as boxes to tick.
  * The last two are one exchange raised for two different reasons.
+ *
+ * <p>On one line they do not take effect at once, and the card has to say so rather than look as
+ * though the button did nothing. Where the member is putting the size right, the report waits for
+ * the station to take that correction, because the correction does not edit the piece: it writes a
+ * new one carrying the size they gave and takes the old one off their name, so a report raised now
+ * would name the piece that is leaving and carry the size they have just disowned. The line that
+ * promises immediate effect is therefore not shown on such an entry, because there it would be a lie.
  */
 const props = defineProps<{
   entry: SelfCheckEntry
   draft: SelfCheckDraft
   sizeLabel: string
-  /** What the member already set going about this piece, so it is not raised twice by accident. */
-  raised: string[]
+  /** What the member already set going about this piece, and how far each of them has got. */
+  raised: RaisedReport[]
   /** Why this answer came back from the reviewer, empty where it did not. */
   refusedReason: string
   readOnly: boolean
@@ -73,8 +83,30 @@ const mayRequestExchange = computed(
   () => piece.value != null && !borrowed(piece.value) && !recordedLost(piece.value) && props.entry.req.homogeneous && !props.readOnly,
 )
 
-const lossRaised = computed(() => props.raised.includes('LOSS'))
-const exchangeRaised = computed(() => props.raised.includes('EXCHANGE'))
+const lossStanding = computed(() => standingOf(props.raised, 'LOSS'))
+const exchangeStanding = computed(() => standingOf(props.raised, 'EXCHANGE'))
+
+/** A report that has gone out or is waiting to is not raised a second time. */
+const lossRaised = computed(() => lossStanding.value === 'RAISED' || lossStanding.value === 'WAITING')
+const exchangeRaised = computed(() => exchangeStanding.value === 'RAISED' || exchangeStanding.value === 'WAITING')
+
+/** Whether what the member says here goes out at once or waits for the record to be put right. */
+const waits = computed(() => waitsForCorrection(props.entry, props.draft))
+
+/** Whether something the member asked for fell away with the answer it hung on. */
+const fellAway = computed(() => lossStanding.value === 'DROPPED' || exchangeStanding.value === 'DROPPED')
+
+function lossLabel(): string {
+  if (lossStanding.value === 'WAITING') return t('selfCheck.lossWaiting')
+  if (lossStanding.value === 'RAISED') return t('selfCheck.lossRaised')
+  return t('selfCheck.reportLost')
+}
+
+function exchangeLabel(fresh: string): string {
+  if (exchangeStanding.value === 'WAITING') return t('selfCheck.exchangeWaiting')
+  if (exchangeStanding.value === 'RAISED') return t('selfCheck.exchangeRaised')
+  return t(fresh)
+}
 
 const sizes = computed(() => props.entry.req.sizes)
 
@@ -168,7 +200,7 @@ function answerLabel(answer: SelfCheckAnswerName): string {
           :data-testid="`self-check-lost-${entry.key}`"
           @click="emit('reportLost', entry)"
       >
-        {{ lossRaised ? t('selfCheck.lossRaised') : t('selfCheck.reportLost') }}
+        {{ lossLabel() }}
       </PrimaryButton>
       <PrimaryButton
           v-if="mayRequestExchange"
@@ -177,7 +209,7 @@ function answerLabel(answer: SelfCheckAnswerName): string {
           :data-testid="`self-check-exchange-${entry.key}`"
           @click="emit('requestExchange', entry, ExchangeCause.DOES_NOT_FIT)"
       >
-        {{ exchangeRaised ? t('selfCheck.exchangeRaised') : t('selfCheck.requestExchange') }}
+        {{ exchangeLabel('selfCheck.requestExchange') }}
       </PrimaryButton>
       <PrimaryButton
           v-if="mayRequestExchange"
@@ -186,9 +218,14 @@ function answerLabel(answer: SelfCheckAnswerName): string {
           :data-testid="`self-check-broken-${entry.key}`"
           @click="emit('requestExchange', entry, ExchangeCause.BROKEN)"
       >
-        {{ exchangeRaised ? t('selfCheck.exchangeRaised') : t('selfCheck.reportBroken') }}
+        {{ exchangeLabel('selfCheck.reportBroken') }}
       </PrimaryButton>
-      <MutedText size="xs" class="w-full">{{ t('selfCheck.raisedAtOnce') }}</MutedText>
+      <MutedText size="xs" tag="p" class="w-full" :data-testid="`self-check-timing-${entry.key}`">
+        {{ waits ? t('selfCheck.raisedAfterCorrection') : t('selfCheck.raisedAtOnce') }}
+      </MutedText>
+      <MutedText v-if="fellAway" size="xs" tag="p" class="w-full" :data-testid="`self-check-fell-away-${entry.key}`">
+        {{ t('selfCheck.reportFellAway') }}
+      </MutedText>
     </div>
 
     <TextInput

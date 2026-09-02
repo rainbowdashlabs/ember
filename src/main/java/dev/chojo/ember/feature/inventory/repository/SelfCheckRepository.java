@@ -405,14 +405,15 @@ public class SelfCheckRepository {
     }
 
     /**
-     * Records that the member set a loss or an exchange going while answering.
+     * Records that the member set a loss or an exchange going while answering, which has already
+     * happened by the time this is written.
      */
     public SelfCheckRaised recordRaised(
             int taskId, SelfCheckRaisedKind kind, Integer itemId, Integer movementId, int raisedBy) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO inventory_self_check_raised(task_id, kind, item_id, movement_id, raised_by)
-                VALUES (:task_id, :kind, :item_id, :movement_id, :raised_by)
+                INSERT INTO inventory_self_check_raised(task_id, kind, state, item_id, movement_id, raised_by)
+                VALUES (:task_id, :kind, 'RAISED', :item_id, :movement_id, :raised_by)
                 RETURNING %s;""",
                 call().bind("task_id", taskId)
                         .bind("kind", kind)
@@ -421,6 +422,104 @@ public class SelfCheckRepository {
                         .bind("raised_by", raisedBy),
                 SelfCheckRaised.map(),
                 SelfCheckRaised.COLUMNS);
+    }
+
+    /**
+     * Writes down a report that is not to go out yet, because the answer it hangs on says the record
+     * it names is wrong.
+     *
+     * <p>The words and the wanted size are kept here rather than where they will end up, because
+     * until the report goes out there is no piece carrying a note and no movement carrying a reason.
+     *
+     * @param rowId     the answer it waits on
+     * @param newSizeId the size an exchange asks for, or {@code null}
+     * @param words     the note on a loss, the reason on an exchange
+     */
+    public SelfCheckRaised recordWaiting(
+            int taskId,
+            SelfCheckRaisedKind kind,
+            int itemId,
+            int rowId,
+            Integer newSizeId,
+            String words,
+            int raisedBy) {
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO inventory_self_check_raised(task_id, kind, state, item_id, waits_for_row_id,
+                                                        new_size_id, words, raised_by)
+                VALUES (:task_id, :kind, 'WAITING', :item_id, :row_id, :new_size_id, :words, :raised_by)
+                RETURNING %s;""",
+                call().bind("task_id", taskId)
+                        .bind("kind", kind)
+                        .bind("item_id", itemId)
+                        .bind("row_id", rowId)
+                        .bind("new_size_id", newSizeId)
+                        .bind("words", words)
+                        .bind("raised_by", raisedBy),
+                SelfCheckRaised.map(),
+                SelfCheckRaised.COLUMNS);
+    }
+
+    /**
+     * The reports still waiting on one answer, oldest first.
+     */
+    public List<SelfCheckRaised> findWaitingFor(int rowId) {
+        return query("""
+                SELECT %s
+                FROM inventory_self_check_raised
+                WHERE waits_for_row_id = :row_id AND state = 'WAITING'
+                ORDER BY id ASC;""", SelfCheckRaised.COLUMNS)
+                .single(call().bind("row_id", rowId))
+                .map(SelfCheckRaised.map())
+                .all();
+    }
+
+    /**
+     * Marks one waiting report as gone out, naming what it produced.
+     *
+     * <p>Conditional on it still waiting, like everything else that moves a self-check along: two
+     * reviewers correcting the same answer at the same moment would otherwise raise the report twice.
+     *
+     * @param raisedId   the report
+     * @param itemId     the piece the correction produced, which is what the report is really about
+     * @param movementId the movement an exchange started, or {@code null} for a loss
+     * @return {@code true} where this call is the one that sent it out
+     */
+    public boolean markRaised(int raisedId, int itemId, Integer movementId) {
+        return query("""
+                UPDATE inventory_self_check_raised
+                SET state = 'RAISED', item_id = :item_id, movement_id = :movement_id
+                WHERE id = :id AND state = 'WAITING';""")
+                .single(call().bind("id", raisedId).bind("item_id", itemId).bind("movement_id", movementId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Writes the movement an exchange produced onto the report that asked for it.
+     *
+     * <p>Kept apart from the claim above so the claim comes first, the way the check on a finished
+     * task does: whoever wins the claim is the one that raises the exchange, and the movement it
+     * produced can only be named once it exists.
+     */
+    public void attachMovement(int raisedId, int movementId) {
+        query("""
+                UPDATE inventory_self_check_raised SET movement_id = :movement_id WHERE id = :id;""")
+                .single(call().bind("id", raisedId).bind("movement_id", movementId))
+                .update();
+    }
+
+    /**
+     * Drops every report still waiting on one answer, because that answer has come to nothing.
+     *
+     * @param rowId the answer
+     * @return how many reports will never go out
+     */
+    public int dropWaitingFor(int rowId) {
+        return query("""
+                UPDATE inventory_self_check_raised
+                SET state = 'DROPPED'
+                WHERE waits_for_row_id = :row_id AND state = 'WAITING';""").single(call().bind("row_id", rowId)).update().rows();
     }
 
     /**
