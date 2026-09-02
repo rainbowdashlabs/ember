@@ -201,9 +201,19 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void listFolders(Context ctx) {
         var session = UserSession.from(ctx);
-        var access = KbRouteAccess.accessOf(ctx, accessService);
-        ctx.json(service.findFolders(session.stationId(), optionalFolderId(ctx, "parentId")).stream()
-                .filter(folder -> accessService.canAccess(access, folder.id(), null))
+        Integer parentId = optionalFolderId(ctx, "parentId");
+        var folders = service.findFolders(session.stationId(), parentId);
+        var levels = accessService.childLevels(
+                KbRouteAccess.accessOf(ctx, accessService),
+                parentId,
+                folders.stream()
+                        .map(folder -> new KbAccessService.ChildNode(folder.id(), folder.restrictionMode()))
+                        .toList(),
+                List.of());
+        ctx.json(folders.stream()
+                .filter(folder -> levels.folders()
+                        .getOrDefault(folder.id(), KbAccessLevel.NONE)
+                        .covers(KbAccessLevel.READ))
                 .toList());
     }
 
