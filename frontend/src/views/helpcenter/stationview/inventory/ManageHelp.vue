@@ -69,6 +69,14 @@ const {t} = useI18n()
       <DummyInventoryCards />
     </HelpSection>
 
+    <HelpPermissionGuard :permissions="[StationPermission.INVENTORY_LENDING_MANAGER]"
+                         :label="t('helpCenter.permissionLabel.inventoryLending')">
+      <HelpSection :title="t('helpCenter.inventoryManage.shareTitle')">
+        <p>{{ t('helpCenter.inventoryManage.shareText') }}</p>
+        <p>{{ t('helpCenter.inventoryManage.shareExternalText') }}</p>
+      </HelpSection>
+    </HelpPermissionGuard>
+
     <HelpSection :title="t('helpCenter.inventoryManage.itemsTitle')">
       <p>{{ t('helpCenter.inventoryManage.itemsText') }}</p>
       <p>{{ t('helpCenter.inventoryManage.itemsExternal') }}</p>

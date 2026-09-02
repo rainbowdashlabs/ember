@@ -246,6 +246,7 @@ export default {
             inventoryCreate: 'Nur mit Inventar-Erstellungsrecht',
             inventoryEdit: 'Nur mit Inventar-Bearbeitungsrecht',
             inventoryManage: 'Nur für Inventarverwalter',
+            inventoryLending: 'Nur für Ausleih-Verwalter',
             lostAndFoundCreate: 'Nur mit Fundbüro-Erstellungsrecht',
             lostAndFoundManage: 'Nur für Fundbüro-Verwalter',
             checklistManage: 'Nur für Checklisten-Verwalter',
@@ -1722,6 +1723,13 @@ volumes:
                 + 'eine Sammlung kennt Arten. Umstellen lässt sich das, solange nichts davon daran hängt.',
             badgesText: 'Auf jeder Inventar-Karte stehen Abzeichen: wem es gehört, ob es Größen führt und ob es '
                 + 'einheitlich oder eine Sammlung ist. Bei einer Sammlung steht daneben, wie viele Arten in ihr angelegt sind.',
+            shareTitle: 'Teilen ein- und ausschalten',
+            shareText: 'Darfst du die Ausleihe verwalten, steht auf jeder Karte auch, ob das Inventar den '
+                + 'Partnerwachen angeboten wird. Der Knopf mit dem Teilen-Zeichen öffnet die Entscheidung: anbieten '
+                + 'oder zurückhalten, allen Partnerwachen oder nur bestimmten. „Eintrag entfernen“ macht es wieder '
+                + 'zu einem Inventar, über das nichts gesagt ist, und damit zu einem, das niemand angeboten bekommt.',
+            shareExternalText: 'Bei einem externen Inventar steht davon nichts. Die Sachen darin gehören dem Kreis '
+                + 'oder Verband über deiner Wache, und was deiner Wache nicht gehört, kann sie auch nicht verleihen.',
             itemsTitle: 'Gegenstände hinzufügen',
             itemsText: 'Innerhalb eines Inventars kannst du einzelne Gegenstände anlegen. Jeder Gegenstand kann einen Namen, eine interne Kennung und eine Größe haben.',
             itemsExternal: 'Bei externen Inventaren werden Gegenstände automatisch erstellt, wenn sie einem Mitglied zugewiesen werden.',
@@ -4246,6 +4254,10 @@ volumes:
                 + 'dort über „Zum Bestand“ wieder hierher.',
             statsTitle: 'Statistiken',
             statsText: 'Oben siehst du die Gesamtzahlen: wie viele Gegenstände insgesamt, verfügbar, zugewiesen und verloren sind. Bei Inventaren mit Größen werden die Zahlen auch pro Größe aufgeschlüsselt.',
+            barText: 'Unter jeder Größe liegt ein dünner Streifen. Grün ist, was frei im Regal liegt, orange, was '
+                + 'Mitglieder haben, und rot, was gerade verliehen oder verloren ist. So siehst du auf einen Blick, '
+                + 'ob in einer Größe noch etwas frei ist. Fahre mit der Maus darüber, dann stehen die drei Zahlen '
+                + 'auch als Text da. Bei einer Größe ohne Bestand bleibt der Streifen leer.',
             lostTitle: 'Verlorene Gegenstände',
             lostText: 'Alle als verloren markierten Gegenstände werden hier aufgelistet.',
             freeTitle: 'Verfügbare Gegenstände',

@@ -62,7 +62,7 @@ describe('LendingSharePanel', () => {
         expect(card.find('[data-testid="lending-share-edit"]').exists()).toBe(true)
     })
 
-    it('says nothing at all where the gear is not the station to lend', async () => {
+    it("says nothing at all where the gear is not the station's to lend", async () => {
         const card = await settled(panel(false))
 
         expect(card.find('[data-testid="lending-share-panel"]').exists()).toBe(false)
