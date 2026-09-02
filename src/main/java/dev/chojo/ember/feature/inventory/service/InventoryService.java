@@ -255,8 +255,7 @@ public class InventoryService {
                 .map(Inventory::homogeneous)
                 .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
         if (!homogeneous) {
-            throw new BadRequestResponse(
-                    "This inventory is a collection, so " + what + " does not apply to it");
+            throw new BadRequestResponse("This inventory is a collection, so " + what + " does not apply to it");
         }
     }
 

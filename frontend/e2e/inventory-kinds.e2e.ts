@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, apiHeaders} from './fixtures/auth'
+import {test, expect, accountWithout, apiHeaders, pageAsThrowaway} from './fixtures/auth'
 import type {Locator, Page} from '@playwright/test'
 
 /** One inventory as the summary endpoint reports it. */
@@ -109,10 +109,15 @@ test.describe('The two kinds of inventory', () => {
                 .toHaveURL(new RegExp(`/station/inventory/detail/${collection.id}$`))
         })
 
-    /** Somebody who may not change an inventory is not offered the way into its settings. */
-    test('a member is not offered the way into the settings', async ({memberPage: page}) => {
-        await page.goto('/station/inventory/my')
+    /** Somebody who may read the stock but not change the inventory is not offered the way in. */
+    test('a reader is not offered the way into the settings', async ({managerPage, browser, request}) => {
+        const collection = await theSeededCollection(managerPage)
+        const reader = await accountWithout(request, 'MEMBER', 'INVENTORY_EDIT', 'STATION_ADMINISTRATOR')
+        const page = await pageAsThrowaway(browser, request, [], reader)
+
+        await page.goto(`/station/inventory/detail/${collection.id}`)
         await expect(page.getByTestId('inventory-detail-edit')).toHaveCount(0)
+        await page.context().close()
     })
 
     /**
