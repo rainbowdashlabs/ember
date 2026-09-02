@@ -14,15 +14,25 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {answersFor, borrowed, recordedLost, type SelfCheckDraft, type SelfCheckEntry} from '@/composables/useSelfCheck'
+import SelectInput from '@/components/input/select/SelectInput.vue'
+import {
+  answersFor,
+  borrowed,
+  ExchangeCause,
+  recordedLost,
+  type ExchangeCauseName,
+  type SelfCheckDraft,
+  type SelfCheckEntry,
+} from '@/composables/useSelfCheck'
 import {SelfCheckAnswer, type SelfCheckAnswerName} from '@/api/selfChecks'
 
 /**
  * One thing the member is asked about, and everything they may say about it.
  *
- * <p>Two of the answers are not answers at all: saying a piece cannot be found and asking for
- * another size both take effect the moment they are given, through the screens that already accept
- * them, so they are offered as the acts they are rather than as boxes to tick.
+ * <p>Three of the answers are not answers at all: saying a piece cannot be found, saying it no
+ * longer fits and saying it is broken all take effect the moment they are given, through the screens
+ * that already accept them, so they are offered as the acts they are rather than as boxes to tick.
+ * The last two are one exchange raised for two different reasons.
  */
 const props = defineProps<{
   entry: SelfCheckEntry
@@ -39,8 +49,9 @@ const emit = defineEmits<{
   setAnswer: [key: string, answer: SelfCheckAnswerName]
   setNote: [key: string, note: string]
   setTypedInternalId: [key: string, typed: string]
+  setSizeId: [key: string, sizeId: string]
   reportLost: [entry: SelfCheckEntry]
-  requestExchange: [entry: SelfCheckEntry]
+  requestExchange: [entry: SelfCheckEntry, cause: ExchangeCauseName]
 }>()
 
 const {t} = useI18n()
@@ -64,6 +75,19 @@ const mayRequestExchange = computed(
 const lossRaised = computed(() => props.raised.includes('LOSS'))
 const exchangeRaised = computed(() => props.raised.includes('EXCHANGE'))
 
+/**
+ * Whether the member may name the size of a piece nobody wrote down. Offered and never demanded:
+ * they get through without it, and the station reads that they did not say.
+ */
+const mayGiveASize = computed(
+  () => props.entry.type === 'place'
+      && props.draft.answer === SelfCheckAnswer.HAVE_ONE
+      && props.entry.req.hasSizes
+      && props.entry.req.sizes.length > 0,
+)
+
+const sizes = computed(() => props.entry.req.sizes)
+
 function answerLabel(answer: SelfCheckAnswerName): string {
   return t(`selfCheck.answer.${answer}`)
 }
@@ -84,8 +108,8 @@ function answerLabel(answer: SelfCheckAnswerName): string {
           <InfoBadge v-if="piece && borrowed(piece)">{{ t('selfCheck.borrowed') }}</InfoBadge>
           <ErrorBadge v-if="piece && recordedLost(piece)">{{ t('selfCheck.recordedLost') }}</ErrorBadge>
         </div>
-        <MutedText v-if="piece?.internalId" size="xs">{{ piece.internalId }}</MutedText>
-        <MutedText v-else-if="entry.type === 'place'" size="xs">{{ entry.req.inventoryName }}</MutedText>
+        <MutedText v-if="piece?.internalId" size="xs" tag="p">{{ piece.internalId }}</MutedText>
+        <MutedText v-else-if="entry.type === 'place'" size="xs" tag="p">{{ entry.req.inventoryName }}</MutedText>
       </div>
     </div>
 
@@ -122,9 +146,18 @@ function answerLabel(answer: SelfCheckAnswerName): string {
           class="text-xs px-3 py-1.5"
           :disabled="exchangeRaised"
           :data-testid="`self-check-exchange-${entry.key}`"
-          @click="emit('requestExchange', entry)"
+          @click="emit('requestExchange', entry, ExchangeCause.DOES_NOT_FIT)"
       >
         {{ exchangeRaised ? t('selfCheck.exchangeRaised') : t('selfCheck.requestExchange') }}
+      </PrimaryButton>
+      <PrimaryButton
+          v-if="mayRequestExchange"
+          class="text-xs px-3 py-1.5"
+          :disabled="exchangeRaised"
+          :data-testid="`self-check-broken-${entry.key}`"
+          @click="emit('requestExchange', entry, ExchangeCause.BROKEN)"
+      >
+        {{ exchangeRaised ? t('selfCheck.exchangeRaised') : t('selfCheck.reportBroken') }}
       </PrimaryButton>
       <MutedText size="xs" class="w-full">{{ t('selfCheck.raisedAtOnce') }}</MutedText>
     </div>
@@ -137,6 +170,18 @@ function answerLabel(answer: SelfCheckAnswerName): string {
         :data-testid="`self-check-identifier-${entry.key}`"
         @update:model-value="emit('setTypedInternalId', entry.key, ($event as string) ?? '')"
     />
+
+    <SelectInput
+        v-if="mayGiveASize"
+        :model-value="draft.sizeId"
+        :disabled="readOnly"
+        class="w-full"
+        :data-testid="`self-check-size-${entry.key}`"
+        @update:model-value="emit('setSizeId', entry.key, ($event as string) ?? '')"
+    >
+      <option value="">{{ t('selfCheck.sizeUnknown') }}</option>
+      <option v-for="size in sizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
+    </SelectInput>
 
     <TextInput
         :model-value="draft.note"

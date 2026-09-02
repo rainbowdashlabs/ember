@@ -203,6 +203,7 @@ public class SelfCheckRoutes implements Routes {
      * @param answer          what the member said
      * @param note            what they wrote beside it
      * @param typedInternalId the number they read off a piece nobody wrote down
+     * @param sizeId          the size they gave for such a piece, which they may leave out
      */
     public record AnswerBody(
             Integer itemId,
@@ -210,9 +211,10 @@ public class SelfCheckRoutes implements Routes {
             Integer slot,
             SelfCheckAnswer answer,
             String note,
-            String typedInternalId) {
+            String typedInternalId,
+            Integer sizeId) {
         SelfCheckAnswerInput toInput() {
-            return new SelfCheckAnswerInput(itemId, inventoryId, slot, answer, note, typedInternalId);
+            return new SelfCheckAnswerInput(itemId, inventoryId, slot, answer, note, typedInternalId, sizeId);
         }
     }
 

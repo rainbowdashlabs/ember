@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheck;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.ItemCorrection;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -323,6 +324,10 @@ public class SelfCheckReviewService {
      * The correction as it is actually performed: the piece coming off the record is the one the
      * answer named, never one the caller may choose, so a reviewer cannot correct away a piece the
      * member said nothing about.
+     *
+     * <p>The size falls back to the one the member gave. A reviewer who names one is naming what
+     * they can see and it stands; a reviewer who names none would otherwise write a piece with no
+     * size onto a record the member had already answered that question for.
      */
     private static ItemCorrection withOldPieceOf(SelfCheckRow row, ItemCorrection correction) {
         if (correction == null) throw new BadRequestResponse("Say what the member is actually holding");
@@ -330,7 +335,7 @@ public class SelfCheckReviewService {
                 correction.inventoryId(),
                 row.answer() == SelfCheckAnswer.WRONG_RECORD ? row.itemId() : null,
                 correction.pickedItemId(),
-                correction.sizeId(),
+                correction.sizeId() == null ? row.sizeId() : correction.sizeId(),
                 correction.ownerKind(),
                 correction.internalId(),
                 correction.metadata());
@@ -430,7 +435,21 @@ public class SelfCheckReviewService {
                 item != null && item.custody() == ItemCustody.LOST,
                 settlementOf(row),
                 removalOf(row),
-                identifierOf(task, row));
+                identifierOf(task, row),
+                statedSizeOf(row));
+    }
+
+    /**
+     * The size the member gave for a piece nobody wrote down, spelled the way the inventory spells
+     * it. Empty where they gave none, which is a thing the reviewer has to be able to see.
+     */
+    private String statedSizeOf(SelfCheckRow row) {
+        if (row.sizeId() == null) return "";
+        return inventoryRepository.findSizes(row.inventoryId()).stream()
+                .filter(size -> size.id() == row.sizeId())
+                .map(InventorySize::label)
+                .findFirst()
+                .orElse("");
     }
 
     private List<SelfCheckRaisedView> raisedOf(SelfCheck task) {
@@ -536,6 +555,8 @@ public class SelfCheckReviewService {
      * @param settlement     what taking it would do
      * @param removal        what putting the record right would do with the piece coming off it
      * @param identifier     everything the number the member typed matched
+     * @param statedSize     the size the member gave for a piece nobody wrote down, empty where they
+     *                       gave none
      */
     public record SelfCheckReviewRow(
             SelfCheckRow row,
@@ -547,7 +568,8 @@ public class SelfCheckReviewService {
             boolean recordedLost,
             SelfCheckSettlement settlement,
             SelfCheckRecordRemoval removal,
-            SelfCheckIdentifierMatch identifier) {}
+            SelfCheckIdentifierMatch identifier,
+            String statedSize) {}
 
     /**
      * A loss or an exchange the member set going, which waited for nobody and is shown so the

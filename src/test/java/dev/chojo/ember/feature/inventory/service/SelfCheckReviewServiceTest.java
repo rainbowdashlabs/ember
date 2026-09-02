@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCorrection;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
@@ -59,6 +60,8 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
     private static StationMember reviewer;
     private static StationMember walked;
     private static Inventory inventory;
+    private static Inventory sized;
+    private static InventorySize large;
 
     @BeforeAll
     static void setup() {
@@ -76,11 +79,17 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
 
         inventory = inventoryRepo.create(station.id(), "SelfCheckReviewInv", InventoryType.INTERNAL, false);
         inventoryRepo.createRequirement(inventory.id(), StationUserType.MEMBER, 0, null, 6);
+
+        sized = inventoryRepo.create(station.id(), "SelfCheckReviewSizedInv", InventoryType.INTERNAL, true);
+        inventoryRepo.createSize(sized.id(), "XL", 0, "");
+        large = inventoryRepo.findSizes(sized.id()).getFirst();
+        inventoryRepo.createRequirement(sized.id(), StationUserType.MEMBER, 0, null, 1);
     }
 
     @AfterAll
     static void cleanup() {
         inventoryRepo.delete(inventory.id());
+        inventoryRepo.delete(sized.id());
         stationRepo.delete(station.id());
         stationRepo.delete(otherStation.id());
     }
@@ -129,7 +138,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
     void anEmptyPlaceTheMemberNeverHadGoesDownAsNotHeld() {
         SelfCheck task = submitted();
         SelfCheckRow row = selfCheckRepo.answerForPlace(
-                task.id(), inventory.id(), 0, SelfCheckAnswer.NEVER_HAD, "never got one", null, member.id());
+                task.id(), inventory.id(), 0, SelfCheckAnswer.NEVER_HAD, "never got one", null, null, member.id());
 
         var review = selfCheckReviewService.take(task.id(), row.id(), station.id(), reviewer.id());
 
@@ -184,7 +193,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
     void anEmptyPlaceTheMemberIsHoldingSomethingForCannotSimplyBeTaken() {
         SelfCheck task = submitted();
         SelfCheckRow row = selfCheckRepo.answerForPlace(
-                task.id(), inventory.id(), 1, SelfCheckAnswer.HAVE_ONE, "", "SCR-TYPED", member.id());
+                task.id(), inventory.id(), 1, SelfCheckAnswer.HAVE_ONE, "", "SCR-TYPED", null, member.id());
 
         assertThrows(
                 BadRequestResponse.class,
@@ -218,7 +227,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         InventoryItem unwritten = inventoryRepo.createItem(inventory.id(), "SCR-UNWRITTEN", "Spare", null, null);
         SelfCheck task = submitted();
         SelfCheckRow row = selfCheckRepo.answerForPlace(
-                task.id(), inventory.id(), 2, SelfCheckAnswer.HAVE_ONE, "", "SCR-UNWRITTEN", member.id());
+                task.id(), inventory.id(), 2, SelfCheckAnswer.HAVE_ONE, "", "SCR-UNWRITTEN", null, member.id());
 
         var review = selfCheckReviewService.correctAndTake(
                 task.id(),
@@ -231,6 +240,67 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         assertEquals(
                 member.id(),
                 inventoryRepo.findItemById(unwritten.id()).orElseThrow().assignedTo());
+    }
+
+    @Test
+    void theSizeTheMemberGaveIsShownAndLandsOnThePieceThatIsNamed() {
+        SelfCheck task = submitted();
+        SelfCheckRow row = selfCheckRepo.answerForPlace(
+                task.id(), sized.id(), 0, SelfCheckAnswer.HAVE_ONE, "", "SCR-SIZED", large.id(), member.id());
+
+        var read = selfCheckReviewService.read(task.id(), station.id(), reviewer.id());
+        assertEquals(
+                "XL",
+                read.rows().stream()
+                        .filter(entry -> entry.row().id() == row.id())
+                        .findFirst()
+                        .orElseThrow()
+                        .statedSize());
+
+        var review = selfCheckReviewService.correctAndTake(
+                task.id(),
+                row.id(),
+                station.id(),
+                reviewer.id(),
+                new ItemCorrection(sized.id(), null, null, null, null, "SCR-SIZED", null));
+
+        Integer namedPiece = review.rows().stream()
+                .filter(entry -> entry.row().id() == row.id())
+                .findFirst()
+                .orElseThrow()
+                .row()
+                .itemId();
+        assertNotNull(namedPiece);
+        assertEquals(
+                large.id(), inventoryRepo.findItemById(namedPiece).orElseThrow().sizeId());
+    }
+
+    @Test
+    void aReviewerNamingASizeThemselvesOverridesTheOneTheMemberGave() {
+        inventoryRepo.createSize(sized.id(), "S", 1, "");
+        InventorySize small = inventoryRepo.findSizes(sized.id()).stream()
+                .filter(size -> "S".equals(size.label()))
+                .findFirst()
+                .orElseThrow();
+        SelfCheck task = submitted();
+        SelfCheckRow row = selfCheckRepo.answerForPlace(
+                task.id(), sized.id(), 0, SelfCheckAnswer.HAVE_ONE, "", "SCR-OVERRIDE", large.id(), member.id());
+
+        var review = selfCheckReviewService.correctAndTake(
+                task.id(),
+                row.id(),
+                station.id(),
+                reviewer.id(),
+                new ItemCorrection(sized.id(), null, null, small.id(), null, "SCR-OVERRIDE", null));
+
+        Integer namedPiece = review.rows().stream()
+                .filter(entry -> entry.row().id() == row.id())
+                .findFirst()
+                .orElseThrow()
+                .row()
+                .itemId();
+        assertEquals(
+                small.id(), inventoryRepo.findItemById(namedPiece).orElseThrow().sizeId());
     }
 
     @Test
@@ -426,7 +496,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         InventoryItem free = inventoryRepo.createItem(inventory.id(), "SCR-CASE", "Free piece", null, null);
         SelfCheck task = submitted();
         selfCheckRepo.answerForPlace(
-                task.id(), inventory.id(), 3, SelfCheckAnswer.HAVE_ONE, "", "  scr-case ", member.id());
+                task.id(), inventory.id(), 3, SelfCheckAnswer.HAVE_ONE, "", "  scr-case ", null, member.id());
 
         var match = selfCheckReviewService
                 .read(task.id(), station.id(), reviewer.id())
@@ -444,7 +514,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         itemCustodyService.assignToMember(theirs.id(), guardian.id(), "");
         SelfCheck task = submitted();
         selfCheckRepo.answerForPlace(
-                task.id(), inventory.id(), 4, SelfCheckAnswer.HAVE_ONE, "", "SCR-THEIRS", member.id());
+                task.id(), inventory.id(), 4, SelfCheckAnswer.HAVE_ONE, "", "SCR-THEIRS", null, member.id());
 
         var match = selfCheckReviewService
                 .read(task.id(), station.id(), reviewer.id())
@@ -459,7 +529,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
     void aNumberNothingCarriesIsAFindingOfItsOwn() {
         SelfCheck task = submitted();
         selfCheckRepo.answerForPlace(
-                task.id(), inventory.id(), 5, SelfCheckAnswer.HAVE_ONE, "", "SCR-NOWHERE", member.id());
+                task.id(), inventory.id(), 5, SelfCheckAnswer.HAVE_ONE, "", "SCR-NOWHERE", null, member.id());
 
         var match = selfCheckReviewService
                 .read(task.id(), station.id(), reviewer.id())
@@ -476,7 +546,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         inventoryRepo.createItem(inventory.id(), "SCR-DOUBLE", "Second", null, null);
         SelfCheck task = submitted();
         selfCheckRepo.answerForPlace(
-                task.id(), inventory.id(), 0, SelfCheckAnswer.HAVE_ONE, "", "SCR-DOUBLE", member.id());
+                task.id(), inventory.id(), 0, SelfCheckAnswer.HAVE_ONE, "", "SCR-DOUBLE", null, member.id());
 
         var match = selfCheckReviewService
                 .read(task.id(), station.id(), reviewer.id())
@@ -492,7 +562,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         containerRepo.create(station.id(), null, "SCR-BOX", "The box", null, "", reviewer.id());
         SelfCheck task = submitted();
         selfCheckRepo.answerForPlace(
-                task.id(), inventory.id(), 1, SelfCheckAnswer.HAVE_ONE, "", "scr-box", member.id());
+                task.id(), inventory.id(), 1, SelfCheckAnswer.HAVE_ONE, "", "scr-box", null, member.id());
 
         var match = selfCheckReviewService
                 .read(task.id(), station.id(), reviewer.id())
@@ -521,7 +591,8 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
     @Test
     void anAnswerAboutAnEmptyPlaceTakesNoPieceOffTheRecord() {
         SelfCheck task = submitted();
-        selfCheckRepo.answerForPlace(task.id(), inventory.id(), 2, SelfCheckAnswer.NEVER_HAD, "", null, member.id());
+        selfCheckRepo.answerForPlace(
+                task.id(), inventory.id(), 2, SelfCheckAnswer.NEVER_HAD, "", null, null, member.id());
 
         var row = selfCheckReviewService
                 .read(task.id(), station.id(), reviewer.id())

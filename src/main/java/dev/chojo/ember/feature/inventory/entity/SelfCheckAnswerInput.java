@@ -15,6 +15,8 @@ package dev.chojo.ember.feature.inventory.entity;
  * @param answer          what the member said
  * @param note            what they wrote beside it, which may be blank
  * @param typedInternalId the number they read off a piece nobody wrote down, which may be blank
+ * @param sizeId          the size they gave for such a piece, which may be absent because it is
+ *                        offered rather than asked for
  */
 public record SelfCheckAnswerInput(
         Integer itemId,
@@ -22,4 +24,5 @@ public record SelfCheckAnswerInput(
         Integer slot,
         SelfCheckAnswer answer,
         String note,
-        String typedInternalId) {}
+        String typedInternalId,
+        Integer sizeId) {}

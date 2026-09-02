@@ -370,7 +370,9 @@ public class SelfCheckService {
             throw new BadRequestResponse("This member has no such empty place");
         }
         String typed = typedIdentifier(input);
-        repository.answerForPlace(task.id(), gap.inventoryId(), input.slot(), input.answer(), note, typed, enteredBy);
+        Integer sizeId = statedSize(input, gap);
+        repository.answerForPlace(
+                task.id(), gap.inventoryId(), input.slot(), input.answer(), note, typed, sizeId, enteredBy);
     }
 
     /**
@@ -387,6 +389,26 @@ public class SelfCheckService {
             throw new BadRequestResponse("Only a place you are holding something for takes a number");
         }
         return typed;
+    }
+
+    /**
+     * The size a member gave for a piece nobody wrote down, kept so the reviewer writes it onto the
+     * piece rather than guessing it.
+     *
+     * <p>It is offered and never demanded: a member who cannot find a label is still telling the
+     * station the piece exists, and the answer they give is worth more than the size they cannot
+     * read. What is refused is a size that is not one this inventory keeps, because that is not a
+     * gap in what somebody knows but a value nothing could ever be given.
+     */
+    private static Integer statedSize(SelfCheckAnswerInput input, RequiredInventoryItem gap) {
+        if (input.sizeId() == null) return null;
+        if (input.answer() != SelfCheckAnswer.HAVE_ONE) {
+            throw new BadRequestResponse("Only a place you are holding something for takes a size");
+        }
+        if (gap.sizes().stream().noneMatch(size -> size.id() == input.sizeId())) {
+            throw new BadRequestResponse("This size is not one this kind of gear comes in");
+        }
+        return input.sizeId();
     }
 
     /**

@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckAnswer;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckAnswerInput;
@@ -52,6 +53,9 @@ class SelfCheckServiceTest extends RepositoryTestBase {
     private static StationMember elsewhere;
     private static StationMember leaver;
     private static Inventory inventory;
+    private static Inventory sized;
+    private static InventorySize large;
+    private static InventorySize elsewhereSize;
     private static InventoryItem owned;
     private static InventoryItem lost;
     private static InventoryItem borrowed;
@@ -84,6 +88,13 @@ class SelfCheckServiceTest extends RepositoryTestBase {
             itemCustodyService.assignToMember(item.id(), member.id(), "");
         }
         itemCustodyService.markLost(lost.id(), "left it on the truck", member.id());
+
+        sized = inventoryRepo.create(station.id(), "SelfCheckSvcSizedInv", InventoryType.INTERNAL, true);
+        inventoryRepo.createSize(sized.id(), "L", 0, "");
+        large = inventoryRepo.findSizes(sized.id()).getFirst();
+        inventoryRepo.createRequirement(sized.id(), StationUserType.MEMBER, 0, null, 1);
+        inventoryRepo.createSize(inventory.id(), "One size", 0, "");
+        elsewhereSize = inventoryRepo.findSizes(inventory.id()).getFirst();
 
         inventoryRepo.createRequirement(inventory.id(), StationUserType.MEMBER, 0, null, 9);
         var required = inventoryCheckService.getRequiredItems(station.id(), member.id()).stream()
@@ -137,6 +148,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
         for (var partner : federationService.findPartners(otherStation.id()))
             federationRepo.deletePartner(partner.id());
         inventoryRepo.delete(inventory.id());
+        inventoryRepo.delete(sized.id());
         stationRepo.delete(station.id());
         stationRepo.delete(otherStation.id());
         accountRepo.delete(memberAccount.id());
@@ -155,11 +167,78 @@ class SelfCheckServiceTest extends RepositoryTestBase {
     }
 
     private static SelfCheckAnswerInput aboutPiece(int itemId, SelfCheckAnswer answer) {
-        return new SelfCheckAnswerInput(itemId, null, null, answer, "", null);
+        return new SelfCheckAnswerInput(itemId, null, null, answer, "", null, null);
     }
 
     private static SelfCheckAnswerInput aboutPlace(int slot, SelfCheckAnswer answer, String typed) {
-        return new SelfCheckAnswerInput(null, inventory.id(), slot, answer, "nothing was ever handed to me", typed);
+        return aboutPlace(slot, answer, typed, null);
+    }
+
+    private static SelfCheckAnswerInput aboutPlace(int slot, SelfCheckAnswer answer, String typed, Integer sizeId) {
+        return new SelfCheckAnswerInput(
+                null, inventory.id(), slot, answer, "nothing was ever handed to me", typed, sizeId);
+    }
+
+    private static SelfCheckAnswerInput aboutSizedPlace(SelfCheckAnswer answer, Integer sizeId) {
+        return new SelfCheckAnswerInput(null, sized.id(), 0, answer, "", null, sizeId);
+    }
+
+    @Test
+    void aSizeMayBeGivenForAPieceNobodyWroteDownAndMayBeLeftOut() {
+        int taskId = handOut();
+
+        var given = selfCheckService.answer(
+                taskId,
+                station.id(),
+                member.id(),
+                false,
+                List.of(aboutSizedPlace(SelfCheckAnswer.HAVE_ONE, large.id())));
+        assertEquals(
+                large.id(),
+                given.stream()
+                        .filter(r -> r.inventoryId() == sized.id())
+                        .findFirst()
+                        .orElseThrow()
+                        .sizeId());
+
+        var without = selfCheckService.answer(
+                taskId, station.id(), member.id(), false, List.of(aboutSizedPlace(SelfCheckAnswer.HAVE_ONE, null)));
+        assertNull(
+                without.stream()
+                        .filter(r -> r.inventoryId() == sized.id())
+                        .findFirst()
+                        .orElseThrow()
+                        .sizeId(),
+                "a member who does not know the size still gets through");
+        selfCheckService.closeAllFor(member.id());
+    }
+
+    @Test
+    void aSizeThatIsNotOneThisKindOfGearComesInIsRefused() {
+        int taskId = handOut();
+        assertThrows(
+                BadRequestResponse.class,
+                () -> selfCheckService.answer(
+                        taskId,
+                        station.id(),
+                        member.id(),
+                        false,
+                        List.of(aboutSizedPlace(SelfCheckAnswer.HAVE_ONE, elsewhereSize.id()))));
+        selfCheckService.closeAllFor(member.id());
+    }
+
+    @Test
+    void onlyAPlaceTheMemberIsHoldingSomethingForTakesASize() {
+        int taskId = handOut();
+        assertThrows(
+                BadRequestResponse.class,
+                () -> selfCheckService.answer(
+                        taskId,
+                        station.id(),
+                        member.id(),
+                        false,
+                        List.of(aboutSizedPlace(SelfCheckAnswer.NEVER_HAD, large.id()))));
+        selfCheckService.closeAllFor(member.id());
     }
 
     @Test
@@ -323,7 +402,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         station.id(),
                         member.id(),
                         false,
-                        List.of(new SelfCheckAnswerInput(owned.id(), null, null, null, "", null))));
+                        List.of(new SelfCheckAnswerInput(owned.id(), null, null, null, "", null, null))));
         selfCheckService.closeAllFor(member.id());
     }
 
@@ -403,7 +482,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         station.id(),
                         member.id(),
                         false,
-                        List.of(new SelfCheckAnswerInput(null, null, 0, SelfCheckAnswer.NEVER_HAD, "", null))));
+                        List.of(new SelfCheckAnswerInput(null, null, 0, SelfCheckAnswer.NEVER_HAD, "", null, null))));
         assertThrows(
                 BadRequestResponse.class,
                 () -> selfCheckService.answer(
@@ -412,7 +491,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         member.id(),
                         false,
                         List.of(new SelfCheckAnswerInput(
-                                null, inventory.id(), -1, SelfCheckAnswer.NEVER_HAD, "", null))));
+                                null, inventory.id(), -1, SelfCheckAnswer.NEVER_HAD, "", null, null))));
         assertThrows(
                 BadRequestResponse.class,
                 () -> selfCheckService.answer(
@@ -420,7 +499,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         station.id(),
                         member.id(),
                         false,
-                        List.of(new SelfCheckAnswerInput(null, -1, 0, SelfCheckAnswer.NEVER_HAD, "", null))));
+                        List.of(new SelfCheckAnswerInput(null, -1, 0, SelfCheckAnswer.NEVER_HAD, "", null, null))));
         assertThrows(
                 BadRequestResponse.class,
                 () -> selfCheckService.answer(

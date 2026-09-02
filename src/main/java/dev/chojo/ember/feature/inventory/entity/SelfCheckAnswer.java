@@ -37,7 +37,9 @@ public enum SelfCheckAnswer {
     NEVER_HAD,
     /**
      * An empty place the member is in fact holding something for, which nobody wrote down. They may
-     * give the number on the piece and they may leave it blank.
+     * give the number on the piece and its size where the inventory keeps sizes, and they may leave
+     * both blank: a member who cannot read a label off a piece is still telling the station it
+     * exists.
      */
     HAVE_ONE;
 

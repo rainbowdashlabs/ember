@@ -41,7 +41,7 @@ const ready = computed(() => !props.busy && reason.value.trim().length > 0)
     <div class="space-y-3">
       <SubHeader>{{ t('selfCheck.review.refuseTitle') }}</SubHeader>
       <p class="text-sm">{{ itemName }}</p>
-      <MutedText size="sm">{{ t('selfCheck.review.refuseHint') }}</MutedText>
+      <MutedText size="sm" tag="p">{{ t('selfCheck.review.refuseHint') }}</MutedText>
       <TextAreaInput
           v-model="reason"
           :placeholder="t('selfCheck.review.refuseReasonPlaceholder')"

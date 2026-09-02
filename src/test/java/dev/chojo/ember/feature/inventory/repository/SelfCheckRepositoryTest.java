@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.repository;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckAnswer;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckRaisedKind;
@@ -35,6 +36,7 @@ class SelfCheckRepositoryTest extends RepositoryTestBase {
     private static StationMember checker;
     private static Inventory inventory;
     private static InventoryItem item;
+    private static InventorySize size;
 
     @BeforeAll
     static void setup() {
@@ -44,6 +46,8 @@ class SelfCheckRepositoryTest extends RepositoryTestBase {
         member = stationMemberRepo.create(station.id(), memberAccount.id());
         checker = stationMemberRepo.create(station.id(), checkerAccount.id());
         inventory = inventoryRepo.create(station.id(), "SelfCheckRepoInv", InventoryType.INTERNAL, false);
+        inventoryRepo.createSize(inventory.id(), "L", 0, "");
+        size = inventoryRepo.findSizes(inventory.id()).getFirst();
         item = inventoryRepo.createItem(inventory.id(), "SCR-001", "Helmet", null, null);
         itemCustodyService.assignToMember(item.id(), member.id(), "");
     }
@@ -164,19 +168,21 @@ class SelfCheckRepositoryTest extends RepositoryTestBase {
     void anAnswerAboutAnEmptyPlaceHangsOnTheInventoryAndTheSlot() {
         int taskId = newTask();
         var zero = selfCheckRepo.answerForPlace(
-                taskId, inventory.id(), 0, SelfCheckAnswer.NEVER_HAD, "", null, member.id());
+                taskId, inventory.id(), 0, SelfCheckAnswer.NEVER_HAD, "", null, null, member.id());
         var one = selfCheckRepo.answerForPlace(
-                taskId, inventory.id(), 1, SelfCheckAnswer.HAVE_ONE, "found one", "X-9", member.id());
+                taskId, inventory.id(), 1, SelfCheckAnswer.HAVE_ONE, "found one", "X-9", size.id(), member.id());
         assertNotEquals(zero.id(), one.id());
         assertEquals(0, zero.slot());
         assertEquals("X-9", one.typedInternalId());
+        assertEquals(size.id(), one.sizeId());
         assertNull(one.itemId());
         assertEquals(2, selfCheckRepo.findRows(taskId).size());
 
         var again = selfCheckRepo.answerForPlace(
-                taskId, inventory.id(), 1, SelfCheckAnswer.NEVER_HAD, "", null, member.id());
+                taskId, inventory.id(), 1, SelfCheckAnswer.NEVER_HAD, "", null, null, member.id());
         assertEquals(one.id(), again.id());
         assertNull(again.typedInternalId());
+        assertNull(again.sizeId(), "answering again leaves no size behind");
         selfCheckRepo.overtake(taskId);
     }
 
@@ -184,7 +190,7 @@ class SelfCheckRepositoryTest extends RepositoryTestBase {
     void findRowReadsOneAnswerBack() {
         int taskId = newTask();
         var row = selfCheckRepo.answerForPlace(
-                taskId, inventory.id(), 0, SelfCheckAnswer.NEVER_HAD, "", null, member.id());
+                taskId, inventory.id(), 0, SelfCheckAnswer.NEVER_HAD, "", null, null, member.id());
         assertEquals(row.id(), selfCheckRepo.findRow(row.id()).orElseThrow().id());
         assertTrue(selfCheckRepo.findRow(-1).isEmpty());
         selfCheckRepo.overtake(taskId);
@@ -194,7 +200,7 @@ class SelfCheckRepositoryTest extends RepositoryTestBase {
     void takingAnAnswerSucceedsOnceAndOnlyOnce() {
         int taskId = newTask();
         var row = selfCheckRepo.answerForPlace(
-                taskId, inventory.id(), 0, SelfCheckAnswer.NEVER_HAD, "", null, member.id());
+                taskId, inventory.id(), 0, SelfCheckAnswer.NEVER_HAD, "", null, null, member.id());
         assertTrue(selfCheckRepo.hasOutstandingRows(taskId));
         assertTrue(selfCheckRepo.take(row.id(), checker.id()));
         assertFalse(selfCheckRepo.take(row.id(), checker.id()));
@@ -212,7 +218,7 @@ class SelfCheckRepositoryTest extends RepositoryTestBase {
     void refusingAnAnswerKeepsTheReason() {
         int taskId = newTask();
         var row = selfCheckRepo.answerForPlace(
-                taskId, inventory.id(), 0, SelfCheckAnswer.HAVE_ONE, "", "someone else's", member.id());
+                taskId, inventory.id(), 0, SelfCheckAnswer.HAVE_ONE, "", "someone else's", null, member.id());
         assertTrue(selfCheckRepo.refuse(row.id(), "that piece is somebody else's", checker.id()));
         var settled = selfCheckRepo.findRow(row.id()).orElseThrow();
         assertEquals(SelfCheckRowState.REFUSED, settled.state());
@@ -224,7 +230,7 @@ class SelfCheckRepositoryTest extends RepositoryTestBase {
     void aTaskIsFinishedOnlyOnceNothingIsOutstanding() {
         int taskId = newTask();
         var row = selfCheckRepo.answerForPlace(
-                taskId, inventory.id(), 0, SelfCheckAnswer.NEVER_HAD, "", null, member.id());
+                taskId, inventory.id(), 0, SelfCheckAnswer.NEVER_HAD, "", null, null, member.id());
         selfCheckRepo.submit(taskId, member.id());
 
         assertFalse(selfCheckRepo.finish(taskId, SelfCheckState.DONE, null));
@@ -249,7 +255,7 @@ class SelfCheckRepositoryTest extends RepositoryTestBase {
     @Test
     void overtakingEndsATaskWhateverItHolds() {
         int taskId = newTask();
-        selfCheckRepo.answerForPlace(taskId, inventory.id(), 0, SelfCheckAnswer.NEVER_HAD, "", null, member.id());
+        selfCheckRepo.answerForPlace(taskId, inventory.id(), 0, SelfCheckAnswer.NEVER_HAD, "", null, null, member.id());
         assertTrue(selfCheckRepo.overtake(taskId));
         assertFalse(selfCheckRepo.overtake(taskId));
         assertEquals(
@@ -270,9 +276,9 @@ class SelfCheckRepositoryTest extends RepositoryTestBase {
     void whatWasTakenDoesNotComeBackASecondTime() {
         int taskId = newTask();
         var taken = selfCheckRepo.answerForPlace(
-                taskId, inventory.id(), 0, SelfCheckAnswer.NEVER_HAD, "", null, member.id());
+                taskId, inventory.id(), 0, SelfCheckAnswer.NEVER_HAD, "", null, null, member.id());
         var refused = selfCheckRepo.answerForPlace(
-                taskId, inventory.id(), 1, SelfCheckAnswer.NEVER_HAD, "", null, member.id());
+                taskId, inventory.id(), 1, SelfCheckAnswer.NEVER_HAD, "", null, null, member.id());
         selfCheckRepo.take(taken.id(), checker.id());
         selfCheckRepo.refuse(refused.id(), "cannot be settled", checker.id());
 

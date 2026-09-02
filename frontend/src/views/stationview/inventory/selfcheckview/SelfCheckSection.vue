@@ -10,7 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SelfCheckEntryCard from './SelfCheckEntryCard.vue'
 import type {RequiredInventoryItem} from '@/api/inventory'
-import type {SelfCheckDraft, SelfCheckEntry} from '@/composables/useSelfCheck'
+import type {ExchangeCauseName, SelfCheckDraft, SelfCheckEntry} from '@/composables/useSelfCheck'
 import type {SelfCheckAnswerName} from '@/api/selfChecks'
 
 /** One kind of gear, with everything the member holds of it and every place that is still empty. */
@@ -28,8 +28,9 @@ const emit = defineEmits<{
   setAnswer: [key: string, answer: SelfCheckAnswerName]
   setNote: [key: string, note: string]
   setTypedInternalId: [key: string, typed: string]
+  setSizeId: [key: string, sizeId: string]
   reportLost: [entry: SelfCheckEntry]
-  requestExchange: [entry: SelfCheckEntry]
+  requestExchange: [entry: SelfCheckEntry, cause: ExchangeCauseName]
 }>()
 
 const {t} = useI18n()
@@ -59,8 +60,9 @@ const {t} = useI18n()
         @set-answer="(k, a) => emit('setAnswer', k, a)"
         @set-note="(k, n) => emit('setNote', k, n)"
         @set-typed-internal-id="(k, v) => emit('setTypedInternalId', k, v)"
+        @set-size-id="(k, v) => emit('setSizeId', k, v)"
         @report-lost="e => emit('reportLost', e)"
-        @request-exchange="e => emit('requestExchange', e)"
+        @request-exchange="(e, cause) => emit('requestExchange', e, cause)"
     />
   </NeutralContainer>
 </template>

@@ -69,6 +69,8 @@ export interface SelfCheckRow {
     answer: SelfCheckAnswerName
     note: string
     typedInternalId?: string | null
+    /** The size the member gave for a piece nobody wrote down, absent where they gave none. */
+    sizeId?: number | null
     answeredBy?: number | null
     answeredAt: string
     state: SelfCheckRowStateName
@@ -107,6 +109,7 @@ export interface SelfCheckAnswerBody {
     answer: SelfCheckAnswerName
     note?: string
     typedInternalId?: string | null
+    sizeId?: number | null
 }
 
 export async function handOut(memberIds: number[], dueOn?: string | null): Promise<SelfCheckSummary[]> {
@@ -161,6 +164,8 @@ export interface SelfCheckReviewRow {
     settlement: SelfCheckSettlementName
     removal: SelfCheckRemovalName
     identifier: SelfCheckIdentifierMatch
+    /** The size the member gave for a piece nobody wrote down, empty where they gave none. */
+    statedSize: string
 }
 
 export interface SelfCheckRaisedView {
