@@ -594,12 +594,16 @@ test.describe('Members', () => {
     })
 
     /**
-     * A whole year group is written down long before anybody is meant to hear about it, so the
-     * wizard can be told to leave the mail for later. What matters afterwards is that the person is
-     * not stranded: the member list still offers to send it, and sending it there is what makes the
-     * link, so nothing has run out in the meantime.
+     * Entering somebody and telling them about it need not happen on the same day, so the wizard
+     * offers to hold the mail back. This stack has no mail provider, which is a real way to run an
+     * instance and the one case where the offer would promise something that cannot happen: it is
+     * left out and the reason put in its place, rather than asked and quietly ignored.
+     *
+     * What has to hold either way is that nobody is stranded. The member list still offers to send
+     * the mail, and sending it there is what makes the link, so a member entered today and written
+     * to next month gets a link that has not run out in between.
      */
-    test('a member created without a mail is sent one from the list afterwards', async ({managerPage: page}) => {
+    test('a member entered today is written to from the list afterwards', async ({managerPage: page}) => {
         const surname = unique('Spaeter')
 
         await page.goto('/station/members/create')
@@ -610,10 +614,8 @@ test.describe('Members', () => {
         await page.getByPlaceholder('Nachname').fill(surname)
         await page.getByPlaceholder('E-Mail-Adresse').fill(`${surname.toLowerCase()}@example.test`)
 
-        const choice = page.getByTestId('setup-mail-choice')
-        await expect(choice).toBeVisible()
-        await choice.getByRole('switch').click()
-        await expect(choice.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+        await expect(page.getByTestId('setup-mail-choice')).toHaveCount(0)
+        await expect(page.getByTestId('setup-mail-impossible')).toBeVisible()
 
         await page.getByRole('button', {name: 'Weiter'}).first().click()
         for (let step = 0; step < 4; step += 1) {
@@ -627,6 +629,8 @@ test.describe('Members', () => {
         const row = page.getByTestId('member-row').first()
         await expect(row).toBeVisible()
 
+        // Nobody has been written to yet, so the link cannot have run out: the row offers the mail
+        // rather than reporting an expiry.
         await expect(row.getByTestId('setup-link-expired')).toHaveCount(0)
         await row.getByRole('button', {name: 'Einrichtungs-Mail erneut senden'}).click()
 

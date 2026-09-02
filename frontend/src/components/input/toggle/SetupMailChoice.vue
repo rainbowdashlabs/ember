@@ -13,13 +13,14 @@ const {t} = useI18n()
 
 const sendNow = defineModel<boolean>({default: true})
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   /**
    * Whether an address is being given at all. Somebody entered without one is never written to, so
-   * there is no choice to offer and the question is left out rather than asked and ignored.
+   * there is no choice to offer and the question is left out rather than asked and ignored. Most
+   * callers write an address by definition and leave this alone.
    */
   hasAddress?: boolean
-}>()
+}>(), {hasAddress: true})
 
 /**
  * Whether asking the question means anything on this instance.
@@ -29,7 +30,7 @@ const props = defineProps<{
  * handed over by whoever runs the station, the same way it already is there.
  */
 const canSendMail = computed(() => sessionInfo.value?.canSendMail !== false)
-const offered = computed(() => canSendMail.value && props.hasAddress !== false)
+const offered = computed(() => canSendMail.value && props.hasAddress)
 </script>
 
 <template>
@@ -43,7 +44,7 @@ const offered = computed(() => canSendMail.value && props.hasAddress !== false)
     <ToggleInput v-model="sendNow"/>
   </div>
   <p
-      v-else-if="!canSendMail && hasAddress !== false"
+      v-else-if="!canSendMail && hasAddress"
       class="text-xs text-(--text-muted)"
       data-testid="setup-mail-impossible"
   >
