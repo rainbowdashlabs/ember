@@ -143,7 +143,7 @@ const {error: saveError, run: runSaveTicket} = useAsyncAction(async () => {
     await api.updateTicket({ title: title.value, description: description.value || null, assignedMemberId: assignedMemberId.value ? Number(assignedMemberId.value) : null, priority: priority.value, dueDate: dueDate.value || null })
     ticket.value = await api.getTicket()
     await loadDetails()
-}, {formatError: () => t('common.error')})
+}, {formatError: () => t('common.error'), coalesce: true})
 
 function saveTicket() { error.value = ''; void runSaveTicket() }
 
