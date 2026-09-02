@@ -336,10 +336,11 @@ public class ManagedMemberRoutes implements Routes {
         var items = inventoryService.findItemsByMember(memberId);
         ctx.json(items.stream()
                 .map(item -> {
-                    String inventoryName = inventoryService
-                            .findById(item.inventoryId())
-                            .map(Inventory::name)
-                            .orElse("");
+                    var inventory = inventoryService.findById(item.inventoryId());
+                    String inventoryName = inventory.map(Inventory::name).orElse("");
+                    // Whether the piece can be exchanged travels with it: a guardian's screen has no
+                    // list of inventories to look the answer up in
+                    boolean homogeneous = inventory.map(Inventory::homogeneous).orElse(true);
                     String sizeName = null;
                     if (item.sizeId() != null) {
                         sizeName = inventoryService.findSizes(item.inventoryId()).stream()
@@ -354,6 +355,7 @@ public class ManagedMemberRoutes implements Routes {
                             item.name(),
                             item.internalId(),
                             inventoryName,
+                            homogeneous,
                             item.sizeId(),
                             sizeName,
                             item.lostAt(),
@@ -404,6 +406,8 @@ public class ManagedMemberRoutes implements Routes {
             String name,
             String internalId,
             String inventoryName,
+            /** Whether the inventory holds one thing in many copies, which is what makes a piece exchangeable. */
+            boolean inventoryHomogeneous,
             Integer sizeId,
             String sizeName,
             Instant lostAt,

@@ -8,13 +8,25 @@ import StationBadge from '@/components/badge/StationBadge.vue'
 import KbReachEye from './KbReachEye.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import AuthImage from '@/components/display/AuthImage.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import KbItemActions from './KbItemActions.vue'
 import {formatDate} from '@/util/format'
 import type {KbItem} from './useKbItems'
 
-defineProps<{
+const props = defineProps<{
     item: KbItem
+    /** Marking is on, and this entry is one of this station's own. */
+    selectable?: boolean
+    selected?: boolean
 }>()
+
+const emit = defineEmits<{
+    toggleSelect: [key: string, value: boolean, shift: boolean]
+}>()
+
+function onCheckboxClick(event: MouseEvent) {
+    emit('toggleSelect', props.item.key, !props.selected, event.shiftKey)
+}
 </script>
 
 <template>
@@ -24,6 +36,15 @@ defineProps<{
         :class="item.open ? 'cursor-pointer' : ''"
         @click="item.open?.()"
     >
+        <div
+            v-if="selectable"
+            class="flex flex-shrink-0 cursor-pointer select-none items-center"
+            data-testid="kb-item-select"
+            @click.stop.prevent="onCheckboxClick($event)"
+        >
+            <CheckboxInput :model-value="selected" class="pointer-events-none"/>
+        </div>
+
         <div class="w-5 flex-shrink-0 flex justify-center">
             <AuthImage
                 v-if="item.imageUrl"

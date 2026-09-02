@@ -478,14 +478,217 @@ export async function setFolderTags(folderId: number, tags: string[]): Promise<K
 
 // -- Related Files --
 
-export async function getRelatedFiles(fileId: number): Promise<KbFile[]> {
-    const res = await client.get<KbFile[]>(`/kb/files/${fileId}/related`)
+/**
+ * What an article points at, and what points at it. The second list is the same rows read the other
+ * way round, so a reference shows on both articles while only the one that wrote it can take it
+ * away. Articles the reader may not open are left out of both lists rather than counted.
+ */
+export interface RelatedFiles {
+    related: KbFile[]
+    backlinks: KbFile[]
+}
+
+export async function getRelatedFiles(fileId: number): Promise<RelatedFiles> {
+    const res = await client.get<RelatedFiles>(`/kb/files/${fileId}/related`)
     return res.data
 }
 
-export async function setRelatedFiles(fileId: number, targetFileIds: number[]): Promise<KbFile[]> {
-    const res = await client.put<KbFile[]>(`/kb/files/${fileId}/related`, {fileIds: targetFileIds})
+export async function setRelatedFiles(fileId: number, targetFileIds: number[]): Promise<RelatedFiles> {
+    const res = await client.put<RelatedFiles>(`/kb/files/${fileId}/related`, {fileIds: targetFileIds})
     return res.data
+}
+
+/**
+ * The articles changed most recently, for the picker's state before anything has been typed into
+ * it. Filtered the same way a listing is, so it never names an article the reader cannot open.
+ */
+export async function listRecentFiles(limit = 10): Promise<SearchResult[]> {
+    const res = await client.get<SearchResult[]>('/kb/files/recent', {params: {limit}})
+    return res.data
+}
+
+// -- Moving --
+
+/**
+ * Why one entry stayed where it was. The server sends one of these rather than a sentence, so the
+ * screen can say it in the reader's language.
+ */
+export const KbRefusalReason = {
+    NO_PERMISSION: 'NO_PERMISSION',
+    NAME_TAKEN: 'NAME_TAKEN',
+    TARGET_INSIDE: 'TARGET_INSIDE',
+    SHARE_TOO_WIDE: 'SHARE_TOO_WIDE',
+    NOT_FOUND: 'NOT_FOUND',
+} as const
+
+export type KbRefusalReasonName = (typeof KbRefusalReason)[keyof typeof KbRefusalReason]
+
+/** How far an entry is read, on the one scale the wiki marks entries with. */
+export const KbReach = {
+    INTERNAL: 'INTERNAL',
+    NARROW: 'NARROW',
+    FEDERATED: 'FEDERATED',
+    PUBLIC: 'PUBLIC',
+} as const
+
+export type KbReachName = (typeof KbReach)[keyof typeof KbReach]
+
+/** One folder of the tree a move picker offers, with what the reader may do in it. */
+export interface KbFolderTreeEntry {
+    id: number
+    parentId: number | null
+    name: string
+    level: KbAccessLevelName
+}
+
+export interface MoveResponse {
+    moved: boolean
+    name: string | null
+    reason: KbRefusalReasonName | null
+}
+
+/** How far an entry reaches now and how far it would reach after a move. */
+export interface MovePreview {
+    before: KbReachName
+    after: KbReachName
+}
+
+export interface RefusedEntry {
+    name: string | null
+    reason: KbRefusalReasonName
+}
+
+/**
+ * What a bulk action did. {@code refused} names as many of the entries it left alone as a message
+ * can carry; {@code refusedTotal} counts all of them.
+ */
+export interface BulkOutcome {
+    doneFolderIds: number[]
+    doneFileIds: number[]
+    refused: RefusedEntry[]
+    refusedTotal: number
+}
+
+export async function listFolderTree(): Promise<KbFolderTreeEntry[]> {
+    const res = await client.get<KbFolderTreeEntry[]>('/kb/folders/tree')
+    return res.data
+}
+
+export async function moveFolder(folderId: number, parentId: number | null): Promise<MoveResponse> {
+    const res = await client.put<MoveResponse>(`/kb/folders/${folderId}/parent`, {parentId})
+    return res.data
+}
+
+export async function moveFile(fileId: number, folderId: number | null): Promise<MoveResponse> {
+    const res = await client.put<MoveResponse>(`/kb/files/${fileId}/folder`, {folderId})
+    return res.data
+}
+
+export async function getMovePreview(
+    entry: {folderId?: number | null; fileId?: number | null},
+    targetFolderId: number | null,
+): Promise<MovePreview> {
+    const params: Record<string, number> = {}
+    if (entry.folderId != null) params.folderId = entry.folderId
+    if (entry.fileId != null) params.fileId = entry.fileId
+    if (targetFolderId != null) params.targetFolderId = targetFolderId
+    const res = await client.get<MovePreview>('/kb/move/preview', {params})
+    return res.data
+}
+
+export async function bulkMove(
+    selection: {folderIds: number[]; fileIds: number[]},
+    targetFolderId: number | null,
+): Promise<BulkOutcome> {
+    const res = await client.post<BulkOutcome>('/kb/bulk/move', {...selection, targetFolderId})
+    return res.data
+}
+
+export async function bulkTags(
+    selection: {folderIds: number[]; fileIds: number[]},
+    tags: {addTags: string[]; removeTags: string[]},
+): Promise<BulkOutcome> {
+    const res = await client.post<BulkOutcome>('/kb/bulk/tags', {...selection, ...tags})
+    return res.data
+}
+
+export async function bulkDelete(selection: {folderIds: number[]; fileIds: number[]}): Promise<BulkOutcome> {
+    const res = await client.post<BulkOutcome>('/kb/bulk/delete', selection)
+    return res.data
+}
+
+// -- Trash --
+
+/**
+ * What a delete would really take, folder contents counted rather than ticked boxes.
+ *
+ * {@code embeddedOn} names the pages that carry one of the articles: a page cell holds an article
+ * number with nothing behind it, so a deleted article turns into a stand-in title on a page nobody
+ * thought to look at.
+ */
+export interface DeleteImpact {
+    folders: number
+    files: number
+    embeddedOn: string[]
+    onPublicPage: boolean
+}
+
+/**
+ * One entry of the trash. A folder stands for its whole branch: {@code contained} says how much went
+ * down with it, and {@code bytes} what that branch is still holding in storage.
+ */
+export interface KbTrashEntry {
+    folder: boolean
+    id: number
+    name: string
+    description: string
+    fileType: KbFileTypeName | null
+    deletedAt: string
+    deletedByName: string | null
+    bytes: number
+    contained: number
+}
+
+/** A station's trash as this reader sees it, with the storage emptying it would give back. */
+export interface KbTrashView {
+    entries: KbTrashEntry[]
+    bytes: number
+}
+
+/** What a restore did, and whether the entry had to come back at the top level. */
+export interface KbRestoreResult {
+    restored: boolean
+    name: string | null
+    movedToRoot: boolean
+}
+
+export async function getDeleteImpact(selection: {
+    folderIds: number[]
+    fileIds: number[]
+}): Promise<DeleteImpact> {
+    const res = await client.post<DeleteImpact>('/kb/bulk/delete/impact', selection)
+    return res.data
+}
+
+export async function listTrash(): Promise<KbTrashView> {
+    const res = await client.get<KbTrashView>('/kb/trash')
+    return res.data
+}
+
+export async function emptyTrash(): Promise<{cleared: number}> {
+    const res = await client.delete<{cleared: number}>('/kb/trash')
+    return res.data
+}
+
+export async function restoreTrashed(entry: KbTrashEntry): Promise<KbRestoreResult> {
+    const path = entry.folder ? `/kb/trash/folders/${entry.id}/restore` : `/kb/trash/files/${entry.id}/restore`
+    const res = await client.post<KbRestoreResult>(path)
+    return res.data
+}
+
+export async function purgeTrashed(entry: KbTrashEntry): Promise<void> {
+    const path = entry.folder ? `/kb/trash/folders/${entry.id}` : `/kb/trash/files/${entry.id}`
+    await client.delete(path)
 }
 
 // -- KB Images --

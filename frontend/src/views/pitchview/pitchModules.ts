@@ -380,13 +380,13 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     },
                     {
                         title: 'Anwesenheit', subtitle: 'Dienstabend · 18.06.2026 · 18:00 – 19:30',
-                        actions: ['Synchronisieren', 'Anwesenheit prüfen (2)'],
+                        actions: ['Anwesenheit prüfen (2)'],
                         attendance: ATTENDANCE,
                         footer: 'Über der Liste stehen die Felder der Vorlage: Thema, Ausbilder, Fahrdienst.',
                     },
                 ],
                 points: [
-                    '„Synchronisieren“ holt die An- und Abmeldungen des Termins in die Liste',
+                    '„Synchronisieren“ im Aktionsmenü holt die An- und Abmeldungen des Termins in die Liste',
                     'Wer als abwesend gemeldet ist, wird dabei nicht versehentlich als anwesend geführt',
                     'Ein Feld vom Typ Mitgliederliste trägt seine Leute direkt als anwesend ein',
                 ],

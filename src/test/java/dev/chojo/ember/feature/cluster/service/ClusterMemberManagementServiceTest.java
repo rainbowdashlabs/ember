@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -365,7 +366,7 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
 
         var made = service.createMember(clusterId, station.uid(), "Ohne", "Adresse" + n, null, StationUserType.MEMBER);
 
-        assertTrue(made.email().endsWith(".local"), "an address nobody can receive mail at stands in for one");
+        assertNull(made.email(), "somebody with no address is written down with none, not with one made up");
         assertEquals(
                 station.id(),
                 stationMemberRepo.findById(made.memberId()).orElseThrow().stationId());

@@ -516,6 +516,7 @@ public class NewsService {
                     CommentEntityType.NEWS,
                     newsId,
                     news.title(),
+                    null,
                     comment.id(),
                     parentId,
                     parentAuthorMemberId,
@@ -539,6 +540,8 @@ public class NewsService {
                                         CommentEntityType.NEWS,
                                         newsId,
                                         news.title(),
+                                        null,
+                                        comment.id(),
                                         preview));
                             }
                         });
@@ -559,6 +562,8 @@ public class NewsService {
                             news.title(),
                             type,
                             targetId,
+                            null,
+                            comment.id(),
                             preview));
                 }
             }
@@ -618,9 +623,7 @@ public class NewsService {
             return false;
         }
         if (newsRepository.deleteComment(id)) {
-            String preview =
-                    comment.content().length() > 100 ? comment.content().substring(0, 100) + "..." : comment.content();
-            eventBus.publish(new CommentDeleted(stationId, id, preview));
+            eventBus.publish(new CommentDeleted(stationId, CommentEntityType.NEWS, id));
             log.info("Deleted news comment {} on station {}", id, stationId);
             return true;
         }

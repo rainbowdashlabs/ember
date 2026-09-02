@@ -35,11 +35,11 @@ const activeView = ref('')
 const showExchangeModal = ref(false)
 
 const dummyHelm: MyInventoryItem = {
-  id: 1, inventoryId: 1, inventoryName: 'Helme', name: 'Helm #12',
+  id: 1, inventoryId: 1, inventoryName: 'Helme', inventoryHomogeneous: true, name: 'Helm #12',
   sizeName: 'M', sizeId: 2, internalId: 'HLM-2024-012', lostAt: null,
 }
 const dummyJacke: MyInventoryItem = {
-  id: 2, inventoryId: 2, inventoryName: 'Jacken', name: 'Einsatzjacke #7',
+  id: 2, inventoryId: 2, inventoryName: 'Jacken', inventoryHomogeneous: true, name: 'Einsatzjacke #7',
   sizeName: 'L', sizeId: 3, internalId: 'JCK-2023-007', lostAt: null,
 }
 const dummyJackeExchange = {
@@ -50,7 +50,7 @@ const dummyJackeExchange = {
   createdAt: '2026-01-15T10:00:00Z', updatedAt: '2026-01-15T10:00:00Z',
 } as ExchangeRequestEntry
 const dummyStiefel: MyInventoryItem = {
-  id: 3, inventoryId: 3, inventoryName: 'Stiefel', name: 'Stiefel #3',
+  id: 3, inventoryId: 3, inventoryName: 'Stiefel', inventoryHomogeneous: true, name: 'Stiefel #3',
   sizeName: '42', sizeId: 4, lostAt: '2026-03-01T00:00:00Z',
 }
 </script>

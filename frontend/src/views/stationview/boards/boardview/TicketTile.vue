@@ -10,6 +10,7 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import { contrastTextColor } from '@/theme/contrast'
 import type { MemberIdentity } from '@/api/types'
 import { priorityIcon as toPriorityIcon, priorityColor as toPriorityColor } from '@/util/ticketPriority'
+import { formatDayMonth, todayIsoDate } from '@/util/format'
 
 const props = defineProps<{
     ticket: BoardTicket
@@ -56,12 +57,13 @@ const checklistPercent = computed(() =>
 
 const formattedDueDate = computed(() => {
     if (!props.ticket.dueDate) return null
-    return new Date(props.ticket.dueDate).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
+    return formatDayMonth(props.ticket.dueDate)
 })
 
+/** A deadline is a day, so it has passed once the day itself is behind the reader. */
 const isOverdue = computed(() => {
     if (!props.ticket.dueDate) return false
-    return new Date(props.ticket.dueDate) < new Date(new Date().toDateString())
+    return props.ticket.dueDate < todayIsoDate()
 })
 </script>
 

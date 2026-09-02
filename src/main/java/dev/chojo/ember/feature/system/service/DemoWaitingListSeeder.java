@@ -50,9 +50,10 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
     /**
      * Before the parallel band, because this is where the roster stops moving.
      *
-     * <p>An applicant who withdrew after being invited is deleted again, member and account both. Run
-     * beside a seeder that lists the station's members, that deletion lands between the listing and
-     * the write that follows it, and the write points at somebody who is no longer there.
+     * <p>Applicants in their trial period and beyond arrive on the station as members here. Run
+     * beside a seeder that lists the station's members, those rows land between the listing and the
+     * write that follows it, and half the band works from a roster the other half has already
+     * changed.
      */
     @Override
     public int order() {
@@ -256,46 +257,40 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                 continue;
             }
 
-            // For entries that progressed beyond WAITING, create a linked member
+            // Everything past WAITING was invited at some point, and being invited is only a
+            // status and a date: nobody is written into the roster for it.
             if (kid.status != WaitingListEntryStatus.WAITING) {
-                var account = accountRepository.create(null, kid.firstname, kid.lastname);
-                var member = stationMemberRepository.create(stationId, account.id());
-                stationMemberRepository
-                        .findPermissionByName(StationPermission.USER)
-                        .ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
-                waitingListRepository.linkMember(entry.id(), member.id());
                 waitingListRepository.updateEntryStatusWithTimestamp(
                         entry.id(), WaitingListEntryStatus.INVITED, "invited_at");
 
                 switch (kid.status) {
                     case TESTING -> {
-                        // Match WaitingListService.inviteEntry: members carried over from the
-                        // waiting list during their trial period live under the TRIAL user type,
-                        // not the schema default of MEMBER, so they show up correctly on the
-                        // members overview and in the testing-group section.
-                        stationMemberRepository.setUserType(member.id(), StationUserType.TRIAL);
-                        memberGroupRepository.addMember(gaesteGroup.id(), member.id());
+                        // Match WaitingListService.moveToTesting: the trial period is where the
+                        // account and the membership come into being, under the TRIAL user type
+                        // rather than the schema default of MEMBER, so they show up correctly on
+                        // the members overview and in the testing-group section.
+                        int memberId = createTrialMember(stationId, entry.id(), kid.firstname, kid.lastname);
+                        memberGroupRepository.addMember(gaesteGroup.id(), memberId);
                         waitingListRepository.updateEntryStatusWithTimestamp(
                                 entry.id(), WaitingListEntryStatus.TESTING, "testing_at");
                     }
                     case JOINED -> {
                         // The applicant first goes through the TRIAL phase like a real waiting-list
                         // transition does, then graduates to a full MEMBER once joined.
-                        stationMemberRepository.setUserType(member.id(), StationUserType.TRIAL);
+                        int memberId = createTrialMember(stationId, entry.id(), kid.firstname, kid.lastname);
                         waitingListRepository.updateEntryStatusWithTimestamp(
                                 entry.id(), WaitingListEntryStatus.TESTING, "testing_at");
                         stationMemberRepository
                                 .findPermissionByName(StationPermission.USER)
-                                .ifPresent(role -> stationMemberRepository.revokePermission(member.id(), role.id()));
-                        stationMemberRepository.setUserType(member.id(), StationUserType.MEMBER);
-                        memberGroupRepository.addMember(joinGroupId, member.id());
+                                .ifPresent(role -> stationMemberRepository.revokePermission(memberId, role.id()));
+                        stationMemberRepository.setUserType(memberId, StationUserType.MEMBER);
+                        memberGroupRepository.addMember(joinGroupId, memberId);
                         waitingListRepository.updateEntryStatusWithTimestamp(
                                 entry.id(), WaitingListEntryStatus.JOINED, "joined_at");
                     }
                     case WITHDRAWN -> {
-                        // Delete the member and orphaned account
-                        stationMemberRepository.delete(member.id());
-                        accountRepository.delete(account.id());
+                        // Withdrawn straight from the invitation, so there is no member and no
+                        // account to take back off the station.
                         waitingListRepository.updateEntryStatusWithTimestamp(
                                 entry.id(), WaitingListEntryStatus.WITHDRAWN, "withdrawn_at");
                     }
@@ -303,5 +298,22 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                 }
             }
         }
+    }
+
+    /**
+     * The account and the membership a trial period runs on, the way the waiting list writes them
+     * when somebody turns up for the first time.
+     *
+     * @return the id of the new member
+     */
+    private int createTrialMember(int stationId, int entryId, String firstname, String lastname) {
+        var account = accountRepository.create(null, firstname, lastname);
+        var member = stationMemberRepository.create(stationId, account.id());
+        stationMemberRepository.setUserType(member.id(), StationUserType.TRIAL);
+        stationMemberRepository
+                .findPermissionByName(StationPermission.USER)
+                .ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
+        waitingListRepository.linkMember(entryId, member.id());
+        return member.id();
     }
 }

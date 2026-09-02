@@ -9,6 +9,8 @@ import ExchangeDesktopTable from './ExchangeDesktopTable.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import type { ExchangeRequestEntry, ExchangeStatusName } from '@/api/exchanges'
 import type { InventoryItem } from '@/api/inventory'
+import type { SortDirection } from '@/composables/useSortable'
+import type { ExchangeSortKey } from './exchangeFilter'
 
 defineProps<{
   requests: ExchangeRequestEntry[]
@@ -16,14 +18,18 @@ defineProps<{
   canManageExchanges: boolean
   exportMode: boolean
   selectedForExport: Set<number>
+  allSelected: boolean
   updatingId: number | null
   correctingId: number | null
   availableItems: InventoryItem[]
   nextStatusesFor: (request: ExchangeRequestEntry) => ExchangeStatusName[]
+  sortKey: ExchangeSortKey
+  direction: SortDirection
 }>()
 
 const emit = defineEmits<{
   (e: 'toggle-select-all'): void
+  (e: 'sort', key: ExchangeSortKey): void
   (e: 'toggle-export', id: number): void
   (e: 'open-log', id: number): void
   (e: 'start-update', request: ExchangeRequestEntry): void
@@ -69,11 +75,15 @@ const { isMobile } = useBreakpoint()
     :show-member-column="showMemberColumn"
     :can-manage-exchanges="canManageExchanges"
     :selected-for-export="selectedForExport"
+    :all-selected="allSelected"
     :updating-id="updatingId"
     :correcting-id="correctingId"
     :available-items="availableItems"
     :next-statuses-for="nextStatusesFor"
+    :sort-key="sortKey"
+    :direction="direction"
     @toggle-select-all="emit('toggle-select-all')"
+    @sort="(key) => emit('sort', key)"
     @toggle-export="(id) => emit('toggle-export', id)"
     @open-log="(id) => emit('open-log', id)"
     @start-update="(r) => emit('start-update', r)"

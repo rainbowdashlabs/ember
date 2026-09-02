@@ -32,6 +32,9 @@ const {t} = useI18n()
           <div class="text-xs text-(--text-muted)">
             {{ t('itemDetail.checkHistory.byChecker', {name: entry.checkerName || t('common.unknown')}) }}
           </div>
+          <div v-if="entry.reporterName" class="text-xs text-(--text-muted)" data-testid="check-history-reporter">
+            {{ t('itemDetail.checkHistory.reportedBy', {name: entry.reporterName}) }}
+          </div>
           <div v-if="entry.containerName" class="text-xs text-(--text-muted)">
             {{ t('itemDetail.checkHistory.inContainer', {container: entry.containerName}) }}
           </div>

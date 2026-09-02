@@ -259,4 +259,21 @@ class FederationSigningServiceTest {
         assertTrue(signingService.verifyEnrollmentPayload(payload, signature, publicKey));
         assertFalse(signingService.verifyEnrollmentPayload(payload + "x", signature, publicKey));
     }
+
+    /**
+     * A station keeps only the private half of its key pair, so joining a second partner has to be
+     * able to hand out the public half that belongs to it rather than a freshly generated one.
+     */
+    @Test
+    void derivesThePublicKeyBelongingToAStoredPrivateKey() {
+        String stored = Base64.getEncoder().encodeToString(privateKey.getEncoded());
+        String expected = Base64.getEncoder().encodeToString(publicKey.getEncoded());
+
+        assertEquals(expected, signingService.derivePublicKey(stored));
+    }
+
+    @Test
+    void derivingFromSomethingThatIsNoPrivateKeyFails() {
+        assertThrows(RuntimeException.class, () -> signingService.derivePublicKey("not-a-key"));
+    }
 }

@@ -33,7 +33,7 @@ public class RequirementsRoutes implements Routes {
     private void getRequirements(Context ctx) {
         UserSession session = UserSession.from(ctx);
         if (session.member() == null || session.stationId() == null) {
-            ctx.json(new RequirementsService.RequirementsResponse(List.of(), List.of(), false));
+            ctx.json(new RequirementsService.RequirementsResponse(List.of(), List.of(), false, List.of()));
             return;
         }
         ctx.json(requirementsService.getRequirements(

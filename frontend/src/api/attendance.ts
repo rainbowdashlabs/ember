@@ -56,6 +56,10 @@ export interface AttendanceSession {
     createdAt?: string
     eventId?: number | null
     title?: string
+    /** When a manager's reopening runs out, null where the sheet's age alone decides. */
+    unlockedUntil?: string | null
+    /** When somebody closed the sheet by hand, null where nobody did. */
+    lockedAt?: string | null
 }
 
 export interface SessionRequest {
@@ -84,6 +88,8 @@ export interface SessionDetail {
     session?: AttendanceSession
     fields?: AttendanceSessionField[]
     entries?: AttendanceEntry[]
+    /** Whether the sheet refuses writes; decided by the backend, which owns the span. */
+    locked?: boolean
 }
 
 export type AttendanceStatus = 'UNCONFIRMED' | 'PRESENT' | 'ABSENT' | 'DECLINED'
@@ -240,6 +246,16 @@ export async function updateEntryStatus(entryId: number, status: string): Promis
 
 export async function syncFromEvent(sessionId: number): Promise<AttendanceEntry[]> {
     const res = await client.post<AttendanceEntry[]>(`/attendance/sessions/${sessionId}/sync-event`)
+    return res.data
+}
+
+export async function unlockSession(sessionId: number): Promise<AttendanceSession> {
+    const res = await client.post<AttendanceSession>(`/attendance/sessions/${sessionId}/unlock`)
+    return res.data
+}
+
+export async function lockSession(sessionId: number): Promise<AttendanceSession> {
+    const res = await client.post<AttendanceSession>(`/attendance/sessions/${sessionId}/lock`)
     return res.data
 }
 

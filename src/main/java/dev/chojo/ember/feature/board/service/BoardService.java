@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.board.service;
 
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
@@ -16,6 +17,7 @@ import dev.chojo.ember.feature.board.entity.LanePreset;
 import dev.chojo.ember.feature.board.entity.TicketLabelMapping;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -25,8 +27,10 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -269,6 +273,46 @@ public class BoardService {
                 repository.findEditAccessUserTypes(boardId),
                 repository.findEditAccessGroupIds(boardId),
                 repository.findEditAccessTagIds(boardId));
+    }
+
+    /**
+     * The members of a station who may write on a board, answered for all of them at once.
+     *
+     * <p>Asks exactly what {@link #canEdit(int, int, boolean)} asks, from the other end: that one
+     * takes a member and looks up their type, groups and tags, which is three round trips a name.
+     * A picker offering a station its own members would pay that for every line, so here the
+     * board's own lists are read once and the members behind them collected.
+     *
+     * @param boardId   the board
+     * @param stationId the station the board belongs to
+     * @return the ids of the members who may write on it
+     */
+    public Set<Integer> findMembersWhoMayEdit(int boardId, int stationId) {
+        var allowed = memberService.findMembersWithPermission(stationId, StationPermission.BOARD_MANAGER).stream()
+                .map(StationMember::id)
+                .collect(Collectors.toCollection(HashSet::new));
+        if (repository.hasEditRestrictions(boardId)) {
+            addMembersMatching(allowed, stationId, getEditAccess(boardId));
+        } else if (repository.hasViewRestrictions(boardId)) {
+            addMembersMatching(allowed, stationId, getViewAccess(boardId));
+        } else {
+            memberService.findByStation(stationId).forEach(member -> allowed.add(member.id()));
+        }
+        return allowed;
+    }
+
+    private void addMembersMatching(Set<Integer> allowed, int stationId, AccessData access) {
+        if (!access.userTypes().isEmpty()) {
+            memberService.findByStation(stationId).stream()
+                    .filter(member -> access.userTypes().contains(member.userType()))
+                    .forEach(member -> allowed.add(member.id()));
+        }
+        for (int groupId : access.groupIds()) {
+            groupService.findMembers(groupId).forEach(member -> allowed.add(member.id()));
+        }
+        for (int tagId : access.tagIds()) {
+            tagService.findMembers(tagId).forEach(member -> allowed.add(member.id()));
+        }
     }
 
     public AccessData getViewAccess(int boardId) {

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.notifications.entity;
 
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
@@ -62,6 +63,33 @@ class NotificationDataTest {
         assertNotNull(restored.link());
         assertEquals("event-detail", restored.link().route());
         assertEquals(42, restored.link().routeParams().get("id"));
+    }
+
+    /**
+     * The query travels with the link, which is what carries a notification to one comment inside a
+     * page.
+     */
+    @Test
+    void serializeWithQuery() {
+        var params = new NotificationParams.NewsComment("Article", "Author", "Preview");
+        var data = NotificationData.of(params, NotificationLinks.comment(CommentEntityType.NEWS, 7, null, 42));
+
+        var restored = NotificationData.fromJson(data.toJson(), NotificationType.NEWS_COMMENT);
+
+        assertEquals("news-detail", restored.link().route());
+        assertEquals(7, restored.link().routeParams().get("id"));
+        assertEquals(42, restored.link().query().get("comment"));
+    }
+
+    /**
+     * A link with no query is written exactly as it was before links could carry one, which is what
+     * lets a withdrawal reach the notifications already stored.
+     */
+    @Test
+    void aLinkWithoutAQueryIsWrittenWithoutTheKey() {
+        var link = new NotificationData.NotificationLink("news-detail", Map.of("id", 7));
+
+        assertEquals("{\"route\":\"news-detail\",\"routeParams\":{\"id\":7}}", link.toJson());
     }
 
     @Test

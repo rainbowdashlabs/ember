@@ -8,13 +8,12 @@ package dev.chojo.ember.event.handlers;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.FormPublished;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-
-import java.util.Map;
 
 @Singleton
 public class FormPublishedHandler implements DomainEventHandler<FormPublished> {
@@ -36,8 +35,6 @@ public class FormPublishedHandler implements DomainEventHandler<FormPublished> {
                 event.stationId(),
                 NotificationType.NEW_FORM,
                 NotificationData.of(
-                        new NotificationParams.NewForm(event.formTitle()),
-                        new NotificationData.NotificationLink(
-                                "forms-fill", Map.of("id", String.valueOf(event.formId())))));
+                        new NotificationParams.NewForm(event.formTitle()), NotificationLinks.form(event.formId())));
     }
 }

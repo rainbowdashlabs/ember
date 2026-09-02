@@ -13,6 +13,7 @@ import {LineChart} from 'echarts/charts'
 import {DataZoomComponent, GridComponent, LegendComponent, TooltipComponent} from 'echarts/components'
 import {AuthBucket, type AuthBucketName, type HourlyTrafficRow} from '@/api/traffic'
 import {bottomLegend, cartesianGrid, ZOOM_SLIDER_BOTTOM} from '@/util/chartLayout'
+import {darkThemeActive as isDark} from '@/util/themeState'
 
 use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
@@ -36,7 +37,6 @@ const props = defineProps<{
 
 const {t, n} = useI18n()
 
-const isDark = computed(() => typeof document !== 'undefined' && document.documentElement.classList.contains('dark'))
 const textColor = computed(() => (isDark.value ? '#ccc' : '#333'))
 
 interface AuthSeries {

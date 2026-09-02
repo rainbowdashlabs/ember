@@ -7,8 +7,10 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventCancelled;
+import dev.chojo.ember.event.events.EventChanged;
 import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.EventDeleted;
+import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import io.javalin.http.BadRequestResponse;
@@ -38,11 +40,14 @@ public class EventCrudService {
 
     private final EventRepository eventRepository;
     private final DomainEventBus eventBus;
+    private final EquipmentReleaseService equipmentRelease;
 
     @Inject
-    public EventCrudService(EventRepository eventRepository, DomainEventBus eventBus) {
+    public EventCrudService(
+            EventRepository eventRepository, DomainEventBus eventBus, EquipmentReleaseService equipmentRelease) {
         this.eventRepository = eventRepository;
         this.eventBus = eventBus;
+        this.equipmentRelease = equipmentRelease;
     }
 
     /**
@@ -272,6 +277,7 @@ public class EventCrudService {
             Integer minRegistrations,
             Instant thresholdDate,
             Integer registrationCloseDays) {
+        var before = eventRepository.findById(id).orElse(null);
         if (eventRepository.update(
                 id,
                 name,
@@ -291,7 +297,10 @@ public class EventCrudService {
                 thresholdDate,
                 registrationCloseDays)) {
             log.info("Updated event {}", id);
-            return eventRepository.findById(id);
+            var after = eventRepository.findById(id);
+            after.filter(event -> before != null)
+                    .ifPresent(event -> eventBus.publish(new EventChanged(event.stationId(), before, event)));
+            return after;
         }
         log.warn("Cannot update event: event {} not found", id);
         return Optional.empty();
@@ -332,7 +341,9 @@ public class EventCrudService {
 
         eventRepository.updateRepeatEnd(id, until, count);
         log.info("Event {} now repeats until {} or {} times", id, until, count);
-        return eventRepository.findById(id);
+        var after = eventRepository.findById(id);
+        after.ifPresent(updated -> eventBus.publish(new EventChanged(updated.stationId(), event, updated)));
+        return after;
     }
 
     /**
@@ -347,6 +358,7 @@ public class EventCrudService {
             log.warn("Cannot delete event: event {} not found", id);
             return false;
         }
+        equipmentRelease.release(id, event.stationId());
         if (eventRepository.delete(id)) {
             log.info("Deleted event {} for station {}", id, event.stationId());
             eventBus.publish(new EventDeleted(event.stationId(), id, event.name()));
@@ -377,6 +389,7 @@ public class EventCrudService {
 
         boolean cancelled = eventRepository.cancelEvent(eventId, reason);
         if (cancelled) {
+            equipmentRelease.withdrawRequests(eventId, stationId);
             log.info("Cancelled event {} for station {}", eventId, stationId);
             eventBus.publish(new EventCancelled(stationId, eventId, event.name(), reason));
         } else {

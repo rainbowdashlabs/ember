@@ -36,6 +36,13 @@ const managerView = computed(() => activeView.value === 'manager')
       <p>{{ t('helpCenter.inventoryExchanges.statusExchanged') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.inventoryExchanges.filterTitle')">
+      <p>{{ t('helpCenter.inventoryExchanges.filterText') }}</p>
+      <p>{{ t('helpCenter.inventoryExchanges.filterDefaultText') }}</p>
+      <p>{{ t('helpCenter.inventoryExchanges.filterSortText') }}</p>
+      <p>{{ t('helpCenter.inventoryExchanges.filterExportText') }}</p>
+    </HelpSection>
+
     <HelpRoleToggle v-model="activeView" :perspectives="perspectives"/>
 
     <ExchangeTableDummy :manager-view="managerView"/>

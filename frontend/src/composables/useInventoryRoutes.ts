@@ -33,6 +33,12 @@ export interface InventoryRoutes {
     /** Absent at an association: it keeps gear in containers, not on people. */
     checkMember?: string
     checkResult?: string
+    /**
+     * Where a member answers for their own gear, and where a checker reads what they said. Absent at
+     * an association for the same reason as the walk: it has no members to ask.
+     */
+    selfCheck?: string
+    selfCheckReview?: string
     /** Absent at an association: it dispatches gear to a station, not to a person. */
     member?: string
     /** Absent at a station: sending gear out of the store is the owner's act, not the holder's. */
@@ -52,6 +58,17 @@ export interface InventoryRoutes {
     memberGroups?: string
     exchanges?: string
     /**
+     * Where pieces are moved from one inventory to another, which is how an inventory is split in
+     * two without the pieces losing their identity. Absent at an association, whose store is not
+     * divided along the line this exists to draw.
+     */
+    move?: string
+    /**
+     * Where the names written on the pieces are tidied up into kinds. Absent at an association,
+     * whose store is not the drawer of different things this exists for.
+     */
+    tidy?: string
+    /**
      * Where a station writes down an inventory it already owns, member by member. Absent at an
      * association: its store holds gear rather than handing it to people it keeps a list of.
      */
@@ -62,6 +79,8 @@ export interface InventoryRoutes {
     lendingBlocksCreate?: string
     lendingCreate?: string
     lendingRequest?: string
+    /** What the station currently puts on offer to its partners. Absent at an association for the same reason. */
+    lendingShares?: string
 }
 
 export const STATION_INVENTORY_ROUTES: InventoryRoutes = {
@@ -79,15 +98,20 @@ export const STATION_INVENTORY_ROUTES: InventoryRoutes = {
     checkContainerWalk: 'inventory-check-container-walk',
     checkMember: 'inventory-check-member',
     checkResult: 'inventory-check-result',
+    selfCheck: 'inventory-self-check',
+    selfCheckReview: 'inventory-self-check-review',
     member: 'inventory-member',
     memberGroups: 'members-groups',
     exchanges: 'inventory-exchanges',
+    move: 'inventory-move',
+    tidy: 'inventory-tidy',
     intake: 'inventory-intake',
     lending: 'inventory-lending',
     lendingBlocks: 'inventory-lending-blocks',
     lendingBlocksCreate: 'inventory-lending-blocks-create',
     lendingCreate: 'inventory-lending-create',
     lendingRequest: 'inventory-lending-request',
+    lendingShares: 'inventory-lending-shares',
 }
 
 const INVENTORY_ROUTES: InjectionKey<InventoryRoutes> = Symbol('inventoryRoutes')

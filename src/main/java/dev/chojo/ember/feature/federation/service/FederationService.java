@@ -50,9 +50,19 @@ public class FederationService {
         this.instanceHost = extractHost(apiConfig.baseUrl());
     }
 
+    /**
+     * The address this instance goes by in a code, taken from the one it publishes.
+     *
+     * <p>The port comes with it when the base URL names one. Without it a code from an instance
+     * that does not sit on the standard port names something nobody can reach: the side entering
+     * the code has only the code to go by, and would call the same host on a port it was never
+     * told about.
+     */
     private static String extractHost(String baseUrl) {
         try {
-            return URI.create(baseUrl).getHost();
+            var uri = URI.create(baseUrl);
+            if (uri.getHost() == null) return baseUrl;
+            return uri.getPort() == -1 ? uri.getHost() : uri.getHost() + ":" + uri.getPort();
         } catch (Exception e) {
             return baseUrl;
         }
@@ -116,6 +126,112 @@ public class FederationService {
             log.warn("Federation invite token for station {} was invalid or already used", stationId);
         }
         return consumed;
+    }
+
+    /**
+     * Why a pairing code was turned away. Each value names one situation the reader can act on,
+     * because a single refusal covering all of them reads as "the code is gone" when the code is
+     * fine.
+     */
+    public enum CodeRefusal {
+        /** Not a pairing code at all: mistyped, truncated or from somewhere else entirely. */
+        MALFORMED,
+        /**
+         * Made on a different instance and carrying no consent, so there is nothing to redeem
+         * there. Only an invite code, which carries a token, reaches across instances.
+         */
+        OTHER_INSTANCE,
+        /**
+         * The address in the code is not one this instance will call: not public, not HTTPS, or
+         * pointing into a network nobody outside it should be able to make this server visit.
+         */
+        HOST_REFUSED,
+        /** The other instance did not answer at all. */
+        REMOTE_UNREACHABLE,
+        /** The other instance took too long to answer. */
+        REMOTE_TIMEOUT,
+        /** The other instance answered, and would not accept this station. */
+        REMOTE_REFUSED,
+        /** The other instance no longer has the station the code names. */
+        REMOTE_STATION_GONE,
+        /** The two instances run federation versions that cannot talk to each other. */
+        CONTRACT_MISMATCH,
+        /** Well formed, but this instance has no station with that identity. */
+        UNKNOWN_STATION,
+        /** The station that entered the code is the station the code was made for. */
+        OWN_STATION,
+        /** The two stations are already connected, or their connection is paused. */
+        ALREADY_PARTNERED,
+        /** A request to this station is already waiting for its answer. */
+        REQUEST_PENDING,
+        /** The code carried a token this station has no record of, or that was already used. */
+        SPENT_TOKEN
+    }
+
+    /**
+     * What entering a pairing code produced.
+     *
+     * <p>Nothing here expires: a token stands until it is redeemed, so a refusal always names a
+     * situation and never the passing of time.
+     */
+    public sealed interface CodeOutcome {
+        /** The code carried the other station's consent and the partnership now stands. */
+        record Partnered(FederationPartner partner) implements CodeOutcome {}
+
+        /** The code only named a station, so it is now waiting for that station to answer. */
+        record Requested(FederationPartner partner) implements CodeOutcome {}
+
+        /** The code was turned away, for the named reason. */
+        record Refused(CodeRefusal reason, String detail) implements CodeOutcome {}
+    }
+
+    /**
+     * Enters a pairing code naming a station on this instance, on behalf of the station that typed
+     * it. A code made elsewhere is turned away here and belongs to
+     * {@link FederationEnrollmentService}, which is the only caller that reaches another instance.
+     *
+     * <p>A code carrying a token is the issuing station's consent and settles the partnership at
+     * once. A request either side had left open is dropped as part of that: asking to connect and
+     * then being handed a code is one connection reached twice, and treating the open request as an
+     * existing partnership used to make every code between those two stations unusable.
+     */
+    public CodeOutcome enterPairingCode(int enteringStationId, String code) {
+        var parsed = parsePairingCode(code);
+        if (parsed.isEmpty()) return new CodeOutcome.Refused(CodeRefusal.MALFORMED, null);
+        var parts = parsed.get();
+        if (!parts.host().equalsIgnoreCase(instanceHost)) {
+            return new CodeOutcome.Refused(CodeRefusal.OTHER_INSTANCE, parts.host());
+        }
+
+        var target = stationRepository.findByUid(parts.stationUid());
+        if (target.isEmpty()) return new CodeOutcome.Refused(CodeRefusal.UNKNOWN_STATION, null);
+        int targetStationId = target.get().id();
+        if (targetStationId == enteringStationId) {
+            return new CodeOutcome.Refused(CodeRefusal.OWN_STATION, null);
+        }
+
+        var towardsTarget = repository.findPartners(enteringStationId).stream()
+                .filter(partner ->
+                        partner.partnerStationId().equals(target.get().uid()))
+                .toList();
+        if (towardsTarget.stream()
+                .anyMatch(partner -> partner.status() != FederationPartner.FederationStatus.PENDING)) {
+            return new CodeOutcome.Refused(CodeRefusal.ALREADY_PARTNERED, null);
+        }
+
+        if (!parts.isStationInvite()) {
+            if (!towardsTarget.isEmpty()) return new CodeOutcome.Refused(CodeRefusal.REQUEST_PENDING, null);
+            return new CodeOutcome.Requested(createPairRequest(enteringStationId, targetStationId));
+        }
+
+        if (!consumeInviteToken(targetStationId, parts.token())) {
+            return new CodeOutcome.Refused(CodeRefusal.SPENT_TOKEN, null);
+        }
+        repository.deletePendingRequest(enteringStationId, target.get().uid());
+        repository.deletePendingRequest(targetStationId, resolveStationUid(enteringStationId));
+        var keyPair = generateKeyPair();
+        return new CodeOutcome.Partnered(
+                acceptInvite(enteringStationId, targetStationId, encodePublicKey(keyPair), null, null));
     }
 
     public String getInstanceHost() {
@@ -410,7 +526,7 @@ public class FederationService {
      * <p>Stations under one cluster have already agreed to share; asking them to tick seven boxes each would
      * be a formality with no decision behind it. A capability added later is enabled here for free.
      */
-    private void enableEveryCapability(FederationPartner partner) {
+    public void enableEveryCapability(FederationPartner partner) {
         for (CapabilityType capability : CapabilityType.values()) {
             repository.upsertCapability(partner.id(), capability, Direction.EXPORT, true);
             repository.upsertCapability(partner.id(), capability, Direction.IMPORT, true);

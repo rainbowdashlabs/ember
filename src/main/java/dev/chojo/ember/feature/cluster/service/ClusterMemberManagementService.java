@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.MemberDocument;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -25,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
@@ -51,9 +51,6 @@ import java.util.UUID;
 @Singleton
 public class ClusterMemberManagementService {
     private static final Logger log = LoggerFactory.getLogger(ClusterMemberManagementService.class);
-
-    /** What stands in for an address when somebody is not meant to sign in at all. */
-    private static final String SYNTHETIC_EMAIL_SUFFIX = ".local";
 
     private final StationMemberRepository memberRepository;
     private final StationRepository stationRepository;
@@ -105,12 +102,10 @@ public class ClusterMemberManagementService {
                 .filter(candidate -> candidate.clusterId() != null && candidate.clusterId() == clusterId)
                 .orElseThrow(() -> new NotFoundResponse("No such station"));
 
-        String address = email != null && !email.isBlank()
-                ? email.trim()
-                : "%s.%s@%s%s".formatted(slug(firstName), slug(lastName), station.uid(), SYNTHETIC_EMAIL_SUFFIX);
+        String address = email != null && !email.isBlank() ? email.trim() : null;
 
-        var provisioned =
-                inviteService.provision(station.id(), address, firstName.trim(), lastName.trim(), userType, null);
+        var provisioned = inviteService.provision(
+                station.id(), address, firstName.trim(), lastName.trim(), userType, null, SetupMail.SEND_NOW);
         log.info("Cluster {} took on member {} at station {}", clusterId, provisioned.memberId(), station.id());
         return provisioned;
     }
@@ -194,12 +189,6 @@ public class ClusterMemberManagementService {
      */
     public byte[] readDocument(MemberDocument document) {
         return documentService.read(document).orElseThrow(() -> new NotFoundResponse("No such document"));
-    }
-
-    /** A name as it can stand in an address: letters and digits, and a dash for everything else. */
-    private static String slug(String name) {
-        String cleaned = name.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-");
-        return cleaned.isBlank() ? "person" : cleaned;
     }
 
     /**

@@ -11,7 +11,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type { WaitingListEntryWithScore } from '@/api/waitingList'
 
-type TransitionKind = 'invite' | 'testing' | 'join' | 'approve' | 'reject' | 'withdraw'
+type TransitionKind = 'testing' | 'join' | 'approve' | 'reject' | 'withdraw' | 'backToWaiting'
 
 interface PendingTransition {
   entry: WaitingListEntryWithScore
@@ -31,7 +31,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const transitionTextKey: Record<TransitionKind, string> = {
-  invite: 'waitingList.transitionInviteText',
+  backToWaiting: 'waitingList.transitionBackToWaitingText',
   testing: 'waitingList.transitionTestingText',
   join: 'waitingList.transitionJoinText',
   approve: 'waitingList.transitionApproveText',

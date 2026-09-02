@@ -205,7 +205,8 @@ public class RemoteBoardTicketDetailRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void deleteComment(Context ctx) {
         var partner = guards.requirePartner(ctx);
-        ticketService.deleteComment(requireCommentOnTicket(ctx, guards.writableTicketId(ctx, partner)));
+        int ticketId = guards.writableTicketId(ctx, partner);
+        ticketService.deleteComment(ticketId, requireCommentOnTicket(ctx, ticketId));
         ctx.status(204);
     }
 

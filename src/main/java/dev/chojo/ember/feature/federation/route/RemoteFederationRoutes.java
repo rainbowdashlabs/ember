@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.route;
 
+import dev.chojo.ember.api.FederationHeaders;
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.events.service.EventFederationService;
@@ -15,8 +16,8 @@ import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.entity.FederationChangeLog;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationEnrollmentService;
 import dev.chojo.ember.feature.federation.service.FederationService;
-import dev.chojo.ember.feature.federation.service.FederationSigningService;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import io.javalin.http.BadRequestResponse;
@@ -73,7 +74,7 @@ public class RemoteFederationRoutes implements Routes {
             List.of(HANDSHAKE, WEBHOOK_REGISTER, MEMBER_NAME_CHANGED, SYNC_METADATA, ANNOUNCE, VERSION_PING);
 
     private final FederationService federationService;
-    private final FederationSigningService signingService;
+    private final FederationEnrollmentService enrollmentService;
     private final FederationRepository repository;
     private final EventFederationService eventFederationService;
     private final RemoteUrlValidator urlValidator;
@@ -82,13 +83,13 @@ public class RemoteFederationRoutes implements Routes {
     @Inject
     public RemoteFederationRoutes(
             FederationService federationService,
-            FederationSigningService signingService,
+            FederationEnrollmentService enrollmentService,
             FederationRepository repository,
             EventFederationService eventFederationService,
             RemoteUrlValidator urlValidator,
             StationReadOnlyGuard readOnlyGuard) {
         this.federationService = federationService;
-        this.signingService = signingService;
+        this.enrollmentService = enrollmentService;
         this.repository = repository;
         this.eventFederationService = eventFederationService;
         this.urlValidator = urlValidator;
@@ -107,27 +108,39 @@ public class RemoteFederationRoutes implements Routes {
 
     // -- Handshake --
 
+    /**
+     * Answers a station on another instance that is redeeming an invite code issued here.
+     *
+     * <p>The endpoint carries no partner session, because the partnership it creates does not exist
+     * yet: what stands in for one is the enrollment signature inside the body. Everything the
+     * exchange decides happens in {@link FederationEnrollmentService}; this handler only turns the
+     * outcome into a status code the calling instance can act on.
+     */
     private void handshake(Context ctx) {
-        var req = ctx.bodyAsClass(HandshakeRequest.class);
-        if (req.stationId() <= 0 || req.publicKey() == null || req.publicKey().isBlank()) {
-            throw new BadRequestResponse("stationId and publicKey are required");
+        switch (enrollmentService.acceptHandshake(ctx.bodyAsClass(HandshakeRequest.class))) {
+            case FederationEnrollmentService.Handshake.Accepted accepted -> ctx.json(accepted.response());
+            case FederationEnrollmentService.Handshake.Rejected rejected -> reject(ctx, rejected.reason());
         }
+    }
 
-        // Verify the incoming signature using the embedded public key
-        var remotePublicKey = signingService.decodePublicKey(req.publicKey());
-        if (req.signature() != null && !req.signature().isBlank()) {
-            String core = req.contract() != null ? req.contract().core() : "";
-            String payload = req.stationId() + ":" + core + ":" + req.publicKey();
-            boolean valid = signingService.verifyEnrollmentPayload(payload, req.signature(), remotePublicKey);
-            if (!valid) {
-                throw new ForbiddenResponse("Invalid handshake signature");
-            }
+    private void reject(Context ctx, FederationEnrollmentService.HandshakeRejection reason) {
+        var local = FederationContractVersions.current();
+        switch (reason) {
+            case INVALID_REQUEST -> throw new BadRequestResponse("The handshake is missing fields it needs");
+            case BAD_SIGNATURE -> throw new ForbiddenResponse("Invalid handshake signature");
+            case CONTRACT_MISMATCH ->
+                ctx.status(HttpStatus.CONFLICT)
+                        .json(new FederationContractBinder.MismatchResponse(
+                                FederationContractBinder.CORE_MISMATCH,
+                                null,
+                                local.core(),
+                                ctx.header(FederationHeaders.HEADER_CORE)));
+            case HOST_REFUSED ->
+                ctx.status(HttpStatus.UNPROCESSABLE_CONTENT)
+                        .json(new StatusResponse(RemoteUrlValidator.rejectReason()));
+            case UNKNOWN_STATION -> ctx.status(HttpStatus.NOT_FOUND).json(new StatusResponse("No such station here"));
+            case SPENT_TOKEN -> ctx.status(HttpStatus.GONE).json(new StatusResponse("This code has already been used"));
         }
-
-        ctx.json(new HandshakeResponse(
-                0, // Our station ID would come from config; 0 as placeholder for remote
-                FederationContractVersions.current(),
-                "")); // Public key returned on partner creation
     }
 
     // -- Webhook Registration --
@@ -220,9 +233,39 @@ public class RemoteFederationRoutes implements Routes {
 
     public record AnnounceRequest(String newHost) {}
 
-    public record HandshakeRequest(int stationId, FederationContract contract, String publicKey, String signature) {}
+    /**
+     * The entering station's side of the handshake.
+     *
+     * @param stationUid       the entering station, as the instance it lives on knows it
+     * @param targetStationUid the station the invite code names, on the instance being called
+     * @param stationName      the entering station's name, which the called instance cannot look up
+     * @param baseUrl          where the entering instance is reached
+     * @param contract         the entering instance's contract vector
+     * @param publicKey        the entering station's federation public key
+     * @param token            the invite token, which is redeemed by the instance that issued it
+     * @param signature        an enrollment signature over all of the above
+     */
+    public record HandshakeRequest(
+            UUID stationUid,
+            UUID targetStationUid,
+            String stationName,
+            String baseUrl,
+            FederationContract contract,
+            String publicKey,
+            String token,
+            String signature) {}
 
-    public record HandshakeResponse(int stationId, FederationContract contract, String publicKey) {}
+    /**
+     * The issuing station's side of the handshake, sent once the token has been redeemed.
+     *
+     * @param stationUid  the issuing station
+     * @param stationName the issuing station's name
+     * @param baseUrl     where the issuing instance is reached
+     * @param contract    the issuing instance's contract vector
+     * @param publicKey   the issuing station's federation public key
+     */
+    public record HandshakeResponse(
+            UUID stationUid, String stationName, String baseUrl, FederationContract contract, String publicKey) {}
 
     public record WebhookRegisterRequest(String webhookUrl) {}
 

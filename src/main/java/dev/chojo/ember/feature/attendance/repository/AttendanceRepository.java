@@ -35,7 +35,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class AttendanceRepository {
     private static final String ATTENDANCE_TEMPLATE_COLUMNS = "id, station_id, name";
     private static final String ATTENDANCE_SESSION_COLUMNS =
-            "id, template_id, start_time, end_time, created_at, event_id, title";
+            "id, template_id, start_time, end_time, created_at, event_id, title, unlocked_until, locked_at";
     private static final String ATTENDANCE_ENTRY_COLUMNS =
             "id, session_id, member_id, status, check_in, check_out, source";
     private static final String ATTENDANCE_REPORT_PRESET_COLUMNS =
@@ -338,6 +338,38 @@ public class AttendanceRepository {
                         .bind("end_time", endTime, INSTANT_TIMESTAMP)
                         .bind("title", title)
                         .bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Reopens a frozen sheet until the given moment, clearing any deliberate closing.
+     *
+     * <p>Both columns are written together on purpose: a sheet closed by hand outranks a reopening,
+     * so leaving the closing in place would make the reopening do nothing.
+     *
+     * @param id            the session ID
+     * @param unlockedUntil when the reopening runs out
+     * @return {@code true} if the session was reopened
+     */
+    public boolean unlockSession(int id, Instant unlockedUntil) {
+        return query("UPDATE attendance_session SET unlocked_until = :unlocked_until, locked_at = NULL WHERE id = :id;")
+                .single(call().bind("unlocked_until", unlockedUntil, INSTANT_TIMESTAMP)
+                        .bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Closes a sheet at the given moment, whatever its age and whatever reopening was running.
+     *
+     * @param id       the session ID
+     * @param lockedAt the moment it was closed
+     * @return {@code true} if the session was closed
+     */
+    public boolean lockSession(int id, Instant lockedAt) {
+        return query("UPDATE attendance_session SET locked_at = :locked_at WHERE id = :id;")
+                .single(call().bind("locked_at", lockedAt, INSTANT_TIMESTAMP).bind("id", id))
                 .update()
                 .changed();
     }

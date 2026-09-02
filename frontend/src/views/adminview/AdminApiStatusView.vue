@@ -24,6 +24,7 @@ import * as apiStatus from '@/api/apiStatus'
 import type {EndpointStats, HourlyStats, StatusBreakdown} from '@/api/apiStatus'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {bottomLegend, cartesianGrid} from '@/util/chartLayout'
+import {darkThemeActive as isDark} from '@/util/themeState'
 import Td from '@/components/table/Td.vue'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
@@ -31,7 +32,6 @@ use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, Legen
 const {t} = useI18n()
 const router = useRouter()
 
-const isDark = computed(() => document.documentElement.classList.contains('dark'))
 const textColor = computed(() => isDark.value ? '#ccc' : '#333')
 
 const activeTab = ref<'overview' | 'slowest' | 'fastest' | 'failing'>('overview')

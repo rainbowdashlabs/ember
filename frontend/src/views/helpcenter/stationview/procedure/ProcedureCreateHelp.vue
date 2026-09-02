@@ -92,6 +92,12 @@ const ITEMS: EditableItem[] = [
       <p>{{ t('helpCenter.procedureCreate.itemsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.procedureCreate.fromSignupsTitle')">
+      <p>{{ t('helpCenter.procedureCreate.fromSignupsText') }}</p>
+      <p>{{ t('helpCenter.procedureCreate.fromSignupsTemplateText') }}</p>
+      <p>{{ t('helpCenter.procedureCreate.fromSignupsSharedText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.procedureCreate.editTitle')">
       <p>{{ t('helpCenter.procedureCreate.editText') }}</p>
     </HelpSection>

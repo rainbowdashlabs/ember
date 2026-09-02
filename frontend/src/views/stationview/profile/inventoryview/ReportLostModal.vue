@@ -14,7 +14,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
-import type {MyInventoryItem} from '@/api/inventory'
+import type {NamedPiece} from '@/api/inventory'
 
 /**
  * Saying that a piece of gear cannot be found.
@@ -27,7 +27,7 @@ const modelValue = defineModel<boolean>({required: true})
 const note = defineModel<string>('note', {required: true})
 
 const props = defineProps<{
-  item: MyInventoryItem | null
+  item: NamedPiece | null
   /** Whether this station asks for a note before it accepts the report. */
   noteRequired: boolean
   submitting: boolean

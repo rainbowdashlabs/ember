@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
@@ -27,7 +28,6 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -97,16 +97,7 @@ public class EventReminderChecker {
                                     NotificationType.EVENT_REMINDER,
                                     NotificationData.of(
                                             new NotificationParams.EventReminder(event.name(), daysBefore, occurrence),
-                                            // event-detail-date carries the occurrence date as
-                                            // a path segment so the deep link points at the
-                                            // right instance for recurring events.
-                                            new NotificationData.NotificationLink(
-                                                    "event-detail-date",
-                                                    Map.of(
-                                                            "id",
-                                                            String.valueOf(event.id()),
-                                                            "date",
-                                                            occurrence.toString()))));
+                                            NotificationLinks.eventDate(event.id(), occurrence)));
                             log.info(
                                     "Sent {} reminder(s) for event '{}' (id={}) on {} - {} days before",
                                     targetIds.size(),
@@ -200,8 +191,7 @@ public class EventReminderChecker {
                 NotificationData.of(
                         new NotificationParams.RegistrationClosing(
                                 event.name(), daysBefore, memberNameResolver.resolveLocal(member.id())),
-                        new NotificationData.NotificationLink(
-                                "event-detail", Map.of("id", String.valueOf(event.eventId())))));
+                        NotificationLinks.event(event.eventId())));
         return true;
     }
 

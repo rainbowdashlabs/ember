@@ -16,7 +16,7 @@ import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
 import {isRecurringEvent, RegistrationStatus, type StationEvent} from '@/api/events'
 import {useSession} from '@/composables/useSession'
 import {useUpcomingEvents} from '@/composables/useUpcomingEvents'
-import {formatTime} from '@/util/format'
+import {formatDateTime, formatTime, todayIsoDate} from '@/util/format'
 import {answerableMembers, type AnswerablePerson} from '@/util/eventAnswers'
 
 const {t} = useI18n()
@@ -51,8 +51,6 @@ watch(viewMode, (mode) => {
   }
 })
 
-const pad2 = (n: number) => String(n).padStart(2, '0')
-
 /**
  * Today's events are filtered in the browser - unlike the upcoming list, they are a short fixed
  * set the server already returned in full.
@@ -65,16 +63,6 @@ function matchesTextSearch(ev: StationEvent): boolean {
 }
 
 const filteredTodayEvents = computed(() => todayEvents.value.filter(ev => matchesTextSearch(ev)))
-
-function formatDeadline(iso: string): string {
-  const d = new Date(iso)
-  return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
-}
-
-function todayIsoDate(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
-}
 
 function getEligibleMembers(eventId: number): AnswerablePerson[] {
   return answerableMembers(
@@ -157,7 +145,7 @@ watch(loaded, (isLoaded) => {
           :today-detail-route="todayDetailRoute"
           :event-detail-route="eventDetailRoute"
           :format-time="formatTime"
-          :format-deadline="formatDeadline"
+          :format-deadline="formatDateTime"
           @update:view-mode="viewMode = $event"
           @update:search="searchQuery = $event"
           @update:category-id="selectedCategoryId = $event"

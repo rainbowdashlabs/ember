@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
+import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
@@ -52,18 +53,31 @@ public class StationMemberInviteService {
 
     /**
      * Provisions a single member: resolves or creates the account, creates the station membership
-     * if absent, and sends the password-setup email when the account still needs one. The user
-     * type and group are only applied to memberships created by this call - existing members keep
-     * their configuration.
+     * if absent, and sends the password-setup email when the account still needs one and the mail
+     * was asked to go now. The user type and group are only applied to memberships created by this
+     * call - existing members keep their configuration.
+     *
+     * <p>No address given means the member has none, and none is written down for them. Nobody is
+     * given a made-up one: an address that looks real and can never be delivered to shows in every
+     * list as though somebody could be written to there, and has to be explained to whoever reads
+     * it. Such a member is reached through the guardians who answer for them, or not at all.
      *
      * @throws ProvisionException if the email belongs to an existing account and attaching is not
      *                            allowed (synthetic {@code .local} addresses)
      */
     public ProvisionedMember provision(
-            int stationId, String email, String firstName, String lastName, StationUserType userType, Integer groupId) {
+            int stationId,
+            String email,
+            String firstName,
+            String lastName,
+            StationUserType userType,
+            Integer groupId,
+            SetupMail setupMail) {
         AccountInviteService.Invited invited;
         try {
-            invited = accountInviteService.resolveOrCreate(stationId, email, firstName, lastName);
+            invited = email == null || email.isBlank()
+                    ? accountInviteService.createWithoutAddress(stationId, firstName, lastName)
+                    : accountInviteService.resolveOrCreate(stationId, email, firstName, lastName, setupMail);
         } catch (AccountInviteService.EmailInUseException e) {
             throw ProvisionException.emailInUse(email.trim());
         }
@@ -106,7 +120,7 @@ public class StationMemberInviteService {
      * belong to. Entries are processed independently - a failing entry does not affect the rest;
      * failed entries are reported in the result.
      */
-    public BatchResult createBatch(int stationId, List<InviteRequest> requests) {
+    public BatchResult createBatch(int stationId, List<InviteRequest> requests, SetupMail setupMail) {
         var provisioned = new ArrayList<ProvisionedMember>();
         var failed = new ArrayList<FailedInvite>();
         for (InviteRequest req : requests) {
@@ -118,7 +132,8 @@ public class StationMemberInviteService {
                         req.firstName(),
                         req.lastName(),
                         req.userType() != null ? req.userType() : StationUserType.MEMBER,
-                        req.groupId());
+                        req.groupId(),
+                        setupMail);
                 provisioned.add(parent);
             } catch (ProvisionException e) {
                 failed.add(new FailedInvite(req.email(), e.getMessage()));
@@ -128,7 +143,13 @@ public class StationMemberInviteService {
             for (GuardianRequest g : req.guardians()) {
                 try {
                     var guardian = provision(
-                            stationId, g.email(), g.firstName(), g.lastName(), StationUserType.GUARDIAN, null);
+                            stationId,
+                            g.email(),
+                            g.firstName(),
+                            g.lastName(),
+                            StationUserType.GUARDIAN,
+                            null,
+                            setupMail);
                     provisioned.add(guardian);
                     stationMemberRepository.addManager(guardian.memberId(), parent.memberId());
                 } catch (ProvisionException e) {
@@ -181,7 +202,7 @@ public class StationMemberInviteService {
     public record FailedInvite(String email, String reason) {}
 
     /**
-     * Outcome of {@link #createBatch(int, List)}.
+     * Outcome of {@link #createBatch(int, List, SetupMail)}.
      */
     public record BatchResult(List<ProvisionedMember> provisioned, List<FailedInvite> failed) {}
 

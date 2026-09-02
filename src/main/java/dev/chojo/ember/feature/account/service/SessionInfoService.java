@@ -14,6 +14,7 @@ import dev.chojo.ember.conf.file.File;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.mail.service.MailChainService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -51,6 +52,7 @@ public class SessionInfoService {
     private final StationMemberRepository stationMemberRepository;
     private final UserSettingsRepository userSettingsRepository;
     private final UserTagRepository userTagRepository;
+    private final MailChainService mailChainService;
     private final File config;
 
     @Inject
@@ -63,6 +65,7 @@ public class SessionInfoService {
             StationMemberRepository stationMemberRepository,
             UserSettingsRepository userSettingsRepository,
             UserTagRepository userTagRepository,
+            MailChainService mailChainService,
             File config) {
         this.stationService = stationService;
         this.memberService = memberService;
@@ -72,6 +75,7 @@ public class SessionInfoService {
         this.stationMemberRepository = stationMemberRepository;
         this.userSettingsRepository = userSettingsRepository;
         this.userTagRepository = userTagRepository;
+        this.mailChainService = mailChainService;
         this.config = config;
     }
 
@@ -155,7 +159,8 @@ public class SessionInfoService {
                 ClusterPermission.atOwnStation(session.clusterPermissions()).stream()
                         .map(Enum::name)
                         .sorted()
-                        .toList());
+                        .toList(),
+                !mailChainService.forInstance().isEmpty());
     }
 
     private ManagedMemberInfo toManagedMemberInfo(StationMember member) {
@@ -234,6 +239,12 @@ public class SessionInfoService {
      *                          knowledge base, news and calendar are kept. Those screens are the station's
      *                          own, so they ask what the reader may do at a station, and while one of them
      *                          is open on the association's side this is the answer
+     * @param canSendMail       whether this instance has anywhere to send system mail through at all.
+     *                          Invitations, setup links and password resets all leave through the
+     *                          instance rather than through a station's own provider, so the answer is
+     *                          the same everywhere and a screen offering to send one can ask it here.
+     *                          It says nothing about whether a particular person can be reached, which
+     *                          is a question about addresses and is answered per member
      */
     public record SessionInfo(
             AccountInfo account,
@@ -256,7 +267,8 @@ public class SessionInfoService {
             String clusterId,
             ClusterUserType clusterUserType,
             List<String> clusterPermissions,
-            List<String> ownStationPermissions) {}
+            List<String> ownStationPermissions,
+            boolean canSendMail) {}
 
     public record ThemeInfo(
             String instanceDefaultTheme,

@@ -14,8 +14,9 @@ import Alert from '@/components/feedback/Alert.vue'
 import {InventoryTypes, type InventoryDetail, type InventoryItem, type InventorySize} from '@/api/inventory'
 import type { ProcurementEntry } from '@/api/procurement'
 import {StationPermission, type StationMember} from '@/api/types'
-import { inventory, inventoryContainers, stationMembers, procurement } from '@/api'
+import { inventory, inventoryArts, inventoryContainers, stationMembers, procurement } from '@/api'
 import type { InventoryContainer } from '@/api/inventoryContainers'
+import type { InventoryArt } from '@/api/inventoryArts'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { getLentOutByInventory, type LentOutItem } from '@/api/lending'
@@ -38,6 +39,7 @@ const { hasPermission } = useSession()
 const inventoryId = computed(() => Number(route.params.id))
 const detail = ref<InventoryDetail | null>(null)
 const items = ref<InventoryItem[]>([])
+const arts = ref<InventoryArt[]>([])
 const memberMap = ref<Map<number, StationMember>>(new Map())
 const openProcurement = ref<ProcurementEntry[]>([])
 const lentOutItems = ref<LentOutItem[]>([])
@@ -84,7 +86,9 @@ const permissions = computed(() => {
     : canCreateInternal.value || canCreateExternal.value
   return {
     canEdit: canEdit.value,
-    canProcure: canProcure.value,
+    // Ordering three more needs something to be three more of, which a drawer of different things
+    // has not got, so this screen does not offer it there either
+    canProcure: canProcure.value && (detail.value?.homogeneous ?? true),
     canCreateItem,
     canQuickAssign: (type === InventoryTypes.EXTERNAL || type === InventoryTypes.MIXED) && canCreateExternal.value,
     canAddInternal: type !== InventoryTypes.EXTERNAL && canCreateInternal.value,
@@ -189,6 +193,11 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
   detail.value = inv
   items.value = allItems
   containers.value = allContainers
+  // Only a drawer of different things has kinds, and most drawers have none, so an empty list here
+  // is the ordinary answer and leaves the flat list exactly as it was.
+  arts.value = inv.homogeneous === false
+      ? await inventoryArts.listArts(inventoryId.value).catch(() => [] as InventoryArt[])
+      : []
   const map = new Map<number, StationMember>()
   for (const m of members) map.set(m.id, m)
   memberMap.value = map
@@ -202,6 +211,9 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
 })
 
 function goBack() { router.push({ name: routes.manage }) }
+
+/** The way into the settings, the sizes and the kinds of this same inventory. */
+function goEdit() { router.push({ name: routes.edit, params: { id: inventoryId.value } }) }
 </script>
 
 <template>
@@ -214,7 +226,11 @@ function goBack() { router.push({ name: routes.manage }) }
         :name="detail?.name ?? ''"
         :inventory-type="detail?.inventoryType ?? null"
         :has-sizes="detail?.hasSizes ?? false"
+        :homogeneous="detail?.homogeneous ?? true"
+        :art-count="detail?.homogeneous === false ? arts.length : null"
+        :can-edit="permissions.canEdit"
         @back="goBack"
+        @edit="goEdit"
       />
 
       <Spinner v-if="loading" size="lg" />
@@ -224,6 +240,7 @@ function goBack() { router.push({ name: routes.manage }) }
         v-if="!loading && detail"
         :detail="detail"
         :items="items"
+        :arts="arts"
         :free-items="freeItems"
         :lost-items="lostItems"
         :member-map="memberMap"

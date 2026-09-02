@@ -27,12 +27,15 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -58,6 +61,8 @@ public class NotificationService {
     private static final Localizer LOCALIZER = new Localizer();
     private static final Map<String, String> ROUTE_PATHS = Map.ofEntries(
             Map.entry("news-list", "/station/news"),
+            Map.entry("news-detail", "/station/news/{id}"),
+            Map.entry("kb-file", "/station/knowledge/file/{id}"),
             Map.entry("events-registrations", "/station/events/registrations"),
             Map.entry("events-upcoming", "/station/events/upcoming"),
             Map.entry("event-detail", "/station/events/{id}"),
@@ -70,6 +75,10 @@ public class NotificationService {
             Map.entry("dashboard-overview", "/station/dashboard/overview"),
             Map.entry("lost-and-found", "/station/lost-and-found"),
             Map.entry("lending-request", "/station/inventory/lending/{id}"),
+            Map.entry("inventory-self-check", "/station/inventory/self-check/{id}"),
+            Map.entry("inventory-self-check-review", "/station/inventory/checks/self/{id}"),
+            Map.entry("procedure-list", "/station/procedures"),
+            Map.entry("procedure-detail", "/station/procedures/{id}"),
             // Board ticket routes use the board short key + per-board ticket number, not the
             // numeric primary keys. Handlers must pass {boardKey} and {ticketNumber} accordingly.
             Map.entry("ticket-detail", "/station/boards/{boardKey}/tickets/{ticketNumber}"));
@@ -174,20 +183,28 @@ public class NotificationService {
     }
 
     /**
-     * Replaces a raw status enum name (e.g. {@code "ACCEPTED"}, {@code "DONE"},
-     * {@code "APPROVED"}) in the params with its localised label from the {@code ical.status.*}
-     * bundle. Lets the message templates use a single {@code {status}} placeholder for all
-     * status-bearing types (registration, exchange, lending) without each consumer having to
-     * translate the enum themselves. No-op when the param is absent or the bundle has no
-     * matching entry.
+     * Replaces the params that carry a raw enum name with the label for it in the reader's
+     * language: a status (e.g. {@code "ACCEPTED"}, {@code "DONE"}, {@code "APPROVED"}) and the
+     * answer somebody gave to a waiting-list invitation.
+     *
+     * <p>A notification records what happened, not how it reads. Which language it is read in is
+     * only known when the message is built, so the name travels and the label is looked up here.
+     * That lets the message templates use a single {@code {status}} or {@code {answer}} placeholder
+     * for every type carrying one. No-op when the param is absent or the bundle has no matching
+     * entry.
      */
     private static void localizeStatusParam(String locale, Map<String, String> params) {
-        String status = params.get("status");
-        if (status == null) return;
-        var statusLabels = LOCALIZER.get("notifications", locale, "ical");
-        String localized = statusLabels.get("status." + status);
+        localizeLabelParam(locale, params, "status", "ical", "status.");
+        localizeLabelParam(locale, params, "answer", "waitlistAnswer", "");
+    }
+
+    private static void localizeLabelParam(
+            String locale, Map<String, String> params, String param, String section, String prefix) {
+        String name = params.get(param);
+        if (name == null) return;
+        String localized = LOCALIZER.get("notifications", locale, section).get(prefix + name);
         if (localized != null) {
-            params.put("status", localized);
+            params.put(param, localized);
         }
     }
 
@@ -484,14 +501,26 @@ public class NotificationService {
     }
 
     /**
-     * Deletes unacknowledged notifications matching a type and a partial data fragment.
+     * Withdraws the unread notifications of a type that point at one particular entity, for the
+     * case where the entity is still there and only the message has stopped being true.
      *
-     * @param type        the notification type
-     * @param partialData the data fragment used for containment matching
+     * @param type the notification type
+     * @param link the link the notification must carry
      */
-    public void deleteByTypeContaining(NotificationType type, NotificationData partialData) {
-        notificationRepository.deleteByTypeContaining(type, partialData);
-        log.debug("Withdrew the {} notifications matching a data fragment", type);
+    public void deleteByTypeAndLink(NotificationType type, NotificationData.NotificationLink link) {
+        notificationRepository.deleteByTypeAndLink(type, link);
+        log.debug("Withdrew the unread {} notifications pointing at {}", type, link.routeParams());
+    }
+
+    /**
+     * Takes every notification pointing at one entity away with it, read or not, for the case where
+     * the entity itself has been deleted and nothing they link to is left.
+     *
+     * @param link the link the notification must carry
+     */
+    public void deleteAllPointingAt(NotificationData.NotificationLink link) {
+        int removed = notificationRepository.deleteAllPointingAt(link);
+        log.debug("Removed {} notifications pointing at the deleted {}", removed, link.routeParams());
     }
 
     /**
@@ -776,7 +805,21 @@ public class NotificationService {
                 path = path.replace("{" + entry.getKey() + "}", String.valueOf(entry.getValue()));
             }
         }
-        return appendStation(baseUrl + path, stationUid);
+        return appendStation(baseUrl + path + queryString(data.link().query()), stationUid);
+    }
+
+    /**
+     * Renders the link's query, which is how a mail or feed entry about a comment opens on that
+     * comment rather than on the top of the page it hangs under.
+     */
+    private static String queryString(Map<String, Object> query) {
+        if (query == null || query.isEmpty()) return "";
+        var rendered = new StringJoiner("&", "?", "");
+        for (var entry : query.entrySet()) {
+            rendered.add(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8) + "="
+                    + URLEncoder.encode(String.valueOf(entry.getValue()), StandardCharsets.UTF_8));
+        }
+        return rendered.toString();
     }
 
     /**

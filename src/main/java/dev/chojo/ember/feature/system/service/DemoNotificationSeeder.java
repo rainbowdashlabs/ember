@@ -394,8 +394,8 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
 
         Integer procedureId = ctx.procedureId();
         var procedureLink = procedureId != null
-                ? new NotificationData.NotificationLink("procedures", Map.of("id", procedureId))
-                : new NotificationData.NotificationLink("procedures");
+                ? new NotificationData.NotificationLink("procedure-detail", Map.of("id", procedureId))
+                : new NotificationData.NotificationLink("procedure-list");
         notificationRepository.create(
                 memberId,
                 NotificationType.PROCEDURE_ASSIGNED,

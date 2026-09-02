@@ -144,6 +144,11 @@ public class AttendanceRoutes implements Routes {
         // Whoever may take an attendance may throw one away again: a sheet opened for the wrong
         // evening is a mistake made while taking it, and is undone by the same person on the spot.
         routes.delete(prefix + "/attendance/sessions/{id}", this::deleteSession, StationPermission.ATTENDANCE_EDIT);
+        // Reopening a closed sheet is the one thing an ordinary taker may not do, because the point
+        // of closing is that the evening stops being everybody's to change.
+        routes.post(
+                prefix + "/attendance/sessions/{id}/unlock", this::unlockSession, StationPermission.ATTENDANCE_MANAGER);
+        routes.post(prefix + "/attendance/sessions/{id}/lock", this::lockSession, StationPermission.ATTENDANCE_MANAGER);
 
         routes.get(
                 prefix + "/attendance/sessions/{sessionId}/fields",
@@ -561,11 +566,49 @@ public class AttendanceRoutes implements Routes {
                         session -> {
                             var fields = attendanceService.findSessionFields(id);
                             var entries = attendanceService.findEntries(id);
-                            ctx.json(new SessionDetail(session, fields, entries));
+                            ctx.json(new SessionDetail(session, fields, entries, !attendanceService.isSessionOpen(id)));
                         },
                         () -> {
                             throw new NotFoundResponse();
                         });
+    }
+
+    @OpenApi(
+            path = "/api/v1/attendance/sessions/{id}/unlock",
+            methods = HttpMethod.POST,
+            summary = "Reopen a closed attendance session",
+            tags = {"Attendance"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AttendanceSession.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void unlockSession(Context ctx) {
+        UserSession userSession = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        verifySessionOwnership(id, userSession);
+        attendanceService.unlockSession(id).ifPresentOrElse(ctx::json, () -> {
+            throw new NotFoundResponse();
+        });
+    }
+
+    @OpenApi(
+            path = "/api/v1/attendance/sessions/{id}/lock",
+            methods = HttpMethod.POST,
+            summary = "Close an attendance session",
+            tags = {"Attendance"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AttendanceSession.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void lockSession(Context ctx) {
+        UserSession userSession = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        verifySessionOwnership(id, userSession);
+        attendanceService.lockSession(id).ifPresentOrElse(ctx::json, () -> {
+            throw new NotFoundResponse();
+        });
     }
 
     @OpenApi(
@@ -1232,8 +1275,15 @@ public class AttendanceRoutes implements Routes {
     /**
      * Detailed session response including fields and attendance entries.
      */
+    /**
+     * @param locked whether the sheet refuses writes, decided here so the rule and the configured
+     *     span are not written down a second time in the browser
+     */
     public record SessionDetail(
-            AttendanceSession session, List<AttendanceSessionField> fields, List<AttendanceEntry> entries) {}
+            AttendanceSession session,
+            List<AttendanceSessionField> fields,
+            List<AttendanceEntry> entries,
+            boolean locked) {}
 
     /**
      * A field ID and its JSONB value for batch session field updates.

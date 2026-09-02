@@ -5,10 +5,13 @@
  */
 package dev.chojo.ember.feature.waitinglist.repository;
 
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +19,8 @@ import tools.jackson.databind.node.IntNode;
 import tools.jackson.databind.node.StringNode;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -285,6 +290,93 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
         waitingListRepo.linkMember(entry.id(), member.id());
         var found = waitingListRepo.findEntryById(entry.id()).orElseThrow();
         assertEquals(member.id(), found.memberId());
+        stationMemberRepo.delete(member.id());
+        accountRepo.delete(account.id());
+    }
+
+    /** The evening an invitation names is written and read back whole, and clears in one go. */
+    @Test
+    void updateInvitation() {
+        var list =
+                waitingListRepo.create(stationId, "Invitation List", "", null, 180, null, null, 5, false, null, null);
+        var entry = waitingListRepo.createEntry(
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
+        var event = eventRepo.create(
+                stationId,
+                "Dienstabend",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.parse("2026-05-12T18:00:00Z"),
+                Instant.parse("2026-05-12T20:00:00Z"),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        waitingListRepo.updateInvitation(
+                entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), LocalTime.of(17, 45)));
+
+        var invited = waitingListRepo.findEntryById(entry.id()).orElseThrow();
+        assertNotNull(invited.invitation());
+        assertEquals(event.id(), invited.invitation().eventId());
+        assertEquals(LocalDate.of(2026, 5, 12), invited.invitation().date());
+        assertEquals(LocalTime.of(17, 45), invited.invitation().arrivalTime());
+
+        waitingListRepo.updateInvitation(entry.id(), null);
+        assertNull(waitingListRepo.findEntryById(entry.id()).orElseThrow().invitation());
+    }
+
+    /** An answer is written with its moment, and a new invitation takes it away again. */
+    @Test
+    void updateInvitationAnswer() {
+        var list = waitingListRepo.create(stationId, "Answer List", "", null, 180, null, null, 5, false, null, null);
+        var entry = waitingListRepo.createEntry(
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
+
+        waitingListRepo.updateInvitationAnswer(entry.id(), WaitingListAnswer.NOT_INTERESTED, "Kein Interesse mehr");
+
+        var answered = waitingListRepo.findEntryById(entry.id()).orElseThrow();
+        assertNotNull(answered.answer());
+        assertEquals(WaitingListAnswer.NOT_INTERESTED, answered.answer().answer());
+        assertEquals("Kein Interesse mehr", answered.answer().note());
+        assertNotNull(answered.answer().answeredAt());
+
+        waitingListRepo.updateInvitation(entry.id(), null);
+        assertNull(waitingListRepo.findEntryById(entry.id()).orElseThrow().answer());
+    }
+
+    /** A trial period is found from the person who turned up rather than from the list. */
+    @Test
+    void findEntriesByMemberAndStatus() {
+        var account = accountRepo.create(null, "Probe", "Kind", stationId);
+        var member = stationMemberRepo.create(stationId, account.id());
+        var list = waitingListRepo.create(stationId, "Trial List", "", null, 180, null, null, 5, false, null, null);
+        var entry = waitingListRepo.createEntry(
+                list.id(),
+                "Probe",
+                "Kind",
+                "",
+                "trial@test.com",
+                UUID.randomUUID().toString(),
+                "",
+                null);
+        waitingListRepo.linkMember(entry.id(), member.id());
+
+        assertTrue(waitingListRepo
+                .findEntriesByMemberAndStatus(member.id(), WaitingListEntryStatus.TESTING)
+                .isEmpty());
+
+        waitingListRepo.updateEntryStatus(entry.id(), WaitingListEntryStatus.TESTING);
+        var found = waitingListRepo.findEntriesByMemberAndStatus(member.id(), WaitingListEntryStatus.TESTING);
+        assertEquals(1, found.size());
+        assertEquals(entry.id(), found.getFirst().id());
+
         stationMemberRepo.delete(member.id());
         accountRepo.delete(account.id());
     }

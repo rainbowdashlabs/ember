@@ -4,9 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, nextTick, ref, watch} from 'vue'
+import {computed, nextTick, onUnmounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
+import {baseDialogLayer, claimDialogLayer, releaseDialogLayer} from '@/components/feedback/dialogLayers'
 
 const {t} = useI18n()
 
@@ -33,6 +34,21 @@ const sizeClass = computed(() => {
 })
 
 const dialog = ref<HTMLElement | null>(null)
+const layer = ref(baseDialogLayer)
+let claimed = false
+
+watch(model, (open) => {
+  if (import.meta.server || open === claimed) return
+  claimed = open
+  if (open) layer.value = claimDialogLayer()
+  else releaseDialogLayer()
+}, {immediate: true})
+
+onUnmounted(() => {
+  if (!claimed) return
+  claimed = false
+  releaseDialogLayer()
+})
 
 /**
  * The button this dialog is answered with.
@@ -77,7 +93,8 @@ function onKeydown(e: KeyboardEvent) {
     <Transition name="modal">
       <div
           v-if="model"
-          class="fixed inset-0 z-50 flex items-center justify-center"
+          class="fixed inset-0 flex items-center justify-center"
+          :style="{zIndex: layer}"
       >
         <!-- Backdrop -->
         <div
@@ -94,19 +111,22 @@ function onKeydown(e: KeyboardEvent) {
             @keydown="onKeydown"
             :class="[
               'relative z-10 w-full mx-4 rounded-theme border border-bg-light-accent bg-bg-light p-6 shadow-xl dark:border-bg-dark-accent dark:bg-bg-dark',
+              'flex flex-col max-h-[90vh]',
               sizeClass,
               props.mobileFull ? 'max-sm:h-full max-sm:mx-0 max-sm:rounded-none max-sm:border-0 max-sm:overflow-y-auto max-sm:flex max-sm:flex-col' : '',
             ]">
           <IconButton
               :icon="['fas', 'xmark']"
               :label="t('common.close')"
-              class="absolute top-3 right-3 text-[var(--text-muted)] hover:text-[var(--text)]"
+              class="absolute top-3 right-3 z-10 text-[var(--text-muted)] hover:text-[var(--text)]"
               data-cancel
               @click="model = false"
           >
             <font-awesome-icon :icon="['fas', 'xmark']" class="h-5 w-5"/>
           </IconButton>
-          <slot/>
+          <div class="flex-1 min-h-0 overflow-y-auto">
+            <slot/>
+          </div>
         </div>
       </div>
     </Transition>

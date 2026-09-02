@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import IdentityButton from '@/components/button/IdentityButton.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import ExchangeStatusBadge from './ExchangeStatusBadge.vue'
@@ -47,16 +48,15 @@ function ownerLabel(ownerKind?: string | null): string {
 </script>
 
 <template>
-  <TRow data-testid="exchange-row">
+  <TRow data-testid="exchange-row" :data-exchange-id="request.id">
     <td v-if="exportMode" class="px-1 py-2.5 w-8">
       <CheckboxInput :model-value="selected" @update:model-value="emit('toggle-export')" />
     </td>
     <Td v-if="showMemberColumn">
-      <SecondaryButton
+      <IdentityButton
         v-if="canManageExchanges && routes.member"
-        class="!bg-transparent !p-0 text-primary font-normal hover:underline cursor-pointer"
         @click="routes.member && router.push({ name: routes.member, params: { memberId: request.memberId } })"
-      ><MemberName :identity="request.memberIdentity ?? null"/></SecondaryButton>
+      ><MemberName :identity="request.memberIdentity ?? null"/></IdentityButton>
       <MemberName v-else :identity="request.memberIdentity ?? null"/>
     </Td>
     <Td class="font-medium">{{ request.inventoryName }}</Td>

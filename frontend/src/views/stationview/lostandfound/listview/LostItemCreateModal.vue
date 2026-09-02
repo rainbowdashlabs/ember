@@ -4,8 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
+import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -13,7 +14,8 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
+import LostItemImageField from './LostItemImageField.vue'
+import {todayIsoDate} from '@/util/format'
 
 export interface LostItemCreatePayload {
   description: string
@@ -23,49 +25,38 @@ export interface LostItemCreatePayload {
 
 const visible = defineModel<boolean>({required: true})
 
-defineProps<{
+const props = defineProps<{
   creating: boolean
+  /**
+   * True once the entry itself is saved and only its picture is still missing. The report is not
+   * offered a second time then: pressing again used to file a second entry while the first stood
+   * in the list without a picture.
+   */
+  savedWithoutImage: boolean
+  error?: string
 }>()
 
 const emit = defineEmits<{
   (e: 'submit', payload: LostItemCreatePayload): void
+  (e: 'close'): void
 }>()
 
 const {t} = useI18n()
 
 const newDescription = ref('')
-const newFoundAt = ref(new Date().toISOString().substring(0, 10))
+const newFoundAt = ref(todayIsoDate())
 const newImageFile = ref<File | null>(null)
-const newImagePreview = ref<string | null>(null)
-const fileInputRef = ref<HTMLInputElement | null>(null)
-const cameraInputRef = ref<HTMLInputElement | null>(null)
-
-function handleImageSelected(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-  newImageFile.value = file
-  if (newImagePreview.value) URL.revokeObjectURL(newImagePreview.value)
-  newImagePreview.value = URL.createObjectURL(file)
-  input.value = ''
-}
-
-function clearNewImage() {
-  newImageFile.value = null
-  if (newImagePreview.value) {
-    URL.revokeObjectURL(newImagePreview.value)
-    newImagePreview.value = null
-  }
-}
+const imageField = ref<InstanceType<typeof LostItemImageField> | null>(null)
 
 function resetForm() {
   newDescription.value = ''
-  newFoundAt.value = new Date().toISOString().substring(0, 10)
-  clearNewImage()
+  newFoundAt.value = todayIsoDate()
+  imageField.value?.clear()
+  newImageFile.value = null
 }
 
 function cancel() {
-  visible.value = false
+  emit('close')
   resetForm()
 }
 
@@ -76,6 +67,11 @@ function submit() {
     imageFile: newImageFile.value,
   })
 }
+
+const submitLabel = computed(() => {
+  if (props.creating) return t('common.loading')
+  return props.savedWithoutImage ? t('lostAndFound.retryImage') : t('lostAndFound.create')
+})
 
 watch(visible, (value, previous) => {
   if (previous && !value) {
@@ -89,43 +85,28 @@ watch(visible, (value, previous) => {
     <div class="space-y-4 p-4">
       <SubHeader>{{ t('lostAndFound.createTitle') }}</SubHeader>
 
-      <div class="space-y-2">
-        <FieldLabel>{{ t('lostAndFound.image') }}</FieldLabel>
-        <div v-if="newImagePreview" class="relative">
-          <img :src="newImagePreview" alt="" class="w-full max-h-48 object-cover rounded-lg"/>
-          <IconButton
-            :icon="['fas', 'xmark']"
-            label="Remove image"
-            class="absolute top-2 right-2 bg-error text-error-text rounded-full h-6 w-6 hover:bg-error/80"
-            @click="clearNewImage"
-          />
-        </div>
-        <div v-else class="flex gap-2">
-          <SecondaryButton :icon="['fas', 'upload']" class="flex-1" @click="fileInputRef?.click()">
-            {{ t('lostAndFound.uploadImage') }}
-          </SecondaryButton>
-          <SecondaryButton :icon="['fas', 'camera']" class="flex-1" @click="cameraInputRef?.click()">
-            {{ t('lostAndFound.takePhoto') }}
-          </SecondaryButton>
-        </div>
-        <input ref="fileInputRef" type="file" accept="image/png,image/jpeg,image/webp" class="hidden"
-               @change="handleImageSelected"/>
-        <input ref="cameraInputRef" type="file" accept="image/*" capture="environment" class="hidden"
-               @change="handleImageSelected"/>
-      </div>
+      <Alert v-if="savedWithoutImage" variant="info" data-testid="saved-without-image">
+        {{ t('lostAndFound.savedWithoutImage') }}
+      </Alert>
+      <Alert v-if="error" variant="error" data-testid="create-error">{{ error }}</Alert>
+
+      <LostItemImageField ref="imageField" v-model="newImageFile"/>
 
       <div class="space-y-1">
         <FieldLabel>{{ t('lostAndFound.description') }}</FieldLabel>
-        <TextAreaInput v-model="newDescription" :placeholder="t('lostAndFound.descriptionPlaceholder')"/>
+        <TextAreaInput v-model="newDescription" :disabled="savedWithoutImage"
+                       :placeholder="t('lostAndFound.descriptionPlaceholder')"/>
       </div>
       <div class="space-y-1">
         <FieldLabel>{{ t('lostAndFound.foundAt') }}</FieldLabel>
-        <DateInput v-model="newFoundAt"/>
+        <DateInput v-model="newFoundAt" :disabled="savedWithoutImage"/>
       </div>
       <div class="flex justify-end gap-2">
-        <SecondaryButton @click="cancel">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="creating" @click="submit">
-          {{ creating ? t('common.loading') : t('lostAndFound.create') }}
+        <SecondaryButton @click="cancel">
+          {{ savedWithoutImage ? t('lostAndFound.keepWithoutImage') : t('common.cancel') }}
+        </SecondaryButton>
+        <PrimaryButton :disabled="creating || (savedWithoutImage && !newImageFile)" @click="submit">
+          {{ submitLabel }}
         </PrimaryButton>
       </div>
     </div>

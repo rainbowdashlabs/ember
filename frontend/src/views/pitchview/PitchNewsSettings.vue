@@ -17,10 +17,11 @@ defineProps<{
 
 <template>
   <RestrictionsPanel
-      :groups="settings.groups" :tags="settings.tags"
+      :groups="settings.groups" :tags="settings.tags" :members="settings.members"
       :selected-user-types="settings.selectedUserTypes"
       :selected-group-ids="settings.selectedGroupIds"
-      :selected-tag-ids="settings.selectedTagIds"/>
+      :selected-tag-ids="settings.selectedTagIds"
+      :selected-member-ids="settings.selectedMemberIds"/>
   <PublicBlogPanel :public-blog="settings.publicBlog"/>
   <FederationPanel
       :partners="settings.partners" :can-federate="settings.canFederate"

@@ -4,17 +4,27 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, computed} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import TextInput from '@/components/input/text/TextInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
-import type {KbFile} from '@/api/knowledgeBase'
-import {knowledgeBase} from '@/api'
+import KbFileSearchPicker from '@/components/input/search/KbFileSearchPicker.vue'
+import type {KbFile, SearchResult} from '@/api/knowledgeBase'
 
+/**
+ * The articles this one points at, and the articles pointing at it.
+ *
+ * The second list is the first one read the other way round rather than a second set of rows, so a
+ * reference shows on both articles while only the article that wrote it can take it away. That is
+ * why the back-references carry no remove button: removing one belongs on the other article.
+ *
+ * Articles the reader may not open are left out of both lists by the server, and not counted
+ * either: a number standing one higher would give away that the article exists just as plainly as
+ * its title would.
+ */
 const props = defineProps<{
     relatedFiles: KbFile[]
+    backlinks: KbFile[]
     fileId: number
     canManage: boolean
 }>()
@@ -27,39 +37,30 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const showAddRelated = ref(false)
-const allStationFiles = ref<KbFile[]>([])
-const relatedSearchQuery = ref('')
 
-async function openAddRelated() {
-    showAddRelated.value = true
-    relatedSearchQuery.value = ''
-    const browse = await knowledgeBase.browse()
-    allStationFiles.value = browse.files.filter(f => f.id !== props.fileId)
+const excludeIds = computed(() => [props.fileId, ...props.relatedFiles.map(file => file.id)])
+
+function onPick(result: SearchResult) {
+    emit('addRelated', result.file.id)
+    showAddRelated.value = false
 }
-
-const filteredRelatedCandidates = computed(() => {
-    const existingIds = new Set(props.relatedFiles.map(f => f.id))
-    const q = relatedSearchQuery.value.toLowerCase()
-    return allStationFiles.value
-        .filter(f => !existingIds.has(f.id))
-        .filter(f => !q || f.name.toLowerCase().includes(q) || f.description.toLowerCase().includes(q))
-        .slice(0, 10)
-})
 </script>
 
 <template>
-    <div v-if="relatedFiles.length > 0 || canManage" class="mb-4">
+    <div v-if="relatedFiles.length > 0 || backlinks.length > 0 || canManage" class="mb-4">
         <div class="flex items-center gap-2 mb-2">
             <font-awesome-icon :icon="['fas', 'book-open']" class="text-xs text-[var(--text-muted)]"/>
             <span class="text-sm font-medium">{{ t('kb.relatedFiles') }}</span>
             <SecondaryButton
                 v-if="canManage"
                 class="!text-xs !py-0.5 !px-2"
-                @click="openAddRelated"
+                data-testid="kb-add-related"
+                @click="showAddRelated = true"
             >
                 <font-awesome-icon :icon="['fas', 'plus']"/> {{ t('common.add') }}
             </SecondaryButton>
         </div>
+
         <div class="flex flex-wrap gap-2">
             <router-link
                 v-for="rf in relatedFiles"
@@ -78,31 +79,30 @@ const filteredRelatedCandidates = computed(() => {
                 />
             </router-link>
         </div>
-        <!-- Add related file picker -->
+
         <div v-if="showAddRelated" class="mt-2 p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
-            <TextInput
-                v-model="relatedSearchQuery"
-                :placeholder="t('kb.searchRelated')"
-                class="!text-sm mb-2"
-            />
-            <div v-if="filteredRelatedCandidates.length > 0" class="flex flex-col gap-1 max-h-40 overflow-y-auto">
-                <DropdownMenuItem
-                    v-for="candidate in filteredRelatedCandidates"
-                    :key="candidate.id"
-                    :icon="['fas', 'file-lines']"
-                    class="!text-sm !py-1 !px-2 !rounded"
-                    @click="emit('addRelated', candidate.id)"
-                >
-                    <span class="truncate">{{ candidate.name }}</span>
-                    <span v-if="candidate.description" class="text-xs text-[var(--text-muted)] truncate">
-                        {{ candidate.description }}
-                    </span>
-                </DropdownMenuItem>
-            </div>
-            <p v-else class="text-xs text-[var(--text-muted)]">{{ t('kb.noFilesFound') }}</p>
-            <SecondaryButton compact class="mt-2 " @click="showAddRelated = false">
+            <KbFileSearchPicker :exclude-ids="excludeIds" @pick="onPick"/>
+            <SecondaryButton compact class="mt-2" @click="showAddRelated = false">
                 {{ t('common.close') }}
             </SecondaryButton>
+        </div>
+
+        <div v-if="backlinks.length > 0" class="mt-3">
+            <div class="flex items-center gap-2 mb-2">
+                <font-awesome-icon :icon="['fas', 'link']" class="text-xs text-[var(--text-muted)]"/>
+                <span class="text-sm font-medium">{{ t('kb.backlinks') }}</span>
+            </div>
+            <div class="flex flex-wrap gap-2" data-testid="kb-backlinks">
+                <router-link
+                    v-for="bl in backlinks"
+                    :key="bl.id"
+                    :to="{name: 'kb-file', params: {id: bl.id}}"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm bg-[var(--bg-accent)] border border-[var(--border)] hover:border-[var(--primary)] transition-colors"
+                >
+                    <font-awesome-icon :icon="['fas', 'file-lines']" class="text-xs text-[var(--text-muted)]"/>
+                    {{ bl.name }}
+                </router-link>
+            </div>
         </div>
     </div>
 </template>

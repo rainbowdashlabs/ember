@@ -10,6 +10,7 @@ import {useCluster} from '@/composables/useCluster'
 import {useSession} from '@/composables/useSession'
 import {useStations} from '@/composables/useStations'
 import {useTheme} from '@/composables/useTheme'
+import {forgetLandingMemory} from '@/util/landingMemoryState'
 
 /**
  * Returns a single `logout` function that calls the backend revoke, wipes session
@@ -38,6 +39,7 @@ export function useLogout() {
     clear()
     clearStations()
     clearClusters()
+    forgetLandingMemory()
     useTheme().resetToInstanceDefaults()
     await router.push({name: 'login'})
   }

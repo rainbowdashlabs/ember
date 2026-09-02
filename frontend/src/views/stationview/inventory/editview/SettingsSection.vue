@@ -4,16 +4,19 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
-import {InventoryTypes, type InventoryDetail, type InventoryTypeName} from '@/api/inventory'
+import InventoryKindField from '@/components/inventory/InventoryKindField.vue'
+import {InventoryTypes, switchRefusal, type InventoryDetail, type InventoryTypeName, type SwitchBlocker} from '@/api/inventory'
 import {inventory} from '@/api'
+import SwitchRefusalAlert from './SwitchRefusalAlert.vue'
 
 const {t} = useI18n()
 
@@ -28,16 +31,38 @@ const emit = defineEmits<{
 
 const editName = ref(props.detail.name ?? '')
 const editType = ref<string>(props.detail.inventoryType ?? InventoryTypes.INTERNAL)
+const editHomogeneous = ref(props.detail.homogeneous)
+const editHasSizes = ref(props.detail.hasSizes ?? false)
+
+/** A collection keeps no size list, so the one control follows the other. */
+watch(editHomogeneous, value => {
+  if (!value) editHasSizes.value = false
+})
+
+/** What stood in the way the last time the change of kind was refused. */
+const blockers = ref<SwitchBlocker[]>([])
+const refusalMessage = ref('')
 
 async function saveSettings() {
+  blockers.value = []
+  refusalMessage.value = ''
   try {
     await inventory.updateInventory(props.detail.id, {
       name: editName.value,
       inventoryType: editType.value as InventoryTypeName,
-      hasSizes: props.detail.hasSizes ?? false,
+      hasSizes: editHasSizes.value,
+      homogeneous: editHomogeneous.value,
     })
     emit('saved')
   } catch (e) {
+    const refusal = switchRefusal(e)
+    if (refusal) {
+      // The refusal names what is in the way, so it belongs beside the control that was refused
+      // rather than as one more line of "something went wrong" at the top of the page.
+      blockers.value = refusal.blockers
+      refusalMessage.value = t('inventory.edit.kindRefused')
+      return
+    }
     emit('error', t('common.error'))
     throw e
   }
@@ -61,6 +86,19 @@ async function saveSettings() {
         </SelectInput>
       </div>
     </div>
+
+    <InventoryKindField v-model="editHomogeneous"/>
+
+    <div v-if="editHomogeneous" class="flex items-center justify-between gap-4">
+      <div>
+        <label class="text-sm font-medium">{{ t('inventory.manage.hasSizes') }}</label>
+        <p class="text-xs text-(--text-muted)">{{ t('inventory.manage.hasSizesHint') }}</p>
+      </div>
+      <ToggleInput v-model="editHasSizes" data-testid="inventory-has-sizes"/>
+    </div>
+
+    <SwitchRefusalAlert :message="refusalMessage" :blockers="blockers"/>
+
     <SaveButton :disabled="!editName.trim()" :action="saveSettings"/>
   </NeutralContainer>
 </template>

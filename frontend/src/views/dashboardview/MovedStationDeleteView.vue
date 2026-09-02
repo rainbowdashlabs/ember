@@ -29,7 +29,7 @@ const matchesName = computed(() => typedName.value.trim() === stationName.value.
 
 const {running: deleting, error, run: runDelete, clearError} = useAsyncAction(async () => {
   await transfer.deleteMovedStation()
-  window.location.href = '/'
+  window.location.href = '/?home'
 }, {formatError: () => t('pages.station-moved.deleteError')})
 
 function openConfirm() {

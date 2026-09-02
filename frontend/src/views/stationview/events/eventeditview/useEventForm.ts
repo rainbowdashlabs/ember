@@ -9,12 +9,7 @@ import {EventTypes, needsDayOfWeek, type EventField, type EventFieldEntry, type 
 import {toRestriction} from '@/components/input/restriction'
 import {createEventFormState} from './eventFormState'
 import {modelBindings} from './modelBindings'
-
-function toLocalDateTime(iso: string): string {
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
+import {instantToLocalInput} from '@/util/format'
 
 /**
  * Owns the event editor form: its state, the mapping onto the editor body, and
@@ -84,18 +79,18 @@ export function useEventForm() {
     state.description = ev.description ?? ''
     state.eventType = ev.eventType ?? EventTypes.RECURRING
     state.dayOfWeek = ev.dayOfWeek != null ? String(ev.dayOfWeek) : '1'
-    state.startTime = ev.startTime ? toLocalDateTime(ev.startTime) : ''
-    state.endTime = ev.endTime ? toLocalDateTime(ev.endTime) : ''
+    state.startTime = instantToLocalInput(ev.startTime)
+    state.endTime = instantToLocalInput(ev.endTime)
     state.templateId = ev.templateId != null ? String(ev.templateId) : ''
     state.categoryId = ev.categoryId != null ? String(ev.categoryId) : ''
     state.requiresRegistration = ev.requiresRegistration ?? false
     state.hasDeadline = !!ev.registrationDeadline
-    state.registrationDeadline = ev.registrationDeadline ? toLocalDateTime(ev.registrationDeadline) : ''
+    state.registrationDeadline = instantToLocalInput(ev.registrationDeadline)
     state.requiresConfirmation = ev.requiresConfirmation ?? false
     state.registrationLimit = ev.registrationLimit ?? undefined
     state.minRegistrations = ev.minRegistrations ?? undefined
     state.hasThreshold = !!ev.thresholdDate
-    state.thresholdDate = ev.thresholdDate ? toLocalDateTime(ev.thresholdDate) : ''
+    state.thresholdDate = instantToLocalInput(ev.thresholdDate)
     state.registrationCloseDays = ev.registrationCloseDays ?? undefined
     state.repeatUntil = ev.repeatUntil ?? ''
     state.repeatCount = ev.repeatCount ?? undefined

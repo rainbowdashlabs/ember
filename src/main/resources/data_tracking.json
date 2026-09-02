@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:f3477787afa276c1324c3e45ecaaa1cd2de9d8a0afadb456aa2c9504a191d3a4",
-  "generatedAt" : "2026-08-29T16:09:32Z",
+  "schemaHash" : "sha256:a7aa96ddfdbc570ddb84ae452ce3d24f8fc794656bafb3460b0df35eb5a432ab",
+  "generatedAt" : "2026-09-02T17:59:54Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -1073,7 +1073,7 @@
     "attendance_session" : {
       "feature" : "attendance",
       "scope" : "STATION",
-      "tableHash" : "sha256:854754b1d53f8581afbd86cc663dec6805fa7ad9f05c6cdfcb517155dd3d650a",
+      "tableHash" : "sha256:f6363d16ee163327fde6682a1244c0d9dacad2c9117906b52853cc2c4d01930d",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -1116,6 +1116,18 @@
         "nullable" : true,
         "verified" : true,
         "description" : "Optional title override for this session."
+      }, {
+        "name" : "unlocked_until",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When a manager's reopening of this sheet runs out, NULL where nobody has reopened it and its age alone decides. A moment in the past reads the same as NULL, so an expired grant needs no clearing up."
+      }, {
+        "name" : "locked_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When somebody closed this sheet on purpose, NULL where nothing was closed by hand. Set, it outranks both the age and any reopening still running, because closing a sheet that was just reopened has to mean something."
       } ],
       "foreignKeys" : [ {
         "column" : "event_id",
@@ -2506,7 +2518,7 @@
     "checklist" : {
       "feature" : "checklist",
       "scope" : "STATION",
-      "tableHash" : "sha256:a5a7f750f39683c6faaa547477eac25c4496bed83fb20f3567cde9273b607a6e",
+      "tableHash" : "sha256:46b9a0f27d9aa9fe9d64ad77014132f2268ca8ce6ee34fc574b974fe0e5cfc74",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -2549,10 +2561,27 @@
         "nullable" : true,
         "verified" : true,
         "description" : "Timestamp of the most recent additive refresh that pulled newly-matching members onto the list. NULL means never refreshed since creation."
+      }, {
+        "name" : "source_event_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The appointment this checklist follows instead of a filter, or NULL when it follows the rows in checklist_member_filter. Set means the two are exclusive: the filter table is empty and refresh resolves the accepted sign-ups of the occurrence instead. Deleting the appointment sets this back to NULL, which keeps every row already on the list and stops the list following anything."
+      }, {
+        "name" : "source_event_date",
+        "type" : "date",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The one date of that appointment whose sign-ups are followed. Registrations are kept per appointment and date, so an appointment without a date would resolve to the union of every occurrence there has ever been. A leftover date with no appointment is what a deleted appointment leaves behind and carries no meaning."
       } ],
       "foreignKeys" : [ {
         "column" : "created_by",
         "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "source_event_id",
+        "refTable" : "station_event",
         "refColumn" : "id",
         "onDelete" : "SET NULL"
       }, {
@@ -3215,6 +3244,78 @@
         "reason" : "Names no person, so an account leaving has nothing to remove here"
       },
       "description" : "Modules a cluster switches off for all of its stations. A station cannot turn a denied module back on."
+    },
+    "cluster_inventory_tag" : {
+      "feature" : "cluster",
+      "scope" : "CLUSTER",
+      "tableHash" : "sha256:0c9bb1d8fef6068c829bf0ecd005ae04f1cc9978b4c50a4f4c42f3defcb6a98b",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The association recommending it."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The tag as the association spelled it."
+      }, {
+        "name" : "canonical_name",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The trimmed lowercase name, maintained by the database, which is what a station's own tag matches on."
+      }, {
+        "name" : "color",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Optional hex colour for the badge."
+      }, {
+        "name" : "position",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Where it sits among the association's own tags."
+      }, {
+        "name" : "station_group_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The group of stations the tag is recommended to. NULL recommends it to every station under the association."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_group_id",
+        "refTable" : "cluster_station_group",
+        "refColumn" : "id",
+        "onDelete" : "RESTRICT"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: a word an association recommends, not anybody who wears it"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "A tag an association recommends to its stations. It never displaces a station's own tag of the same name."
     },
     "cluster_member" : {
       "feature" : "cluster",
@@ -4898,6 +4999,210 @@
         "reason" : "Event structure data, not per-member"
       },
       "description" : "Which run-out warnings have gone out for an event, so a sweep every few minutes warns once."
+    },
+    "event_equipment_handover" : {
+      "feature" : "events",
+      "scope" : "STATION",
+      "tableHash" : "sha256:2fca241fac87bb36ca50933a14882d291f9c14eb460e810a09163fb0c31536e0",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "need_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The line this piece was handed over against."
+      }, {
+        "name" : "event_date",
+        "type" : "date",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The evening the piece went out for, which is what pairs a handover with one occurrence of a series."
+      }, {
+        "name" : "item_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The piece that went."
+      }, {
+        "name" : "claim_from",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the piece left, taken from the evening and the line's lead rather than from the clock, so the window a firm claim holds is the same window the loose one held."
+      }, {
+        "name" : "claim_to",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the piece is due back, the evening's end plus the line's trail."
+      }, {
+        "name" : "handed_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The member who recorded the handover, or null once that member is gone."
+      }, {
+        "name" : "handed_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the handover was recorded."
+      }, {
+        "name" : "returned_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the piece came back, null while it is still out. A returned piece claims nothing, whatever its window still says."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "handed_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "item_id",
+        "refTable" : "inventory_item",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "need_id",
+        "refTable" : "event_equipment_need",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "customScope" : {
+        "viaTable" : "event_equipment_need",
+        "viaColumn" : "id",
+        "refColumn" : "need_id",
+        "distinct" : false
+      },
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "rationale" : "A handover belongs to the line it was recorded against and moves with it."
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "handed_by"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Equipment record kept as the station's own log, not personal data"
+      },
+      "description" : "A piece that actually went out for one evening of an appointment. The only claim on stock that is a row: everything still merely planned is derived from the recurrence rule when somebody asks."
+    },
+    "event_equipment_need" : {
+      "feature" : "events",
+      "scope" : "STATION",
+      "tableHash" : "sha256:b42845b7ad1eedc82120b80f8158fe79f17dfa67247d5aa709c2a3a89e173645",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "event_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The appointment this line belongs to."
+      }, {
+        "name" : "event_date",
+        "type" : "date",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Null where the line holds for every evening the series produces, which is the ordinary case. Set where one single evening says something of its own: a line for that date alone is added to the standing list, and where it names the same thing as a standing line it takes its place for that evening. The one Dienst a year that also needs the trailer is written this way, without touching the series."
+      }, {
+        "name" : "item_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The named piece this line asks for. Exactly one of item_id/art_id/inventory_id is set."
+      }, {
+        "name" : "art_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The kind of thing a counted line asks for, which is how a line says four blue radios rather than four of whatever is in the drawer. Exactly one of item_id/art_id/inventory_id is set."
+      }, {
+        "name" : "inventory_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The inventory a counted line draws from, for the inventories that hold one thing in many copies and therefore carry no kinds. Exactly one of item_id/art_id/inventory_id is set."
+      }, {
+        "name" : "quantity",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "How many pieces the line asks for. Always 1 on a named-piece line, because a named piece is one piece."
+      }, {
+        "name" : "lead_minutes",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "How long before the appointment begins the gear is already gone from the shelf. The radios are fetched the evening before, so the period the equipment is away is not the period the appointment lasts, and a request asking only for the Saturday would leave the owner finding an empty shelf on the Friday. A day is the default because a day either way is the ordinary case."
+      }, {
+        "name" : "trail_minutes",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "How long after the appointment ends the gear is still away, counted the same way as the lead. Both belong to the need rather than to a lending request, so a station's own reservation and a borrowing request cannot disagree about when the shelf is empty."
+      }, {
+        "name" : "position",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Display order within the appointment."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "art_id",
+        "refTable" : "inventory_art",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "event_id",
+        "refTable" : "station_event",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "inventory_id",
+        "refTable" : "inventory",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "item_id",
+        "refTable" : "inventory_item",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "customScope" : {
+        "viaTable" : "station_event",
+        "viaColumn" : "id",
+        "refColumn" : "event_id",
+        "distinct" : false
+      },
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "rationale" : "The lines belong to the station's appointments and move with them."
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Appointment planning data, not per-member"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Appointment planning data, not per-member"
+      },
+      "description" : "One line of what an appointment needs: a named piece, a count of one kind of thing, or a count out of a whole inventory. Exactly one of the three, which is the line shape a lending request already carries."
     },
     "event_federation_registration" : {
       "feature" : "events",
@@ -6626,7 +6931,7 @@
     "federation_inventory_share" : {
       "feature" : "federation",
       "scope" : "STATION",
-      "tableHash" : "sha256:a69c5d7178407146fa6e73612862ae3cab71c87092d4806f9f572933c07720b4",
+      "tableHash" : "sha256:15efaaab5c354734fc8c4be330f20b8948989526623857051e2a1b24aa6f8df3",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -6657,8 +6962,25 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Scope: ALL_PARTNERS or SPECIFIC."
+      }, {
+        "name" : "share_grant",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "GRANT puts the gear on offer, WITHHOLD takes it back out of a wider offer. The narrowest row that exists decides."
+      }, {
+        "name" : "art_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "References the kind of thing. Exactly one of inventory_id/art_id/item_id must be set."
       } ],
       "foreignKeys" : [ {
+        "column" : "art_id",
+        "refTable" : "inventory_art",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
         "column" : "inventory_id",
         "refTable" : "inventory",
         "refColumn" : "id",
@@ -6972,7 +7294,7 @@
     "federation_lending_request" : {
       "feature" : "federation",
       "scope" : "STATION",
-      "tableHash" : "sha256:ffe2c449e99ecb97491dd33a12928d1d99d4b43dff4d20081972051e48088570",
+      "tableHash" : "sha256:36aecc9a73ac4eba94258863cffb141fa0357abb37afcd8e6a0d9172bdc3e26d",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -7025,10 +7347,33 @@
         "type" : "uuid",
         "nullable" : false,
         "verified" : true
+      }, {
+        "name" : "event_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The appointment the request was collected for, at the requesting station, or null where somebody is borrowing a trailer for a house move. Never sent to the owning station."
+      }, {
+        "name" : "event_date",
+        "type" : "date",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The evening of that appointment the request is for. Null exactly when event_id is."
+      }, {
+        "name" : "occasion",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the request is for, in words, as the owning station reads it. A copy of the appointment's name taken when the request was sent, so nothing else about the appointment ever travels and a later rename does not rewrite what was asked for. Empty where the request names no occasion."
       } ],
       "foreignKeys" : [ {
         "column" : "created_by",
         "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "event_id",
+        "refTable" : "station_event",
         "refColumn" : "id",
         "onDelete" : "SET NULL"
       } ],
@@ -7058,7 +7403,7 @@
     "federation_lending_request_item" : {
       "feature" : "federation",
       "scope" : "STATION",
-      "tableHash" : "sha256:4e239715c73cc398607f58d3095f49dc943ab9f1bf85e488b3d495628020f053",
+      "tableHash" : "sha256:68fb6131ad053928e65472f1748f631bcdb3c6728178af2fce006e97c45f4597",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -7090,17 +7435,23 @@
         "verified" : true,
         "description" : "Number of items requested."
       }, {
-        "name" : "assigned_item_id",
+        "name" : "art_id",
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
-        "description" : "Specific item assigned by the owning station to fulfill the request."
+        "description" : "The kind of thing the line asks for, at the owning station. Null where the line names a whole inventory or a single piece."
+      }, {
+        "name" : "need_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The line of an appointment's needs this request was sent to fill, at the requesting station, or null where the request answers no need. What comes back on it counts towards that need like the station's own gear does."
       } ],
       "foreignKeys" : [ {
-        "column" : "assigned_item_id",
-        "refTable" : "inventory_item",
+        "column" : "art_id",
+        "refTable" : "inventory_art",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "inventory_id",
         "refTable" : "inventory",
@@ -7111,6 +7462,11 @@
         "refTable" : "inventory_item",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
+      }, {
+        "column" : "need_id",
+        "refTable" : "event_equipment_need",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
       }, {
         "column" : "request_id",
         "refTable" : "federation_lending_request",
@@ -7136,6 +7492,60 @@
         "reason" : "Federation metadata, no personal data"
       },
       "description" : "Individual items requested in a lending request."
+    },
+    "federation_lending_request_item_assignment" : {
+      "feature" : "federation",
+      "scope" : "STATION",
+      "tableHash" : "sha256:afa936abaa031d95f89702ec99ed5ef4e8b4c1b476b459b4040278870ef16553",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "request_item_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The line the piece is set aside for."
+      }, {
+        "name" : "item_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The piece, always one belonging to the owning station."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "item_id",
+        "refTable" : "inventory_item",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "request_item_id",
+        "refTable" : "federation_lending_request_item",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "customScope" : {
+        "viaTable" : "federation_lending_request_item",
+        "viaColumn" : "id",
+        "refColumn" : "request_item_id",
+        "distinct" : false
+      },
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "rationale" : "The assignments inherit the request line's scope so a request moves whole."
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Federation metadata, no personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Federation metadata, no personal data"
+      },
+      "description" : "Which pieces are set aside for one line of a lending request. A table rather than a column, because a line asking for four blue radios is answered with four of them."
     },
     "federation_member_name_cache" : {
       "feature" : "federation",
@@ -8238,7 +8648,7 @@
     "inventory" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:b60fd7e4b6f0000ff43b96c93c9114ea62c1397905ccb042afed28078670bb5b",
+      "tableHash" : "sha256:acfb620ffd0205e617f098f037a7eb34dc3e0cd42d29e0e9749235aa6cdf00e5",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -8269,6 +8679,18 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Whether items in this inventory have size variants."
+      }, {
+        "name" : "homogeneous",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "True where the inventory holds one thing in many copies, which is the only kind requirements, procurements and exchanges are offered for. False where it holds a drawer of different things. Every row existing before this column was added is true, deliberately: that is the permissive state."
+      }, {
+        "name" : "borrowed",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether this is the station's one shelf for gear belonging to somebody else. Created on the first handover, renameable, and refused deletion while anything is still on it."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
@@ -8290,10 +8712,70 @@
       },
       "description" : "An inventory collection within a station (e.g. uniforms, tools)."
     },
+    "inventory_art" : {
+      "tableHash" : "sha256:d1ff1868773bea62d62fb977a934c656d3ae83160c03d0bbe13e0dfa7388795e",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "inventory_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The inventory this kind belongs to. An Art belongs to exactly one inventory, which is what makes the inventory reference on a field definition enough to scope it."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the station calls this kind, in its own spelling. Unique within the inventory."
+      }, {
+        "name" : "note",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "A free note about the kind, empty when nobody wrote one."
+      }, {
+        "name" : "position",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Sort position among the kinds of the same inventory."
+      }, {
+        "name" : "merge_key",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The name trimmed and lowered, maintained by the database. Two stations that use the same word are talking about the same kind, so availability and shares can be computed across a partnership without anybody maintaining a shared list. Generated rather than written, so renaming a kind cascades nowhere."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "inventory_id",
+        "refTable" : "inventory",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "ignoredColumns" : [ "merge_key" ],
+        "rationale" : "Item rows are copied as they stand, so the kinds they point at have to travel with them or the pieces arrive naming rows that do not exist. merge_key is maintained by the database and cannot be written."
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Inventory structure/config, not per-member"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Inventory structure/config, not per-member"
+      },
+      "description" : "A kind of thing inside one inventory, sitting between the inventory and the individual piece. Only inventories that hold a drawer of different things carry these: an inventory of one thing in many copies is structured by its sizes instead, and creating an Art in one is refused."
+    },
     "inventory_check" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:1dfe5e8c52518563b9f8885a0a450592da9e9ccf06c83be4d9c11205d08914db",
+      "tableHash" : "sha256:07355103f5766fac80f2679e0f1676b67c7fc88425747745b3b42fc1b88ca867",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -8342,6 +8824,12 @@
         "nullable" : false,
         "verified" : true,
         "description" : "On a CONTAINER-scope check, whether the walk includes all descendant containers (TRUE) or only the direct container (FALSE)."
+      }, {
+        "name" : "reported_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who reported what the check records, where that is somebody other than whoever signed it off. NULL on a check somebody walked themselves. Unlinked rather than cascaded when the member is removed, so the check survives them."
       } ],
       "foreignKeys" : [ {
         "column" : "checked_by",
@@ -8358,6 +8846,11 @@
         "refTable" : "station_member",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
+      }, {
+        "column" : "reported_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
       }, {
         "column" : "station_id",
         "refTable" : "station",
@@ -8376,6 +8869,9 @@
         }, {
           "type" : "MEMBER_ID",
           "column" : "checked_by"
+        }, {
+          "type" : "MEMBER_ID",
+          "column" : "reported_by"
         } ]
       },
       "gdprDeletion" : {
@@ -8730,7 +9226,7 @@
     "inventory_field_definition" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:f0f9f8be7bd3086a04165b99d5eaa1a7b17136b1de4ba493043be37c45671eaa",
+      "tableHash" : "sha256:cade4f8b53c2e787719297ea8989270e81dd945e95be73916ce5246ed4866bdb",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -8774,10 +9270,32 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Typed config record per field_type (FieldConfig.Date, FieldConfig.Enum, FieldConfig.Text, FieldConfig.Number, FieldConfig.Boolean), parsed on read."
+      }, {
+        "name" : "art_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The kind this field is defined for, or null when it is defined for the whole inventory. At most one of art_id and item_id is set."
+      }, {
+        "name" : "item_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The single piece this field is defined for, or null when it is not defined for one piece alone. At most one of art_id and item_id is set."
       } ],
       "foreignKeys" : [ {
+        "column" : "art_id",
+        "refTable" : "inventory_art",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
         "column" : "inventory_id",
         "refTable" : "inventory",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "item_id",
+        "refTable" : "inventory_item",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
       } ],
@@ -8795,7 +9313,7 @@
     "inventory_item" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:89b9e124685f207ad8912a50df5e8a696e3d7239d7e0f65ae8a157d5fa2c1f2d",
+      "tableHash" : "sha256:a4a3e277a68ee54cddf53dc0ede22a531a7dce28dbb7f5d26987d01f507fcf01",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -8892,8 +9410,37 @@
         "nullable" : true,
         "verified" : true,
         "description" : "Who wrote that note, which is the guardian rather than the member when one acted for the other."
+      }, {
+        "name" : "art_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The kind of thing this piece is, or null when nobody has said. Null is the ordinary case and not a gap to be filled: every read tolerates it, a share resolves past it to the inventory, and a count per kind leaves the piece out rather than inventing a group for it. ON DELETE SET NULL, as size_id is, so removing a kind never takes pieces with it."
+      }, {
+        "name" : "owner_station_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The station that owns the item when a partner station does, null for every other owner. Only ever set for PARTNER_STATION."
+      }, {
+        "name" : "loan_request_item_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The line of the lending request this borrowed copy came in on, which is what pairs it with the owner's row and what ends it when the gear goes home. Only ever set for PARTNER_STATION."
+      }, {
+        "name" : "custody_partner_station_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The federation partner holding the item while it is WITH_PARTNER, null for every other custody. Null while it stands only when that station has since been removed."
       } ],
       "foreignKeys" : [ {
+        "column" : "art_id",
+        "refTable" : "inventory_art",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
         "column" : "assigned_to",
         "refTable" : "station_member",
         "refColumn" : "id",
@@ -8909,6 +9456,11 @@
         "refColumn" : "id",
         "onDelete" : "SET NULL"
       }, {
+        "column" : "custody_partner_station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
         "column" : "custody_station_id",
         "refTable" : "station",
         "refColumn" : "id",
@@ -8916,6 +9468,11 @@
       }, {
         "column" : "inventory_id",
         "refTable" : "inventory",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "loan_request_item_id",
+        "refTable" : "federation_lending_request_item",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
       }, {
@@ -8928,6 +9485,11 @@
         "refTable" : "cluster",
         "refColumn" : "id",
         "onDelete" : "SET NULL"
+      }, {
+        "column" : "owner_station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
       }, {
         "column" : "size_id",
         "refTable" : "inventory_size",
@@ -9032,6 +9594,47 @@
       },
       "description" : "History of item assignments (lending/return log)."
     },
+    "inventory_item_tag" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:da64868072ab136f942840bdffbe9bab23d7bccb0c5e7512b676264a731a60dc",
+      "columns" : [ {
+        "name" : "item_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The item wearing the tag."
+      }, {
+        "name" : "tag_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The tag."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "item_id",
+        "refTable" : "inventory_item",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "tag_id",
+        "refTable" : "inventory_tag",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Inventory structure/config, not per-member"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Inventory structure/config, not per-member"
+      },
+      "description" : "Which tags one item carries. The tag sits on the item, so a piece filed anywhere can carry it."
+    },
     "inventory_requirement" : {
       "feature" : "inventory",
       "scope" : "STATION",
@@ -9107,6 +9710,415 @@
       },
       "description" : "Required inventory items per role or group (e.g. every TEAM member needs 1 uniform)."
     },
+    "inventory_self_check" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:2433166941b804f5b1bd605224c130ba7ebb5ad5580e25a0b329d84a1abf0079",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station that handed the task out."
+      }, {
+        "name" : "member_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The member whose gear the task is about."
+      }, {
+        "name" : "handed_out_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who handed the task out. NULL once that person is no longer a member here."
+      }, {
+        "name" : "handed_out_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the task was handed out."
+      }, {
+        "name" : "due_on",
+        "type" : "date",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The day the answer is wanted by, or NULL where none was named."
+      }, {
+        "name" : "state",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "OPEN while the member may still answer, SUBMITTED once they have, DONE once every row is settled, OVERTAKEN where a checker walked the member instead."
+      }, {
+        "name" : "submitted_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the task was submitted, or NULL while it is still open."
+      }, {
+        "name" : "submitted_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who entered the submission, which is the member or one of their guardians. NULL once that person is no longer a member here."
+      }, {
+        "name" : "closed_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the task stopped needing anything, however it ended."
+      }, {
+        "name" : "check_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The check the settled task wrote, once it wrote one."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "check_id",
+        "refTable" : "inventory_check",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "handed_out_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "member_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "submitted_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "ignoredColumns" : [ "station_id" ]
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "member_id"
+        }, {
+          "type" : "MEMBER_ID",
+          "column" : "submitted_by"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "member_id",
+          "strategy" : "CASCADE",
+          "reason" : "FK ON DELETE CASCADE on the member; an unanswered question about somebody who has gone is not a record of anything"
+        }, {
+          "column" : "handed_out_by",
+          "strategy" : "NULL",
+          "reason" : "Task kept, the checker who handed it out unlinked"
+        }, {
+          "column" : "submitted_by",
+          "strategy" : "NULL",
+          "reason" : "Task kept, whoever entered the submission unlinked"
+        } ]
+      },
+      "description" : "A task put to a member to answer for the gear the station has recorded against their name, without a checker in the room."
+    },
+    "inventory_self_check_item" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:bcb333d73e5334054dca0f9f694609db9c7cd769baa7a3c4eb609dec9a2b3ba8",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "task_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The task this answer belongs to."
+      }, {
+        "name" : "item_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The piece the answer is about. NULL where the answer is about an empty place, and NULL again once the piece it named has been deleted."
+      }, {
+        "name" : "inventory_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The inventory the piece sits in, or the one the empty place belongs to."
+      }, {
+        "name" : "slot",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Which of the empty places in that inventory the answer is about, counted from zero. NULL on an answer about a piece."
+      }, {
+        "name" : "answer",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the member said: HAVE_IT, DO_NOT_HAVE_IT, TURNED_UP, WRONG_RECORD, NEVER_HAD or HAVE_ONE."
+      }, {
+        "name" : "note",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the member wrote beside the answer, which is usually the useful part."
+      }, {
+        "name" : "typed_internal_id",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The number the member read off a piece nobody wrote down. Matched when the reviewer reads it, never trusted, and NULL where nothing was typed."
+      }, {
+        "name" : "size_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The size the member gave for a piece nobody wrote down, in an inventory that keeps sizes. Freely given rather than asked for, so NULL means they did not say and the reviewer reads it as unanswered. The reviewer writes it onto the piece when the answer is taken."
+      }, {
+        "name" : "answered_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who entered the answer, which is the member or one of their guardians. NULL once that person is no longer a member here."
+      }, {
+        "name" : "answered_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the answer was last written."
+      }, {
+        "name" : "state",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "OUTSTANDING until a reviewer settles it, then TAKEN or REFUSED."
+      }, {
+        "name" : "reviewer_reason",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Why a row was refused, in the reviewer's words. Empty on every other row."
+      }, {
+        "name" : "reviewed_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who settled the row. NULL while it is outstanding, and NULL again once that person is no longer a member here."
+      }, {
+        "name" : "reviewed_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the row was settled."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "answered_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "inventory_id",
+        "refTable" : "inventory",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "item_id",
+        "refTable" : "inventory_item",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "reviewed_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "size_id",
+        "refTable" : "inventory_size",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "task_id",
+        "refTable" : "inventory_self_check",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "answered_by"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "task_id",
+          "strategy" : "CASCADE",
+          "reason" : "FK ON DELETE CASCADE through the task, which cascades on the member it is about"
+        }, {
+          "column" : "answered_by",
+          "strategy" : "NULL",
+          "reason" : "Answer kept, whoever entered it unlinked"
+        }, {
+          "column" : "reviewed_by",
+          "strategy" : "NULL",
+          "reason" : "Answer kept, the reviewer unlinked"
+        } ]
+      },
+      "description" : "One thing a member said about one piece of their gear or one empty place in it, and what the reviewer made of it."
+    },
+    "inventory_self_check_raised" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:c39cbac257680ecf7cc2133e12f160904d57b85d97c40b8cc769669895ef48c8",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "task_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The task it was raised during."
+      }, {
+        "name" : "kind",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "LOSS where the member said a piece cannot be found, EXCHANGE where they asked for a different size."
+      }, {
+        "name" : "state",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "RAISED where it has gone out, which is the ordinary case and immediate. WAITING while it hangs on a correction a reviewer has not taken yet. DROPPED where that correction never came, because the row was refused, settled without being put right, or answered again differently."
+      }, {
+        "name" : "item_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The piece it was about, which becomes the piece the correction produced once a waiting report goes out. NULL once that piece has been deleted."
+      }, {
+        "name" : "movement_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The movement an exchange started, where there is one."
+      }, {
+        "name" : "waits_for_row_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The answer this report hangs on, which is an answer saying the record has the wrong size. NULL on a report that went out at once, and NULL again once that answer has been cleared from a task sent back."
+      }, {
+        "name" : "new_size_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The size a waiting exchange asks for. NULL on a loss and on an exchange that names no size."
+      }, {
+        "name" : "words",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the member wrote when they raised it: the note on a loss, the reason on an exchange. Empty on a report that went out at once, because it carries its own words on the piece or on the movement."
+      }, {
+        "name" : "raised_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who raised it, which is the member or one of their guardians. NULL once that person is no longer a member here."
+      }, {
+        "name" : "raised_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When it was raised, which on a waiting report is when the member asked for it rather than when it went out."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "item_id",
+        "refTable" : "inventory_item",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "movement_id",
+        "refTable" : "item_movement",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "new_size_id",
+        "refTable" : "inventory_size",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "raised_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "task_id",
+        "refTable" : "inventory_self_check",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "waits_for_row_id",
+        "refTable" : "inventory_self_check_item",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "raised_by"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "task_id",
+          "strategy" : "CASCADE",
+          "reason" : "FK ON DELETE CASCADE through the task, which cascades on the member it is about"
+        }, {
+          "column" : "raised_by",
+          "strategy" : "NULL",
+          "reason" : "Record kept, whoever raised it unlinked"
+        } ]
+      },
+      "description" : "A loss or an exchange a member raised while answering a self-check, recorded so the reviewer can see it happened, and held back where the answer beside it says the record it names is wrong."
+    },
     "inventory_size" : {
       "feature" : "inventory",
       "scope" : "STATION",
@@ -9160,6 +10172,68 @@
         "reason" : "Inventory structure/config, not per-member"
       },
       "description" : "Size options for inventories that have sizes enabled."
+    },
+    "inventory_tag" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:eb33cbe2245de9540d677870da0c6fd671b71a86f195d2e6d1ec3aafdf40e746",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station the tag belongs to."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The tag as the station spelled it, which is what every list shows."
+      }, {
+        "name" : "canonical_name",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The trimmed lowercase name, maintained by the database. Two stations spelling one tag differently match on this."
+      }, {
+        "name" : "color",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Optional hex colour for the badge. Null means the badge takes the neutral colour."
+      }, {
+        "name" : "position",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Where the tag sits in the station's own list."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "ignoredColumns" : [ "station_id", "canonical_name" ],
+        "rationale" : "The words a station uses travel with its things, or the pieces arrive naming rows that do not exist. station_id is supplied by the receiving station and canonical_name is maintained by the database."
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Inventory structure/config, not per-member"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Inventory structure/config, not per-member"
+      },
+      "description" : "A tag a station puts on its items, picked from what exists rather than typed per item."
     },
     "item_movement" : {
       "feature" : "inventory",
@@ -9777,7 +10851,7 @@
     "kb_file" : {
       "feature" : "knowledgebase",
       "scope" : "STATION",
-      "tableHash" : "sha256:8d2c4f647d543ec36929a608eed71f957dd6c50f63a100120b8eca00d7b86440",
+      "tableHash" : "sha256:ca3047d22517c3a39aa1eb703a5a3c7097401e025117555173f6f7c896e07480",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -9909,6 +10983,24 @@
         "nullable" : false,
         "verified" : true,
         "description" : "SIMPLE for an article written as text, RICH for one built from blocks. The stored text of a rich article is a projection of its blocks and is never edited directly."
+      }, {
+        "name" : "deleted_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the article was put in the trash, NULL while it is in use. Every listing, search and share reads only rows where this is NULL, so a marked article is gone everywhere without anything being removed."
+      }, {
+        "name" : "deleted_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The member who put the article in the trash, NULL when they have since left the station."
+      }, {
+        "name" : "deleted_with_folder",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "True where the article went to the trash because the folder around it did. Such an article is not its own entry in the trash, and it comes back when that folder comes back rather than on its own."
       } ],
       "foreignKeys" : [ {
         "column" : "container_id",
@@ -9917,6 +11009,11 @@
         "onDelete" : "SET NULL"
       }, {
         "column" : "created_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "deleted_by",
         "refTable" : "station_member",
         "refColumn" : "id",
         "onDelete" : "SET NULL"
@@ -9933,7 +11030,7 @@
       } ],
       "stationTransfer" : {
         "status" : "TRACKED",
-        "ignoredColumns" : [ "station_id", "mime_type", "file_size", "icon_url", "youtube_url", "link_url", "created_by", "created_at", "updated_at", "source_file_id", "source_station_id", "conversion_status" ]
+        "ignoredColumns" : [ "station_id", "mime_type", "file_size", "icon_url", "youtube_url", "link_url", "created_by", "created_at", "updated_at", "source_file_id", "source_station_id", "conversion_status", "deleted_by" ]
       },
       "gdprExport" : {
         "status" : "TRACKED"
@@ -10110,7 +11207,7 @@
     "kb_folder" : {
       "feature" : "knowledgebase",
       "scope" : "STATION",
-      "tableHash" : "sha256:9da904dc4d38017e9c38fdbab5d6b2c58e790b16131130144ae6b719b66a9619",
+      "tableHash" : "sha256:695548abdeea7b23f7336a7f0b08d54829133454318ef11d8fef4183063f27a8",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -10177,9 +11274,32 @@
         "nullable" : false,
         "verified" : true,
         "description" : "How role/group/tag restrictions combine: AND or OR."
+      }, {
+        "name" : "deleted_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the folder was put in the trash, NULL while it is in use."
+      }, {
+        "name" : "deleted_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The member who put the folder in the trash, NULL when they have since left the station."
+      }, {
+        "name" : "deleted_with_folder",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "True where the folder went to the trash because a folder above it did. It is restored with that one rather than listed beside it."
       } ],
       "foreignKeys" : [ {
         "column" : "created_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "deleted_by",
         "refTable" : "station_member",
         "refColumn" : "id",
         "onDelete" : "SET NULL"
@@ -10196,7 +11316,7 @@
       } ],
       "stationTransfer" : {
         "status" : "TRACKED",
-        "ignoredColumns" : [ "station_id", "icon_url", "created_by", "created_at", "updated_at" ]
+        "ignoredColumns" : [ "station_id", "icon_url", "created_by", "created_at", "updated_at", "deleted_by" ]
       },
       "gdprExport" : {
         "status" : "TRACKED",
@@ -12439,7 +13559,7 @@
     "procedure" : {
       "feature" : "procedure",
       "scope" : "STATION",
-      "tableHash" : "sha256:35477101fe2b9f3076ed42326d1e3a41137254a3542b810844d72779ff459e18",
+      "tableHash" : "sha256:1aa513ed66347397e8b214abaeb0798dbfa2f331b8d6e1c1534902f4ada30f87",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -12495,12 +13615,29 @@
         "type" : "timestamptz",
         "nullable" : true,
         "verified" : true
+      }, {
+        "name" : "event_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The appointment this procedure was prepared for, or NULL when it was written by hand. Cleared rather than cascaded when the appointment is deleted, so the procedure and its recorded progress survive it."
+      }, {
+        "name" : "event_date",
+        "type" : "date",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The single occurrence of that appointment the procedure belongs to, since a recurring appointment has one per date. NULL exactly when event_id is NULL."
       } ],
       "foreignKeys" : [ {
         "column" : "assigned_by",
         "refTable" : "station_member",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
+      }, {
+        "column" : "event_id",
+        "refTable" : "station_event",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
       }, {
         "column" : "station_id",
         "refTable" : "station",
@@ -17356,7 +18493,7 @@
     "waiting_list_entry" : {
       "feature" : "waitinglist",
       "scope" : "STATION",
-      "tableHash" : "sha256:d22351fee40f79dde276a54410bd01bb43d7922831e0fef6ebd66cd8ced743d3",
+      "tableHash" : "sha256:5ec0091f40a5475aa76c61d45ba0e88e18efe08894851ae9678d3ee575bb6725",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -17471,8 +18608,49 @@
         "nullable" : true,
         "verified" : true,
         "description" : "JSONB-encoded ConsentProof captured at the time of public submission. NULL for entries created by managers via the admin UI."
+      }, {
+        "name" : "invited_event_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The appointment the current invitation asks them to come to, or NULL when nobody has been invited yet. No sign-up is created from it: they have not joined anything, so they are not on the attendee list and count towards nothing the station plans from. Deleting the appointment empties this, which leaves the invitation without an occasion rather than pointing at nothing."
+      }, {
+        "name" : "invited_event_date",
+        "type" : "date",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The one date of that appointment they were invited to. An appointment repeats, so without a date the invitation would name every Tuesday there has ever been, and the answer to it would mean nothing."
+      }, {
+        "name" : "invited_arrival_time",
+        "type" : "time",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When they were asked to be there, which is usually earlier than everybody else so somebody can meet them. NULL when the invitation named no time of its own. A time rather than an offset, because that is what the mail has to say and what the reader has to read."
+      }, {
+        "name" : "invitation_answer",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "What they answered to the invitation they currently hold: COMING, NOT_INTERESTED or DATE_DOES_NOT_SUIT. NULL while the invitation is unanswered. A refusal is kept here rather than moving the entry out of the open section, because an answer that vanishes on arrival is the same failure as no answer at all. Cleared whenever a new invitation replaces the one it answered."
+      }, {
+        "name" : "invitation_answered_at",
+        "type" : "timestamp",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When that answer was given, so a station can see how long an invitation has been sitting unanswered. NULL exactly when invitation_answer is NULL."
+      }, {
+        "name" : "invitation_answer_note",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What they wrote alongside the answer, empty when they wrote nothing. Given by whoever holds the entry link rather than by a member, which is why it is kept apart from the station's own notes on the entry."
       } ],
       "foreignKeys" : [ {
+        "column" : "invited_event_id",
+        "refTable" : "station_event",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
         "column" : "list_id",
         "refTable" : "waiting_list",
         "refColumn" : "id",

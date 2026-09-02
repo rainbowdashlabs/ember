@@ -2,9 +2,57 @@
 # that re-running compose from a different working directory (or with -p)
 # doesn't orphan containers against the previous network ID. The "network not
 # found" failure that arises after a `down -v` + rename was caused by that.
+#
+# The end-to-end services sit on a network of their own, and that one's name is a variable because
+# the end-to-end stack is one per checkout. Container DNS is what keeps those apart: every checkout
+# has a service called `postgres-e2e` and one called `ember-e2e-peer`, and on a shared network the
+# name would resolve to whichever of them answered, which is a backend reading another checkout's
+# database. `toolchain.sh` derives the name; a plain compose call without it gets the
+# single-checkout default and behaves as it always did.
 networks:
   default:
     name: ember_dev
+  e2e:
+    name: ${EMBER_E2E_NETWORK:-ember_e2e}
+
+# The storage services exist twice: once for the development stack, which keeps its fixed names and
+# its published ports because a person works with it, and once for the end-to-end stack, which is
+# per checkout and reaches them over the compose network alone. What the two copies share is written
+# once here, and each of them adds only what separates it.
+x-rustfs: &rustfs
+  image: rustfs/rustfs:latest
+  environment:
+    RUSTFS_ACCESS_KEY: emberadmin
+    RUSTFS_SECRET_KEY: emberadmin
+    RUSTFS_CONSOLE_ENABLE: "true"
+    RUSTFS_CONSOLE_ADDRESS: ":9001"
+
+x-rustfs-init: &rustfs-init
+  image: minio/mc:latest
+  entrypoint: ["/bin/sh", "-c"]
+  command:
+    - |
+      until mc alias set local "http://$$RUSTFS_HOST:9000" emberadmin emberadmin 2>/dev/null; do
+        echo "Waiting for rustfs to come up..."
+        sleep 2
+      done
+      mc mb --ignore-existing local/ember
+      echo "rustfs ready: bucket 'ember' available on $$RUSTFS_HOST"
+
+x-sftp: &sftp
+  image: atmoz/sftp:latest
+  command: "ember:ember:1001::upload"
+
+x-smb: &smb
+  image: dperson/samba:latest
+  environment:
+    USERID: "1000"
+    GROUPID: "1000"
+  command: >-
+    -p
+    -u "ember;ember"
+    -s "ember;/share;yes;no;no;ember;ember"
+    -w "WORKGROUP"
 
 services:
   postgres:
@@ -32,15 +80,23 @@ services:
   # so a test run can throw the data away whenever it likes without touching what someone is
   # working in. The suite resets this database before every run; doing that to the dev stack
   # would delete the state a developer had just set up by hand.
+  #
+  # It is also one stack per checkout, which is why none of these services names its container and
+  # why every published port is a variable. A fixed container name is the same name in every
+  # checkout, so the second one to start collides with the first, and it makes the compose project
+  # name mean nothing. `toolchain.sh` derives a project name and a block of ports from the checkout
+  # path and exports both before it calls compose; the defaults below are the ports the stack has
+  # always used, so a single checkout, or CI, sees no change at all.
   postgres-e2e:
     image: postgres:18-alpine
-    container_name: ember_e2e_db
+    networks:
+      - e2e
     environment:
       POSTGRES_DB: ember
       POSTGRES_USER: ember
       POSTGRES_PASSWORD: ember
     ports:
-      - "5434:5432"
+      - "${EMBER_E2E_DB_PORT:-5434}:5432"
     volumes:
       - ember-e2e-data:/var/lib/postgresql
     profiles:
@@ -52,12 +108,13 @@ services:
       retries: 10
 
   ember-e2e:
-    container_name: ember_e2e
+    networks:
+      - e2e
     build:
       context: ..
       dockerfile: docker/backend.dev.Dockerfile
     ports:
-      - "8899:8080"
+      - "${EMBER_E2E_API_PORT:-8899}:8080"
     environment:
       DB_HOST: postgres-e2e
       DB_PORT: "5432"
@@ -77,7 +134,15 @@ services:
       # storage-backend apply answers with a cipher error, and the cause is nowhere near the symptom.
       # What it encrypts here are the credentials of three containers on a private network.
       STORAGE_CREDENTIALENCRYPTIONKEY: "ZTJlLXN0YWNrLW9ubHkta2V5LW5vdC1hLXNlY3JldCE="
-      API_BASEURL: http://localhost:3010
+      # Every address a private one, which the outbound URL validator refuses on a real
+      # instance for good reason: a peer named "ember-e2e-peer" or "localhost" is exactly what
+      # an attacker would supply to make the server scan its own network. The flag exists for
+      # this situation and is set nowhere but here and in the tests.
+      FEDERATION_ALLOWPRIVATEHOSTS: "true"
+      # The frontend the suite drives, which is also the only origin the browser sends: the allowed
+      # origins fall back to this address, so a run on a derived port would otherwise be refused on
+      # every write with a 400 that reads as a malformed request.
+      API_BASEURL: http://localhost:${EMBER_E2E_WEB_PORT:-3010}
     volumes:
       - ..:/home/gradle/project
       - ember-e2e-gradle-cache:/home/gradle/.gradle
@@ -91,49 +156,148 @@ services:
     profiles:
       - e2e
 
+  # The second instance the stories federate against. A real counterpart rather than a second
+  # station of the first one: its own schema, its own port, its own data directory, and no way
+  # of seeing the first instance's rows.
+  #
+  # It shares the database container and splits off by schema. The whole schema is a
+  # parameter - the migrations, the connection's search path and the reset all take it from
+  # DB_SCHEMA - so two instances in one database never meet, and one postgres is one less
+  # container to wait for.
+  #
+  # Reachable two ways, and which one to use depends on who is asking:
+  #   - from the host and from the stories:      http://localhost:8898, or the derived port
+  #   - from the other backend's container:      http://ember-e2e-peer:8080
+  # The second is the address that goes into a federation invite or a discovery peer entry,
+  # because the caller there is a container and not a browser. Hyphens, not underscores: Java's
+  # URI parser answers a null host for a name containing one. That address is the service name and
+  # not a container name, which is why it survives the containers becoming one set per checkout:
+  # compose gives every service its own name on the network it joins, whatever the container is
+  # called, and each checkout's network holds exactly one of them.
+  #
+  # No frontend of its own. Everything a story does as this instance - discovering its accounts,
+  # signing in, reading and writing - is API work, and a second built Nuxt server would cost
+  # every run a process and a port for no story that exists.
+  ember-e2e-peer:
+    networks:
+      - e2e
+    build:
+      context: ..
+      dockerfile: docker/backend.dev.Dockerfile
+    ports:
+      - "${EMBER_E2E_PEER_PORT:-8898}:8080"
+    environment:
+      DB_HOST: postgres-e2e
+      DB_PORT: "5432"
+      DB_USER: ember
+      DB_PASSWORD: ember
+      DB_DATABASE: ember
+      # The one line that separates the two instances. It reaches the migrations, the pool's
+      # search path and the reset endpoint alike, so this instance runs its own migrations and
+      # sees none of the first instance's tables.
+      DB_SCHEMA: ember_peer_schema
+      DEMO_DEV: "true"
+      DEMO_ENABLED: "false"
+      STORAGE_CREDENTIALENCRYPTIONKEY: "ZTJlLXN0YWNrLW9ubHkta2V5LW5vdC1hLXNlY3JldCE="
+      FEDERATION_ALLOWPRIVATEHOSTS: "true"
+      # The address the first instance calls this one at, so a peer entry or an invite made
+      # here carries something a container can resolve.
+      API_BASEURL: http://ember-e2e-peer:8080
+    volumes:
+      - ..:/home/gradle/project
+      # Every Gradle volume is this container's own, the Gradle home included. Two runs cannot
+      # share one: the run task stays the foreground process for the life of the container, so
+      # the lock it takes on the Gradle home's journal cache is never released and the second
+      # container dies at startup with a lock timeout. The cost is one more dependency download
+      # the first time, and nothing after that - the volume outlives the container.
+      - ember-e2e-peer-gradle-cache:/home/gradle/.gradle
+      - ember-e2e-peer-gradle-build:/home/gradle/project/build
+      - ember-e2e-peer-project-gradle:/home/gradle/project/.gradle
+      - ./config:/home/gradle/project/config
+      # Its own data directory, which is what gives it its own discovery identity: the keypair
+      # behind the instance id is a file, not a row, so a shared directory would leave both
+      # instances answering with the same name.
+      - ember-e2e-peer-app-data:/home/gradle/project/data
+    depends_on:
+      postgres-e2e:
+        condition: service_healthy
+    profiles:
+      - e2e
+
+  # The three storage services the storage stories switch a station between, one set per checkout
+  # like the rest of the end-to-end stack. They publish nothing: only the two backends ever talk to
+  # them, over the compose network, so a published port would be one more thing every checkout would
+  # have to divide with the others for no reader. A set of their own also means two runs no longer
+  # write into the same bucket and the same share.
+  rustfs-e2e:
+    <<: *rustfs
+    networks:
+      - e2e
+    volumes:
+      - ember-e2e-rustfs:/data
+    profiles:
+      - e2e
+
+  rustfs-e2e-init:
+    <<: *rustfs-init
+    networks:
+      - e2e
+    environment:
+      RUSTFS_HOST: rustfs-e2e
+    depends_on:
+      - rustfs-e2e
+    profiles:
+      - e2e
+
+  sftp-e2e:
+    <<: *sftp
+    networks:
+      - e2e
+    volumes:
+      - ember-e2e-sftp:/home/ember/upload
+      - ./sftp-init.sh:/etc/sftp.d/chown-upload.sh:ro
+      - ./test-ssh/ember_ed25519.pub:/home/ember/.ssh/keys/ember_ed25519.pub:ro
+    profiles:
+      - e2e
+
+  smb-e2e:
+    <<: *smb
+    networks:
+      - e2e
+    volumes:
+      - ember-e2e-smb:/share
+    profiles:
+      - e2e
+
   # S3-compatible object storage for testing the S3 backend variant.
   # Reach the S3 API from the host at http://localhost:9000 and the admin console at
   # http://localhost:9001 (default login: emberadmin / emberadmin). On first boot
   # the rustfs-init container creates an "ember" bucket so the app can store into it
   # straight away.
   rustfs:
-    image: rustfs/rustfs:latest
+    <<: *rustfs
     container_name: ember_dev_rustfs
     ports:
       - "9000:9000"
       - "9001:9001"
-    environment:
-      RUSTFS_ACCESS_KEY: emberadmin
-      RUSTFS_SECRET_KEY: emberadmin
-      RUSTFS_CONSOLE_ENABLE: "true"
-      RUSTFS_CONSOLE_ADDRESS: ":9001"
     volumes:
       - ember-dev-rustfs:/data
     profiles:
       - storage
       - full
-      - e2e
 
   # Creates the "ember" bucket on the rustfs instance, then exits. Polls until rustfs
   # answers; the mb call is idempotent so re-running compose-up is safe.
   rustfs-init:
-    image: minio/mc:latest
+    <<: *rustfs-init
     container_name: ember_dev_rustfs_init
+    environment:
+      RUSTFS_HOST: rustfs
+    depends_on:
+      - rustfs
     profiles:
       - storage
       - full
-      - e2e
-    depends_on:
-      - rustfs
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        until mc alias set local http://rustfs:9000 emberadmin emberadmin 2>/dev/null; do
-          echo "Waiting for rustfs to come up..."
-          sleep 2
-        done
-        mc mb --ignore-existing local/ember
-        echo "rustfs ready: bucket 'ember' available at http://localhost:9000 (key/secret: emberadmin/emberadmin)"
 
   # SFTP target for testing the SFTP backend variant.
   # Login from the host: ssh -p 2222 ember@localhost (password: ember), files land
@@ -144,7 +308,7 @@ services:
   # a restart the existing root-owned volume is mounted as-is, leaving the user without
   # write permission. The init script is idempotent and survives compose down/up cycles.
   sftp:
-    image: atmoz/sftp:latest
+    <<: *sftp
     container_name: ember_dev_sftp
     ports:
       - "2222:22"
@@ -152,35 +316,24 @@ services:
       - ember-dev-sftp:/home/ember/upload
       - ./sftp-init.sh:/etc/sftp.d/chown-upload.sh:ro
       - ./test-ssh/ember_ed25519.pub:/home/ember/.ssh/keys/ember_ed25519.pub:ro
-    command: "ember:ember:1001::upload"
     profiles:
       - storage
       - full
-      - e2e
 
   # SMB / Samba share for testing the SMB backend variant.
   # Reach the share from the host on smb://localhost/ember (user: ember, password: ember).
   # Inside the container the share root maps to /share so basePath in the Ember
   # config can stay empty.
   smb:
-    image: dperson/samba:latest
+    <<: *smb
     container_name: ember_dev_smb
     ports:
       - "1445:445"
-    environment:
-      USERID: "1000"
-      GROUPID: "1000"
     volumes:
       - ember-dev-smb:/share
-    command: >-
-      -p
-      -u "ember;ember"
-      -s "ember;/share;yes;no;no;ember;ember"
-      -w "WORKGROUP"
     profiles:
       - storage
       - full
-      - e2e
 
   # Dev backend: bind-mounts the project so source edits land in the container
   # straight away, with named volumes for the Gradle home and the project's
@@ -344,10 +497,17 @@ services:
 
 volumes:
   ember-e2e-data:
+  ember-e2e-rustfs:
+  ember-e2e-sftp:
+  ember-e2e-smb:
   ember-e2e-app-data:
   ember-e2e-gradle-cache:
   ember-e2e-gradle-build:
   ember-e2e-project-gradle:
+  ember-e2e-peer-app-data:
+  ember-e2e-peer-gradle-cache:
+  ember-e2e-peer-gradle-build:
+  ember-e2e-peer-project-gradle:
   ember-dev-data:
   ember-dev-rustfs:
   ember-dev-sftp:

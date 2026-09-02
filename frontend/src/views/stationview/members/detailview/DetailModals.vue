@@ -216,7 +216,7 @@ defineExpose({
     <div class="space-y-4">
       <SubHeader>{{ t('memberDetail.reassignItem') }}</SubHeader>
       <p v-if="reassignItemRef" class="text-sm">
-        {{ reassignItemRef.inventoryName }} &mdash; {{ reassignItemRef.name }}
+        {{ reassignItemRef.inventoryName }}, {{ reassignItemRef.name }}
         <SizeBadge>{{ reassignItemRef.sizeName ?? t('common.unisize') }}</SizeBadge>
       </p>
       <div class="space-y-1">
@@ -247,7 +247,7 @@ defineExpose({
       </template>
       <template v-else>
         <p v-if="exchangeItem" class="text-sm">
-          {{ exchangeItem.inventoryName }} &mdash; {{ exchangeItem.name }}
+          {{ exchangeItem.inventoryName }}, {{ exchangeItem.name }}
           <SizeBadge>{{ exchangeItem.sizeName ?? t('common.unisize') }}</SizeBadge>
         </p>
         <div v-if="exchangeSizes.length > 0" class="space-y-1">

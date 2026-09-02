@@ -5,6 +5,7 @@
  */
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
+import {setExchangeFilter} from './fixtures/exchangeFilter'
 
 /**
  * Where an exchange says it stands, and what may move it.
@@ -117,8 +118,10 @@ test.describe('Exchange status', () => {
         expect(await statusOf(page, headers, id), 'which is not the same as finishing it').toBe('CANCELLED')
 
         await page.goto('/station/inventory/exchanges')
+        await setExchangeFilter(page, 'exchange-filter-status', [])
         const row = page.getByTestId('exchange-row').filter({hasText: inventoryName})
-        await expect(row).toBeVisible({timeout: 15000})
+        await expect(row, 'which the list shows once the ticks stop keeping it to what is still running')
+            .toBeVisible({timeout: 15000})
         await expect(row.getByTestId('exchange-status-closed')).toHaveText('Abgebrochen')
         await expect(row.getByTestId('exchange-advance'),
             'and there is nothing left to advance it to').toBeHidden()

@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import client from './client'
 import {createScopedCrudResource} from './crud'
 
 export const FieldType = {
@@ -58,6 +59,10 @@ export type FieldConfig =
 export interface InventoryFieldDefinition {
     id: number
     inventoryId: number
+    /** The kind this field describes, or null when it describes the whole inventory. */
+    artId?: number | null
+    /** The single piece this field describes, or null when it describes more than one. */
+    itemId?: number | null
     key: string
     label: string
     fieldType: FieldTypeName
@@ -67,6 +72,10 @@ export interface InventoryFieldDefinition {
 }
 
 export interface FieldDefinitionRequest {
+    /** The kind this field describes, or null for the whole inventory. At most one of the two. */
+    artId?: number | null
+    /** The single piece this field describes, or null. At most one of the two. */
+    itemId?: number | null
     key: string
     label: string
     fieldType: FieldTypeName
@@ -92,6 +101,50 @@ export const listFields = fields.list
 export const createField = fields.create
 export const updateField = fields.update
 export const deleteField = fields.remove
+
+/**
+ * The fields that describe one piece, with the collision rule already applied by the backend.
+ *
+ * Where one key is defined for the inventory, for the piece's kind and for the piece itself, the
+ * narrowest definition is the one that comes back. A value the piece holds under a key that is not
+ * in this list belongs to a kind it no longer has: it stays recorded and stays off the screen.
+ */
+export async function listItemFields(itemId: number): Promise<InventoryFieldDefinition[]> {
+    const res = await client.get<InventoryFieldDefinition[]>(`/inventory-items/${itemId}/fields`)
+    return res.data
+}
+
+/**
+ * The fields that describe a piece, worked out from every definition in the inventory.
+ *
+ * The backend answers the same question for a piece that already exists; this is for the form that
+ * is writing one down for the first time, where there is no id to ask about yet. The rule is the
+ * same: where one key is defined at more than one level, the narrowest definition wins.
+ */
+export function resolveFields(
+    defs: InventoryFieldDefinition[],
+    artId: number | null,
+    itemId: number | null = null,
+): InventoryFieldDefinition[] {
+    const byKey = new Map<string, {rank: number; def: InventoryFieldDefinition}>()
+    for (const def of defs) {
+        let rank: number
+        if (def.itemId != null) {
+            if (itemId == null || def.itemId !== itemId) continue
+            rank = 2
+        } else if (def.artId != null) {
+            if (artId == null || def.artId !== artId) continue
+            rank = 1
+        } else {
+            rank = 0
+        }
+        const standing = byKey.get(def.key)
+        if (!standing || rank >= standing.rank) byKey.set(def.key, {rank, def})
+    }
+    return [...byKey.values()]
+        .map(entry => entry.def)
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.key.localeCompare(b.key))
+}
 
 export interface NumberFieldViolation {
     limit: 'min' | 'max'

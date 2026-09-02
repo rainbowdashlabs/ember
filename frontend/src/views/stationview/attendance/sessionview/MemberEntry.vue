@@ -4,10 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MemberName from '@/components/avatar/MemberName.vue'
 import MemberEntryStatusIcon from './memberentry/MemberEntryStatusIcon.vue'
 import MemberEntryActions from './memberentry/MemberEntryActions.vue'
+import MemberEntryStatusButtons from './memberentry/MemberEntryStatusButtons.vue'
 import MemberEntryReadonlyTimes from './memberentry/MemberEntryReadonlyTimes.vue'
 import type {AttendanceEntry, AttendanceStatus} from '@/api/attendance'
 import type {StationMember} from '@/api/types'
@@ -25,10 +27,21 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   setStatus: [entryId: number, status: AttendanceStatus]
+  enter: [memberId: number, status: AttendanceStatus]
   checkIn: [entryId: number, time: string]
   checkOut: [entryId: number, time: string]
   resetTimes: [entryId: number]
 }>()
+
+/**
+ * Whether the member had joined the station by the evening this sheet is about. A member entered
+ * afterwards was not there, so nothing is offered to record about them; a member with no join date
+ * carries no restriction, which is the state every member had before the field was filled in.
+ */
+const hadJoined = computed(() => {
+  if (!props.member.joinDate || !props.sessionStart) return true
+  return props.member.joinDate <= props.sessionStart.slice(0, 10)
+})
 </script>
 
 <template>
@@ -62,7 +75,13 @@ const emit = defineEmits<{
           :session-end="sessionEnd"
           :session-start="sessionStart"
       />
-      <span v-else class="text-xs text-(--text-muted)">{{ t('attendanceSession.noEntry') }}</span>
+      <MemberEntryStatusButtons
+          v-else-if="!readonly && hadJoined"
+          @set-status="emit('enter', member.id, $event)"
+      />
+      <span v-else class="text-xs text-(--text-muted)">
+        {{ hadJoined ? t('attendanceSession.noEntry') : t('attendanceSession.beforeJoining') }}
+      </span>
     </div>
   </div>
 </template>

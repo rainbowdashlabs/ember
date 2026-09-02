@@ -373,6 +373,22 @@ test.describe('Instance administration', () => {
         await expect(page.getByText(/^(Konfiguriert|Nicht konfiguriert)$/)).toBeVisible()
         await expect(page.getByRole('spinbutton').first()).not.toHaveValue('')
     })
+
+    /**
+     * How long the link in a setup mail lasts was configurable only in the file on the server, so an
+     * operator without shell access could not answer an invitation that had gone stale.
+     */
+    test('the life of a setup link is set from the browser', async ({adminPage: page}) => {
+        await page.goto('/admin/settings/security/tokens')
+
+        const days = page.getByTestId('setup-token-days')
+        await expect(days).not.toHaveValue('')
+        await days.fill('14')
+        await page.getByRole('button', {name: 'Speichern'}).first().click()
+
+        await page.reload()
+        await expect(page.getByTestId('setup-token-days')).toHaveValue('14')
+    })
 })
 
 /**

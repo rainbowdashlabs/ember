@@ -17,6 +17,11 @@ import KbEditModals from './knowledgebaseview/KbEditModals.vue'
 import KbShareModals from './knowledgebaseview/KbShareModals.vue'
 import KbFiltersBar from './knowledgebaseview/KbFiltersBar.vue'
 import KbSearchResults from './knowledgebaseview/KbSearchResults.vue'
+import KbMoveModal from './knowledgebaseview/KbMoveModal.vue'
+import KbBulkModals from './knowledgebaseview/KbBulkModals.vue'
+import KbTrashView from './knowledgebaseview/KbTrashView.vue'
+import {useKbSelection} from './knowledgebaseview/useKbSelection'
+import {useKbMoveTarget} from './knowledgebaseview/useKbMoveTarget'
 import {useKbBrowse} from './knowledgebaseview/useKbBrowse'
 import {useKbFilters} from './knowledgebaseview/useKbFilters'
 import {useKbNavigation, type KbRoutes} from './knowledgebaseview/useKbNavigation'
@@ -48,8 +53,8 @@ const filters = useKbFilters(browse)
 const search = useKbSearch(filters)
 
 const {
-    folderParam, isFavouritesView, currentFolderId,
-    navigateToFolder, navigateToFile, navigateToFederatedFile, navigateToFavourites,
+    folderParam, isFavouritesView, isTrashView, currentFolderId,
+    navigateToFolder, navigateToFile, navigateToFederatedFile, navigateToFavourites, navigateToTrash,
     navigateToSharedFolder, sharedFolderId,
 } = navigation
 const {
@@ -73,6 +78,7 @@ const shareModalsRef = ref<InstanceType<typeof KbShareModals> | null>(null)
 
 const {
     show: showDeleteFolderModal,
+    target: deleteFolderTarget,
     request: confirmDeleteFolder,
     confirm: handleDeleteFolder,
 } = useConfirmAction<KbFolder>({
@@ -83,6 +89,7 @@ const {
 
 const {
     show: showDeleteFileModal,
+    target: deleteFileTarget,
     request: confirmDeleteFile,
     confirm: handleDeleteFile,
 } = useConfirmAction<KbFile>({
@@ -97,6 +104,29 @@ async function exportFilePdf(file: KbFile) {
     } catch {
         error.value = t('common.error')
     }
+}
+
+const move = useKbMoveTarget()
+const bulkModalsRef = ref<InstanceType<typeof KbBulkModals> | null>(null)
+const notice = ref('')
+
+/**
+ * The tree the move dialogs pick from, read once per visit rather than per dialog, and only for a
+ * reader who is offered a move at all.
+ */
+async function loadFolderTree() {
+    if (!canEditKnowledge()) return
+    await move.reloadFolders()
+}
+
+async function afterMove() {
+    await Promise.all([loadData(), loadFolderTree()])
+}
+
+async function afterBulk(message: string) {
+    notice.value = message
+    selection.clear()
+    await afterMove()
 }
 
 const {items, toSearchItems} = useKbItems(
@@ -125,9 +155,11 @@ const {items, toSearchItems} = useKbItems(
         openFavourites: navigateToFavourites,
         editFolder: folder => editModalsRef.value?.openFolder(folder),
         shareFolder: folder => shareModalsRef.value?.openFolder(folder),
+        moveFolder: move.moveFolder,
         deleteFolder: confirmDeleteFolder,
         editFile: file => editModalsRef.value?.openFile(file),
         shareFile: file => shareModalsRef.value?.openFile(file),
+        moveFile: move.moveFile,
         deleteFile: confirmDeleteFile,
         exportFilePdf,
         copySharedFile,
@@ -138,12 +170,15 @@ const {items, toSearchItems} = useKbItems(
 
 const searchItems = computed(() => toSearchItems(filteredSearchResults.value))
 
+const selection = useKbSelection(items, currentFolderId)
+
 watch([folderParam, sharedFolderId], () => {
+    notice.value = ''
     loadData()
 })
 
 watch(loaded, (isLoaded) => {
-    if (isLoaded) { loadData(); loadTags() }
+    if (isLoaded) { loadData(); loadTags(); loadFolderTree() }
 }, {immediate: true})
 </script>
 
@@ -155,8 +190,9 @@ watch(loaded, (isLoaded) => {
         <slot name="before"/>
 
         <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+        <Alert v-if="notice" variant="info" class="mb-4" data-testid="kb-bulk-notice">{{ notice }}</Alert>
 
-        <div class="mb-4">
+        <div v-if="!isTrashView" class="mb-4">
             <SearchInput
                 v-model="searchQuery"
                 :placeholder="t('kb.search')"
@@ -165,6 +201,7 @@ watch(loaded, (isLoaded) => {
         </div>
 
         <KbFiltersBar
+            v-if="!isTrashView"
             v-model:show-federated="showFederated"
             v-model:filter-station-id="filterStationId"
             v-model:filter-tag="filterTag"
@@ -174,7 +211,7 @@ watch(loaded, (isLoaded) => {
         />
 
         <KbBreadcrumb
-            v-if="!isSearching"
+            v-if="!isSearching && !isTrashView"
             :current-folder="currentFolder"
             :breadcrumbs="breadcrumbs"
             :shared-trail="sharedTrail"
@@ -183,13 +220,21 @@ watch(loaded, (isLoaded) => {
             :is-kb-public="isKbPublic()"
             :share-copied="shareCopied"
             :view-mode="viewMode"
+            :can-manage="canEditKnowledge()"
             @navigate="navigateToFolder"
             @toggle-view-mode="viewMode = viewMode === 'grid' ? 'list' : 'grid'"
             @copy-share-link="copyShareLink"
+            @open-trash="navigateToTrash"
+        />
+
+        <KbTrashView
+            v-if="isTrashView"
+            @back="navigateToFolder(null)"
+            @restored="loadData()"
         />
 
         <KbSearchResults
-            v-if="isSearching"
+            v-else-if="isSearching"
             :items="searchItems"
             :searching="searching"
             :total-count="searchResults.length"
@@ -202,12 +247,21 @@ watch(loaded, (isLoaded) => {
             :view-mode="viewMode"
             :items="items"
             :can-manage="canCreateHere"
+            :selecting="selection.selecting.value"
+            :selected-keys="selection.selectedKeys.value"
+            :selected-count="selection.selectedCount.value"
             @create-folder="createModalsRef?.openCreateFolder()"
             @create-markdown="createModalsRef?.openCreateFile()"
             @upload="createModalsRef?.openUpload()"
             @youtube="createModalsRef?.openYoutube()"
             @link="createModalsRef?.openLink()"
             @import-document="createModalsRef?.openImportDocument()"
+            @toggle-selecting="selection.toggleSelecting"
+            @toggle-select="selection.toggle"
+            @move-selection="bulkModalsRef?.openMove()"
+            @tag-selection="bulkModalsRef?.openTags()"
+            @delete-selection="bulkModalsRef?.openDelete()"
+            @clear-selection="selection.clear"
         />
 
         <KbCreateModals
@@ -230,8 +284,28 @@ watch(loaded, (isLoaded) => {
         <KbDeleteModals
             v-model:show-folder="showDeleteFolderModal"
             v-model:show-file="showDeleteFileModal"
+            :folder="deleteFolderTarget"
+            :file="deleteFileTarget"
             @confirm-folder="handleDeleteFolder"
             @confirm-file="handleDeleteFile"
+        />
+
+        <KbMoveModal
+            v-model:show="move.showMove.value"
+            :folder="move.movingFolder.value"
+            :file="move.movingFile.value"
+            :folders="move.folders.value"
+            @moved="afterMove"
+            @error="(msg) => error = msg"
+        />
+
+        <KbBulkModals
+            ref="bulkModalsRef"
+            :folder-ids="selection.selectedFolderIds.value"
+            :file-ids="selection.selectedFileIds.value"
+            :folders="move.folders.value"
+            @done="afterBulk"
+            @error="(msg) => error = msg"
         />
     </ViewContent>
 </template>

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.service;
 import dev.chojo.ember.feature.inventory.entity.ExchangeLog;
 import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -72,6 +73,7 @@ public class ExchangeService {
             Integer newSizeId,
             String reason,
             Integer createdBy) {
+        requireHomogeneous(inventoryId);
         var actor = new ItemMovementService.Actor(createdBy != null ? createdBy : memberId, true);
         ItemMovement movement = movementService.create(
                 stationId,
@@ -277,6 +279,26 @@ public class ExchangeService {
         return movementService.stepsOf(movement).stream()
                 .filter(step -> step.id() == movement.currentStepId())
                 .noneMatch(ItemMovementService::namesIncomingItem);
+    }
+
+    /**
+     * Refuses an exchange on an inventory holding a drawer of different things.
+     *
+     * <p>An exchange swaps one size of a thing for another size of the same thing, which presupposes
+     * the pieces are interchangeable. Among a laminator and a toy fire engine there is nothing to
+     * swap for anything. The picker offers only the inventories where this means something, so a
+     * request arriving here has gone round it.
+     *
+     * @throws BadRequestResponse when the inventory holds a drawer of different things
+     */
+    private void requireHomogeneous(int inventoryId) {
+        boolean homogeneous = inventoryRepository
+                .findById(inventoryId)
+                .map(Inventory::homogeneous)
+                .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
+        if (!homogeneous) {
+            throw new BadRequestResponse("This inventory is a collection, so there is nothing to exchange in it");
+        }
     }
 
     private boolean isExchange(ItemMovement movement) {

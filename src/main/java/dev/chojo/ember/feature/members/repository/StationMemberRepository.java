@@ -641,6 +641,11 @@ public class StationMemberRepository {
 
     /**
      * Find all active members of a station who have the given permission (directly or via group).
+     *
+     * <p>A wider right that carries the asked-for one counts. Somebody holding only the station
+     * administrator right may do everything a manager may do, and a search by the manager's name
+     * alone passed them over: the screens let them in and the notifications about that work never
+     * reached them.
      */
     public List<StationMember> findMembersWithPermission(int stationId, StationPermission permission) {
         return query("""
@@ -650,16 +655,17 @@ public class StationMemberRepository {
                     exists (
                         SELECT 1 FROM station_member_permission smp
                         JOIN station_permission sp ON sp.id = smp.permission_id
-                        WHERE smp.member_id = sm.id AND sp.name = :permission_name
+                        WHERE smp.member_id = sm.id AND sp.name = ANY(:permission_names)
                     )
                     OR exists (
                         SELECT 1 FROM member_group_entry mge
                         JOIN member_group_permission mgp ON mgp.group_id = mge.group_id
                         JOIN station_permission sp ON sp.id = mgp.permission_id
-                        WHERE mge.member_id = sm.id AND sp.name = :permission_name
+                        WHERE mge.member_id = sm.id AND sp.name = ANY(:permission_names)
                     )
                   );""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
-                .single(call().bind("station_id", stationId).bind("permission_name", permission))
+                .single(call().bind("station_id", stationId)
+                        .bind("permission_names", permission.grantedBy(), PostgreSqlTypes.VARCHAR))
                 .map(StationMember.map())
                 .all();
     }
@@ -711,6 +717,28 @@ public class StationMemberRepository {
                 .single(call().bind("manager_id", managerId))
                 .map(StationMember.map())
                 .all();
+    }
+
+    /**
+     * Whether this member looks after anybody who is still at the station.
+     *
+     * <p>Asked instead of {@link #findManaged(int)} where only the yes or no is wanted, which is the
+     * case on every request that resolves what somebody may do. It reads the primary key of the
+     * relation and stops at the first row.
+     *
+     * @param managerId the member who might be looking after somebody
+     * @return {@code true} where at least one member in their care has not left
+     */
+    public boolean managesAnybody(int managerId) {
+        return query("""
+                SELECT EXISTS (SELECT 1
+                               FROM member_manager mm
+                               JOIN station_member sm ON sm.id = mm.managed_id
+                               WHERE mm.manager_id = :manager_id AND sm.former = FALSE) AS manages;""")
+                .single(call().bind("manager_id", managerId))
+                .map(row -> row.getBoolean("manages"))
+                .first()
+                .orElse(false);
     }
 
     public List<StationMember> findManagers(int managedId) {

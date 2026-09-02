@@ -83,8 +83,8 @@ async function transferOwnershipAction() {
 }
 
 const {running: requestingDelete, error: deleteError, run: runRequestDelete} = useAsyncAction(async () => {
-  await stationManage.requestStationDeletion()
-  emit('success', t('stationManage.deleteRequested'))
+  const result = await stationManage.requestStationDeletion()
+  emit('success', result.deleted ? t('stationManage.deleteDone') : t('stationManage.deleteRequested'))
 })
 
 async function requestDelete() {

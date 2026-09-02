@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeExportService;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
+import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
@@ -62,6 +63,7 @@ public class ExchangeRoutes implements Routes {
     private final StationMemberRepository stationMemberRepository;
     private final InventoryRepository inventoryRepository;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final SelfCheckService selfCheckService;
 
     @Inject
     public ExchangeRoutes(
@@ -70,13 +72,15 @@ public class ExchangeRoutes implements Routes {
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
             InventoryRepository inventoryRepository,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            SelfCheckService selfCheckService) {
         this.exchangeService = exchangeService;
         this.exchangeExportService = exchangeExportService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.inventoryRepository = inventoryRepository;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.selfCheckService = selfCheckService;
     }
 
     /**
@@ -200,6 +204,16 @@ public class ExchangeRoutes implements Routes {
                 request.newSizeId(),
                 request.reason(),
                 createdBy);
+
+        if (request.selfCheckId() != null) {
+            selfCheckService.recordExchange(
+                    request.selfCheckId(),
+                    session.stationId(),
+                    callerMemberId,
+                    session.hasPermission(StationPermission.MEMBER_GUARDIAN),
+                    request.itemId(),
+                    exchange.id());
+        }
 
         ctx.status(HttpStatus.CREATED).json(toResponse(exchange));
     }
@@ -421,8 +435,21 @@ public class ExchangeRoutes implements Routes {
             Instant changedAt,
             String note) {}
 
+    /**
+     * An exchange as it arrives over the wire.
+     *
+     * @param selfCheckId the self-check the member was answering when they asked for it, so a
+     *                    reviewer reading the submission can see it happened, or {@code null} where
+     *                    the exchange was raised on its own
+     */
     public record CreateExchangeRequest(
-            Integer memberId, Integer itemId, int inventoryId, Integer oldSizeId, Integer newSizeId, String reason) {}
+            Integer memberId,
+            Integer itemId,
+            int inventoryId,
+            Integer oldSizeId,
+            Integer newSizeId,
+            String reason,
+            Integer selfCheckId) {}
 
     public record UpdateStatusRequest(ExchangeStatus status, String note, Integer exchangedItemId) {}
 

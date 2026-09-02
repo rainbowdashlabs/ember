@@ -10,8 +10,8 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import BulletList from '@/components/typography/BulletList.vue'
+import EditorSections from '@/views/helpcenter/stationview/knowledge/knowledgebasehelp/EditorSections.vue'
 import {StationPermission} from '@/api/types'
 
 const { t } = useI18n()
@@ -78,42 +78,7 @@ const { t } = useI18n()
     </HelpSection>
 
     <HelpPermissionGuard :permissions="[StationPermission.KNOWLEDGE_EDIT]" :label="t('helpCenter.permissionLabel.knowledgeEdit')">
-      <HelpSection :title="t('helpCenter.kb.createMenuTitle')">
-        <p>{{ t('helpCenter.kb.createMenuText') }}</p>
-        <BulletList>
-          <li>{{ t('helpCenter.kb.createFolder') }}</li>
-          <li>{{ t('helpCenter.kb.createMarkdown') }}</li>
-          <li>{{ t('helpCenter.kb.createUpload') }}</li>
-          <li>{{ t('helpCenter.kb.createYoutube') }}</li>
-          <li>{{ t('helpCenter.kb.createLink') }}</li>
-        </BulletList>
-      </HelpSection>
-
-      <HelpSection :title="t('helpCenter.kb.editingTitle')">
-        <p>{{ t('helpCenter.kb.editingTextFixed') }}</p>
-      </HelpSection>
-
-      <HelpSection :title="t('helpCenter.kb.versionsTitle')">
-        <p>{{ t('helpCenter.kb.versionsText') }}</p>
-      </HelpSection>
-
-      <!-- Dummy: Version list -->
-      <NeutralContainer>
-        <div class="space-y-2">
-          <div class="flex items-center justify-between text-sm">
-            <span>Version 3 <SecondaryBadge>aktuell</SecondaryBadge></span>
-            <span class="text-xs text-(--text-muted)">vor 2 Stunden</span>
-          </div>
-          <div class="flex items-center justify-between text-sm">
-            <span>Version 2</span>
-            <span class="text-xs text-(--text-muted)">vor 1 Tag</span>
-          </div>
-          <div class="flex items-center justify-between text-sm">
-            <span>Version 1</span>
-            <span class="text-xs text-(--text-muted)">vor 3 Tagen</span>
-          </div>
-        </div>
-      </NeutralContainer>
+      <EditorSections/>
     </HelpPermissionGuard>
 
     <HelpSection :title="t('helpCenter.kb.searchTitle')">

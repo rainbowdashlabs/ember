@@ -8,6 +8,7 @@ import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
 import AppLink from '@/components/navigation/AppLink.vue'
+import UpdateNotice from '@/components/layout/UpdateNotice.vue'
 import client from '@/api/client'
 
 const {t} = useI18n()
@@ -23,6 +24,11 @@ onMounted(async () => {
 
 <template>
   <footer class="border-t border-bg-light-accent dark:border-bg-dark-accent py-6 px-4 mt-auto">
+    <ClientOnly>
+      <div class="max-w-6xl mx-auto mb-4 flex justify-center">
+        <UpdateNotice/>
+      </div>
+    </ClientOnly>
     <div class="max-w-6xl mx-auto flex flex-col gap-6 md:grid md:grid-cols-3 md:gap-4">
       <div class="flex flex-col items-center md:items-start gap-2">
         <ClientOnly><ThemeToggle/></ClientOnly>

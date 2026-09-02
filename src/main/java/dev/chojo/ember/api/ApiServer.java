@@ -1057,8 +1057,9 @@ public class ApiServer {
      * After-handler that sets Cache-Control and ETag headers based on the request path.
      *
      * <p>Ordering matters: content-hashed page files get an immutable year-long cache; the public
-     * configuration is revalidated every time because it names the running version;
-     * everything else under {@code /public/} is publicly cacheable; only then are non-public
+     * configuration is revalidated every time because it names the running version; a waiting-list
+     * entry behind its own link is nobody's to keep, so it is stored nowhere; everything else under
+     * {@code /public/} is publicly cacheable; only then are non-public
      * binary resources given a short private cache. Error responses receive no caching
      * headers, and the binary-resource match is segment-precise so an authenticated path
      * that merely contains {@code image}/{@code logo} as a substring (e.g. the logout
@@ -1120,6 +1121,11 @@ public class ApiServer {
         if (path.equals(API_PREFIX + "/public/config")) {
             ctx.header("Cache-Control", "public, no-cache");
             addETag(ctx);
+            return;
+        }
+
+        if (path.startsWith(API_PREFIX + "/public/waiting-list/entry/")) {
+            ctx.header("Cache-Control", "private, no-store");
             return;
         }
 

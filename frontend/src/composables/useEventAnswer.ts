@@ -49,8 +49,16 @@ export function useEventAnswer(
         attending: boolean
     } | null>(null)
 
-    async function changeRegistration(action: () => Promise<unknown>) {
+    /**
+     * Opens a gesture the reader has just made. The screen's error belongs to that gesture and not to
+     * a single request inside it: answering for a household is one gesture and several requests, and
+     * what went wrong for the first person has to still be on screen once the last has gone through.
+     */
+    function beginAnswer() {
         error.value = ''
+    }
+
+    async function changeRegistration(action: () => Promise<unknown>) {
         try {
             await action()
             await afterChange()
@@ -89,6 +97,7 @@ export function useEventAnswer(
      */
     async function registerFor(ev: StationEvent, date: string, people: AnswerablePeople) {
         if (people.length === 0) return
+        beginAnswer()
         const fields = await events.listRegistrationFields(ev.id).catch(() => [])
         if (people.length === 1 && fields.length === 0) {
             await sendRegistration(ev, date, people[0]!.key)
@@ -106,6 +115,7 @@ export function useEventAnswer(
      */
     async function declineFor(ev: StationEvent, date: string, people: AnswerablePeople) {
         if (people.length === 0) return
+        beginAnswer()
         if (people.length === 1) {
             await sendDecline(ev, date, people[0]!.key)
             return
@@ -113,11 +123,17 @@ export function useEventAnswer(
         answerPrompt.value = {event: ev, date, people, fields: [], attending: false}
     }
 
-    /** Gives the parked answer for everybody it was confirmed for, one request each. */
+    /**
+     * Gives the parked answer for everybody it was confirmed for, one request each.
+     *
+     * <p>All of them together are one gesture, so the first refusal is still readable after the rest
+     * have gone through: a guardian answering for two children is told when only one of them landed.
+     */
     async function confirmAnswerPrompt(answers: { key: number; fields: RegistrationFieldValue[] }[]) {
         const prompt = answerPrompt.value
         if (!prompt) return
         answerPrompt.value = null
+        beginAnswer()
         for (const answer of answers) {
             if (prompt.attending) {
                 await sendRegistration(prompt.event, prompt.date, answer.key, answer.fields)
@@ -137,6 +153,7 @@ export function useEventAnswer(
     }
 
     async function withdrawRegistration(regId: number) {
+        beginAnswer()
         await changeRegistration(() => events.withdrawRegistration(regId))
     }
 

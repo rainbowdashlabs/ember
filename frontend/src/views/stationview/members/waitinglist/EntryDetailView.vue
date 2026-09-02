@@ -19,6 +19,7 @@ import type { GuardianInput, WaitingListEntryWithScore, WaitingListField } from 
 import { waitingList } from '@/api'
 import { setFieldValue as writeFieldValue } from '@/util/profileFields'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { instantToLocalInput } from '@/util/format'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -104,8 +105,7 @@ async function save() {
 
 function startEditCreatedAt() {
   if (!entry.value) return
-  const d = new Date(entry.value.entry.createdAt)
-  editCreatedAtValue.value = d.toISOString().slice(0, 16)
+  editCreatedAtValue.value = instantToLocalInput(entry.value.entry.createdAt)
   editingCreatedAt.value = true
 }
 

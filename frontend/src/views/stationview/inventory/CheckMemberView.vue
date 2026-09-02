@@ -167,6 +167,21 @@ async function applyCorrection(payload: CorrectItemRequest) {
   }
 }
 
+/**
+ * Steps the walk back onto the piece it just left, taking off what was said about it.
+ *
+ * <p>Nothing has been sent yet while a check is being walked, so a decision is still the walker's
+ * to change. Only the one step back is offered: the list behind the walk is where a check is
+ * reworked in full.
+ */
+function onRapidUndoResult(itemId: number) {
+  check.forgetResult(itemId)
+}
+
+function onRapidUndoNotInPossession(inventoryId: number, slotIndex: number) {
+  check.toggleNotInPossession(inventoryId, slotIndex)
+}
+
 function onRapidMarkNotInPossession() {
   const entry = currentRapidEntry()
   if (entry?.type !== 'slot') return
@@ -278,6 +293,7 @@ async function cancel() {
         :empty-slot-count="check.emptySlotCount"
         :size-label="check.sizeLabel"
         :item-label="check.itemLabel"
+        :movement-step="check.movementStep"
         @start-check-mode="startCheckMode"
         @mark-all-confirmed="check.markAllConfirmed"
         @cancel="cancel"
@@ -287,6 +303,8 @@ async function cancel() {
         @rapid-create-procurement="onRapidCreateProcurement"
         @rapid-correct="onRapidCorrect"
         @rapid-mark-not-in-possession="onRapidMarkNotInPossession"
+        @rapid-undo-result="onRapidUndoResult"
+        @rapid-undo-not-in-possession="onRapidUndoNotInPossession"
         @rapid-assign="onRapidAssign"
         @rapid-create-and-assign="onRapidCreateAndAssign"
         @rapid-done="checkMode = false"

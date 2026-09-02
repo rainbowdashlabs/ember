@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -133,6 +134,26 @@ public class ProcedureService {
         return repository.findProcedureById(id);
     }
 
+    /**
+     * Every procedure prepared for one evening of one appointment.
+     *
+     * @param stationId the station the appointment belongs to
+     * @param eventId   the appointment
+     * @param eventDate the one occurrence of it
+     * @return what is already there for that evening, newest first
+     */
+    public List<Procedure> findProceduresByOccurrence(int stationId, int eventId, LocalDate eventDate) {
+        return repository.findProceduresByOccurrence(stationId, eventId, eventDate);
+    }
+
+    /**
+     * Writes a procedure, snapshots the template it was started from and puts its assignees on it.
+     *
+     * @param eventId   the appointment this was prepared for, or {@code null} for a procedure that
+     *                  stands on its own
+     * @param eventDate the one occurrence of that appointment, {@code null} exactly when the
+     *                  appointment is
+     */
     public Procedure createProcedure(
             int stationId,
             Integer templateId,
@@ -141,9 +162,11 @@ public class ProcedureService {
             boolean isPublic,
             int assignedBy,
             Instant dueAt,
-            List<Integer> assigneeIds) {
-        var procedure =
-                repository.createProcedure(stationId, templateId, name, description, isPublic, assignedBy, dueAt);
+            List<Integer> assigneeIds,
+            Integer eventId,
+            LocalDate eventDate) {
+        var procedure = repository.createProcedure(
+                stationId, templateId, name, description, isPublic, assignedBy, dueAt, eventId, eventDate);
 
         // Snapshot template items if created from template
         if (templateId != null) {

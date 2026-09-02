@@ -45,7 +45,7 @@ public class ProcedureItemCheckedHandler implements DomainEventHandler<Procedure
                 new NotificationParams.ProcedureItemCheckedParams(
                         event.procedureName(), event.itemTitle(), checkedByName),
                 // procedureId rides on the link so the feed renderer can surface progress.
-                new NotificationData.NotificationLink("procedures", Map.of("id", event.procedureId())));
+                new NotificationData.NotificationLink("procedure-detail", Map.of("id", event.procedureId())));
         notificationService.notifyMembersIfAbsent(
                 event.assigneeMemberIds(), NotificationType.PROCEDURE_ITEM_CHECKED, data, event.checkedByMemberId());
     }

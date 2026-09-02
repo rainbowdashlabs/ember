@@ -20,14 +20,14 @@ import { useMemberListConfig, type MemberListPort } from './listview/useMemberLi
 import { stationMembers } from '@/api'
 
 const { t } = useI18n()
-const { hasPermission } = useSession()
+const { hasPermission, canEditMemberAccounts } = useSession()
 
 /** A station lists its own roll and reaches its own member screens. */
 const port: MemberListPort = {
   source: STATION_MEMBER_SOURCE,
   routes: {detail: 'members-detail', edit: 'members-edit'},
   canExport: computed(() => hasPermission(StationPermission.MEMBER_EXPORT)),
-  canEdit: computed(() => hasPermission(StationPermission.MEMBER_EDIT)),
+  canEdit: computed(() => canEditMemberAccounts()),
   exportFileName: 'mitglieder',
 }
 

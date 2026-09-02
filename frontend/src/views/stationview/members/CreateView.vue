@@ -16,13 +16,12 @@ import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
 import {StationUserType, type MemberGroup, type StationMember} from '@/api/types'
 import {memberGroups, members, profileFields, stationMembers} from '@/api'
 import {setFieldValue as writeFieldValue} from '@/util/profileFields'
-import {useStations} from '@/composables/useStations'
+import {todayIsoDate} from '@/util/format'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 const router = useRouter()
-const {currentStationId} = useStations()
 
 const step = ref<'userType' | 'identity' | 'fields' | 'groups' | 'manager' | 'done'>('userType')
 const selectedUserType = ref<'TRIAL' | 'MEMBER' | 'GUARDIAN' | 'TEAM'>(StationUserType.MEMBER)
@@ -30,6 +29,7 @@ const firstName = ref('')
 const lastName = ref('')
 const email = ref('')
 const canLogin = ref(true)
+const sendSetupMail = ref(true)
 const allFields = ref<ProfileField[]>([])
 const fieldValues = ref<Map<number, string>>(new Map())
 const allGroups = ref<MemberGroup[]>([])
@@ -62,7 +62,7 @@ function nextFromIdentity() {
     const cfg = parseFieldConfig(field.config)
     if (cfg.defaultValue !== undefined && cfg.defaultValue !== null && !fieldValues.value.has(field.id)) {
       if (cfg.defaultValue === '__TODAY__') {
-        setFieldValue(field.id, new Date().toISOString().slice(0, 10))
+        setFieldValue(field.id, todayIsoDate())
       } else {
         setFieldValue(field.id, String(cfg.defaultValue))
       }
@@ -103,13 +103,20 @@ function toggleManager(id: number) {
   selectedManagerIds.value = newSet
 }
 
+/**
+ * A guardian entered beside the member they will look after, who is made a guardian rather than an
+ * ordinary member: the member kind is what carries the right to sign in, and looking after somebody
+ * is done by signing in. The person being created in the wizard's own steps is unaffected and keeps
+ * whatever kind was chosen for them.
+ */
 async function createNewManager(data: { firstName: string; lastName: string; email: string }) {
   error.value = ''
   try {
-    const invited = await members.invite(data)
+    const invited = await members.invite({...data, sendSetupMail: sendSetupMail.value})
     const membersList = await stationMembers.listMembers()
     const newMember = membersList.find(m => m.accountId === invited.id)
     if (newMember) {
+      await stationMembers.setUserType(newMember.id, StationUserType.GUARDIAN)
       createdManagers.value = [...createdManagers.value, {
         id: invited.id,
         memberId: newMember.id,
@@ -127,13 +134,11 @@ async function createNewManager(data: { firstName: string; lastName: string; ema
 
 const {running: saving, error: createError, run: createAccount, clearError: clearCreateError} = useAsyncAction(async () => {
   error.value = ''
-  const inviteEmail = canLogin.value
-      ? email.value
-      : `${firstName.value.toLowerCase()}.${lastName.value.toLowerCase()}@${currentStationId.value}.local`
   const invited = await members.invite({
-    email: inviteEmail,
+    email: canLogin.value ? email.value : undefined,
     firstName: firstName.value,
     lastName: lastName.value,
+    sendSetupMail: sendSetupMail.value,
   })
 
   const membersList = await stationMembers.listMembers()
@@ -171,6 +176,7 @@ function startOver() {
   lastName.value = ''
   email.value = ''
   canLogin.value = true
+  sendSetupMail.value = true
   fieldValues.value = new Map()
   selectedGroupIds.value = new Set()
   selectedManagerIds.value = new Set()
@@ -200,6 +206,7 @@ function startOver() {
           v-model:step="step"
           v-model:selected-user-type="selectedUserType"
           v-model:can-login="canLogin"
+          v-model:send-setup-mail="sendSetupMail"
           v-model:email="email"
           v-model:first-name="firstName"
           v-model:last-name="lastName"

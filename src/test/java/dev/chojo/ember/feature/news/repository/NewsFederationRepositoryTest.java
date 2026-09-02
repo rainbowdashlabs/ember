@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.news.repository;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
@@ -14,6 +15,9 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsFederationShare;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.repository.RestrictionRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -205,6 +209,27 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
     void findSharedNewsIdsWrongStation() {
         var ids = fedRepo.findSharedNewsIds(partnerId, 99999);
         assertTrue(ids.isEmpty());
+    }
+
+    @Test
+    @Order(25)
+    void findSharedNewsIdsSkipsRestricted() {
+        var restrictionRepo = new RestrictionRepository();
+        restrictionRepo.setRestrictions(
+                RestrictionType.NEWS,
+                news1.id(),
+                new RestrictionSelection(List.of(StationUserType.TEAM), List.of(), List.of(), List.of(), null));
+        try {
+            assertFalse(
+                    fedRepo.findSharedNewsIds(partnerId, station.id()).contains(news1.id()),
+                    "An entry not every member may read is never handed to a partner");
+        } finally {
+            restrictionRepo.setRestrictions(
+                    RestrictionType.NEWS,
+                    news1.id(),
+                    new RestrictionSelection(List.of(), List.of(), List.of(), List.of(), null));
+        }
+        assertTrue(fedRepo.findSharedNewsIds(partnerId, station.id()).contains(news1.id()));
     }
 
     // -- findVisibilityRole --

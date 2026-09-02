@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.repository;
 
+import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -18,6 +19,8 @@ import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
+import dev.chojo.ember.feature.inventory.entity.SwitchBlocker;
+import dev.chojo.ember.feature.inventory.entity.SwitchBlockerKind;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -25,7 +28,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -36,10 +41,11 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 @Singleton
 public class InventoryRepository {
-    private static final String INVENTORY_COLUMNS = "id, station_id, name, inventory_type, has_sizes";
+    private static final String INVENTORY_COLUMNS =
+            "id, station_id, name, inventory_type, has_sizes, homogeneous, borrowed";
     private static final String INVENTORY_SIZE_COLUMNS = "id, inventory_id, label, position, note";
     private static final String INVENTORY_ITEM_COLUMNS =
-            "id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, lost_note, lost_note_by, owner_kind, owner_cluster_id, custody, custody_station_id, custody_movement_id, container_id";
+            "id, inventory_id, internal_id, name, size_id, art_id, metadata, assigned_to, lost_at, lost_note, lost_note_by, owner_kind, owner_cluster_id, owner_station_id, loan_request_item_id, custody, custody_station_id, custody_partner_station_id, custody_movement_id, container_id";
     private static final String INVENTORY_ITEM_HISTORY_COLUMNS =
             "id, item_id, member_id, member_name, given_out, returned, corrected";
     private static final String INVENTORY_REQUIREMENT_COLUMNS =
@@ -69,21 +75,30 @@ public class InventoryRepository {
                 .all();
     }
 
+    /**
+     * The inventories of a station with the figures the overview shows beside each.
+     *
+     * <p>What is counted is the stock, the same list the inventory itself opens on, so the number on
+     * the tile and the rows behind it cannot say different things.
+     */
     public List<InventorySummary> findSummariesByStation(int stationId) {
-        return query("""
+        return query(
+                        """
                 SELECT %s,
                        coalesce(counts.item_count, 0) AS item_count,
                        coalesce(counts.lost_count, 0) AS lost_count,
                        coalesce(proc.procurement_count, 0) AS procurement_count,
-                       coalesce(lent.lent_out_count, 0) AS lent_out_count
+                       coalesce(lent.lent_out_count, 0) AS lent_out_count,
+                       coalesce(arts.art_count, 0) AS art_count
                 FROM inventory i
                 LEFT JOIN (
-                    SELECT inventory_id,
+                    SELECT ii.inventory_id,
                            count(*) AS item_count,
-                           count(*) FILTER (WHERE lost_at IS NOT NULL) AS lost_count
-                    FROM inventory_item
-                    WHERE custody <> 'IN_TRANSIT'
-                    GROUP BY inventory_id
+                           count(*) FILTER (WHERE ii.lost_at IS NOT NULL) AS lost_count
+                    FROM inventory_item ii
+                    %s
+                    WHERE %s
+                    GROUP BY ii.inventory_id
                 ) counts ON counts.inventory_id = i.id
                 LEFT JOIN (
                     SELECT inventory_id,
@@ -94,17 +109,43 @@ public class InventoryRepository {
                 ) proc ON proc.inventory_id = i.id
                 LEFT JOIN (
                     SELECT li.inventory_id,
-                           count(*) FILTER (WHERE li.assigned_item_id IS NOT NULL) AS lent_out_count
+                           count(la.item_id) AS lent_out_count
                     FROM federation_lending_request_item li
                     JOIN federation_lending_request lr ON lr.id = li.request_id
+                    JOIN federation_lending_request_item_assignment la ON la.request_item_id = li.id
                     WHERE lr.status IN ('APPROVED', 'LENT')
                     GROUP BY li.inventory_id
                 ) lent ON lent.inventory_id = i.id
+                LEFT JOIN (
+                    SELECT inventory_id,
+                           count(*) AS art_count
+                    FROM inventory_art
+                    GROUP BY inventory_id
+                ) arts ON arts.inventory_id = i.id
                 WHERE i.station_id = :station_id
-                ORDER BY i.name;""", SqlSupport.alias("i", INVENTORY_COLUMNS))
+                ORDER BY i.name;""",
+                        SqlSupport.alias("i", INVENTORY_COLUMNS),
+                        ItemCustodySql.joinInventory("ii", "iinv"),
+                        ItemCustodySql.stockOf("ii", "iinv"))
                 .single(call().bind("station_id", stationId))
                 .map(InventorySummary.map())
                 .all();
+    }
+
+    /**
+     * Creates a new inventory holding one thing in many copies.
+     *
+     * <p>That is the permissive kind, the one every inventory that existed before the distinction was
+     * drawn became, so it is what a caller with no opinion gets.
+     *
+     * @param stationId     the station ID
+     * @param name          the inventory name
+     * @param inventoryType the inventory type
+     * @param hasSizes      whether the inventory supports sizes
+     * @return the created inventory
+     */
+    public Inventory create(int stationId, String name, InventoryType inventoryType, boolean hasSizes) {
+        return create(stationId, name, inventoryType, hasSizes, true);
     }
 
     /**
@@ -114,20 +155,60 @@ public class InventoryRepository {
      * @param name          the inventory name
      * @param inventoryType the inventory type
      * @param hasSizes      whether the inventory supports sizes
+     * @param homogeneous   whether it holds one thing in many copies rather than a drawer of different things
      * @return the created inventory
      */
-    public Inventory create(int stationId, String name, InventoryType inventoryType, boolean hasSizes) {
+    public Inventory create(
+            int stationId, String name, InventoryType inventoryType, boolean hasSizes, boolean homogeneous) {
+        return create(stationId, name, inventoryType, hasSizes, homogeneous, false);
+    }
+
+    /**
+     * Creates a new inventory for a station, saying whether it is the station's shelf for gear
+     * belonging to somebody else.
+     *
+     * @param stationId     the station ID
+     * @param name          the inventory name
+     * @param inventoryType the inventory type
+     * @param hasSizes      whether the inventory supports sizes
+     * @param homogeneous   whether it holds one thing in many copies rather than a drawer of different things
+     * @param borrowed      whether this is the station's one shelf for borrowed gear
+     * @return the created inventory
+     */
+    public Inventory create(
+            int stationId,
+            String name,
+            InventoryType inventoryType,
+            boolean hasSizes,
+            boolean homogeneous,
+            boolean borrowed) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO inventory(station_id, name, inventory_type, has_sizes)
-                VALUES(:station_id, :name, :inventory_type, :has_sizes)
+                INSERT INTO inventory(station_id, name, inventory_type, has_sizes, homogeneous, borrowed)
+                VALUES(:station_id, :name, :inventory_type, :has_sizes, :homogeneous, :borrowed)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("inventory_type", inventoryType)
-                        .bind("has_sizes", hasSizes),
+                        .bind("has_sizes", hasSizes)
+                        .bind("homogeneous", homogeneous)
+                        .bind("borrowed", borrowed),
                 Inventory.map(),
                 INVENTORY_COLUMNS);
+    }
+
+    /**
+     * The station's one shelf for gear belonging to somebody else, when it has one.
+     *
+     * @param stationId the station ID
+     * @return the borrowed inventory, or empty when no handover has created one yet
+     */
+    public Optional<Inventory> findBorrowedInventory(int stationId) {
+        return query("""
+                SELECT %s FROM inventory WHERE station_id = :station_id AND borrowed;""", INVENTORY_COLUMNS)
+                .single(call().bind("station_id", stationId))
+                .map(Inventory.map())
+                .first();
     }
 
     /**
@@ -137,17 +218,123 @@ public class InventoryRepository {
      * @param name          the new name
      * @param inventoryType the new inventory type
      * @param hasSizes      whether the inventory supports sizes
+     * @param homogeneous   whether it holds one thing in many copies rather than a drawer of different things
      * @return {@code true} if the inventory was updated
      */
-    public boolean update(int id, String name, InventoryType inventoryType, boolean hasSizes) {
-        return query(
-                        "UPDATE inventory SET name = :name, inventory_type = :inventory_type, has_sizes = :has_sizes WHERE id = :id;")
+    public boolean update(int id, String name, InventoryType inventoryType, boolean hasSizes, boolean homogeneous) {
+        return query("""
+                UPDATE inventory
+                SET name           = :name,
+                    inventory_type = :inventory_type,
+                    has_sizes      = :has_sizes,
+                    homogeneous    = :homogeneous
+                WHERE id = :id;""")
                 .single(call().bind("name", name)
                         .bind("inventory_type", inventoryType)
                         .bind("has_sizes", hasSizes)
+                        .bind("homogeneous", homogeneous)
                         .bind("id", id))
                 .update()
                 .changed();
+    }
+
+    /**
+     * The requirements pointing at an inventory, named well enough to go and deal with.
+     *
+     * <p>A requirement has no status: it is a standing profile rather than an event, so every one of
+     * them counts against a switch, however old.
+     *
+     * @param inventoryId the inventory ID
+     * @return one entry per requirement, labelled with the group or user type it asks of
+     */
+    public List<SwitchBlocker> findRequirementBlockers(int inventoryId) {
+        return query("""
+                SELECT r.id, coalesce(g.name, r.user_type, '') AS label
+                FROM inventory_requirement r
+                LEFT JOIN member_group g ON g.id = r.group_id
+                WHERE r.inventory_id = :inventory_id
+                ORDER BY r.position, r.id;""")
+                .single(call().bind("inventory_id", inventoryId))
+                .map(row -> new SwitchBlocker(SwitchBlockerKind.REQUIREMENT, row.getInt("id"), row.getString("label")))
+                .all();
+    }
+
+    /**
+     * The orders on an inventory that nothing has arrived for yet.
+     *
+     * <p>An order is open while it has no fulfilment time. One fulfilled two years ago is history,
+     * and history never blocks.
+     *
+     * @param inventoryId the inventory ID
+     * @return one entry per open order, labelled with who it is for
+     */
+    public List<SwitchBlocker> findOpenProcurementBlockers(int inventoryId) {
+        return query("""
+                SELECT p.id,
+                       trim(coalesce(a.first_name, '') || ' ' || coalesce(a.last_name, '')) AS label
+                FROM equipment_procurement p
+                LEFT JOIN station_member sm ON sm.id = p.member_id
+                LEFT JOIN account a ON a.id = sm.account_id
+                WHERE p.inventory_id = :inventory_id AND p.fulfilled_at IS NULL
+                ORDER BY p.requested_at;""")
+                .single(call().bind("inventory_id", inventoryId))
+                .map(row -> new SwitchBlocker(SwitchBlockerKind.PROCUREMENT, row.getInt("id"), row.getString("label")))
+                .all();
+    }
+
+    /**
+     * The exchanges on an inventory that are still walking their flow.
+     *
+     * <p>An exchange that reached its end, was declined or was called off has stopped moving, and a
+     * finished one must not hold an inventory in place forever.
+     *
+     * @param inventoryId the inventory ID
+     * @return one entry per open exchange, labelled with the member it is for
+     */
+    public List<SwitchBlocker> findOpenExchangeBlockers(int inventoryId) {
+        return query("""
+                SELECT m.id,
+                       trim(coalesce(a.first_name, '') || ' ' || coalesce(a.last_name, '')) AS label
+                FROM item_movement m
+                LEFT JOIN station_member sm ON sm.id = m.member_id
+                LEFT JOIN account a ON a.id = sm.account_id
+                WHERE m.inventory_id = :inventory_id AND m.purpose = 'EXCHANGE' AND m.state = 'OPEN'
+                ORDER BY m.created_at;""")
+                .single(call().bind("inventory_id", inventoryId))
+                .map(row -> new SwitchBlocker(SwitchBlockerKind.EXCHANGE, row.getInt("id"), row.getString("label")))
+                .all();
+    }
+
+    /**
+     * The sizes an inventory offers, as things that stand in the way of leaving the sized half.
+     *
+     * @param inventoryId the inventory ID
+     * @return one entry per size, labelled with the size itself
+     */
+    public List<SwitchBlocker> findSizeBlockers(int inventoryId) {
+        return findSizes(inventoryId).stream()
+                .map(size -> new SwitchBlocker(SwitchBlockerKind.SIZE, size.id(), size.label()))
+                .toList();
+    }
+
+    /**
+     * The kinds of thing an inventory has been given, as things standing in the way of it becoming
+     * an inventory of one thing in many copies.
+     *
+     * <p>The one thing that blocks the move in that direction, and it names them rather than
+     * counting them, so somebody reading the refusal can go and clear them.
+     *
+     * @param inventoryId the inventory ID
+     * @return one entry per kind, labelled with the kind's name
+     */
+    public List<SwitchBlocker> findArtBlockers(int inventoryId) {
+        return query("""
+                SELECT id, name FROM inventory_art
+                WHERE inventory_id = :inventory_id
+                ORDER BY position, name;""")
+                .single(call().bind("inventory_id", inventoryId))
+                .map(row -> new SwitchBlocker(SwitchBlockerKind.ART, row.getInt("id"), row.getString("name")))
+                .all();
     }
 
     /**
@@ -267,23 +454,28 @@ public class InventoryRepository {
                 .first();
     }
 
-    public List<InventoryItem> findFreeItems(int inventoryId, LocalDate dateFrom, LocalDate dateTo) {
-        return query("""
-                SELECT %s FROM inventory_item
-                WHERE inventory_id = :inventory_id
-                  AND %s
-                  AND id NOT IN (
-                      SELECT li.assigned_item_id FROM federation_lending_request_item li
-                      JOIN federation_lending_request lr ON lr.id = li.request_id
-                      WHERE li.assigned_item_id IS NOT NULL
-                        AND lr.status IN ('APPROVED', 'LENT')
-                        AND lr.requested_date_from <= :date_to
-                        AND (lr.requested_date_to IS NULL OR lr.requested_date_to >= :date_from)
-                  )
-                ORDER BY id;""", INVENTORY_ITEM_COLUMNS, ItemCustodySql.freeStock("inventory_item"))
-                .single(call().bind("inventory_id", inventoryId)
-                        .bind("date_from", dateFrom)
-                        .bind("date_to", dateTo))
+    /**
+     * Every piece a station holds under a number somebody typed, ignoring case and the spaces around
+     * it.
+     *
+     * <p>Nothing in the schema makes a number unique, so answering with one of several would let the
+     * reader believe there is only one. Every match is returned and whoever reads them decides.
+     *
+     * @param stationId  the station whose gear is searched
+     * @param internalId the number as it was typed
+     * @return every piece carrying it, oldest first
+     */
+    public List<InventoryItem> findAllByInternalId(int stationId, String internalId) {
+        return query(
+                        """
+                SELECT %s FROM inventory_item ii
+                %s
+                WHERE %s AND lower(btrim(ii.internal_id)) = lower(btrim(:internal_id))
+                ORDER BY ii.id ASC;""",
+                        SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS),
+                        ItemCustodySql.joinInventory("ii", "i"),
+                        ItemCustodySql.heldBy("ii", "i"))
+                .single(call().bind(ItemCustodySql.STATION_BIND, stationId).bind("internal_id", internalId))
                 .map(InventoryItem.map())
                 .all();
     }
@@ -307,19 +499,26 @@ public class InventoryRepository {
     }
 
     /**
-     * The stock of an inventory: everything except what is in the post.
+     * The stock of an inventory: what the station actually holds of it.
      *
-     * <p>A piece on its way to its owner is at neither end. Counting it as stock says the station has
-     * something it cannot lay a hand on, and every figure drawn from the list inherits that. Where it
-     * is instead is the movement carrying it, which the overview lists.
+     * <p>A piece on its way to its owner is at neither end, and a piece its owner has taken back is
+     * at the other one. Counting either as stock says the station has something it cannot lay a hand
+     * on, and every figure drawn from the list inherits that. Where such a piece is instead is the
+     * movement carrying it, which the overview lists, and the association's own screens for what has
+     * gone home.
      *
      * @param inventoryId the inventory ID
      * @return the items that are actually here
      */
     public List<InventoryItem> findStock(int inventoryId) {
-        return query("""
-                SELECT %s FROM inventory_item
-                WHERE inventory_id = :inventory_id AND custody <> 'IN_TRANSIT';""", INVENTORY_ITEM_COLUMNS)
+        return query(
+                        """
+                SELECT %s FROM inventory_item ii
+                %s
+                WHERE ii.inventory_id = :inventory_id AND %s;""",
+                        SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS),
+                        ItemCustodySql.joinInventory("ii", "i"),
+                        ItemCustodySql.stockOf("ii", "i"))
                 .single(call().bind("inventory_id", inventoryId))
                 .map(InventoryItem.map())
                 .all();
@@ -533,12 +732,56 @@ public class InventoryRepository {
                 .all();
     }
 
+    /**
+     * What a member is recorded as holding, in the order the pieces were written down.
+     *
+     * <p>The order is named rather than left to the database, because everything that walks a member's
+     * gear walks it in this order: the quick check offers the pieces one after another and reloads the
+     * list after every hand-out. Without an order the same walk could offer them in a different order
+     * each time it reloaded, which reads as the walk jumping about.
+     *
+     * @param memberId the member
+     * @return their pieces, oldest first
+     */
     public List<InventoryItem> findItemsByMember(int memberId) {
         return query("""
-                SELECT %s FROM inventory_item WHERE assigned_to = :member_id;""", INVENTORY_ITEM_COLUMNS)
+                SELECT %s FROM inventory_item WHERE assigned_to = :member_id ORDER BY id;""", INVENTORY_ITEM_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(InventoryItem.map())
                 .all();
+    }
+
+    /**
+     * The pieces a member holds that already have a movement running on them, each with the words of
+     * the step it is standing on.
+     *
+     * <p>A piece can only be on one movement at a time, so a screen that offers to raise a second one
+     * for it is offering something the station will refuse. What is running is read here so the offer
+     * can be left out and the reason put in its place.
+     *
+     * <p>Unlike a member's own list this asks about the piece rather than about the member: a movement
+     * somebody else started on it blocks a second one just as much.
+     *
+     * @param memberId the member being walked
+     * @return the step of the open movement, by piece
+     */
+    public Map<Integer, String> findMovingItemsOfMember(int memberId) {
+        return query("""
+                SELECT DISTINCT ON (ii.id)
+                    ii.id AS item_id,
+                    COALESCE(s.label, '') AS movement_step
+                FROM inventory_item ii
+                JOIN item_movement m
+                  ON m.state = 'OPEN'
+                 AND m.outgoing_item_id = ii.id
+                LEFT JOIN movement_flow_step s ON s.id = m.current_step_id
+                WHERE ii.assigned_to = :member_id
+                ORDER BY ii.id, m.id;""")
+                .single(call().bind("member_id", memberId))
+                .map(row -> Map.entry(row.getInt("item_id"), row.getString("movement_step")))
+                .all()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     /**
@@ -637,14 +880,107 @@ public class InventoryRepository {
             InventoryItemMetadata metadata,
             ItemOwner ownerKind,
             Integer ownerClusterId) {
+        return createItem(inventoryId, internalId, name, sizeId, null, metadata, ownerKind, ownerClusterId);
+    }
+
+    /**
+     * Creates a new inventory item that names the kind of thing it is.
+     *
+     * <p>Only the paths where somebody is present to say reach this one. The five that stamp the
+     * inventory's name on a piece with nobody watching go through the overload above and leave the
+     * kind unset, which is not a gap to be filled in later but the ordinary state of most pieces.
+     *
+     * @param inventoryId    the inventory ID
+     * @param internalId     the internal identifier
+     * @param name           the item name, which the kind never replaces
+     * @param sizeId         the size ID, or {@code null}
+     * @param artId          the kind of thing it is, or {@code null} when nobody said
+     * @param metadata       JSON metadata
+     * @param ownerKind      who owns the item, or {@code null} for the station
+     * @param ownerClusterId the owning body when it runs on this instance, only ever set for
+     *                       {@link ItemOwner#CLUSTER}
+     * @return the created item
+     */
+    public InventoryItem createItem(
+            int inventoryId,
+            String internalId,
+            String name,
+            Integer sizeId,
+            Integer artId,
+            InventoryItemMetadata metadata,
+            ItemOwner ownerKind,
+            Integer ownerClusterId) {
         ItemOwner owner = ownerKind != null ? ownerKind : ItemOwner.STATION;
-        boolean heldByStation = owner == ItemOwner.CLUSTER;
+        return writeItem(
+                inventoryId,
+                internalId,
+                name,
+                sizeId,
+                artId,
+                metadata,
+                owner,
+                owner == ItemOwner.CLUSTER ? ownerClusterId : null,
+                null,
+                null);
+    }
+
+    /**
+     * Writes down a borrowed copy of a partner's gear at the station that borrowed it.
+     *
+     * <p>The row is a snapshot taken at handover: the name, the identifier and the fields are copied
+     * as they stood and are never touched again, and the row goes away entirely when the gear goes
+     * home. It starts in the borrower's store, because a piece that has just been handed over is a
+     * piece the borrower has.
+     *
+     * @param inventoryId       the borrowing station's shelf for gear belonging to somebody else
+     * @param internalId        the identifier as it stood at handover
+     * @param name              the name as it stood at handover
+     * @param metadata          the fields as they stood at handover
+     * @param ownerStationId    the partner station that owns it
+     * @param loanRequestItemId the line of the lending request it came in on
+     * @return the created item
+     */
+    public InventoryItem createBorrowedItem(
+            int inventoryId,
+            String internalId,
+            String name,
+            InventoryItemMetadata metadata,
+            int ownerStationId,
+            int loanRequestItemId) {
+        return writeItem(
+                inventoryId,
+                internalId,
+                name,
+                null,
+                null,
+                metadata,
+                ItemOwner.PARTNER_STATION,
+                null,
+                ownerStationId,
+                loanRequestItemId);
+    }
+
+    private InventoryItem writeItem(
+            int inventoryId,
+            String internalId,
+            String name,
+            Integer sizeId,
+            Integer artId,
+            InventoryItemMetadata metadata,
+            ItemOwner owner,
+            Integer ownerClusterId,
+            Integer ownerStationId,
+            Integer loanRequestItemId) {
+        // Gear the station records but does not own is gear the station has, so it starts at the
+        // station rather than in an owner's store the station has no shelf for.
+        boolean heldByStation = owner != ItemOwner.STATION;
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, owner_kind,
-                                           owner_cluster_id, custody, custody_station_id)
-                SELECT :inventory_id, :internal_id, :name, :size_id, :metadata::JSONB, :owner_kind,
-                       :owner_cluster_id, :custody,
+                INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, art_id, metadata, owner_kind,
+                                           owner_cluster_id, owner_station_id, loan_request_item_id, custody,
+                                           custody_station_id)
+                SELECT :inventory_id, :internal_id, :name, :size_id, :art_id, :metadata::JSONB, :owner_kind,
+                       :owner_cluster_id, :owner_station_id, :loan_request_item_id, :custody,
                        CASE WHEN :held_by_station THEN i.station_id ELSE NULL END
                 FROM inventory i
                 WHERE i.id = :inventory_id
@@ -653,13 +989,80 @@ public class InventoryRepository {
                         .bind("internal_id", internalId)
                         .bind("name", name)
                         .bind("size_id", sizeId)
+                        .bind("art_id", artId)
                         .bind("metadata", (metadata != null ? metadata : InventoryItemMetadata.empty()).toJson())
                         .bind("owner_kind", owner)
-                        .bind("owner_cluster_id", owner == ItemOwner.CLUSTER ? ownerClusterId : null)
+                        .bind("owner_cluster_id", ownerClusterId)
+                        .bind("owner_station_id", ownerStationId)
+                        .bind("loan_request_item_id", loanRequestItemId)
                         .bind("custody", heldByStation ? ItemCustody.AT_STATION : ItemCustody.WITH_OWNER)
                         .bind("held_by_station", heldByStation),
                 InventoryItem.map(),
                 INVENTORY_ITEM_COLUMNS);
+    }
+
+    /**
+     * The borrowed copies that came in on one line of a lending request, which is what has to go when
+     * that line goes home.
+     *
+     * @param loanRequestItemId the line of the lending request
+     * @return the borrowed rows written for it, empty when the partner is on another instance
+     */
+    public List<InventoryItem> findBorrowedByLoanItem(int loanRequestItemId) {
+        return query("""
+                SELECT %s FROM inventory_item WHERE loan_request_item_id = :loan_request_item_id;""", INVENTORY_ITEM_COLUMNS)
+                .single(call().bind("loan_request_item_id", loanRequestItemId))
+                .map(InventoryItem.map())
+                .all();
+    }
+
+    /**
+     * Every borrowed copy a station is holding, newest loan first, named with the partner it belongs
+     * to and the day it is due back.
+     *
+     * @param stationId the borrowing station
+     * @return one row per borrowed piece
+     */
+    public List<BorrowedItem> findBorrowedItems(int stationId) {
+        return query("""
+                SELECT %s,
+                       os.name AS owner_station_name,
+                       lr.id   AS loan_request_id,
+                       lr.requested_date_to AS due_on
+                FROM inventory_item ii
+                JOIN inventory inv ON inv.id = ii.inventory_id
+                JOIN station os ON os.id = ii.owner_station_id
+                JOIN federation_lending_request_item lri ON lri.id = ii.loan_request_item_id
+                JOIN federation_lending_request lr ON lr.id = lri.request_id
+                WHERE inv.station_id = :station_id
+                  AND ii.owner_kind = 'PARTNER_STATION'
+                ORDER BY os.name, ii.name;""", SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS))
+                .single(call().bind("station_id", stationId))
+                .map(BorrowedItem.map())
+                .all();
+    }
+
+    /**
+     * A borrowed piece as the borrowing station reads it: the row itself, whose gear it is, and when
+     * it goes back.
+     *
+     * @param item             the borrowed row
+     * @param ownerStationId   the partner station that owns it
+     * @param ownerStationName the partner's name as it stands now, which is the one thing here that
+     *                         is not part of the snapshot
+     * @param loanRequestId    the lending request it came in on
+     * @param dueOn            the day the loan was asked to run to, or {@code null} when none was named
+     */
+    public record BorrowedItem(
+            InventoryItem item, int ownerStationId, String ownerStationName, int loanRequestId, LocalDate dueOn) {
+        public static RowMapping<BorrowedItem> map() {
+            return row -> new BorrowedItem(
+                    InventoryItem.map().map(row),
+                    row.getInt("owner_station_id"),
+                    row.getString("owner_station_name"),
+                    row.getInt("loan_request_id"),
+                    row.getObject("due_on", LocalDate.class));
+        }
     }
 
     /**
@@ -669,22 +1072,76 @@ public class InventoryRepository {
      * @param internalId the new internal identifier
      * @param name       the new name
      * @param sizeId     the new size ID, or {@code null}
+     * @param artId      the new kind, or {@code null} when the piece is to have none
      * @param metadata   the new JSON metadata
      * @return {@code true} if the item was updated
      */
-    public boolean updateItem(int id, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
+    public boolean updateItem(
+            int id, String internalId, String name, Integer sizeId, Integer artId, InventoryItemMetadata metadata) {
         return query("""
                 UPDATE inventory_item
                 SET
                     internal_id = :internal_id,
                     name        = :name,
                     size_id     = :size_id,
+                    art_id      = :art_id,
                     metadata    = :metadata::JSONB
                 WHERE id = :id;""")
                 .single(call().bind("internal_id", internalId)
                         .bind("name", name)
                         .bind("size_id", sizeId)
+                        .bind("art_id", artId)
                         .bind("metadata", (metadata != null ? metadata : InventoryItemMetadata.empty()).toJson())
+                        .bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * The pieces of one kind, whatever state they are in.
+     *
+     * @param artId the kind
+     * @return its pieces, in the order a list shows them
+     */
+    public List<InventoryItem> findItemsOfArt(int artId) {
+        return query("""
+                SELECT %s FROM inventory_item
+                WHERE art_id = :art_id
+                ORDER BY name, internal_id, id;""", INVENTORY_ITEM_COLUMNS)
+                .single(call().bind("art_id", artId))
+                .map(InventoryItem.map())
+                .all();
+    }
+
+    /**
+     * Moves an item into another inventory, keeping the row it has always been.
+     *
+     * <p>This is the whole point of the statement being an update rather than a delete and an insert:
+     * the identifier, the history, the assignment and the custody chain all hang off this row, and
+     * recreating the item somewhere else throws every one of them away.
+     *
+     * <p>The size goes with the move, because the size list belongs to the inventory being left. The
+     * caller has either found the same label in the new inventory or has nothing to put there, and
+     * either way what arrives here is a size of the target or {@code null}.
+     *
+     * <p>The kind goes the same way and for the same reason, except that nothing is remapped: a kind
+     * belongs to the inventory being left, so a piece arrives in the new drawer without one and
+     * somebody says what it is there.
+     *
+     * @param id          the item ID
+     * @param inventoryId the inventory it is moving into
+     * @param sizeId      its size in the new inventory, or {@code null} when it has none there
+     * @return {@code true} if the item was moved
+     */
+    public boolean moveItemToInventory(int id, int inventoryId, Integer sizeId) {
+        return query("""
+                UPDATE inventory_item
+                SET inventory_id = :inventory_id,
+                    size_id      = :size_id,
+                    art_id       = NULL
+                WHERE id = :id;""")
+                .single(call().bind("inventory_id", inventoryId)
+                        .bind("size_id", sizeId)
                         .bind("id", id))
                 .update()
                 .changed();
@@ -709,17 +1166,42 @@ public class InventoryRepository {
      */
     public boolean updateCustody(
             int itemId, ItemCustody custody, Integer custodyStationId, Integer assignedTo, Integer custodyMovementId) {
+        return updateCustody(itemId, custody, custodyStationId, assignedTo, custodyMovementId, null);
+    }
+
+    /**
+     * The same, naming the federation partner that has the item.
+     *
+     * @param itemId                   the item ID
+     * @param custody                  who has the item now
+     * @param custodyStationId         the station the custody runs through, or {@code null}
+     * @param assignedTo               the member holding it, or {@code null}
+     * @param custodyMovementId        the movement carrying it, or {@code null}
+     * @param custodyPartnerStationId  the partner holding it, only for {@link ItemCustody#WITH_PARTNER}
+     * @return {@code true} if the item row was updated
+     */
+    public boolean updateCustody(
+            int itemId,
+            ItemCustody custody,
+            Integer custodyStationId,
+            Integer assignedTo,
+            Integer custodyMovementId,
+            Integer custodyPartnerStationId) {
         return query("""
                 UPDATE inventory_item
-                SET custody             = :custody,
-                    custody_station_id  = :custody_station_id,
-                    custody_movement_id = :custody_movement_id,
-                    assigned_to         = :assigned_to,
-                    lost_at             = CASE WHEN :mark_lost THEN coalesce(lost_at, now()) ELSE NULL END,
-                    container_id        = CASE WHEN :assigned_to::int IS NOT NULL THEN NULL ELSE container_id END
+                SET custody                    = :custody,
+                    custody_station_id         = :custody_station_id,
+                    custody_partner_station_id = :custody_partner_station_id,
+                    custody_movement_id        = :custody_movement_id,
+                    assigned_to                = :assigned_to,
+                    lost_at                    = CASE WHEN :mark_lost THEN coalesce(lost_at, now()) ELSE NULL END,
+                    container_id               = CASE WHEN :assigned_to::int IS NOT NULL THEN NULL ELSE container_id END
                 WHERE id = :id;""")
                 .single(call().bind("custody", custody)
                         .bind("custody_station_id", custodyStationId)
+                        .bind(
+                                "custody_partner_station_id",
+                                custody == ItemCustody.WITH_PARTNER ? custodyPartnerStationId : null)
                         .bind("custody_movement_id", custodyMovementId)
                         .bind("assigned_to", assignedTo)
                         .bind("mark_lost", custody == ItemCustody.LOST)

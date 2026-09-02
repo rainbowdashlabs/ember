@@ -17,10 +17,11 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import LendingRequestList from '@/views/stationview/inventory/lendingview/LendingRequestList.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
-import type {LendingRequestResponse, AvailableInventoryEntry} from '@/api/lending'
+import type {LendingRequestResponse, AvailableInventoryEntry, LendingEmptyReasonName} from '@/api/lending'
 import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
 import {StationPermission} from '@/api/types'
@@ -37,6 +38,7 @@ const isLendingManager = computed(() => hasPermission(StationPermission.INVENTOR
 const activeTab = ref<'offers' | 'requests'>('offers')
 
 const availableItems = ref<AvailableInventoryEntry[]>([])
+const emptyReason = ref<LendingEmptyReasonName | null>(null)
 const loadingAvailable = ref(true)
 const availableError = ref('')
 const searchQuery = ref('')
@@ -51,6 +53,18 @@ const filteredItems = computed(() => {
   )
 })
 
+/**
+ * Why the offers list is empty. The server distinguishes exactly two situations and says nothing
+ * finer, so an empty screen reads as an answer rather than as a fault. A search that filters
+ * everything away locally is the reader's own doing and keeps the plain message.
+ */
+const emptyMessage = computed(() => {
+  if (availableItems.value.length > 0) return t('lending.noAvailable')
+  if (emptyReason.value === 'NOTHING_SHARED') return t('lending.nothingShared')
+  if (emptyReason.value === 'NOTHING_FREE') return t('lending.nothingFree')
+  return t('lending.noAvailable')
+})
+
 async function loadAvailable() {
   loadingAvailable.value = true
   availableError.value = ''
@@ -58,7 +72,9 @@ async function loadAvailable() {
     const options: { q?: string; from?: string; to?: string } = {}
     if (filterDateFrom.value) options.from = filterDateFrom.value
     if (filterDateTo.value) options.to = filterDateTo.value
-    availableItems.value = await lending.listAvailable(options)
+    const result = await lending.listAvailable(options)
+    availableItems.value = result.entries
+    emptyReason.value = result.emptyReason
   } catch {
     availableError.value = t('lending.loadError')
   } finally {
@@ -70,15 +86,23 @@ watch([filterDateFrom, filterDateTo], () => {
   loadAvailable()
 })
 
+/**
+ * Opens the request form on what the search already asked for.
+ *
+ * <p>The period is what the search counted against: the number beside an inventory is what is free
+ * in those days, not what exists. Sending somebody to a form that starts on no dates at all makes
+ * them type the same two dates again, and any pair other than the one they searched for makes the
+ * count they clicked on wrong.
+ */
 function navigateToCreateRequest(item: AvailableInventoryEntry) {
-  router.push({
-    name: routes.lendingCreate,
-    query: {
-      inventoryId: String(item.inventoryId),
-      stationId: String(item.stationId),
-      stationName: item.stationName,
-    },
-  })
+  const query: Record<string, string> = {
+    inventoryId: String(item.inventoryId),
+    stationId: String(item.stationId),
+    stationName: item.stationName,
+  }
+  if (filterDateFrom.value) query.dateFrom = filterDateFrom.value
+  if (filterDateTo.value) query.dateTo = filterDateTo.value
+  router.push({name: routes.lendingCreate, query})
 }
 
 const requests = ref<LendingRequestResponse[]>([])
@@ -122,9 +146,19 @@ watch(loaded, (v) => {
       :subtitle="t('pages.inventory-lending.subtitle')"
   >
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
-      <PrimaryButton v-if="isLendingManager" :icon="['fas', 'calendar-xmark']" @click="router.push({name: routes.lendingBlocks})">
-        {{ t('lending.blocks') }}
-      </PrimaryButton>
+      <div class="flex flex-wrap gap-2">
+        <PrimaryButton v-if="isLendingManager" :icon="['fas', 'calendar-xmark']" @click="router.push({name: routes.lendingBlocks})">
+          {{ t('lending.blocks') }}
+        </PrimaryButton>
+        <SecondaryButton
+            v-if="isLendingManager && routes.lendingShares"
+            :icon="['fas', 'share-nodes']"
+            data-testid="lending-shares-link"
+            @click="router.push({name: routes.lendingShares})"
+        >
+          {{ t('lendingShare.overview') }}
+        </SecondaryButton>
+      </div>
     </div>
 
     <!-- Tab toggle -->
@@ -161,7 +195,7 @@ watch(loaded, (v) => {
 
       <AsyncSection
           :empty="filteredItems.length === 0"
-          :empty-message="t('lending.noAvailable')"
+          :empty-message="emptyMessage"
           :error="availableError"
           :loading="loadingAvailable"
       >

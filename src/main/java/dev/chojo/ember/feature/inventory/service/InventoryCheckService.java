@@ -22,12 +22,15 @@ import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCheckHistoryEntry;
 import dev.chojo.ember.feature.inventory.entity.ItemCorrection;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemLastCheck;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
+import dev.chojo.ember.feature.inventory.entity.SelfCheck;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.MemberCheckSummary;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.repository.SelfCheckRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -69,6 +72,7 @@ public class InventoryCheckService {
     private final InventoryContainerService containerService;
     private final ItemCustodyService custodyService;
     private final InventoryService inventoryService;
+    private final SelfCheckRepository selfCheckRepository;
 
     @Inject
     public InventoryCheckService(
@@ -80,7 +84,9 @@ public class InventoryCheckService {
             MemberIdentityFactory memberIdentityFactory,
             InventoryContainerService containerService,
             ItemCustodyService custodyService,
-            InventoryService inventoryService) {
+            InventoryService inventoryService,
+            SelfCheckRepository selfCheckRepository) {
+        this.selfCheckRepository = selfCheckRepository;
         this.checkRepository = checkRepository;
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -116,42 +122,107 @@ public class InventoryCheckService {
      * @throws ConflictResponse if the member is already locked by a different checker
      */
     public MemberCheckState startCheck(int stationId, int memberId, int lockedBy) {
+        boolean begun = acquireLock(stationId, memberId, lockedBy);
+        List<SelfCheck> overtaken = begun ? overtakeSelfChecks(memberId) : List.of();
+        return checkState(stationId, memberId, overtaken);
+    }
+
+    /**
+     * Closes whatever the member had been asked to answer for themselves, keeping what they said and
+     * applying none of it.
+     *
+     * <p>This is the reverse of the lock above, and deliberately so. The lock stops two checkers
+     * walking one member, which is a collision. A member's report and a checker's walk are two
+     * sources of different quality about the same thing, and the better source does not wait for the
+     * worse one. What the member set going without waiting, an exchange or a loss, is untouched: it
+     * was never part of the submission.
+     *
+     * @param memberId the member being walked
+     * @return the tasks this walk closed, as they stood before
+     */
+    private List<SelfCheck> overtakeSelfChecks(int memberId) {
+        List<SelfCheck> closed = new ArrayList<>();
+        for (SelfCheck task : selfCheckRepository.findUnfinishedForMembers(List.of(memberId))) {
+            if (selfCheckRepository.overtake(task.id())) closed.add(task);
+        }
+        if (!closed.isEmpty()) {
+            log.info("A checker's walk overtook {} self-check(s) of member {}", closed.size(), memberId);
+        }
+        return closed;
+    }
+
+    /**
+     * Takes the lock that stops two checkers walking the same member at once, or confirms the caller
+     * already holds it.
+     *
+     * <p>Kept apart from reading the state because what looks like a start is also the load path: the
+     * check screen calls it again after every assignment, and anything hung on it would fire several
+     * times through one walk. What the beginning carries and the loading does not is closing whatever
+     * the member had been asked to answer for themselves.
+     *
+     * @return {@code true} where this call is the one that began the walk
+     */
+    private boolean acquireLock(int stationId, int memberId, int lockedBy) {
         checkRepository.releaseExpiredLocks(LOCK_TIMEOUT_MINUTES);
 
-        // Check if this member is already locked
         var existingLock = checkRepository.findLock(memberId);
         if (existingLock.isPresent()) {
             if (existingLock.get().lockedBy() != lockedBy) {
                 throw new ConflictResponse("Member is already being checked by another user");
             }
-            // Same user already holds the lock - continue the check
-        } else {
-            // Release any other lock held by this checker, then acquire on this member
-            checkRepository.releaseLockByLocker(lockedBy);
-            Optional<InventoryCheckLock> lock = checkRepository.acquireLock(stationId, memberId, lockedBy);
-            if (lock.isEmpty()) {
-                throw new ConflictResponse("Member is already being checked by another user");
-            }
-            log.info("Started check on member {} by member {} (station={})", memberId, lockedBy, stationId);
+            return false;
         }
+        checkRepository.releaseLockByLocker(lockedBy);
+        Optional<InventoryCheckLock> lock = checkRepository.acquireLock(stationId, memberId, lockedBy);
+        if (lock.isEmpty()) {
+            throw new ConflictResponse("Member is already being checked by another user");
+        }
+        log.info("Started check on member {} by member {} (station={})", memberId, lockedBy, stationId);
+        return true;
+    }
 
-        // Look up member name
+    /**
+     * What the station has recorded against a member: what their role asks of them, what they are
+     * holding towards it, and when they were last checked.
+     *
+     * <p>Nothing is locked and nothing is begun. This is what a member reading their own list gets,
+     * so it carries no free stock: the shape a walk returns names every unheld piece of the station,
+     * and that is a checker's view of the store rather than an answer about one person's boots.
+     *
+     * @param stationId the station ID
+     * @param memberId  the member to read
+     * @return the member's own gear and what is required of them
+     */
+    public MemberGear readGear(int stationId, int memberId) {
         var member = stationMemberRepository.findById(memberId).orElseThrow();
         var account = accountRepository.findById(member.accountId()).orElseThrow();
-        String memberName = account.fullName();
 
         var required = getRequiredItems(stationId, memberId);
         var assigned = inventoryRepository.findItemsByMember(memberId);
         var lastCheck = checkRepository.latestCheckForMember(memberId).orElse(null);
+        MemberIdentity identity = memberIdentityFactory.local(stationId, memberId);
+        return new MemberGear(account.fullName(), identity, required, assigned, lastCheck);
+    }
 
-        // Collect unassigned items for each required inventory
+    /**
+     * The walk's own view, which is the member's gear widened by the free stock a checker may hand
+     * out from.
+     */
+    private MemberCheckState checkState(int stationId, int memberId, List<SelfCheck> overtaken) {
+        MemberGear gear = readGear(stationId, memberId);
         Map<Integer, List<InventoryItem>> unassigned = new HashMap<>();
-        for (RequiredInventoryItem req : required) {
+        for (RequiredInventoryItem req : gear.required()) {
             unassigned.put(req.inventoryId(), inventoryRepository.findUnassignedItems(req.inventoryId()));
         }
-
-        MemberIdentity identity = memberIdentityFactory.local(stationId, memberId);
-        return new MemberCheckState(memberName, identity, required, assigned, lastCheck, unassigned);
+        return new MemberCheckState(
+                gear.memberName(),
+                gear.memberIdentity(),
+                gear.required(),
+                gear.assigned(),
+                gear.lastCheck(),
+                unassigned,
+                inventoryRepository.findMovingItemsOfMember(memberId),
+                overtaken);
     }
 
     /**
@@ -170,9 +241,7 @@ public class InventoryCheckService {
             checkRepository.createCheckItem(
                     check.id(), result.itemId(), result.inventoryId(), result.result(), result.note());
 
-            if (result.result() == CheckResult.LOST && result.itemId() != null) {
-                custodyService.markLost(result.itemId(), result.note(), checkedBy);
-            }
+            markMissing(result, checkedBy);
         }
 
         checkRepository.releaseLock(memberId);
@@ -243,9 +312,7 @@ public class InventoryCheckService {
         for (CheckItemRequest result : results) {
             checkRepository.createCheckItem(
                     check.id(), result.itemId(), result.inventoryId(), result.result(), result.note());
-            if (result.result() == CheckResult.LOST && result.itemId() != null) {
-                custodyService.markLost(result.itemId(), result.note(), checkedBy);
-            }
+            markMissing(result, checkedBy);
         }
         log.info(
                 "Completed container check {} on container {} by member {} (station={}, deep={}, results={})",
@@ -256,6 +323,35 @@ public class InventoryCheckService {
                 deep,
                 results.size());
         return check;
+    }
+
+    /**
+     * Writes the loss a walk found, where there is a loss to write and it is this station's to write.
+     *
+     * <p>Borrowed gear is walked with everything else, because it is in the building and a shelf that
+     * skips a third of what is on it is not a shelf that has been walked. What it does not get is the
+     * loss: the borrower's row is a copy that goes away when the loan ends, and writing a loss on it
+     * would leave the owner's row still saying a partner has the piece. The check keeps the result, so
+     * the walk still says plainly that the piece was not there, and telling the owner happens on the
+     * lending request the gear came in on.
+     *
+     * @param result    one line of the walk
+     * @param checkedBy the member walking it
+     */
+    private void markMissing(CheckItemRequest result, int checkedBy) {
+        if (result.result() != CheckResult.LOST || result.itemId() == null) return;
+        boolean borrowed = inventoryRepository
+                .findItemById(result.itemId())
+                .map(InventoryItem::borrowed)
+                .orElse(false);
+        if (borrowed) {
+            log.info(
+                    "Check found borrowed item {} missing; the loss stays on the check and goes to the owner "
+                            + "on the lending request",
+                    result.itemId());
+            return;
+        }
+        custodyService.markLost(result.itemId(), result.note(), checkedBy);
     }
 
     /**
@@ -327,8 +423,13 @@ public class InventoryCheckService {
                             ci.note());
                 })
                 .toList();
-        return Optional.of(
-                new EnrichedCheckDetail(d.check(), d.checkerFirstName(), d.checkerLastName(), enrichedItems));
+        return Optional.of(new EnrichedCheckDetail(
+                d.check(),
+                d.checkerFirstName(),
+                d.checkerLastName(),
+                d.reporterFirstName(),
+                d.reporterLastName(),
+                enrichedItems));
     }
 
     /**
@@ -400,12 +501,14 @@ public class InventoryCheckService {
             String invName = inv != null ? inv.name() : "#" + inventoryId;
             InventoryType invType = inv != null ? inv.inventoryType() : InventoryType.INTERNAL;
             boolean hasSizes = inv != null && inv.hasSizes();
+            boolean homogeneous = inv != null && inv.homogeneous();
             List<InventorySize> sizes = hasSizes ? inventoryRepository.findSizes(inventoryId) : List.of();
             result.add(new RequiredInventoryItem(
                     inventoryId,
                     invName,
                     invType,
                     hasSizes,
+                    homogeneous,
                     sizes,
                     requiredQty,
                     assignedQty,
@@ -483,6 +586,12 @@ public class InventoryCheckService {
                 if (correction.ownerKind() == null) {
                     throw new BadRequestResponse("This inventory holds both owners, so the new piece needs one named");
                 }
+                // Gear belonging to a partner arrives by handover and by nothing else. A correction
+                // writing a new piece is the station saying what it has, and it cannot say that
+                // about somebody else's radio.
+                if (correction.ownerKind() == ItemOwner.PARTNER_STATION) {
+                    throw new BadRequestResponse("A new piece cannot be written down as a partner station's");
+                }
                 yield correction.ownerKind();
             }
         };
@@ -508,6 +617,17 @@ public class InventoryCheckService {
     /**
      * Takes the wrongly recorded piece off the member and sends it where its owner keeps it, or ends
      * it where nobody keeps it.
+     *
+     * <p>A piece somebody has reported missing goes nowhere. Where a record is put right, the
+     * question answered is whose the piece was, and where the piece is was never asked: shelving a
+     * missing one would grow the store by a thing nobody can find, and end the loss without anybody
+     * deciding to. It comes off the member and stays missing, which is also why it is not ended here
+     * even where its owner has no store, because a loss is a fact about a real thing rather than a
+     * record the correction says was never true.
+     *
+     * <p>Only gear the body above the station owns goes back to an owner with a store of its own. A
+     * borrowed piece rests on the shelf of the station that borrowed it, exactly as its own gear
+     * does, so it is taken back rather than sent anywhere.
      */
     private void release(int itemId, int memberId) {
         InventoryItem item = inventoryRepository
@@ -516,13 +636,18 @@ public class InventoryCheckService {
         if (item.assignedTo() == null || item.assignedTo() != memberId) {
             throw new BadRequestResponse("This piece is not on this member's record");
         }
+        if (item.custody() == ItemCustody.LOST) {
+            inventoryRepository.markSpellCorrected(itemId, memberId);
+            custodyService.releaseLost(itemId);
+            return;
+        }
         if (item.ownerKind() == ItemOwner.CLUSTER && item.ownerClusterId() == null) {
             inventoryService.deleteItem(itemId, null);
             return;
         }
         inventoryRepository.markSpellCorrected(itemId, memberId);
-        if (item.ownedByStation()) custodyService.takeBack(itemId);
-        else custodyService.returnToOwner(itemId);
+        if (item.ownerKind() == ItemOwner.CLUSTER) custodyService.returnToOwner(itemId);
+        else custodyService.takeBack(itemId);
     }
 
     /**
@@ -533,6 +658,10 @@ public class InventoryCheckService {
      * @param assigned   the items currently assigned to the member
      * @param lastCheck  the member's most recent check, or {@code null} if never checked
      * @param unassigned available unassigned items per inventory, keyed by inventory ID
+     * @param onTheMove  the step each piece is standing on that already has a movement running, keyed
+     *                   by piece, so the walk leaves out a swap the station would only refuse
+     * @param overtookSelfChecks the tasks this walk closed, so the walker is told a member had been
+     *                           asked to answer for themselves and that their answers are not applied
      */
     public record MemberCheckState(
             String memberName,
@@ -540,5 +669,23 @@ public class InventoryCheckService {
             List<RequiredInventoryItem> required,
             List<InventoryItem> assigned,
             InventoryCheck lastCheck,
-            Map<Integer, List<InventoryItem>> unassigned) {}
+            Map<Integer, List<InventoryItem>> unassigned,
+            Map<Integer, String> onTheMove,
+            List<SelfCheck> overtookSelfChecks) {}
+
+    /**
+     * What the station has recorded against one member, and nothing about anybody else's gear.
+     *
+     * @param memberName     the member's full name
+     * @param memberIdentity the member as the rest of the instance names them
+     * @param required       what their role asks of them
+     * @param assigned       what they are holding towards it
+     * @param lastCheck      their most recent check, or {@code null} if never checked
+     */
+    public record MemberGear(
+            String memberName,
+            MemberIdentity memberIdentity,
+            List<RequiredInventoryItem> required,
+            List<InventoryItem> assigned,
+            InventoryCheck lastCheck) {}
 }

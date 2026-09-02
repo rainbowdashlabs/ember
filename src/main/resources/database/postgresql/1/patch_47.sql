@@ -1,0 +1,964 @@
+-- What kind of thing an inventory holds.
+--
+-- An inventory says who owns its items and whether they come in sizes, and neither answers the
+-- question three features have been assuming the answer to: does it hold one thing in many copies,
+-- or a drawer of different things. A requirement, an order for three more and a swap of one size for
+-- another all only mean something for the first. Offered on a drawer of odds and ends they mean
+-- nothing, and a station that used them there got a shelf of nonsense rather than a refusal.
+--
+-- Every inventory that exists becomes the first kind, because that is the permissive one: nothing a
+-- station is doing today stops working on the day this arrives, and marking a drawer as a drawer is
+-- something it opts into rather than inherits. Deriving the value from the sizes or from whether a
+-- requirement happens to exist was considered and dropped: it would have been right most of the time,
+-- and the times it was wrong are an inventory quietly losing something it was using.
+
+ALTER TABLE ember_schema.inventory
+    ADD COLUMN homogeneous BOOLEAN NOT NULL DEFAULT TRUE;
+
+COMMENT ON COLUMN ember_schema.inventory.homogeneous IS
+    'True where the inventory holds one thing in many copies, which is the only kind requirements, procurements and exchanges are offered for. False where it holds a drawer of different things. Every row existing before this column was added is true, deliberately: that is the permissive state.';
+
+-- The Art: a level between the inventory and the piece.
+--
+-- A drawer of different things has no single answer to "what is in here". Six radios called blau,
+-- five called gruen, four called orange, then a charging station and a cable: eighteen rows, six
+-- names, and nothing in the model that knows the six are six groups. The Art is that row, so that
+-- other rows can point at it and a count, a share and a request can finally mean "four blue ones".
+--
+-- It is a new field beside the piece's name, never that field renamed. The name is what carries
+-- "Pager 01" and it stays exactly where it is. A piece may have an Art and no name worth reading, a
+-- name and no Art, or both, and having no Art is the steady state rather than a migration window:
+-- five of the seven ways a piece comes into being have nobody present to say what it is.
+--
+-- Nothing is grouped here and nothing is seeded, deliberately. Creating one Art per distinct name
+-- would carve every typo somebody ever made into the model beside the word they meant, which is the
+-- exact thing this level exists to let a station clear up.
+
+CREATE TABLE ember_schema.inventory_art
+(
+    id           SERIAL PRIMARY KEY,
+    inventory_id INTEGER NOT NULL REFERENCES ember_schema.inventory (id) ON DELETE CASCADE,
+    name         TEXT    NOT NULL,
+    note         TEXT    NOT NULL DEFAULT '',
+    position     INTEGER NOT NULL DEFAULT 0,
+    merge_key    TEXT GENERATED ALWAYS AS (lower(trim(name))) STORED,
+    UNIQUE (inventory_id, name)
+);
+
+CREATE INDEX idx_inventory_art_inventory ON ember_schema.inventory_art (inventory_id);
+CREATE INDEX idx_inventory_art_merge_key ON ember_schema.inventory_art (merge_key);
+
+COMMENT ON TABLE ember_schema.inventory_art IS
+    'A kind of thing inside one inventory, sitting between the inventory and the individual piece. Only inventories that hold a drawer of different things carry these: an inventory of one thing in many copies is structured by its sizes instead, and creating an Art in one is refused.';
+COMMENT ON COLUMN ember_schema.inventory_art.id IS
+    'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.inventory_art.inventory_id IS
+    'The inventory this kind belongs to. An Art belongs to exactly one inventory, which is what makes the inventory reference on a field definition enough to scope it.';
+COMMENT ON COLUMN ember_schema.inventory_art.name IS
+    'What the station calls this kind, in its own spelling. Unique within the inventory.';
+COMMENT ON COLUMN ember_schema.inventory_art.note IS
+    'A free note about the kind, empty when nobody wrote one.';
+COMMENT ON COLUMN ember_schema.inventory_art.position IS
+    'Sort position among the kinds of the same inventory.';
+COMMENT ON COLUMN ember_schema.inventory_art.merge_key IS
+    'The name trimmed and lowered, maintained by the database. Two stations that use the same word are talking about the same kind, so availability and shares can be computed across a partnership without anybody maintaining a shared list. Generated rather than written, so renaming a kind cascades nowhere.';
+
+ALTER TABLE ember_schema.inventory_item
+    ADD COLUMN art_id INTEGER REFERENCES ember_schema.inventory_art (id) ON DELETE SET NULL;
+
+CREATE INDEX idx_inventory_item_art
+    ON ember_schema.inventory_item (art_id)
+    WHERE art_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.inventory_item.art_id IS
+    'The kind of thing this piece is, or null when nobody has said. Null is the ordinary case and not a gap to be filled: every read tolerates it, a share resolves past it to the inventory, and a count per kind leaves the piece out rather than inventing a group for it. ON DELETE SET NULL, as size_id is, so removing a kind never takes pieces with it.';
+
+-- Field definitions gain a scope below the inventory.
+--
+-- The mechanism has zero rows in production and the reason is the scope, not neglect: a definition
+-- hangs on the whole inventory, and the inventories where a field would be interesting are exactly
+-- the mixed drawers. A frequency band is nonsense on a charging station. So a definition may now
+-- hang on one Art, or on one single piece for the thing that has a plate number nothing else has,
+-- and null in both still means the whole inventory as it always did.
+--
+-- Definitions move down a level; values do not. Six radios share the field, never the value, so
+-- nothing is inherited and there is no way for six radios to claim one inspection date between them.
+
+ALTER TABLE ember_schema.inventory_field_definition
+    ADD COLUMN art_id INTEGER REFERENCES ember_schema.inventory_art (id) ON DELETE CASCADE,
+    ADD COLUMN item_id INTEGER REFERENCES ember_schema.inventory_item (id) ON DELETE CASCADE;
+
+ALTER TABLE ember_schema.inventory_field_definition
+    ADD CONSTRAINT inventory_field_definition_one_level CHECK (art_id IS NULL OR item_id IS NULL);
+
+ALTER TABLE ember_schema.inventory_field_definition
+    DROP CONSTRAINT inventory_field_definition_inventory_id_key_key;
+
+ALTER TABLE ember_schema.inventory_field_definition
+    ADD CONSTRAINT inventory_field_definition_scope_key
+        UNIQUE NULLS NOT DISTINCT (inventory_id, art_id, item_id, key);
+
+CREATE INDEX idx_inventory_field_definition_art
+    ON ember_schema.inventory_field_definition (art_id)
+    WHERE art_id IS NOT NULL;
+
+CREATE INDEX idx_inventory_field_definition_item
+    ON ember_schema.inventory_field_definition (item_id)
+    WHERE item_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.inventory_field_definition.art_id IS
+    'The kind this field is defined for, or null when it is defined for the whole inventory. At most one of art_id and item_id is set.';
+COMMENT ON COLUMN ember_schema.inventory_field_definition.item_id IS
+    'The single piece this field is defined for, or null when it is not defined for one piece alone. At most one of art_id and item_id is set.';
+COMMENT ON CONSTRAINT inventory_field_definition_one_level ON ember_schema.inventory_field_definition IS
+    'A definition sits at exactly one level: the whole inventory, one kind, or one piece. Both references set at once would describe no level at all.';
+COMMENT ON CONSTRAINT inventory_field_definition_scope_key ON ember_schema.inventory_field_definition IS
+    'One key per level. NULLS NOT DISTINCT makes the absence of a kind and the absence of a piece values like any other, so the inventory level is one scope rather than an unlimited set of them. The same key may still be defined at two levels; the narrower definition is the one that describes the value.';
+
+-- The evening a procedure was prepared for.
+--
+-- A preparation list made out of who is coming is about one appointment on one date, and until now
+-- nothing recorded that. The list merely carried the appointment's name in its title, which reads
+-- like a connection and is not one: nothing could lead back to the appointment, and nothing could
+-- tell that a second press of the same button would make a second list for the very same evening.
+--
+-- Both columns are set together or not at all. A procedure written by hand keeps them empty and
+-- behaves exactly as it did before. Losing the appointment leaves the procedure standing with its
+-- steps and its progress intact, so the reference clears itself rather than taking the list with it.
+
+ALTER TABLE ember_schema.procedure
+    ADD COLUMN event_id   INTEGER REFERENCES ember_schema.station_event (id) ON DELETE SET NULL,
+    ADD COLUMN event_date DATE;
+
+CREATE INDEX procedure_event_idx ON ember_schema.procedure (event_id, event_date);
+
+COMMENT ON COLUMN ember_schema.procedure.event_id IS
+    'The appointment this procedure was prepared for, or NULL when it was written by hand. Cleared rather than cascaded when the appointment is deleted, so the procedure and its recorded progress survive it.';
+
+COMMENT ON COLUMN ember_schema.procedure.event_date IS
+    'The single occurrence of that appointment the procedure belongs to, since a recurring appointment has one per date. NULL exactly when event_id is NULL.';
+
+ALTER TABLE ember_schema.checklist
+    ADD COLUMN source_event_id   INTEGER NULL REFERENCES ember_schema.station_event (id) ON DELETE SET NULL,
+    ADD COLUMN source_event_date DATE    NULL,
+    ADD CONSTRAINT checklist_source_event_needs_date CHECK (source_event_id IS NULL OR source_event_date IS NOT NULL);
+
+CREATE INDEX idx_checklist_source_event ON ember_schema.checklist (source_event_id);
+
+COMMENT ON COLUMN ember_schema.checklist.source_event_id IS
+    'The appointment this checklist follows instead of a filter, or NULL when it follows the rows in checklist_member_filter. Set means the two are exclusive: the filter table is empty and refresh resolves the accepted sign-ups of the occurrence instead. Deleting the appointment sets this back to NULL, which keeps every row already on the list and stops the list following anything.';
+COMMENT ON COLUMN ember_schema.checklist.source_event_date IS
+    'The one date of that appointment whose sign-ups are followed. Registrations are kept per appointment and date, so an appointment without a date would resolve to the union of every occurrence there has ever been. A leftover date with no appointment is what a deleted appointment leaves behind and carries no meaning.';
+
+-- Where borrowed gear lives at the station that borrowed it.
+--
+-- Until now a borrowed piece had no row at the borrower at all. Lending wrote on the owner's row
+-- and set it to WITH_PARTNER, and that was the whole of it, so the borrower could not put the piece
+-- in a container, hand it to a member, walk it in a check or count it towards anything: there was
+-- nothing to point at. The borrower's only view was a lending request in status LENT, which is a
+-- process rather than a thing.
+--
+-- Three changes, and they only mean something together:
+--
+--   1. A third owner kind, so a borrowed piece can be an ordinary row that says whose it is.
+--   2. A loan reference on that row, which is what pairs it with the owner's row and what makes it
+--      disappear again when the gear goes home.
+--   3. A borrowed inventory per station, and a partner named on the owner's own row.
+
+
+-- A partner station is a third owner kind.
+--
+-- owner_station_id names the owning station, symmetric to owner_cluster_id naming the owning body.
+-- The reason for putting it on the ownership axis is what it inherits: a station may not edit, lend
+-- or delete gear it does not own, and both of those rules already read owner_kind, so they cover
+-- borrowed gear from the first day without a second case written anywhere.
+--
+-- Both references delete the row rather than emptying it. A borrowed row is a copy of somebody
+-- else's gear taken for the length of one loan; without the loan or without the owner it is not a
+-- row waiting to be re-homed, it is a row about nothing.
+
+ALTER TABLE ember_schema.inventory_item
+    ADD COLUMN IF NOT EXISTS owner_station_id     INTEGER
+        REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    ADD COLUMN IF NOT EXISTS loan_request_item_id INTEGER
+        REFERENCES ember_schema.federation_lending_request_item (id) ON DELETE CASCADE;
+
+ALTER TABLE ember_schema.inventory_item
+    DROP CONSTRAINT IF EXISTS chk_inventory_item_owner;
+
+-- Each owner kind forbids the pointers that do not belong to it, and PARTNER_STATION requires the
+-- two that do: a borrowed row always knows whose the gear is and which loan it came on.
+ALTER TABLE ember_schema.inventory_item
+    ADD CONSTRAINT chk_inventory_item_owner CHECK (
+        CASE owner_kind
+            WHEN 'STATION' THEN owner_cluster_id IS NULL
+                AND owner_station_id IS NULL AND loan_request_item_id IS NULL
+            WHEN 'CLUSTER' THEN owner_station_id IS NULL AND loan_request_item_id IS NULL
+            WHEN 'PARTNER_STATION' THEN owner_cluster_id IS NULL
+                AND owner_station_id IS NOT NULL AND loan_request_item_id IS NOT NULL
+            ELSE FALSE
+        END
+    );
+
+CREATE INDEX IF NOT EXISTS idx_inventory_item_loan_request_item
+    ON ember_schema.inventory_item (loan_request_item_id)
+    WHERE loan_request_item_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_inventory_item_owner_station
+    ON ember_schema.inventory_item (owner_station_id)
+    WHERE owner_station_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.inventory_item.owner_station_id
+    IS 'The station that owns the item when a partner station does, null for every other owner. Only ever set for PARTNER_STATION.';
+COMMENT ON COLUMN ember_schema.inventory_item.loan_request_item_id
+    IS 'The line of the lending request this borrowed copy came in on, which is what pairs it with the owner''s row and what ends it when the gear goes home. Only ever set for PARTNER_STATION.';
+
+
+-- Which partner has it, on the owner's own row.
+--
+-- The custody columns said an item was with a partner but not which one, and that fact lived in the
+-- lending request, one join away from anything asking where a radio is. custody_station_id keeps
+-- naming the lender, because that is what puts the piece in the lender's own lists; the partner
+-- holding it gets a column of its own.
+--
+-- This one empties rather than deletes. A partner station going away leaves gear recorded as being
+-- somewhere nobody can name any more, which is a row waiting to be dealt with rather than a row
+-- about nothing.
+
+ALTER TABLE ember_schema.inventory_item
+    ADD COLUMN IF NOT EXISTS custody_partner_station_id INTEGER
+        REFERENCES ember_schema.station (id) ON DELETE SET NULL;
+
+UPDATE ember_schema.inventory_item ii
+SET custody_partner_station_id = s.id
+FROM ember_schema.federation_lending_request_item ri
+         JOIN ember_schema.federation_lending_request r ON r.id = ri.request_id
+         JOIN ember_schema.station s ON s.uid = r.requesting_station_uid
+WHERE ri.assigned_item_id = ii.id
+  AND ii.custody = 'WITH_PARTNER';
+
+ALTER TABLE ember_schema.inventory_item
+    DROP CONSTRAINT IF EXISTS chk_inventory_item_custody_partner;
+
+ALTER TABLE ember_schema.inventory_item
+    ADD CONSTRAINT chk_inventory_item_custody_partner
+        CHECK (custody = 'WITH_PARTNER' OR custody_partner_station_id IS NULL);
+
+COMMENT ON COLUMN ember_schema.inventory_item.custody_partner_station_id
+    IS 'The federation partner holding the item while it is WITH_PARTNER, null for every other custody. Null while it stands only when that station has since been removed.';
+
+
+-- One borrowed inventory per station, created when it is first needed.
+--
+-- Everything belonging to somebody else lands in it, whichever partner it came from, because that
+-- is the question a station actually asks: what have we got here at the moment that is not ours.
+-- Split by partner, that question needs several screens read together and every one-off loan leaves
+-- an empty shell behind for good.
+--
+-- It is heterogeneous by construction, so it can never be used for a requirement or a procurement.
+-- The station may rename it, and the partial unique index is what keeps there being only one.
+
+ALTER TABLE ember_schema.inventory
+    ADD COLUMN IF NOT EXISTS borrowed BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_inventory_borrowed_per_station
+    ON ember_schema.inventory (station_id)
+    WHERE borrowed;
+
+COMMENT ON COLUMN ember_schema.inventory.borrowed
+    IS 'Whether this is the station''s one shelf for gear belonging to somebody else. Created on the first handover, renameable, and refused deletion while anything is still on it.';
+
+-- Nothing is offered to a partner until somebody says so.
+--
+-- The table for it was created and never wired up: every partner saw every inventory a station had,
+-- and the only filter that ever ran was a date block. A row says a whole inventory, a kind of thing
+-- in it, or a single piece is on offer, to all partners or to named ones, and the narrowest row that
+-- exists decides.
+--
+-- Taking one piece back out of a shared drawer is the case that comes up, so a row can withhold as
+-- well as grant. Working that as "share the other things instead" would mean redoing the choice
+-- every time something is added, and the one that was forgotten would silently be on offer.
+--
+-- One row per inventory, one per kind and one per piece, because two rows saying different things
+-- about the same gear have no answer.
+
+ALTER TABLE ember_schema.federation_inventory_share
+    ADD COLUMN share_grant TEXT NOT NULL DEFAULT 'GRANT',
+    ADD COLUMN art_id      INT REFERENCES ember_schema.inventory_art (id) ON DELETE CASCADE;
+
+COMMENT ON COLUMN ember_schema.federation_inventory_share.share_grant IS
+    'GRANT puts the gear on offer, WITHHOLD takes it back out of a wider offer. The narrowest row that exists decides.';
+COMMENT ON COLUMN ember_schema.federation_inventory_share.art_id IS
+    'References the kind of thing. Exactly one of inventory_id/art_id/item_id must be set.';
+
+ALTER TABLE ember_schema.federation_inventory_share
+    DROP CONSTRAINT federation_inventory_share_check;
+
+ALTER TABLE ember_schema.federation_inventory_share
+    ADD CONSTRAINT federation_inventory_share_one_level
+        CHECK (num_nonnulls(inventory_id, art_id, item_id) = 1);
+
+CREATE UNIQUE INDEX uq_federation_inventory_share_inventory
+    ON ember_schema.federation_inventory_share (station_id, inventory_id)
+    WHERE inventory_id IS NOT NULL;
+
+CREATE UNIQUE INDEX uq_federation_inventory_share_art
+    ON ember_schema.federation_inventory_share (station_id, art_id)
+    WHERE art_id IS NOT NULL;
+
+CREATE UNIQUE INDEX uq_federation_inventory_share_item
+    ON ember_schema.federation_inventory_share (station_id, item_id)
+    WHERE item_id IS NOT NULL;
+-- Tags on items.
+--
+-- An inventory groups things that are stored together and a size tells one piece from another, but
+-- neither can say that the radios, the charging station and the antenna belong together. A tag says
+-- exactly that: a standing property of a piece, true whatever the occasion, carrying no quantity.
+--
+-- The tag is an entity of the station and is picked from what exists rather than typed on each
+-- piece, because free text on a piece is how "orange" and "organge" end up being two things.
+--
+-- canonical_name is the trimmed lowercase form, computed by the database. Tags of the same name are
+-- one tag across stations, and every query that merges them compares this column rather than
+-- repeating the normal form and getting it wrong once. Postgres maintains it, so a rename has
+-- nothing to cascade.
+
+CREATE TABLE ember_schema.inventory_tag
+(
+    id             SERIAL PRIMARY KEY,
+    station_id     INT  NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    name           TEXT NOT NULL,
+    canonical_name TEXT GENERATED ALWAYS AS (lower(btrim(name))) STORED,
+    color          TEXT,
+    position       INT  NOT NULL DEFAULT 0,
+    UNIQUE (station_id, canonical_name)
+);
+
+CREATE INDEX idx_inventory_tag_canonical ON ember_schema.inventory_tag (canonical_name);
+
+COMMENT ON TABLE ember_schema.inventory_tag IS
+    'A tag a station puts on its items, picked from what exists rather than typed per item.';
+COMMENT ON COLUMN ember_schema.inventory_tag.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.inventory_tag.station_id IS 'The station the tag belongs to.';
+COMMENT ON COLUMN ember_schema.inventory_tag.name IS 'The tag as the station spelled it, which is what every list shows.';
+COMMENT ON COLUMN ember_schema.inventory_tag.canonical_name IS
+    'The trimmed lowercase name, maintained by the database. Two stations spelling one tag differently match on this.';
+COMMENT ON COLUMN ember_schema.inventory_tag.color IS 'Optional hex colour for the badge. Null means the badge takes the neutral colour.';
+COMMENT ON COLUMN ember_schema.inventory_tag.position IS 'Where the tag sits in the station''s own list.';
+
+CREATE TABLE ember_schema.inventory_item_tag
+(
+    item_id INT NOT NULL REFERENCES ember_schema.inventory_item (id) ON DELETE CASCADE,
+    tag_id  INT NOT NULL REFERENCES ember_schema.inventory_tag (id) ON DELETE CASCADE,
+    PRIMARY KEY (item_id, tag_id)
+);
+
+CREATE INDEX idx_inventory_item_tag_tag ON ember_schema.inventory_item_tag (tag_id);
+
+COMMENT ON TABLE ember_schema.inventory_item_tag IS
+    'Which tags one item carries. The tag sits on the item, so a piece filed anywhere can carry it.';
+COMMENT ON COLUMN ember_schema.inventory_item_tag.item_id IS 'The item wearing the tag.';
+COMMENT ON COLUMN ember_schema.inventory_item_tag.tag_id IS 'The tag.';
+
+-- What an association recommends its stations call things.
+--
+-- Shaped like cluster_profile_field, including the group of stations it is meant for, but without
+-- that table's readonly flag. An association tag stands beside a station's own and never replaces
+-- it: both rows are already one concept through the canonical name, and every station keeps showing
+-- the spelling it gave.
+
+CREATE TABLE ember_schema.cluster_inventory_tag
+(
+    id               SERIAL PRIMARY KEY,
+    cluster_id       INT  NOT NULL REFERENCES ember_schema.cluster (id) ON DELETE CASCADE,
+    name             TEXT NOT NULL,
+    canonical_name   TEXT GENERATED ALWAYS AS (lower(btrim(name))) STORED,
+    color            TEXT,
+    position         INT  NOT NULL DEFAULT 0,
+    station_group_id INT REFERENCES ember_schema.cluster_station_group (id) ON DELETE RESTRICT,
+    UNIQUE NULLS NOT DISTINCT (cluster_id, station_group_id, canonical_name)
+);
+
+CREATE INDEX idx_cluster_inventory_tag_canonical ON ember_schema.cluster_inventory_tag (canonical_name);
+
+COMMENT ON TABLE ember_schema.cluster_inventory_tag IS
+    'A tag an association recommends to its stations. It never displaces a station''s own tag of the same name.';
+COMMENT ON COLUMN ember_schema.cluster_inventory_tag.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.cluster_inventory_tag.cluster_id IS 'The association recommending it.';
+COMMENT ON COLUMN ember_schema.cluster_inventory_tag.name IS 'The tag as the association spelled it.';
+COMMENT ON COLUMN ember_schema.cluster_inventory_tag.canonical_name IS
+    'The trimmed lowercase name, maintained by the database, which is what a station''s own tag matches on.';
+COMMENT ON COLUMN ember_schema.cluster_inventory_tag.color IS 'Optional hex colour for the badge.';
+COMMENT ON COLUMN ember_schema.cluster_inventory_tag.position IS 'Where it sits among the association''s own tags.';
+COMMENT ON COLUMN ember_schema.cluster_inventory_tag.station_group_id IS
+    'The group of stations the tag is recommended to. NULL recommends it to every station under the association.';
+
+ALTER TABLE ember_schema.waiting_list_entry
+    ADD COLUMN invited_event_id     INTEGER NULL REFERENCES ember_schema.station_event (id) ON DELETE SET NULL,
+    ADD COLUMN invited_event_date   DATE    NULL,
+    ADD COLUMN invited_arrival_time TIME    NULL,
+    ADD CONSTRAINT waiting_list_entry_invited_event_needs_date
+        CHECK (invited_event_id IS NULL OR invited_event_date IS NOT NULL);
+
+CREATE INDEX idx_waiting_list_entry_invited_event
+    ON ember_schema.waiting_list_entry (invited_event_id, invited_event_date)
+    WHERE invited_event_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.waiting_list_entry.invited_event_id IS
+    'The appointment the current invitation asks them to come to, or NULL when nobody has been invited yet. No sign-up is created from it: they have not joined anything, so they are not on the attendee list and count towards nothing the station plans from. Deleting the appointment empties this, which leaves the invitation without an occasion rather than pointing at nothing.';
+COMMENT ON COLUMN ember_schema.waiting_list_entry.invited_event_date IS
+    'The one date of that appointment they were invited to. An appointment repeats, so without a date the invitation would name every Tuesday there has ever been, and the answer to it would mean nothing.';
+COMMENT ON COLUMN ember_schema.waiting_list_entry.invited_arrival_time IS
+    'When they were asked to be there, which is usually earlier than everybody else so somebody can meet them. NULL when the invitation named no time of its own. A time rather than an offset, because that is what the mail has to say and what the reader has to read.';
+
+ALTER TABLE ember_schema.waiting_list_entry
+    ADD COLUMN invitation_answer      TEXT      NULL,
+    ADD COLUMN invitation_answered_at TIMESTAMP NULL,
+    ADD COLUMN invitation_answer_note TEXT      NOT NULL DEFAULT '',
+    ADD CONSTRAINT waiting_list_entry_answer_needs_time
+        CHECK (invitation_answer IS NULL OR invitation_answered_at IS NOT NULL);
+
+COMMENT ON COLUMN ember_schema.waiting_list_entry.invitation_answer IS
+    'What they answered to the invitation they currently hold: COMING, NOT_INTERESTED or DATE_DOES_NOT_SUIT. NULL while the invitation is unanswered. A refusal is kept here rather than moving the entry out of the open section, because an answer that vanishes on arrival is the same failure as no answer at all. Cleared whenever a new invitation replaces the one it answered.';
+COMMENT ON COLUMN ember_schema.waiting_list_entry.invitation_answered_at IS
+    'When that answer was given, so a station can see how long an invitation has been sitting unanswered. NULL exactly when invitation_answer is NULL.';
+COMMENT ON COLUMN ember_schema.waiting_list_entry.invitation_answer_note IS
+    'What they wrote alongside the answer, empty when they wrote nothing. Given by whoever holds the entry link rather than by a member, which is why it is kept apart from the station''s own notes on the entry.';
+
+
+-- What an appointment needs, and borrowing what the station has not got.
+--
+-- The inventory knows what the station owns and who holds what. An appointment knows who is coming.
+-- Neither knew that the Leistungsmarsch on Saturday needs fourteen sets of protective gear and a
+-- trailer, so the station answered that on paper every time.
+--
+-- Two levels, and they are deliberately not the same thing. The need is written once on the
+-- appointment and holds for every evening it produces, because a weekly Dienst wants the same gear
+-- fifty times a year. The claim on stock is per evening, because only a single window can hold
+-- anything: "every Tuesday forever" is not something an availability query can honour.
+--
+-- A loose claim is never stored. A search over a window resolves the recurrence rule for that window
+-- and derives the claims inside it, which is what the calendar already does for the evenings
+-- themselves. That removes a horizon to choose, a job to refill it and a cleanup when a series is
+-- thinned, because a series that no longer produces an evening no longer produces its claim either.
+-- Only the firm claim, written when the gear actually leaves the shelf, is a row.
+
+CREATE TABLE ember_schema.event_equipment_need
+(
+    id            SERIAL PRIMARY KEY,
+    event_id      INT NOT NULL REFERENCES ember_schema.station_event (id) ON DELETE CASCADE,
+    event_date    DATE,
+    item_id       INT REFERENCES ember_schema.inventory_item (id) ON DELETE CASCADE,
+    art_id        INT REFERENCES ember_schema.inventory_art (id) ON DELETE CASCADE,
+    inventory_id  INT REFERENCES ember_schema.inventory (id) ON DELETE CASCADE,
+    quantity      INT NOT NULL DEFAULT 1,
+    lead_minutes  INT NOT NULL DEFAULT 1440,
+    trail_minutes INT NOT NULL DEFAULT 1440,
+    position      INT NOT NULL DEFAULT 0,
+    CONSTRAINT chk_event_need_one_target CHECK (num_nonnulls(item_id, art_id, inventory_id) = 1),
+    CONSTRAINT chk_event_need_quantity CHECK (quantity >= 1),
+    CONSTRAINT chk_event_need_named_item_single CHECK (item_id IS NULL OR quantity = 1),
+    CONSTRAINT chk_event_need_lead_trail CHECK (lead_minutes >= 0 AND trail_minutes >= 0),
+    CONSTRAINT event_equipment_need_target
+        UNIQUE NULLS NOT DISTINCT (event_id, event_date, item_id, art_id, inventory_id)
+);
+
+CREATE INDEX idx_event_equipment_need_event ON ember_schema.event_equipment_need (event_id);
+CREATE INDEX idx_event_equipment_need_item
+    ON ember_schema.event_equipment_need (item_id) WHERE item_id IS NOT NULL;
+CREATE INDEX idx_event_equipment_need_art
+    ON ember_schema.event_equipment_need (art_id) WHERE art_id IS NOT NULL;
+CREATE INDEX idx_event_equipment_need_inventory
+    ON ember_schema.event_equipment_need (inventory_id) WHERE inventory_id IS NOT NULL;
+
+COMMENT ON TABLE ember_schema.event_equipment_need IS
+    'One line of what an appointment needs: a named piece, a count of one kind of thing, or a count out of a whole inventory. Exactly one of the three, which is the line shape a lending request already carries.';
+COMMENT ON COLUMN ember_schema.event_equipment_need.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.event_equipment_need.event_id IS
+    'The appointment this line belongs to.';
+COMMENT ON COLUMN ember_schema.event_equipment_need.event_date IS
+    'Null where the line holds for every evening the series produces, which is the ordinary case. Set where one single evening says something of its own: a line for that date alone is added to the standing list, and where it names the same thing as a standing line it takes its place for that evening. The one Dienst a year that also needs the trailer is written this way, without touching the series.';
+COMMENT ON COLUMN ember_schema.event_equipment_need.item_id IS
+    'The named piece this line asks for. Exactly one of item_id/art_id/inventory_id is set.';
+COMMENT ON COLUMN ember_schema.event_equipment_need.art_id IS
+    'The kind of thing a counted line asks for, which is how a line says four blue radios rather than four of whatever is in the drawer. Exactly one of item_id/art_id/inventory_id is set.';
+COMMENT ON COLUMN ember_schema.event_equipment_need.inventory_id IS
+    'The inventory a counted line draws from, for the inventories that hold one thing in many copies and therefore carry no kinds. Exactly one of item_id/art_id/inventory_id is set.';
+COMMENT ON COLUMN ember_schema.event_equipment_need.quantity IS
+    'How many pieces the line asks for. Always 1 on a named-piece line, because a named piece is one piece.';
+COMMENT ON COLUMN ember_schema.event_equipment_need.lead_minutes IS
+    'How long before the appointment begins the gear is already gone from the shelf. The radios are fetched the evening before, so the period the equipment is away is not the period the appointment lasts, and a request asking only for the Saturday would leave the owner finding an empty shelf on the Friday. A day is the default because a day either way is the ordinary case.';
+COMMENT ON COLUMN ember_schema.event_equipment_need.trail_minutes IS
+    'How long after the appointment ends the gear is still away, counted the same way as the lead. Both belong to the need rather than to a lending request, so a station''s own reservation and a borrowing request cannot disagree about when the shelf is empty.';
+COMMENT ON COLUMN ember_schema.event_equipment_need.position IS 'Display order within the appointment.';
+
+-- The firm claim: what actually left the shelf.
+--
+-- A loose claim says four blue ones and does not care which four, because picking fourteen particular
+-- jackets in March for a June exercise is not planning, it is busywork that will be redone on the day.
+-- At handover the claim gains the pieces that went, which is the same step a lending request line
+-- already takes when a count becomes a named piece.
+
+CREATE TABLE ember_schema.event_equipment_handover
+(
+    id          SERIAL PRIMARY KEY,
+    need_id     INT         NOT NULL REFERENCES ember_schema.event_equipment_need (id) ON DELETE CASCADE,
+    event_date  DATE        NOT NULL,
+    item_id     INT         NOT NULL REFERENCES ember_schema.inventory_item (id) ON DELETE CASCADE,
+    claim_from  TIMESTAMPTZ NOT NULL,
+    claim_to    TIMESTAMPTZ NOT NULL,
+    handed_by   INT REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    handed_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    returned_at TIMESTAMPTZ,
+    UNIQUE (need_id, event_date, item_id),
+    CONSTRAINT chk_event_handover_window CHECK (claim_to > claim_from)
+);
+
+CREATE INDEX idx_event_equipment_handover_item ON ember_schema.event_equipment_handover (item_id);
+CREATE INDEX idx_event_equipment_handover_window
+    ON ember_schema.event_equipment_handover (claim_from, claim_to);
+
+COMMENT ON TABLE ember_schema.event_equipment_handover IS
+    'A piece that actually went out for one evening of an appointment. The only claim on stock that is a row: everything still merely planned is derived from the recurrence rule when somebody asks.';
+COMMENT ON COLUMN ember_schema.event_equipment_handover.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.event_equipment_handover.need_id IS 'The line this piece was handed over against.';
+COMMENT ON COLUMN ember_schema.event_equipment_handover.event_date IS
+    'The evening the piece went out for, which is what pairs a handover with one occurrence of a series.';
+COMMENT ON COLUMN ember_schema.event_equipment_handover.item_id IS 'The piece that went.';
+COMMENT ON COLUMN ember_schema.event_equipment_handover.claim_from IS
+    'When the piece left, taken from the evening and the line''s lead rather than from the clock, so the window a firm claim holds is the same window the loose one held.';
+COMMENT ON COLUMN ember_schema.event_equipment_handover.claim_to IS
+    'When the piece is due back, the evening''s end plus the line''s trail.';
+COMMENT ON COLUMN ember_schema.event_equipment_handover.handed_by IS
+    'The member who recorded the handover, or null once that member is gone.';
+COMMENT ON COLUMN ember_schema.event_equipment_handover.handed_at IS 'When the handover was recorded.';
+COMMENT ON COLUMN ember_schema.event_equipment_handover.returned_at IS
+    'When the piece came back, null while it is still out. A returned piece claims nothing, whatever its window still says.';
+
+-- A lending request knows what it is for.
+--
+-- The dates alone said when the shelf would be empty and never why, which is the question that
+-- decides a yes. A title and a window answer it, and that is deliberately all: the sign-ups, the
+-- custom fields and the description of an appointment are no business of another station and may be
+-- restricted in the first place. The occasion is therefore a copy of the name rather than a link, so
+-- that adding a field to an appointment can never quietly add it to a request.
+
+ALTER TABLE ember_schema.federation_lending_request
+    ADD COLUMN event_id   INT REFERENCES ember_schema.station_event (id) ON DELETE SET NULL,
+    ADD COLUMN event_date DATE,
+    ADD COLUMN occasion   TEXT NOT NULL DEFAULT '';
+
+CREATE INDEX idx_federation_lending_request_event
+    ON ember_schema.federation_lending_request (event_id) WHERE event_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.federation_lending_request.event_id IS
+    'The appointment the request was collected for, at the requesting station, or null where somebody is borrowing a trailer for a house move. Never sent to the owning station.';
+COMMENT ON COLUMN ember_schema.federation_lending_request.event_date IS
+    'The evening of that appointment the request is for. Null exactly when event_id is.';
+COMMENT ON COLUMN ember_schema.federation_lending_request.occasion IS
+    'What the request is for, in words, as the owning station reads it. A copy of the appointment''s name taken when the request was sent, so nothing else about the appointment ever travels and a later rename does not rewrite what was asked for. Empty where the request names no occasion.';
+
+-- A request line answers a need, and may name a kind of thing.
+--
+-- Without the kind, a line could only ask for a whole drawer, which is the granularity that fails for
+-- Funkgeräte: asking for four out of the radio drawer may be answered with the charging station and
+-- the case. Without the need, a borrowed piece could not be counted towards the fourteen the
+-- appointment asked for, and the panel would report a shortfall that was solved a week ago.
+
+ALTER TABLE ember_schema.federation_lending_request_item
+    ADD COLUMN art_id  INT REFERENCES ember_schema.inventory_art (id) ON DELETE SET NULL,
+    ADD COLUMN need_id INT REFERENCES ember_schema.event_equipment_need (id) ON DELETE SET NULL;
+
+CREATE INDEX idx_federation_lending_request_item_need
+    ON ember_schema.federation_lending_request_item (need_id) WHERE need_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.federation_lending_request_item.art_id IS
+    'The kind of thing the line asks for, at the owning station. Null where the line names a whole inventory or a single piece.';
+COMMENT ON COLUMN ember_schema.federation_lending_request_item.need_id IS
+    'The line of an appointment''s needs this request was sent to fill, at the requesting station, or null where the request answers no need. What comes back on it counts towards that need like the station''s own gear does.';
+
+-- A line asking for four can now record four pieces.
+--
+-- The assigned piece was a single column while the fulfilment loop called the same update repeatedly
+-- on one row, so a line asking for four could only ever record the last one it looked at. Every count
+-- above one was therefore decoration. Moving the assignment to a table of its own is the whole fix,
+-- and the column goes rather than staying beside it, because two places recording the same fact
+-- disagree within a month.
+
+CREATE TABLE ember_schema.federation_lending_request_item_assignment
+(
+    id              SERIAL PRIMARY KEY,
+    request_item_id INT NOT NULL REFERENCES ember_schema.federation_lending_request_item (id) ON DELETE CASCADE,
+    item_id         INT NOT NULL REFERENCES ember_schema.inventory_item (id) ON DELETE CASCADE,
+    UNIQUE (request_item_id, item_id)
+);
+
+CREATE INDEX idx_federation_lending_assignment_item
+    ON ember_schema.federation_lending_request_item_assignment (item_id);
+
+COMMENT ON TABLE ember_schema.federation_lending_request_item_assignment IS
+    'Which pieces are set aside for one line of a lending request. A table rather than a column, because a line asking for four blue radios is answered with four of them.';
+COMMENT ON COLUMN ember_schema.federation_lending_request_item_assignment.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.federation_lending_request_item_assignment.request_item_id IS
+    'The line the piece is set aside for.';
+COMMENT ON COLUMN ember_schema.federation_lending_request_item_assignment.item_id IS
+    'The piece, always one belonging to the owning station.';
+
+INSERT INTO ember_schema.federation_lending_request_item_assignment (request_item_id, item_id)
+SELECT id, assigned_item_id
+FROM ember_schema.federation_lending_request_item
+WHERE assigned_item_id IS NOT NULL;
+
+ALTER TABLE ember_schema.federation_lending_request_item
+    DROP COLUMN assigned_item_id;
+
+-- What a check may say twice about one member.
+--
+-- The key held every row of a check apart by the piece it names, counting two rows with no piece
+-- as the same row. A row with no piece is an empty place the member should have something in, and
+-- a member who needs two of a thing and holds neither has two of them. Closing such a check failed
+-- outright, which is a check that cannot be finished for as long as the gap is two wide.
+--
+-- Emptiness is no longer taken to mean sameness. A piece is still named once per check.
+ALTER TABLE ember_schema.inventory_check_item
+    DROP CONSTRAINT inventory_check_item_check_id_item_id_key;
+
+ALTER TABLE ember_schema.inventory_check_item
+    ADD CONSTRAINT inventory_check_item_check_id_item_id_key
+        UNIQUE NULLS DISTINCT (check_id, item_id, inventory_id);
+
+-- The second name on a check.
+--
+-- A check has carried exactly one person since it existed: whoever walked it. That was enough for
+-- as long as walking it was the only way to have one. A member answering for their own gear at home
+-- is a second way, and it produces a check nobody held the boots for, so the person who said what
+-- was there and the person who signed it off are no longer the same person and the record has to
+-- say both. A piece checked at arm's length can then be told from one somebody held, which is the
+-- whole reason answering from home is safe to offer.
+--
+-- Unlike the two names already on the row, this one does not cascade. Both of those take every
+-- check a member ever walked with them when the member is removed, which is a loss of history this
+-- one does not repeat: the check stays and the name comes off, the way a movement already keeps the
+-- gear and unlinks the member.
+ALTER TABLE ember_schema.inventory_check
+    ADD COLUMN reported_by INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
+
+COMMENT ON COLUMN ember_schema.inventory_check.reported_by IS
+    'Who reported what the check records, where that is somebody other than whoever signed it off. NULL on a check somebody walked themselves. Unlinked rather than cascaded when the member is removed, so the check survives them.';
+
+-- The self-check: a task handed to a member about their own gear.
+--
+-- Getting twelve members who each keep a helmet at home into one room is the whole cost of checking
+-- them, and it is paid every time. The station does not need to see the boots; it needs to know
+-- whether they still exist. A task says whose gear is in question, who handed it out, and by when,
+-- and it holds the answers until somebody with the check permission reads them.
+--
+-- The task cascades with the member, deliberately and unlike the check it eventually writes: it is
+-- a piece of work in progress rather than a record of anything, and there is nothing to keep about
+-- an unanswered question once the person it was put to is gone. Everyone else named on it is
+-- unlinked instead, because the task outlives the checker who handed it out.
+CREATE TABLE ember_schema.inventory_self_check
+(
+    id            SERIAL PRIMARY KEY,
+    station_id    INTEGER     NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    member_id     INTEGER     NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    handed_out_by INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    handed_out_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    due_on        DATE,
+    state         TEXT        NOT NULL DEFAULT 'OPEN',
+    submitted_at  TIMESTAMPTZ,
+    submitted_by  INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    closed_at     TIMESTAMPTZ,
+    check_id      INTEGER REFERENCES ember_schema.inventory_check (id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_inventory_self_check_member ON ember_schema.inventory_self_check (member_id);
+CREATE INDEX idx_inventory_self_check_station ON ember_schema.inventory_self_check (station_id);
+
+COMMENT ON TABLE ember_schema.inventory_self_check IS
+    'A task put to a member to answer for the gear the station has recorded against their name, without a checker in the room.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.station_id IS 'The station that handed the task out.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.member_id IS 'The member whose gear the task is about.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.handed_out_by IS 'Who handed the task out. NULL once that person is no longer a member here.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.handed_out_at IS 'When the task was handed out.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.due_on IS 'The day the answer is wanted by, or NULL where none was named.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.state IS 'OPEN while the member may still answer, SUBMITTED once they have, DONE once every row is settled, OVERTAKEN where a checker walked the member instead.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.submitted_at IS 'When the task was submitted, or NULL while it is still open.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.submitted_by IS 'Who entered the submission, which is the member or one of their guardians. NULL once that person is no longer a member here.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.closed_at IS 'When the task stopped needing anything, however it ended.';
+COMMENT ON COLUMN ember_schema.inventory_self_check.check_id IS 'The check the settled task wrote, once it wrote one.';
+
+-- One answer, and what became of it.
+--
+-- The list a member answers is recomputed from their role and the stock on every read, so a row
+-- cannot be a position in it: a saved answer against "the second empty place" points at something
+-- else the moment a group changes underneath it. A row therefore hangs on the piece where there is
+-- one, and on the inventory plus a slot where the place is empty. A piece that is deleted leaves
+-- the row standing with nothing to hang on, which is shown to the reviewer as an anchor that has
+-- gone rather than quietly dropped.
+--
+-- The state lives on the row rather than on the task, and the task follows from its rows: there are
+-- no transactions here, so taking or refusing a row is a conditional update on it still being
+-- outstanding, and the task is finished only once none of them is.
+CREATE TABLE ember_schema.inventory_self_check_item
+(
+    id                SERIAL PRIMARY KEY,
+    task_id           INTEGER NOT NULL REFERENCES ember_schema.inventory_self_check (id) ON DELETE CASCADE,
+    item_id           INTEGER REFERENCES ember_schema.inventory_item (id) ON DELETE SET NULL,
+    inventory_id      INTEGER NOT NULL REFERENCES ember_schema.inventory (id) ON DELETE CASCADE,
+    slot              INTEGER,
+    answer            TEXT    NOT NULL,
+    note              TEXT    NOT NULL DEFAULT '',
+    typed_internal_id TEXT,
+    size_id           INTEGER REFERENCES ember_schema.inventory_size (id) ON DELETE SET NULL,
+    answered_by       INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    answered_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    state             TEXT    NOT NULL DEFAULT 'OUTSTANDING',
+    reviewer_reason   TEXT    NOT NULL DEFAULT '',
+    reviewed_by       INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    reviewed_at       TIMESTAMPTZ
+);
+
+CREATE UNIQUE INDEX idx_inventory_self_check_item_piece
+    ON ember_schema.inventory_self_check_item (task_id, item_id) WHERE item_id IS NOT NULL;
+CREATE UNIQUE INDEX idx_inventory_self_check_item_place
+    ON ember_schema.inventory_self_check_item (task_id, inventory_id, slot) WHERE slot IS NOT NULL;
+
+COMMENT ON TABLE ember_schema.inventory_self_check_item IS
+    'One thing a member said about one piece of their gear or one empty place in it, and what the reviewer made of it.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.task_id IS 'The task this answer belongs to.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.item_id IS 'The piece the answer is about. NULL where the answer is about an empty place, and NULL again once the piece it named has been deleted.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.inventory_id IS 'The inventory the piece sits in, or the one the empty place belongs to.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.slot IS 'Which of the empty places in that inventory the answer is about, counted from zero. NULL on an answer about a piece.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.answer IS 'What the member said: HAVE_IT, DO_NOT_HAVE_IT, TURNED_UP, WRONG_RECORD, NEVER_HAD or HAVE_ONE.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.note IS 'What the member wrote beside the answer, which is usually the useful part.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.typed_internal_id IS 'The number the member read off a piece nobody wrote down. Matched when the reviewer reads it, never trusted, and NULL where nothing was typed.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.size_id IS 'The size the member gave for a piece nobody wrote down, in an inventory that keeps sizes. Freely given rather than asked for, so NULL means they did not say and the reviewer reads it as unanswered. The reviewer writes it onto the piece when the answer is taken.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.answered_by IS 'Who entered the answer, which is the member or one of their guardians. NULL once that person is no longer a member here.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.answered_at IS 'When the answer was last written.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.state IS 'OUTSTANDING until a reviewer settles it, then TAKEN or REFUSED.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.reviewer_reason IS 'Why a row was refused, in the reviewer''s words. Empty on every other row.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.reviewed_by IS 'Who settled the row. NULL while it is outstanding, and NULL again once that person is no longer a member here.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_item.reviewed_at IS 'When the row was settled.';
+
+-- What the member set going beside their answers.
+--
+-- A loss and an exchange are both things a member may already raise alone, from screens that exist
+-- and were built that way on purpose, and both ordinarily take effect the moment they are given.
+-- Neither is a row of the submission, so neither ordinarily waits for a reviewer. What the reviewer
+-- does need is to see that they happened during this task, and that is what this table is: the link
+-- between a task and the thing it set off, kept nowhere else because the loss lives on the piece and
+-- the exchange lives on a movement.
+--
+-- One case does wait, and it is the case where raising it at once would carry an untruth. A member
+-- who says the record has the wrong size against a piece has told the station two things: what they
+-- hold, and that the record does not say so. A loss or an exchange raised against that record before
+-- it is put right names a piece that is about to be replaced, so it goes out against the size the
+-- member has just disowned and against a piece the correction takes off their name entirely. Such a
+-- report is written down here instead, waiting on the row it depends on, and goes out for real when
+-- a reviewer takes that correction. It is the answer beneath it that decides this: where nothing was
+-- corrected, nothing waits, and a loss reported from a self-check is as immediate as one reported
+-- from the member's own equipment page.
+CREATE TABLE ember_schema.inventory_self_check_raised
+(
+    id               SERIAL PRIMARY KEY,
+    task_id          INTEGER     NOT NULL REFERENCES ember_schema.inventory_self_check (id) ON DELETE CASCADE,
+    kind             TEXT        NOT NULL,
+    state            TEXT        NOT NULL DEFAULT 'RAISED',
+    item_id          INTEGER REFERENCES ember_schema.inventory_item (id) ON DELETE SET NULL,
+    movement_id      INTEGER REFERENCES ember_schema.item_movement (id) ON DELETE SET NULL,
+    waits_for_row_id INTEGER REFERENCES ember_schema.inventory_self_check_item (id) ON DELETE SET NULL,
+    new_size_id      INTEGER REFERENCES ember_schema.inventory_size (id) ON DELETE SET NULL,
+    words            TEXT        NOT NULL DEFAULT '',
+    raised_by        INTEGER REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    raised_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_inventory_self_check_raised_task ON ember_schema.inventory_self_check_raised (task_id);
+CREATE INDEX idx_inventory_self_check_raised_waiting
+    ON ember_schema.inventory_self_check_raised (waits_for_row_id) WHERE waits_for_row_id IS NOT NULL;
+
+COMMENT ON TABLE ember_schema.inventory_self_check_raised IS
+    'A loss or an exchange a member raised while answering a self-check, recorded so the reviewer can see it happened, and held back where the answer beside it says the record it names is wrong.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.task_id IS 'The task it was raised during.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.kind IS 'LOSS where the member said a piece cannot be found, EXCHANGE where they asked for a different size.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.state IS 'RAISED where it has gone out, which is the ordinary case and immediate. WAITING while it hangs on a correction a reviewer has not taken yet. DROPPED where that correction never came, because the row was refused, settled without being put right, or answered again differently.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.item_id IS 'The piece it was about, which becomes the piece the correction produced once a waiting report goes out. NULL once that piece has been deleted.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.movement_id IS 'The movement an exchange started, where there is one.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.waits_for_row_id IS 'The answer this report hangs on, which is an answer saying the record has the wrong size. NULL on a report that went out at once, and NULL again once that answer has been cleared from a task sent back.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.new_size_id IS 'The size a waiting exchange asks for. NULL on a loss and on an exchange that names no size.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.words IS 'What the member wrote when they raised it: the note on a loss, the reason on an exchange. Empty on a report that went out at once, because it carries its own words on the piece or on the movement.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.raised_by IS 'Who raised it, which is the member or one of their guardians. NULL once that person is no longer a member here.';
+COMMENT ON COLUMN ember_schema.inventory_self_check_raised.raised_at IS 'When it was raised, which on a waiting report is when the member asked for it rather than when it went out.';
+
+-- The answers of one task are read by the task, so that is what the index is on.
+--
+-- The two indexes above are partial: one covers the rows about a piece, the other the rows about an
+-- empty place. Neither can serve a plain read of one task's answers, because either one leaves out
+-- rows the read wants, so every such read walks the table. The sibling table that records what a
+-- member raised has had this index from the start.
+
+CREATE INDEX idx_inventory_self_check_item_task ON ember_schema.inventory_self_check_item (task_id);
+
+-- A kind is looked up by its merge key, so that is what may not repeat.
+--
+-- The table was written unique on the raw name, which lets Funk and funk both be filed in one
+-- inventory: the check made before writing compares merge keys and would refuse the second, but two
+-- people saving at the same moment both pass that check and the database lets both through. From
+-- then on every search returns whichever of the two it happens to find first, and the kind is
+-- counted twice. The tags in this same migration already do it the right way round.
+--
+-- Rows that already collide are merged rather than left to break this, the oldest kept: everything
+-- pointing at a duplicate is repointed at the survivor, and a pointer that would then collide with
+-- one the survivor already carries is dropped instead, because the survivor's row says the same
+-- thing. The mapping is written down once and read by every repoint, so no two of them can disagree
+-- about which row survives.
+
+CREATE TABLE ember_schema.inventory_art_merge AS
+SELECT dup.id AS drop_id, keeper.keep_id
+FROM ember_schema.inventory_art dup
+         JOIN (SELECT inventory_id, merge_key, min(id) AS keep_id
+               FROM ember_schema.inventory_art
+               GROUP BY inventory_id, merge_key) keeper
+              ON keeper.inventory_id = dup.inventory_id AND keeper.merge_key = dup.merge_key
+WHERE dup.id <> keeper.keep_id;
+
+DELETE
+FROM ember_schema.inventory_field_definition doomed
+    USING ember_schema.inventory_art_merge merged
+WHERE doomed.art_id = merged.drop_id
+  AND EXISTS (SELECT 1
+              FROM ember_schema.inventory_field_definition standing
+              WHERE standing.inventory_id = doomed.inventory_id
+                AND standing.art_id = merged.keep_id
+                AND standing.key = doomed.key);
+
+DELETE
+FROM ember_schema.federation_inventory_share doomed
+    USING ember_schema.inventory_art_merge merged
+WHERE doomed.art_id = merged.drop_id
+  AND EXISTS (SELECT 1
+              FROM ember_schema.federation_inventory_share standing
+              WHERE standing.station_id = doomed.station_id
+                AND standing.art_id = merged.keep_id);
+
+UPDATE ember_schema.inventory_item item
+SET art_id = merged.keep_id
+FROM ember_schema.inventory_art_merge merged
+WHERE item.art_id = merged.drop_id;
+
+UPDATE ember_schema.inventory_field_definition definition
+SET art_id = merged.keep_id
+FROM ember_schema.inventory_art_merge merged
+WHERE definition.art_id = merged.drop_id;
+
+UPDATE ember_schema.federation_inventory_share share
+SET art_id = merged.keep_id
+FROM ember_schema.inventory_art_merge merged
+WHERE share.art_id = merged.drop_id;
+
+UPDATE ember_schema.event_equipment_need need
+SET art_id = merged.keep_id
+FROM ember_schema.inventory_art_merge merged
+WHERE need.art_id = merged.drop_id;
+
+UPDATE ember_schema.federation_lending_request_item line
+SET art_id = merged.keep_id
+FROM ember_schema.inventory_art_merge merged
+WHERE line.art_id = merged.drop_id;
+
+DELETE
+FROM ember_schema.inventory_art art
+    USING ember_schema.inventory_art_merge merged
+WHERE art.id = merged.drop_id;
+
+DROP TABLE ember_schema.inventory_art_merge;
+
+ALTER TABLE ember_schema.inventory_art
+    DROP CONSTRAINT inventory_art_inventory_id_name_key;
+
+ALTER TABLE ember_schema.inventory_art
+    ADD CONSTRAINT inventory_art_inventory_id_merge_key_key UNIQUE (inventory_id, merge_key);
+
+COMMENT ON CONSTRAINT inventory_art_inventory_id_merge_key_key ON ember_schema.inventory_art IS
+    'One kind per merge key per inventory. The name is what a station reads and the merge key is what every search compares, so uniqueness has to sit on the key: on the raw name, two spellings of one word become two kinds that no lookup can tell apart.';
+
+-- Deleting an article or a folder becomes something that can be taken back.
+--
+-- Until now the delete button was final: the row went, and the cascade took the versions, the
+-- comments, the tags, the grants and the shares with it. That is the right end state and the wrong
+-- first step. Somebody clearing up a branch of the wiki cannot see, at the moment they click, which
+-- of the twenty entries in front of them the shift leader wrote last winter, and there was nothing
+-- between the click and the loss.
+--
+-- Marking rather than removing keeps the whole entry where it stands, which is what lets the reader
+-- who deleted it be the one who puts it back: permission in the wiki is read along the folder path,
+-- and the path is still there. Nothing is moved, nothing is copied, nothing is reparented, so a
+-- restore is the same one column set back to NULL.
+
+ALTER TABLE ember_schema.kb_file
+    ADD COLUMN deleted_at          TIMESTAMPTZ,
+    ADD COLUMN deleted_by          INT REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    ADD COLUMN deleted_with_folder BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE ember_schema.kb_folder
+    ADD COLUMN deleted_at          TIMESTAMPTZ,
+    ADD COLUMN deleted_by          INT REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    ADD COLUMN deleted_with_folder BOOLEAN NOT NULL DEFAULT FALSE;
+
+COMMENT ON COLUMN ember_schema.kb_file.deleted_at IS
+    'When the article was put in the trash, NULL while it is in use. Every listing, search and share reads only rows where this is NULL, so a marked article is gone everywhere without anything being removed.';
+COMMENT ON COLUMN ember_schema.kb_file.deleted_by IS
+    'The member who put the article in the trash, NULL when they have since left the station.';
+COMMENT ON COLUMN ember_schema.kb_file.deleted_with_folder IS
+    'True where the article went to the trash because the folder around it did. Such an article is not its own entry in the trash, and it comes back when that folder comes back rather than on its own.';
+COMMENT ON COLUMN ember_schema.kb_folder.deleted_at IS
+    'When the folder was put in the trash, NULL while it is in use.';
+COMMENT ON COLUMN ember_schema.kb_folder.deleted_by IS
+    'The member who put the folder in the trash, NULL when they have since left the station.';
+COMMENT ON COLUMN ember_schema.kb_folder.deleted_with_folder IS
+    'True where the folder went to the trash because a folder above it did. It is restored with that one rather than listed beside it.';
+
+CREATE INDEX idx_kb_file_deleted_at ON ember_schema.kb_file (deleted_at) WHERE deleted_at IS NOT NULL;
+CREATE INDEX idx_kb_folder_deleted_at ON ember_schema.kb_folder (deleted_at) WHERE deleted_at IS NOT NULL;
+
+-- A folder in the trash must stop reserving its name.
+--
+-- Folder names are unique beside their siblings. Left as it is, a folder called Einsatz that somebody
+-- deleted a fortnight ago goes on refusing every new folder called Einsatz at that spot, and the
+-- refusal names a folder nobody can see. Restricting the rule to the folders still in use is the
+-- whole fix, and it keeps the rule exactly as strict for everything visible.
+
+ALTER TABLE ember_schema.kb_folder
+    DROP CONSTRAINT kb_folder_station_id_parent_id_name_key;
+
+CREATE UNIQUE INDEX kb_folder_name_unique
+    ON ember_schema.kb_folder (station_id, parent_id, name)
+    WHERE deleted_at IS NULL;
+
+COMMENT ON INDEX ember_schema.kb_folder_name_unique IS
+    'One folder of a given name beside its siblings, counting only the folders still in use. A folder in the trash keeps its name but stops reserving it, so clearing up and starting again does not run into a collision with something invisible.';
+
+-- An attendance sheet stops being editable once its evening is old.
+--
+-- A sheet anybody may still change months afterwards is not a record of the evening, it is a
+-- document with no settled state, and the report that counts trial evenings reads it as though it
+-- were settled. Age alone decides the ordinary case, so nothing has to be written down for the
+-- common one: a sheet older than the configured span is closed, and nothing about it is stored.
+--
+-- What has to be stored is the two departures from that. A manager who reopens a sheet grants it a
+-- fresh span, and that grant has an end, which is what stops a reopened sheet staying open forever.
+-- A manager who closes one on purpose does so regardless of its age, and that has to outrank both
+-- the age and any grant still running, or closing a sheet somebody just reopened would do nothing.
+
+ALTER TABLE ember_schema.attendance_session
+    ADD COLUMN unlocked_until TIMESTAMPTZ,
+    ADD COLUMN locked_at      TIMESTAMPTZ;
+
+COMMENT ON COLUMN ember_schema.attendance_session.unlocked_until IS
+    'When a manager''s reopening of this sheet runs out, NULL where nobody has reopened it and its age alone decides. A moment in the past reads the same as NULL, so an expired grant needs no clearing up.';
+COMMENT ON COLUMN ember_schema.attendance_session.locked_at IS
+    'When somebody closed this sheet on purpose, NULL where nothing was closed by hand. Set, it outranks both the age and any reopening still running, because closing a sheet that was just reopened has to mean something.';

@@ -133,7 +133,7 @@ function handleRowClick(member: StationMember) {
             </span>
           </div>
         </template>
-        <MutedText v-else size="base">&mdash;</MutedText>
+        <MutedText v-else size="base">–</MutedText>
       </Td>
     </TRow>
   </DataTable>

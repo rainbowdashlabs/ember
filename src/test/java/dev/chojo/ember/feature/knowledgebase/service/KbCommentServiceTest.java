@@ -13,6 +13,7 @@ import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
@@ -71,7 +72,7 @@ class KbCommentServiceTest extends RepositoryTestBase {
 
     @AfterAll
     static void cleanup() {
-        knowledgeBaseRepo.deleteFile(fileId);
+        knowledgeBaseRepo.purgeFile(fileId);
         stationRepo.delete(station.id());
         accountRepo.delete(account.id());
     }
@@ -247,11 +248,11 @@ class KbCommentServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Deleting a comment announces the removal with the same short preview so subscribers can
-     * retract whatever they rendered for it.
+     * Removing a comment announces which comment went, so that what was written about that one can
+     * be withdrawn while the file it sat under keeps its own notifications.
      */
     @Test
-    void deletingACommentAnnouncesTheRemoval() {
+    void deletingACommentAnnouncesWhichCommentWent() {
         when(commentRepository.findById(600)).thenReturn(Optional.of(storedComment(600, null, "farewell")));
         when(commentRepository.delete(600)).thenReturn(true);
 
@@ -263,12 +264,13 @@ class KbCommentServiceTest extends RepositoryTestBase {
                 .findFirst()
                 .orElseThrow();
         assertEquals(600, deleted.commentId());
-        assertEquals("farewell", deleted.preview());
+        assertEquals(CommentEntityType.KB, deleted.entityType());
+        assertEquals(station.id(), deleted.stationId());
     }
 
     /**
-     * Nothing is announced for a comment that does not exist, or for one the repository refuses
-     * to remove.
+     * Nothing happens for a comment that does not exist, or for one the repository refuses to
+     * remove.
      */
     @Test
     void deletingAMissingCommentAnnouncesNothing() {

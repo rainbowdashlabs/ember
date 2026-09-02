@@ -5,10 +5,14 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.account.service.SetupMail;
+import dev.chojo.ember.feature.members.entity.MailReaches;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.GuardianRequest;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.InviteRequest;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.ProvisionException;
@@ -21,6 +25,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -48,12 +53,106 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
         return prefix + "-" + System.nanoTime() + "@test.com";
     }
 
+    private StationMemberInviteService.ProvisionedMember provision(
+            int stationId, String email, String firstName, String lastName, StationUserType userType, Integer groupId) {
+        return service.provision(stationId, email, firstName, lastName, userType, groupId, SetupMail.SEND_NOW);
+    }
+
+    private StationMemberInviteService.BatchResult createBatch(int stationId, List<InviteRequest> requests) {
+        return service.createBatch(stationId, requests, SetupMail.SEND_NOW);
+    }
+
+    /**
+     * Somebody entered as an ordinary member stays one. Making a guardian a guardian is a decision
+     * of the screen that enters one, and pushing it down to here would turn every member the
+     * station writes down into somebody who may sign in and answer for other people.
+     */
+    @Test
+    void provision_leaves_an_ordinary_member_an_ordinary_member() {
+        String email = uniqueEmail("plain");
+
+        var result = provision(station.id(), email, "Paul", "Plain", StationUserType.MEMBER, null);
+
+        var member = stationMemberRepo.findById(result.memberId()).orElseThrow();
+        assertEquals(StationUserType.MEMBER, member.userType());
+        assertFalse(memberPermissionResolver.resolve(member.id()).contains(StationPermission.LOGIN));
+        assertFalse(memberPermissionResolver.resolve(member.id()).contains(StationPermission.MEMBER_GUARDIAN));
+    }
+
+    /**
+     * Somebody who is not meant to sign in is written down with no address at all. Until now the
+     * screen made one up that ended in {@code .local}, which stood in every list looking like
+     * somewhere mail could be sent, and counted as verified into the bargain.
+     */
+    @Test
+    void a_member_without_a_login_is_given_no_address_at_all() {
+        var result = provision(station.id(), null, "Kim", "Keine", StationUserType.MEMBER, null);
+
+        var account = accountRepo.findById(result.accountId()).orElseThrow();
+        assertNull(account.email());
+        assertFalse(account.emailVerified());
+        assertFalse(account.hasRealEmail());
+        verify(authService, never()).sendPasswordSetup(anyInt());
+    }
+
+    /** A blank address is the same statement as none, and must not become one made up either. */
+    @Test
+    void a_blank_address_is_read_as_no_address() {
+        var result = provision(station.id(), "   ", "Blank", "Keine", StationUserType.MEMBER, null);
+
+        var account = accountRepo.findById(result.accountId()).orElseThrow();
+        assertNull(account.email());
+    }
+
+    /** The counter-check: an address that was given is kept exactly as it was given. */
+    @Test
+    void an_address_that_was_given_is_kept_unchanged() {
+        String email = uniqueEmail("kept");
+
+        var result = provision(station.id(), email, "Klara", "Keeper", StationUserType.MEMBER, null);
+
+        var account = accountRepo.findById(result.accountId()).orElseThrow();
+        assertEquals(email, account.email());
+        assertTrue(account.emailVerified());
+        assertTrue(account.hasRealEmail());
+    }
+
+    /**
+     * The list the members screen is drawn from copes with an account that has no address: it shows
+     * an empty one rather than failing, and says plainly that nobody can be written to about them.
+     */
+    @Test
+    void the_member_list_copes_with_somebody_who_has_no_address() {
+        var result = provision(station.id(), null, "Kim", "Keine", StationUserType.MEMBER, null);
+
+        var row = stationMemberRepo.findRichMembers(station.id(), false).stream()
+                .filter(candidate -> candidate.id() == result.memberId())
+                .findFirst()
+                .orElseThrow();
+        assertEquals("", row.email());
+        assertEquals(MailReaches.NOBODY, row.mailReaches());
+    }
+
+    /** A guardian carries the right to sign in, which is the whole point of being one. */
+    @Test
+    void a_guardian_may_sign_in_and_answer_for_others() {
+        String email = uniqueEmail("guard");
+
+        var result = provision(station.id(), email, "Gerda", "Guard", StationUserType.GUARDIAN, null);
+
+        var member = stationMemberRepo.findById(result.memberId()).orElseThrow();
+        assertEquals(StationUserType.GUARDIAN, member.userType());
+        var held = memberPermissionResolver.resolve(member.id());
+        assertTrue(held.contains(StationPermission.LOGIN));
+        assertTrue(held.contains(StationPermission.MEMBER_GUARDIAN));
+    }
+
     @Test
     void provision_creates_account_membership_and_sends_setup_mail() {
         String email = uniqueEmail("alice");
         int groupId = memberGroupRepo.create(station.id(), "Group A").id();
 
-        var result = service.provision(station.id(), email, "Alice", "Apple", StationUserType.TEAM, groupId);
+        var result = provision(station.id(), email, "Alice", "Apple", StationUserType.TEAM, groupId);
 
         assertTrue(result.accountCreated());
         assertTrue(result.membershipCreated());
@@ -73,7 +172,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
         Account existing = accountRepo.create(email, "Bob", "Berry", true);
         accountRepo.createCredential(existing.id(), "hash");
 
-        var result = service.provision(station.id(), email, "Other", "Name", StationUserType.MEMBER, null);
+        var result = provision(station.id(), email, "Other", "Name", StationUserType.MEMBER, null);
 
         assertFalse(result.accountCreated());
         assertTrue(result.membershipCreated());
@@ -87,7 +186,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
         String email = uniqueEmail("carol");
         Account existing = accountRepo.create(email, "Carol", "Cherry", true);
 
-        service.provision(station.id(), email, "Carol", "Cherry", StationUserType.MEMBER, null);
+        provision(station.id(), email, "Carol", "Cherry", StationUserType.MEMBER, null);
 
         verify(authService).sendPasswordSetup(existing.id());
     }
@@ -96,9 +195,9 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
     void provision_keeps_existing_membership_untouched() {
         String email = uniqueEmail("dave");
         int groupId = memberGroupRepo.create(station.id(), "Group B").id();
-        var first = service.provision(station.id(), email, "Dave", "Damson", StationUserType.MEMBER, null);
+        var first = provision(station.id(), email, "Dave", "Damson", StationUserType.MEMBER, null);
 
-        var second = service.provision(station.id(), email, "Dave", "Damson", StationUserType.MANAGER, groupId);
+        var second = provision(station.id(), email, "Dave", "Damson", StationUserType.MANAGER, groupId);
 
         assertFalse(second.membershipCreated());
         assertEquals(first.memberId(), second.memberId());
@@ -111,20 +210,64 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
     void provision_synthetic_email_creates_account_without_mail() {
         String email = "kid.jones@" + station.id() + ".local";
 
-        var result = service.provision(station.id(), email, "Kid", "Jones", StationUserType.MEMBER, null);
+        var result = provision(station.id(), email, "Kid", "Jones", StationUserType.MEMBER, null);
 
         assertTrue(result.accountCreated());
         verify(authService, never()).sendPasswordSetup(anyInt());
     }
 
     @Test
+    void provision_holds_the_setup_mail_back_when_it_was_not_asked_for() {
+        String email = uniqueEmail("later");
+
+        var result =
+                service.provision(station.id(), email, "Lena", "Later", StationUserType.MEMBER, null, SetupMail.LATER);
+
+        assertTrue(result.accountCreated());
+        Account account = accountRepo.findByEmail(email).orElseThrow();
+        assertFalse(accountRepo.deleteTokensByAccountAndType(account.id(), TokenType.SET_PASSWORD));
+        verify(authService, never()).sendPasswordSetup(anyInt());
+    }
+
+    @Test
+    void a_member_entered_without_a_mail_can_still_be_sent_one_afterwards() {
+        String email = uniqueEmail("afterwards");
+        var result = service.provision(
+                station.id(), email, "Nina", "Nachher", StationUserType.MEMBER, null, SetupMail.LATER);
+        Account account = accountRepo.findById(result.accountId()).orElseThrow();
+
+        assertNull(account.setupCompletedAt());
+        assertFalse(accountRepo.hasChosenPassword(account.id()));
+    }
+
+    @Test
+    void batch_holds_every_setup_mail_back_when_it_was_not_asked_for() {
+        String memberEmail = uniqueEmail("junior-later");
+        String guardianEmail = uniqueEmail("parent-later");
+
+        var result = service.createBatch(
+                station.id(),
+                List.of(new InviteRequest(
+                        memberEmail,
+                        "Junior",
+                        "Later",
+                        StationUserType.MEMBER,
+                        null,
+                        List.of(new GuardianRequest(guardianEmail, "Parent", "Later")))),
+                SetupMail.LATER);
+
+        assertEquals(2, result.provisioned().size());
+        verify(authService, never()).sendPasswordSetup(anyInt());
+    }
+
+    @Test
     void provision_synthetic_email_never_attaches_existing_account() {
         String email = "twin.jones@" + station.id() + ".local";
-        service.provision(station.id(), email, "Twin", "Jones", StationUserType.MEMBER, null);
+        provision(station.id(), email, "Twin", "Jones", StationUserType.MEMBER, null);
 
         assertThrows(
                 ProvisionException.class,
-                () -> service.provision(station.id(), email, "Other", "Jones", StationUserType.MEMBER, null));
+                () -> provision(station.id(), email, "Other", "Jones", StationUserType.MEMBER, null));
     }
 
     @Test
@@ -132,7 +275,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
         String memberEmail = uniqueEmail("junior");
         String guardianEmail = uniqueEmail("parent");
 
-        var result = service.createBatch(
+        var result = createBatch(
                 station.id(),
                 List.of(new InviteRequest(
                         memberEmail,
@@ -155,10 +298,10 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
     @Test
     void batch_reports_failed_entries_and_continues() {
         String synthetic = "same.name@" + station.id() + ".local";
-        service.provision(station.id(), synthetic, "Same", "Name", StationUserType.MEMBER, null);
+        provision(station.id(), synthetic, "Same", "Name", StationUserType.MEMBER, null);
         String okEmail = uniqueEmail("fine");
 
-        var result = service.createBatch(
+        var result = createBatch(
                 station.id(),
                 List.of(
                         new InviteRequest(synthetic, "Same", "Name", StationUserType.MEMBER, null, List.of()),
@@ -173,8 +316,8 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
     @Test
     void batch_defaults_user_type_to_member() {
         String email = uniqueEmail("default");
-        var result = service.createBatch(
-                station.id(), List.of(new InviteRequest(email, "Deb", "Default", null, null, List.of())));
+        var result =
+                createBatch(station.id(), List.of(new InviteRequest(email, "Deb", "Default", null, null, List.of())));
 
         assertEquals(StationUserType.MEMBER, result.provisioned().get(0).userType());
     }
@@ -182,9 +325,9 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
     @Test
     void batch_failed_parent_skips_guardians() {
         String synthetic = "solo.kid@" + station.id() + ".local";
-        service.provision(station.id(), synthetic, "Solo", "Kid", StationUserType.MEMBER, null);
+        provision(station.id(), synthetic, "Solo", "Kid", StationUserType.MEMBER, null);
 
-        var result = service.createBatch(
+        var result = createBatch(
                 station.id(),
                 List.of(new InviteRequest(
                         synthetic,
@@ -204,7 +347,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
         Account existing = accountRepo.create(guardianEmail, "Known", "Parent", true);
         accountRepo.createCredential(existing.id(), "hash");
 
-        var result = service.createBatch(
+        var result = createBatch(
                 station.id(),
                 List.of(new InviteRequest(
                         uniqueEmail("kid"),

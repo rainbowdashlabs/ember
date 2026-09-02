@@ -13,11 +13,11 @@ import {
     faArrowsRotate, faArrowUpWideShort, faEllipsis, faEquals, faAsterisk, faBan, faBars, faBell, faBold,
     faBoxesStacked, faBoxOpen, faBuilding, faBullhorn, faCalendarDays, faCalendarPlus, faChartLine, faCheck,
     faCheckDouble, faChevronDown, faChevronLeft, faChevronRight, faChevronUp, faCircle,
-    faCircleCheck, faCircleDot, faCircleInfo, faClipboardCheck, faClipboardList, faClipboardUser,
+    faCircleCheck, faCircleDot, faCircleUp, faCircleInfo, faClipboardCheck, faClipboardList, faClipboardUser,
     faCode, faClockRotateLeft, faComment, faCopy, faDownload, faEye, faFileCode, faFileExport,
     faFire, faFolderPlus, faGauge, faGear, faGears, faGlobe, faGripVertical, faHardDrive, faHashtag, faHeading,
     faHighlighter, faHouse, faIdCard, faItalic, faLayerGroup, faAlignCenter, faAlignLeft,
-    faAlignRight, faLink, faLinkSlash, faList, faListOl, faListUl, faLock, faMedal, faMinus,
+    faAlignRight, faLink, faLinkSlash, faList, faListOl, faListUl, faLock, faLockOpen, faMedal, faMinus,
     faNewspaper, faMobileScreen, faMoon, faParagraph, faPen, faPenToSquare, faPeopleGroup,
     faPhone, faPlus, faQuoteLeft, faRainbow, faRightFromBracket, faRightLeft, faRightToBracket, faRss,
     faRotate, faScissors, faShield, faShuffle, faScaleBalanced, faSitemap, faSliders, faSort, faSortDown,
@@ -26,7 +26,7 @@ import {
     faUsersGear, faXmark, faXmarkCircle, faCircleQuestion, faFilter, faTags, faBarcode,
     faSquarePollVertical, faStar, faHeart, faThumbsUp, faGripLines, faLocationDot, faCamera,
     faToggleOn, faArrowRightArrowLeft, faPuzzlePiece, faPalette, faBook, faServer, faDatabase,
-    faEnvelope, faArrowDown, faBug, faFlag, faPaperclip, faInbox, faExpand, faRocket,
+    faEnvelope, faArrowDown, faBug, faFlag, faPaperclip, faInbox, faExpand, faRocket, faShirt,
     faShareNodes, faHandshake, faRobot, faCircleXmark, faRotateLeft, faCodeCompare, faTrophy,
     faRedo, faArrowLeft, faHandHolding, faCalendarXmark, faCheckCircle, faEyeSlash, faDesktop,
     faUserGear, faCalendar, faChartBar, faChartPie, faClock, faHand, faImage, faPaperPlane,
@@ -46,7 +46,7 @@ import {
 library.add(
     faDiagramProject, faSun, faMoon, faCheck, faAngleDown, faAngleUp, faAnglesDown, faAnglesUp, faEllipsis,
     faEquals, faXmark, faXmarkCircle, faSpinner, faCircleInfo, faCircleCheck, faCircle,
-    faCircleDot, faTriangleExclamation, faDownload, faUpload, faTrash, faPen, faLock,
+    faCircleDot, faCircleUp, faTriangleExclamation, faDownload, faUpload, faTrash, faPen, faLock, faLockOpen,
     faRightFromBracket, faRightToBracket, faBars, faGauge, faChevronDown, faChevronRight,
     faBullhorn,
     faHouse, faChartLine, faShield, faSitemap, faBuilding, faGears, faUsers, faUserGroup, faUserPlus,
@@ -75,7 +75,7 @@ library.add(
     faPaste, faClone, faHourglassHalf, faArrowUp, faSatelliteDish, faMapLocationDot,
     faUserClock, faFloppyDisk, faBoxArchive, faFilePowerpoint, faDisplay, faKey,
     faArrowsUpDown, faLightbulb, faBroom, faTowerBroadcast, faEllipsisVertical,
-    faWarehouse, faBox, faSuitcase, faCube,
+    faWarehouse, faBox, faSuitcase, faCube, faShirt,
 )
 
 export default defineNuxtPlugin((nuxtApp) => {

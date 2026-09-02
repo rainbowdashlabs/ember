@@ -102,6 +102,10 @@ public class BoardRoutes implements Routes {
         routes.get(prefix + "/boards/{boardKey}/ticket-labels", this::getAllTicketLabels, StationPermission.BOARD_USE);
         routes.get(prefix + "/boards/{boardKey}/members", this::listBoardMembers, StationPermission.BOARD_USE);
         routes.get(
+                prefix + "/boards/{boardKey}/assignable-members",
+                this::listAssignableMembers,
+                StationPermission.BOARD_USE);
+        routes.get(
                 prefix + "/boards/{boardKey}/federation", this::getFederationConfig, StationPermission.BOARD_FEDERATE);
         routes.put(
                 prefix + "/boards/{boardKey}/federation", this::setFederationConfig, StationPermission.BOARD_FEDERATE);
@@ -506,7 +510,7 @@ public class BoardRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/boards/{boardKey}/members",
             methods = HttpMethod.GET,
-            summary = "List members that can be assigned to tickets on this board",
+            summary = "List the station's members, for rendering the names a board shows",
             tags = {"Boards"},
             pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
             responses = @OpenApiResponse(status = "200"))
@@ -514,6 +518,26 @@ public class BoardRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         resolveBoardId(ctx, session.stationId());
         ctx.json(memberIdentityFactory.enrichCompletions(memberService.findCompletions(session.stationId())));
+    }
+
+    /**
+     * Whom a ticket on this board may be handed to. Narrower than the station's members, which the
+     * board still needs in full to put a name on whoever is already on a ticket.
+     */
+    @OpenApi(
+            path = "/api/v1/boards/{boardKey}/assignable-members",
+            methods = HttpMethod.GET,
+            summary = "List members that may be assigned tickets on this board",
+            tags = {"Boards"},
+            pathParams = @OpenApiParam(name = "boardKey", type = String.class, required = true),
+            responses = @OpenApiResponse(status = "200"))
+    private void listAssignableMembers(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int boardId = resolveBoardId(ctx, session.stationId());
+        var allowed = boardService.findMembersWhoMayEdit(boardId, session.stationId());
+        ctx.json(memberIdentityFactory.enrichCompletions(memberService.findCompletions(session.stationId()).stream()
+                .filter(completion -> allowed.contains(completion.id()))
+                .toList()));
     }
 
     @OpenApi(

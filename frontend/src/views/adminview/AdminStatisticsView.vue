@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, onUnmounted, ref} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {use} from 'echarts/core'
 import {CanvasRenderer} from 'echarts/renderers'
@@ -21,24 +21,11 @@ import GrowthStatsSection from './adminstatisticsview/GrowthStatsSection.vue'
 import HealthStatsSection from './adminstatisticsview/HealthStatsSection.vue'
 import DataStatsSection from './adminstatisticsview/DataStatsSection.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {darkThemeActive as isDark} from '@/util/themeState'
 
 use([CanvasRenderer, BarChart, LineChart, PieChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent])
 
 const {t, te} = useI18n()
-
-const isDark = ref(document.documentElement.classList.contains('dark'))
-let observer: MutationObserver | null = null
-
-onMounted(() => {
-  observer = new MutationObserver(() => {
-    isDark.value = document.documentElement.classList.contains('dark')
-  })
-  observer.observe(document.documentElement, {attributes: true, attributeFilter: ['class']})
-})
-
-onUnmounted(() => {
-  observer?.disconnect()
-})
 
 const textColor = computed(() => isDark.value ? '#e0e0e0' : '#333333')
 const mutedColor = computed(() => isDark.value ? '#9ca3af' : '#666666')

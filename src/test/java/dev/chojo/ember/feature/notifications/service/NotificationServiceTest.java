@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.notifications.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
@@ -16,6 +18,7 @@ import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -153,19 +156,16 @@ class NotificationServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(20)
-    void deleteByTypeContaining() {
-        var data = NotificationData.of(
-                new NotificationParams.LostAndFoundNew("Blue hat"),
-                new NotificationData.NotificationLink("dashboard-overview"));
-        service.notify(member1.id(), NotificationType.LOST_AND_FOUND_NEW, data);
+    void deleteAllPointingAt() {
+        var link = new NotificationData.NotificationLink("lost-and-found", Map.of("id", 4711));
+        service.notify(
+                member1.id(),
+                NotificationType.LOST_AND_FOUND_NEW,
+                NotificationData.of(new NotificationParams.LostAndFoundNew("Blue hat"), link));
         assertTrue(service.findUnacknowledged(member1.id()).stream()
                 .anyMatch(n -> n.type() == NotificationType.LOST_AND_FOUND_NEW));
 
-        service.deleteByTypeContaining(
-                NotificationType.LOST_AND_FOUND_NEW,
-                NotificationData.of(
-                        new NotificationParams.LostAndFoundNew("Blue hat"),
-                        new NotificationData.NotificationLink("dashboard-overview")));
+        service.deleteAllPointingAt(link);
 
         assertFalse(service.findUnacknowledged(member1.id()).stream()
                 .anyMatch(n -> n.type() == NotificationType.LOST_AND_FOUND_NEW));
@@ -730,6 +730,41 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertEquals(
                 "https://ember.example.com/station/events/42?station=" + stationUid,
                 service.resolveNotificationUrl("https://ember.example.com", stationUid, known));
+    }
+
+    /**
+     * A mail or feed entry about a comment opens on that comment, and still carries the station it
+     * belongs to.
+     */
+    @Test
+    @Order(106)
+    void resolveNotificationUrlCarriesTheCommentAndTheStation() {
+        var data = NotificationData.of(
+                new NotificationParams.NewsComment("Sturm", "Bea", "Danke"),
+                NotificationLinks.comment(CommentEntityType.NEWS, 7, null, 42));
+        var stationUid = UUID.fromString("00000000-0000-0000-0000-000000000042");
+
+        assertEquals(
+                "https://ember.example.com/station/news/7?comment=42&station=" + stationUid,
+                service.resolveNotificationUrl("https://ember.example.com", stationUid, data));
+    }
+
+    /**
+     * The address of a ticket is its board and its number, and a comment on one has to fill both.
+     * A link naming the ticket by id alone leaves the placeholders standing in the path, so the
+     * rendered address is held against the route rather than against the link's own shape.
+     */
+    @Test
+    @Order(106)
+    void resolveNotificationUrlFillsEveryPlaceholderOfATicketComment() {
+        var data = NotificationData.of(
+                new NotificationParams.CommentMention("DEV-42", "Bea", "@With"),
+                NotificationLinks.comment(CommentEntityType.BOARD_TICKET, 7, new BoardTicketAddress("DEV", 42), 601));
+
+        String url = service.resolveNotificationUrl("https://ember.example.com", null, data);
+
+        assertEquals("https://ember.example.com/station/boards/DEV/tickets/42?comment=601", url);
+        assertFalse(url.contains("{"), "no part of the route was left unfilled");
     }
 
     @Test

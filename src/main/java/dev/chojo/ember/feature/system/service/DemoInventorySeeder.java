@@ -19,8 +19,10 @@ import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.repository.InventoryTagRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
@@ -67,6 +69,8 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
             ExchangeStatus.RECEIVED);
 
     private final InventoryRepository inventoryRepository;
+    private final InventoryArtRepository artRepository;
+    private final InventoryTagRepository tagRepository;
     private final InventoryCheckRepository inventoryCheckRepository;
     private final AccountRepository accountRepository;
     private final InventoryContainerService containerService;
@@ -78,6 +82,8 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
     @Inject
     public DemoInventorySeeder(
             InventoryRepository inventoryRepository,
+            InventoryArtRepository artRepository,
+            InventoryTagRepository tagRepository,
             InventoryCheckRepository inventoryCheckRepository,
             AccountRepository accountRepository,
             InventoryContainerService containerService,
@@ -86,6 +92,8 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
             ProcurementService procurementService,
             ItemCustodyService custodyService) {
         this.inventoryRepository = inventoryRepository;
+        this.artRepository = artRepository;
+        this.tagRepository = tagRepository;
         this.inventoryCheckRepository = inventoryCheckRepository;
         this.accountRepository = accountRepository;
         this.containerService = containerService;
@@ -278,10 +286,16 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
             inventoryRepository.createSize(tshirt.id(), tshirtSizes.get(i), i, "");
 
         // Gear whose owner is not on this instance: the same ownership with nobody behind it, which is what
-        // makes the asserted half of the model visible. Every station keeps some, association or not
-        var gemeindematerial = inventoryRepository.create(stationId, "Gemeindematerial", InventoryType.EXTERNAL, false);
-        inventoryRepository.createItem(
-                gemeindematerial.id(), "GM-0001", "Funkgerät der Gemeinde", null, null, ItemOwner.CLUSTER, null);
+        // makes the asserted half of the model visible. Every station keeps some, association or not.
+        //
+        // It is also the drawer of different things, which is why it is the one inventory here that is not
+        // marked as holding one thing in many copies: several names under one heading, fetched for an
+        // occasion and handed back. With it marked, the barrier is something the demo shows rather than
+        // something only the tests know about, and the three features that need one thing are simply not
+        // offered on it.
+        var gemeindematerial =
+                inventoryRepository.create(stationId, "Gemeindematerial", InventoryType.EXTERNAL, false, false);
+        seedGemeindematerial(stationId, gemeindematerial.id());
 
         // Requirements: Anfänger and Fortgeschritten members each need 1 of each (2 T-shirts)
         for (int groupId : List.of(anfaengerGroupId, fortgeschrittenGroupId)) {
@@ -490,8 +504,39 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
 
         seedStorageContainers(stationId, rng, helm, stiefel, sporttasche, blouson, parka, latzhose);
         seedCustomFields(stiefel.id(), helm.id());
+        seedFurtherInventories(stationId);
 
         log.info("Demo: Created {} inventory items with {} history entries", itemCounter - 1, historyCount);
+    }
+
+    /**
+     * The everyday inventories a station keeps beside its uniform shelves.
+     *
+     * <p>The radios are the collection worth looking at: six of the blue kind, whose pieces need no
+     * names of their own, and a case nobody gave a kind to, which is the ordinary state of most
+     * pieces and the state every screen has to read without complaining.
+     */
+    private void seedFurtherInventories(int stationId) {
+        var spiele = inventoryRepository.create(stationId, "Spiele", InventoryType.INTERNAL, false);
+        inventoryRepository.createItem(spiele.id(), null, "Die Siedler von Catan", null, null);
+        inventoryRepository.createItem(spiele.id(), null, "Uno", null, null);
+        inventoryRepository.createItem(spiele.id(), null, "Twister", null, null);
+
+        var sonstiges = inventoryRepository.create(stationId, "Sonstiges", InventoryType.INTERNAL, false);
+        inventoryRepository.createItem(sonstiges.id(), null, "Laminiergerät", null, null);
+        inventoryRepository.createItem(sonstiges.id(), null, "Playmobil-Feuerwehrauto", null, null);
+        inventoryRepository.createItem(sonstiges.id(), null, "Ladestation", null, null);
+        inventoryRepository.createItem(sonstiges.id(), null, "Antenne", null, null);
+
+        var funk = inventoryRepository.create(stationId, "Handfunkgeräte", InventoryType.INTERNAL, false, false);
+        var blau = artRepository.create(funk.id(), "Funkgerät blau", "Kanal 1 bis 4", 10);
+        for (int i = 1; i <= 6; i++) {
+            inventoryRepository.createItem(
+                    funk.id(), "FUNK-B%02d".formatted(i), "Funkgerät blau", null, blau.id(), null, null, null);
+        }
+        inventoryRepository.createItem(funk.id(), "FUNK-K01", "Koffer", null, null);
+
+        log.info("Demo: Created 3 further inventories in station {}", stationId);
     }
 
     private void seedStorageContainers(
@@ -600,6 +645,69 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
         }
     }
 
+    /**
+     * The mixed drawer, with kinds in it.
+     *
+     * <p>The one inventory here that holds different things, so the one that can have kinds at all.
+     * It is written the way a real drawer looks: two kinds with several pieces each, whose pieces
+     * need no names of their own, and four one-offs with no kind, which is the ordinary state of
+     * most pieces and the state every screen has to read without complaining. A field hangs on one
+     * of the kinds rather than on the inventory, because a call sign is nonsense on a coffee machine
+     * standing in the same cupboard.
+     */
+    private void seedGemeindematerial(int stationId, int inventoryId) {
+        var blau = artRepository.create(inventoryId, "Funkgerät blau", "Kanal 1 bis 4", 10);
+        var gruen = artRepository.create(inventoryId, "Funkgerät grün", "Kanal 5 bis 8", 20);
+        var funk = tagRepository.create(stationId, "Funk", "#3694FF");
+        var gemeinde = tagRepository.create(stationId, "Gemeinde", null);
+        var radios = new ArrayList<InventoryItem>();
+        for (int i = 1; i <= 3; i++) {
+            radios.add(inventoryRepository.createItem(
+                    inventoryId,
+                    "GM-B%02d".formatted(i),
+                    "Funkgerät blau",
+                    null,
+                    blau.id(),
+                    null,
+                    ItemOwner.CLUSTER,
+                    null));
+        }
+        for (int i = 1; i <= 2; i++) {
+            radios.add(inventoryRepository.createItem(
+                    inventoryId,
+                    "GM-G%02d".formatted(i),
+                    "Funkgerät grün",
+                    null,
+                    gruen.id(),
+                    null,
+                    ItemOwner.CLUSTER,
+                    null));
+        }
+        fieldDefinitionService.create(
+                inventoryId,
+                blau.id(),
+                null,
+                "call_sign",
+                "Rufname",
+                FieldType.TEXT,
+                false,
+                10,
+                fieldDefinitionService.defaultConfig(FieldType.TEXT));
+
+        var ladestation = inventoryRepository.createItem(
+                inventoryId, "GM-0001", "Ladestation", null, null, ItemOwner.CLUSTER, null);
+        inventoryRepository.createItem(inventoryId, "GM-0002", "Laminiergerät", null, null, ItemOwner.CLUSTER, null);
+        var beamer = inventoryRepository.createItem(
+                inventoryId, "GM-0003", "Beamer der Gemeinde", null, null, ItemOwner.CLUSTER, null);
+        inventoryRepository.createItem(inventoryId, "GM-0004", "Kaffeemaschine", null, null, ItemOwner.CLUSTER, null);
+
+        for (var radio : radios) {
+            tagRepository.setItemTags(radio.id(), stationId, List.of(funk.id(), gemeinde.id()));
+        }
+        tagRepository.setItemTags(ladestation.id(), stationId, List.of(funk.id(), gemeinde.id()));
+        tagRepository.setItemTags(beamer.id(), stationId, List.of(gemeinde.id()));
+    }
+
     private void seedCustomFields(int stiefelId, int helmId) {
         FieldConfig.EnumConfig condition = new FieldConfig.EnumConfig(List.of(
                 new FieldConfig.EnumConfig.EnumOption("new", "Neu"),
@@ -655,6 +763,7 @@ public class DemoInventorySeeder implements DemoPerStationSeeder {
                     item.internalId(),
                     item.name(),
                     item.sizeId(),
+                    item.artId(),
                     new InventoryItemMetadata(new ItemFieldValues(values)));
             idx++;
         }

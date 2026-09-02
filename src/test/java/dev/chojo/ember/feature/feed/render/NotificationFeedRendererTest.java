@@ -374,7 +374,10 @@ class NotificationFeedRendererTest {
                         LocalDate.of(2026, 10, 7),
                         99,
                         Instant.now(),
-                        Instant.now())));
+                        Instant.now(),
+                        null,
+                        null,
+                        "")));
         var n = notification(
                 52,
                 NotificationType.LENDING_NEW_REQUEST,
@@ -431,7 +434,8 @@ class NotificationFeedRendererTest {
     @Test
     void procurementEnrichmentAddsInventoryType() {
         when(inventoryService.findById(99))
-                .thenReturn(Optional.of(new Inventory(99, 1, "Schlauch 25m", InventoryType.INTERNAL, false)));
+                .thenReturn(
+                        Optional.of(new Inventory(99, 1, "Schlauch 25m", InventoryType.INTERNAL, false, true, false)));
         var n = notification(
                 70,
                 NotificationType.PROCUREMENT_REQUESTED,
@@ -458,7 +462,7 @@ class NotificationFeedRendererTest {
                 73,
                 NotificationType.PROCEDURE_ASSIGNED,
                 new NotificationParams.ProcedureAssigned("Quarterly truck check", "Alice"),
-                new NotificationData.NotificationLink("procedures", Map.of("id", 80)));
+                new NotificationData.NotificationLink("procedure-detail", Map.of("id", 80)));
         var html = renderer.render(n, richCtx()).getContents().getFirst().getValue();
         assertTrue(html.contains("Progress"), "Progress row label should be present: " + html);
         // Mock echoes the bundle key "progressFormat" after substituting {checked} and {total}.
@@ -474,7 +478,7 @@ class NotificationFeedRendererTest {
                 74,
                 NotificationType.PROCEDURE_RESOLVED,
                 new NotificationParams.ProcedureResolvedParams("Empty procedure"),
-                new NotificationData.NotificationLink("procedures", Map.of("id", 81)));
+                new NotificationData.NotificationLink("procedure-detail", Map.of("id", 81)));
         var html = renderer.render(n, richCtx()).getContents().getFirst().getValue();
         assertFalse(html.contains("Progress"));
     }

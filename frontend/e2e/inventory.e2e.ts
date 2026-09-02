@@ -4,6 +4,63 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, apiHeaders, stationPeers} from './fixtures/auth'
+import {setExchangeFilter} from './fixtures/exchangeFilter'
+import type {Locator, Page} from '@playwright/test'
+
+/** Which of the two modes the page is painted in right now. */
+async function darkModeClass(page: Page): Promise<'dark' | 'light'> {
+    const dark = await page.locator('html').evaluate(html => html.classList.contains('dark'))
+    return dark ? 'dark' : 'light'
+}
+
+/**
+ * Presses the theme toggle until the page is painted the way the story needs it.
+ *
+ * <p>The toggle walks the three settings in a circle and one of them follows the system, so which
+ * press lands where depends on what the account was left on. Reading the result back is the only
+ * way to know where the circle stands.
+ */
+async function switchThemeTo(page: Page, mode: 'dark' | 'light'): Promise<void> {
+    const toggle = page.getByRole('button', {name: 'Toggle theme'})
+    for (let press = 0; press < 4; press++) {
+        if (await darkModeClass(page) === mode) return
+        await toggle.click()
+    }
+    throw new Error(`The theme toggle never reached the ${mode} mode`)
+}
+
+/** The colour the browser paints an element's letters in. */
+function lettersOf(element: Locator): Promise<string> {
+    return element.evaluate(node => getComputedStyle(node).color)
+}
+
+/**
+ * Every distinct colour the member names carrying no colour of their own are painted in, with the
+ * page's own colour named rather than spelled out, so a failure reads as the colour that is wrong.
+ *
+ * <p>Both readings are taken in one go: the theme can be repainted between two separate ones, and
+ * a name compared against the colour of the theme before says nothing.
+ */
+function namesAgainstThePage(page: Page): Promise<string[]> {
+    return page.evaluate(() => {
+        const pageColour = getComputedStyle(document.body).color
+        const names = [...document.querySelectorAll<HTMLElement>('[data-testid="member-name"]')]
+        const painted = names.filter(name => !name.style.color)
+            .map(name => getComputedStyle(name).color)
+        return [...new Set(painted)].map(colour => colour === pageColour ? 'the page colour' : colour)
+    })
+}
+
+/** What each status of an exchange is called on screen, which is what a tick is pressed by. */
+const EXCHANGE_STATUS_LABELS: Record<string, string> = {
+    ANNOUNCED: 'Angekündigt',
+    RECEIVED: 'Empfangen',
+    SHIPPED: 'Versendet',
+    ARRIVED: 'Angekommen',
+    DONE: 'Erledigt',
+    CANCELLED: 'Abgebrochen',
+    DECLINED: 'Abgelehnt',
+}
 
 test.describe('Inventory', () => {
     test('the inventory list shows the inventories of the station', async ({managerPage: page}) => {
@@ -287,6 +344,39 @@ test.describe('Inventory', () => {
     })
 
     /**
+     * A walk goes forwards one piece at a time, and a wrong tap used to stand until the whole check
+     * was closed and reopened from the list behind it. The step back is proved by the count of what
+     * is left: deciding takes one off it, and going back puts it on again, which can only happen if
+     * the decision was taken off the piece as well.
+     */
+    test('a decision made during the quick check is taken back', async ({managerPage: page}) => {
+        await page.goto('/station/inventory/checks/member')
+
+        const starts = page.getByRole('button', {name: 'Prüfung starten'})
+        await expect(starts.first()).toBeVisible({timeout: 15000})
+        await starts.first().click()
+        await page.waitForURL(/\/station\/inventory\/checks\/(\d+)/)
+
+        await page.getByRole('button', {name: 'Schnellprüfung'}).click()
+
+        const remaining = async () => {
+            const text = await page.getByText(/Gegenstände verbleibend/).first().textContent()
+            return Number(text?.match(/(\d+)/)?.[1] ?? 0)
+        }
+        const present = page.getByRole('button', {name: 'Vorhanden'})
+        const neverHeld = page.getByRole('button', {name: 'Nicht im Besitz'})
+        await expect(present.or(neverHeld).first()).toBeVisible({timeout: 15000})
+
+        const before = await remaining()
+        if (await present.isVisible()) await present.click()
+        else await neverHeld.click()
+        await expect.poll(remaining, {timeout: 15000}).toBe(before - 1)
+
+        await page.getByTestId('rapid-back').click()
+        await expect.poll(remaining, {timeout: 15000}).toBe(before)
+    })
+
+    /**
      * Procurement is the list of what the station is short of. It is read rather than filled in:
      * what stands in it follows from the requirements and the stock.
      */
@@ -326,6 +416,10 @@ test.describe('Inventory', () => {
      * ones somebody thought of: the two common ones are offered, and anything else is written out. The
      * window opens on a reason already chosen, because a check that has to be filled in before it can
      * be saved is a check nobody raises.
+     *
+     * The walk steps past whatever already has something running on it. A piece can only be on one
+     * movement at a time, so those pieces are offered no swap at all, and the story goes on until it
+     * reaches one that can have one.
      */
     test('a check raises an exchange for a piece that does not fit', async ({managerPage: page}) => {
         await page.goto('/station/inventory/checks/member')
@@ -334,8 +428,11 @@ test.describe('Inventory', () => {
 
         await page.getByRole('button', {name: 'Schnellprüfung'}).click()
 
-        const exchange = page.getByTestId('rapid-exchange').first()
-        await expect(exchange).toBeVisible({timeout: 15000})
+        const exchange = page.getByTestId('rapid-exchange')
+        const skip = page.getByTestId('rapid-skip')
+        await expect(skip).toBeVisible({timeout: 15000})
+        for (let walked = 0; walked < 12 && !(await exchange.isVisible()); walked++) await skip.click()
+        await expect(exchange, 'the walk reaches a piece nothing is running on').toBeVisible({timeout: 15000})
         await exchange.click()
 
         const confirm = page.getByTestId('rapid-exchange-confirm')
@@ -449,4 +546,340 @@ test.describe('Inventory', () => {
         expect(written[0].internalId ?? null, 'with no number on it').toBeNull()
         expect(written[0].assignedTo, 'in the hands of the member on its line').toBeTruthy()
     })
+
+    /**
+     * An inventory says whether it holds one thing in many copies or a drawer of different things,
+     * and the three features that only mean something for the first stop offering themselves for
+     * the second. The story marks a drawer, then goes to the screen that writes requirements and
+     * expects it not to be on offer there.
+     */
+    test('a drawer of different things is not offered where one thing is meant', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const stamp = Date.now()
+        const drawer = `Gemeindekiste ${stamp}`
+        await page.request.post('/api/v1/inventories', {
+            headers,
+            data: {name: drawer, inventoryType: 'INTERNAL', hasSizes: false, homogeneous: false},
+        })
+
+        await page.goto('/station/inventory/requirements')
+        await page.getByTestId('requirement-add').click()
+
+        const picker = page.getByTestId('requirement-inventory')
+        await expect(picker).toBeVisible()
+        // The picker has something in it, so an empty list is not what makes the next line pass
+        await expect(picker.getByRole('option')).not.toHaveCount(1)
+        await expect(picker.getByRole('option', {name: drawer})).toHaveCount(0)
+
+        // and the inventory really does exist; it is this screen that does not offer it
+        const listed = await page.request.get('/api/v1/inventories', {headers}).then(r => r.json())
+        expect(listed.some((inv: {name?: string}) => inv.name === drawer)).toBeTruthy()
+    })
+
+    /**
+     * Splitting an inventory is a move rather than a delete and a rewrite, which is what keeps the
+     * pieces the pieces they were. The story moves one and expects it in the other inventory with
+     * the identifier it started with.
+     */
+    test('a piece moves to another inventory and stays the piece it was', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const stamp = Date.now()
+        const from = await page.request.post('/api/v1/inventories',
+            {headers, data: {name: `Bundhose leicht ${stamp}`, inventoryType: 'INTERNAL', hasSizes: false}})
+            .then(r => r.json())
+        const to = await page.request.post('/api/v1/inventories',
+            {headers, data: {name: `Bundhose schwer ${stamp}`, inventoryType: 'INTERNAL', hasSizes: false}})
+            .then(r => r.json())
+        const code = `BH-${stamp}`
+        const made = await page.request.post(`/api/v1/inventories/${from.id}/items`, {
+            headers,
+            data: {internalId: code, name: 'Bundhose', sizeId: null, metadata: null,
+                ownerKind: 'STATION', ownerClusterId: null},
+        })
+        expect(made.ok(), `a piece is recorded (${await made.text()})`).toBeTruthy()
+        const item = await made.json()
+
+        await page.goto(`/station/inventory/move/${from.id}`)
+        await page.getByTestId('move-target').selectOption({label: `Bundhose schwer ${stamp}`})
+        await page.getByTestId('move-select-all').check()
+        await page.getByTestId('move-submit').click()
+
+        await expect(page.getByTestId('move-done')).toBeVisible()
+
+        const moved = await page.request.get(`/api/v1/inventories/${to.id}/items`, {headers})
+            .then(r => r.json())
+        expect(moved.length, 'the piece arrived').toBe(1)
+        expect(moved[0].id, 'as the same row it always was').toBe(item.id)
+        expect(moved[0].internalId, 'with the number it started with').toBe(code)
+    })
+
+    /**
+     * Tidying a drawer up into kinds. The point of the story is the rename: setting a kind leaves
+     * the name alone, and the name is what every list and both exports read, so a typo would go on
+     * reading as a typo under a heading that says otherwise. Merging therefore rewrites it.
+     */
+    test('two spellings of one thing become one kind, and the typo is written out', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const stamp = Date.now()
+        const drawer = await page.request.post('/api/v1/inventories', {
+            headers,
+            data: {name: `Funkgeräte ${stamp}`, inventoryType: 'INTERNAL', hasSizes: false, homogeneous: false},
+        }).then(r => r.json())
+
+        const right = 'Funkgerät orange'
+        const typo = 'Funkgerät organge'
+        for (const name of [right, right, typo]) {
+            const made = await page.request.post(`/api/v1/inventories/${drawer.id}/items`, {
+                headers,
+                data: {internalId: null, name, sizeId: null, artId: null, metadata: null,
+                    ownerKind: 'STATION', ownerClusterId: null},
+            })
+            expect(made.ok(), `a piece is recorded (${await made.text()})`).toBeTruthy()
+        }
+
+        await page.goto(`/station/inventory/tidy/${drawer.id}`)
+        await expect(page.getByTestId('tidy-names')).toBeVisible()
+
+        await page.getByTestId(`tidy-name-${right}`).check()
+        await page.getByTestId(`tidy-name-${typo}`).check()
+        await page.getByTestId('tidy-art-name').fill(right)
+        await page.getByTestId('tidy-merge').click()
+
+        await expect(page.getByTestId('tidy-done')).toBeVisible()
+
+        const arts = await page.request.get(`/api/v1/inventories/${drawer.id}/arts`, {headers})
+            .then(r => r.json())
+        expect(arts.length, 'one kind was written down, and only one').toBe(1)
+        expect(arts[0].name).toBe(right)
+
+        const pieces = await page.request.get(`/api/v1/inventories/${drawer.id}/items`, {headers})
+            .then(r => r.json())
+        expect(pieces.every((p: {artId?: number}) => p.artId === arts[0].id),
+            'every piece is of that kind').toBeTruthy()
+        expect(pieces.some((p: {name?: string}) => p.name === typo),
+            'and the misspelling is gone from the names as well').toBeFalsy()
+    })
+
+    /**
+     * A word put on a piece finds that piece again, whatever inventory it is filed under and
+     * however the word is typed the second time. The word is written into the picker rather than
+     * created beforehand, because making one up on the spot is the ordinary way a word comes to
+     * exist.
+     */
+    test('a word is put on a piece and finds it again', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const stamp = Date.now()
+        const word = `Funk${stamp}`
+
+        const drawer = await page.request.post('/api/v1/inventories', {
+            headers,
+            data: {name: `Funklager ${stamp}`, inventoryType: 'INTERNAL', hasSizes: false, homogeneous: true},
+        }).then(r => r.json())
+        const made = await page.request.post(`/api/v1/inventories/${drawer.id}/items`, {
+            headers,
+            data: {internalId: `FK-${stamp}`, name: 'Ladestation', sizeId: null, artId: null, metadata: null,
+                ownerKind: 'STATION', ownerClusterId: null},
+        })
+        expect(made.ok(), `a piece is recorded (${await made.text()})`).toBeTruthy()
+        const piece = await made.json()
+
+        await page.goto(`/station/inventory/detail/${drawer.id}`)
+        await page.getByTestId('actions-menu-trigger').first().click()
+        await page.getByTestId('actions-menu').getByText('Bearbeiten').click()
+
+        const picker = page.getByTestId('item-tags')
+        await expect(picker).toBeVisible()
+        await picker.getByTestId('label-select').click()
+        await picker.getByPlaceholder('Suchen oder erstellen...').fill(word)
+        await picker.getByTestId('label-select-create').click()
+        await page.getByTestId('modal').getByRole('button', {name: 'Speichern'}).click()
+
+        await expect(async () => {
+            const worn = await page.request.get(`/api/v1/inventory-items/${piece.id}/tags`, {headers})
+                .then(r => r.json())
+            expect(worn.map((tag: {name: string}) => tag.name), 'the piece wears the word').toContain(word)
+        }).toPass()
+
+        const found = await page.request.get('/api/v1/inventory-tags/items', {
+            headers,
+            params: {tag: ` ${word.toLowerCase()} `},
+        }).then(r => r.json())
+        expect(found.map((item: {itemId: number}) => item.itemId),
+            'and the word finds it again however it is typed').toContain(piece.id)
+    })
+
+    /**
+     * Narrowing the exchange list is what makes exporting part of it possible.
+     *
+     * <p>The export sends the numbers of the rows that are ticked, so whoever wants the requests of
+     * one inventory used to pick them out of every request the station has. The story filters the
+     * list, ticks everything left standing, and reads the numbers that actually leave the browser:
+     * the ones the filter hid must not be among them, or the button would quietly export the whole
+     * station.
+     */
+    test('the exchange list narrows down and the export carries only what is left',
+        async ({managerPage: page}) => {
+            const headers = await apiHeaders(page)
+            const raised: {id: number; inventoryId: number; inventoryName: string; status: string}[] =
+                await page.request.get('/api/v1/exchanges', {headers}).then(r => r.json())
+            const ended = ['DONE', 'CANCELLED', 'DECLINED']
+            const open = raised.filter(exchange => !ended.includes(exchange.status))
+            expect(open.length, 'the seeded station has exchanges to narrow down').toBeGreaterThan(1)
+
+            const inventories = [...new Set(open.map(exchange => exchange.inventoryId))]
+            expect(inventories.length, 'spread over more than one inventory').toBeGreaterThan(1)
+
+            const inInventory = (id: number) => open.filter(exchange => exchange.inventoryId === id)
+            const chosen = inventories.reduce((best, id) =>
+                inInventory(id).length > inInventory(best).length ? id : best)
+            const expected = inInventory(chosen).map(exchange => exchange.id)
+            const chosenName = inInventory(chosen)[0].inventoryName
+
+            await page.goto('/station/inventory/exchanges')
+            const rows = page.getByTestId('exchange-row')
+            const rowOf = (id: number) => page.locator(`[data-exchange-id="${id}"]`)
+            await expect(rows.first()).toBeVisible()
+            await expect(rowOf(open[0].id), 'the list opens on the requests still running').toHaveCount(1)
+            for (const gone of raised.filter(exchange => ended.includes(exchange.status)).slice(0, 3)) {
+                await expect(rowOf(gone.id), 'and leaves out the ones that have ended').toHaveCount(0)
+            }
+
+            await setExchangeFilter(page, 'exchange-filter-inventory', [chosenName])
+            for (const kept of expected) {
+                await expect(rowOf(kept), 'ticking one inventory keeps its requests').toHaveCount(1)
+            }
+            for (const hidden of open.filter(exchange => exchange.inventoryId !== chosen).slice(0, 3)) {
+                await expect(rowOf(hidden.id), 'and hides the ones filed elsewhere').toHaveCount(0)
+            }
+
+            await page.getByRole('button', {name: 'Exportieren'}).click()
+            const selectAll = page.getByTestId('exchange-select-all')
+            await selectAll.click()
+            await expect(selectAll, 'nothing is ticked after clearing the selection').not.toBeChecked()
+            await selectAll.click()
+
+            const [sent] = await Promise.all([
+                page.waitForRequest(req => req.url().includes('/exchanges/export') && req.method() === 'POST'),
+                page.getByRole('button', {name: /Herunterladen/}).click(),
+            ])
+            const carried: number[] = sent.postDataJSON().exchangeIds
+            expect(carried, 'every row the filter left standing is exported')
+                .toEqual(expect.arrayContaining(expected))
+            const elsewhere = open.filter(exchange => exchange.inventoryId !== chosen).map(exchange => exchange.id)
+            expect(carried.filter(id => elsewhere.includes(id)),
+                'and nothing the filter hid travels with it').toEqual([])
+        })
+
+    /**
+     * A status filter that takes several ticks is what lets two sorts of request be looked at as
+     * one job.
+     *
+     * <p>Ticking two statuses and quietly keeping only the last one would look exactly the same on
+     * screen as keeping both, so the story counts the rows and then reads the numbers that leave
+     * the browser: both sorts have to travel. Taking every tick off is the other half of it, since
+     * a filter that emptied the list when its last tick went would read as a fault rather than as
+     * a filter asking for nothing.
+     */
+    test('two ticked statuses stand in the list together and both reach the export',
+        async ({managerPage: page}) => {
+            const headers = await apiHeaders(page)
+            const raised: {id: number; status: string}[] =
+                await page.request.get('/api/v1/exchanges', {headers}).then(r => r.json())
+
+            const byStatus = new Map<string, number[]>()
+            for (const exchange of raised) {
+                byStatus.set(exchange.status, [...byStatus.get(exchange.status) ?? [], exchange.id])
+            }
+            const sorts = [...byStatus.keys()].slice(0, 2)
+            expect(sorts.length, 'the seeded station has exchanges in more than one status').toBe(2)
+            const expected = sorts.flatMap(status => byStatus.get(status) ?? [])
+
+            await page.goto('/station/inventory/exchanges')
+            const rows = page.getByTestId('exchange-row')
+            await expect(rows.first()).toBeVisible()
+
+            const rowOf = (id: number) => page.locator(`[data-exchange-id="${id}"]`)
+
+            await setExchangeFilter(page, 'exchange-filter-status', [])
+            for (const any of raised.slice(0, 3)) {
+                await expect(rowOf(any.id),
+                    'taking every tick off asks for nothing rather than for no rows').toHaveCount(1)
+            }
+
+            await setExchangeFilter(page, 'exchange-filter-status',
+                sorts.map(status => EXCHANGE_STATUS_LABELS[status]))
+            for (const kept of expected) {
+                await expect(rowOf(kept), 'and two ticks show the rows of both statuses at once')
+                    .toHaveCount(1)
+            }
+            for (const hidden of raised.filter(exchange => !sorts.includes(exchange.status)).slice(0, 3)) {
+                await expect(rowOf(hidden.id), 'while a third status stays out of the way').toHaveCount(0)
+            }
+
+            await page.getByRole('button', {name: 'Exportieren'}).click()
+            const selectAll = page.getByTestId('exchange-select-all')
+            await selectAll.click()
+            await selectAll.click()
+            await expect(selectAll, 'everything the filter shows is ticked again').toBeChecked()
+
+            const [sent] = await Promise.all([
+                page.waitForRequest(req => req.url().includes('/exchanges/export') && req.method() === 'POST'),
+                page.getByRole('button', {name: /Herunterladen/}).click(),
+            ])
+            const carried: number[] = sent.postDataJSON().exchangeIds
+            expect(carried, 'both sorts of row travel into the export')
+                .toEqual(expect.arrayContaining(expected))
+            const otherStatuses = raised
+                .filter(exchange => !sorts.includes(exchange.status))
+                .map(exchange => exchange.id)
+            expect(carried.filter(id => otherStatuses.includes(id)),
+                'and a third status travels with neither').toEqual([])
+        })
+
+    /**
+     * Every row of the exchange list wears a status badge, and a badge picks light or dark letters
+     * from the colours behind it. Switching the theme repaints those colours, so the badge has to
+     * answer again: the pale status is the one that turns, and white letters on it are the thing
+     * this story stands guard over.
+     */
+    test('the badges take readable letters after the theme is switched',
+        async ({managerPage: page}) => {
+            await page.goto('/station/inventory/exchanges')
+            const row = page.getByTestId('exchange-row').filter({hasText: 'Angekündigt'}).first()
+            await expect(row).toBeVisible()
+            const badge = row.getByText('Angekündigt')
+
+            const started = await darkModeClass(page)
+
+            await switchThemeTo(page, 'dark')
+            await expect.poll(() => lettersOf(badge), {message: 'light letters on the dark page'})
+                .toBe('rgb(255, 255, 255)')
+
+            await switchThemeTo(page, 'light')
+            await expect.poll(() => lettersOf(badge), {message: 'dark letters on the light page'})
+                .toBe('rgb(26, 26, 26)')
+
+            await switchThemeTo(page, started)
+        })
+
+    /**
+     * A member's name in the list leads to their page, and a name nobody gave a colour has no
+     * colour of its own to defend: it belongs in whatever the page writes its text in. The story
+     * is here because the colour comes out of the stylesheet, which is the one thing a mounted
+     * component in a unit test does not have.
+     */
+    test('a member name without a colour of its own reads in the page colour',
+        async ({managerPage: page}) => {
+            await page.goto('/station/inventory/exchanges')
+            await expect(page.getByTestId('exchange-row').first()).toBeVisible()
+
+            const started = await darkModeClass(page)
+            await switchThemeTo(page, 'light')
+
+            await expect.poll(() => namesAgainstThePage(page),
+                {message: 'every name carrying no colour of its own reads in the page colour'})
+                .toEqual(['the page colour'])
+
+            await switchThemeTo(page, started)
+        })
 })

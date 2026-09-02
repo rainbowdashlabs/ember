@@ -16,6 +16,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   invite: [entryId: number]
+  backToWaiting: [entryId: number]
   moveToTesting: [entryId: number]
   navigateToEntry: [entryId: number]
   deleteEntry: [entry: WaitingListEntryWithScore]
@@ -31,6 +32,12 @@ const { t } = useI18n()
       icon="paper-plane"
       :label="t('waitingList.invite')"
       @click.stop="emit('invite', props.item.entry.id)"
+    />
+    <IconButton
+      v-if="props.item.entry.status === 'INVITED'"
+      icon="rotate-left"
+      :label="t('waitingList.backToWaiting')"
+      @click.stop="emit('backToWaiting', props.item.entry.id)"
     />
     <IconButton
       v-if="props.item.entry.status === 'INVITED'"

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.entity.FieldConfig;
 import dev.chojo.ember.feature.inventory.entity.FieldType;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
+import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import io.javalin.http.BadRequestResponse;
@@ -51,6 +52,7 @@ public class InventoryFieldDefinitionRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/inventories/{inventoryId}/fields", this::listFields, StationPermission.INVENTORY_READ);
+        routes.get(prefix + "/inventory-items/{id}/fields", this::listItemFields, StationPermission.INVENTORY_READ);
         routes.post(prefix + "/inventories/{inventoryId}/fields", this::createField, StationPermission.INVENTORY_EDIT);
         routes.put(
                 prefix + "/inventories/{inventoryId}/fields/{fieldId}",
@@ -94,6 +96,31 @@ public class InventoryFieldDefinitionRoutes implements Routes {
         ctx.json(fieldService.findByInventory(inventoryId));
     }
 
+    /**
+     * The fields that describe one piece, with the collision rule already applied.
+     *
+     * <p>What the item form reads, so a screen never has to work out for itself which of three
+     * levels wins. A value the piece holds under a key that is not in this list is one whose kind
+     * has gone: it stays on the piece and stays off the screen.
+     */
+    @OpenApi(
+            path = "/api/v1/inventory-items/{id}/fields",
+            methods = HttpMethod.GET,
+            summary = "The custom fields that describe one piece",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryFieldDefinition[].class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void listItemFields(Context ctx) {
+        int itemId = pathInt(ctx, "id");
+        UserSession session = UserSession.from(ctx);
+        InventoryItem item = inventoryService.findItemById(itemId).orElseThrow(NotFoundResponse::new);
+        ownedInventory(item.inventoryId(), session);
+        ctx.json(fieldService.resolveForItem(item));
+    }
+
     @OpenApi(
             path = "/api/v1/inventories/{inventoryId}/fields",
             methods = HttpMethod.POST,
@@ -113,6 +140,8 @@ public class InventoryFieldDefinitionRoutes implements Routes {
         try {
             InventoryFieldDefinition created = fieldService.create(
                     inventoryId,
+                    body.artId(),
+                    body.itemId(),
                     body.key(),
                     body.label(),
                     body.fieldType(),
@@ -186,9 +215,21 @@ public class InventoryFieldDefinitionRoutes implements Routes {
 
     /**
      * Request body for creating a field definition.
+     *
+     * @param artId  the kind this field describes, or {@code null} when it describes the whole
+     *               inventory as every field did before there were kinds
+     * @param itemId the single piece this field describes, for the thing that has a plate number
+     *               nothing else has, or {@code null}
      */
     public record FieldDefinitionRequest(
-            String key, String label, FieldType fieldType, boolean required, int sortOrder, FieldConfig config) {}
+            Integer artId,
+            Integer itemId,
+            String key,
+            String label,
+            FieldType fieldType,
+            boolean required,
+            int sortOrder,
+            FieldConfig config) {}
 
     /**
      * Request body for updating a field definition.

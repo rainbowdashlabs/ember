@@ -8,15 +8,18 @@ import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ItemsTable from '../ItemsTable.vue'
+import ItemsByArt from './ItemsByArt.vue'
+import type {InventoryArt} from '@/api/inventoryArts'
 import type { ItemTableApi } from '../itemtable/useItemTable'
 import ItemTableFilterModal from '../itemtable/ItemTableFilterModal.vue'
 import ItemListControls from '../itemtable/ItemListControls.vue'
 import InventoryStatsPanel from './InventoryStatsPanel.vue'
 import LentOutTable from './LentOutTable.vue'
+import LendingSharePanel from '@/components/lending/LendingSharePanel.vue'
 import ProcurementTable from './ProcurementTable.vue'
 import LostItemsTable from './LostItemsTable.vue'
 import FreeItemsGrid from './FreeItemsGrid.vue'
-import {InventoryTypes, type InventoryDetail, type InventoryItem, type InventorySize} from '@/api/inventory'
+import {InventoryTypes, isLendableInventory, type InventoryDetail, type InventoryItem, type InventorySize} from '@/api/inventory'
 import type { ProcurementEntry } from '@/api/procurement'
 import type { StationMember } from '@/api/types'
 import type { LentOutItem } from '@/api/lending'
@@ -49,9 +52,11 @@ type Permissions = {
   canTakeStock: boolean
 }
 
-defineProps<{
+withDefaults(defineProps<{
   detail: InventoryDetail
   items: InventoryItem[]
+  /** The kinds this drawer has been sorted into. Empty is the ordinary case and the flat list stays. */
+  arts?: InventoryArt[]
   freeItems: InventoryItem[]
   lostItems: InventoryItem[]
   memberMap: Map<number, StationMember>
@@ -63,7 +68,7 @@ defineProps<{
   allSizeStats: SizeStat[]
   permissions: Permissions
   itemTable: ItemTableApi
-}>()
+}>(), {arts: () => []})
 
 defineEmits<InventoryItemActionEmits & {
   fulfillProcurement: [id: number]
@@ -96,6 +101,13 @@ const { t } = useI18n()
     @create="$emit('openProcurementModal')"
   />
 
+  <LendingSharePanel
+    :target-id="detail.id"
+    :target-name="detail.name ?? ''"
+    :lendable="isLendableInventory(detail.inventoryType)"
+    target="inventory"
+  />
+
   <LentOutTable :lent-out-items="lentOutItems" :lent-out-count="counts.lentOut" />
 
   <NeutralContainer v-if="items.length > 0 || permissions.canCreateItem" class="space-y-4">
@@ -110,8 +122,26 @@ const { t } = useI18n()
       @quick-assign="$emit('openQuickAssign')"
       @add="$emit('openAdd')"
     />
+    <ItemsByArt
+      v-if="items.length > 0 && arts.length > 0"
+      :detail="detail"
+      :items="itemTable.filteredItems"
+      :arts="arts"
+      :member-map="memberMap"
+      :lent-out-items="lentOutItems"
+      :lent-item-station-map="lentItemStationMap"
+      :container-path-by-id="containerPathById"
+      :show-actions="permissions.canEdit"
+      @assign="$emit('assign', $event)"
+      @unassign="$emit('unassign', $event)"
+      @edit="$emit('edit', $event)"
+      @mark-lost="$emit('markLost', $event)"
+      @mark-found="$emit('markFound', $event)"
+      @history="$emit('history', $event)"
+      @delete="$emit('delete', $event)"
+    />
     <ItemsTable
-      v-if="items.length > 0"
+      v-else-if="items.length > 0"
       :items="items"
       :has-sizes="detail.hasSizes"
       :sizes="detail.sizes"

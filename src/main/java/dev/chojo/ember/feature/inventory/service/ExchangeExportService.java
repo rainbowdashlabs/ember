@@ -22,6 +22,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 
 import java.io.IOException;
+import java.text.Collator;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -43,6 +45,32 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class ExchangeExportService {
     private static final Logger log = getLogger(ExchangeExportService.class);
     private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+
+    /**
+     * How two names are put in order for the sheet.
+     *
+     * <p>A plain string comparison orders by code point, which puts every name starting with an
+     * umlaut after Z. On a list of German names that is not a sorted list at all, so the comparison
+     * follows the language's own alphabet instead.
+     */
+    private static final Collator BY_NAME = germanCollator();
+
+    private static Collator germanCollator() {
+        Collator collator = Collator.getInstance(Locale.GERMAN);
+        collator.setStrength(Collator.SECONDARY);
+        return collator;
+    }
+
+    /**
+     * What stands in a size column for a piece that comes in one size only.
+     *
+     * <p>The column is as wide as a size, and a size is two or three characters. Writing out that the
+     * piece has none took more room than the column has and pushed the sheet out of shape, for a cell
+     * whose only job is to say that there is nothing to choose. A mark does that in one character and
+     * in every language.
+     */
+    private static final String UNSIZED = "x";
+
     private final ExchangeService exchangeService;
     private final InventoryRepository inventoryRepository;
     private final StationMemberRepository stationMemberRepository;
@@ -164,9 +192,8 @@ public class ExchangeExportService {
                         .findFirst();
                 if (matching.isPresent()) {
                     var ex = matching.get();
-                    String unisize = "de".equals(locale) ? "Einheitsgröße" : "One Size";
-                    String oldSize = ex.oldSizeId() != null ? sizeMap.getOrDefault(ex.oldSizeId(), "?") : unisize;
-                    String newSize = ex.newSizeId() != null ? sizeMap.getOrDefault(ex.newSizeId(), "?") : unisize;
+                    String oldSize = ex.oldSizeId() != null ? sizeMap.getOrDefault(ex.oldSizeId(), "?") : UNSIZED;
+                    String newSize = ex.newSizeId() != null ? sizeMap.getOrDefault(ex.newSizeId(), "?") : UNSIZED;
                     exchanges.add(new SizeChange(oldSize, newSize));
                 } else {
                     exchanges.add(new SizeChange("", ""));
@@ -181,11 +208,9 @@ public class ExchangeExportService {
             rows.add(row);
         }
 
-        // Sort rows by last name, then first name
-        rows.sort(Comparator.<Map<String, Object>, String>comparing(r -> (String) r.get("lastName"))
-                .thenComparing(r -> (String) r.get("firstName")));
+        rows.sort(Comparator.<Map<String, Object>, String>comparing(r -> (String) r.get("lastName"), BY_NAME)
+                .thenComparing(r -> (String) r.get("firstName"), BY_NAME));
 
-        // Build data map
         var zone =
                 StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
         var data = new LinkedHashMap<String, Object>();

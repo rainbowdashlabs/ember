@@ -237,13 +237,16 @@ export default {
             eventManage: 'Nur für Veranstaltungsverwalter',
             knowledgeEdit: 'Nur für Wiki-Bearbeiter',
             memberEdit: 'Nur für Mitgliederbearbeiter',
+            newsEdit: 'Nur für Neuigkeiten-Bearbeiter',
             newsManager: 'Nur für Neuigkeiten-Verwalter',
             boardManager: 'Nur für Board-Verwalter',
             procedureEdit: 'Nur für Ablauf-Bearbeiter',
             procedureManager: 'Nur für Ablauf-Verwalter',
             memberExport: 'Nur mit Exportberechtigung',
             inventoryCreate: 'Nur mit Inventar-Erstellungsrecht',
+            inventoryEdit: 'Nur mit Inventar-Bearbeitungsrecht',
             inventoryManage: 'Nur für Inventarverwalter',
+            inventoryLending: 'Nur für Ausleih-Verwalter',
             lostAndFoundCreate: 'Nur mit Fundbüro-Erstellungsrecht',
             lostAndFoundManage: 'Nur für Fundbüro-Verwalter',
             checklistManage: 'Nur für Checklisten-Verwalter',
@@ -497,6 +500,9 @@ export default {
                 nav2: 'Die einzelnen Module (Mitglieder, Inventar, Anwesenheit etc.) - je nach aktivierten Modulen.',
                 nav3: 'Profil - Dein persönliches Profil, Einstellungen und Abwesenheiten.',
                 nav4: 'Wache verwalten - Einstellungen der Wache (nur für Verwalter).',
+                nav5: 'Das Ember-Logo oben links führt zur Startseite von Ember. Rufst du die Startseite '
+                    + 'stattdessen über die Adresszeile auf, während du angemeldet bist, landest du wieder '
+                    + 'in dem Bereich, in dem du zuletzt gearbeitet hast: Wache, Verband oder Verwaltung.',
                 notifications: 'Benachrichtigungen',
                 notificationsText: 'Ember informiert dich über wichtige Änderungen per Benachrichtigung im Dashboard. Die Zahl neben dem Glockensymbol zeigt, wie viele ungelesene Benachrichtigungen du hast.',
                 notificationsText2: 'Du kannst in deinen Einstellungen festlegen, welche Benachrichtigungen du auch per E-Mail erhalten möchtest.',
@@ -624,6 +630,29 @@ export default {
 volumes:
   pgdata:`,
                 dockerText2: 'Ersetze ember.example.com durch deine Domain. Der API-Router hat eine höhere Priorität, sodass /api-Anfragen ans Backend gehen und alles andere ans Frontend. Starte alles mit docker compose up -d. Beim ersten Start wird automatisch eine Konfigurationsdatei unter config/ erstellt und ein Admin-Konto mit zufälligem Passwort generiert (in der Konsole sichtbar).',
+                firstStart: 'Erster Start',
+                firstStartText: 'Beim ersten Start legt Ember ein Konto an, das die Instanz verwaltet, und '
+                    + 'schreibt in die Konsole, womit du dich anmeldest: den Benutzernamen admin und ein '
+                    + 'zufälliges Passwort. Eine E-Mail-Adresse hat das Konto noch nicht, denn welche das '
+                    + 'sein soll, weißt nur du.',
+                firstStartStep1: 'Melde dich mit dem Benutzernamen und dem Passwort aus der Konsole an. Das '
+                    + 'Passwort gilt nur für diese eine Anmeldung, du wirst sofort nach einem neuen gefragt.',
+                firstStartStep2: 'Danach fragt Ember nach einer E-Mail-Adresse, unter der du wirklich erreichbar '
+                    + 'bist. Erst wenn sie hinterlegt ist, kommst du in die Anwendung.',
+                firstStartStep3: 'Richte anschließend den Mailversand ein, damit die Adresse auch etwas nützt: '
+                    + 'ohne Mailversand erreicht dich weder eine Passwortzurücksetzung noch eine '
+                    + 'Sicherheitsmeldung.',
+                firstStartWhy: 'Die Adresse ist Pflicht, weil ein Konto, an das niemand schreiben kann, im Ernstfall '
+                    + 'nichts wert ist: keine Passwortzurücksetzung, keine Warnung, keine Benachrichtigung. Aus '
+                    + 'dem gleichen Grund wird eine erfundene Adresse abgewiesen. Ändern kannst du sie später '
+                    + 'jederzeit unter Konto.',
+                noMail: 'Solange kein Mailversand eingerichtet ist',
+                noMailText: 'Rückfragen, die Ember sonst per E-Mail stellt, kann es dann nicht stellen. Statt auf '
+                    + 'eine Antwort zu warten, die nie kommen kann, führt Ember die Handlung sofort aus: ein neues '
+                    + 'Konto gilt als bestätigt, eine geänderte Adresse wird direkt übernommen, und eine Wache wird '
+                    + 'ohne Rückfrage gelöscht. Sobald ein Mailversand eingerichtet ist, wird wieder nachgefragt. '
+                    + 'Links zum Setzen eines Passworts sind davon nicht betroffen: sie übergeben ein Passwort, '
+                    + 'statt etwas zu bestätigen, und werden weiterhin nur per E-Mail verschickt.',
                 configLinkTitle: 'Konfiguration',
                 configLinkText: 'Die vollständige Liste aller Einstellungen und Umgebungsvariablen ist auf einer eigenen Seite zusammengefasst:',
                 dataDir: 'Datenverzeichnis',
@@ -1486,7 +1515,7 @@ volumes:
             searchTitle: 'Suchen und sortieren',
             searchText: 'Die Suche geht über den Titel und, wo lesbar, über den Inhalt: bei PDFs '
                 + 'und Textdateien wird der Text mit durchsucht.',
-            tagsText: 'Schlagworte sind freier Text. Was es noch nicht gibt, entsteht beim '
+            tagsText: 'Tags sind freier Text. Was es noch nicht gibt, entsteht beim '
                 + 'Speichern, du musst nichts vorher anlegen.',
             keepTitle: 'Bei Archivierung behalten',
             keepText: 'Wird ein Mitglied als ehemalig markiert, verschwinden seine Dokumente. Was '
@@ -1568,6 +1597,50 @@ volumes:
             lostReplacementText: 'Ein Ersatz kommt damit nicht automatisch. Ob welcher angefordert wird, entscheidet die Wache in einem zweiten Schritt.',
             tip: 'Taucht ein vermisster Gegenstand wieder auf, kann die Wache die Meldung zurücknehmen.',
         },
+        inventorySelfCheck: {
+            title: 'Eigene Ausrüstung prüfen',
+            subtitle: 'Von zu Hause aus sagen, was du noch hast.',
+            whatIs: 'Worum es geht',
+            whatIsText: 'Die Wache muss wissen, ob deine Ausrüstung noch da ist und noch passt. Dafür musst du nicht mehr in die Wache kommen: Du bekommst eine Aufgabe, gehst deine Sachen durch und sagst zu jedem Stück, wie es aussieht.',
+            whereText: 'Die Aufgabe steht auf deiner Startseite und in deiner Liste offener Aufgaben. Sie hält dich nirgends auf: Du kannst sie liegen lassen und dich normal weiter durch Ember bewegen.',
+            answersTitle: 'Was du sagen kannst',
+            answersHaveIt: 'Habe ich - der Normalfall.',
+            answersWrongRecord: 'Das ist nicht das, was ich habe - die Wache hat etwas anderes notiert als du tatsächlich hast. Was du wirklich hast, trägst du nicht selbst ein; das macht jemand von der Wache.',
+            answersWrongSize: 'Stimmt nur die Größe nicht, stell sie direkt am Stück um: Steht 128 da und du hast ein 134, wählst du 134 aus. Damit ist gesagt, dass die Erfassung nicht stimmt, und die Wache sieht die richtige Größe als Angabe statt als Satz, den jemand lesen muss.',
+            answersLost: 'Finde ich nicht mehr - das gilt sofort. Es ist keine Anfrage, und niemand muss sie beantworten. Taucht das Stück wieder auf, kann die Wache das zurücknehmen.',
+            answersExchange: 'Passt nicht mehr - der Tausch geht sofort an die Wache und wartet auf niemanden. Dabei sagst du, welche Größe du brauchst.',
+            answersBroken: 'Ist kaputt - derselbe Tausch, nur aus einem anderen Grund. Die Größe darf dieselbe bleiben, und du kannst sie auch offenlassen. Die Wache sieht am Tausch, ob er entstand, weil etwas nicht mehr passt oder weil es kaputt ist.',
+            answersNeverHad: 'Hatte ich nie - für einen Platz, für den du nie etwas bekommen hast.',
+            answersHaveOne: 'Ich habe eins - du hast etwas, das niemand notiert hat. Steht eine Nummer darauf, kannst du sie eintippen; du musst aber nicht. Gibt es das Stück in Größen, kannst du die Größe dazusagen. Auch das ist freiwillig: Weißt du sie nicht, kommst du trotzdem durch, und die Wache sieht, dass keine genannt wurde.',
+            answersBorrowedText: 'Bei Material einer Partnerwache kannst du nur sagen, ob du es hast. Ein Verlust gehört dort auf die Ausleihe, über die es zu euch gekommen ist.',
+            saveTitle: 'Zwischendurch aufhören',
+            saveText: 'Mit „Zwischenspeichern" wird festgehalten, was du bisher gesagt hast. Du kannst die Stiefel anziehen gehen und später weitermachen. Erst mit „Abgeben" geht die Aufgabe zur Wache.',
+            afterTitle: 'Nach dem Abgeben',
+            afterText: 'Die Wache sieht sich deine Angaben an. Eine Angabe, die sich nicht klären lässt, kommt mit einer Begründung zurück; dann steht die Aufgabe wieder offen und du siehst genau diese eine Angabe erneut. Alles Übrige wird nicht noch einmal gefragt.',
+            guardianTitle: 'Für ein Kind antworten',
+            guardianText: 'Betreust du jemanden, steht dessen Aufgabe neben deiner eigenen und trägt den Namen der Person. Du beantwortest sie genau so. Festgehalten wird, dass du geantwortet hast.',
+            tip: 'Prüft jemand von der Wache deine Sachen selbst, während deine Aufgabe offen ist, ersetzt diese Prüfung deine Aufgabe. Was du gesagt hast, bleibt sichtbar.',
+        },
+        inventorySelfCheckReview: {
+            title: 'Selbstauskunft prüfen',
+            subtitle: 'Angabe für Angabe entscheiden, was daraus folgt.',
+            whatIs: 'Worum es geht',
+            whatIsText: 'Eine Selbstauskunft wird nicht angezweifelt, sondern zugeordnet. Die Frage lautet nicht „stimmt das", sondern „auf welchen Eintrag zielt das, und was folgt daraus". Diese Frage kannst du aus den Unterlagen der Wache beantworten, ohne die Stiefel gesehen zu haben.',
+            perRowTitle: 'Eine Angabe nach der anderen',
+            perRowText: 'Jede Angabe steht für sich: übernehmen, richtigstellen oder zurückgeben. Unter jeder Angabe steht, was das Übernehmen bewirken würde.',
+            correctTitle: 'Richtigstellen ist der Normalfall',
+            correctText: 'Sagt jemand, die Jacke sei weg, und die Wache hat die falsche Jacke notiert, ist die Aussage richtig und der Eintrag falsch. Dann stellst du den Eintrag richtig und übernimmst die Angabe. Zurückgeben würde von der Person verlangen, ein Problem zu lösen, das nur die Wache sehen kann.',
+            correctFateText: 'Vor dem Übernehmen steht, was mit dem bisher erfassten Stück passiert: zurück ins Lager, zurück an den Verband, oder gelöscht, wenn es kein Lager gibt, in das es zurück könnte.',
+            refuseTitle: 'Zurückgeben',
+            refuseText: 'Nur für Angaben, die sich gar nicht klären lassen, etwa wenn jemand ein Stück nennt, das einer anderen Person gehört. Die Aufgabe geht mit genau dieser einen Angabe zurück; übernommene Angaben werden nicht erneut gefragt.',
+            identifierTitle: 'Eingetippte Nummern',
+            identifierText: 'Eine Nummer, die jemand von einem Stück abgelesen hat, wird nur gesucht, nie geglaubt. Du siehst alle Treffer: ein freies Stück, ein Stück bei jemand anderem, mehrere Treffer, gar keinen, oder die Nummer eines Behälters. Was daraus wird, entscheidest du.',
+            approvalTitle: 'Wer nicht freigeben darf',
+            approvalText: 'Die eigene Auskunft darf niemand freigeben, auch mit der Berechtigung nicht, und wer für ein Kind geantwortet hat, gibt diese Auskunft nicht selbst frei. Auf der Prüfung stehen zwei Namen, und das sind nur dann zwei, wenn es zwei Personen sind.',
+            resultTitle: 'Was am Ende steht',
+            resultText: 'Ist die letzte Angabe übernommen, entsteht eine echte Prüfung mit denselben Wirkungen wie eine vor Ort: sie zählt als letzte Prüfung, steht im Verlauf jedes Stücks und trägt beide Namen, den der auskunftgebenden und den der freigebenden Person.',
+            tip: 'Du kannst jederzeit selbst zur Prüfung vor Ort ansetzen. Damit wird eine offene Selbstauskunft ersetzt und nichts davon übernommen.',
+        },
         inventoryFlows: {
             title: 'Abläufe',
             subtitle: 'Welche Schritte eine Bewegung von Ausrüstung geht, und wer sie bestätigt.',
@@ -1594,6 +1667,11 @@ volumes:
             statusShipped: 'Versendet - Der neue Gegenstand ist unterwegs.',
             statusArrived: 'Angekommen - Der neue Gegenstand ist da.',
             statusExchanged: 'Erledigt - Der Tausch ist abgeschlossen.',
+            filterTitle: 'Liste eingrenzen und sortieren',
+            filterText: 'Über der Liste stehen drei Filter: ein Suchfeld für den Namen des Mitglieds, eine Auswahl der Ausstattung und eine Auswahl des Status. Bei Ausstattung und Status kannst du mehrere Einträge ankreuzen, dann siehst du die Zeilen aller angekreuzten zusammen. Die drei Filter wirken untereinander weiterhin zusammen, du kannst also die versendeten und angekommenen Helm-Anfragen einer einzelnen Person zeigen lassen.',
+            filterDefaultText: 'Voreingestellt sind die offenen Status angekreuzt. Nimm einzelne Haken weg, um die Liste weiter einzugrenzen, oder kreuze „Erledigt" dazu. Kreuzt du gar nichts an, schränkt der Filter nichts ein und du siehst alle Anfragen.',
+            filterSortText: 'Ein Klick auf die Spaltenüberschrift Mitglied, Ausstattung, Status oder Datum sortiert die Liste danach, ein zweiter Klick dreht die Richtung um. Der Status wird dabei entlang der Stufen sortiert und nicht nach dem Anfangsbuchstaben. Auf dem Handy wählst du die Sortierung stattdessen in der Liste über den Anfragen aus.',
+            filterExportText: 'Der Export nimmt genau die Zeilen mit, die die Filter übrig lassen: „Alle auswählen" wählt nichts aus, was gerade ausgeblendet ist.',
             asMember: 'Als Mitglied',
             asMemberText: 'Du siehst hier deine eigenen Tausch-Anfragen und ihren aktuellen Status. Du kannst neue Tausch-Anfragen über „Mein Inventar" oder über den Button hier erstellen.',
             asMemberManager: 'Als Erziehungsberechtigter',
@@ -1632,6 +1710,26 @@ volumes:
                 + 'Gegenstand entschieden wird. Gehört die Ausrüstung dem Träger, entstehen die einzelnen '
                 + 'Gegenstände erst bei der Zuweisung.',
             createSizes: 'Aktiviere Größen, wenn die Gegenstände in verschiedenen Größen vorkommen (z.B. S, M, L).',
+            kindsTitle: 'Einheitlich oder Sammlung',
+            kindsText: 'Beim Anlegen wählst du, was das Inventar enthält. Ein einheitliches Inventar hält eine Sache '
+                + 'in vielen Exemplaren: das Regal voller Blousons, wo jedes Stück dasselbe Ding ist. Eine Sammlung '
+                + 'hält verschiedene Dinge, die zusammengehören.',
+            kindsExampleText: 'Die Kiste mit zwölf Funkgeräten in drei Farben, dazu eine Ladestation und eine '
+                + 'Antenne, ist eine Sammlung. „Funkgerät“ ist darin eine Art, und die Farbe ist ein Feld an dieser '
+                + 'Art. Ladestation und Antenne tragen gar keine Art, sie liegen lose in der Sammlung, und das ist '
+                + 'der Normalfall für alles, was es nur einmal gibt.',
+            kindsWhyText: 'Nur ein einheitliches Inventar kennt Größen, Vorgaben, Beschaffungen und Tausche, denn „jeder braucht '
+                + 'eines“ und „drei nachbestellen“ sagen über eine Kiste mit lauter Verschiedenem nichts aus. Nur '
+                + 'eine Sammlung kennt Arten. Umstellen lässt sich das, solange nichts davon daran hängt.',
+            badgesText: 'Auf jeder Inventar-Karte stehen Abzeichen: wem es gehört, ob es Größen führt und ob es '
+                + 'einheitlich oder eine Sammlung ist. Bei einer Sammlung steht daneben, wie viele Arten in ihr angelegt sind.',
+            shareTitle: 'Teilen ein- und ausschalten',
+            shareText: 'Darfst du die Ausleihe verwalten, steht auf jeder Karte auch, ob das Inventar den '
+                + 'Partnerwachen angeboten wird. Der Knopf mit dem Teilen-Zeichen öffnet die Entscheidung: anbieten '
+                + 'oder zurückhalten, allen Partnerwachen oder nur bestimmten. „Eintrag entfernen“ macht es wieder '
+                + 'zu einem Inventar, über das nichts gesagt ist, und damit zu einem, das niemand angeboten bekommt.',
+            shareExternalText: 'Bei einem externen Inventar steht davon nichts. Die Sachen darin gehören dem Kreis '
+                + 'oder Verband über deiner Wache, und was deiner Wache nicht gehört, kann sie auch nicht verleihen.',
             itemsTitle: 'Gegenstände hinzufügen',
             itemsText: 'Innerhalb eines Inventars kannst du einzelne Gegenstände anlegen. Jeder Gegenstand kann einen Namen, eine interne Kennung und eine Größe haben.',
             itemsExternal: 'Bei externen Inventaren werden Gegenstände automatisch erstellt, wenn sie einem Mitglied zugewiesen werden.',
@@ -1656,6 +1754,25 @@ volumes:
             createInventory: 'Wähle das Inventar (z.B. „Helme").',
             createQuantity: 'Gib die Anzahl an (z.B. 1).',
             tip: 'Anforderungen werden bei der Inventarprüfung verwendet, um zu sehen, ob alle Mitglieder vollständig ausgestattet sind.',
+        },
+        lendingCollect: {
+            title: 'Was ein Termin braucht',
+            subtitle: 'Ausrüstung für einen Abend vormerken und Fehlendes leihen.',
+            whatIs: 'Wozu ist das gut?',
+            whatIsText: 'Das Inventar weiß, was die Wache besitzt, und der Termin weiß, wer kommt. Keines von beiden wusste bisher, dass der Leistungsmarsch am Samstag vierzehn Garnituren und einen Anhänger braucht. Auf der Registerkarte Ausrüstung eines Termins steht genau das.',
+            seriesText: 'Bei einer Terminreihe gilt eine Zeile für jeden Abend. Ein einzelner Abend kann zusätzlich etwas eintragen, ohne die Reihe anzufassen: der eine Dienst im Jahr, für den auch der Anhänger gebraucht wird.',
+            linesTitle: 'Die Zeilen',
+            linesText: 'Eine Zeile benennt ein bestimmtes Stück, fragt nach einer Anzahl einer Art aus einer Sammlung oder nach einer Anzahl aus einem ganzen einheitlichen Inventar.',
+            pickText: 'Gesucht wird durch Tippen: ein paar Buchstaben aus dem Namen genügen, und jeder Treffer sagt gleich, in welchem Inventar er liegt und wie viele Stücke davon an der Wache sind. Eine Liste zum Durchscrollen gibt es nicht mehr, denn bei ein paar hundert Stücken war sie ohnehin nicht mehr zu lesen.',
+            tooManyText: 'Steht neben einer Art oder einem Inventar eine kleinere Zahl als die verlangte, sagt der Dialog es sofort. Verboten wird es nicht: Was fehlt, lässt sich eintragen und danach bei den Partnerwachen suchen. Gezählt wird, was die Wache überhaupt besitzt; was an einem bestimmten Abend noch frei ist, steht neben der Zeile im Ausrüstungs-Reiter, weil eine Zeile für jeden Abend der Reihe gilt und nicht nur für einen.',
+            leadText: 'Ausrüstung ist länger weg als der Termin dauert. Die Funkgeräte werden am Vorabend geholt und kommen am Montag zurück, deshalb trägt jede Zeile ein, wie viele Stunden vorher sie schon aus dem Regal ist und wie lange danach noch. Ein Tag in jede Richtung ist der Normalfall und voreingestellt.',
+            coverTitle: 'Was gedeckt ist',
+            coverText: 'Neben jeder Zeile steht, woher die Stücke kommen: eigene, geliehene und angefragte. Eine geliehene Kiste ist an der eigenen Wache eine ganz gewöhnliche Zeile und zählt deshalb mit, sonst würde eine Lücke gemeldet, die vor einer Woche geschlossen wurde.',
+            overClaimText: 'Zwei Termine dürfen dasselbe Wochenende mit demselben Anhänger planen. Das wird angezeigt und nennt die beteiligten Termine, statt den zweiten zu verbieten: Planen heißt aufschreiben, und ein Werkzeug, das einen Konflikt nicht aufschreiben lässt, verschiebt ihn nur auf den Samstag.',
+            borrowTitle: 'Fehlendes leihen',
+            borrowText: 'Fehlt etwas, führt ein Knopf auf die Seite, auf der sich zusammenstellen lässt, was die Partnerwachen anbieten. Angeboten wird dort nach Art gezählt und nicht nach ganzer Sammlung, damit „vier blaue“ auch vier blaue werden.',
+            sendText: 'Nichts wird zurückgehalten, solange die Liste wächst. Vor dem Senden wird noch einmal gezählt und angezeigt, was sich geändert hat. Die Liste geht als eine Anfrage je Wache hinaus, und der Knopf sagt, wie viele das sind.',
+            tip: 'Die angefragte Wache sieht nur den Namen des Termins und den Zeitraum. Alles andere am Termin bleibt bei euch.',
         },
         inventoryChecks: {
             title: 'Inventarprüfung',
@@ -1750,6 +1867,32 @@ volumes:
             badgeInventoryText: 'Blaue Badges zeigen einzelne gesperrte Inventare an.',
             tip: 'Erstelle Sperrzeiten rechtzeitig, damit Anfragen für diesen Zeitraum gar nicht erst gestellt werden.',
         },
+        inventoryLendingShares: {
+            title: 'Ausleih-Angebot',
+            subtitle: 'Was eure Wache ihren Partnerwachen zur Ausleihe anbietet.',
+            whatIs: 'Was ist das Angebot?',
+            whatIsText: 'Eine Partnerwache sieht nichts von eurer Ausrüstung, solange ihr sie nicht anbietet. Angeboten wird ein ganzes Inventar, eine Art darin oder ein einzelner Gegenstand, allen Partnerwachen oder nur bestimmten.',
+            whatIsText2: 'Auf dieser Seite steht alles, was ihr gesagt habt: was angeboten ist und was ihr wieder herausgenommen habt.',
+            narrowestTitle: 'Der engste Eintrag entscheidet',
+            narrowestText: 'Für einen Gegenstand zählt der engste Eintrag, der existiert:',
+            narrowestItem: 'Gibt es einen Eintrag für den Gegenstand selbst, gilt dieser.',
+            narrowestArt: 'Sonst gilt der Eintrag für seine Art.',
+            narrowestInventory: 'Sonst gilt der Eintrag für sein Inventar.',
+            narrowestNone: 'Gibt es keinen, ist der Gegenstand nicht angeboten.',
+            narrowestPartner: 'Deshalb reicht es, ein Inventar anzubieten und die guten Funkgeräte darin als Art zurückzuhalten. Ein Eintrag, der nur bestimmte Partnerwachen nennt, schlägt den Eintrag darüber ebenfalls: für alle anderen Wachen ist der Gegenstand damit nicht angeboten.',
+            whereTitle: 'Wo ihr es einstellt',
+            whereText: 'Auf der Seite eines Inventars und auf der Seite eines Gegenstands steht der Kasten „Ausleihe an Partner" mit dem aktuellen Stand und einem Button zum Ändern. Für eine Art steht der Button in der Liste der Arten, beim Bearbeiten des Inventars.',
+            whereText2: 'Dafür wird die Berechtigung zum Verwalten der Ausleihe gebraucht.',
+            capabilityTitle: 'Ausleihe pro Partnerwache',
+            capabilityText: 'Über allem steht die Partnerschaft selbst. Ist die Ausleihe für eine Partnerwache abgeschaltet, sieht diese Wache nichts, egal was hier eingetragen ist.',
+            runningTitle: 'Laufende Anfragen',
+            runningText: 'Nehmt ihr ein Angebot zurück, findet die Partnerwache die Ausrüstung nicht mehr und kann nichts Neues anfragen. Eine bereits genehmigte Anfrage läuft aber zu Ende, samt Zuteilung und Übergabe.',
+            emptyTitle: 'Was die andere Seite sieht',
+            emptyText: 'Findet eine Partnerwache nichts, nennt die Antwort nur eine von zwei Lagen und nie mehr:',
+            emptyNothingShared: 'Es wird derzeit nichts mit ihrer Wache geteilt.',
+            emptyNothingFree: 'Es wird etwas geteilt, aber im gewählten Zeitraum ist nichts frei.',
+            tip: 'Welche Inventare ihr zurückhaltet, erfährt die andere Wache nie. Genau dafür ist das Angebot da.',
+        },
         lendingBlocksCreate: {
             title: 'Sperrzeit erstellen',
             subtitle: 'Einen Zeitraum für bestimmte Inventare oder Gegenstände sperren.',
@@ -1819,7 +1962,7 @@ volumes:
             howTo: 'So erstellst du eine Anfrage',
             step1: 'Wähle den Gegenstand, den du leihen möchtest.',
             step2: 'Gib die gewünschte Menge an.',
-            step3: 'Wähle Start- und Enddatum des Ausleihzeitraums.',
+            step3: 'Prüfe Start- und Enddatum des Ausleihzeitraums; aus der Suche sind sie bereits übernommen.',
             step4: 'Schreibe optional eine kurze Notiz und sende die Anfrage ab.',
             dummyTitle: 'Neue Anfrage',
             fieldQuantity: 'Menge',
@@ -1829,7 +1972,7 @@ volumes:
             dummySend: 'Anfrage senden',
             dummyAvailable: 'verfügbar',
             maxQuantityHint: 'Die Menge ist auf die verfügbare Anzahl begrenzt.',
-            tip: 'Prüfe vorher auf der Durchsuchen-Seite, ob der Gegenstand im gewünschten Zeitraum verfügbar ist.',
+            tip: 'Die verfügbare Anzahl gilt immer für den gewählten Zeitraum und wird neu gezählt, wenn du ihn hier änderst.',
         },
         attendanceNew: {
             title: 'Neue Anwesenheit',
@@ -1867,12 +2010,23 @@ volumes:
                 + 'Durchlaufen werden alle offenen Namen, auch die, zu denen noch nichts eingetragen ist; der Eintrag entsteht erst, wenn du den Status setzt.',
             expectedTitle: 'Wer auf der Liste steht',
             expectedText: 'Erwartet wird, wer in einer Gruppe der Anwesenheitsvorlage steht. Wen der Termin ansprechen darf, spielt dafür keine Rolle: Zu- und Absagen zum Termin bestimmen nur, was neben einem Namen steht, nicht wer auf der Liste erscheint.',
+            missingEntryTitle: 'Namen ohne Eintrag',
+            missingEntryText: 'Wer erst nach dem Anlegen des Bogens in eine Gruppe der Vorlage gekommen ist, steht auf der Liste, hat aber noch keine Zeile. '
+                + 'Die Statusknöpfe stehen trotzdem an der Zeile: Beim ersten Druck entsteht der Eintrag und bekommt sofort den gewählten Status.',
+            beforeJoiningText: 'Liegt das Beitrittsdatum eines Mitglieds nach dem Abend, steht dort statt der Knöpfe "Noch nicht beigetreten". '
+                + 'Diese Person war an dem Abend noch nicht dabei und kann deshalb auch nicht nachgetragen werden. Ist kein Beitrittsdatum hinterlegt, gilt keine Einschränkung.',
+            frozenTitle: 'Abgeschlossene Anwesenheiten',
+            frozenText: 'Ein Bogen lässt sich nur eine begrenzte Zeit nach seinem Abend bearbeiten, standardmäßig sieben Tage. '
+                + 'Danach ist er abgeschlossen: Status, Zeiten, Felder und neue Namen sind gesperrt, Lesen und Exportieren bleiben möglich.',
+            frozenManagerText: 'Wer Anwesenheiten verwaltet, kann einen abgeschlossenen Bogen über "Wieder öffnen" erneut für dieselbe Zeitspanne freigeben oder ihn über das Aktionen-Menü vorzeitig abschließen. '
+                + 'Wie lange die Frist läuft, legt der Betreiber der Instanz fest.',
             addMemberTitle: 'Mitglieder hinzufügen',
             addMemberText: 'Wenn jemand unerwartet erscheint, kannst du über Mitglied hinzufügen zusätzliche Personen zur Sitzung hinzufügen.',
             syncExportTitle: 'Synchronisieren & Export',
-            sync: 'Synchronisieren - Aktualisiert die Mitgliederliste aus dem Termin (z.B. nach neuen Anmeldungen).',
-            export: 'PDF Export - Erstellt ein PDF der Anwesenheitsliste.',
-            toolbarTitle: 'Werkzeugleiste', toolbarText: 'Oben findest du die Aktionsbuttons.',
+            sync: 'Synchronisieren - Aktualisiert die Mitgliederliste aus dem Termin (z.B. nach neuen Anmeldungen). Der Punkt steht im Menü mit den drei Punkten.',
+            export: 'PDF Export - Erstellt ein PDF der Anwesenheitsliste. Solange noch etwas zu prüfen ist, steht der Punkt im Menü mit den drei Punkten, danach als Button daneben.',
+            toolbarTitle: 'Werkzeugleiste',
+            toolbarText: 'Oben stehen der Weg zurück und die eine Aktion, für die du gekommen bist. Alles Weitere - Export, Synchronisieren und das Löschen der Erfassung - liegt im Menü mit den drei Punkten daneben.',
             headerTitle: 'Sitzungskopf bearbeiten', headerText: 'Du kannst Titel, Startzeit und Endzeit direkt ändern.',
             summaryTitle: 'Statusübersicht', memberEntryTitle: 'Mitglieder und Zeiten',
             memberEntryText: 'Bei anwesenden Mitgliedern erscheinen Felder für Kommen und Gehen. Blass '
@@ -2040,6 +2194,11 @@ volumes:
             absentText: 'Verwalter sehen eine Liste der Mitglieder, die sich abgemeldet haben. So weiß man, wer nicht dabei ist.',
             templateTitle: 'Anwesenheitsvorlage',
             templateText: 'Wenn für diesen Termin eine Anwesenheitsvorlage hinterlegt ist, kannst du die Anwesenheit direkt von hier aus starten. Welche Vorlage das ist, steht nur bei denen, die den Termin bearbeiten dürfen: für alle anderen ist es eine Einstellung, die sie nichts angeht.',
+            announceTitle: 'Als Neuigkeit ankündigen',
+            announceText: 'Im Menü neben „Termin bearbeiten" liegt „Als Neuigkeit ankündigen". Damit öffnet sich der Neuigkeiten-Editor mit einem fertigen Entwurf: Titel des Termins, das Datum und die Angaben, die der Termin in der Übersicht zeigt, meist Treffpunkt und Ort.',
+            announceDateText: 'Der Entwurf nennt genau den Abend, den du gerade ansiehst. Bei einem wöchentlichen Termin ist das wichtig, sonst weiß niemand, welcher Dienstag gemeint ist.',
+            announceAudienceText: 'Ist der Termin nur für bestimmte Gruppen sichtbar, startet die Neuigkeit mit derselben Auswahl. Solange sie steht, erreicht die Neuigkeit weder Partnerwachen noch die öffentliche Seite. Das Aufheben ist ein bewusster zweiter Schritt.',
+            announceSnapshotText: 'Der Entwurf ist eine Abschrift, kein Verweis. Verschiebt sich der Termin später, ändert sich die Neuigkeit nicht mit, genauso wie ein gedruckter Aushang.',
             cancelTitle: 'Termin absagen',
             cancelText: 'Verwalter können einen Termin absagen. Der Termin wird dann mit einem roten Banner markiert und alle Teilnehmer werden benachrichtigt.',
             commentsTitle: 'Kommentare',
@@ -2048,6 +2207,10 @@ volumes:
             notesText: 'Verwalter können interne Notizen zum Termin hinterlegen. Diese sind nur für Verwalter sichtbar.',
             federationTitle: 'Anmeldungen anderer Wachen',
             federationText: 'Wenn der Termin für Partnerwachen freigegeben ist, siehst du auch Anmeldungen von Mitgliedern anderer Wachen.',
+            signupListsTitle: 'Checkliste oder Umfrage aus den Anmeldungen',
+            signupListsSurveyText: 'Die Umfrage wird als Entwurf angelegt und ist auf genau diese Personen beschränkt. Sie erreicht niemanden, solange sie nicht veröffentlicht ist: erst die Fragen schreiben, dann veröffentlichen. Der Eintrag erscheint nur, wenn das Modul für Umfragen bei der Wache eingeschaltet ist.',
+            signupListsText: 'Über dem Anmeldungen-Bereich sitzt ein Menü, das aus den Zusagen eine Checkliste oder eine Umfrage macht. Übernommen wird genau ein Abend, nämlich der, den die Seite gerade zeigt, und nur wer dort einen Platz hat. Wer sich später anmeldet, kommt nicht von selbst dazu: die Liste ist eine Momentaufnahme, und Nachzügler werden von Hand ergänzt.',
+            signupListsLimitsText: 'Drei Gruppen können nicht auf die Liste, und der Dialog sagt vorher, um wie viele es geht: Zusagen von Partnerwachen, weil diese Personen hier keine Mitglieder sind, und Personen, die die Wache inzwischen verlassen haben. Bei einem Termin ohne Anmeldung gibt es gar keine Zusagen, dort erscheint das Menü deshalb nicht. Im Verbandsbereich fehlt es ebenfalls, weil Checklisten und Umfragen der Wache gehören.',
             nextOccurrenceTitle: 'Datum-bezogene Ansicht',
             nextOccurrenceText: 'Die Detailansicht ist immer an ein konkretes Datum gebunden. Bei wiederkehrenden Terminen wird das Datum entweder aus der URL übernommen (etwa wenn du aus einer Erinnerung kommst) oder fällt auf den nächsten Termin zurück. Beginn und Ende zeigen genau diesen Tag - kein separater „Nächster Termin"-Kasten mehr nötig. Abwesenheiten beziehen sich auf dasselbe Datum.',
             tip: 'Melde dich rechtzeitig an oder sag rechtzeitig ab, damit die Planung stimmt.',
@@ -2142,8 +2305,16 @@ volumes:
             createText: 'Klicke auf „Neue Checkliste". Vergib einen Namen, lege die Spalten an und wähle die Mitglieder über den Filter aus.',
             step1: 'Name und optionale Beschreibung eingeben.',
             step2: 'Spalten anlegen - eine Spalte pro Frage.',
-            step3: 'Mitglieder per Nutzertyp, Gruppe, Tag oder einzeln auswählen.',
+            step3: 'Mitglieder per Nutzertyp, Gruppe, Tag oder einzeln auswählen - oder stattdessen einen Termin wählen.',
             step4: 'Speichern. Die Mitglieder werden eingefroren auf die Liste übernommen.',
+            followsTitle: 'Liste zu einem Termin',
+            followsText: 'Statt Merkmalen kann eine Liste einem einzelnen Terminabend folgen. Auf sie kommt dann, wer für genau diesen Abend einen Platz hat.',
+            followsOccurrence: 'Es zählt ein Abend, nicht die ganze Reihe. Bei einem wöchentlichen Dienst wählst du das Datum mit aus.',
+            followsRefresh: 'Wer sich später anmeldet, kommt beim nächsten Auffrischen dazu. Von selbst passiert das nicht.',
+            followsCancel: 'Wer absagt, bleibt auf der Liste stehen und wird als nicht mehr passend gekennzeichnet. So gehen die Häkchen nicht verloren.',
+            followsGuests: 'Zusagen von Partnerwachen bleiben außen vor, weil sie hier keine Mitglieder sind.',
+            followsDeleted: 'Wird der Termin gelöscht, behält die Liste alle Zeilen und folgt danach nichts mehr.',
+            followsSwitch: 'Über „Mitglieder bestimmen" kannst du jederzeit zwischen Merkmalen und einem Termin wechseln.',
             refreshTitle: 'Auffrischen',
             refreshText: 'Mit „Auffrischen" werden neu passende Mitglieder zur Liste hinzugefügt - bestehende Einträge und Häkchen bleiben unverändert.',
             refreshAdditive: 'Nur neue Mitglieder werden hinzugefügt.',
@@ -2178,11 +2349,17 @@ volumes:
             whatIsText: 'Im Fundbüro werden Gegenstände gesammelt, die bei euch gefunden wurden. Wenn du etwas verloren hast, schau hier nach, ob es auftaucht. Wenn du etwas gefunden hast, kannst du es hier melden.',
             reportTitle: 'Gegenstand melden',
             reportText: 'Klicke auf „Fundgegenstand melden", um einen neuen Eintrag zu erstellen. Beschreibe den Gegenstand, gib das Funddatum an und lade optional ein Foto hoch. So können andere Mitglieder ihren Gegenstand wiederfinden.',
+            photoTitle: 'Fotos vom Handy',
+            photoText: 'Fotos werden im Browser verkleinert, bevor sie gesendet werden. Ein Bild direkt aus der Kamera ist damit kein Problem mehr, auch wenn es sehr groß ist.',
+            photoText2: 'Schlägt nur das Bild fehl, bleibt der Eintrag trotzdem gespeichert. Du kannst das Bild dann erneut senden oder es später über „Bild nachreichen" an den Eintrag hängen. Ein zweiter Klick auf Melden legt keinen zweiten Eintrag an.',
             claimTitle: 'Gegenstand beanspruchen',
             claimText: 'Wenn du deinen Gegenstand siehst, klicke auf „Gehört mir". Die Verwaltung wird benachrichtigt und kann den Gegenstand an dich aushändigen.',
+            claimForText: 'Wenn du für jemanden sorgst, kannst du im Fenster auswählen, für wen du den Gegenstand beanspruchst. Der Eintrag zeigt dann den Namen dieser Person.',
+            releaseTitle: 'Anspruch zurücknehmen',
+            releaseText: 'Versehentlich beansprucht? Über „Anspruch zurücknehmen" steht der Gegenstand wieder für alle bereit. Das geht für deine eigenen Ansprüche und für die der Personen, für die du sorgst.',
             managerTitle: 'Als Verwalter',
-            managerText: 'Verwalter können Gegenstände löschen und als ausgegeben markieren, sobald sie an die Person übergeben wurden. Danach wird der Eintrag entfernt.',
-            providedText: 'Wenn ein Gegenstand beansprucht und übergeben wurde, klicke auf „Ausgegeben". Dann verschwindet der Eintrag aus der Liste.',
+            managerText: 'Verwalter können Gegenstände löschen, jeden Anspruch zurücknehmen und als ausgegeben markieren, sobald sie an die Person übergeben wurden. Danach wird der Eintrag entfernt.',
+            providedText: 'Wenn ein Gegenstand beansprucht und übergeben wurde, klicke auf „Ausgegeben". Dann verschwindet der Eintrag aus der Liste, zusammen mit seinem Bild.',
             tip: 'Beschreibe den Gegenstand so genau wie möglich und lade ein Foto hoch - so wird er schneller gefunden.',
         },
         themeUser: {
@@ -2235,6 +2412,10 @@ volumes:
             step2: 'Generiere einen Einladungscode und teile ihn mit der anderen Wache.',
             step3: 'Die andere Wache gibt den Code ein und klickt auf "Verbinden".',
             step4: 'Die Verbindung ist hergestellt! Jetzt könnt ihr die Berechtigungen einstellen.',
+            acrossInstancesTitle: 'Wachen auf verschiedenen Instanzen',
+            acrossInstancesText: 'Der Einladungscode enthält die Adresse der Instanz, auf der er erzeugt wurde. Gibst du einen Code ein, der von woanders stammt, ruft deine Instanz die andere auf, löst den Code dort ein und legt danach beide Seiten die Verbindung an. Der Ablauf ist derselbe wie bei zwei Wachen auf einer Instanz, nur mit einem Anruf dazwischen.',
+            acrossInstancesText2: 'Damit das klappt, braucht es dreierlei: einen Einladungscode und nicht nur einen Verzeichnis-Code, eine öffentlich über HTTPS erreichbare andere Instanz, und auf beiden Seiten dieselbe Föderations-Version. Ein Code lässt sich genau einmal einlösen, danach braucht ihr einen neuen.',
+            acrossInstancesText3: 'Geht etwas schief, sagt die Meldung im Dialog, woran es lag: keine Antwort, zu lange gewartet, Code dort schon benutzt, Versionen passen nicht zueinander, Wache dort gelöscht, oder eine Adresse, die von hier aus nicht aufgerufen werden darf.',
             capabilitiesTitle: 'Berechtigungen verwalten',
             capabilitiesText: 'Für jeden Partner kannst du einzeln festlegen, was geteilt wird. Es gibt zwei Richtungen: "Empfangen" bedeutet, dass du Inhalte der anderen Wache sehen kannst. "Senden" bedeutet, dass die andere Wache deine Inhalte sehen kann.',
             capabilitiesText2: 'Du kannst Wiki, Quiz-Kataloge, Prüfungsprotokolle und Inventar-Ausleihe einzeln aktivieren oder deaktivieren.',
@@ -2312,6 +2493,13 @@ volumes:
             entriesText: 'Jeder Eintrag zeigt den Namen, die Punktzahl und den Status.',
             statusTitle: 'Status eines Eintrags',
             statusFlowText: 'Ein Eintrag durchläuft die Stufen: Wartend, Eingeladen, Probe, Aufgenommen oder Zurückgezogen.',
+            statusAccountText: 'Ein Mitglied entsteht erst mit dem Start der Probezeit, also wenn die Person das erste Mal da ist. Eine Einladung ist bis dahin nur eine Nachricht: Wer absagt oder sich selbst von der Liste nimmt, hinterlässt nichts in der Wache.',
+            invitationTitle: 'Einladen und die Antwort',
+            invitationText: 'Beim Einladen wählst du einen Termin samt Datum und optional eine Uhrzeit, zu der die Person da sein soll. Beides steht in der Einladungs-E-Mail; angemeldet wird für den Termin niemand. Über den Link in der E-Mail kann ohne Anmeldung geantwortet werden:',
+            invitationComing: 'Ich komme: ihr wisst, dass jemand kommt.',
+            invitationDate: 'Der Termin passt mir nicht: Interesse besteht weiter. Mit „Zurück in die Warteliste" kannst du einen anderen Termin anbieten.',
+            invitationNo: 'Kein Interesse: die Person möchte nicht mehr gefragt werden.',
+            invitationStays: 'Die Antwort steht als Kennzeichen am Eintrag, und der Eintrag bleibt im Abschnitt „Wartend & Eingeladen" stehen. Auch eine Absage verschwindet also nicht aus dem Blick.',
             createEntryTitle: 'Neuen Eintrag erstellen',
             createEntryText: 'Trage Vorname, Nachname, Erziehungsberechtigte und Notizen ein.',
             entryDetailTitle: 'Eintrag bearbeiten',
@@ -2355,7 +2543,7 @@ volumes:
             catalogListTitle: 'Fragenkataloge',
             catalogListSubtitle: 'Fragen verwalten und organisieren',
             whatIsCatalog: 'Was ist ein Katalog?',
-            whatIsCatalogText: 'Ein Katalog ist eine Sammlung von Fragen zu einem Thema. Du kannst beliebig viele Kataloge erstellen und die Fragen in Kategorien einteilen.',
+            whatIsCatalogText: 'Ein Katalog bündelt die Fragen zu einem Thema. Du kannst beliebig viele Kataloge erstellen und die Fragen in Kategorien einteilen.',
             catalogListHow: 'Wie erstelle ich einen Katalog?',
             catalogListHowText: 'Klicke auf den „Neuer Katalog"-Button und gib einen Namen und eine Beschreibung ein. Danach kannst du Fragen hinzufügen.',
             createCatalogTitle: 'Katalog anlegen',
@@ -2783,6 +2971,10 @@ volumes:
             exampleText: 'Vier Blöcke untereinander: Vorlage, Details, Zuständige und Schritte. Ganz unten Abbrechen und Speichern.',
             itemsTitle: 'Die Schritte',
             itemsText: 'Jeder Schritt hat einen Titel und wahlweise eine Beschreibung. Mit den Pfeilen sortierst du ihn um. Über die Schalter legst du fest, ob Zuständige den Schritt sehen und selbst abhaken dürfen.',
+            fromSignupsTitle: 'Ablauf aus den Anmeldungen',
+            fromSignupsText: 'Wer für einen Abend zugesagt hat, muss nicht von Hand abgetippt werden. Im Termin öffnest du den Reiter „Anmeldungen“ und wählst im Menü „Aus den Anmeldungen“ den Eintrag „Ablauf aus den Anmeldungen“. Die zugesagten Personen sind dann die Zuständigen, das Fälligkeitsdatum ist der Abend selbst.',
+            fromSignupsTemplateText: 'Eine Vorlage ist dabei nötig, denn die Schritte kommen aus ihr: eine Namensliste ohne Aufgaben hilft niemandem. Hat deine Wache noch keine Vorlage, sagt der Dialog das und du legst zuerst unter Abläufe > Vorlagen eine an.',
+            fromSignupsSharedText: 'Alle Zuständigen teilen sich dieselben Schritte. Ein Haken zählt für alle, nicht pro Person. Für „jede Person gibt ihren Zettel ab“ nimmst du stattdessen eine Checkliste. Jede zugesagte Person bekommt außerdem eine Benachrichtigung, sobald der Ablauf angelegt ist. Gibt es für den Abend schon einen Ablauf, bietet dir der Dialog ihn an, statt einen zweiten daneben anzulegen.',
             editTitle: 'Beim Bearbeiten',
             editText: 'Bearbeitest du einen bestehenden Ablauf, fehlt die Vorlagen-Auswahl und die Schaltfläche unten heißt „Speichern". Schon abgehakte Schritte bleiben abgehakt.',
             tip: 'Formuliere jeden Schritt als eine Tätigkeit, zum Beispiel „Schlüssel übergeben". Dann weiß jede Person sofort, was zu tun ist.',
@@ -2802,6 +2994,8 @@ volumes:
             lockedText: 'Hängt ein Schritt von einem anderen ab, ist er grau und nicht anklickbar, solange der frühere Schritt offen ist. Ein Hinweis nennt dir, worauf er wartet.',
             resolveTitle: 'Abschließen und wieder öffnen',
             resolveText: 'Mit der grünen Schaltfläche schließt du den Ablauf ab, mit der roten öffnest du ihn wieder. Beides fragt vorher noch einmal nach. Ein rotes Abzeichen zeigt, dass der Ablauf überfällig ist.',
+            fromEventTitle: 'Abläufe zu einem Termin',
+            fromEventText: 'Stammt der Ablauf aus den Anmeldungen eines Termins, steht oben neben der Fälligkeit ein Verweis „Zum Termin am …“. Er führt zurück auf genau den Abend, für den vorbereitet wird.',
             tip: 'Nutze die Notiz für Dinge, die vom Plan abweichen - beim nächsten Mal weiß dann jede Person, warum.',
         },
         procedureTemplates: {
@@ -3003,6 +3197,22 @@ volumes:
             createYoutube: 'YouTube-Video - Bette ein YouTube-Video ein.',
             createLink: 'Link - Speichere einen Weblink als Datei.',
             editingTextFixed: 'Markdown- und Textdateien bearbeitest du auf der Datei-Detailseite. Klicke dort auf Bearbeiten. Jede Speicherung erzeugt eine neue Version.',
+            moveTitle: 'Einträge verschieben',
+            moveText: 'Über „Verschieben" im Aktionsmenü eines Ordners oder einer Datei suchst du dir einen neuen Platz im Wiki aus, über beliebig viele Ebenen und auch ganz nach oben. Ein Ordner nimmt alles mit, was in ihm liegt, und die Links auf die Einträge bleiben gültig.',
+            moveRightsText: 'Verschieben verlangt Vollzugriff auf den Eintrag und das Recht, im Zielordner etwas anzulegen. Der Grund: der neue Ordner entscheidet, wer den Eintrag künftig sieht.',
+            movePreviewText: 'Der Dialog sagt vorher, wie weit der Eintrag am neuen Platz sichtbar ist, damit nichts unbemerkt im öffentlichen Wiki oder bei Partnerwachen landet. Ein Ordner, der in sich selbst wandern soll, ein Name, den es im Zielordner schon gibt, und eine Freigabe, die weiter reicht als der Zielordner, werden abgelehnt und beim Namen genannt.',
+            selectionTitle: 'Mehrere Einträge auf einmal',
+            selectionText: 'Mit „Mehrere auswählen" bekommt jeder Eintrag im geöffneten Ordner ein Kästchen. Mit gedrückter Umschalttaste markierst du eine ganze Strecke auf einmal. Ordner und Dateien lassen sich gemischt markieren. In den Suchergebnissen gibt es das nicht, dort fehlt der Ordnerweg, der über die Rechte entscheidet.',
+            selectionMove: 'Verschieben: bringt die ganze Auswahl in einen Ordner.',
+            selectionTags: 'Verschlagworten: fügt Schlagwörter hinzu oder entfernt sie. Vorhandene Schlagwörter bleiben erhalten.',
+            selectionDelete: 'Löschen: legt die ganze Auswahl in den Papierkorb. Vorher sagt der Dialog, wie viele Einträge das wirklich sind, den Inhalt der markierten Ordner eingerechnet.',
+            selectionPartialText: 'Was geht, wird getan. Einträge, bei denen es nicht geht, werden danach beim Namen genannt, mit dem Grund dafür. Bei sehr vielen wird die Meldung gekürzt und sagt, wie viele weitere es waren.',
+            trashTitle: 'Papierkorb',
+            trashText: 'Gelöschtes ist nicht sofort fort. Es wandert in den Papierkorb, den du über das Mülleimer-Symbol über der Liste erreichst, und lässt sich von dort mit einem Klick zurückholen.',
+            trashWhoSees: 'Du siehst darin genau die Einträge, die du auch löschen durftest. Niemand muss um Hilfe bitten, um den eigenen Fehlgriff zurückzunehmen.',
+            trashFolders: 'Ein gelöschter Ordner steht als eine Zeile darin, nicht mit jedem Stück daraus einzeln. Beim Wiederherstellen kommt sein ganzer Inhalt mit.',
+            trashStorage: 'Der Kopf der Ansicht zeigt, wie viel Speicher der Papierkorb noch belegt. Die Dateien liegen ja noch, also zählen sie weiter gegen den Platz der Wache. Der Knopf daneben leert ihn sofort.',
+            trashRetentionText: 'Nach einer festgelegten Zeit, standardmäßig 30 Tagen, wird der Inhalt von selbst endgültig gelöscht. Wie lange das ist, stellt der Betreiber der Instanz ein.',
             fileTypesTitle: 'Unterstützte Dateitypen',
             markdownDesc: 'Formatierte Texte mit Überschriften, Listen, Tabellen und mehr. Können direkt bearbeitet werden.',
             pdfDesc: 'PDF-Dokumente werden direkt in der Seite angezeigt.',
@@ -3016,6 +3226,10 @@ volumes:
             editingTitle: 'Inhalte bearbeiten',
             versionsTitle: 'Versionsverlauf',
             versionsText: 'Jede Änderung an einer Markdown-Datei wird als Version gespeichert. Du kannst ältere Versionen ansehen und bei Bedarf wiederherstellen.',
+            versionCurrent: 'aktuell',
+            versionAgeRecent: 'vor 2 Stunden',
+            versionAgeDay: 'vor 1 Tag',
+            versionAgeDays: 'vor 3 Tagen',
             searchTitle: 'Suche',
             searchText: 'Nutze die Suchleiste oben, um in allen Dateien nach Begriffen zu suchen. Die Suche durchsucht den Inhalt aller Text- und Markdown-Dateien.',
             tip: 'Tipp: Nutze Ordner, um deine Inhalte übersichtlich zu organisieren - z.B. nach Themen oder Ausbildungsabschnitten.',
@@ -3603,6 +3817,14 @@ volumes:
             lossDecideText: 'Über den Verlust selbst entscheidet ihr nicht, der ist bereits passiert und'
                 + ' festgehalten. Ihr entscheidet über den Ersatz: Ihr schickt einen oder lehnt mit Begründung'
                 + ' ab. Vermisst bleibt das Teil so oder so.',
+            tagsTitle: 'Wörter empfehlen',
+            tagsText: 'Ein Tag fasst Dinge zusammen, die zusammengehören, ohne gleich zu sein: die'
+                + ' Funkgeräte, die Ladestation und die Antenne. Hier schlagt ihr euren Abteilungen Wörter'
+                + ' dafür vor, wahlweise allen oder nur einer Gruppe von Abteilungen.',
+            tagsStandsBesideText: 'Ein Vorschlag ersetzt nie das Wort einer Abteilung. Verglichen wird ohne'
+                + ' Rücksicht auf Groß- und Kleinschreibung, also meinen beide ohnehin dasselbe, und jede'
+                + ' Abteilung zeigt weiter ihre eigene Schreibweise. Zieht ihr einen Vorschlag zurück,'
+                + ' ändert sich bei den Abteilungen nichts.',
             tip: 'Wer nur eines der beiden Rechte hat, sieht auf dieser Seite nur den zugehörigen Teil.',
         },
         clusterMemberDetail: {
@@ -3954,6 +4176,9 @@ volumes:
             whatShownText: 'Hier schreibst du eine neue Neuigkeit oder bearbeitest eine bestehende.',
             titleField: 'Titel',
             titleFieldText: 'Gib der Neuigkeit einen kurzen, aussagekräftigen Titel.',
+            fromEventTitle: 'Aus einem Termin geschrieben',
+            fromEventText: 'Steht oben ein blauer Hinweis, kommt der Entwurf aus einem Termin: du hast dort „Als Neuigkeit ankündigen" gewählt. Titel, Datum und die Angaben aus der Terminübersicht stehen schon da, und war der Termin auf eine Auswahl beschränkt, ist es die Neuigkeit auch.',
+            fromEventWideningText: 'Schaltest du so einen Entwurf zum Blog oder zu Partnerwachen frei, wird der Hinweis rot und zählt auf, welche Angaben des Termins die Neuigkeit mitnimmt und welche davon am Termin selbst nicht öffentlich sind.',
             contentTitle: 'Inhalt',
             contentText: 'Schreibe deinen Text. Du kannst Markdown verwenden: **fett**, *kursiv*, ## Überschriften, - Listen, [Links](url).',
             previewTitle: 'Vorschau',
@@ -4032,8 +4257,17 @@ volumes:
             subtitle: 'Statistiken und Gegenstände eines einzelnen Inventars.',
             whatShown: 'Was zeigt diese Seite?',
             whatShownText: 'Hier siehst du die Details eines einzelnen Inventars mit Statistiken und Listen.',
+            headerTitle: 'Kopfzeile und Bearbeiten',
+            headerText: 'Neben dem Namen stehen die Abzeichen des Inventars: wem es gehört, ob es Größen führt und '
+                + 'ob es einheitlich oder eine Sammlung ist, bei einer Sammlung dazu die Zahl ihrer Arten. Wer das '
+                + 'Inventar bearbeiten darf, kommt über „Inventar bearbeiten“ direkt in dessen Einstellungen und von '
+                + 'dort über „Zum Bestand“ wieder hierher.',
             statsTitle: 'Statistiken',
             statsText: 'Oben siehst du die Gesamtzahlen: wie viele Gegenstände insgesamt, verfügbar, zugewiesen und verloren sind. Bei Inventaren mit Größen werden die Zahlen auch pro Größe aufgeschlüsselt.',
+            barText: 'Unter jeder Größe liegt ein dünner Streifen. Grün ist, was frei im Regal liegt, orange, was '
+                + 'Mitglieder haben, und rot, was gerade verliehen oder verloren ist. So siehst du auf einen Blick, '
+                + 'ob in einer Größe noch etwas frei ist. Fahre mit der Maus darüber, dann stehen die drei Zahlen '
+                + 'auch als Text da. Bei einer Größe ohne Bestand bleibt der Streifen leer.',
             lostTitle: 'Verlorene Gegenstände',
             lostText: 'Alle als verloren markierten Gegenstände werden hier aufgelistet.',
             freeTitle: 'Verfügbare Gegenstände',
@@ -4052,7 +4286,14 @@ volumes:
             whatShown: 'Was kannst du hier tun?',
             whatShownText: 'Hier verwaltest du die Gegenstände und Größen innerhalb eines einzelnen Inventars.',
             settingsTitle: 'Einstellungen',
-            settingsText: 'Ändere den Namen und Typ des Inventars.',
+            settingsText: 'Ändere den Namen, den Typ und ob das Inventar einheitlich oder eine Sammlung ist.',
+            fieldsTitle: 'Wo ein Feld angelegt wird',
+            fieldsText: 'Ein Feld wird dort angelegt, wo das Ding lebt, zu dem es gehört. Felder des ganzen '
+                + 'Inventars stehen auf dieser Seite, Felder einer Art im Fenster der Art, Felder eines einzelnen '
+                + 'Gegenstands im Fenster des Gegenstands. Einen Geltungsbereich musst du deshalb nicht mehr wählen.',
+            backTitle: 'Hin und zurück',
+            backText: 'Über „Zum Bestand“ kommst du zur Bestandsliste desselben Inventars zurück, und von dort '
+                + 'führt „Inventar bearbeiten“ wieder hierher.',
             sizesTitle: 'Größen',
             sizesText: 'Füge Größen hinzu oder bearbeite sie. Jede Größe hat eine Bezeichnung.',
             sizesDragText: 'Die Reihenfolge der Größen änderst du mit den Pfeilen an jeder Zeile, am Rechner zusätzlich durch Ziehen am Griff daneben.',
@@ -4066,6 +4307,125 @@ volumes:
             historyTitle: 'Verlauf',
             historyText: 'Jeder Gegenstand hat einen Verlauf, der zeigt, wem er wann zugewiesen oder zurückgegeben wurde.',
             tip: 'Bei externen Inventaren werden Gegenstände automatisch erstellt, wenn du „Ausgeben" nutzt.',
+        },
+        inventoryMove: {
+            title: 'Gegenstände verschieben',
+            subtitle: 'Ein Inventar aufteilen, ohne die Gegenstände neu anzulegen.',
+            whatShown: 'Was kannst du hier tun?',
+            whatShownText: 'Du wählst Gegenstände aus diesem Inventar aus und schiebst sie in ein anderes '
+                + 'Inventar derselben Wache. Das brauchst du vor allem, wenn ein Inventar in Wahrheit zwei '
+                + 'Dinge enthält, etwa „Bundhose leicht" und „Bundhose schwer".',
+            keepsTitle: 'Was bleibt',
+            keepsText: 'Die Gegenstände bleiben dieselben. Kennung, Verlauf, wer sie gerade hat und wo sie '
+                + 'schon überall waren, ziehen mit um. Genau darum verschiebst du sie, statt sie zu löschen '
+                + 'und neu anzulegen: beim Neuanlegen wäre all das weg.',
+            sizeTitle: 'Was mit der Größe passiert',
+            sizeText: 'Die Größenliste gehört zum Inventar, das du verlässt. Gibt es im Ziel eine Größe mit '
+                + 'demselben Namen, behält der Gegenstand sie. Sonst kommt er ohne Größe an. In der Liste '
+                + 'steht vor dem Verschieben an jedem Gegenstand, was mit seiner Größe geschieht.',
+            whyTitle: 'Wozu das gut ist',
+            whyText: 'Ob ein Inventar einheitlich oder eine Sammlung ist, lässt sich nur umstellen, wenn nichts '
+                + 'mehr daran hängt. Aufteilen ist der andere Weg dorthin, und der ist ohne Verschieben nicht zu haben.',
+            tip: 'Wähle erst das Ziel und dann die Gegenstände: dann steht schon an jeder Zeile, ob die '
+                + 'Größe mitkommt.',
+        },
+        inventoryTags: {
+            title: 'Schlagwörter',
+            subtitle: 'Dinge zusammenfassen, die zusammengehören, ohne gleich zu sein.',
+            whatIsTitle: 'Was ein Tag ist',
+            whatIsText: 'Ein Tag ist eine Eigenschaft eines Gegenstands, die immer gilt und keine '
+                + 'Menge kennt. Die zehn Funkgeräte und die zwei Ladestationen sind alle „Funk“, auch wenn '
+                + 'sie in verschiedenen Inventaren liegen und nicht dasselbe Ding sind.',
+            againstArtText: 'Die Art fasst gleiche Dinge zusammen, das Tag fasst Dinge zusammen, die '
+                + 'zusammengehören. Eine Antenne unter „Sonstiges“ trägt dasselbe Tag wie die '
+                + 'Funkgeräte, obwohl sie keine Art mit ihnen teilt.',
+            pickedTitle: 'Tags werden ausgewählt, nicht getippt',
+            pickedText: 'Im Feld am Gegenstand steht, was es schon gibt. Ein neues Wort lässt sich anlegen, '
+                + 'sobald das Getippte zu nichts passt, und wird erst beim Speichern wirklich angelegt. So '
+                + 'wird aus „orange“ nicht nebenbei ein zweites „organge“.',
+            manageTitle: 'Wörter verwalten',
+            manageText: 'Unter Inventar verwalten stehen alle Wörter der Abteilung mit der Anzahl der '
+                + 'Gegenstände, die sie tragen. Dort lassen sie sich umbenennen, einfärben und löschen; '
+                + 'gelöscht wird nur das Wort, die Gegenstände bleiben.',
+            filterTitle: 'Nach einem Wort filtern',
+            filterText: 'In der Gegenstandsliste eines Inventars gibt es eine Spalte „Schlagwörter“. Über '
+                + 'ihren Filter lässt sich die Liste auf ein Wort einschränken.',
+            sameWordTitle: 'Dasselbe Wort bei mehreren Abteilungen',
+            sameWordText: 'Groß- und Kleinschreibung und Leerzeichen am Rand spielen keine Rolle: „Funk“, '
+                + '„funk“ und „ Funk “ sind ein Wort. Jede Abteilung behält ihre eigene Schreibweise in der '
+                + 'Anzeige.',
+            clusterText: 'Ein Verband kann Wörter empfehlen. Eine Empfehlung ersetzt nie das Wort einer '
+                + 'Abteilung: beide bleiben stehen und meinen ohnehin dasselbe.',
+            tip: 'Wenige, klare Wörter nützen mehr als viele. Ein Wort, das nur ein Gegenstand trägt, '
+                + 'findet nichts, was die Liste nicht auch zeigt.',
+        },
+        inventoryTidy: {
+            title: 'Arten aufräumen',
+            subtitle: 'Gleiche Dinge unter eine Art bringen und Tippfehler geraderücken.',
+            whatIsArtTitle: 'Was eine Art ist',
+            whatIsArtText: 'Eine Art fasst gleiche Dinge in einer Sammlung zusammen. In der Kiste liegen zwölf '
+                + 'Funkgeräte in drei Farben, dazu eine Ladestation und eine Antenne. „Funkgerät“ ist eine Art '
+                + 'mit einem Feld „Farbe“; Ladestation und Antenne tragen gar keine Art und liegen lose in der '
+                + 'Sammlung, was für alles gilt, das es nur einmal gibt.',
+            threeWordsText: 'Die Art steht neben der Bezeichnung und ersetzt sie nicht. „Pager 01“ bleibt '
+                + '„Pager 01“ und ist ein Stück der Art „Pager“. Die Größe ist noch einmal etwas anderes: '
+                + 'sie sagt, wie groß etwas ist, die Art sagt, welches Ding es ist.',
+            whereTitle: 'Wo es Arten gibt',
+            whereText: 'Nur in einer Sammlung. Ein einheitliches Inventar wird über Größen geordnet und bekommt keine Arten. '
+                + 'Umstellen lässt sich das erst wieder, wenn keine Art mehr darin steht.',
+            screenTitle: 'Was diese Seite zeigt',
+            screenText: 'Oben stehen die Bezeichnungen, die auf den Gegenständen dieses Inventars stehen, '
+                + 'mit ihrer Anzahl. So fällt sofort auf, wo dasselbe zweimal geschrieben wurde. Hake die '
+                + 'Bezeichnungen an, die dasselbe meinen, und gib der Gruppe eine Art.',
+            twoButtonsTitle: 'Die beiden Schaltflächen',
+            twoButtonsText: '„Zusammenführen und umbenennen“ setzt die Art und schreibt allen ausgewählten '
+                + 'Gegenständen den Namen der Art. Das räumt den Tippfehler wirklich weg, lässt sich aber '
+                + 'nicht rückgängig machen. „Nur Art setzen“ lässt jede Bezeichnung stehen.',
+            fieldsTitle: 'Felder an einer Art',
+            fieldsText: 'Ein benutzerdefiniertes Feld kannst du an eine Art hängen statt an das ganze '
+                + 'Inventar. Dann steht das Feld an allen Funkgeräten und nicht an der Ladestation. Die '
+                + 'Werte bleiben trotzdem bei jedem Gegenstand einzeln.',
+            fieldsWhereText: 'Angelegt wird ein solches Feld dort, wo die Art bearbeitet wird: im Inventar '
+                + 'bearbeiten, unter Arten, beim Öffnen einer Art. So wird aus drei Arten „Funkgerät blau“, '
+                + '„Funkgerät grün“ und „Funkgerät gelb“ eine Art „Funkgerät“ mit einem Auswahlfeld „Farbe“.',
+            tip: 'Es wird nichts von allein gruppiert. Erst wenn du hier auf eine Schaltfläche klickst, '
+                + 'entsteht eine Art. So wandert kein Tippfehler versehentlich in die Liste.',
+        },
+        inventoryBorrowed: {
+            title: 'Geliehene Ausrüstung',
+            subtitle: 'Was einer Partnerwache gehört und gerade hier liegt.',
+            whatShown: 'Was steht hier?',
+            whatShownText: 'Alles, was eine Partnerwache euch geliehen hat, auf einer Liste. Sobald die '
+                + 'Übergabe eingetragen ist, legt Ember dafür ein eigenes Regal an: „Geliehene Ausrüstung". '
+                + 'Darin liegt alles, was anderen gehört, egal von welcher Wache es kommt.',
+            whyOneShelfTitle: 'Ein Regal, nicht eines je Wache',
+            whyOneShelfText: 'Die Frage, die eine Wache wirklich stellt, lautet: was liegt hier gerade, das '
+                + 'uns nicht gehört. Getrennt nach Wachen bräuchte diese Antwort mehrere Listen nebeneinander, '
+                + 'und jede einmalige Ausleihe hinterließe für immer ein leeres Regal. Wem ein Stück gehört, '
+                + 'steht deshalb an der Zeile, und die Liste lässt sich danach sortieren.',
+            renameTitle: 'Umbenennen und löschen',
+            renameText: 'Ihr könnt das Regal umbenennen, wenn ihr es anders nennt. Löschen lässt es sich nur, '
+                + 'solange nichts darin liegt: sonst würden Zeilen verschwinden, die euch nicht gehören. Ist es '
+                + 'leer, könnt ihr es löschen, und die nächste Übergabe legt ein neues an.',
+            useTitle: 'Was ihr damit tun könnt',
+            useText: 'Geliehene Ausrüstung ist ein Gegenstand wie jeder andere: sie kann in einen Behälter, '
+                + 'sie kann an ein Mitglied ausgegeben werden, und sie läuft in der Prüfung mit. Nur ändern, '
+                + 'weiterverleihen und löschen könnt ihr sie nicht. Das bleibt bei der Wache, der sie gehört.',
+            snapshotTitle: 'Ein Abzug vom Tag der Übergabe',
+            snapshotText: 'Bezeichnung, Kennung und Felder werden bei der Übergabe kopiert und danach nicht '
+                + 'mehr nachgeführt. Benennt die andere Wache das Funkgerät um, steht hier weiter der alte '
+                + 'Name, bis es zurückgeht. Das ist Absicht: nachgeführte Angaben brauchen eine Verbindung, '
+                + 'die auch ausfallen kann, und dann zeigen zwei Wachen unbemerkt Verschiedenes an.',
+            checkTitle: 'Was die Prüfung damit macht',
+            checkText: 'Geliehene Ausrüstung liegt im Haus, also wird sie mitgeprüft. Fehlt ein Stück, wird '
+                + 'das in der Prüfung vermerkt, aber nicht als Verlust gemeldet: die Zeile hier verschwindet '
+                + 'ohnehin bei der Rückgabe, und auf der Seite der anderen Wache stünde weiter, dass ihr das '
+                + 'Stück habt. Sagt es der Wache über die Ausleih-Anfrage, auf der ihr es bekommen habt.',
+            returnTitle: 'Bei der Rückgabe',
+            returnText: 'Wird die Ausleihe als zurückgegeben eingetragen, verschwindet die Zeile hier ganz. '
+                + 'Was bleibt, ist die Ausleih-Anfrage, und die steht auf beiden Seiten weiter im Verlauf.',
+            tip: 'Sortiert nach Wache, wenn ihr von mehreren Partnern etwas dahabt: dann steht zusammen, was '
+                + 'zusammen zurückgeht.',
         },
         inventoryCheckMember: {
             title: 'Inventarprüfung - Mitglied',
@@ -4292,23 +4652,30 @@ volumes:
             tagsTitle: 'Tags',
             tagsText: 'Unter dem Titel siehst du Tags. Verwalter können Tags hinzufügen oder entfernen, um Dateien zu kategorisieren.',
             relatedTitle: 'Verwandte Dateien',
-            relatedText: 'Unter dem Inhalt werden verwandte Dateien angezeigt. Verwalter können Dateien miteinander verknüpfen.',
+            relatedText: 'Unter dem Inhalt werden verwandte Dateien angezeigt. Verwalter können Dateien miteinander verknüpfen. Die Suche dafür durchsucht das ganze Wiki, also auch Beschreibungen und Inhalte und alle Unterordner, und zeigt zu jedem Treffer den Ordner an, in dem er liegt.',
+            backlinksTitle: 'Wird verwiesen von',
+            backlinksText: 'Unter den verwandten Dateien steht, welche anderen Seiten auf diese hier verweisen. Diese Liste entsteht von selbst: sobald jemand irgendwo eine Verknüpfung setzt, taucht seine Seite hier auf. Entfernen lässt sie sich nur dort, wo sie gesetzt wurde. Seiten, die du nicht öffnen darfst, werden weggelassen und auch nicht mitgezählt.',
+            moveTitle: 'Datei verschieben',
+            moveText: 'Über „Verschieben" im Menü mit den drei Punkten legst du die Datei in einen anderen Ordner. Dafür brauchst du Vollzugriff auf die Datei, denn der Zielordner entscheidet darüber, wer sie künftig sieht. Vor dem Verschieben sagt dir der Dialog, wie weit die Datei danach sichtbar ist. Der Link zur Datei bleibt derselbe.',
+            deleteTitle: 'Datei löschen',
+            deleteText: 'Gelöschte Dateien wandern in den Papierkorb des Wikis und lassen sich von dort zurückholen, samt Verweisen, Schlagwörtern und Versionsverlauf.',
+            deleteEmbeddedText: 'Ist die Datei auf einer Seite eingebunden, sagt der Löschdialog vorher, auf welcher. Dort stünde danach nur noch ein Ersatztitel, und bei einer veröffentlichten Seite merkt das von außen niemand.',
             commentsTitle: 'Kommentare',
             commentsText: 'Ganz unten gibt es einen Kommentar-Bereich. Hier können Mitglieder Fragen stellen oder Feedback geben.',
             shareLinkTitle: 'Teilen-Link',
             shareLinkText: 'Wenn das Wiki öffentlich ist, kannst du einen Link zur Datei kopieren und teilen - auch ohne Login.',
             editTitle: 'Datei bearbeiten',
-            editText: 'Wenn du die Berechtigung hast, siehst du oben einen „Bearbeiten"-Button. Damit öffnest du die Datei im Editor und kannst den Inhalt ändern.',
+            editText: 'Wenn du die Berechtigung hast, siehst du oben einen „Bearbeiten"-Button. Damit öffnest du die Datei im Editor und kannst den Inhalt ändern. Alles Weitere zur Datei - Sichtbarkeit, Eigenschaften, Versionen und der PDF-Download - liegt im Menü mit den drei Punkten daneben.',
             versionsTitle: 'Versionsverlauf',
-            versionsText: 'Über den Button „Versionen" siehst du alle früheren Versionen dieser Datei. Du kannst ältere Versionen anzeigen und bei Bedarf wiederherstellen.',
+            versionsText: 'Über den Punkt „Versionen" im Menü mit den drei Punkten siehst du alle früheren Versionen dieser Datei. Du kannst ältere Versionen anzeigen und bei Bedarf wiederherstellen.',
             pdfExportTitle: 'Als PDF herunterladen',
-            pdfExportText: 'Bei Markdown- und Textdateien gibt es oben den Button „Als PDF". Damit lädst du den Inhalt als PDF herunter - mit Wachenname, Logo und Fußzeile, also direkt zum Ausdrucken oder Weitergeben geeignet.',
+            pdfExportText: 'Bei Markdown- und Textdateien steht „Als PDF" oben im Menü mit den drei Punkten. Damit lädst du den Inhalt als PDF herunter - mit Wachenname, Logo und Fußzeile, also direkt zum Ausdrucken oder Weitergeben geeignet.',
             pdfExportWhere: 'Den Download gibt es außerdem direkt in der Dateiliste, bei Dateien von Partnerwachen und auf den öffentlichen Wiki-Seiten.',
             pdfExportFormatting: 'Überschriften, Listen, Tabellen, Zitate und Code-Blöcke aus Markdown bleiben im PDF erhalten. Bilder werden durch ihren Beschreibungstext ersetzt.',
             presentationsTitle: 'Präsentationen',
             presentationsText: 'Präsentationen (PowerPoint, OpenDocument) werden automatisch in ein PDF umgewandelt und direkt in der Seite angezeigt. Du kannst also Schulungsfolien hochladen und sofort im Browser ansehen.',
             presentationsFormats: 'Unterstützte Formate: .pptx, .ppt und .odp.',
-            presentationsButtons: 'Mit „Präsentieren" startest du die Vollbild-Ansicht. Mit „Original herunterladen" bekommst du die Originaldatei.',
+            presentationsButtons: 'Mit „Präsentieren" startest du die Vollbild-Ansicht. „Original herunterladen" liegt im Menü mit den drei Punkten und gibt dir die Datei so, wie sie hochgeladen wurde.',
             presentationModeTitle: 'Präsentationsmodus',
             presentationModeText: 'Der Präsentationsmodus zeigt das Dokument im Vollbild - eine Seite nach der anderen, wie bei einer echten Präsentation. Das funktioniert für Präsentationen und PDFs.',
             presentationModeKeys: 'Pfeiltasten (links/rechts) oder Leertaste zum Blättern',

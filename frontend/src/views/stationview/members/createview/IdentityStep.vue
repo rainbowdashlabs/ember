@@ -9,6 +9,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import SetupMailChoice from '@/components/input/toggle/SetupMailChoice.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -19,6 +20,7 @@ const firstName = defineModel<string>('firstName', {required: true})
 const lastName = defineModel<string>('lastName', {required: true})
 const email = defineModel<string>('email', {required: true})
 const canLogin = defineModel<boolean>('canLogin', {required: true})
+const sendSetupMail = defineModel<boolean>('sendSetupMail', {required: true})
 
 const emit = defineEmits<{
   next: []
@@ -56,6 +58,8 @@ const emit = defineEmits<{
       <TextInput v-model="email" :placeholder="t('membersCreate.emailPlaceholder')"/>
       <p class="text-xs text-(--text-muted)">{{ t('membersCreate.emailHint') }}</p>
     </div>
+
+    <SetupMailChoice v-model="sendSetupMail" :has-address="canLogin"/>
 
     <div class="flex justify-between">
       <SecondaryButton @click="emit('back')">{{ t('membersCreate.back') }}</SecondaryButton>

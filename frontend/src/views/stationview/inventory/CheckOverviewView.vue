@@ -21,6 +21,7 @@ import {byDate, byValue, useSortable} from '@/composables/useSortable'
 import CheckOverviewTabs from './checkoverviewview/CheckOverviewTabs.vue'
 import MemberCheckTable from './checkoverviewview/MemberCheckTable.vue'
 import MemberCheckCardList from './checkoverviewview/MemberCheckCardList.vue'
+import SelfCheckPanel from './checkoverviewview/SelfCheckPanel.vue'
 import {memberName} from './checkoverviewview/memberHelpers'
 
 const routes = useInventoryRoutes()
@@ -75,6 +76,12 @@ function viewLastCheck(member: MemberCheckSummary) {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading && !error">
+        <SelfCheckPanel
+            v-if="routes.selfCheckReview"
+            :members="filteredMembers"
+            :review-route="routes.selfCheckReview"
+        />
+
         <CheckOverviewTabs v-model:active-tab="activeTab" v-model:sort-by="sortBy"/>
 
         <EmptyState v-if="sortedMembers.length === 0">{{ t('inventory.check.noMembers') }}</EmptyState>

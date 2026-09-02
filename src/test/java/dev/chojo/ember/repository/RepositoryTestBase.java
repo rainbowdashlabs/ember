@@ -27,12 +27,14 @@ import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
 import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
 import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterApplicationRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterInventoryTagRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
 import dev.chojo.ember.feature.cluster.service.ClusterDispatchService;
 import dev.chojo.ember.feature.cluster.service.ClusterGovernanceService;
 import dev.chojo.ember.feature.cluster.service.ClusterInventoryService;
+import dev.chojo.ember.feature.cluster.service.ClusterInventoryTagService;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
 import dev.chojo.ember.feature.cluster.service.ClusterProfileFieldService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
@@ -46,6 +48,11 @@ import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryStationCacheRepository;
+import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
+import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
+import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
+import dev.chojo.ember.feature.equipment.service.EquipmentNeedService;
+import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -63,28 +70,45 @@ import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
+import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.service.InventoryShareService;
+import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.insights.repository.PageHitRepository;
+import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryContainerKindRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryContainerRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryFieldDefinitionRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.repository.InventoryTagRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementDocumentRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementItemRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
 import dev.chojo.ember.feature.inventory.repository.MovementFlowRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
+import dev.chojo.ember.feature.inventory.repository.SelfCheckRepository;
+import dev.chojo.ember.feature.inventory.service.BorrowedGearService;
 import dev.chojo.ember.feature.inventory.service.ClusterItemHandoverService;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
+import dev.chojo.ember.feature.inventory.service.InventoryArtService;
+import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
+import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
+import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.inventory.service.InventoryTagService;
 import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
+import dev.chojo.ember.feature.inventory.service.LineTargetService;
 import dev.chojo.ember.feature.inventory.service.LossReportService;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
+import dev.chojo.ember.feature.inventory.service.SelfCheckReviewService;
+import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
@@ -141,9 +165,11 @@ import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
+import dev.chojo.ember.util.sql.Transactions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
+import org.mockito.Mockito;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.util.Set;
@@ -208,6 +234,7 @@ public abstract class RepositoryTestBase {
     protected static ClusterStorageQuotaService clusterStorageQuotaService;
 
     protected static ItemCustodyService itemCustodyService;
+    protected static BorrowedGearService borrowedGearService;
     protected static MovementFlowRepository movementFlowRepo;
     protected static ItemMovementRepository itemMovementRepo;
     protected static MovementFlowService movementFlowService;
@@ -231,12 +258,28 @@ public abstract class RepositoryTestBase {
     protected static EventReminderRepository eventReminderRepo;
     protected static SavedFilterRepository savedFilterRepo;
     protected static InventoryCheckRepository inventoryCheckRepo;
+    protected static InventoryCheckService inventoryCheckService;
+    protected static SelfCheckRepository selfCheckRepo;
+    protected static SelfCheckService selfCheckService;
+    protected static SelfCheckReviewService selfCheckReviewService;
+    protected static dev.chojo.ember.feature.notifications.service.NotificationService selfCheckNotifications;
     protected static EventFieldRepository eventFieldRepo;
     protected static FormRepository formRepo;
     protected static ProcurementRepository procurementRepo;
     protected static InventoryContainerRepository containerRepo;
     protected static InventoryContainerKindRepository containerKindRepo;
     protected static InventoryFieldDefinitionRepository fieldDefinitionRepo;
+    protected static InventoryFieldDefinitionService fieldDefinitionService;
+    protected static InventoryArtRepository artRepo;
+    protected static InventoryArtService artService;
+    protected static LineTargetService lineTargetService;
+    protected static EquipmentNeedRepository equipmentNeedRepo;
+    protected static EquipmentAvailabilityRepository equipmentAvailabilityRepo;
+    protected static InventoryTagRepository inventoryTagRepo;
+    protected static InventoryTagService inventoryTagService;
+    protected static InventoryShareService inventoryShareService;
+    protected static ClusterInventoryTagRepository clusterInventoryTagRepo;
+    protected static ClusterInventoryTagService clusterInventoryTagService;
     protected static LostAndFoundRepository lostAndFoundRepo;
     protected static EmailQueueRepository emailQueueRepo;
     protected static ProfileFieldChangeRepository profileFieldChangeRepo;
@@ -336,7 +379,9 @@ public abstract class RepositoryTestBase {
                 .setThrowExceptions(true)
                 .setRowMapperRegistry(new RowMapperRegistry().register(PostgresqlMapper.getDefaultMapper()))
                 .build();
-        QueryConfiguration.setDefault(config);
+        // The same wrapping the application installs, so a service grouping its writes in a
+        // transaction behaves here exactly as it does in production.
+        QueryConfiguration.setDefault(Transactions.threadScoped(config));
         accountRepo = new AccountRepository(TokenHasher.forTesting("repository-test-pepper"));
         stationRepo = new StationRepository();
         stationMemberRepo = new StationMemberRepository();
@@ -347,6 +392,7 @@ public abstract class RepositoryTestBase {
         clusterApplicationRepo = new ClusterApplicationRepository();
         clusterProfileFieldRepo = new ClusterProfileFieldRepository();
         itemCustodyService = new ItemCustodyService(inventoryRepo);
+        borrowedGearService = new BorrowedGearService(inventoryRepo);
         movementFlowRepo = new MovementFlowRepository();
         itemMovementRepo = new ItemMovementRepository();
         movementFlowService = new MovementFlowService(movementFlowRepo, itemMovementRepo, clusterRepo);
@@ -390,6 +436,21 @@ public abstract class RepositoryTestBase {
         containerRepo = new InventoryContainerRepository();
         containerKindRepo = new InventoryContainerKindRepository();
         fieldDefinitionRepo = new InventoryFieldDefinitionRepository();
+        artRepo = new InventoryArtRepository();
+        fieldDefinitionService = new InventoryFieldDefinitionService(fieldDefinitionRepo, artRepo, inventoryRepo);
+        artService = new InventoryArtService(artRepo, inventoryRepo);
+        lineTargetService = new LineTargetService(inventoryRepo, artRepo);
+        equipmentNeedRepo = new EquipmentNeedRepository();
+        equipmentAvailabilityRepo = new EquipmentAvailabilityRepository();
+        inventoryTagRepo = new InventoryTagRepository();
+        inventoryShareService = new InventoryShareService(
+                new InventoryShareRepository(),
+                new FederationService(new FederationRepository(), stationRepo, new Api()),
+                inventoryRepo,
+                artRepo);
+        inventoryTagService = new InventoryTagService(inventoryTagRepo, inventoryRepo, inventoryShareService);
+        clusterInventoryTagRepo = new ClusterInventoryTagRepository();
+        clusterInventoryTagService = new ClusterInventoryTagService(clusterInventoryTagRepo, inventoryTagRepo);
         lostAndFoundRepo = new LostAndFoundRepository();
         emailQueueRepo = new EmailQueueRepository();
         profileFieldChangeRepo = new ProfileFieldChangeRepository();
@@ -404,8 +465,13 @@ public abstract class RepositoryTestBase {
                 memberGroupRepo,
                 memberPermissionResolver);
         clusterStationGroupRepo = new ClusterStationGroupRepository();
-        inventoryService =
-                new InventoryService(inventoryRepo, itemCustodyService, clusterRepo, clusterStationGroupRepo);
+        inventoryService = new InventoryService(
+                inventoryRepo,
+                artRepo,
+                fieldDefinitionService,
+                itemCustodyService,
+                clusterRepo,
+                clusterStationGroupRepo);
         clusterStationGroupService = new ClusterStationGroupService(clusterStationGroupRepo, clusterRepo, stationRepo);
         clusterProfileFieldService = new ClusterProfileFieldService(
                 clusterProfileFieldRepo,
@@ -520,6 +586,38 @@ public abstract class RepositoryTestBase {
                 memberNameResolver);
         clusterDispatchService = new ClusterDispatchService(
                 clusterRepo, stationRepo, inventoryRepo, itemMovementService, movementFlowService);
+        selfCheckRepo = new SelfCheckRepository();
+        inventoryCheckService = new InventoryCheckService(
+                inventoryCheckRepo,
+                inventoryRepo,
+                stationMemberRepo,
+                memberGroupRepo,
+                accountRepo,
+                memberIdentityFactory,
+                new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService),
+                itemCustodyService,
+                inventoryService,
+                selfCheckRepo);
+        selfCheckNotifications =
+                org.mockito.Mockito.mock(dev.chojo.ember.feature.notifications.service.NotificationService.class);
+        selfCheckService = new SelfCheckService(
+                selfCheckRepo,
+                inventoryCheckService,
+                inventoryRepo,
+                stationMemberRepo,
+                accountRepo,
+                selfCheckNotifications);
+        selfCheckReviewService = new SelfCheckReviewService(
+                selfCheckRepo,
+                inventoryCheckService,
+                inventoryCheckRepo,
+                inventoryRepo,
+                containerRepo,
+                stationMemberRepo,
+                accountRepo,
+                itemCustodyService,
+                exchangeService,
+                selfCheckNotifications);
     }
 
     /**
@@ -544,14 +642,24 @@ public abstract class RepositoryTestBase {
             EventRestrictionService restriction,
             EventFieldDefaultService fieldDefault,
             EventRegistrationService registration,
-            EventReminderService reminder) {}
+            EventReminderService reminder,
+            EquipmentNeedService equipmentNeeds,
+            EquipmentAvailabilityService equipmentAvailability,
+            LendingService lending) {}
 
     /**
      * Builds the event domain's services over the shared repositories.
+     *
+     * <p>Lending is built here too: the availability function reads the appointments, and cancelling
+     * an appointment withdraws what it asked of a partner, so a test that walks either needs both.
      */
     protected static EventServices newEventServices(DomainEventBus eventBus) {
-        var crudService = new EventCrudService(eventRepo, eventBus);
         var breakService = new EventBreakService(eventBreakRepo);
+        var availability =
+                new EquipmentAvailabilityService(equipmentAvailabilityRepo, equipmentNeedRepo, eventRepo, breakService);
+        var lending = newLendingService(eventBus, availability);
+        var crudService =
+                new EventCrudService(eventRepo, eventBus, new EquipmentReleaseService(equipmentNeedRepo, lending));
         return new EventServices(
                 crudService,
                 new EventOccurrenceService(crudService, breakService),
@@ -560,7 +668,42 @@ public abstract class RepositoryTestBase {
                 new EventRestrictionService(eventRepo, restrictionService),
                 new EventFieldDefaultService(eventFieldDefaultRepo, eventRepo),
                 new EventRegistrationService(eventRegistrationRepo, eventRepo, eventBus),
-                new EventReminderService(eventReminderRepo));
+                new EventReminderService(eventReminderRepo),
+                new EquipmentNeedService(
+                        equipmentNeedRepo, equipmentAvailabilityRepo, availability, crudService, lineTargetService),
+                availability,
+                lending);
+    }
+
+    /**
+     * The lending service over this class's repositories. The remote half is a stub: nothing here
+     * reaches another instance, and every path these tests walk is local.
+     */
+    protected static LendingService newLendingService(
+            DomainEventBus eventBus, EquipmentAvailabilityService availability) {
+        return newLendingService(eventBus, availability, Mockito.mock(FederationHttpClient.class));
+    }
+
+    /**
+     * The lending service with a remote half the caller can drive, for the tests that walk the
+     * server-to-server path.
+     */
+    protected static LendingService newLendingService(
+            DomainEventBus eventBus, EquipmentAvailabilityService availability, FederationHttpClient httpClient) {
+        return new LendingService(
+                new LendingRepository(),
+                httpClient,
+                new FederationService(new FederationRepository(), stationRepo, new Api()),
+                stationRepo,
+                inventoryRepo,
+                clusterRepo,
+                itemCustodyService,
+                borrowedGearService,
+                inventoryShareService,
+                artRepo,
+                lineTargetService,
+                availability,
+                eventBus);
     }
 
     /**

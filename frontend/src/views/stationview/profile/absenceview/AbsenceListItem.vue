@@ -13,7 +13,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {MemberAbsence} from '@/api/absences'
-import {formatDate} from '@/util/format'
+import {formatDate, todayIsoDate} from '@/util/format'
 
 const props = defineProps<{
   absence: MemberAbsence
@@ -27,13 +27,13 @@ const {t} = useI18n()
 
 function isAbsenceActive(absence: MemberAbsence): boolean {
   if (!absence.absentFrom || !absence.absentUntil) return false
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayIsoDate()
   return absence.absentFrom <= today && absence.absentUntil >= today
 }
 
 function isAbsenceUpcoming(absence: MemberAbsence): boolean {
   if (!absence.absentFrom) return false
-  return absence.absentFrom > new Date().toISOString().slice(0, 10)
+  return absence.absentFrom > todayIsoDate()
 }
 
 </script>

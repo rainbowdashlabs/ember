@@ -230,6 +230,42 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         accountRepo.delete(account2.id());
     }
 
+    /**
+     * A selection left on its blank entry is an answer that says nothing, and it reaches the column
+     * as a document null rather than as an empty column. Read back it is the four letters
+     * {@code null}, which is neither empty nor the empty string, so a profile could be called
+     * complete on the strength of an answer nobody gave.
+     */
+    @Test
+    @Order(22)
+    void aSelectionLeftEmptyIsNotAnAnswer() {
+        var chooser = service.create(
+                station.id(),
+                "Chosen thing",
+                ProfileFieldType.ENUM,
+                ProfileFieldConfig.parse("{\"required\":true,\"options\":[\"A\",\"B\"]}"),
+                11,
+                ProfileFieldScope.MEMBER);
+        var account3 = accountRepo.create("pfield-blank@test.com", "Blank", "Chooser");
+        var member3 = stationMemberRepo.create(station.id(), account3.id());
+
+        for (String saidNothing : List.of("null", "\"\"")) {
+            service.setValues(
+                    member3.id(),
+                    List.of(new FieldValueEntry(chooser.id(), saidNothing, FieldOrigin.STATION)),
+                    member3.id());
+            assertFalse(service.isProfileComplete(member3.id()), "answered with " + saidNothing);
+        }
+
+        service.setValues(
+                member3.id(), List.of(new FieldValueEntry(chooser.id(), "\"A\"", FieldOrigin.STATION)), member3.id());
+        assertTrue(service.isProfileComplete(member3.id()));
+
+        service.delete(chooser.id());
+        stationMemberRepo.delete(member3.id());
+        accountRepo.delete(account3.id());
+    }
+
     // -- findApplicableFields / scopeForUserType --
 
     @Test

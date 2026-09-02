@@ -285,6 +285,17 @@ export interface UpcomingEventOccurrence {
     date: string
 }
 
+/**
+ * One evening of an appointment, which is the appointment and the date together.
+ *
+ * An occurrence carries no id of its own: a recurring appointment named without a date would mean
+ * every occurrence there has ever been.
+ */
+export interface EventOccurrenceRef {
+    eventId: number
+    date: string
+}
+
 interface TemplateCreateRequest {
     name: string
 }

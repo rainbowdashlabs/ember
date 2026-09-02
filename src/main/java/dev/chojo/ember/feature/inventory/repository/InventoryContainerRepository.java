@@ -31,7 +31,7 @@ public class InventoryContainerRepository {
     private static final String INVENTORY_CONTAINER_COLUMNS =
             "id, station_id, parent_id, internal_id, name, kind_id, description, created_at, created_by";
     private static final String INVENTORY_ITEM_COLUMNS =
-            "id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, lost_note, lost_note_by, owner_kind, owner_cluster_id, custody, custody_station_id, custody_movement_id, container_id";
+            "id, inventory_id, internal_id, name, size_id, art_id, metadata, assigned_to, lost_at, lost_note, lost_note_by, owner_kind, owner_cluster_id, owner_station_id, loan_request_item_id, custody, custody_station_id, custody_partner_station_id, custody_movement_id, container_id";
     private static final String INVENTORY_CONTAINER_HISTORY_COLUMNS =
             "id, container_id, station_id, event_kind, event_ts, actor_id";
 
@@ -59,6 +59,29 @@ public class InventoryContainerRepository {
                 .single(call().bind("station_id", stationId).bind("internal_id", internalId))
                 .map(InventoryContainer.map())
                 .first();
+    }
+
+    /**
+     * Every container of a station carrying a number somebody typed, ignoring case and the spaces
+     * around it.
+     *
+     * <p>Containers share their numbering with the gear, so a number a member read off something they
+     * are holding may perfectly well be a box's. Answering with every match is what lets whoever
+     * reads it see that.
+     *
+     * @param stationId  the station
+     * @param internalId the number as it was typed
+     * @return every container carrying it, oldest first
+     */
+    public List<InventoryContainer> findAllByInternalId(int stationId, String internalId) {
+        return query("""
+                SELECT %s FROM inventory_container
+                WHERE station_id = :station_id
+                  AND lower(btrim(internal_id)) = lower(btrim(:internal_id))
+                ORDER BY id ASC;""", INVENTORY_CONTAINER_COLUMNS)
+                .single(call().bind("station_id", stationId).bind("internal_id", internalId))
+                .map(InventoryContainer.map())
+                .all();
     }
 
     /**

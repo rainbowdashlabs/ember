@@ -33,6 +33,8 @@ defineProps<{
   emptySlotCount: (req: RequiredInventoryItem) => number
   sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
   itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
+  /** The step a piece is standing on when something is already running on it, null otherwise. */
+  movementStep: (itemId: number) => string | null
 }>()
 
 defineEmits<{
@@ -41,6 +43,8 @@ defineEmits<{
   cancel: []
   submit: []
   rapidSetResult: [result: CheckResult]
+  rapidUndoResult: [itemId: number]
+  rapidUndoNotInPossession: [inventoryId: number, slotIndex: number]
   rapidExchange: [entry: CheckEntry]
   rapidCreateProcurement: [req: RequiredInventoryItem, slotIndex: number, sizeId: string]
   rapidCorrect: [entry: CheckEntry]
@@ -93,6 +97,7 @@ defineExpose({ getCurrentRapidEntry })
     :item-label="itemLabel"
     :size-label="sizeLabel"
     :item-notes="itemNotes"
+    :movement-step="movementStep"
     @set-result="(r) => $emit('rapidSetResult', r)"
     @set-note="(id, n) => $emit('setNote', id, n)"
     @exchange="entry => $emit('rapidExchange', entry)"
@@ -102,6 +107,8 @@ defineExpose({ getCurrentRapidEntry })
     @assign="(id) => $emit('rapidAssign', id)"
     @create-and-assign="(id) => $emit('rapidCreateAndAssign', id)"
     @skip="() => {}"
+    @undo-result="(id) => $emit('rapidUndoResult', id)"
+    @undo-not-in-possession="(inv, slot) => $emit('rapidUndoNotInPossession', inv, slot)"
     @done="$emit('rapidDone')"
   />
   <div v-if="!checkMode" class="space-y-6">

@@ -4,25 +4,22 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { ref, watch, onMounted } from 'vue'
-import { contrastingTextColorForRgbString } from '@/util/contrastColor'
+import { ref } from 'vue'
+import { useContrastingText } from '@/composables/useContrastingText'
 
+/**
+ * The pill every badge in the product is built from.
+ *
+ * <p>The background is a utility class the caller names, so only the browser knows what it came
+ * out as. The letters take their colour from what it painted, and follow it through a theme
+ * change.
+ */
 const props = defineProps<{
   bgClass: string
 }>()
 
 const el = ref<HTMLElement | null>(null)
-const textColor = ref<string>('')
-
-function updateTextColor() {
-  if (!el.value) return
-  const bg = getComputedStyle(el.value).backgroundColor
-  const next = contrastingTextColorForRgbString(bg)
-  if (next) textColor.value = next
-}
-
-onMounted(updateTextColor)
-watch(() => props.bgClass, () => requestAnimationFrame(updateTextColor))
+const textColor = useContrastingText(el, () => props.bgClass)
 </script>
 
 <template>

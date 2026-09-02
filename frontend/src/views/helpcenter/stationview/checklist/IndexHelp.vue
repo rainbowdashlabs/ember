@@ -71,6 +71,20 @@ const {t} = useI18n()
       </ol>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.checklist.followsTitle')">
+      <p>{{ t('helpCenter.checklist.followsText') }}</p>
+      <NeutralContainer>
+        <ul class="list-disc pl-6 space-y-1 text-sm">
+          <li>{{ t('helpCenter.checklist.followsOccurrence') }}</li>
+          <li>{{ t('helpCenter.checklist.followsRefresh') }}</li>
+          <li>{{ t('helpCenter.checklist.followsCancel') }}</li>
+          <li>{{ t('helpCenter.checklist.followsGuests') }}</li>
+          <li>{{ t('helpCenter.checklist.followsDeleted') }}</li>
+        </ul>
+      </NeutralContainer>
+      <HelpTip>{{ t('helpCenter.checklist.followsSwitch') }}</HelpTip>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.checklist.refreshTitle')">
       <p>{{ t('helpCenter.checklist.refreshText') }}</p>
       <NeutralContainer>

@@ -7,6 +7,7 @@ import {request, type FullConfig} from '@playwright/test'
 import {mkdir, writeFile} from 'node:fs/promises'
 import {dirname} from 'node:path'
 import {instanceAdmin, stationPeers, storageStatePath} from './fixtures/auth'
+import {peerBaseUrl, waitForInstance} from './fixtures/peer'
 
 /**
  * Logs each role in once for the whole run and stores the result on disk.
@@ -67,15 +68,27 @@ async function resetData(baseURL: string) {
     }
 }
 
+/**
+ * Prepares the run: both instances are emptied, and the three shared sessions are logged in once.
+ *
+ * The base address comes from the environment or from the first project, not from the project the
+ * run happens to start with: the projects carry only their device overrides, and reading it off one
+ * of them sent the setup at the default port whatever the run was actually pointed at.
+ *
+ * Both instances are reset, and both at once. Each throws away its own schema and migrates it back,
+ * in its own container, so the two genuinely overlap: the run waits for the slower of them rather
+ * than for the two of them in turn. Resetting only the first would leave the second filling up run
+ * by run, which is what the reset exists to prevent.
+ */
 export default async function globalSetup(config: FullConfig) {
-    // The projects carry only their device overrides, so the base address has to come from the
-    // same place the tests take it from. Reading it off the project alone sent the setup at the
-    // default port whatever the run was actually pointed at.
     const baseURL = process.env.E2E_BASE_URL
         ?? config.projects[0]?.use?.baseURL
         ?? 'http://localhost:3000'
 
-    if (!process.env.E2E_KEEP_DATA) await resetData(baseURL)
+    if (!process.env.E2E_KEEP_DATA) {
+        await waitForInstance(peerBaseUrl())
+        await Promise.all([resetData(baseURL), resetData(peerBaseUrl())])
+    }
 
     const context = await request.newContext({baseURL})
     const {manager, member} = await stationPeers(context)

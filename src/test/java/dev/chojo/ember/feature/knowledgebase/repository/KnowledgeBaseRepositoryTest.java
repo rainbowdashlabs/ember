@@ -86,7 +86,7 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
         assertNotNull(sub);
         var subFolders = knowledgeBaseRepo.findFolders(station.id(), folderId);
         assertTrue(subFolders.stream().anyMatch(f -> f.id() == sub.id()));
-        knowledgeBaseRepo.deleteFolder(sub.id());
+        knowledgeBaseRepo.purgeFolder(sub.id());
     }
 
     // -- Files --
@@ -126,7 +126,7 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
                 station.id(), null, "Root file", "", KbFileType.TEXT, "text/plain", 10, null, member.id());
         var rootFiles = knowledgeBaseRepo.findFiles(station.id(), null);
         assertTrue(rootFiles.stream().anyMatch(f -> f.id() == rootFile.id()));
-        knowledgeBaseRepo.deleteFile(rootFile.id());
+        knowledgeBaseRepo.purgeFile(rootFile.id());
     }
 
     @Test
@@ -197,7 +197,7 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
     @Order(40)
     void updateSearchIndexAndSearch() {
         knowledgeBaseRepo.updateSearchIndex(fileId, "welcome safety document fire", "simple");
-        var results = knowledgeBaseRepo.search(station.id(), "safety", "simple");
+        var results = knowledgeBaseRepo.search(station.id(), "safety", "simple", 50);
         // May or may not return results depending on tsvector; just verify no exception
         assertNotNull(results);
     }
@@ -205,7 +205,7 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(41)
     void searchWithSnippets() {
-        var results = knowledgeBaseRepo.searchWithSnippets(station.id(), "safety", "simple");
+        var results = knowledgeBaseRepo.searchWithSnippets(station.id(), "safety", "simple", 50);
         assertNotNull(results);
     }
 
@@ -272,7 +272,7 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
         // clear
         knowledgeBaseRepo.setRelatedFiles(fileId, List.of());
         assertTrue(knowledgeBaseRepo.findRelatedFiles(fileId).isEmpty());
-        knowledgeBaseRepo.deleteFile(other.id());
+        knowledgeBaseRepo.purgeFile(other.id());
     }
 
     // -- Public Visibility --
@@ -350,7 +350,7 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
         var other = knowledgeBaseRepo.createFile(
                 station.id(), null, "Source", "", KbFileType.TEXT, "text/plain", 0, null, member.id());
         assertTrue(knowledgeBaseRepo.setSourceReference(fileId, other.id(), station.id()));
-        knowledgeBaseRepo.deleteFile(other.id());
+        knowledgeBaseRepo.purgeFile(other.id());
     }
 
     // -- Favourites --
@@ -398,7 +398,7 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
                 member.id());
         assertNotNull(file);
         assertEquals("https://example.com", file.linkUrl());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     // -- Cleanup --
@@ -406,10 +406,10 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(99)
     void deleteFileAndFolder() {
-        assertTrue(knowledgeBaseRepo.deleteFile(fileId));
+        assertTrue(knowledgeBaseRepo.purgeFile(fileId));
         assertTrue(knowledgeBaseRepo.findFileById(fileId).isEmpty());
 
-        assertTrue(knowledgeBaseRepo.deleteFolder(folderId));
+        assertTrue(knowledgeBaseRepo.purgeFolder(folderId));
         assertTrue(knowledgeBaseRepo.findFolderById(folderId).isEmpty());
     }
 }

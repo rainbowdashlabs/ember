@@ -11,10 +11,10 @@ import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
-import ExportFieldPicker from '@/components/export/ExportFieldPicker.vue'
-import ExchangeToolbar from './exchangeview/ExchangeToolbar.vue'
+import ExchangeControls from './exchangeview/ExchangeControls.vue'
 import ExchangeListView from './exchangeview/ExchangeListView.vue'
 import ExchangeModals from './exchangeview/ExchangeModals.vue'
+import { useExchangeTable } from './exchangeview/useExchangeTable'
 import {ExchangeStatus, type ExchangeRequestEntry, type ExchangeStatusName} from '@/api/exchanges'
 import {InventoryTypes, type Inventory, type InventoryItem} from '@/api/inventory'
 import type {ProfileField} from '@/api/profileFields'
@@ -26,6 +26,7 @@ import { useStations } from '@/composables/useStations'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useExport } from '@/composables/useExport'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 import { saveBlob } from '@/util/downloadAuthed'
 
 const routes = useInventoryRoutes()
@@ -42,12 +43,23 @@ const managed = ref<ManagedMember[]>([])
 const membersWithItems = ref<Set<number>>(new Set())
 const allFields = ref<ProfileField[]>([])
 
+const { isMobile } = useBreakpoint()
+
+const {
+  search, inventoryIds: filterInventoryIds, statuses: filterStatuses, inventories: filterInventories,
+  visible: visibleRequests, sortKey, direction, toggleSort, selectSort,
+} = useExchangeTable(() => requests.value)
+
+/**
+ * The export picks from the rows the filters leave standing, which is what makes selecting all of
+ * them a safe thing to press: nothing hidden can travel into the document.
+ */
 const {
   exportMode, selectedIds: selectedForExport, selectedColumns: selectedExportFields,
-  selectedRows: selectedRequests, columnOptions: exportFieldOptions,
+  selectedRows: selectedRequests, columnOptions: exportFieldOptions, allRowsSelected,
   startExport, cancelExport, toggleRow, toggleAllRows, toggleColumn,
 } = useExport({
-  rows: () => requests.value,
+  rows: () => visibleRequests.value,
   rowId: r => r.id,
   columns: () => allFields.value.map(f => ({key: String(f.id), label: f.name ?? ''})),
   selectAllRows: true,
@@ -199,42 +211,33 @@ watch(loaded, (isLoaded) => {
       :subtitle="t('pages.inventory-exchanges.subtitle')"
   >
     <div class="space-y-6">
-      <ExchangeToolbar
-        :export-mode="exportMode"
-        :exporting="exporting"
-        :selected-count="selectedForExport.size"
-        :can-export="canManageExchanges() && requests.length > 0"
-        @export="exportSelected"
-        @cancel-export="cancelExport"
-        @enter-export="enterExportMode"
-        @create="showCreateModal = true"
+      <ExchangeControls
+        v-model:search="search" v-model:inventory-ids="filterInventoryIds" v-model:statuses="filterStatuses"
+        :export-mode="exportMode" :exporting="exporting" :selected-count="selectedForExport.size"
+        :can-export="canManageExchanges() && visibleRequests.length > 0"
+        :show-filters="requests.length > 0" :inventories="filterInventories"
+        :sort-key="sortKey" :show-sort="isMobile"
+        :export-field-options="exportFieldOptions" :selected-export-fields="selectedExportFields"
+        @export="exportSelected" @cancel-export="cancelExport" @enter-export="enterExportMode"
+        @create="showCreateModal = true" @sort="selectSort" @toggle-column="toggleColumn"
       />
 
       <Alert v-if="error || exportError" variant="error">{{ error || exportError }}</Alert>
 
-      <ExportFieldPicker
-        v-if="exportMode && exportFieldOptions.length > 0"
-        boxed
-        layout="inline"
-        :label="t('exchanges.exportFieldsHint')"
-        :options="exportFieldOptions"
-        :selected="selectedExportFields"
-        @toggle="toggleColumn"
-      />
-
       <AsyncSection
-        :empty="requests.length === 0"
-        :empty-message="t('exchanges.empty')"
+        :empty="visibleRequests.length === 0"
+        :empty-message="requests.length === 0 ? t('exchanges.empty') : t('exchanges.emptyFiltered')"
         :loading="loading"
       >
         <ExchangeListView
-          :requests="requests" :show-member-column="showMemberColumn" :can-manage-exchanges="canManageExchanges()"
-          :export-mode="exportMode" :selected-for-export="selectedForExport" :updating-id="updatingId"
-          :correcting-id="correctingId"
+          :requests="visibleRequests" :show-member-column="showMemberColumn" :can-manage-exchanges="canManageExchanges()"
+          :export-mode="exportMode" :selected-for-export="selectedForExport" :all-selected="allRowsSelected"
+          :updating-id="updatingId" :correcting-id="correctingId"
           :available-items="availableItems" :next-statuses-for="nextStatusesFor"
+          :sort-key="sortKey" :direction="direction"
           @toggle-select-all="toggleAllRows" @toggle-export="toggleRow" @open-log="openLog"
           @start-update="startStatusUpdate" @delete="deleteRequest" @status-done="onStatusUpdated"
-          @status-cancel="updatingId = null" @status-error="(msg) => error = msg"
+          @status-cancel="updatingId = null" @status-error="(msg) => error = msg" @sort="toggleSort"
           @start-correct="startCorrection" @correct-done="onCorrected" @correct-cancel="correctingId = null"
         />
       </AsyncSection>

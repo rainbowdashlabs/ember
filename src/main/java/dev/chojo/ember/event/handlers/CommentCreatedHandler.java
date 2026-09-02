@@ -12,13 +12,13 @@ import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.util.Map;
 import java.util.Objects;
 
 @Singleton
@@ -40,22 +40,15 @@ public class CommentCreatedHandler implements DomainEventHandler<CommentCreated>
 
     @Override
     public void handle(CommentCreated event) {
-        var link =
-                switch (event.entityType()) {
-                    case NEWS -> new NotificationData.NotificationLink("news-detail", Map.of("id", event.entityId()));
-                    case KB -> new NotificationData.NotificationLink("kb-file", Map.of("id", event.entityId()));
-                    case EVENT -> new NotificationData.NotificationLink("event-detail", Map.of("id", event.entityId()));
-                    default -> new NotificationData.NotificationLink("events");
-                };
+        var link = NotificationLinks.comment(
+                event.entityType(), event.entityId(), event.ticketAddress(), event.commentId());
         var data = NotificationData.of(
                 new NotificationParams.NewsComment(event.entityTitle(), event.authorName(), event.preview()), link);
 
-        // Notify the parent comment author (if this is a reply and they didn't write this comment)
         if (event.parentAuthorId() != null && !Objects.equals(event.parentAuthorId(), event.authorMemberId())) {
             notificationService.notifyIfAbsent(event.parentAuthorId(), NotificationType.NEWS_COMMENT, data);
         }
 
-        // Notify managers only for news comments
         if (CommentEntityType.NEWS.equals(event.entityType())) {
             var newsMgmtIds =
                     stationMemberRepository

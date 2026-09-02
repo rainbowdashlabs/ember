@@ -24,8 +24,9 @@ const dummySelectedLabels = [
 
 <template>
   <div>
-    <FieldLabel class="mb-1">Labels</FieldLabel>
-    <LabelSelectInput :labels="dummyLabels" :selected="dummySelectedLabels"/>
+    <FieldLabel class="mb-1">{{ t('boards.labels') }}</FieldLabel>
+    <LabelSelectInput :labels="dummyLabels" :selected="dummySelectedLabels"
+                      :placeholder="t('boards.labelsPlaceholder')" :empty-text="t('boards.noLabelsFound')"/>
   </div>
 
   <div>

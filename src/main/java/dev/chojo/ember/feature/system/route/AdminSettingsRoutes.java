@@ -505,6 +505,7 @@ public class AdminSettingsRoutes implements Routes {
         requireRange(request.tokenBytes(), 16, 256, "tokenBytes");
         requireRange(request.verifyTokenHours(), 1, 720, "verifyTokenHours");
         requireRange(request.passwordTokenHours(), 1, 720, "passwordTokenHours");
+        requireRange(request.setupTokenDays(), 1, Auth.SETUP_TOKEN_MAX_DAYS, "setupTokenDays");
         requireRange(request.sessionMinutes(), 5, 43200, "sessionMinutes");
         requireRange(request.untrustedSessionMinutes(), 5, 43200, "untrustedSessionMinutes");
         if (request.untrustedSessionMinutes() > request.sessionMinutes()) {
@@ -515,6 +516,7 @@ public class AdminSettingsRoutes implements Routes {
             setField(Auth.class, auth, "tokenBytes", request.tokenBytes());
             setField(Auth.class, auth, "verifyTokenHours", request.verifyTokenHours());
             setField(Auth.class, auth, "passwordTokenHours", request.passwordTokenHours());
+            setField(Auth.class, auth, "setupTokenDays", request.setupTokenDays());
             setField(Auth.class, auth, "sessionMinutes", request.sessionMinutes());
             setField(Auth.class, auth, "untrustedSessionMinutes", request.untrustedSessionMinutes());
             conf.save();
@@ -550,6 +552,7 @@ public class AdminSettingsRoutes implements Routes {
                 auth.tokenBytes(),
                 auth.verifyTokenHours(),
                 auth.passwordTokenHours(),
+                auth.setupTokenDays(),
                 auth.sessionMinutes(),
                 auth.untrustedSessionMinutes(),
                 auth.tokenPepper() != null && !auth.tokenPepper().isBlank());
@@ -1427,6 +1430,9 @@ public class AdminSettingsRoutes implements Routes {
             List<String> availableMailLocales) {}
 
     /**
+     * @param setupTokenDays          how long the link that sets up a new account stays good for,
+     *                                counted in days because an invitation waits for a holiday or a
+     *                                term break rather than for the next hour
      * @param untrustedSessionMinutes how long a session lasts on a machine the person signing in
      *                                did not vouch for
      */
@@ -1434,6 +1440,7 @@ public class AdminSettingsRoutes implements Routes {
             int tokenBytes,
             int verifyTokenHours,
             int passwordTokenHours,
+            int setupTokenDays,
             int sessionMinutes,
             int untrustedSessionMinutes,
             boolean tokenPepperConfigured) {}
@@ -1443,6 +1450,7 @@ public class AdminSettingsRoutes implements Routes {
             int tokenBytes,
             int verifyTokenHours,
             int passwordTokenHours,
+            int setupTokenDays,
             int sessionMinutes,
             int untrustedSessionMinutes) {}
 
