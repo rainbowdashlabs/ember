@@ -105,6 +105,12 @@ function toggleManager(id: number) {
   selectedManagerIds.value = newSet
 }
 
+/**
+ * A guardian entered beside the member they will look after, who is made a guardian rather than an
+ * ordinary member: the member kind is what carries the right to sign in, and looking after somebody
+ * is done by signing in. The person being created in the wizard's own steps is unaffected and keeps
+ * whatever kind was chosen for them.
+ */
 async function createNewManager(data: { firstName: string; lastName: string; email: string }) {
   error.value = ''
   try {
@@ -112,6 +118,7 @@ async function createNewManager(data: { firstName: string; lastName: string; ema
     const membersList = await stationMembers.listMembers()
     const newMember = membersList.find(m => m.accountId === invited.id)
     if (newMember) {
+      await stationMembers.setUserType(newMember.id, StationUserType.GUARDIAN)
       createdManagers.value = [...createdManagers.value, {
         id: invited.id,
         memberId: newMember.id,

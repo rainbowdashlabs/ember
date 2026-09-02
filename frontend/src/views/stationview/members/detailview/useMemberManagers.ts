@@ -6,13 +6,18 @@
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ProfileField } from '@/api/profileFields'
-import type { StationMember } from '@/api/types'
+import { StationUserType, type StationMember } from '@/api/types'
 import { members, profileFields, stationMembers } from '@/api'
 import { memberDisplayName } from '../listview/useMemberData'
 
 /**
  * Owns the managers linked to the viewed member: their profile snapshots plus
  * linking an existing member, unlinking one and inviting a brand new manager.
+ *
+ * <p>Somebody invited here is made a guardian rather than an ordinary member, because that is what
+ * they are being created for. The member kind is what carries the right to sign in, and a guardian
+ * who cannot sign in cannot look after anybody, so creating one without it produces a person who
+ * exists for a job they cannot start.
  */
 export function useMemberManagers(
     memberId: Ref<number>,
@@ -103,6 +108,7 @@ export function useMemberManagers(
       const updatedMembers = await stationMembers.listMembers()
       const newMember = updatedMembers.find(m => m.accountId === invited.id)
       if (newMember) {
+        await stationMembers.setUserType(newMember.id, StationUserType.GUARDIAN)
         const currentIds = managers.value.map(m => m.id)
         await stationMembers.setManagers(memberId.value, { managerIds: [...currentIds, newMember.id] })
         managers.value = await stationMembers.getManagers(memberId.value)

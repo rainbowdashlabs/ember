@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.TokenType;
@@ -58,6 +59,37 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
 
     private StationMemberInviteService.BatchResult createBatch(int stationId, List<InviteRequest> requests) {
         return service.createBatch(stationId, requests, SetupMail.SEND_NOW);
+    }
+
+    /**
+     * Somebody entered as an ordinary member stays one. Making a guardian a guardian is a decision
+     * of the screen that enters one, and pushing it down to here would turn every member the
+     * station writes down into somebody who may sign in and answer for other people.
+     */
+    @Test
+    void provision_leaves_an_ordinary_member_an_ordinary_member() {
+        String email = uniqueEmail("plain");
+
+        var result = provision(station.id(), email, "Paul", "Plain", StationUserType.MEMBER, null);
+
+        var member = stationMemberRepo.findById(result.memberId()).orElseThrow();
+        assertEquals(StationUserType.MEMBER, member.userType());
+        assertFalse(memberPermissionResolver.resolve(member.id()).contains(StationPermission.LOGIN));
+        assertFalse(memberPermissionResolver.resolve(member.id()).contains(StationPermission.MEMBER_GUARDIAN));
+    }
+
+    /** A guardian carries the right to sign in, which is the whole point of being one. */
+    @Test
+    void a_guardian_may_sign_in_and_answer_for_others() {
+        String email = uniqueEmail("guard");
+
+        var result = provision(station.id(), email, "Gerda", "Guard", StationUserType.GUARDIAN, null);
+
+        var member = stationMemberRepo.findById(result.memberId()).orElseThrow();
+        assertEquals(StationUserType.GUARDIAN, member.userType());
+        var held = memberPermissionResolver.resolve(member.id());
+        assertTrue(held.contains(StationPermission.LOGIN));
+        assertTrue(held.contains(StationPermission.MEMBER_GUARDIAN));
     }
 
     @Test
