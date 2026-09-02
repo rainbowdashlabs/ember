@@ -37,6 +37,35 @@ test.describe('Attendance', () => {
     })
 
     /**
+     * A sheet that anybody may still change months later is not a record of the evening. Age closes
+     * one on its own, which a story cannot wait for, so this walks the other way in: whoever manages
+     * attendance closes it on purpose, which is the same state by a different route.
+     *
+     * The reload is the point. Closing that only greys the buttons out until the next visit protects
+     * nothing, so the story reloads and expects the sheet still shut, then opens it again and
+     * expects the marking to come back.
+     */
+    test('a closed attendance sheet refuses marking until it is opened again', async ({managerPage: page}) => {
+        await page.goto('/station/attendance/new')
+        await page.getByRole('button', {name: 'Erstellen'}).first().click()
+        await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+        await expect(page.locator('button[aria-label="Anwesend"]').first()).toBeVisible()
+
+        await page.getByTestId('session-actions-trigger').click()
+        await page.getByTestId('lock-session').click()
+
+        await expect(page.getByTestId('unlock-session')).toBeVisible()
+        await expect(page.locator('button[aria-label="Anwesend"]')).toHaveCount(0)
+
+        await page.reload()
+        await expect(page.getByTestId('unlock-session')).toBeVisible()
+        await expect(page.locator('button[aria-label="Anwesend"]')).toHaveCount(0)
+
+        await page.getByTestId('unlock-session').click()
+        await expect(page.locator('button[aria-label="Anwesend"]').first()).toBeVisible()
+    })
+
+    /**
      * An evening starts by opening a session from the template it belongs to, and what it has to
      * bring with it is the people: a session listing nobody cannot record anybody.
      */
