@@ -19,7 +19,7 @@ import LendingSharePanel from '@/components/lending/LendingSharePanel.vue'
 import ProcurementTable from './ProcurementTable.vue'
 import LostItemsTable from './LostItemsTable.vue'
 import FreeItemsGrid from './FreeItemsGrid.vue'
-import {InventoryTypes, type InventoryDetail, type InventoryItem, type InventorySize} from '@/api/inventory'
+import {InventoryTypes, isLendableInventory, type InventoryDetail, type InventoryItem, type InventorySize} from '@/api/inventory'
 import type { ProcurementEntry } from '@/api/procurement'
 import type { StationMember } from '@/api/types'
 import type { LentOutItem } from '@/api/lending'
@@ -101,7 +101,12 @@ const { t } = useI18n()
     @create="$emit('openProcurementModal')"
   />
 
-  <LendingSharePanel :target-id="detail.id" :target-name="detail.name ?? ''" target="inventory" />
+  <LendingSharePanel
+    :target-id="detail.id"
+    :target-name="detail.name ?? ''"
+    :lendable="isLendableInventory(detail.inventoryType)"
+    target="inventory"
+  />
 
   <LentOutTable :lent-out-items="lentOutItems" :lent-out-count="counts.lentOut" />
 

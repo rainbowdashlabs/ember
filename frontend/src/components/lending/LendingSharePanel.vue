@@ -22,25 +22,22 @@ import type {ShareSetting, ShareTarget} from '@/api/lending'
  * <p>It renders for nobody but a lending manager, and nowhere the station does not lend: an
  * association issues its gear rather than lending it, and its screens name no lending route.
  */
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   target: ShareTarget
   targetId: number
   targetName: string
-}>()
+  /** Whether this gear is the station's to lend. Gear of the body above it is not. */
+  lendable?: boolean
+}>(), {lendable: true})
 
 const {t} = useI18n()
 const {loaded} = useSession()
-const {visible} = useLendingShare()
+const {visible, stateLabel} = useLendingShare(() => props.lendable)
 
 const setting = ref<ShareSetting | null>(null)
 const editorOpen = ref(false)
 
-const stateLabel = computed(() => {
-  if (!setting.value?.shared) return t('lendingShare.stateUnshared')
-  if (setting.value.grant === 'WITHHOLD') return t('lendingShare.stateWithheld')
-  if (setting.value.scope === 'SPECIFIC') return t('lendingShare.stateNamedPartners')
-  return t('lendingShare.stateAllPartners')
-})
+const state = computed(() => stateLabel(setting.value))
 
 async function load() {
   if (!visible.value) return
@@ -65,7 +62,7 @@ watch(loaded, (isLoaded) => {
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
       <div class="flex flex-col gap-1">
         <SubHeader>{{ t('lendingShare.panelTitle') }}</SubHeader>
-        <MutedText data-testid="lending-share-state">{{ stateLabel }}</MutedText>
+        <MutedText data-testid="lending-share-state">{{ state }}</MutedText>
         <MutedText v-if="setting && !setting.shared">{{ t('lendingShare.stillPromisedHint') }}</MutedText>
       </div>
       <SecondaryButton :icon="['fas', 'share-nodes']" data-testid="lending-share-edit" @click="editorOpen = true">

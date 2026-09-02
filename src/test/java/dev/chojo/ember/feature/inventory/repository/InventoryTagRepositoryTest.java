@@ -207,6 +207,58 @@ class InventoryTagRepositoryTest extends RepositoryTestBase {
         inventoryRepo.deleteItem(kept.id());
     }
 
+    /**
+     * A word reaches the station's own gear and nothing else. An inventory holding both owners can
+     * be offered whole, and the pieces belonging to the body above the station stay at home anyway:
+     * the offer says what a station is willing to lend, never what is the station's to lend.
+     */
+    @Test
+    void aWordDoesNotReachGearTheStationDoesNotOwn() {
+        var federationRepo = new FederationRepository();
+        var federationService = new FederationService(federationRepo, stationRepo, new Api());
+        var keyPair = federationService.generateKeyPair();
+        federationService.acceptInvite(
+                neighbour.id(), station.id(), federationService.encodePublicKey(keyPair), null, null);
+        int partnerId = federationService.findPartners(station.id()).stream()
+                .filter(p -> neighbour.uid().equals(p.partnerStationId()))
+                .findFirst()
+                .orElseThrow()
+                .id();
+
+        var funk = inventoryTagRepo.create(station.id(), "Eigenfunk", null);
+        var ours = inventoryRepo.createItem(inventoryId, "TG-500", "Eigenes Funkgerät", null, null);
+        var theirs = inventoryRepo.createItem(inventoryId, "TG-501", "Kreisfunkgerät", null, null);
+        inventoryTagRepo.setItemTags(ours.id(), station.id(), List.of(funk.id()));
+        inventoryTagRepo.setItemTags(theirs.id(), station.id(), List.of(funk.id()));
+        ownedByTheBodyAbove(theirs.id());
+        shareInventory(station.id(), inventoryId);
+
+        var served = inventoryTagService.findSharedItemsByTag(station.id(), partnerId, "eigenfunk");
+        assertEquals(1, served.size());
+        assertEquals("Eigenes Funkgerät", served.getFirst().name());
+
+        clearShares(station.id());
+        for (var p : federationService.findPartners(station.id())) federationRepo.deletePartner(p.id());
+        for (var p : federationService.findPartners(neighbour.id())) federationRepo.deletePartner(p.id());
+        inventoryTagRepo.delete(funk.id(), station.id());
+        inventoryRepo.deleteItem(ours.id());
+        inventoryRepo.deleteItem(theirs.id());
+    }
+
+    private static void ownedByTheBodyAbove(int itemId) {
+        query("UPDATE inventory_item SET owner_kind = 'CLUSTER' WHERE id = :item_id;")
+                .single(call().bind("item_id", itemId))
+                .update();
+    }
+
+    private static void shareInventory(int stationId, int inventoryId) {
+        query("""
+                INSERT INTO federation_inventory_share(station_id, inventory_id, share_scope)
+                VALUES (:station_id, :inventory_id, 'ALL_PARTNERS');""")
+                .single(call().bind("station_id", stationId).bind("inventory_id", inventoryId))
+                .insert();
+    }
+
     private static void shareItem(int stationId, int itemId) {
         query("""
                 INSERT INTO federation_inventory_share(station_id, item_id, share_scope)

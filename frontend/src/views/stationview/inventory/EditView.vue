@@ -94,7 +94,8 @@ function onError(message: string) {
         <SizesSection v-if="detail.hasSizes" :inventory-id="inventoryId" :sizes="detail.sizes ?? []"
                       @updated="onSizesUpdated" @error="onError"/>
 
-        <ArtSection v-if="detail.homogeneous === false" :inventory-id="inventoryId"/>
+        <ArtSection v-if="detail.homogeneous === false" :inventory-id="inventoryId"
+                    :inventory-type="detail.inventoryType"/>
 
         <FieldDefinitionsSection :inventory-id="inventoryId"/>
 

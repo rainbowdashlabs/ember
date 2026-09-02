@@ -13,7 +13,7 @@ import ReportLossPanel from './ReportLossPanel.vue'
 import ItemHistoryPanel from './ItemHistoryPanel.vue'
 import ItemCheckHistoryPanel from './ItemCheckHistoryPanel.vue'
 import LendingSharePanel from '@/components/lending/LendingSharePanel.vue'
-import type {InventoryItem, InventoryItemHistory, InventorySize} from '@/api/inventory'
+import {ItemOwner, type InventoryItem, type InventoryItemHistory, type InventorySize} from '@/api/inventory'
 import type {ItemCheckHistoryEntry, ItemLocationResponse} from '@/api/inventoryContainers'
 import type {StationMember} from '@/api/types'
 
@@ -76,7 +76,12 @@ const emit = defineEmits<{
       @mark-found="emit('markFound')"
   />
 
-  <LendingSharePanel :target-id="props.itemId" :target-name="props.item.name ?? ''" target="item"/>
+  <LendingSharePanel
+      :target-id="props.itemId"
+      :target-name="props.item.name ?? ''"
+      :lendable="props.item.ownerKind === ItemOwner.STATION"
+      target="item"
+  />
 
   <ItemHistoryPanel :entries="props.historyEntries"/>
 
