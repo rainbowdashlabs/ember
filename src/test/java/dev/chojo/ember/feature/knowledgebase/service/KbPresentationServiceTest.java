@@ -78,7 +78,7 @@ class KbPresentationServiceTest extends RepositoryTestBase {
         assertEquals(ConversionStatus.SUCCESS, statusOf(fileId));
         assertArrayEquals(pdf, service.getPresentationPdf(fileId).orElseThrow());
 
-        knowledgeBaseRepo.deleteFile(fileId);
+        knowledgeBaseRepo.purgeFile(fileId);
     }
 
     /**
@@ -95,7 +95,7 @@ class KbPresentationServiceTest extends RepositoryTestBase {
         service.storePresentationResult(station.id(), fileId, "pdf".getBytes(StandardCharsets.UTF_8));
 
         assertEquals(ConversionStatus.FAILED, statusOf(fileId));
-        knowledgeBaseRepo.deleteFile(fileId);
+        knowledgeBaseRepo.purgeFile(fileId);
     }
 
     /**
@@ -109,7 +109,7 @@ class KbPresentationServiceTest extends RepositoryTestBase {
         service.convert(station.id(), fileId, null, "broken.pptx");
 
         assertEquals(ConversionStatus.FAILED, statusOf(fileId));
-        knowledgeBaseRepo.deleteFile(fileId);
+        knowledgeBaseRepo.purgeFile(fileId);
     }
 
     /**
@@ -126,7 +126,7 @@ class KbPresentationServiceTest extends RepositoryTestBase {
 
         verify(fileStorage).store(eq(station.id()), eq(fileId), any(), eq("application/vnd.ms-powerpoint"));
         assertNotNull(statusOf(fileId));
-        knowledgeBaseRepo.deleteFile(fileId);
+        knowledgeBaseRepo.purgeFile(fileId);
     }
 
     @Test

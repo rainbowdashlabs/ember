@@ -19,6 +19,7 @@ import KbFiltersBar from './knowledgebaseview/KbFiltersBar.vue'
 import KbSearchResults from './knowledgebaseview/KbSearchResults.vue'
 import KbMoveModal from './knowledgebaseview/KbMoveModal.vue'
 import KbBulkModals from './knowledgebaseview/KbBulkModals.vue'
+import KbTrashView from './knowledgebaseview/KbTrashView.vue'
 import {useKbSelection} from './knowledgebaseview/useKbSelection'
 import {useKbMoveTarget} from './knowledgebaseview/useKbMoveTarget'
 import {useKbBrowse} from './knowledgebaseview/useKbBrowse'
@@ -52,8 +53,8 @@ const filters = useKbFilters(browse)
 const search = useKbSearch(filters)
 
 const {
-    folderParam, isFavouritesView, currentFolderId,
-    navigateToFolder, navigateToFile, navigateToFederatedFile, navigateToFavourites,
+    folderParam, isFavouritesView, isTrashView, currentFolderId,
+    navigateToFolder, navigateToFile, navigateToFederatedFile, navigateToFavourites, navigateToTrash,
     navigateToSharedFolder, sharedFolderId,
 } = navigation
 const {
@@ -77,6 +78,7 @@ const shareModalsRef = ref<InstanceType<typeof KbShareModals> | null>(null)
 
 const {
     show: showDeleteFolderModal,
+    target: deleteFolderTarget,
     request: confirmDeleteFolder,
     confirm: handleDeleteFolder,
 } = useConfirmAction<KbFolder>({
@@ -87,6 +89,7 @@ const {
 
 const {
     show: showDeleteFileModal,
+    target: deleteFileTarget,
     request: confirmDeleteFile,
     confirm: handleDeleteFile,
 } = useConfirmAction<KbFile>({
@@ -189,7 +192,7 @@ watch(loaded, (isLoaded) => {
         <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
         <Alert v-if="notice" variant="info" class="mb-4" data-testid="kb-bulk-notice">{{ notice }}</Alert>
 
-        <div class="mb-4">
+        <div v-if="!isTrashView" class="mb-4">
             <SearchInput
                 v-model="searchQuery"
                 :placeholder="t('kb.search')"
@@ -198,6 +201,7 @@ watch(loaded, (isLoaded) => {
         </div>
 
         <KbFiltersBar
+            v-if="!isTrashView"
             v-model:show-federated="showFederated"
             v-model:filter-station-id="filterStationId"
             v-model:filter-tag="filterTag"
@@ -207,7 +211,7 @@ watch(loaded, (isLoaded) => {
         />
 
         <KbBreadcrumb
-            v-if="!isSearching"
+            v-if="!isSearching && !isTrashView"
             :current-folder="currentFolder"
             :breadcrumbs="breadcrumbs"
             :shared-trail="sharedTrail"
@@ -216,13 +220,21 @@ watch(loaded, (isLoaded) => {
             :is-kb-public="isKbPublic()"
             :share-copied="shareCopied"
             :view-mode="viewMode"
+            :can-manage="canEditKnowledge()"
             @navigate="navigateToFolder"
             @toggle-view-mode="viewMode = viewMode === 'grid' ? 'list' : 'grid'"
             @copy-share-link="copyShareLink"
+            @open-trash="navigateToTrash"
+        />
+
+        <KbTrashView
+            v-if="isTrashView"
+            @back="navigateToFolder(null)"
+            @restored="loadData()"
         />
 
         <KbSearchResults
-            v-if="isSearching"
+            v-else-if="isSearching"
             :items="searchItems"
             :searching="searching"
             :total-count="searchResults.length"
@@ -248,6 +260,7 @@ watch(loaded, (isLoaded) => {
             @toggle-select="selection.toggle"
             @move-selection="bulkModalsRef?.openMove()"
             @tag-selection="bulkModalsRef?.openTags()"
+            @delete-selection="bulkModalsRef?.openDelete()"
             @clear-selection="selection.clear"
         />
 
@@ -271,6 +284,8 @@ watch(loaded, (isLoaded) => {
         <KbDeleteModals
             v-model:show-folder="showDeleteFolderModal"
             v-model:show-file="showDeleteFileModal"
+            :folder="deleteFolderTarget"
+            :file="deleteFileTarget"
             @confirm-folder="handleDeleteFolder"
             @confirm-file="handleDeleteFile"
         />

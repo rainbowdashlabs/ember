@@ -515,4 +515,90 @@ test.describe('Knowledge base', () => {
 
             await readerPage.context().close()
         })
+
+    /**
+     * The whole point of the trash, walked end to end: a folder with an article in it is deleted and
+     * is gone from the listing, it stands in the trash as one line rather than two, and putting it
+     * back brings the article with it, references included.
+     *
+     * The reference is what proves the deletion was a mark and not a removal. A hard delete would
+     * have taken the row that joins the two articles, and the restored article would come back
+     * pointing at nothing, thirty days after anybody could have noticed.
+     */
+    test('a deleted folder waits in the trash and comes back with its article',
+        async ({managerPage: page}) => {
+            const folder = unique('Papierkorb')
+            const article = unique('Zurueckgeholt')
+            const pointing = unique('Zeiger')
+
+            await page.goto('/station/knowledge')
+            await createFolder(page, folder)
+            const folderUrl = await openFolder(page, folder)
+            await createMarkdownFile(page, article)
+            const articleUrl = page.url()
+
+            await page.goto('/station/knowledge')
+            await createMarkdownFile(page, pointing)
+            await page.getByTestId('kb-add-related').click()
+            await page.getByPlaceholder('Datei suchen...').fill('Zurueckgeholt')
+            await page.getByRole('button', {name: article}).click()
+            await expect(page.getByRole('link', {name: article})).toBeVisible()
+
+            await page.goto('/station/knowledge')
+            await page.getByTestId('kb-item').filter({hasText: folder})
+                .getByTestId('actions-menu-trigger').click()
+            await page.getByRole('button', {name: 'Ordner löschen', exact: true}).click()
+            await page.getByRole('button', {name: 'Löschen', exact: true}).last().click()
+            await expect(page.getByTestId('kb-item').filter({hasText: folder})).toHaveCount(0)
+
+            await page.getByTestId('kb-open-trash').click()
+            const entry = page.getByTestId('kb-trash-entry').filter({hasText: folder})
+            await expect(entry).toHaveCount(1)
+            await expect(page.getByTestId('kb-trash-entry').filter({hasText: article})).toHaveCount(0)
+
+            await entry.getByTestId('kb-trash-restore').click()
+            await expect(page.getByTestId('kb-trash-notice')).toContainText(folder)
+
+            await page.goto(folderUrl)
+            await expect(page.getByText(article).first()).toBeVisible()
+            await page.goto(articleUrl)
+            await expect(page.getByTestId('kb-backlinks')).toContainText(pointing)
+        })
+
+    /**
+     * The button that was held back until there was somewhere for its work to land. The story marks
+     * two entries, reads the count the dialog gives (which counts what is inside the folder, not the
+     * ticked boxes), and finds both waiting in the trash afterwards.
+     */
+    test('a marked selection is deleted into the trash', async ({managerPage: page}) => {
+        const parent = unique('Wegwerf')
+        const branch = unique('Zweig')
+        const loose = unique('Einzeln')
+
+        await page.goto('/station/knowledge')
+        await createFolder(page, parent)
+        const parentUrl = await openFolder(page, parent)
+        await createFolder(page, branch)
+        await openFolder(page, branch)
+        await createMarkdownFile(page, unique('Drin'))
+        await page.goto(parentUrl)
+        await createMarkdownFile(page, loose)
+        await page.goto(parentUrl)
+
+        await page.getByTestId('kb-toggle-selecting').click()
+        await markEntry(page, branch)
+        await markEntry(page, loose)
+        await expect(page.getByTestId('kb-selection-bar')).toContainText('2 ausgewählt')
+
+        await page.getByTestId('kb-selection-delete').click()
+        await expect(page.getByText('1 Ordner und 2 Einträge')).toBeVisible()
+        await page.getByTestId('kb-bulk-delete-confirm').click()
+
+        await expect(page.getByTestId('kb-bulk-notice')).toContainText('2 in den Papierkorb gelegt.')
+        await expect(page.getByTestId('kb-item')).toHaveCount(0)
+
+        await page.getByTestId('kb-open-trash').click()
+        await expect(page.getByTestId('kb-trash-entry').filter({hasText: branch})).toHaveCount(1)
+        await expect(page.getByTestId('kb-trash-entry').filter({hasText: loose})).toHaveCount(1)
+    })
 })

@@ -65,7 +65,7 @@ class KbAccessServiceTest extends RepositoryTestBase {
         assertTrue(service.canAccess(member.id(), null, null, null, List.of(), List.of()));
         assertTrue(service.canAccess(member.id(), 999999, null, null, List.of(), List.of()));
         assertTrue(service.findRestrictions(null, file.id()).isEmpty());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     /**
@@ -85,8 +85,8 @@ class KbAccessServiceTest extends RepositoryTestBase {
         assertTrue(service.canAccess(member.id(), null, file.id(), StationUserType.MEMBER, List.of(), List.of()));
 
         service.setRestrictions(folder.id(), null, RestrictionSelection.empty());
-        knowledgeBaseRepo.deleteFile(file.id());
-        knowledgeBaseRepo.deleteFolder(folder.id());
+        knowledgeBaseRepo.purgeFile(file.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
     }
 
     /**
@@ -103,9 +103,9 @@ class KbAccessServiceTest extends RepositoryTestBase {
         assertTrue(service.canAccess(member.id(), child.id(), null, StationUserType.MEMBER, List.of(), List.of()));
 
         service.setRestrictions(grandparent.id(), null, RestrictionSelection.empty());
-        knowledgeBaseRepo.deleteFolder(child.id());
-        knowledgeBaseRepo.deleteFolder(parent.id());
-        knowledgeBaseRepo.deleteFolder(grandparent.id());
+        knowledgeBaseRepo.purgeFolder(child.id());
+        knowledgeBaseRepo.purgeFolder(parent.id());
+        knowledgeBaseRepo.purgeFolder(grandparent.id());
     }
 
     @Test
@@ -118,7 +118,7 @@ class KbAccessServiceTest extends RepositoryTestBase {
         assertFalse(service.canAccess(member.id() + 9999, null, file.id(), null, List.of(), List.of()));
 
         service.setRestrictions(null, file.id(), RestrictionSelection.empty());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -141,8 +141,8 @@ class KbAccessServiceTest extends RepositoryTestBase {
 
         service.setRestrictions(null, groupFile.id(), RestrictionSelection.empty());
         service.setRestrictions(null, tagFile.id(), RestrictionSelection.empty());
-        knowledgeBaseRepo.deleteFile(groupFile.id());
-        knowledgeBaseRepo.deleteFile(tagFile.id());
+        knowledgeBaseRepo.purgeFile(groupFile.id());
+        knowledgeBaseRepo.purgeFile(tagFile.id());
         memberGroupRepo.delete(group.id());
         userTagRepo.delete(tag.id());
     }
@@ -169,7 +169,7 @@ class KbAccessServiceTest extends RepositoryTestBase {
         assertFalse(service.canAccess(service.memberAccess(member.id(), null), null, file.id()));
 
         service.setRestrictions(null, file.id(), RestrictionSelection.empty());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
         userTagRepo.removeMember(tag.id(), member.id());
         memberGroupRepo.removeMember(group.id(), member.id());
         memberGroupRepo.delete(group.id());
@@ -208,10 +208,10 @@ class KbAccessServiceTest extends RepositoryTestBase {
 
         service.setRestrictions(closedFolder.id(), null, RestrictionSelection.empty());
         service.setRestrictions(null, deniedFile.id(), RestrictionSelection.empty());
-        for (var file : files) knowledgeBaseRepo.deleteFile(file.id());
-        knowledgeBaseRepo.deleteFolder(deepFolder.id());
-        knowledgeBaseRepo.deleteFolder(closedFolder.id());
-        knowledgeBaseRepo.deleteFolder(openFolder.id());
+        for (var file : files) knowledgeBaseRepo.purgeFile(file.id());
+        knowledgeBaseRepo.purgeFolder(deepFolder.id());
+        knowledgeBaseRepo.purgeFolder(closedFolder.id());
+        knowledgeBaseRepo.purgeFolder(openFolder.id());
     }
 
     /**
@@ -233,8 +233,8 @@ class KbAccessServiceTest extends RepositoryTestBase {
                 .isEmpty());
 
         service.setRestrictions(folder.id(), null, RestrictionSelection.empty());
-        knowledgeBaseRepo.deleteFile(file.id());
-        knowledgeBaseRepo.deleteFolder(folder.id());
+        knowledgeBaseRepo.purgeFile(file.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
     }
 
     /**
@@ -259,7 +259,7 @@ class KbAccessServiceTest extends RepositoryTestBase {
         service.removePublicVisibility(folder.id(), null);
         assertTrue(service.findPublicVisibility(folder.id(), null).isEmpty());
 
-        knowledgeBaseRepo.deleteFolder(folder.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
     }
 
     /**
@@ -284,9 +284,9 @@ class KbAccessServiceTest extends RepositoryTestBase {
         assertFalse(service.isPubliclyVisible(PublicKbMode.ALLOW_ALL, null, fileInHidden.id()));
 
         service.setRestrictions(parent.id(), null, RestrictionSelection.empty());
-        knowledgeBaseRepo.deleteFile(fileInHidden.id());
-        knowledgeBaseRepo.deleteFolder(child.id());
-        knowledgeBaseRepo.deleteFolder(parent.id());
+        knowledgeBaseRepo.purgeFile(fileInHidden.id());
+        knowledgeBaseRepo.purgeFolder(child.id());
+        knowledgeBaseRepo.purgeFolder(parent.id());
     }
 
     /**
@@ -311,9 +311,9 @@ class KbAccessServiceTest extends RepositoryTestBase {
 
         service.setRestrictions(null, article.id(), RestrictionSelection.empty());
         service.removePublicVisibility(closed.id(), null);
-        knowledgeBaseRepo.deleteFile(article.id());
-        knowledgeBaseRepo.deleteFolder(open.id());
-        knowledgeBaseRepo.deleteFolder(closed.id());
+        knowledgeBaseRepo.purgeFile(article.id());
+        knowledgeBaseRepo.purgeFolder(open.id());
+        knowledgeBaseRepo.purgeFolder(closed.id());
     }
 
     /**
@@ -350,7 +350,7 @@ class KbAccessServiceTest extends RepositoryTestBase {
         assertEquals(KbAccessLevel.MANAGE, service.treeLevels(manager, nodes).get(gated.id()));
 
         service.setRestrictions(gated.id(), null, RestrictionSelection.empty());
-        knowledgeBaseRepo.deleteFolder(open.id());
-        knowledgeBaseRepo.deleteFolder(gated.id());
+        knowledgeBaseRepo.purgeFolder(open.id());
+        knowledgeBaseRepo.purgeFolder(gated.id());
     }
 }

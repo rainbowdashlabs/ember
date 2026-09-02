@@ -68,7 +68,7 @@ class KbSearchServiceTest extends RepositoryTestBase {
         assertTrue(snippets.stream().anyMatch(r -> r.file().id() == file.id()));
         assertFalse(snippets.getFirst().snippet().isBlank());
 
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     /**
@@ -82,7 +82,7 @@ class KbSearchServiceTest extends RepositoryTestBase {
 
         assertTrue(service.search(station.id(), "Zumischer").stream().anyMatch(f -> f.id() == file.id()));
 
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     /**
@@ -98,8 +98,8 @@ class KbSearchServiceTest extends RepositoryTestBase {
         var blank = createFile(" ", " ");
         service.reindex(blank.id(), null);
 
-        knowledgeBaseRepo.deleteFile(named.id());
-        knowledgeBaseRepo.deleteFile(blank.id());
+        knowledgeBaseRepo.purgeFile(named.id());
+        knowledgeBaseRepo.purgeFile(blank.id());
     }
 
     @Test
@@ -146,8 +146,8 @@ class KbSearchServiceTest extends RepositoryTestBase {
         assertTrue(accessService.readableFiles(allowed, nodes).contains(restricted.id()));
 
         accessService.setRestrictions(folder.id(), null, RestrictionSelection.empty());
-        knowledgeBaseRepo.deleteFile(restricted.id());
-        knowledgeBaseRepo.deleteFolder(folder.id());
+        knowledgeBaseRepo.purgeFile(restricted.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
     }
 
     /**

@@ -10,8 +10,8 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import DummyVersionList from '@/views/helpcenter/stationview/knowledge/knowledgebasehelp/DummyVersionList.vue'
 import BulletList from '@/components/typography/BulletList.vue'
+import EditorSections from '@/views/helpcenter/stationview/knowledge/knowledgebasehelp/EditorSections.vue'
 import {StationPermission} from '@/api/types'
 
 const { t } = useI18n()
@@ -78,41 +78,7 @@ const { t } = useI18n()
     </HelpSection>
 
     <HelpPermissionGuard :permissions="[StationPermission.KNOWLEDGE_EDIT]" :label="t('helpCenter.permissionLabel.knowledgeEdit')">
-      <HelpSection :title="t('helpCenter.kb.createMenuTitle')">
-        <p>{{ t('helpCenter.kb.createMenuText') }}</p>
-        <BulletList>
-          <li>{{ t('helpCenter.kb.createFolder') }}</li>
-          <li>{{ t('helpCenter.kb.createMarkdown') }}</li>
-          <li>{{ t('helpCenter.kb.createUpload') }}</li>
-          <li>{{ t('helpCenter.kb.createYoutube') }}</li>
-          <li>{{ t('helpCenter.kb.createLink') }}</li>
-        </BulletList>
-      </HelpSection>
-
-      <HelpSection :title="t('helpCenter.kb.editingTitle')">
-        <p>{{ t('helpCenter.kb.editingTextFixed') }}</p>
-      </HelpSection>
-
-      <HelpSection :title="t('helpCenter.kb.moveTitle')">
-        <p>{{ t('helpCenter.kb.moveText') }}</p>
-        <p>{{ t('helpCenter.kb.moveRightsText') }}</p>
-        <p>{{ t('helpCenter.kb.movePreviewText') }}</p>
-      </HelpSection>
-
-      <HelpSection :title="t('helpCenter.kb.selectionTitle')">
-        <p>{{ t('helpCenter.kb.selectionText') }}</p>
-        <BulletList>
-          <li>{{ t('helpCenter.kb.selectionMove') }}</li>
-          <li>{{ t('helpCenter.kb.selectionTags') }}</li>
-        </BulletList>
-        <p>{{ t('helpCenter.kb.selectionPartialText') }}</p>
-      </HelpSection>
-
-      <HelpSection :title="t('helpCenter.kb.versionsTitle')">
-        <p>{{ t('helpCenter.kb.versionsText') }}</p>
-      </HelpSection>
-
-      <DummyVersionList/>
+      <EditorSections/>
     </HelpPermissionGuard>
 
     <HelpSection :title="t('helpCenter.kb.searchTitle')">

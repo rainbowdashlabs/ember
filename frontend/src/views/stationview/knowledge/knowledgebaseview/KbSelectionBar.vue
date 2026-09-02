@@ -19,6 +19,7 @@ defineProps<{
 const emit = defineEmits<{
     move: []
     tag: []
+    remove: []
     clear: []
 }>()
 
@@ -39,6 +40,14 @@ const {t} = useI18n()
         <SecondaryButton data-testid="kb-selection-tag" @click="emit('tag')">
             <font-awesome-icon :icon="['fas', 'tag']" class="mr-1"/>
             {{ t('kb.tagSelected') }}
+        </SecondaryButton>
+        <SecondaryButton
+            class="text-error"
+            data-testid="kb-selection-delete"
+            @click="emit('remove')"
+        >
+            <font-awesome-icon :icon="['fas', 'trash']" class="mr-1"/>
+            {{ t('common.delete') }}
         </SecondaryButton>
         <SecondaryButton @click="emit('clear')">{{ t('kb.clearSelection') }}</SecondaryButton>
     </NeutralContainer>

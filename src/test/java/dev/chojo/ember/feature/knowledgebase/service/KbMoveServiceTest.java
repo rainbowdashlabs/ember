@@ -163,7 +163,7 @@ class KbMoveServiceTest extends RepositoryTestBase {
                 target.id(),
                 knowledgeBaseRepo.findFolderById(source.id()).orElseThrow().parentId());
 
-        knowledgeBaseRepo.deleteFolder(target.id());
+        knowledgeBaseRepo.purgeFolder(target.id());
     }
 
     @Test
@@ -179,8 +179,8 @@ class KbMoveServiceTest extends RepositoryTestBase {
         assertTrue(service.moveFile(manager(), station.id(), article.id(), null).moved());
         assertNull(knowledgeBaseRepo.findFileById(article.id()).orElseThrow().folderId());
 
-        knowledgeBaseRepo.deleteFile(article.id());
-        knowledgeBaseRepo.deleteFolder(target.id());
+        knowledgeBaseRepo.purgeFile(article.id());
+        knowledgeBaseRepo.purgeFolder(target.id());
     }
 
     /**
@@ -203,7 +203,7 @@ class KbMoveServiceTest extends RepositoryTestBase {
                 top.id(),
                 knowledgeBaseRepo.findFolderById(inner.id()).orElseThrow().parentId());
 
-        knowledgeBaseRepo.deleteFolder(top.id());
+        knowledgeBaseRepo.purgeFolder(top.id());
     }
 
     @Test
@@ -222,8 +222,8 @@ class KbMoveServiceTest extends RepositoryTestBase {
                 target.id(),
                 knowledgeBaseRepo.findFolderById(occupant.id()).orElseThrow().parentId());
 
-        knowledgeBaseRepo.deleteFolder(moving.id());
-        knowledgeBaseRepo.deleteFolder(target.id());
+        knowledgeBaseRepo.purgeFolder(moving.id());
+        knowledgeBaseRepo.purgeFolder(target.id());
     }
 
     @Test
@@ -249,8 +249,8 @@ class KbMoveServiceTest extends RepositoryTestBase {
 
         accessService.setGrants(restricted.id(), null, List.of());
         accessService.setGrants(null, article.id(), List.of());
-        knowledgeBaseRepo.deleteFile(article.id());
-        knowledgeBaseRepo.deleteFolder(restricted.id());
+        knowledgeBaseRepo.purgeFile(article.id());
+        knowledgeBaseRepo.purgeFolder(restricted.id());
     }
 
     @Test
@@ -265,7 +265,7 @@ class KbMoveServiceTest extends RepositoryTestBase {
                 KbRefusalReason.NOT_FOUND,
                 service.moveFile(manager(), station.id(), 999999, null).reason());
 
-        knowledgeBaseRepo.deleteFolder(elsewhere.id());
+        knowledgeBaseRepo.purgeFolder(elsewhere.id());
     }
 
     /**
@@ -289,8 +289,8 @@ class KbMoveServiceTest extends RepositoryTestBase {
 
         federationRepo.deleteKbShare(openShare.id(), station.id());
         federationRepo.deleteKbShare(narrowShare.id(), station.id());
-        knowledgeBaseRepo.deleteFolder(open.id());
-        knowledgeBaseRepo.deleteFolder(narrow.id());
+        knowledgeBaseRepo.purgeFolder(open.id());
+        knowledgeBaseRepo.purgeFolder(narrow.id());
     }
 
     @Test
@@ -307,7 +307,7 @@ class KbMoveServiceTest extends RepositoryTestBase {
         assertEquals(KbRefusalReason.NOT_FOUND, service.checkTarget(manager(), station.id(), 999999));
 
         accessService.setGrants(target.id(), null, List.of());
-        knowledgeBaseRepo.deleteFolder(target.id());
+        knowledgeBaseRepo.purgeFolder(target.id());
     }
 
     /**
@@ -328,8 +328,8 @@ class KbMoveServiceTest extends RepositoryTestBase {
 
         accessService.removePublicVisibility(hidden.id(), null);
         stationRepo.updatePublicKbMode(station.id(), PublicKbMode.OFF);
-        knowledgeBaseRepo.deleteFile(article.id());
-        knowledgeBaseRepo.deleteFolder(hidden.id());
+        knowledgeBaseRepo.purgeFile(article.id());
+        knowledgeBaseRepo.purgeFolder(hidden.id());
     }
 
     @Test
@@ -346,7 +346,7 @@ class KbMoveServiceTest extends RepositoryTestBase {
         assertEquals(KbReach.NARROW, preview.after());
 
         accessService.setRestrictions(restricted.id(), null, RestrictionSelection.empty());
-        knowledgeBaseRepo.deleteFolder(restricted.id());
+        knowledgeBaseRepo.purgeFolder(restricted.id());
     }
 
     @Test
@@ -361,7 +361,7 @@ class KbMoveServiceTest extends RepositoryTestBase {
         assertEquals(KbReach.FEDERATED, preview.after());
 
         federationRepo.deleteKbShare(share.id(), station.id());
-        knowledgeBaseRepo.deleteFile(article.id());
-        knowledgeBaseRepo.deleteFolder(shared.id());
+        knowledgeBaseRepo.purgeFile(article.id());
+        knowledgeBaseRepo.purgeFolder(shared.id());
     }
 }

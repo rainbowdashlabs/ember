@@ -11,6 +11,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
 import KbFolderPicker from './KbFolderPicker.vue'
 import KbTagsEditor from './KbTagsEditor.vue'
 import {knowledgeBase} from '@/api'
@@ -18,11 +19,14 @@ import type {KbFolderTreeEntry} from '@/api/knowledgeBase'
 import {kbBulkMessage} from './kbRefusals'
 
 /**
- * The two things a marked selection can be sent through: a move into one folder, and a change of
- * tags across all of it.
+ * The three things a marked selection can be sent through: a move into one folder, a change of tags
+ * across all of it, and a delete.
  *
  * Tagging adds and removes rather than replacing. The editor that sets the whole list of one entry
  * would, used on twenty, strip every tag those twenty already carried in order to add one.
+ *
+ * Deleting asks first, and asks with the true number: a folder brings everything under it, so the
+ * count of ticked boxes is the one number that would mislead here.
  */
 const props = defineProps<{
     folderIds: number[]
@@ -39,6 +43,8 @@ const {t} = useI18n()
 
 const showMove = ref(false)
 const showTags = ref(false)
+const showDelete = ref(false)
+const impact = ref<{folders: number; files: number} | null>(null)
 const target = ref<number | null>(null)
 const addTags = ref<string[]>([])
 const removeTags = ref<string[]>([])
@@ -56,6 +62,16 @@ function openTags() {
 }
 
 const selection = () => ({folderIds: props.folderIds, fileIds: props.fileIds})
+
+async function openDelete() {
+    impact.value = null
+    showDelete.value = true
+    try {
+        impact.value = await knowledgeBase.getDeleteImpact(selection())
+    } catch {
+        impact.value = null
+    }
+}
 
 async function submitMove() {
     saving.value = true
@@ -86,7 +102,20 @@ async function submitTags() {
     }
 }
 
-defineExpose({openMove, openTags})
+async function submitDelete() {
+    saving.value = true
+    try {
+        const outcome = await knowledgeBase.bulkDelete(selection())
+        showDelete.value = false
+        emit('done', kbBulkMessage(t, outcome, 'kb.bulkDeleted'))
+    } catch {
+        emit('error', t('common.error'))
+    } finally {
+        saving.value = false
+    }
+}
+
+defineExpose({openMove, openTags, openDelete})
 </script>
 
 <template>
@@ -116,6 +145,22 @@ defineExpose({openMove, openTags})
             <PrimaryButton :disabled="saving" data-testid="kb-bulk-tags-confirm" @click="submitTags">
                 {{ t('common.save') }}
             </PrimaryButton>
+        </div>
+    </Modal>
+
+    <Modal v-model="showDelete">
+        <SubHeader class="mb-1">{{ t('kb.bulkDelete') }}</SubHeader>
+        <MutedText tag="p" size="sm" class="mb-3">
+            {{ impact
+                ? t('kb.bulkDeleteHint', {folders: impact.folders, files: impact.files})
+                : t('kb.bulkDeleteCounting') }}
+        </MutedText>
+        <MutedText tag="p" size="sm" class="mb-3">{{ t('kb.bulkDeleteRecoverable') }}</MutedText>
+        <div class="mt-4 flex justify-end gap-2">
+            <SecondaryButton data-cancel @click="showDelete = false">{{ t('common.cancel') }}</SecondaryButton>
+            <DeleteButton :disabled="saving" data-testid="kb-bulk-delete-confirm" @click="submitDelete">
+                {{ t('common.delete') }}
+            </DeleteButton>
         </div>
     </Modal>
 </template>

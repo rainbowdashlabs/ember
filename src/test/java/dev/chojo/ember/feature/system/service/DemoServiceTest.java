@@ -59,6 +59,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
+import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
 import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
@@ -66,6 +67,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbLinkMetadataService;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfExportService;
 import dev.chojo.ember.feature.knowledgebase.service.KbPresentationService;
 import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
+import dev.chojo.ember.feature.knowledgebase.service.KbTrashService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.knowledgebase.service.TextCompressionPolicy;
@@ -211,6 +213,14 @@ class DemoServiceTest extends RepositoryTestBase {
                 new PresentationCompressor(kbStorageConfig),
                 new PdfCompressor(kbStorageConfig),
                 new ClusterAutoShareService(clusterRepo, new FederationRepository()));
+        var kbTrashService = new KbTrashService(
+                knowledgeBaseRepo,
+                kbFileStorage,
+                kbContentService,
+                kbSearchService,
+                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
+                new KbAuthorNameService(stationMemberRepo, accountRepo),
+                pageRepo);
         var kbFederationService = new KnowledgeBaseFederationService(
                 kbService,
                 kbContentService,
@@ -375,7 +385,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 clusterInventoryService,
                 clusterProfileFieldService,
                 clusterStationGroupService,
-                new ClusterContentService(clusterRepo, stationRepo, stationMemberRepo, kbService),
+                new ClusterContentService(clusterRepo, stationRepo, stationMemberRepo, kbService, kbTrashService),
                 new ClusterApplicationService(
                         clusterApplicationRepo, clusterRepo, stationRepo, clusterService, noOpBus),
                 clusterStorageQuotaService,

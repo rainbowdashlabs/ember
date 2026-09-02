@@ -31,6 +31,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbMoveService;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfExportService;
 import dev.chojo.ember.feature.knowledgebase.service.KbPresentationService;
 import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
+import dev.chojo.ember.feature.knowledgebase.service.KbTrashService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -89,6 +90,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private final KbPdfExportService pdfExportService;
     private final KbMoveService moveService;
     private final KbBulkService bulkService;
+    private final KbTrashService trashService;
     private final StationRepository stationRepository;
 
     @Inject
@@ -105,8 +107,10 @@ public class KnowledgeBaseRoutes implements Routes {
             KbPdfExportService pdfExportService,
             KbMoveService moveService,
             KbBulkService bulkService,
+            KbTrashService trashService,
             StationRepository stationRepository) {
         this.moveService = moveService;
+        this.trashService = trashService;
         this.bulkService = bulkService;
         this.service = service;
         this.contentService = contentService;
@@ -177,6 +181,15 @@ public class KnowledgeBaseRoutes implements Routes {
         routes.get(prefix + "/kb/move/preview", this::movePreview, StationPermission.KNOWLEDGE_EDIT);
         routes.post(prefix + "/kb/bulk/move", this::bulkMove, StationPermission.KNOWLEDGE_EDIT);
         routes.post(prefix + "/kb/bulk/tags", this::bulkTags, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(prefix + "/kb/bulk/delete", this::bulkDelete, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(prefix + "/kb/bulk/delete/impact", this::bulkDeleteImpact, StationPermission.KNOWLEDGE_EDIT);
+
+        routes.get(prefix + "/kb/trash", this::listTrash, StationPermission.KNOWLEDGE_EDIT);
+        routes.delete(prefix + "/kb/trash", this::emptyTrash, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(prefix + "/kb/trash/folders/{id}/restore", this::restoreFolder, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(prefix + "/kb/trash/files/{id}/restore", this::restoreFile, StationPermission.KNOWLEDGE_EDIT);
+        routes.delete(prefix + "/kb/trash/folders/{id}", this::purgeFolder, StationPermission.KNOWLEDGE_EDIT);
+        routes.delete(prefix + "/kb/trash/files/{id}", this::purgeFile, StationPermission.KNOWLEDGE_EDIT);
 
         routes.post(prefix + "/kb/files/markdown", this::createMarkdownFile, StationPermission.KNOWLEDGE_EDIT);
         routes.post(prefix + "/kb/files/youtube", this::createYoutubeFile, StationPermission.KNOWLEDGE_EDIT);
@@ -281,11 +294,15 @@ public class KnowledgeBaseRoutes implements Routes {
         });
     }
 
+    /**
+     * Puts a folder in the trash, with everything inside it.
+     */
     private void deleteFolder(Context ctx) {
+        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
         requireLevel(ctx, accessService, id, null, KbAccessLevel.MANAGE);
-        if (!service.deleteFolder(id)) throw new NotFoundResponse();
+        if (!trashService.deleteFolder(id, memberIdOf(session))) throw new NotFoundResponse();
         ctx.status(204);
     }
 
@@ -380,6 +397,103 @@ public class KnowledgeBaseRoutes implements Routes {
                 req.targetFolderId()));
     }
 
+    /**
+     * Puts a marked selection in the trash. Nothing here is final, which is what lets one press
+     * stand for twenty entries.
+     */
+    private void bulkDelete(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(BulkDeleteRequest.class);
+        ctx.json(bulkService.delete(
+                KbRouteAccess.accessOf(ctx, accessService),
+                session.stationId(),
+                session.member().id(),
+                req.folderIds() != null ? req.folderIds() : List.of(),
+                req.fileIds() != null ? req.fileIds() : List.of()));
+    }
+
+    /**
+     * How much a marked selection would really take, folder contents counted, so the confirmation
+     * can say the true number rather than the number of ticked boxes.
+     */
+    private void bulkDeleteImpact(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(BulkDeleteRequest.class);
+        ctx.json(trashService.impactOf(
+                session.stationId(),
+                req.folderIds() != null ? req.folderIds() : List.of(),
+                req.fileIds() != null ? req.fileIds() : List.of()));
+    }
+
+    /**
+     * What the caller may take back out of the station's trash.
+     *
+     * <p>Reach decides, not the station permission: everyone who could have deleted an entry finds
+     * it here, and nobody reads the name of something they were never allowed to open.
+     */
+    private void listTrash(Context ctx) {
+        var session = UserSession.from(ctx);
+        ctx.json(trashService.list(KbRouteAccess.accessOf(ctx, accessService), session.stationId()));
+    }
+
+    /**
+     * Clears out everything the caller sees in the trash, and with it the storage it was holding.
+     */
+    private void emptyTrash(Context ctx) {
+        var session = UserSession.from(ctx);
+        ctx.json(new EmptyTrashResponse(
+                trashService.empty(KbRouteAccess.accessOf(ctx, accessService), session.stationId())));
+    }
+
+    private void restoreFolder(Context ctx) {
+        int id = trashedFolder(ctx);
+        ctx.json(trashService.restoreFolder(id));
+    }
+
+    private void restoreFile(Context ctx) {
+        int id = trashedFile(ctx);
+        ctx.json(trashService.restoreFile(id));
+    }
+
+    private void purgeFolder(Context ctx) {
+        int id = trashedFolder(ctx);
+        if (!trashService.purgeFolder(id)) throw new NotFoundResponse();
+        ctx.status(204);
+    }
+
+    private void purgeFile(Context ctx) {
+        int id = trashedFile(ctx);
+        if (!trashService.purgeFile(id)) throw new NotFoundResponse();
+        ctx.status(204);
+    }
+
+    /**
+     * Reads the folder a trash action names and asserts it is one of this station's, in the trash,
+     * and one the caller may manage. The path a folder was deleted from is still there, so the
+     * ordinary reach check answers this without knowing anything about deletion.
+     */
+    private int trashedFolder(Context ctx) {
+        int id = pathInt(ctx, "id");
+        KbRouteAccess.requireOwnedTrashedFolder(ctx, service, id);
+        requireLevel(ctx, accessService, id, null, KbAccessLevel.MANAGE);
+        return id;
+    }
+
+    private int trashedFile(Context ctx) {
+        int id = pathInt(ctx, "id");
+        KbRouteAccess.requireOwnedTrashedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.MANAGE);
+        return id;
+    }
+
+    /**
+     * The member behind a session, or {@code null} for a session that holds station rights without
+     * a member row of its own, which is what the trash then records as the deleting member.
+     */
+    private static Integer memberIdOf(UserSession session) {
+        return session.member() == null ? null : session.member().id();
+    }
+
     private void bulkTags(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(BulkTagsRequest.class);
@@ -459,11 +573,15 @@ public class KnowledgeBaseRoutes implements Routes {
         });
     }
 
+    /**
+     * Puts an article in the trash.
+     */
     private void deleteFile(Context ctx) {
+        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.MANAGE);
-        if (!service.deleteFile(id)) throw new NotFoundResponse();
+        if (!trashService.deleteFile(id, memberIdOf(session))) throw new NotFoundResponse();
         ctx.status(204);
     }
 
@@ -1029,6 +1147,13 @@ public class KnowledgeBaseRoutes implements Routes {
 
     public record BulkTagsRequest(
             List<Integer> folderIds, List<Integer> fileIds, List<String> addTags, List<String> removeTags) {}
+
+    public record BulkDeleteRequest(List<Integer> folderIds, List<Integer> fileIds) {}
+
+    /**
+     * How many entries emptying the trash took.
+     */
+    public record EmptyTrashResponse(int cleared) {}
 
     /**
      * One folder of the tree a move picker offers, with what the caller may do in it.
