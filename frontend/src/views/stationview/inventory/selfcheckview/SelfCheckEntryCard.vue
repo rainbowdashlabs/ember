@@ -15,6 +15,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {
   answersFor,
   borrowed,
@@ -75,18 +76,46 @@ const mayRequestExchange = computed(
 const lossRaised = computed(() => props.raised.includes('LOSS'))
 const exchangeRaised = computed(() => props.raised.includes('EXCHANGE'))
 
+const sizes = computed(() => props.entry.req.sizes)
+
+const keepsSizes = computed(() => props.entry.req.hasSizes && sizes.value.length > 0)
+
 /**
  * Whether the member may name the size of a piece nobody wrote down. Offered and never demanded:
  * they get through without it, and the station reads that they did not say.
  */
 const mayGiveASize = computed(
-  () => props.entry.type === 'place'
-      && props.draft.answer === SelfCheckAnswer.HAVE_ONE
-      && props.entry.req.hasSizes
-      && props.entry.req.sizes.length > 0,
+  () => props.entry.type === 'place' && props.draft.answer === SelfCheckAnswer.HAVE_ONE && keepsSizes.value,
 )
 
-const sizes = computed(() => props.entry.req.sizes)
+/**
+ * Whether the member may put the size of a recorded piece right, which is offered wherever saying
+ * the record is wrong is offered at all: a piece already written off asks one question, and a
+ * partner's gear is not this station's record to correct.
+ */
+const mayCorrectTheSize = computed(
+  () => piece.value != null && keepsSizes.value && answers.value.includes(SelfCheckAnswer.WRONG_RECORD),
+)
+
+/** The size the station has written down, which is where the member starts from. */
+const recordedSize = computed(() => (piece.value?.sizeId == null ? '' : String(piece.value.sizeId)))
+
+/**
+ * What the size box shows: what the member has said, or what the record says while they have said
+ * nothing.
+ */
+const shownSize = computed(() => props.draft.sizeId || recordedSize.value)
+
+/**
+ * Moving the size away from the recorded one is the member saying the record is wrong, so it is
+ * taken as that answer rather than asked for a second time. Putting it back where it was says
+ * nothing, and leaves whatever answer they gave standing.
+ */
+function chooseActualSize(chosen: string) {
+  const differs = chosen !== recordedSize.value
+  emit('setSizeId', props.entry.key, differs ? chosen : '')
+  if (differs) emit('setAnswer', props.entry.key, SelfCheckAnswer.WRONG_RECORD)
+}
 
 function answerLabel(answer: SelfCheckAnswerName): string {
   return t(`selfCheck.answer.${answer}`)
@@ -182,6 +211,20 @@ function answerLabel(answer: SelfCheckAnswerName): string {
       <option value="">{{ t('selfCheck.sizeUnknown') }}</option>
       <option v-for="size in sizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
     </SelectInput>
+
+    <div v-if="mayCorrectTheSize" class="space-y-1">
+      <FieldLabel>{{ t('selfCheck.actualSize') }}</FieldLabel>
+      <SelectInput
+          :model-value="shownSize"
+          :disabled="readOnly"
+          class="w-full"
+          :data-testid="`self-check-actual-size-${entry.key}`"
+          @update:model-value="chooseActualSize(($event as string) ?? '')"
+      >
+        <option value="">{{ t('selfCheck.sizeUnknown') }}</option>
+        <option v-for="size in sizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
+      </SelectInput>
+    </div>
 
     <TextInput
         :model-value="draft.note"

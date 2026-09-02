@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.RequiredInventoryItem;
 import dev.chojo.ember.feature.inventory.entity.SelfCheck;
@@ -347,7 +348,10 @@ public class SelfCheckService {
         if (input.answer() == SelfCheckAnswer.TURNED_UP && item.custody() != ItemCustody.LOST) {
             throw new BadRequestResponse("This piece is not recorded as missing, so it cannot have turned up");
         }
-        repository.answerForItem(task.id(), item.id(), item.inventoryId(), input.answer(), note, null, enteredBy);
+        Integer sizeId =
+                statedSize(input, inventoryRepository.findSizes(item.inventoryId()), SelfCheckAnswer.WRONG_RECORD);
+        repository.answerForItem(
+                task.id(), item.id(), item.inventoryId(), input.answer(), note, null, sizeId, enteredBy);
     }
 
     private void writeAboutPlace(
@@ -370,7 +374,7 @@ public class SelfCheckService {
             throw new BadRequestResponse("This member has no such empty place");
         }
         String typed = typedIdentifier(input);
-        Integer sizeId = statedSize(input, gap);
+        Integer sizeId = statedSize(input, gap.sizes(), SelfCheckAnswer.HAVE_ONE);
         repository.answerForPlace(
                 task.id(), gap.inventoryId(), input.slot(), input.answer(), note, typed, sizeId, enteredBy);
     }
@@ -392,20 +396,29 @@ public class SelfCheckService {
     }
 
     /**
-     * The size a member gave for a piece nobody wrote down, kept so the reviewer writes it onto the
-     * piece rather than guessing it.
+     * The size a member gave for what they are actually holding, kept so the reviewer writes it onto
+     * the piece rather than translating it out of a sentence.
+     *
+     * <p>Two answers take one, and both for the same reason: they are the answers where the member
+     * knows something about a piece that the record does not. On an empty place it is the size of a
+     * piece nobody wrote down; on a piece it is the size the record got wrong. Every other answer
+     * agrees with the record or says nothing about it, and a size beside one of those would be a
+     * value with nowhere to go.
      *
      * <p>It is offered and never demanded: a member who cannot find a label is still telling the
-     * station the piece exists, and the answer they give is worth more than the size they cannot
-     * read. What is refused is a size that is not one this inventory keeps, because that is not a
-     * gap in what somebody knows but a value nothing could ever be given.
+     * station something, and the answer they give is worth more than the size they cannot read. What
+     * is refused is a size that is not one this inventory keeps, because that is not a gap in what
+     * somebody knows but a value nothing could ever be given.
+     *
+     * @param takesASize the one answer a size may accompany here
      */
-    private static Integer statedSize(SelfCheckAnswerInput input, RequiredInventoryItem gap) {
+    private static Integer statedSize(
+            SelfCheckAnswerInput input, List<InventorySize> sizes, SelfCheckAnswer takesASize) {
         if (input.sizeId() == null) return null;
-        if (input.answer() != SelfCheckAnswer.HAVE_ONE) {
-            throw new BadRequestResponse("Only a place you are holding something for takes a size");
+        if (input.answer() != takesASize) {
+            throw new BadRequestResponse("Only an answer that says what the member actually holds takes a size");
         }
-        if (gap.sizes().stream().noneMatch(size -> size.id() == input.sizeId())) {
+        if (sizes.stream().noneMatch(size -> size.id() == input.sizeId())) {
             throw new BadRequestResponse("This size is not one this kind of gear comes in");
         }
         return input.sizeId();

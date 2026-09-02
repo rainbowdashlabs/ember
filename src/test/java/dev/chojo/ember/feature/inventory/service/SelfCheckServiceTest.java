@@ -55,7 +55,9 @@ class SelfCheckServiceTest extends RepositoryTestBase {
     private static Inventory inventory;
     private static Inventory sized;
     private static InventorySize large;
+    private static InventorySize biggerThanRecorded;
     private static InventorySize elsewhereSize;
+    private static InventoryItem misrecorded;
     private static InventoryItem owned;
     private static InventoryItem lost;
     private static InventoryItem borrowed;
@@ -91,8 +93,12 @@ class SelfCheckServiceTest extends RepositoryTestBase {
 
         sized = inventoryRepo.create(station.id(), "SelfCheckSvcSizedInv", InventoryType.INTERNAL, true);
         inventoryRepo.createSize(sized.id(), "L", 0, "");
+        inventoryRepo.createSize(sized.id(), "XL", 1, "");
         large = inventoryRepo.findSizes(sized.id()).getFirst();
-        inventoryRepo.createRequirement(sized.id(), StationUserType.MEMBER, 0, null, 1);
+        biggerThanRecorded = inventoryRepo.findSizes(sized.id()).getLast();
+        inventoryRepo.createRequirement(sized.id(), StationUserType.MEMBER, 0, null, 2);
+        misrecorded = inventoryRepo.createItem(sized.id(), "SCS-SIZED", "Shirt", large.id(), null);
+        itemCustodyService.assignToMember(misrecorded.id(), member.id(), "");
         inventoryRepo.createSize(inventory.id(), "One size", 0, "");
         elsewhereSize = inventoryRepo.findSizes(inventory.id()).getFirst();
 
@@ -210,6 +216,65 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                         .orElseThrow()
                         .sizeId(),
                 "a member who does not know the size still gets through");
+        selfCheckService.closeAllFor(member.id());
+    }
+
+    @Test
+    void aSizeTheRecordGotWrongIsGivenOnThePieceItself() {
+        int taskId = handOut();
+
+        var rows = selfCheckService.answer(
+                taskId,
+                station.id(),
+                member.id(),
+                false,
+                List.of(new SelfCheckAnswerInput(
+                        misrecorded.id(),
+                        null,
+                        null,
+                        SelfCheckAnswer.WRONG_RECORD,
+                        "",
+                        null,
+                        biggerThanRecorded.id())));
+        var written = rows.stream()
+                .filter(r -> r.itemId() != null && r.itemId() == misrecorded.id())
+                .findFirst()
+                .orElseThrow();
+        assertEquals(biggerThanRecorded.id(), written.sizeId());
+        assertEquals(
+                large.id(),
+                inventoryRepo.findItemById(misrecorded.id()).orElseThrow().sizeId(),
+                "saying so changes nothing about the piece, which is what the review is for");
+        selfCheckService.closeAllFor(member.id());
+    }
+
+    @Test
+    void onlyAnAnswerSayingTheRecordIsWrongTakesASizeOnAPiece() {
+        int taskId = handOut();
+        assertThrows(
+                BadRequestResponse.class,
+                () -> selfCheckService.answer(
+                        taskId,
+                        station.id(),
+                        member.id(),
+                        false,
+                        List.of(new SelfCheckAnswerInput(
+                                misrecorded.id(), null, null, SelfCheckAnswer.HAVE_IT, "", null, large.id()))));
+        assertThrows(
+                BadRequestResponse.class,
+                () -> selfCheckService.answer(
+                        taskId,
+                        station.id(),
+                        member.id(),
+                        false,
+                        List.of(new SelfCheckAnswerInput(
+                                misrecorded.id(),
+                                null,
+                                null,
+                                SelfCheckAnswer.WRONG_RECORD,
+                                "",
+                                null,
+                                elsewhereSize.id()))));
         selfCheckService.closeAllFor(member.id());
     }
 

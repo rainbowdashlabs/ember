@@ -1582,6 +1582,7 @@ volumes:
             answersTitle: 'Was du sagen kannst',
             answersHaveIt: 'Habe ich - der Normalfall.',
             answersWrongRecord: 'Das ist nicht das, was ich habe - die Wache hat etwas anderes notiert als du tatsächlich hast. Was du wirklich hast, trägst du nicht selbst ein; das macht jemand von der Wache.',
+            answersWrongSize: 'Stimmt nur die Größe nicht, stell sie direkt am Stück um: Steht 128 da und du hast ein 134, wählst du 134 aus. Damit ist gesagt, dass die Erfassung nicht stimmt, und die Wache sieht die richtige Größe als Angabe statt als Satz, den jemand lesen muss.',
             answersLost: 'Finde ich nicht mehr - das gilt sofort. Es ist keine Anfrage, und niemand muss sie beantworten. Taucht das Stück wieder auf, kann die Wache das zurücknehmen.',
             answersExchange: 'Passt nicht mehr - der Tausch geht sofort an die Wache und wartet auf niemanden. Dabei sagst du, welche Größe du brauchst.',
             answersBroken: 'Ist kaputt - derselbe Tausch, nur aus einem anderen Grund. Die Größe darf dieselbe bleiben, und du kannst sie auch offenlassen. Die Wache sieht am Tausch, ob er entstand, weil etwas nicht mehr passt oder weil es kaputt ist.',

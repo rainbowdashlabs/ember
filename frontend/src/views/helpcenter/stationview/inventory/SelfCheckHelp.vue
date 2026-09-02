@@ -26,6 +26,7 @@ const {t} = useI18n()
       <ul class="list-disc ps-5 space-y-1">
         <li>{{ t('helpCenter.inventorySelfCheck.answersHaveIt') }}</li>
         <li>{{ t('helpCenter.inventorySelfCheck.answersWrongRecord') }}</li>
+        <li>{{ t('helpCenter.inventorySelfCheck.answersWrongSize') }}</li>
         <li>{{ t('helpCenter.inventorySelfCheck.answersLost') }}</li>
         <li>{{ t('helpCenter.inventorySelfCheck.answersExchange') }}</li>
         <li>{{ t('helpCenter.inventorySelfCheck.answersBroken') }}</li>

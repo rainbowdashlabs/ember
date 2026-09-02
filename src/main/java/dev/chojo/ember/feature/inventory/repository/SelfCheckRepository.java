@@ -227,16 +227,19 @@ public class SelfCheckRepository {
             SelfCheckAnswer answer,
             String note,
             String typedInternalId,
+            Integer sizeId,
             int answeredBy) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO inventory_self_check_item(task_id, item_id, inventory_id, answer, note,
-                                                      typed_internal_id, answered_by)
-                VALUES (:task_id, :item_id, :inventory_id, :answer, :note, :typed_internal_id, :answered_by)
+                                                      typed_internal_id, size_id, answered_by)
+                VALUES (:task_id, :item_id, :inventory_id, :answer, :note, :typed_internal_id, :size_id,
+                        :answered_by)
                 ON CONFLICT (task_id, item_id) WHERE item_id IS NOT NULL
                 DO UPDATE SET answer = excluded.answer,
                               note = excluded.note,
                               typed_internal_id = excluded.typed_internal_id,
+                              size_id = excluded.size_id,
                               answered_by = excluded.answered_by,
                               answered_at = now(),
                               state = 'OUTSTANDING',
@@ -250,6 +253,7 @@ public class SelfCheckRepository {
                         .bind("answer", answer)
                         .bind("note", note)
                         .bind("typed_internal_id", typedInternalId)
+                        .bind("size_id", sizeId)
                         .bind("answered_by", answeredBy),
                 SelfCheckRow.map(),
                 SelfCheckRow.COLUMNS);
@@ -258,10 +262,6 @@ public class SelfCheckRepository {
     /**
      * Writes what the member said about one empty place, replacing whatever they said about it
      * before.
-     *
-     * <p>The size travels only on this side of the pair. An answer about a piece is about a piece
-     * the station already described, and a member saying it is the wrong size is saying the record
-     * names the wrong piece, which is a correction and not a size to write down.
      */
     public SelfCheckRow answerForPlace(
             int taskId,

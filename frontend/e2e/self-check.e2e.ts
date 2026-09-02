@@ -300,6 +300,49 @@ test.describe('Self-check', () => {
     })
 
     /**
+     * SFC-6: the record has the wrong size against a piece the member is holding. They put the size
+     * right on the piece itself, and the checker takes it over onto the record.
+     */
+    test('a size the record got wrong is put right from the piece itself', async ({browser, request, managerPage}) => {
+        const {page: memberPage, memberId, taskId} = await askSomebody(browser, request, managerPage)
+        const {req, piece} = sizedKindTheMemberHolds(await ownTask(memberPage, taskId))
+        const actual = req.sizes.find(size => size.id !== piece.sizeId)
+        expect(actual, 'the gear comes in more than one size').toBeTruthy()
+
+        await memberPage.goto(`/station/inventory/self-check/${taskId}`)
+        await expect(memberPage.getByTestId('app-shell')).toBeVisible()
+        await answerEverything(memberPage)
+        await memberPage.getByTestId(`self-check-actual-size-piece-${piece.id}`).selectOption(String(actual!.id))
+        await expect(memberPage.getByTestId(`self-check-answer-piece-${piece.id}-WRONG_RECORD`)).toHaveClass(
+            /ring-primary/,
+        )
+        await memberPage.getByTestId('self-check-submit').click()
+        await expect(memberPage.getByTestId('self-check-submitted')).toBeVisible()
+
+        const submitted = await review(managerPage, taskId)
+        const wrong = submitted.rows.find((entry: {row: {itemId: number | null}}) => entry.row.itemId === piece.id)
+        expect(wrong.row.answer, 'changing the size says the record is wrong').toBe('WRONG_RECORD')
+        expect(wrong.statedSize, 'and carries the size the member actually holds').toBe(actual!.label)
+
+        await managerPage.goto(`/station/inventory/checks/self/${taskId}`)
+        await expect(managerPage.getByTestId('review-people')).toBeVisible()
+        await expect(managerPage.getByTestId(`review-stated-size-${wrong.row.id}`)).toContainText(actual!.label)
+
+        await managerPage.getByTestId(`review-correct-${wrong.row.id}`).click()
+        const source = managerPage.getByTestId('correct-source')
+        if (await source.isVisible()) await source.selectOption('NEW')
+        await managerPage.getByTestId('correct-confirm').click()
+        await expect(managerPage.getByTestId('correct-confirm')).toBeHidden()
+
+        const settled = await review(managerPage, taskId)
+        const put = settled.rows.find((entry: {row: {id: number}}) => entry.row.id === wrong.row.id)
+        expect(put.item.sizeId, 'the record now says the size the member gave').toBe(actual!.id)
+        expect(put.item.assignedTo, 'against the member it was about').toBe(memberId)
+        expect(put.row.itemId, 'which is no longer the piece the record had wrong').not.toBe(piece.id)
+        await memberPage.context().close()
+    })
+
+    /**
      * SFC-5: a broken piece raises the same swap a piece that no longer fits does, saying which of
      * the two it was and keeping the size it already is.
      */

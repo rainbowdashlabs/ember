@@ -52,7 +52,9 @@ function freeStockOf(inventoryId: number): InventoryItem[] {
  * worth saying. Anywhere else a missing size is not a gap but a question that was never asked.
  */
 function asksForASize(row: SelfCheckReviewRow): boolean {
-  return row.row.answer === SelfCheckAnswer.HAVE_ONE && (requirementOf(row)?.hasSizes ?? false)
+  const answersAboutAPiece = row.row.answer === SelfCheckAnswer.HAVE_ONE
+      || row.row.answer === SelfCheckAnswer.WRONG_RECORD
+  return answersAboutAPiece && (requirementOf(row)?.hasSizes ?? false)
 }
 
 function itemLabel(item: InventoryItem, req: RequiredInventoryItem): string {

@@ -94,7 +94,7 @@ public class DemoSelfCheckSeeder implements DemoPerStationSeeder {
         for (InventoryItem item : gear) {
             if (item.id() == missing.id()) continue;
             repository.answerForItem(
-                    task.id(), item.id(), item.inventoryId(), SelfCheckAnswer.HAVE_IT, "", null, member.id());
+                    task.id(), item.id(), item.inventoryId(), SelfCheckAnswer.HAVE_IT, "", null, null, member.id());
         }
         InventoryItem odd = gear.getFirst();
         repository.answerForItem(
@@ -103,6 +103,7 @@ public class DemoSelfCheckSeeder implements DemoPerStationSeeder {
                 odd.inventoryId(),
                 SelfCheckAnswer.WRONG_RECORD,
                 "Auf meinem steht eine andere Nummer",
+                null,
                 null,
                 member.id());
         repository.submit(task.id(), member.id());
@@ -133,13 +134,14 @@ public class DemoSelfCheckSeeder implements DemoPerStationSeeder {
         InventoryItem taken = gear.get(0);
         InventoryItem sentBack = gear.get(1);
         SelfCheckRow settled = repository.answerForItem(
-                task.id(), taken.id(), taken.inventoryId(), SelfCheckAnswer.HAVE_IT, "", null, member.id());
+                task.id(), taken.id(), taken.inventoryId(), SelfCheckAnswer.HAVE_IT, "", null, null, member.id());
         SelfCheckRow refused = repository.answerForItem(
                 task.id(),
                 sentBack.id(),
                 sentBack.inventoryId(),
                 SelfCheckAnswer.HAVE_IT,
                 "Liegt bei mir im Spind",
+                null,
                 null,
                 member.id());
         repository.submit(task.id(), member.id());
