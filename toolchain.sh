@@ -342,7 +342,9 @@ case "$cmd" in
         # Rebuilds first, for when the sources moved since the last build.
         project="${1:-chromium}"; shift || true
         fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
-        fe; run npx playwright test --project "$project" "$@"
+        # Whatever follows the project goes in front of --project: a bare argument after it is read
+        # as a second project name rather than as the spec to run.
+        fe; run npx playwright test "$@" --project "$project"
         ;;
     fe-e2e-fresh)
         # Throws the database away, builds the backend again and runs the stories, which is the one
@@ -356,7 +358,9 @@ case "$cmd" in
         run docker volume rm -f "${COMPOSE_PROJECT_NAME:-docker}_ember-e2e-data"
         run docker compose -f compose.dev.yaml --profile e2e up -d --build --force-recreate
         fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
-        fe; run npx playwright test --project "$project" "$@"
+        # Whatever follows the project goes in front of --project: a bare argument after it is read
+        # as a second project name rather than as the spec to run.
+        fe; run npx playwright test "$@" --project "$project"
         ;;
     fe-e2e-list)     fe; E2E_NO_SERVER=1 run npx playwright test --list "$@" ;;
     fe-e2e-report)   fe; run npx playwright show-report e2e/report "$@" ;;
