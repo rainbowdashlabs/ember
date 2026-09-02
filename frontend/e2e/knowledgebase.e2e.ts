@@ -20,24 +20,53 @@ async function createFileInFolder(page: Page): Promise<{folder: string; file: st
 
     await page.goto('/station/knowledge')
     await createFolder(page, folder)
-    await page.getByText(folder).click()
+    await openFolder(page, folder)
     await createMarkdownFile(page, file)
 
     return {folder, file}
 }
 
-/** Creates a folder in the listing currently open. */
+/**
+ * Opens a folder of the listing and answers with its address.
+ *
+ * <p>It waits for the trail to name the folder rather than for the click to return: the address is
+ * rewritten a moment after the click, so reading it straight away answers with the folder the
+ * reader just left, and everything a story does afterwards happens in the wrong place.
+ *
+ * <p>The entry is reached through the listing rather than by its text alone, because a folder
+ * picker that has been open names the same folders and would make the name answer twice.
+ */
+async function openFolder(page: Page, name: string): Promise<string> {
+    await page.getByTestId('kb-item').filter({hasText: name}).click()
+    await expect(page.getByTestId('kb-breadcrumb')).toContainText(name)
+    return page.url()
+}
+
+/**
+ * Opens the create menu of the listing currently open.
+ *
+ * <p>The button is named exactly: "Neuer Ordner" carries "Neu" inside it, so a dialog still on
+ * screen from the entry before would otherwise make two buttons answer to the same name.
+ */
+async function openCreateMenu(page: Page) {
+    const create = page.getByRole('button', {name: 'Neu', exact: true})
+    await expect(create).toBeVisible()
+    await create.click()
+}
+
+/** Creates a folder in the listing currently open, and waits for the dialog to be gone again. */
 async function createFolder(page: Page, name: string) {
-    await page.getByRole('button', {name: 'Neu'}).click()
+    await openCreateMenu(page)
     await page.getByText('Neuer Ordner').last().click()
     await page.getByPlaceholder('Ordnername').fill(name)
     await page.getByRole('button', {name: 'Neuer Ordner'}).last().click()
+    await expect(page.getByPlaceholder('Ordnername')).toHaveCount(0)
     await expect(page.getByText(name).first()).toBeVisible()
 }
 
 /** Creates a Markdown article in the listing currently open, which opens it. */
 async function createMarkdownFile(page: Page, name: string) {
-    await page.getByRole('button', {name: 'Neu'}).click()
+    await openCreateMenu(page)
     await page.getByText('Markdown-Datei').last().click()
     await page.getByPlaceholder('Dateiname').fill(name)
     await page.getByRole('button', {name: 'Neue Datei'}).last().click()
@@ -305,26 +334,24 @@ test.describe('Knowledge base', () => {
 
             await page.goto('/station/knowledge')
             await createFolder(page, top)
-            await page.getByText(top).click()
+            await openFolder(page, top)
             await createFolder(page, middle)
-            await page.getByText(middle).click()
+            const middleUrl = await openFolder(page, middle)
             await createFolder(page, moved)
-            await page.getByText(moved).click()
+            await openFolder(page, moved)
             const article = unique('Artikel')
             await createMarkdownFile(page, article)
             const articleUrl = page.url()
 
-            // Back out of the article and then one level up, so the folder to move is an entry of
-            // the listing rather than the listing itself.
-            await page.goBack()
-            await page.goBack()
+            // One level up, so the folder to move is an entry of the listing rather than the
+            // listing itself.
+            await page.goto(middleUrl)
             await moveEntry(page, moved, null)
 
             await page.goto('/station/knowledge')
             await expect(page.getByText(moved)).toBeVisible()
-            await page.getByText(moved).click()
+            await openFolder(page, moved)
             const trail = page.getByTestId('kb-breadcrumb')
-            await expect(trail).toContainText(moved)
             await expect(trail).not.toContainText(middle)
             await expect(page.getByText(article).first()).toBeVisible()
 
@@ -346,18 +373,18 @@ test.describe('Knowledge base', () => {
 
             await page.goto('/station/knowledge')
             await createFolder(page, parent)
-            await page.getByText(parent).click()
+            const parentUrl = await openFolder(page, parent)
             await createFolder(page, target)
             await createFolder(page, clashing)
 
             // The same name a second time, inside the target, which is what the move runs into.
-            await page.getByText(target).click()
+            await openFolder(page, target)
             await createFolder(page, clashing)
-            await page.goBack()
+            await page.goto(parentUrl)
 
             const article = unique('Mitgenommen')
             await createMarkdownFile(page, article)
-            await page.goBack()
+            await page.goto(parentUrl)
 
             await page.getByTestId('kb-toggle-selecting').click()
             await markEntry(page, clashing)
@@ -372,7 +399,7 @@ test.describe('Knowledge base', () => {
             await expect(notice).toContainText('1 verschoben.')
             await expect(notice).toContainText(clashing)
 
-            await page.getByText(target).click()
+            await openFolder(page, target)
             await expect(page.getByText(article).first()).toBeVisible()
         })
 
@@ -388,10 +415,10 @@ test.describe('Knowledge base', () => {
 
         await page.goto('/station/knowledge')
         await createFolder(page, folder)
-        await page.getByText(folder).click()
+        const folderUrl = await openFolder(page, folder)
         await createMarkdownFile(page, target)
         const targetUrl = page.url()
-        await page.goBack()
+        await page.goto(folderUrl)
         await createMarkdownFile(page, source)
 
         // The picker reads the wiki search, which indexes words rather than the whole name, so the
