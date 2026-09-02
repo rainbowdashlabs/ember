@@ -15,16 +15,18 @@ import type {ShareTarget} from '@/api/lending'
  * The sharing control where there is room for one button and no room for a card, which is a row in
  * a list rather than a panel of its own.
  */
-defineProps<{
+const props = withDefaults(defineProps<{
   target: ShareTarget
   targetId: number
   targetName: string
-}>()
+  /** Whether this gear is the station's to lend. Gear of the body above it is not. */
+  lendable?: boolean
+}>(), {lendable: true})
 
 const emit = defineEmits<{ saved: [] }>()
 
 const {t} = useI18n()
-const {visible} = useLendingShare()
+const {visible} = useLendingShare(() => props.lendable)
 
 const editorOpen = ref(false)
 </script>

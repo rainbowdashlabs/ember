@@ -3447,13 +3447,13 @@ export default {
             hasSizes: 'Größen verwenden',
             hasSizesHint: 'Aktiviere diese Option, wenn die Gegenstände in verschiedenen Größen vorhanden sind.',
             kindLabel: 'Was das Inventar enthält',
-            kindStockName: 'Vorrat',
+            kindStockName: 'Einheitlich',
             kindCollectionName: 'Sammlung',
-            kindStockOption: 'Vorrat: eine Sache in vielen Exemplaren',
+            kindStockOption: 'Einheitlich: eine Sache in vielen Exemplaren',
             kindCollectionOption: 'Sammlung: verschiedene Dinge, die zusammengehören',
             kindStockHint:
                 'Das Regal voller Blousons. Jedes Stück ist dasselbe Ding, nur ein weiteres Exemplar. ' +
-                'Nur ein Vorrat kennt Größen, Vorgaben, Beschaffungen und Tausche.',
+                'Nur ein einheitliches Inventar kennt Größen, Vorgaben, Beschaffungen und Tausche.',
             kindCollectionHint:
                 'Die Kiste mit zwölf Funkgeräten, einer Ladestation und einer Antenne. Die Stücke sind ' +
                 'verschieden: gleiche Stücke fasst eine Art zusammen, alles andere liegt lose in der Sammlung.',
@@ -3529,6 +3529,8 @@ export default {
             bySize: 'Nach Größe',
             size: 'Größe',
             noSize: 'Ohne Größe',
+            shareBarLabel: '{free} verfügbar, {assigned} zugewiesen, {away} verliehen oder verloren',
+            shareBarEmpty: 'Kein Bestand in dieser Größe',
             lostItems: 'Verlorene Gegenstände',
             freeItems: 'Verfügbare Gegenstände',
             item: 'Gegenstand',
@@ -3739,7 +3741,8 @@ export default {
         requirements: {
             title: 'Benötigt',
             hint: 'Definiere, welche Inventargegenstände Mitglieder mit einer bestimmten Rolle oder Gruppe besitzen '
-                + 'sollen. Nur ein Vorrat kommt dafür in Frage, denn in einer Sammlung gibt es nichts, wovon jeder eines braucht.',
+                + 'sollen. Nur ein einheitliches Inventar kommt dafür in Frage, denn in einer Sammlung gibt es nichts, '
+                + 'wovon jeder eines braucht.',
             empty: 'Noch kein benötigter Bestand definiert.',
             add: 'Anforderung hinzufügen',
             addItem: 'Hinzufügen',
@@ -3761,7 +3764,7 @@ export default {
             lineKind: 'Art der Zeile',
             kindItem: 'Ein bestimmtes Stück',
             kindArt: 'Eine Anzahl einer Art',
-            kindCount: 'Eine Anzahl aus einem Vorrat',
+            kindCount: 'Eine Anzahl aus einem einheitlichen Inventar',
             item: 'Gegenstand',
             art: 'Art',
             noArts: 'In den Sammlungen ist noch keine Art angelegt.',

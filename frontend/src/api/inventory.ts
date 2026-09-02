@@ -17,6 +17,21 @@ export const InventoryTypes = {
 export type InventoryTypeName = (typeof InventoryTypes)[keyof typeof InventoryTypes]
 
 /**
+ * Whether gear filed here can be offered to a partner station at all.
+ *
+ * <p>An external inventory holds nothing but the gear of the body above the station. The station
+ * does not own any of it and therefore cannot lend it, so an offer written on such an inventory
+ * could never be filled and the controls for one do not belong on its screens.
+ *
+ * <p>A mixed inventory is the other case and stays open: the station's own pieces stand in it
+ * beside the body's, and the pieces that are not the station's are dropped where the offer is read
+ * rather than by hiding the decision.
+ */
+export function isLendableInventory(inventoryType: InventoryTypeName | null | undefined): boolean {
+    return inventoryType !== InventoryTypes.EXTERNAL
+}
+
+/**
  * Who owns an item: the station running its inventory, the one body above that station, or a
  * federation partner the station has borrowed it from. Members never own tracked items.
  */
@@ -462,9 +477,9 @@ export interface InventorySummary {
     id: number
     stationId: string
     name?: string
-    inventoryType?: string
+    inventoryType?: InventoryTypeName
     hasSizes: boolean
-    /** Whether it is a stock rather than a collection. */
+    /** Whether it is a uniform inventory rather than a collection. */
     homogeneous: boolean
     /** Whether it is the station's one shelf for gear belonging to somebody else. */
     borrowed: boolean

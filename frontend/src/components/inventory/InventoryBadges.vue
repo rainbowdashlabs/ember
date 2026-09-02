@@ -16,10 +16,12 @@ import {InventoryTypes, type InventoryTypeName} from '@/api/inventory'
  *
  * <p>Three things stand here: who owns it, whether it uses sizes, and which of the two kinds it is.
  * Sizes appear only where there are sizes, because "no sizes" is not a property anybody looks for.
+ * A screen that knows something further about the inventory puts it in the slot, which keeps the
+ * row of labels one row rather than two that wrap differently.
  *
  * <p>A collection also says how many kinds are defined in it, which is the number that tells a box
- * somebody has sorted from a box nobody has. A stock has no such number: there is only ever one
- * thing in it, and writing a one would be noise.
+ * somebody has sorted from a box nobody has. A uniform inventory has no such number: there is only
+ * ever one thing in it, and writing a one would be noise.
  */
 const props = defineProps<{
   inventoryType: InventoryTypeName | null | undefined
@@ -46,5 +48,6 @@ const {t} = useI18n()
     <SecondaryBadge v-if="!props.homogeneous && props.artCount != null" data-testid="inventory-badge-arts">
       {{ props.artCount === 1 ? t('inventory.manage.artCountOne') : t('inventory.manage.artCount', {count: props.artCount}) }}
     </SecondaryBadge>
+    <slot/>
   </div>
 </template>

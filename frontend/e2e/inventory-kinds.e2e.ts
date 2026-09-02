@@ -63,7 +63,7 @@ test.describe('The two kinds of inventory', () => {
             const stock = (await summaries(page)).find(entry => entry.homogeneous)
             expect(stock, 'the demo data also holds a stock').toBeTruthy()
             const stockCard = cardNamed(page, stock!.name)
-            await expect(stockCard.getByTestId('inventory-badge-kind')).toHaveText('Vorrat')
+            await expect(stockCard.getByTestId('inventory-badge-kind')).toHaveText('Einheitlich')
             await expect(stockCard.getByTestId('inventory-badge-arts'),
                 'a stock holds one thing, so a count of kinds would be noise').toHaveCount(0)
         })

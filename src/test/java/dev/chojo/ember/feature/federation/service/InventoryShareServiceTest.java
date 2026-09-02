@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -49,6 +50,12 @@ class InventoryShareServiceTest extends RepositoryTestBase {
     private static int foreignInventoryId;
     private static int foreignArtId;
     private static int foreignItemId;
+    private static int externalId;
+    private static int externalArtId;
+    private static int externalItemId;
+    private static int mixedId;
+    private static int mixedArtId;
+    private static int mixedItemId;
     private static int partnerId;
 
     @BeforeAll
@@ -85,6 +92,22 @@ class InventoryShareServiceTest extends RepositoryTestBase {
                 .createItem(foreignInventoryId, "SSV-F01", "Foreign Item", null, null)
                 .id();
 
+        externalId = inventoryRepo
+                .create(owner.id(), "ShareSvcExternal", InventoryType.EXTERNAL, false)
+                .id();
+        externalArtId = artRepo.create(externalId, "Fremdes Funkgerät", "", 0).id();
+        externalItemId = inventoryRepo
+                .createItem(externalId, "SSV-E01", "Kreisgerät", null, null)
+                .id();
+
+        mixedId = inventoryRepo
+                .create(owner.id(), "ShareSvcMixed", InventoryType.MIXED, false)
+                .id();
+        mixedArtId = artRepo.create(mixedId, "Gemischte Art", "", 0).id();
+        mixedItemId = inventoryRepo
+                .createItem(mixedId, "SSV-M01", "Eigenes Gerät", null, null)
+                .id();
+
         var keyPair = federationService.generateKeyPair();
         partnerId = federationService
                 .acceptInvite(partnerStation.id(), owner.id(), federationService.encodePublicKey(keyPair), null, null)
@@ -98,6 +121,9 @@ class InventoryShareServiceTest extends RepositoryTestBase {
         service.removeItemShare(owner.id(), firstRadioId);
         service.removeItemShare(owner.id(), secondRadioId);
         service.removeItemShare(owner.id(), looseItemId);
+        service.removeInventoryShare(owner.id(), mixedId);
+        service.removeArtShare(owner.id(), mixedArtId);
+        service.removeItemShare(owner.id(), mixedItemId);
         federationService.setCapability(partnerId, CapabilityType.INVENTORY_LEND, Direction.EXPORT, true);
     }
 
@@ -263,6 +289,41 @@ class InventoryShareServiceTest extends RepositoryTestBase {
                 NotFoundResponse.class,
                 () -> service.setArtShare(
                         owner.id(), Integer.MAX_VALUE, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of()));
+    }
+
+    /**
+     * The station lends its own gear and nothing else, so where an inventory can hold nothing of its
+     * own there is nothing to decide about and the decision is refused rather than written down and
+     * quietly ignored later. A mixed inventory holds the station's own pieces beside the body's and
+     * therefore stays open, at all three levels.
+     */
+    @Test
+    void anExternalInventoryCannotBeOffered() {
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.setInventoryShare(
+                        owner.id(), externalId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of()));
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.setArtShare(
+                        owner.id(), externalArtId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of()));
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.setItemShare(
+                        owner.id(), externalItemId, ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of()));
+        assertTrue(service.findForInventory(owner.id(), externalId).isEmpty());
+    }
+
+    @Test
+    void aMixedInventoryCanStillBeOffered() {
+        service.setInventoryShare(owner.id(), mixedId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+        service.setArtShare(owner.id(), mixedArtId, ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of());
+        service.setItemShare(owner.id(), mixedItemId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
+
+        var policy = service.policyFor(owner.id(), partnerStation.uid());
+        assertTrue(policy.allowsInventory(mixedId));
+        assertFalse(policy.allows(mixedId, mixedArtId, Integer.MAX_VALUE));
+        assertTrue(policy.allows(mixedId, mixedArtId, mixedItemId));
     }
 
     @Test

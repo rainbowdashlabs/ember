@@ -211,21 +211,27 @@ public class InventoryTagRepository {
     }
 
     /**
-     * Every piece of one station carrying a tag, with the inventory and kind each sits in, so that
-     * what a partner may see can be decided against the station's offer rather than guessed here.
+     * Every piece of one station's own carrying a tag, with the inventory and kind each sits in, so
+     * that what a partner may see can be decided against the station's offer rather than guessed
+     * here.
      *
      * <p>This answers nothing about sharing on purpose. The offer is one decision and it lives in
      * one place; a second rule written here would be a second way to the same gear, and the two
      * would drift.
      *
+     * <p>Ownership is a different question and is answered here, because it is not a decision
+     * anybody makes: gear of the body above the station, and gear another station has lent it, is
+     * not the station's to pass on however its offer reads.
+     *
      * @param stationId the station serving the request
      * @param name      the tag name as the asking station typed it
-     * @return every tagged piece, whether or not it is offered
+     * @return every tagged piece the station owns, whether or not it is offered
      */
     public List<TaggedItemSummary> findTaggedItemsOfStation(int stationId, String name) {
         return query(TAGGED_ITEM_SELECT + """
                         WHERE t.canonical_name = :canonical
                           AND inv.station_id = :station_id
+                          AND i.owner_kind = 'STATION'
                         ORDER BY inv.name, i.name, i.id;""")
                 .single(call().bind("canonical", InventoryTag.canonical(name)).bind("station_id", stationId))
                 .map(TaggedItemSummary.map())

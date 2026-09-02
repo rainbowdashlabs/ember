@@ -23,6 +23,7 @@ import LendingShareButton from '@/components/lending/LendingShareButton.vue'
 import InventoryFieldsPanel from '@/components/inventory/InventoryFieldsPanel.vue'
 import {inventoryArts} from '@/api'
 import type {ArtStock, InventoryArt} from '@/api/inventoryArts'
+import {isLendableInventory, type InventoryTypeName} from '@/api/inventory'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {apiErrorMessage} from '@/util/apiError'
@@ -36,6 +37,8 @@ import {apiErrorMessage} from '@/util/apiError'
  */
 const props = defineProps<{
   inventoryId: number
+  /** Who may stand in the inventory, which decides whether a kind in it can be offered at all. */
+  inventoryType: InventoryTypeName | null | undefined
 }>()
 
 const {t} = useI18n()
@@ -146,7 +149,12 @@ watch(() => props.inventoryId, load, {immediate: true})
         <MutedText size="sm">
           {{ t('inventory.art.pieces', {pieces: stockByArt.get(art.id)?.pieces ?? 0, free: stockByArt.get(art.id)?.free ?? 0}) }}
         </MutedText>
-        <LendingShareButton :target-id="art.id" :target-name="art.name" target="art"/>
+        <LendingShareButton
+            :target-id="art.id"
+            :target-name="art.name"
+            :lendable="isLendableInventory(props.inventoryType)"
+            target="art"
+        />
         <EditButton @click="openEdit(art)"/>
         <DeleteButton @click="requestDelete(art)"/>
       </div>

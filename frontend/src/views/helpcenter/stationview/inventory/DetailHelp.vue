@@ -40,6 +40,7 @@ const {t} = useI18n()
       <StatsRow/>
       <SubHeader>{{ t('inventory.detail.bySize') }}</SubHeader>
       <SizeDistributionTable/>
+      <p>{{ t('helpCenter.inventoryDetail.barText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryDetail.itemsTitle')">

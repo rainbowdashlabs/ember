@@ -142,7 +142,9 @@ async function clear() {
 
         <div class="flex flex-wrap justify-end gap-2 pt-2">
           <SecondaryButton data-cancel @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
-          <ErrorButton v-if="shared" :disabled="saving" @click="clear">{{ t('lendingShare.clear') }}</ErrorButton>
+          <ErrorButton v-if="shared" :disabled="saving" data-testid="lending-share-clear" @click="clear">
+            {{ t('lendingShare.clear') }}
+          </ErrorButton>
           <PrimaryButton :disabled="saving" data-testid="lending-share-save" @click="save">
             {{ t('lendingShare.save') }}
           </PrimaryButton>

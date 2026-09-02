@@ -219,7 +219,7 @@ public class InventoryService {
         throw new InventorySwitchRefusedException(
                 toHomogeneous
                         ? "This inventory still holds things that only exist for a collection"
-                        : "Requirements, orders, exchanges and sizes only exist for a stock, and this inventory still has some",
+                        : "Requirements, orders, exchanges and sizes only exist for a uniform inventory, and this one still has some",
                 blockers);
     }
 

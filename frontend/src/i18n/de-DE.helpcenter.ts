@@ -246,6 +246,7 @@ export default {
             inventoryCreate: 'Nur mit Inventar-Erstellungsrecht',
             inventoryEdit: 'Nur mit Inventar-Bearbeitungsrecht',
             inventoryManage: 'Nur für Inventarverwalter',
+            inventoryLending: 'Nur für Ausleih-Verwalter',
             lostAndFoundCreate: 'Nur mit Fundbüro-Erstellungsrecht',
             lostAndFoundManage: 'Nur für Fundbüro-Verwalter',
             checklistManage: 'Nur für Checklisten-Verwalter',
@@ -1709,19 +1710,26 @@ volumes:
                 + 'Gegenstand entschieden wird. Gehört die Ausrüstung dem Träger, entstehen die einzelnen '
                 + 'Gegenstände erst bei der Zuweisung.',
             createSizes: 'Aktiviere Größen, wenn die Gegenstände in verschiedenen Größen vorkommen (z.B. S, M, L).',
-            kindsTitle: 'Vorrat oder Sammlung',
-            kindsText: 'Beim Anlegen wählst du, was das Inventar enthält. Ein Vorrat hält eine Sache in vielen '
-                + 'Exemplaren: das Regal voller Blousons, wo jedes Stück dasselbe Ding ist. Eine Sammlung hält '
-                + 'verschiedene Dinge, die zusammengehören.',
+            kindsTitle: 'Einheitlich oder Sammlung',
+            kindsText: 'Beim Anlegen wählst du, was das Inventar enthält. Ein einheitliches Inventar hält eine Sache '
+                + 'in vielen Exemplaren: das Regal voller Blousons, wo jedes Stück dasselbe Ding ist. Eine Sammlung '
+                + 'hält verschiedene Dinge, die zusammengehören.',
             kindsExampleText: 'Die Kiste mit zwölf Funkgeräten in drei Farben, dazu eine Ladestation und eine '
                 + 'Antenne, ist eine Sammlung. „Funkgerät“ ist darin eine Art, und die Farbe ist ein Feld an dieser '
                 + 'Art. Ladestation und Antenne tragen gar keine Art, sie liegen lose in der Sammlung, und das ist '
                 + 'der Normalfall für alles, was es nur einmal gibt.',
-            kindsWhyText: 'Nur ein Vorrat kennt Größen, Vorgaben, Beschaffungen und Tausche, denn „jeder braucht '
+            kindsWhyText: 'Nur ein einheitliches Inventar kennt Größen, Vorgaben, Beschaffungen und Tausche, denn „jeder braucht '
                 + 'eines“ und „drei nachbestellen“ sagen über eine Kiste mit lauter Verschiedenem nichts aus. Nur '
                 + 'eine Sammlung kennt Arten. Umstellen lässt sich das, solange nichts davon daran hängt.',
-            badgesText: 'Auf jeder Inventar-Karte stehen Abzeichen: wem es gehört, ob es Größen führt und ob es ein '
-                + 'Vorrat oder eine Sammlung ist. Bei einer Sammlung steht daneben, wie viele Arten in ihr angelegt sind.',
+            badgesText: 'Auf jeder Inventar-Karte stehen Abzeichen: wem es gehört, ob es Größen führt und ob es '
+                + 'einheitlich oder eine Sammlung ist. Bei einer Sammlung steht daneben, wie viele Arten in ihr angelegt sind.',
+            shareTitle: 'Teilen ein- und ausschalten',
+            shareText: 'Darfst du die Ausleihe verwalten, steht auf jeder Karte auch, ob das Inventar den '
+                + 'Partnerwachen angeboten wird. Der Knopf mit dem Teilen-Zeichen öffnet die Entscheidung: anbieten '
+                + 'oder zurückhalten, allen Partnerwachen oder nur bestimmten. „Eintrag entfernen“ macht es wieder '
+                + 'zu einem Inventar, über das nichts gesagt ist, und damit zu einem, das niemand angeboten bekommt.',
+            shareExternalText: 'Bei einem externen Inventar steht davon nichts. Die Sachen darin gehören dem Kreis '
+                + 'oder Verband über deiner Wache, und was deiner Wache nicht gehört, kann sie auch nicht verleihen.',
             itemsTitle: 'Gegenstände hinzufügen',
             itemsText: 'Innerhalb eines Inventars kannst du einzelne Gegenstände anlegen. Jeder Gegenstand kann einen Namen, eine interne Kennung und eine Größe haben.',
             itemsExternal: 'Bei externen Inventaren werden Gegenstände automatisch erstellt, wenn sie einem Mitglied zugewiesen werden.',
@@ -1754,7 +1762,7 @@ volumes:
             whatIsText: 'Das Inventar weiß, was die Wache besitzt, und der Termin weiß, wer kommt. Keines von beiden wusste bisher, dass der Leistungsmarsch am Samstag vierzehn Garnituren und einen Anhänger braucht. Auf der Registerkarte Ausrüstung eines Termins steht genau das.',
             seriesText: 'Bei einer Terminreihe gilt eine Zeile für jeden Abend. Ein einzelner Abend kann zusätzlich etwas eintragen, ohne die Reihe anzufassen: der eine Dienst im Jahr, für den auch der Anhänger gebraucht wird.',
             linesTitle: 'Die Zeilen',
-            linesText: 'Eine Zeile benennt ein bestimmtes Stück, fragt nach einer Anzahl einer Art aus einer Sammlung oder nach einer Anzahl aus einem ganzen Vorrat.',
+            linesText: 'Eine Zeile benennt ein bestimmtes Stück, fragt nach einer Anzahl einer Art aus einer Sammlung oder nach einer Anzahl aus einem ganzen einheitlichen Inventar.',
             pickText: 'Gesucht wird durch Tippen: ein paar Buchstaben aus dem Namen genügen, und jeder Treffer sagt gleich, in welchem Inventar er liegt und wie viele Stücke davon an der Wache sind. Eine Liste zum Durchscrollen gibt es nicht mehr, denn bei ein paar hundert Stücken war sie ohnehin nicht mehr zu lesen.',
             tooManyText: 'Steht neben einer Art oder einem Inventar eine kleinere Zahl als die verlangte, sagt der Dialog es sofort. Verboten wird es nicht: Was fehlt, lässt sich eintragen und danach bei den Partnerwachen suchen. Gezählt wird, was die Wache überhaupt besitzt; was an einem bestimmten Abend noch frei ist, steht neben der Zeile im Ausrüstungs-Reiter, weil eine Zeile für jeden Abend der Reihe gilt und nicht nur für einen.',
             leadText: 'Ausrüstung ist länger weg als der Termin dauert. Die Funkgeräte werden am Vorabend geholt und kommen am Montag zurück, deshalb trägt jede Zeile ein, wie viele Stunden vorher sie schon aus dem Regal ist und wie lange danach noch. Ein Tag in jede Richtung ist der Normalfall und voreingestellt.',
@@ -4241,11 +4249,15 @@ volumes:
             whatShownText: 'Hier siehst du die Details eines einzelnen Inventars mit Statistiken und Listen.',
             headerTitle: 'Kopfzeile und Bearbeiten',
             headerText: 'Neben dem Namen stehen die Abzeichen des Inventars: wem es gehört, ob es Größen führt und '
-                + 'ob es ein Vorrat oder eine Sammlung ist, bei einer Sammlung dazu die Zahl ihrer Arten. Wer das '
+                + 'ob es einheitlich oder eine Sammlung ist, bei einer Sammlung dazu die Zahl ihrer Arten. Wer das '
                 + 'Inventar bearbeiten darf, kommt über „Inventar bearbeiten“ direkt in dessen Einstellungen und von '
                 + 'dort über „Zum Bestand“ wieder hierher.',
             statsTitle: 'Statistiken',
             statsText: 'Oben siehst du die Gesamtzahlen: wie viele Gegenstände insgesamt, verfügbar, zugewiesen und verloren sind. Bei Inventaren mit Größen werden die Zahlen auch pro Größe aufgeschlüsselt.',
+            barText: 'Unter jeder Größe liegt ein dünner Streifen. Grün ist, was frei im Regal liegt, orange, was '
+                + 'Mitglieder haben, und rot, was gerade verliehen oder verloren ist. So siehst du auf einen Blick, '
+                + 'ob in einer Größe noch etwas frei ist. Fahre mit der Maus darüber, dann stehen die drei Zahlen '
+                + 'auch als Text da. Bei einer Größe ohne Bestand bleibt der Streifen leer.',
             lostTitle: 'Verlorene Gegenstände',
             lostText: 'Alle als verloren markierten Gegenstände werden hier aufgelistet.',
             freeTitle: 'Verfügbare Gegenstände',
@@ -4264,7 +4276,7 @@ volumes:
             whatShown: 'Was kannst du hier tun?',
             whatShownText: 'Hier verwaltest du die Gegenstände und Größen innerhalb eines einzelnen Inventars.',
             settingsTitle: 'Einstellungen',
-            settingsText: 'Ändere den Namen, den Typ und ob das Inventar ein Vorrat oder eine Sammlung ist.',
+            settingsText: 'Ändere den Namen, den Typ und ob das Inventar einheitlich oder eine Sammlung ist.',
             fieldsTitle: 'Wo ein Feld angelegt wird',
             fieldsText: 'Ein Feld wird dort angelegt, wo das Ding lebt, zu dem es gehört. Felder des ganzen '
                 + 'Inventars stehen auf dieser Seite, Felder einer Art im Fenster der Art, Felder eines einzelnen '
@@ -4302,7 +4314,7 @@ volumes:
                 + 'demselben Namen, behält der Gegenstand sie. Sonst kommt er ohne Größe an. In der Liste '
                 + 'steht vor dem Verschieben an jedem Gegenstand, was mit seiner Größe geschieht.',
             whyTitle: 'Wozu das gut ist',
-            whyText: 'Ob ein Inventar ein Vorrat oder eine Sammlung ist, lässt sich nur umstellen, wenn nichts '
+            whyText: 'Ob ein Inventar einheitlich oder eine Sammlung ist, lässt sich nur umstellen, wenn nichts '
                 + 'mehr daran hängt. Aufteilen ist der andere Weg dorthin, und der ist ohne Verschieben nicht zu haben.',
             tip: 'Wähle erst das Ziel und dann die Gegenstände: dann steht schon an jeder Zeile, ob die '
                 + 'Größe mitkommt.',
@@ -4349,7 +4361,7 @@ volumes:
                 + '„Pager 01“ und ist ein Stück der Art „Pager“. Die Größe ist noch einmal etwas anderes: '
                 + 'sie sagt, wie groß etwas ist, die Art sagt, welches Ding es ist.',
             whereTitle: 'Wo es Arten gibt',
-            whereText: 'Nur in einer Sammlung. Ein Vorrat wird über Größen geordnet und bekommt keine Arten. '
+            whereText: 'Nur in einer Sammlung. Ein einheitliches Inventar wird über Größen geordnet und bekommt keine Arten. '
                 + 'Umstellen lässt sich das erst wieder, wenn keine Art mehr darin steht.',
             screenTitle: 'Was diese Seite zeigt',
             screenText: 'Oben stehen die Bezeichnungen, die auf den Gegenständen dieses Inventars stehen, '

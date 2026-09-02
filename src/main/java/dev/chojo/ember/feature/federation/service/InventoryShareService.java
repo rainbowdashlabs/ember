@@ -13,9 +13,12 @@ import dev.chojo.ember.feature.federation.entity.ShareGrant;
 import dev.chojo.ember.feature.federation.entity.SharePolicy;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -212,9 +215,24 @@ public class InventoryShareService {
         return removed;
     }
 
-    private void requireOwnInventory(int stationId, int inventoryId) {
-        boolean own = inventoryRepository.findByStation(stationId).stream().anyMatch(inv -> inv.id() == inventoryId);
-        if (!own) throw new NotFoundResponse("This inventory does not belong to this station");
+    /**
+     * The inventory an offer may be written on, which is one this station owns and may lend out of.
+     *
+     * <p>An external inventory holds nothing but gear of the body above the station, and a station
+     * lends only what is its own, so an offer written there could never be filled. A mixed one is a
+     * different case and stays open: the station's own pieces stand in it beside the body's, and the
+     * pieces that are not the station's are dropped where the offer is read rather than here.
+     */
+    private Inventory requireOwnInventory(int stationId, int inventoryId) {
+        Inventory inventory = inventoryRepository.findByStation(stationId).stream()
+                .filter(inv -> inv.id() == inventoryId)
+                .findFirst()
+                .orElseThrow(() -> new NotFoundResponse("This inventory does not belong to this station"));
+        if (inventory.inventoryType() == InventoryType.EXTERNAL) {
+            throw new BadRequestResponse(
+                    "This inventory holds gear of the body above the station, which the station cannot lend out");
+        }
+        return inventory;
     }
 
     private void requireOwnArt(int stationId, int artId) {

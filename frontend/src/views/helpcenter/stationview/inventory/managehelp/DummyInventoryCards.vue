@@ -21,7 +21,8 @@ const {t} = useI18n()
       </PrimaryButton>
     </div>
 
-    <DummyInventoryCard name="Helme" :type="t('inventory.manage.type.INTERNAL')" with-sizes>
+    <DummyInventoryCard name="Helme" :type="t('inventory.manage.type.INTERNAL')"
+                        :share-state="t('lendingShare.stateAllPartners')" with-sizes>
       <template #sizesLabel>{{ t('inventory.manage.withSizes') }}</template>
       <template #meta>
         {{ t('inventory.manage.itemCount', { count: 24 }) }}
@@ -37,7 +38,8 @@ const {t} = useI18n()
       </template>
     </DummyInventoryCard>
 
-    <DummyInventoryCard name="Stiefel" :type="t('inventory.manage.type.MIXED')" with-sizes>
+    <DummyInventoryCard name="Stiefel" :type="t('inventory.manage.type.MIXED')"
+                        :share-state="t('lendingShare.stateUnshared')" with-sizes>
       <template #sizesLabel>{{ t('inventory.manage.withSizes') }}</template>
       <template #meta>
         {{ t('inventory.manage.itemCount', { count: 30 }) }}
