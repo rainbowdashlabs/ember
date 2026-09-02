@@ -8,6 +8,7 @@ package dev.chojo.ember.event.handlers;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
@@ -15,8 +16,6 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-
-import java.util.Map;
 
 @Singleton
 public class EventCreatedHandler implements DomainEventHandler<EventCreated> {
@@ -49,8 +48,7 @@ public class EventCreatedHandler implements DomainEventHandler<EventCreated> {
         // mangle the text at a fixed 80-char cut here.
         String description = e.description() == null ? "" : e.description();
         var data = NotificationData.of(
-                new NotificationParams.NewEvent(e.name(), description),
-                new NotificationData.NotificationLink("event-detail", Map.of("id", e.id())));
+                new NotificationParams.NewEvent(e.name(), description), NotificationLinks.event(e.id()));
 
         var viewers =
                 restrictionService.findMembersPassingRestriction(RestrictionType.EVENT_VIEW, e.id(), event.stationId());

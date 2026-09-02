@@ -7,9 +7,7 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.NewsDeleted;
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationParams;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -28,13 +26,12 @@ public class NewsDeletedHandler implements DomainEventHandler<NewsDeleted> {
         return NewsDeleted.class;
     }
 
+    /**
+     * Takes the article's notifications with it. The announcement of the article and everything
+     * written under it point at the same page, which is the page that has just gone.
+     */
     @Override
     public void handle(NewsDeleted event) {
-        notificationService.deleteByTypeContaining(
-                NotificationType.NEW_NEWS,
-                NotificationData.of(new NotificationParams.NewNews(event.title(), null, null)));
-        notificationService.deleteByTypeContaining(
-                NotificationType.NEWS_COMMENT,
-                NotificationData.of(new NotificationParams.NewsComment(event.title(), null, null)));
+        notificationService.deleteAllPointingAt(NotificationLinks.news(event.newsId()));
     }
 }

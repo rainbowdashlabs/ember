@@ -153,19 +153,16 @@ class NotificationServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(20)
-    void deleteByTypeContaining() {
-        var data = NotificationData.of(
-                new NotificationParams.LostAndFoundNew("Blue hat"),
-                new NotificationData.NotificationLink("dashboard-overview"));
-        service.notify(member1.id(), NotificationType.LOST_AND_FOUND_NEW, data);
+    void deleteAllPointingAt() {
+        var link = new NotificationData.NotificationLink("lost-and-found", Map.of("id", 4711));
+        service.notify(
+                member1.id(),
+                NotificationType.LOST_AND_FOUND_NEW,
+                NotificationData.of(new NotificationParams.LostAndFoundNew("Blue hat"), link));
         assertTrue(service.findUnacknowledged(member1.id()).stream()
                 .anyMatch(n -> n.type() == NotificationType.LOST_AND_FOUND_NEW));
 
-        service.deleteByTypeContaining(
-                NotificationType.LOST_AND_FOUND_NEW,
-                NotificationData.of(
-                        new NotificationParams.LostAndFoundNew("Blue hat"),
-                        new NotificationData.NotificationLink("dashboard-overview")));
+        service.deleteAllPointingAt(link);
 
         assertFalse(service.findUnacknowledged(member1.id()).stream()
                 .anyMatch(n -> n.type() == NotificationType.LOST_AND_FOUND_NEW));

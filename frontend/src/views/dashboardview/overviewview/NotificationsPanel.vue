@@ -189,7 +189,8 @@ onMounted(loadData)
       </EmptyState>
 
       <template v-if="notifs.length > 0">
-        <NeutralContainer v-for="n in notifs" :key="n.id" class="flex items-start justify-between gap-3 py-2 px-3"
+        <NeutralContainer v-for="n in notifs" :key="n.id" data-testid="notification-entry"
+                          class="flex items-start justify-between gap-3 py-2 px-3"
                           :class="{ 'cursor-pointer hover:bg-(--bg-accent)': n.link }" @click="navigateTo(n)">
           <div class="flex items-start gap-3">
             <font-awesome-icon :icon="['fas', typeIcons[n.type] ?? 'bell']"

@@ -13,7 +13,6 @@ import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.ClusterItemIssued;
 import dev.chojo.ember.event.events.ClusterItemLost;
 import dev.chojo.ember.event.events.CommentCreated;
-import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
@@ -40,7 +39,6 @@ import dev.chojo.ember.event.handlers.BulkMentionedInCommentHandler;
 import dev.chojo.ember.event.handlers.ClusterItemIssuedHandler;
 import dev.chojo.ember.event.handlers.ClusterItemLostHandler;
 import dev.chojo.ember.event.handlers.CommentCreatedHandler;
-import dev.chojo.ember.event.handlers.CommentDeletedHandler;
 import dev.chojo.ember.event.handlers.EventCreatedHandler;
 import dev.chojo.ember.event.handlers.EventDeletedHandler;
 import dev.chojo.ember.event.handlers.EventRegistrationStatusHandler;
@@ -79,6 +77,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -271,7 +270,8 @@ class DomainEventHandlerTest {
 
         handler.handle(new EventDeleted(STATION_ID, 42, "Übungsabend"));
 
-        verify(notificationService).deleteByTypeContaining(eq(NotificationType.NEW_EVENT), any(NotificationData.class));
+        verify(notificationService).deleteAllPointingAt(NotificationLinks.event(42));
+        verify(notificationService).deleteAllPointingAt(NotificationLinks.eventDates(42));
     }
 
     // -- EventsBatchCreatedHandler --
@@ -389,9 +389,7 @@ class DomainEventHandlerTest {
 
         handler.handle(new NewsDeleted(STATION_ID, 5, "Alte Nachricht"));
 
-        verify(notificationService).deleteByTypeContaining(eq(NotificationType.NEW_NEWS), any(NotificationData.class));
-        verify(notificationService)
-                .deleteByTypeContaining(eq(NotificationType.NEWS_COMMENT), any(NotificationData.class));
+        verify(notificationService).deleteAllPointingAt(NotificationLinks.news(5));
     }
 
     // -- FormPublishedHandler --
@@ -416,7 +414,7 @@ class DomainEventHandlerTest {
 
         handler.handle(new FormDeleted(STATION_ID, 7));
 
-        verify(notificationService).deleteByTypeContaining(eq(NotificationType.NEW_FORM), any(NotificationData.class));
+        verify(notificationService).deleteAllPointingAt(NotificationLinks.form(7));
     }
 
     // -- CommentCreatedHandler --
@@ -492,19 +490,6 @@ class DomainEventHandlerTest {
         verify(notificationService)
                 .notifyMembersIfAbsent(
                         eq(List.of(30)), eq(NotificationType.NEWS_COMMENT), any(NotificationData.class), eq(MEMBER_ID));
-    }
-
-    // -- CommentDeletedHandler --
-
-    @Test
-    void commentDeletedCleansUpNotifications() {
-        var handler = new CommentDeletedHandler(notificationService);
-        assertEquals(CommentDeleted.class, handler.eventType());
-
-        handler.handle(new CommentDeleted(STATION_ID, 100, "comment preview"));
-
-        verify(notificationService)
-                .deleteByTypeContaining(eq(NotificationType.NEWS_COMMENT), any(NotificationData.class));
     }
 
     // -- MentionedInCommentHandler --

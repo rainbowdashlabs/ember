@@ -11,13 +11,12 @@ import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-
-import java.util.Map;
 
 @Singleton
 public class EventRegistrationStatusHandler implements DomainEventHandler<EventRegistrationStatusChanged> {
@@ -40,7 +39,7 @@ public class EventRegistrationStatusHandler implements DomainEventHandler<EventR
     public void handle(EventRegistrationStatusChanged event) {
         var data = NotificationData.of(
                 new NotificationParams.EventRegistrationStatus(event.eventName(), event.newStatus(), null),
-                new NotificationData.NotificationLink("event-detail", Map.of("id", event.eventId())));
+                NotificationLinks.event(event.eventId()));
 
         notificationService.notify(event.memberId(), NotificationType.EVENT_REGISTRATION_STATUS, data);
 

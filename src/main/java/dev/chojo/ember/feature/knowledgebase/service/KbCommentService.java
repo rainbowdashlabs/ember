@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.knowledgebase.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.CommentCreated;
-import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
@@ -114,7 +113,7 @@ public class KbCommentService {
     }
 
     /**
-     * Deletes a knowledge-base comment and announces the removal with a short content preview.
+     * Deletes a knowledge-base comment.
      *
      * @param stationId the station owning the file the comment belongs to
      * @param commentId the comment to remove
@@ -126,7 +125,6 @@ public class KbCommentService {
             log.warn("Delete for knowledge comment {} skipped: not found", commentId);
             return false;
         }
-        eventBus.publish(new CommentDeleted(stationId, commentId, preview(comment.content())));
         log.info("Deleted knowledge comment {} on station {}", commentId, stationId);
         return true;
     }

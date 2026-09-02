@@ -7,9 +7,7 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.EventDeleted;
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationParams;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -28,10 +26,14 @@ public class EventDeletedHandler implements DomainEventHandler<EventDeleted> {
         return EventDeleted.class;
     }
 
+    /**
+     * Takes the appointment's notifications with it: its announcement, its answers and everything
+     * written under it point at the page that has just gone, and its reminders point at one of its
+     * dates on that same page.
+     */
     @Override
     public void handle(EventDeleted event) {
-        notificationService.deleteByTypeContaining(
-                NotificationType.NEW_EVENT,
-                NotificationData.of(new NotificationParams.NewEvent(event.eventName(), null)));
+        notificationService.deleteAllPointingAt(NotificationLinks.event(event.eventId()));
+        notificationService.deleteAllPointingAt(NotificationLinks.eventDates(event.eventId()));
     }
 }
