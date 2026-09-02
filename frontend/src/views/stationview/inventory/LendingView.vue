@@ -86,15 +86,23 @@ watch([filterDateFrom, filterDateTo], () => {
   loadAvailable()
 })
 
+/**
+ * Opens the request form on what the search already asked for.
+ *
+ * <p>The period is what the search counted against: the number beside an inventory is what is free
+ * in those days, not what exists. Sending somebody to a form that starts on no dates at all makes
+ * them type the same two dates again, and any pair other than the one they searched for makes the
+ * count they clicked on wrong.
+ */
 function navigateToCreateRequest(item: AvailableInventoryEntry) {
-  router.push({
-    name: routes.lendingCreate,
-    query: {
-      inventoryId: String(item.inventoryId),
-      stationId: String(item.stationId),
-      stationName: item.stationName,
-    },
-  })
+  const query: Record<string, string> = {
+    inventoryId: String(item.inventoryId),
+    stationId: String(item.stationId),
+    stationName: item.stationName,
+  }
+  if (filterDateFrom.value) query.dateFrom = filterDateFrom.value
+  if (filterDateTo.value) query.dateTo = filterDateTo.value
+  router.push({name: routes.lendingCreate, query})
 }
 
 const requests = ref<LendingRequestResponse[]>([])

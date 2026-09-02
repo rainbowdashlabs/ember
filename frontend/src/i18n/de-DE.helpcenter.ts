@@ -1932,7 +1932,7 @@ volumes:
             howTo: 'So erstellst du eine Anfrage',
             step1: 'Wähle den Gegenstand, den du leihen möchtest.',
             step2: 'Gib die gewünschte Menge an.',
-            step3: 'Wähle Start- und Enddatum des Ausleihzeitraums.',
+            step3: 'Prüfe Start- und Enddatum des Ausleihzeitraums; aus der Suche sind sie bereits übernommen.',
             step4: 'Schreibe optional eine kurze Notiz und sende die Anfrage ab.',
             dummyTitle: 'Neue Anfrage',
             fieldQuantity: 'Menge',
@@ -1942,7 +1942,7 @@ volumes:
             dummySend: 'Anfrage senden',
             dummyAvailable: 'verfügbar',
             maxQuantityHint: 'Die Menge ist auf die verfügbare Anzahl begrenzt.',
-            tip: 'Prüfe vorher auf der Durchsuchen-Seite, ob der Gegenstand im gewünschten Zeitraum verfügbar ist.',
+            tip: 'Die verfügbare Anzahl gilt immer für den gewählten Zeitraum und wird neu gezählt, wenn du ihn hier änderst.',
         },
         attendanceNew: {
             title: 'Neue Anwesenheit',

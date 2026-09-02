@@ -35,8 +35,8 @@ const inventoryId = Number(route.query.inventoryId)
 const stationId = String(route.query.stationId ?? '')
 const stationName = String(route.query.stationName || '')
 
-const dateFrom = ref('')
-const dateTo = ref('')
+const dateFrom = ref(String(route.query.dateFrom ?? ''))
+const dateTo = ref(String(route.query.dateTo ?? ''))
 const quantity = ref(1)
 const note = ref('')
 
@@ -49,13 +49,37 @@ const selectedEntry = computed(() =>
 )
 
 const maxQuantity = computed(() => selectedEntry.value?.availableCount ?? 1)
-const inventoryName = computed(() => selectedEntry.value?.inventoryName ?? '')
 
+/**
+ * The name of what is being asked for, kept even while nothing of it is free.
+ *
+ * <p>An inventory that is fully promised to somebody else in the chosen days drops out of the list
+ * of what is available, and reading the name off that list would leave the form headed by nothing
+ * at all in exactly the moment it has to explain itself.
+ */
+const knownInventoryName = ref('')
+const inventoryName = computed(() => selectedEntry.value?.inventoryName ?? knownInventoryName.value)
+
+watch(selectedEntry, (entry) => {
+  if (entry) knownInventoryName.value = entry.inventoryName
+})
+
+/**
+ * Counts what the partner has free, for the period the form currently names.
+ *
+ * <p>Asking without a period counts everything the partner owns, which is a different number from
+ * the one on the search that led here: that one has the days subtracted that are already promised
+ * to somebody else. The two have to agree, so the period asked for follows the fields, and changing
+ * a date counts again.
+ */
 async function loadItems() {
   loadingItems.value = true
   itemsError.value = ''
   try {
-    availableItems.value = (await lending.listAvailable()).entries
+    const options: {from?: string; to?: string} = {}
+    if (dateFrom.value) options.from = dateFrom.value
+    if (dateTo.value) options.to = dateTo.value
+    availableItems.value = (await lending.listAvailable(options)).entries
   } catch {
     itemsError.value = t('lending.loadError')
   } finally {
@@ -80,6 +104,10 @@ onMounted(() => {
 
 watch(loaded, (v) => {
   if (v) loadItems()
+})
+
+watch([dateFrom, dateTo], () => {
+  if (loaded.value) loadItems()
 })
 </script>
 
@@ -107,6 +135,7 @@ watch(loaded, (v) => {
         <span v-if="selectedEntry" class="text-sm text-[var(--text-muted)]">
           {{ selectedEntry.availableCount }} {{ t('lending.available') }}
         </span>
+        <span v-else class="text-sm text-[var(--text-muted)]">{{ t('lending.nothingFree') }}</span>
       </NeutralContainer>
 
       <Alert v-if="submitError" variant="error" class="mb-4">{{ submitError }}</Alert>
