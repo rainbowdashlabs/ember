@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import io.javalin.http.BadRequestResponse;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -79,6 +80,27 @@ public class AccountEmailService {
         if (!Account.isRealEmail(normalised)) return AddressProblem.UNREACHABLE;
         var existing = accountRepository.findByEmail(normalised);
         return existing.isPresent() && existing.get().id() != accountId ? AddressProblem.TAKEN : AddressProblem.NONE;
+    }
+
+    /**
+     * Writes an address onto somebody else's account, and refuses to write one onto the caller's own.
+     *
+     * <p>The refusal is the whole point of the method. Writing an address without confirming it is a
+     * takeover in one step: whoever holds a session long enough to reach this would move the account
+     * to an address of their own and reset the password to it. What makes it safe for somebody else's
+     * account is that the person doing it is not the person who would gain by it, and that stops
+     * being true the moment the two are the same. Putting one's own address right therefore goes the
+     * long way round, through a confirmation, however senior the account is.
+     *
+     * @param callerAccountId the account asking for the change
+     * @param accountId       the account whose address is being written
+     * @throws ForbiddenResponse when the two are the same account
+     */
+    public boolean setEmailFor(int callerAccountId, int accountId, String email) {
+        if (callerAccountId == accountId) {
+            throw new ForbiddenResponse("An account cannot write its own address without confirming it");
+        }
+        return setEmail(accountId, email);
     }
 
     /**

@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -109,7 +110,13 @@ public class MemberRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int accountId = pathInt(ctx, "accountId");
         boolean actsForSomebodyElse = session.accountId() != accountId;
-        if (actsForSomebodyElse) {
+        // Whoever administers the instance reaches any account, and reaches it without being at the
+        // same station. The account this exists for is another administrator: one whose address
+        // cannot be written to has no way of correcting it, because the confirmation would be sent
+        // to the address being corrected, and there is no reason the person who can help them
+        // should have to be a member of their station first.
+        boolean administersInstance = session.hasInstancePermission(InstancePermission.ADMINISTRATOR);
+        if (actsForSomebodyElse && !administersInstance) {
             if (!session.hasPermission(StationPermission.MEMBER_EDIT)) {
                 throw new ForbiddenResponse("Updating another account requires the member edit permission");
             }
@@ -142,7 +149,7 @@ public class MemberRoutes implements Routes {
         // where that cannot work: the address to be corrected is the wrong one, and it is the address
         // half of that confirmation would go to.
         if (actsForSomebodyElse) {
-            accountEmailService.setEmail(accountId, request.email());
+            accountEmailService.setEmailFor(session.accountId(), accountId, request.email());
             ctx.json(new UpdateAccountResponse("Account updated", AuthService.EmailChangeResult.COMMITTED));
             return;
         }
