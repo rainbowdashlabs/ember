@@ -297,8 +297,12 @@ class KbTrashServiceTest extends RepositoryTestBase {
 
         assertEquals(2, impact.folders());
         assertEquals(2, impact.files());
-        assertEquals(
-                0, service.impactOf(station.id(), List.of(999_999), List.of()).folders());
+        assertTrue(impact.embeddedOn().isEmpty());
+        assertFalse(impact.onPublicPage());
+
+        var missing = service.impactOf(station.id(), List.of(999_999), List.of(999_998));
+        assertEquals(0, missing.folders(), "an id with nothing behind it counts as nothing");
+        assertEquals(0, missing.files());
 
         service.deleteFolder(branch.id(), member.id());
         service.purgeFolder(branch.id());

@@ -290,7 +290,13 @@ public class KbTrashService {
      */
     public DeleteImpact impactOf(int stationId, List<Integer> folderIds, List<Integer> fileIds) {
         var seenFolders = new HashSet<Integer>();
-        var seenFiles = new HashSet<Integer>(fileIds);
+        var seenFiles = new HashSet<Integer>();
+        for (int fileId : fileIds) {
+            repository
+                    .findFileById(fileId)
+                    .filter(file -> file.stationId() == stationId)
+                    .ifPresent(file -> seenFiles.add(file.id()));
+        }
         for (int folderId : folderIds) {
             var folder = repository.findFolderById(folderId).orElse(null);
             if (folder == null || folder.stationId() != stationId) continue;
