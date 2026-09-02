@@ -57,6 +57,8 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
 
   let kbDebounce: ReturnType<typeof setTimeout> | null = null
   let eventDebounce: ReturnType<typeof setTimeout> | null = null
+  /** Whether the inventories of this opening are in hand, so a lost request is asked for again. */
+  let inventoriesLoaded = false
 
   function entryAllowed(entry: PaletteRouteEntry): boolean {
     if (entry.scope !== scope.value) return false
@@ -165,13 +167,22 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
     }
   }
 
+  /**
+   * The inventories the palette filters, fetched once per opening.
+   *
+   * <p>A request that does not arrive leaves the section silently absent, which reads exactly like a
+   * station that owns nothing, so a failed fetch is tried again on the next keystroke rather than
+   * being the answer for as long as the palette stays open.
+   */
   async function loadInventories() {
+    if (inventoriesLoaded) return
     if (!inStation.value || !isModuleEnabled(StationModules.INVENTORY) || !hasPermission(StationPermission.INVENTORY_READ)) {
       inventories.value = []
       return
     }
     try {
       inventories.value = await listInventories()
+      inventoriesLoaded = true
     } catch {
       inventories.value = []
     }
@@ -206,6 +217,7 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
     if (eventDebounce) clearTimeout(eventDebounce)
     kbDebounce = setTimeout(() => runKbSearch(q.trim()), SEARCH_DEBOUNCE_MS)
     eventDebounce = setTimeout(() => runEventSearch(q.trim()), SEARCH_DEBOUNCE_MS)
+    loadInventories()
   })
 
   /**
@@ -214,6 +226,7 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
    */
   async function loadForOpen() {
     dataLoading.value = true
+    inventoriesLoaded = false
     await Promise.all([loadMembers(), loadInventories(), runEventSearch('')])
     dataLoading.value = false
   }
