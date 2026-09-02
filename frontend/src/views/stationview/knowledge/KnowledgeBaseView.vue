@@ -170,6 +170,7 @@ const searchItems = computed(() => toSearchItems(filteredSearchResults.value))
 const selection = useKbSelection(items, currentFolderId)
 
 watch([folderParam, sharedFolderId], () => {
+    notice.value = ''
     loadData()
 })
 

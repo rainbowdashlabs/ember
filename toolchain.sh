@@ -80,6 +80,10 @@ Frontend tests
   fe-e2e-ssr            The JavaScript-disabled project, which is what proves the public routes
                         really are server-rendered
   fe-e2e-built [proj]   Rebuild the frontend first, then run the stories
+  fe-e2e-fresh [proj]   Restart the stack, rebuild the frontend and run the stories, all under one
+                        lock. Use this after a backend change: doing the three separately lets
+                        another checkout take the stack in between, and the stories then run
+                        against somebody else's backend
   fe-e2e-list           List every end-to-end story without running anything or starting a server
   fe-e2e-report         Open the last end-to-end report
   fe-e2e-install        Download the Playwright browser binaries (once per machine)
@@ -263,6 +267,18 @@ case "$cmd" in
         project="${1:-chromium}"; shift || true
         fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
         fe; run npx playwright test --project "$project" "$@"
+        ;;
+    fe-e2e-fresh)
+        # The whole round in one command, so it happens inside one lock. Restarting the stack and
+        # then running the stories as two commands leaves a gap another checkout can take the stack
+        # in, and the stories afterwards report on a backend nobody here built.
+        project="${1:-chromium}"; shift || true
+        cd "$ROOT/docker"
+        run docker compose -f compose.dev.yaml --profile e2e up -d --build --force-recreate
+        fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
+        # The spec filter goes before --project, the way fe-e2e1 passes it: --project takes several
+        # values, so anything after it is read as another project name rather than as a filter.
+        fe; run npx playwright test "$@" --project "$project"
         ;;
     fe-e2e-list)     fe; E2E_NO_SERVER=1 run npx playwright test --list "$@" ;;
     fe-e2e-report)   fe; run npx playwright show-report e2e/report "$@" ;;
