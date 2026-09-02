@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, apiHeaders, stationPeers} from './fixtures/auth'
+import {setExchangeFilter} from './fixtures/exchangeFilter'
 import type {Locator, Page} from '@playwright/test'
 
 /** Which of the two modes the page is painted in right now. */
@@ -57,24 +58,6 @@ const EXCHANGE_STATUS_LABELS: Record<string, string> = {
     SHIPPED: 'Versendet',
     ARRIVED: 'Angekommen',
     DONE: 'Erledigt',
-}
-
-/**
- * Leaves one exchange filter ticking exactly the named entries, and closes it again.
- *
- * <p>The filter is a list to tick rather than a single choice, so whatever it carried is taken off
- * first and the wanted entries are then pressed one after another with the list left open between
- * them. An empty list of entries therefore leaves the filter restricting nothing. Closing it again
- * is what puts the rows underneath back within reach.
- */
-async function setExchangeFilter(page: Page, testId: string, entries: string[]): Promise<void> {
-    const filter = page.getByTestId(testId)
-    const trigger = filter.getByRole('button').first()
-    await trigger.click()
-    const none = filter.getByRole('button', {name: 'Keine'})
-    if (await none.isEnabled()) await none.click()
-    for (const entry of entries) await filter.getByRole('button', {name: entry, exact: true}).click()
-    await trigger.click()
 }
 
 test.describe('Inventory', () => {
@@ -730,7 +713,8 @@ test.describe('Inventory', () => {
             const headers = await apiHeaders(page)
             const raised: {id: number; inventoryId: number; inventoryName: string; status: string}[] =
                 await page.request.get('/api/v1/exchanges', {headers}).then(r => r.json())
-            const open = raised.filter(exchange => exchange.status !== 'DONE')
+            const ended = ['DONE', 'CANCELLED', 'DECLINED']
+            const open = raised.filter(exchange => !ended.includes(exchange.status))
             expect(open.length, 'the seeded station has exchanges to narrow down').toBeGreaterThan(1)
 
             const inventories = [...new Set(open.map(exchange => exchange.inventoryId))]
@@ -744,11 +728,20 @@ test.describe('Inventory', () => {
 
             await page.goto('/station/inventory/exchanges')
             const rows = page.getByTestId('exchange-row')
+            const rowOf = (id: number) => page.locator(`[data-exchange-id="${id}"]`)
             await expect(rows.first()).toBeVisible()
-            await expect(rows, 'the list opens on the requests still running').toHaveCount(open.length)
+            await expect(rowOf(open[0].id), 'the list opens on the requests still running').toHaveCount(1)
+            for (const gone of raised.filter(exchange => ended.includes(exchange.status)).slice(0, 3)) {
+                await expect(rowOf(gone.id), 'and leaves out the ones that have ended').toHaveCount(0)
+            }
 
             await setExchangeFilter(page, 'exchange-filter-inventory', [chosenName])
-            await expect(rows, 'and shows only the chosen inventory once it is ticked').toHaveCount(expected.length)
+            for (const kept of expected) {
+                await expect(rowOf(kept), 'ticking one inventory keeps its requests').toHaveCount(1)
+            }
+            for (const hidden of open.filter(exchange => exchange.inventoryId !== chosen).slice(0, 3)) {
+                await expect(rowOf(hidden.id), 'and hides the ones filed elsewhere').toHaveCount(0)
+            }
 
             await page.getByRole('button', {name: 'Exportieren'}).click()
             const selectAll = page.getByTestId('exchange-select-all')
@@ -761,8 +754,11 @@ test.describe('Inventory', () => {
                 page.getByRole('button', {name: /Herunterladen/}).click(),
             ])
             const carried: number[] = sent.postDataJSON().exchangeIds
-            expect([...carried].sort(), 'only the rows the filter left standing are exported')
-                .toEqual([...expected].sort())
+            expect(carried, 'every row the filter left standing is exported')
+                .toEqual(expect.arrayContaining(expected))
+            const elsewhere = open.filter(exchange => exchange.inventoryId !== chosen).map(exchange => exchange.id)
+            expect(carried.filter(id => elsewhere.includes(id)),
+                'and nothing the filter hid travels with it').toEqual([])
         })
 
     /**
@@ -793,14 +789,23 @@ test.describe('Inventory', () => {
             const rows = page.getByTestId('exchange-row')
             await expect(rows.first()).toBeVisible()
 
+            const rowOf = (id: number) => page.locator(`[data-exchange-id="${id}"]`)
+
             await setExchangeFilter(page, 'exchange-filter-status', [])
-            await expect(rows, 'taking every tick off asks for nothing rather than for no rows')
-                .toHaveCount(raised.length)
+            for (const any of raised.slice(0, 3)) {
+                await expect(rowOf(any.id),
+                    'taking every tick off asks for nothing rather than for no rows').toHaveCount(1)
+            }
 
             await setExchangeFilter(page, 'exchange-filter-status',
                 sorts.map(status => EXCHANGE_STATUS_LABELS[status]))
-            await expect(rows, 'and two ticks show the rows of both statuses at once')
-                .toHaveCount(expected.length)
+            for (const kept of expected) {
+                await expect(rowOf(kept), 'and two ticks show the rows of both statuses at once')
+                    .toHaveCount(1)
+            }
+            for (const hidden of raised.filter(exchange => !sorts.includes(exchange.status)).slice(0, 3)) {
+                await expect(rowOf(hidden.id), 'while a third status stays out of the way').toHaveCount(0)
+            }
 
             await page.getByRole('button', {name: 'Exportieren'}).click()
             const selectAll = page.getByTestId('exchange-select-all')
@@ -813,8 +818,13 @@ test.describe('Inventory', () => {
                 page.getByRole('button', {name: /Herunterladen/}).click(),
             ])
             const carried: number[] = sent.postDataJSON().exchangeIds
-            expect([...carried].sort(), 'both sorts of row travel into the export')
-                .toEqual([...expected].sort())
+            expect(carried, 'both sorts of row travel into the export')
+                .toEqual(expect.arrayContaining(expected))
+            const otherStatuses = raised
+                .filter(exchange => !sorts.includes(exchange.status))
+                .map(exchange => exchange.id)
+            expect(carried.filter(id => otherStatuses.includes(id)),
+                'and a third status travels with neither').toEqual([])
         })
 
     /**

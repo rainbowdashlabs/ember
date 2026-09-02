@@ -20,10 +20,28 @@ export const statusChain: ExchangeStatusName[] = [
 ]
 
 /** The statuses at which an exchange is over, whatever came of it. */
-const finishedStatuses: ExchangeStatusName[] = [ExchangeStatus.DONE]
+const finishedStatuses: ExchangeStatusName[] = [
+    ExchangeStatus.DONE,
+    ExchangeStatus.CANCELLED,
+    ExchangeStatus.DECLINED,
+]
 
 /** The statuses an exchange can still be sitting in, which are the ones that are still tasks. */
 export const openStatuses: ExchangeStatusName[] = statusChain.filter(name => !finishedStatuses.includes(name))
+
+/**
+ * Every status the filter offers to tick.
+ *
+ * <p>Wider than the chain, because being called off or refused ends an exchange without being a step
+ * it walks to. Such an exchange is rightly out of the way by default, but leaving it out of the list
+ * as well would make it unreachable: the only way back to it would be taking every tick off, which
+ * asks for everything rather than for the ones that were stopped.
+ */
+export const filterableStatuses: ExchangeStatusName[] = [
+    ...statusChain,
+    ExchangeStatus.CANCELLED,
+    ExchangeStatus.DECLINED,
+]
 
 export interface ExchangeFilter {
     /** Part of a member name, matched without regard to case. */

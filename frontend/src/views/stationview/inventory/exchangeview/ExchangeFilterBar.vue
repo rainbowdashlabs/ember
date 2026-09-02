@@ -10,7 +10,7 @@ import SearchInput from '@/components/input/text/SearchInput.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import {statusChain, type ExchangeSortKey, type InventoryChoice} from './exchangeFilter'
+import {filterableStatuses, type ExchangeSortKey, type InventoryChoice} from './exchangeFilter'
 
 const props = defineProps<{
   inventories: InventoryChoice[]
@@ -33,7 +33,7 @@ const {t} = useI18n()
 
 const inventoryOptions = computed(() => props.inventories.map(inv => ({value: String(inv.id), label: inv.name})))
 
-const statusOptions = computed(() => statusChain.map(name => ({value: name, label: t(`exchanges.status.${name}`)})))
+const statusOptions = computed(() => filterableStatuses.map(name => ({value: name, label: t(`exchanges.status.${name}`)})))
 </script>
 
 <template>
