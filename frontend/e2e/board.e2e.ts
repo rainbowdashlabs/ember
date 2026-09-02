@@ -112,7 +112,17 @@ test.describe('Boards', () => {
         // The last line of the entry: somebody without a picture is drawn with their initials above
         // their name, and the initials are not what the card carries afterwards.
         const name = (await candidate.innerText()).trim().split('\n').pop()!.trim()
+
+        // Picking a name saves the ticket, and clicking only dispatches the click: it says nothing
+        // about the save having gone out. Reloading straight afterwards tears the page down and
+        // takes the request with it, so the assignment is lost and the story fails having asked for
+        // something nobody ever sent. Waiting for the answer is what makes the reload meaningful.
+        const saved = page.waitForResponse(
+            response => response.request().method() === 'PUT'
+                && /\/tickets\/\d+$/.test(new URL(response.url()).pathname),
+        )
         await candidate.click()
+        expect((await saved).status()).toBe(200)
 
         await page.reload()
         // The board is drawn from several requests, and under load the default wait ran out before
