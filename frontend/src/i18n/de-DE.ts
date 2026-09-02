@@ -5738,6 +5738,7 @@ export default {
         mentionHint: "Tippe {'@'}, um Mitglieder oder Gruppen zu erwähnen.",
         newest: 'Neueste zuerst',
         oldest: 'Älteste zuerst',
+        highlightMissing: 'Der Kommentar aus der Meldung ist nicht mehr da.',
     },
     notes: {
         title: 'Notizen',
