@@ -70,6 +70,7 @@ export const INVENTORY_RAPID: PitchRapidCheck = {
     sizeLabel,
     itemLabel,
     itemNotes: new Map([[755, 'Beim Zeltlager verloren']]),
+    movementStep: () => null,
 }
 
 export const INVENTORY_STATS: PitchStats = {

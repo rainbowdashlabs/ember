@@ -33,6 +33,8 @@ defineProps<{
   emptySlotCount: (req: RequiredInventoryItem) => number
   sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
   itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
+  /** The step a piece is standing on when something is already running on it, null otherwise. */
+  movementStep: (itemId: number) => string | null
 }>()
 
 defineEmits<{
@@ -95,6 +97,7 @@ defineExpose({ getCurrentRapidEntry })
     :item-label="itemLabel"
     :size-label="sizeLabel"
     :item-notes="itemNotes"
+    :movement-step="movementStep"
     @set-result="(r) => $emit('rapidSetResult', r)"
     @set-note="(id, n) => $emit('setNote', id, n)"
     @exchange="entry => $emit('rapidExchange', entry)"

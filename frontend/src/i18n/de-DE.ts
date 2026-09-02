@@ -3772,6 +3772,7 @@ export default {
             exchangeHandedInYes: 'Abgegeben',
             exchangeHandedInNo: 'Bleibt beim Mitglied',
             exchangeCreate: 'Tausch anfragen',
+            onTheMove: 'Für dieses Stück läuft bereits ein Vorgang, ein Tausch ist erst danach wieder möglich.',
             procurementNoted: 'Beschaffung vorgemerkt.',
             title: 'Inventarprüfung',
             tabTeam: 'Team',

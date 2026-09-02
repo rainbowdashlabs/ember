@@ -233,6 +233,16 @@ export function useMemberCheck(
     return req.sizes.find(s => s.id === sizeId)?.label ?? ''
   }
 
+  /**
+   * The step a piece is standing on when something is already running on it, and null when nothing
+   * is. A piece can only be on one movement at a time, so this is what decides whether a swap is
+   * worth offering for it. The step itself can be empty where the flow it walked has been taken
+   * apart since, which says nothing about whether the movement is running.
+   */
+  function movementStep(itemId: number): string | null {
+    return state.value?.onTheMove?.[itemId] ?? null
+  }
+
   function itemLabel(item: InventoryItem, req: RequiredInventoryItem): string {
     const parts = [item.name]
     if (item.internalId) parts.push(`(${item.internalId})`)
@@ -278,6 +288,7 @@ export function useMemberCheck(
     slotProcurements,
     sizeLabel,
     itemLabel,
+    movementStep,
     reset,
   }
 }

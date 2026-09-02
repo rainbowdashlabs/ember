@@ -154,6 +154,7 @@ export interface PitchRapidCheck {
     sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
     itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
     itemNotes: Map<number, string>
+    movementStep: (itemId: number) => string | null
 }
 
 /** What the account shows about itself: its sessions, and its data export. */
