@@ -52,7 +52,7 @@ function goUp() {
 
 <template>
     <div class="flex items-center justify-between mb-4">
-        <nav class="flex items-center gap-1 text-sm flex-wrap">
+        <nav class="flex items-center gap-1 text-sm flex-wrap" data-testid="kb-breadcrumb">
             <IconButton
                 v-if="currentFolder || isFavouritesView || sharedTrail.length > 0"
                 :icon="['fas', 'chevron-up']"

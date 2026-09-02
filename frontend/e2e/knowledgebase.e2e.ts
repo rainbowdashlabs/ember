@@ -317,13 +317,13 @@ test.describe('Knowledge base', () => {
             // Back out of the article and then one level up, so the folder to move is an entry of
             // the listing rather than the listing itself.
             await page.goBack()
-            await page.getByRole('navigation').first().getByText(middle).click()
+            await page.goBack()
             await moveEntry(page, moved, null)
 
             await page.goto('/station/knowledge')
             await expect(page.getByText(moved)).toBeVisible()
             await page.getByText(moved).click()
-            const trail = page.getByRole('navigation').first()
+            const trail = page.getByTestId('kb-breadcrumb')
             await expect(trail).toContainText(moved)
             await expect(trail).not.toContainText(middle)
             await expect(page.getByText(article).first()).toBeVisible()
