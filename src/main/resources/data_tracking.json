@@ -1,6 +1,6 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:acaf7a2bdeed60ed809b3b0b4d801a3479d6495a037f39c906c689876c177190",
+  "schemaHash" : "sha256:1b8660456b25a8cdef2de15df308788dcd4082507f70ec2c2543a05e1648f5c8",
   "generatedAt" : "2026-08-31T17:44:01Z",
   "tables" : {
     "account" : {
@@ -10805,7 +10805,7 @@
     "kb_file" : {
       "feature" : "knowledgebase",
       "scope" : "STATION",
-      "tableHash" : "sha256:8d2c4f647d543ec36929a608eed71f957dd6c50f63a100120b8eca00d7b86440",
+      "tableHash" : "sha256:ca3047d22517c3a39aa1eb703a5a3c7097401e025117555173f6f7c896e07480",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -10937,6 +10937,24 @@
         "nullable" : false,
         "verified" : true,
         "description" : "SIMPLE for an article written as text, RICH for one built from blocks. The stored text of a rich article is a projection of its blocks and is never edited directly."
+      }, {
+        "name" : "deleted_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the article was put in the trash, NULL while it is in use. Every listing, search and share reads only rows where this is NULL, so a marked article is gone everywhere without anything being removed."
+      }, {
+        "name" : "deleted_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The member who put the article in the trash, NULL when they have since left the station."
+      }, {
+        "name" : "deleted_with_folder",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "True where the article went to the trash because the folder around it did. Such an article is not its own entry in the trash, and it comes back when that folder comes back rather than on its own."
       } ],
       "foreignKeys" : [ {
         "column" : "container_id",
@@ -10945,6 +10963,11 @@
         "onDelete" : "SET NULL"
       }, {
         "column" : "created_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "deleted_by",
         "refTable" : "station_member",
         "refColumn" : "id",
         "onDelete" : "SET NULL"
@@ -10961,7 +10984,7 @@
       } ],
       "stationTransfer" : {
         "status" : "TRACKED",
-        "ignoredColumns" : [ "station_id", "mime_type", "file_size", "icon_url", "youtube_url", "link_url", "created_by", "created_at", "updated_at", "source_file_id", "source_station_id", "conversion_status" ]
+        "ignoredColumns" : [ "station_id", "mime_type", "file_size", "icon_url", "youtube_url", "link_url", "created_by", "created_at", "updated_at", "source_file_id", "source_station_id", "conversion_status", "deleted_by" ]
       },
       "gdprExport" : {
         "status" : "TRACKED"
@@ -11138,7 +11161,7 @@
     "kb_folder" : {
       "feature" : "knowledgebase",
       "scope" : "STATION",
-      "tableHash" : "sha256:9da904dc4d38017e9c38fdbab5d6b2c58e790b16131130144ae6b719b66a9619",
+      "tableHash" : "sha256:695548abdeea7b23f7336a7f0b08d54829133454318ef11d8fef4183063f27a8",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -11205,9 +11228,32 @@
         "nullable" : false,
         "verified" : true,
         "description" : "How role/group/tag restrictions combine: AND or OR."
+      }, {
+        "name" : "deleted_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the folder was put in the trash, NULL while it is in use."
+      }, {
+        "name" : "deleted_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The member who put the folder in the trash, NULL when they have since left the station."
+      }, {
+        "name" : "deleted_with_folder",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "True where the folder went to the trash because a folder above it did. It is restored with that one rather than listed beside it."
       } ],
       "foreignKeys" : [ {
         "column" : "created_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "deleted_by",
         "refTable" : "station_member",
         "refColumn" : "id",
         "onDelete" : "SET NULL"
@@ -11224,7 +11270,7 @@
       } ],
       "stationTransfer" : {
         "status" : "TRACKED",
-        "ignoredColumns" : [ "station_id", "icon_url", "created_by", "created_at", "updated_at" ]
+        "ignoredColumns" : [ "station_id", "icon_url", "created_by", "created_at", "updated_at", "deleted_by" ]
       },
       "gdprExport" : {
         "status" : "TRACKED",
