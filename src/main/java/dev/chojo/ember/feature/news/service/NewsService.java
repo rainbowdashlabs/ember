@@ -516,6 +516,7 @@ public class NewsService {
                     CommentEntityType.NEWS,
                     newsId,
                     news.title(),
+                    null,
                     comment.id(),
                     parentId,
                     parentAuthorMemberId,
@@ -539,6 +540,7 @@ public class NewsService {
                                         CommentEntityType.NEWS,
                                         newsId,
                                         news.title(),
+                                        null,
                                         comment.id(),
                                         preview));
                             }
@@ -560,6 +562,7 @@ public class NewsService {
                             news.title(),
                             type,
                             targetId,
+                            null,
                             comment.id(),
                             preview));
                 }

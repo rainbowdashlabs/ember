@@ -15,7 +15,8 @@ import type { MemberCompletion } from '@/api/stationMembers'
 
 defineProps<{
     createLaneOptions: BoardLane[]
-    members: MemberCompletion[]
+    /** Whom the new ticket may be handed to, which is who the picker offers. */
+    assignableMembers: MemberCompletion[]
     allLabels: BoardLabel[]
     selectedLabels: BoardLabel[]
     error: string
@@ -46,7 +47,7 @@ const { t } = useI18n()
             :assignee="assignee"
             :due-date="dueDate"
             :create-lane-options="createLaneOptions"
-            :members="members"
+            :assignable-members="assignableMembers"
             :all-labels="allLabels"
             :selected-labels="selectedLabels"
             @update:lane-id="v => laneId = v"

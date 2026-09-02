@@ -40,7 +40,8 @@ public class CommentCreatedHandler implements DomainEventHandler<CommentCreated>
 
     @Override
     public void handle(CommentCreated event) {
-        var link = NotificationLinks.comment(event.entityType(), event.entityId(), event.commentId());
+        var link = NotificationLinks.comment(
+                event.entityType(), event.entityId(), event.ticketAddress(), event.commentId());
         var data = NotificationData.of(
                 new NotificationParams.NewsComment(event.entityTitle(), event.authorName(), event.preview()), link);
 

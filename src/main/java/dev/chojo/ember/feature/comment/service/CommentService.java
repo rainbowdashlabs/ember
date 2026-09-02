@@ -133,6 +133,7 @@ public class CommentService {
                             CommentEntityType.EVENT,
                             eventId,
                             entityTitle,
+                            null,
                             comment.id(),
                             parentId,
                             parentAuthorId,
@@ -157,6 +158,7 @@ public class CommentService {
                             CommentEntityType.EVENT,
                             eventId,
                             entityTitle,
+                            null,
                             comment.id(),
                             mentionPreview));
                 }
@@ -256,6 +258,7 @@ public class CommentService {
                     entityTitle,
                     type,
                     targetId,
+                    null,
                     commentId,
                     preview));
         }

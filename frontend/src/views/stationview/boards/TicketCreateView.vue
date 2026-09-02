@@ -17,7 +17,7 @@ import TicketCreateRightColumn from './ticketcreateview/TicketCreateRightColumn.
 import type { DraftChecklistItem } from './ticketcreateview/TicketChecklistDraft.vue'
 import type { DraftWeblink } from './ticketcreateview/TicketWeblinksDraft.vue'
 import type { DraftLink, TicketOption } from './ticketcreateview/TicketLinksDraft.vue'
-import { boards, stationMembers } from '@/api'
+import { boards } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
 import {LinkType, TicketPriority, type Board, type BoardLabel, type BoardLane, type LinkTypeName, type TicketPriorityName} from '@/api/boards'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -31,7 +31,7 @@ const boardKey = computed(() => route.params.boardKey as string)
 
 const board = ref<Board | null>(null)
 const lanes = ref<BoardLane[]>([])
-const members = ref<MemberCompletion[]>([])
+const assignableMembers = ref<MemberCompletion[]>([])
 const allLabels = ref<BoardLabel[]>([])
 
 const allTickets = ref<TicketOption[]>([])
@@ -127,13 +127,13 @@ const {loading, error} = useAsyncLoader(async () => {
     const [b, l, m, lb, tks] = await Promise.all([
         boards.getBoard(boardKey.value),
         boards.getLanes(boardKey.value),
-        stationMembers.listCompletions(),
+        boards.getAssignableMembers(boardKey.value),
         boards.getLabels(boardKey.value),
         boards.listTickets(boardKey.value),
     ])
     board.value = b
     lanes.value = l
-    members.value = m
+    assignableMembers.value = m
     allLabels.value = lb
     allTickets.value = tks.map(tk => ({ id: tk.id, ticketNumber: tk.ticketNumber, title: tk.title }))
 
@@ -237,7 +237,7 @@ function goBack() {
                     v-model:assignee="assignee"
                     v-model:due-date="dueDate"
                     :create-lane-options="createLaneOptions"
-                    :members="members"
+                    :assignable-members="assignableMembers"
                     :all-labels="allLabels"
                     :selected-labels="selectedLabels"
                     :error="error || submitError"

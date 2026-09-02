@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
 import dev.chojo.ember.feature.board.entity.BoardFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
+import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.entity.BoardTicketFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistory;
@@ -33,6 +34,7 @@ import dev.chojo.ember.feature.comment.service.MentionLimits;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -55,6 +57,7 @@ public class BoardTicketService {
 
     private final BoardTicketRepository ticketRepository;
     private final BoardRepository boardRepository;
+    private final BoardService boardService;
     private final DomainEventBus eventBus;
     private final StationMemberService stationMemberService;
     private final MemberIdentityFactory memberIdentityFactory;
@@ -65,6 +68,7 @@ public class BoardTicketService {
     public BoardTicketService(
             BoardTicketRepository ticketRepository,
             BoardRepository boardRepository,
+            BoardService boardService,
             DomainEventBus eventBus,
             StationMemberService stationMemberService,
             MemberIdentityFactory memberIdentityFactory,
@@ -72,6 +76,7 @@ public class BoardTicketService {
             BoardAttachmentService attachmentService) {
         this.ticketRepository = ticketRepository;
         this.boardRepository = boardRepository;
+        this.boardService = boardService;
         this.eventBus = eventBus;
         this.stationMemberService = stationMemberService;
         this.memberIdentityFactory = memberIdentityFactory;
@@ -107,6 +112,37 @@ public class BoardTicketService {
         return ticketRepository.findByAssignee(boardId, memberUid);
     }
 
+    /**
+     * Refuses to hand a ticket to somebody who may not write on its board.
+     *
+     * <p>The board already says who may work on it, and a ticket put on a name that cannot open it
+     * is an instruction nobody can follow. The question is asked of the person being handed the
+     * work rather than of the person handing it over, and it is asked exactly as the board asks it
+     * of an editor, so somebody who administers every board may be handed a ticket on one they were
+     * never separately let into.
+     *
+     * <p>It asks it through the same list the picker is built from, so the two cannot drift apart
+     * and offer a name the server then turns down.
+     *
+     * <p>What it does not do is look back. A ticket already on a name keeps it when that person
+     * later loses the right: the rule is about handing work over, not about holding it, and taking
+     * a name off a ticket on its own would throw away the only record of who was on it.
+     *
+     * @param boardId  the board the ticket belongs to
+     * @param assignee whom the ticket is being handed to, or {@code null} to take the name off
+     */
+    private void requireAssignable(int boardId, MemberIdentity assignee) {
+        if (assignee == null) return;
+        var board = boardRepository.findById(boardId).orElse(null);
+        if (board == null) return;
+        int memberId = stationMemberService
+                .resolveId(board.stationId(), assignee.memberUid())
+                .orElseThrow(() -> new BadRequestResponse("The assignee is not a member of the board's station"));
+        if (!boardService.findMembersWhoMayEdit(boardId, board.stationId()).contains(memberId)) {
+            throw new BadRequestResponse("The assignee has no write access to this board");
+        }
+    }
+
     public BoardTicket createTicket(
             int boardId,
             int laneId,
@@ -116,6 +152,7 @@ public class BoardTicketService {
             TicketPriority priority,
             LocalDate dueDate,
             MemberIdentity creator) {
+        requireAssignable(boardId, assignee);
         int ticketNumber = boardRepository.nextTicketNumber(boardId);
         int position = ticketRepository.findByBoardAndLane(boardId, laneId).size();
         var ticket = ticketRepository.createTicket(
@@ -133,6 +170,7 @@ public class BoardTicketService {
             LocalDate dueDate,
             MemberIdentity actor) {
         var oldTicket = ticketRepository.findById(id).orElse(null);
+        if (oldTicket != null) requireAssignable(oldTicket.boardId(), assignee);
         boolean updated = ticketRepository.updateTicket(id, title, description, assignee, priority, dueDate);
         if (updated && oldTicket != null) {
             if (oldTicket.priority() != priority)
@@ -162,6 +200,7 @@ public class BoardTicketService {
 
     public boolean assignTicket(int ticketId, MemberIdentity assignee, int actorMemberId) {
         var oldTicket = ticketRepository.findById(ticketId).orElse(null);
+        if (oldTicket != null) requireAssignable(oldTicket.boardId(), assignee);
         MemberIdentity oldAssignee = oldTicket != null ? oldTicket.assignee() : null;
         boolean updated = ticketRepository.assignTicket(ticketId, assignee);
         if (updated && oldTicket != null) {
@@ -390,6 +429,7 @@ public class BoardTicketService {
             var board = boardRepository.findById(ticket.boardId()).orElse(null);
             var ticketKey = board != null ? board.shortKey() + "-" + ticket.ticketNumber() : "?";
             int stationId = board != null ? board.stationId() : 0;
+            var address = board != null ? new BoardTicketAddress(board.shortKey(), ticket.ticketNumber()) : null;
             // Resolve local author member ID for mention exclusion
             Integer authorMemberId = null;
             if (author != null) {
@@ -408,6 +448,7 @@ public class BoardTicketService {
                             CommentEntityType.BOARD_TICKET,
                             ticketId,
                             ticketKey,
+                            address,
                             comment.id(),
                             mentionPreview));
                 }

@@ -336,6 +336,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var boardTicketService = new BoardTicketService(
                 boardTicketRepo,
                 boardRepo,
+                boardService,
                 noOpBus,
                 memberSvc,
                 memberIdentityFactory,

@@ -13,7 +13,10 @@ import type { MemberCompletion } from '@/api/stationMembers'
 
 defineProps<{
     ticket: BoardTicket
+    /** Everybody the station has, which is what puts a name on whoever is already on the ticket. */
     members: MemberCompletion[]
+    /** Whom the ticket may be handed to, which is who the picker offers. */
+    assignableMembers: MemberCompletion[]
     canEdit: boolean
 }>()
 
@@ -31,7 +34,7 @@ const { t } = useI18n()
 <template>
     <div>
         <FieldLabel class="mb-1">{{ t('boards.assignee') }}</FieldLabel>
-        <MemberSelectInput v-if="editing && canEdit" v-model="assignedMemberId" :members="members" :placeholder="t('boards.unassigned')" auto-open @change="editing = false; emit('save')" />
+        <MemberSelectInput v-if="editing && canEdit" v-model="assignedMemberId" :members="assignableMembers" :placeholder="t('boards.unassigned')" auto-open @change="editing = false; emit('save')" />
         <div v-else class="flex items-center gap-2 rounded-theme px-2 py-1 text-sm" :class="canEdit ? 'cursor-pointer hover:bg-(--bg-accent)' : ''" @click.stop="canEdit && (emit('open'), editing = true)">
             <span v-if="ticket.assignee" class="flex items-center gap-2">
                 <UserAvatar :identity="ticket.assignee" size="sm" />

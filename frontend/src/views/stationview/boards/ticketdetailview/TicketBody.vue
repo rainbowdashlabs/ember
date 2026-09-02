@@ -23,6 +23,7 @@ defineProps<{
     allTickets: BoardTicket[]
     lanes: BoardLane[]
     members: MemberCompletion[]
+    assignableMembers: MemberCompletion[]
     allLabels: BoardLabel[]
     ticketLabels: BoardLabel[]
     boardFields: BoardField[]
@@ -109,7 +110,7 @@ const emit = defineEmits<{
         <TicketRightColumn
             v-model:priority="priority" v-model:assigned-member-id="assignedMemberId"
             v-model:due-date="dueDate" v-model:field-values="fieldValues"
-            :ticket="ticket" :lanes="lanes" :members="members" :all-labels="allLabels"
+            :ticket="ticket" :lanes="lanes" :members="members" :assignable-members="assignableMembers" :all-labels="allLabels"
             :ticket-labels="ticketLabels" :board-fields="boardFields"
             :priority-options="priorityOptions" :can-edit="canEdit" :error="error"
             @move-to="emit('moveTo', $event)" @save-ticket="emit('saveTicket')"

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Page} from '@playwright/test'
-import {test, expect} from './fixtures/auth'
+import {test, expect, apiHeaders} from './fixtures/auth'
 import {unique, uniqueKey} from './fixtures/unique'
 
 /**
@@ -188,6 +188,46 @@ test.describe('Boards', () => {
 
         await page.goto(`${page.url()}/archived`)
         await expect(page.getByText(/archiviert/).first()).toBeVisible()
+    })
+
+    /**
+     * A ticket is addressed by its board and its number, so a notice about a mention in one of its
+     * comments has to name both. The story presses the notice instead of reading its address: a
+     * link that names the ticket by its id alone leaves the address unbuildable, and that is only
+     * visible on the press. Where the press lands is then opened by somebody who may read the
+     * board, which is what shows the address really is the ticket's own.
+     */
+    test('a mention in a ticket comment leads to the ticket', async ({managerPage, memberPage}) => {
+        const managerHeaders = await apiHeaders(managerPage)
+        const memberHeaders = await apiHeaders(memberPage)
+
+        const session = await memberPage.request.get('/api/v1/session', {headers: memberHeaders})
+        expect(session.ok(), `the member has a session to be named by (${await session.text()})`).toBeTruthy()
+        const reader = await session.json()
+        const mention = `@[${reader.stationId}/${reader.member.uid}:Mitglied]`
+
+        const key = await createBoard(managerPage)
+        const ticket = await createTicket(managerPage, key)
+        await managerPage.waitForURL(/\/tickets\/\d+/)
+        const ticketNumber = Number(managerPage.url().match(/\/tickets\/(\d+)/)![1])
+
+        const written = await managerPage.request.post(`/api/v1/boards/${key}/tickets/${ticketNumber}/comments`, {
+            headers: managerHeaders,
+            data: {parentId: null, content: `${mention} sieh dir das an`},
+        })
+        expect(written.ok(), `the organiser wrote a comment (${await written.text()})`).toBeTruthy()
+        const commentId = (await written.json()).id
+
+        await memberPage.goto('/station/dashboard/overview')
+        const notice = memberPage.getByTestId('notification-entry').filter({hasText: `${key}-${ticketNumber}`})
+        await expect(notice).toHaveCount(1, {timeout: 15000})
+
+        await notice.click()
+        await memberPage.waitForURL(
+            new RegExp(`/station/boards/${key}/tickets/${ticketNumber}\\?.*comment=${commentId}`, 'i'))
+
+        await managerPage.goto(memberPage.url())
+        await expect(managerPage.getByText(ticket).first()).toBeVisible({timeout: 30000})
     })
 
     /** Boards are not open to everyone: whoever may not use them is offered none. */

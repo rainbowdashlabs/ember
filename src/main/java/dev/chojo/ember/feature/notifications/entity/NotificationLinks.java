@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.notifications.entity;
 
+import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
 
@@ -82,17 +83,38 @@ public final class NotificationLinks {
     }
 
     /**
+     * The link to one board ticket. The page is reached by the board and the number; the id rides
+     * along beside them, which is what lets the feed renderer look the ticket up for its title,
+     * assignee and priority.
+     *
+     * @param address  where the ticket's page is
+     * @param ticketId the ticket
+     * @return the link its notifications carry
+     */
+    public static NotificationLink ticket(BoardTicketAddress address, int ticketId) {
+        return new NotificationLink(
+                TICKET_DETAIL,
+                Map.of(
+                        "boardKey", address.boardKey(),
+                        "ticketNumber", address.ticketNumber(),
+                        "ticketId", ticketId));
+    }
+
+    /**
      * The link to one comment: the page it hangs under, plus the comment itself, so that opening
      * the notification lands on the comment instead of the top of a long list.
      *
      * @param entityType what the comment hangs under
      * @param entityId   the article, file, appointment or ticket
+     * @param address    where the ticket's page is, for a comment on a ticket, and {@code null} for
+     *                   everything else, which is reached by its id alone
      * @param commentId  the comment
      * @return the link its notifications carry
      */
-    public static NotificationLink comment(CommentEntityType entityType, int entityId, int commentId) {
-        String idKey = entityType == CommentEntityType.BOARD_TICKET ? "ticketId" : "id";
-        return new NotificationLink(commentRoute(entityType), Map.of(idKey, entityId), commentQuery(commentId));
+    public static NotificationLink comment(
+            CommentEntityType entityType, int entityId, BoardTicketAddress address, int commentId) {
+        var page = commentPage(entityType, entityId, address);
+        return new NotificationLink(page.route(), page.routeParams(), commentQuery(commentId));
     }
 
     /**
@@ -107,6 +129,16 @@ public final class NotificationLinks {
      */
     public static NotificationLink commentAlone(CommentEntityType entityType, int commentId) {
         return new NotificationLink(commentRoute(entityType), Map.of(), commentQuery(commentId));
+    }
+
+    private static NotificationLink commentPage(
+            CommentEntityType entityType, int entityId, BoardTicketAddress address) {
+        return switch (entityType) {
+            case NEWS -> news(entityId);
+            case EVENT -> event(entityId);
+            case KB -> new NotificationLink(KB_FILE, Map.of("id", entityId));
+            case BOARD_TICKET -> ticket(address, entityId);
+        };
     }
 
     private static Map<String, Object> commentQuery(int commentId) {

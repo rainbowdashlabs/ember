@@ -72,7 +72,7 @@ class NotificationDataTest {
     @Test
     void serializeWithQuery() {
         var params = new NotificationParams.NewsComment("Article", "Author", "Preview");
-        var data = NotificationData.of(params, NotificationLinks.comment(CommentEntityType.NEWS, 7, 42));
+        var data = NotificationData.of(params, NotificationLinks.comment(CommentEntityType.NEWS, 7, null, 42));
 
         var restored = NotificationData.fromJson(data.toJson(), NotificationType.NEWS_COMMENT);
 

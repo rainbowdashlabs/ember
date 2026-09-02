@@ -66,7 +66,10 @@ class BoardServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        memberService = mock(StationMemberService.class);
+        // A spy rather than a mock: the access tests stub what they need, and everything else -
+        // above all who the station's members are, which decides who a ticket may be handed to -
+        // has to keep answering truthfully, including after the reset further down.
+        memberService = spy(newStationMemberService(null, null));
         groupService = mock(MemberGroupService.class);
         tagService = mock(UserTagService.class);
 
@@ -78,6 +81,7 @@ class BoardServiceTest extends RepositoryTestBase {
         ticketService = new BoardTicketService(
                 boardTicketRepo,
                 boardRepo,
+                boardService,
                 new DomainEventBus(Set.of()),
                 newStationMemberService(null, null),
                 memberIdentityFactory,

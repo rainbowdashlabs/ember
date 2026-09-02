@@ -38,12 +38,14 @@ const ticketLabelMap = ref<Map<number, number[]>>(new Map())
 const showCreateModal = ref(false)
 
 const members = ref<MemberCompletion[]>([])
+const assignableMembers = ref<MemberCompletion[]>([])
 const {loading, error, reload} = useAsyncLoader(async () => {
-    const [b, l, t, m, lb, tlm] = await Promise.all([
+    const [b, l, t, m, am, lb, tlm] = await Promise.all([
         boards.getBoard(boardKey.value),
         boards.getLanes(boardKey.value),
         boards.listTickets(boardKey.value),
         stationMembers.listCompletions(),
+        boards.getAssignableMembers(boardKey.value),
         boards.getLabels(boardKey.value),
         boards.getAllTicketLabels(boardKey.value),
     ])
@@ -51,6 +53,7 @@ const {loading, error, reload} = useAsyncLoader(async () => {
     lanes.value = l
     tickets.value = t
     members.value = m
+    assignableMembers.value = am
     allLabels.value = lb
     const map = new Map<number, number[]>()
     for (const { ticketId, labelId } of tlm) { if (!map.has(ticketId)) map.set(ticketId, []); map.get(ticketId)!.push(labelId) }
@@ -203,7 +206,7 @@ watch(boardKey, reload)
                 :short-key="board.shortKey"
                 :lane-options="createLaneOptions"
                 :default-lane-id="defaultCreateLaneId"
-                :members="members"
+                :assignable-members="assignableMembers"
             />
         </template>
     </ViewContent>

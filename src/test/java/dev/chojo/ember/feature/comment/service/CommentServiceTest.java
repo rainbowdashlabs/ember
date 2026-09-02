@@ -10,6 +10,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -175,6 +176,7 @@ class CommentServiceTest extends RepositoryTestBase {
                             CommentEntityType entityType,
                             int entityId,
                             String entityTitle,
+                            BoardTicketAddress ticketAddress,
                             int commentId,
                             String preview))) return false;
             return stationId == station.id()

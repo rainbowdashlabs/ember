@@ -25,7 +25,8 @@ const props = defineProps<{
     shortKey: string
     laneOptions: BoardLane[]
     defaultLaneId: number | null
-    members: MemberCompletion[]
+    /** Whom the new ticket may be handed to, which is who the picker offers. */
+    assignableMembers: MemberCompletion[]
 }>()
 
 const { t } = useI18n()
@@ -100,7 +101,7 @@ function openFullEditor() {
                 v-model:assignee="assignee"
                 v-model:due-date="dueDate"
                 :lane-options="laneOptions"
-                :members="members"
+                :assignable-members="assignableMembers"
             />
             <Alert v-if="error" variant="error">{{ error }}</Alert>
             <div class="flex items-center justify-between">

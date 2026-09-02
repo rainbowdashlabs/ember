@@ -62,6 +62,7 @@ import dev.chojo.ember.event.handlers.ProcurementFulfilledHandler;
 import dev.chojo.ember.event.handlers.RegistrationDeadlineExpiredHandler;
 import dev.chojo.ember.event.handlers.StorageWarningHandler;
 import dev.chojo.ember.event.handlers.WaitlistPublicRegistrationHandler;
+import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
@@ -95,6 +96,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -430,11 +432,21 @@ class DomainEventHandlerTest {
                 .thenReturn(List.of(member(30)));
 
         handler.handle(new CommentCreated(
-                STATION_ID, CommentEntityType.NEWS, 5, "News Title", 100, 99, 20, MEMBER_ID, "Author", "preview"));
+                STATION_ID,
+                CommentEntityType.NEWS,
+                5,
+                "News Title",
+                null,
+                100,
+                99,
+                20,
+                MEMBER_ID,
+                "Author",
+                "preview"));
 
         verify(notificationService)
                 .notifyIfAbsent(eq(20), eq(NotificationType.NEWS_COMMENT), argThat(data -> NotificationLinks.comment(
-                                CommentEntityType.NEWS, 5, 100)
+                                CommentEntityType.NEWS, 5, null, 100)
                         .equals(data.link())));
         verify(notificationService)
                 .notifyMembersIfAbsent(
@@ -452,6 +464,7 @@ class DomainEventHandlerTest {
                 CommentEntityType.NEWS,
                 5,
                 "News Title",
+                null,
                 100,
                 99,
                 MEMBER_ID,
@@ -471,6 +484,7 @@ class DomainEventHandlerTest {
                 CommentEntityType.EVENT,
                 5,
                 "Event Title",
+                null,
                 100,
                 null,
                 null,
@@ -488,7 +502,17 @@ class DomainEventHandlerTest {
                 .thenReturn(List.of(member(30)));
 
         handler.handle(new CommentCreated(
-                STATION_ID, CommentEntityType.NEWS, 5, "News Title", 100, null, null, MEMBER_ID, "Author", "preview"));
+                STATION_ID,
+                CommentEntityType.NEWS,
+                5,
+                "News Title",
+                null,
+                100,
+                null,
+                null,
+                MEMBER_ID,
+                "Author",
+                "preview"));
 
         verify(notificationService, never()).notifyIfAbsent(anyInt(), any(), any());
         verify(notificationService)
@@ -516,7 +540,7 @@ class DomainEventHandlerTest {
         assertEquals(MentionedInComment.class, handler.eventType());
 
         handler.handle(new MentionedInComment(
-                STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.NEWS, 5, "Test Title", 70, "hi there"));
+                STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.NEWS, 5, "Test Title", null, 70, "hi there"));
 
         verify(notificationService)
                 .notifyIfAbsent(eq(25), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
@@ -527,12 +551,42 @@ class DomainEventHandlerTest {
         var handler = new MentionedInCommentHandler(notificationService);
 
         handler.handle(new MentionedInComment(
-                STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.EVENT, 5, "Test Title", 70, "hi there"));
+                STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.EVENT, 5, "Test Title", null, 70, "hi there"));
 
         verify(notificationService)
                 .notifyIfAbsent(eq(25), eq(NotificationType.COMMENT_MENTION), argThat(data -> NotificationLinks.comment(
-                                CommentEntityType.EVENT, 5, 70)
+                                CommentEntityType.EVENT, 5, null, 70)
                         .equals(data.link())));
+    }
+
+    /**
+     * A ticket is reached by its board and its number, not by its id, so the link a mention on one
+     * carries has to name all three the way every other ticket notification does. Held against the
+     * address the route really asks for rather than against a shape of its own.
+     */
+    @Test
+    void mentionedInATicketCommentNamesTheBoardAndTheNumber() {
+        var handler = new MentionedInCommentHandler(notificationService);
+
+        handler.handle(new MentionedInComment(
+                STATION_ID,
+                25,
+                MEMBER_ID,
+                "DEV-42",
+                CommentEntityType.BOARD_TICKET,
+                7,
+                "DEV-42",
+                new BoardTicketAddress("DEV", 42),
+                70,
+                "hi there"));
+
+        verify(notificationService).notifyIfAbsent(eq(25), eq(NotificationType.COMMENT_MENTION), argThat(data -> {
+            var link = data.link();
+            return "ticket-detail".equals(link.route())
+                    && Map.of("boardKey", "DEV", "ticketNumber", 42, "ticketId", 7)
+                            .equals(link.routeParams())
+                    && Map.of("comment", 70).equals(link.query());
+        }));
     }
 
     // -- BulkMentionedInCommentHandler --
@@ -569,6 +623,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.GROUP,
                         5,
+                        null,
                         70,
                         "preview snippet"));
 
@@ -593,6 +648,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.GROUP,
                         5,
+                        null,
                         70,
                         "preview snippet"));
 
@@ -627,6 +683,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.EVENT,
                         42,
+                        null,
                         70,
                         "preview snippet"));
 
@@ -660,6 +717,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.EVENT,
                         42,
+                        null,
                         70,
                         "preview snippet"));
 
@@ -691,6 +749,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.EVENT,
                         42,
+                        null,
                         70,
                         "preview snippet"));
 
@@ -718,6 +777,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.GROUP,
                         5,
+                        null,
                         70,
                         "preview snippet"));
 
@@ -742,6 +802,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.REGISTERED,
                         42,
+                        null,
                         70,
                         "preview snippet"));
 
@@ -770,6 +831,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.REGISTERED,
                         42,
+                        null,
                         70,
                         "preview snippet"));
 
@@ -800,6 +862,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.DECLINED,
                         42,
+                        null,
                         70,
                         "preview snippet"));
 
@@ -828,6 +891,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.REGISTERED,
                         42,
+                        null,
                         70,
                         "preview snippet"));
 
@@ -852,6 +916,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.GROUP,
                         5,
+                        null,
                         70,
                         "preview snippet"));
 
