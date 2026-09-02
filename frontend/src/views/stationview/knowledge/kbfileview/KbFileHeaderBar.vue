@@ -20,6 +20,8 @@ const props = defineProps<{
     isKbPublic: boolean
     shareCopied: boolean
     canEdit: boolean
+    /** Moving changes who is responsible for the article, so it asks for more than editing does. */
+    canMove: boolean
     editing: boolean
 }>()
 
@@ -28,6 +30,7 @@ defineEmits<{
     copyShareLink: []
     copyToStation: []
     openEditMetadata: []
+    openMove: []
     openShare: []
     toggleEdit: []
     openVersions: []
@@ -64,7 +67,7 @@ const primary = computed(() => {
 
 const hasMenu = computed(() => canShareLink.value
     || (isTextFile.value && primary.value !== 'pdf')
-    || (!props.isFederated && (props.canEdit || hasVersions.value || hasOriginal.value
+    || (!props.isFederated && (props.canEdit || props.canMove || hasVersions.value || hasOriginal.value
         || (canPresent.value && primary.value !== 'present'))))
 </script>
 
@@ -130,6 +133,14 @@ const hasMenu = computed(() => canShareLink.value
                 </DropdownMenuItem>
                 <DropdownMenuItem v-if="canEdit" :icon="['fas', 'gear']" @click="$emit('openEditMetadata')">
                     {{ t('kb.editMetadata') }}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    v-if="canMove"
+                    :icon="['fas', 'arrow-right-arrow-left']"
+                    data-testid="kb-file-move"
+                    @click="$emit('openMove')"
+                >
+                    {{ t('kb.move') }}
                 </DropdownMenuItem>
             </template>
         </ActionsMenu>

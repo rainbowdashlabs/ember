@@ -19,12 +19,15 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
+import dev.chojo.ember.feature.knowledgebase.entity.KbRefusalReason;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
+import dev.chojo.ember.feature.knowledgebase.service.KbBulkService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
 import dev.chojo.ember.feature.knowledgebase.service.KbImageService;
+import dev.chojo.ember.feature.knowledgebase.service.KbMoveService;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfExportService;
 import dev.chojo.ember.feature.knowledgebase.service.KbPresentationService;
 import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
@@ -83,6 +86,8 @@ public class KnowledgeBaseRoutes implements Routes {
     private final KbIconService iconService;
     private final KbImageService imageService;
     private final KbPdfExportService pdfExportService;
+    private final KbMoveService moveService;
+    private final KbBulkService bulkService;
     private final StationRepository stationRepository;
 
     @Inject
@@ -97,7 +102,11 @@ public class KnowledgeBaseRoutes implements Routes {
             KbIconService iconService,
             KbImageService imageService,
             KbPdfExportService pdfExportService,
+            KbMoveService moveService,
+            KbBulkService bulkService,
             StationRepository stationRepository) {
+        this.moveService = moveService;
+        this.bulkService = bulkService;
         this.service = service;
         this.contentService = contentService;
         this.searchService = searchService;
@@ -150,15 +159,23 @@ public class KnowledgeBaseRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/kb/folders", this::listFolders, StationPermission.USER);
+        routes.get(prefix + "/kb/folders/tree", this::folderTree, StationPermission.KNOWLEDGE_EDIT);
         routes.post(prefix + "/kb/folders", this::createFolder, StationPermission.KNOWLEDGE_EDIT);
         routes.get(prefix + "/kb/folders/{id}", this::getFolder, StationPermission.USER);
+        routes.put(prefix + "/kb/folders/{id}/parent", this::moveFolder, StationPermission.KNOWLEDGE_EDIT);
         routes.put(prefix + "/kb/folders/{id}", this::updateFolder, StationPermission.KNOWLEDGE_EDIT);
         routes.delete(prefix + "/kb/folders/{id}", this::deleteFolder, StationPermission.KNOWLEDGE_EDIT);
 
         routes.get(prefix + "/kb/files", this::listFiles, StationPermission.USER);
+        routes.get(prefix + "/kb/files/recent", this::listRecentFiles, StationPermission.USER);
         routes.get(prefix + "/kb/files/{id}", this::getFile, StationPermission.USER);
         routes.put(prefix + "/kb/files/{id}", this::updateFile, StationPermission.KNOWLEDGE_EDIT);
+        routes.put(prefix + "/kb/files/{id}/folder", this::moveFile, StationPermission.KNOWLEDGE_EDIT);
         routes.delete(prefix + "/kb/files/{id}", this::deleteFile, StationPermission.KNOWLEDGE_EDIT);
+
+        routes.get(prefix + "/kb/move/preview", this::movePreview, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(prefix + "/kb/bulk/move", this::bulkMove, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(prefix + "/kb/bulk/tags", this::bulkTags, StationPermission.KNOWLEDGE_EDIT);
 
         routes.post(prefix + "/kb/files/markdown", this::createMarkdownFile, StationPermission.KNOWLEDGE_EDIT);
         routes.post(prefix + "/kb/files/youtube", this::createYoutubeFile, StationPermission.KNOWLEDGE_EDIT);
@@ -256,6 +273,125 @@ public class KnowledgeBaseRoutes implements Routes {
         requireLevel(ctx, accessService, id, null, KbAccessLevel.MANAGE);
         if (!service.deleteFolder(id)) throw new NotFoundResponse();
         ctx.status(204);
+    }
+
+    /**
+     * Every folder of the station the caller may see, with what they may do in each, so a picker
+     * can show the whole tree and grey out what it would refuse rather than offer it and fail.
+     */
+    private void folderTree(Context ctx) {
+        var session = UserSession.from(ctx);
+        var access = KbRouteAccess.accessOf(ctx, accessService);
+        var folders = service.findAllFolders(session.stationId());
+        var levels = accessService.treeLevels(
+                access,
+                folders.stream()
+                        .map(folder ->
+                                new KbAccessService.TreeNode(folder.id(), folder.parentId(), folder.restrictionMode()))
+                        .toList());
+        ctx.json(folders.stream()
+                .map(folder -> new FolderTreeEntry(
+                        folder.id(),
+                        folder.parentId(),
+                        folder.name(),
+                        levels.getOrDefault(folder.id(), KbAccessLevel.NONE)))
+                .filter(entry -> entry.level() != KbAccessLevel.NONE)
+                .toList());
+    }
+
+    /**
+     * Moves a folder, with everything under it, into another folder of the station.
+     *
+     * <p>A refusal is part of the answer rather than a failed request: the reader picked a folder
+     * that turns out to hold a folder of the same name, or that lies inside the one being moved,
+     * and the screen has to say which of those it was.
+     */
+    private void moveFolder(Context ctx) {
+        var session = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        requireOwnedFolder(ctx, service, id);
+        var req = ctx.bodyAsClass(MoveFolderRequest.class);
+        requireUsableTarget(ctx, req.parentId());
+        ctx.json(MoveResponse.of(moveService.moveFolder(
+                KbRouteAccess.accessOf(ctx, accessService), session.stationId(), id, req.parentId())));
+    }
+
+    /**
+     * Moves an article into another folder of the station.
+     */
+    private void moveFile(Context ctx) {
+        var session = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        requireOwnedFile(ctx, service, id);
+        var req = ctx.bodyAsClass(MoveFileRequest.class);
+        requireUsableTarget(ctx, req.folderId());
+        ctx.json(MoveResponse.of(moveService.moveFile(
+                KbRouteAccess.accessOf(ctx, accessService), session.stationId(), id, req.folderId())));
+    }
+
+    /**
+     * Answers {@code 404} when the folder a move aims at is not one the caller may put anything
+     * into. The target failing is the whole request failing, unlike a single entry of a selection.
+     */
+    private void requireUsableTarget(Context ctx, Integer targetFolderId) {
+        var session = UserSession.from(ctx);
+        var problem = moveService.checkTarget(
+                KbRouteAccess.accessOf(ctx, accessService), session.stationId(), targetFolderId);
+        if (problem != null) throw new NotFoundResponse();
+    }
+
+    /**
+     * How far an entry reaches now and how far it would reach in the folder a reader is about to
+     * move it into. Read before the move, because a folder can publish what it is given.
+     */
+    private void movePreview(Context ctx) {
+        var session = UserSession.from(ctx);
+        Integer folderId = optionalFolderId(ctx, "folderId");
+        Integer fileId = optionalFolderId(ctx, "fileId");
+        if (folderId == null && fileId == null) throw new BadRequestResponse("folderId or fileId is required");
+        if (folderId != null) requireOwnedFolder(ctx, service, folderId);
+        else requireOwnedFile(ctx, service, fileId);
+        ctx.json(moveService.preview(session.stationId(), folderId, fileId, optionalFolderId(ctx, "targetFolderId")));
+    }
+
+    private void bulkMove(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(BulkMoveRequest.class);
+        requireUsableTarget(ctx, req.targetFolderId());
+        ctx.json(bulkService.move(
+                KbRouteAccess.accessOf(ctx, accessService),
+                session.stationId(),
+                req.folderIds() != null ? req.folderIds() : List.of(),
+                req.fileIds() != null ? req.fileIds() : List.of(),
+                req.targetFolderId()));
+    }
+
+    private void bulkTags(Context ctx) {
+        var session = UserSession.from(ctx);
+        var req = ctx.bodyAsClass(BulkTagsRequest.class);
+        ctx.json(bulkService.tag(
+                KbRouteAccess.accessOf(ctx, accessService),
+                session.stationId(),
+                req.folderIds() != null ? req.folderIds() : List.of(),
+                req.fileIds() != null ? req.fileIds() : List.of(),
+                req.addTags() != null ? req.addTags() : List.of(),
+                req.removeTags() != null ? req.removeTags() : List.of()));
+    }
+
+    /**
+     * The articles changed most recently, for a picker that has to show something before anything
+     * has been typed into it. Filtered the way a listing is, so it cannot name an article the
+     * reader may not open.
+     */
+    private void listRecentFiles(Context ctx) {
+        var session = UserSession.from(ctx);
+        var access = KbRouteAccess.accessOf(ctx, accessService);
+        int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
+        ctx.json(service.findRecentFiles(session.stationId(), Math.min(Math.max(limit, 1), 50) * 4).stream()
+                .filter(file -> accessService.canAccess(access, null, file.id()))
+                .limit(Math.min(Math.max(limit, 1), 50))
+                .map(file -> new SearchResultResponse(file, "", resolveFolderPath(file.folderId()), null, null))
+                .toList());
     }
 
     private void listFiles(Context ctx) {
@@ -598,7 +734,7 @@ public class KnowledgeBaseRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
         requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
-        ctx.json(service.findRelatedFiles(id));
+        ctx.json(relatedResponse(ctx, id));
     }
 
     private void setRelatedFiles(Context ctx) {
@@ -607,7 +743,27 @@ public class KnowledgeBaseRoutes implements Routes {
         requireLevel(ctx, accessService, null, id, KbAccessLevel.WRITE);
         var req = ctx.bodyAsClass(RelatedFilesRequest.class);
         service.setRelatedFiles(id, req.fileIds() != null ? req.fileIds() : List.of());
-        ctx.json(service.findRelatedFiles(id));
+        ctx.json(relatedResponse(ctx, id));
+    }
+
+    /**
+     * Both directions of an article's cross-references, each filtered against what the reader may
+     * open on the other end.
+     *
+     * <p>An article the reader may not open is left out rather than counted as one that was hidden:
+     * a number that stands one higher gives away that the article exists, and its title is often
+     * the whole of what was worth keeping from them.
+     */
+    private RelatedFilesResponse relatedResponse(Context ctx, int fileId) {
+        var access = KbRouteAccess.accessOf(ctx, accessService);
+        return new RelatedFilesResponse(
+                readable(access, service.findRelatedFiles(fileId)), readable(access, service.findBacklinks(fileId)));
+    }
+
+    private List<KbFile> readable(KbAccessService.MemberAccess access, List<KbFile> files) {
+        return files.stream()
+                .filter(file -> accessService.canAccess(access, null, file.id()))
+                .toList();
     }
 
     private void search(Context ctx) {
@@ -819,6 +975,36 @@ public class KnowledgeBaseRoutes implements Routes {
     public record ContentUpdateRequest(String content) {}
 
     public record RelatedFilesRequest(List<Integer> fileIds) {}
+
+    public record MoveFolderRequest(Integer parentId) {}
+
+    public record MoveFileRequest(Integer folderId) {}
+
+    public record BulkMoveRequest(List<Integer> folderIds, List<Integer> fileIds, Integer targetFolderId) {}
+
+    public record BulkTagsRequest(
+            List<Integer> folderIds, List<Integer> fileIds, List<String> addTags, List<String> removeTags) {}
+
+    /**
+     * One folder of the tree a move picker offers, with what the caller may do in it.
+     */
+    public record FolderTreeEntry(int id, Integer parentId, String name, KbAccessLevel level) {}
+
+    /**
+     * The answer to a single move: whether the entry sits somewhere else now, and, when it does
+     * not, which of the reasons a move can be turned down for it was.
+     */
+    public record MoveResponse(boolean moved, String name, KbRefusalReason reason) {
+        static MoveResponse of(KbMoveService.MoveResult result) {
+            return new MoveResponse(result.moved(), result.name(), result.reason());
+        }
+    }
+
+    /**
+     * What an article points at and what points at it. The second list is read from the same rows
+     * the other way round, so a reference is visible from both ends while only one end owns it.
+     */
+    public record RelatedFilesResponse(List<KbFile> related, List<KbFile> backlinks) {}
 
     public record YoutubeResponse(String youtubeUrl) {}
 

@@ -64,6 +64,12 @@ public class KnowledgeBaseRepository {
     private static final String SNIPPET_SOURCE =
             "COALESCE(fc.text_content, f.name || ' ' || COALESCE(f.description, ''))";
     private static final String SNIPPET_OPTIONS = "MaxWords=30, MinWords=10, StartSel=<mark>, StopSel=</mark>";
+    /**
+     * How far the two recursive walks over the folder tree follow it. Nothing in the schema forbids
+     * a cycle, and both walks sit in the permission check, so an unbounded one would hang the
+     * request thread rather than return a wrong answer.
+     */
+    private static final int MAX_TREE_DEPTH = 64;
 
     /**
      * Folders directly under {@code parentId}, or the root folders when it is {@code null}.
@@ -135,6 +141,80 @@ public class KnowledgeBaseRepository {
 
     public boolean deleteFolder(int id) {
         return SqlSupport.deleteById("kb_folder", id);
+    }
+
+    /**
+     * Hangs a folder under another one, or under the tree root when the new parent is
+     * {@code null}. Everything inside it follows without being touched, because the knowledge base
+     * reads a subtree through its path rather than through a stored copy of it.
+     *
+     * @param id          the folder to move
+     * @param newParentId the folder it should sit in, or {@code null} for the tree root
+     * @return {@code true} when the folder existed
+     */
+    public boolean moveFolder(int id, Integer newParentId) {
+        return query("UPDATE kb_folder SET parent_id = :parent_id, updated_at = now() WHERE id = :id;")
+                .single(call().bind("id", id).bind("parent_id", newParentId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Every folder below one folder, at any depth, the folder itself excluded.
+     *
+     * <p>The counterpart of {@link #findFolderPath(int)}. Both carry a depth ceiling: a cycle in
+     * the tree would otherwise spin the query forever, and this walk sits in the check that is
+     * meant to keep a cycle from ever being written.
+     *
+     * @param folderId the folder to walk down from
+     * @return the ids of everything below it
+     */
+    public List<Integer> descendantFolderIds(int folderId) {
+        return query("""
+                WITH RECURSIVE descendants AS (
+                    SELECT id, 0 AS depth
+                    FROM kb_folder
+                    WHERE parent_id = :id
+                    UNION ALL
+                    SELECT child.id, descendants.depth + 1
+                    FROM kb_folder child
+                    JOIN descendants ON child.parent_id = descendants.id
+                    WHERE descendants.depth < %d
+                )
+                SELECT id FROM descendants;""", MAX_TREE_DEPTH)
+                .single(call().bind("id", folderId))
+                .map(row -> row.getInt("id"))
+                .all();
+    }
+
+    /**
+     * Whether a folder of that name already sits directly in a parent folder.
+     *
+     * <p>The database says the same thing through {@code UNIQUE (station_id, parent_id, name)}, but
+     * only by refusing the statement. Asking first is what turns the refusal into a sentence naming
+     * the folder rather than a failed request.
+     *
+     * @param stationId the station the folder belongs to
+     * @param parentId  the parent folder, or {@code null} for the tree root
+     * @param name      the name to check
+     * @param excludeId the folder being moved, which does not collide with itself
+     * @return {@code true} when the name is taken
+     */
+    public boolean folderNameTaken(int stationId, Integer parentId, String name, int excludeId) {
+        var where = parentId == null
+                ? WhereBuilder.create().add("AND parent_id IS NULL")
+                : WhereBuilder.create().add("AND parent_id = :parent_id", "parent_id", parentId);
+        return SqlSupport.exists(
+                """
+                SELECT 1
+                FROM kb_folder
+                WHERE station_id = :station_id
+                  AND name = :name
+                  AND id <> :exclude_id
+                  %s
+                LIMIT 1;""".formatted(where.fragment()),
+                where.apply(
+                        call().bind("station_id", stationId).bind("name", name).bind("exclude_id", excludeId)));
     }
 
     /**
@@ -230,6 +310,53 @@ public class KnowledgeBaseRepository {
                         .bind("position", position))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Puts a file into another folder, or at the tree root when the new folder is {@code null}.
+     *
+     * @param id          the file to move
+     * @param newFolderId the folder it should sit in, or {@code null} for the tree root
+     * @return {@code true} when the file existed
+     */
+    public boolean moveFile(int id, Integer newFolderId) {
+        return query("UPDATE kb_file SET folder_id = :folder_id, updated_at = now() WHERE id = :id;")
+                .single(call().bind("id", id).bind("folder_id", newFolderId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * The ids of every file sitting directly in any of the given folders.
+     *
+     * @param folderIds the folders to look in
+     * @return the file ids
+     */
+    public List<Integer> findFileIdsInFolders(List<Integer> folderIds) {
+        if (folderIds.isEmpty()) return List.of();
+        return query("SELECT id FROM kb_file WHERE folder_id = ANY(:folder_ids);")
+                .single(call().bind("folder_ids", folderIds, PostgreSqlTypes.INTEGER))
+                .map(row -> row.getInt("id"))
+                .all();
+    }
+
+    /**
+     * The files of a station that were changed most recently.
+     *
+     * @param stationId the station to list for
+     * @param limit     how many to answer with
+     * @return the files, newest change first
+     */
+    public List<KbFile> findRecentFiles(int stationId, int limit) {
+        return query("""
+                SELECT %s, %s
+                FROM kb_file f
+                WHERE f.station_id = :station_id
+                ORDER BY f.updated_at DESC
+                LIMIT :limit;""", FILE_COLUMNS, FILE_RESTRICTED)
+                .single(call().bind("station_id", stationId).bind("limit", limit))
+                .map(KbFile.map())
+                .all();
     }
 
     public void updateConversionStatus(int fileId, ConversionStatus status) {
@@ -412,10 +539,11 @@ public class KnowledgeBaseRepository {
                     SELECT parent.id, parent.parent_id, parent.restriction_mode, ancestry.depth + 1
                     FROM kb_folder parent
                     JOIN ancestry ON parent.id = ancestry.parent_id
+                    WHERE ancestry.depth < %d
                 )
                 SELECT id, restriction_mode
                 FROM ancestry
-                ORDER BY depth DESC;""")
+                ORDER BY depth DESC;""", MAX_TREE_DEPTH)
                 .single(call().bind("id", folderId))
                 .map(row ->
                         new FolderPathNode(row.getInt("id"), row.getEnum("restriction_mode", RestrictionMode.class)))
@@ -594,6 +722,44 @@ public class KnowledgeBaseRepository {
                 .insert();
     }
 
+    /**
+     * Drops one tag from a file, leaving the rest of its tags alone.
+     *
+     * @param fileId the file
+     * @param tagId  the tag to drop
+     */
+    public void removeFileTag(int fileId, int tagId) {
+        query("DELETE FROM kb_file_tag WHERE file_id = :file_id AND tag_id = :tag_id;")
+                .single(call().bind("file_id", fileId).bind("tag_id", tagId))
+                .delete();
+    }
+
+    /**
+     * Drops one tag from a folder, leaving the rest of its tags alone.
+     *
+     * @param folderId the folder
+     * @param tagId    the tag to drop
+     */
+    public void removeFolderTag(int folderId, int tagId) {
+        query("DELETE FROM kb_folder_tag WHERE folder_id = :folder_id AND tag_id = :tag_id;")
+                .single(call().bind("folder_id", folderId).bind("tag_id", tagId))
+                .delete();
+    }
+
+    /**
+     * Looks a tag up by name, without creating it.
+     *
+     * @param stationId the station the tag belongs to
+     * @param name      the tag name, matched the way tags are stored, in lower case
+     * @return the tag, or empty when the station does not know that name
+     */
+    public Optional<KbTag> findTagByName(int stationId, String name) {
+        return query("SELECT %s FROM kb_tag WHERE station_id = :station_id AND name = lower(:name);", TAG_COLUMNS)
+                .single(call().bind("station_id", stationId).bind("name", name))
+                .map(KbTag.map())
+                .first();
+    }
+
     public List<KbTag> findFolderTags(int folderId) {
         return query("""
                 SELECT
@@ -637,6 +803,30 @@ public class KnowledgeBaseRepository {
                         ON r.target_file_id = f.id
                 WHERE r.source_file_id = :file_id
                 ORDER BY r.position, f.name;""", FILE_COLUMNS, FILE_RESTRICTED)
+                .single(call().bind("file_id", fileId))
+                .map(KbFile.map())
+                .all();
+    }
+
+    /**
+     * The files pointing at a file, which is the same rows read the other way round.
+     *
+     * <p>The table stays directed and no counter-row is written: whoever wrote the reference still
+     * owns it, and every reference that exists today shows up here without anything being migrated.
+     *
+     * @param fileId the file being pointed at
+     * @return the files that point at it
+     */
+    public List<KbFile> findBacklinks(int fileId) {
+        return query("""
+                SELECT
+                    %s, %s
+                FROM
+                    kb_file f
+                        JOIN kb_related_file r
+                        ON r.source_file_id = f.id
+                WHERE r.target_file_id = :file_id
+                ORDER BY f.name;""", FILE_COLUMNS, FILE_RESTRICTED)
                 .single(call().bind("file_id", fileId))
                 .map(KbFile.map())
                 .all();

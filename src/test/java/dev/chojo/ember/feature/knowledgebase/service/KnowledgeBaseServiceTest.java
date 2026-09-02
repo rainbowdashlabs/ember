@@ -173,6 +173,40 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         knowledgeBaseRepo.deleteFile(other.id());
     }
 
+    /**
+     * A reference reads from both ends without a counter-row being written, so the article pointed
+     * at knows about it and neither end can take the other's reference away.
+     */
+    @Test
+    @Order(30)
+    void aReferenceIsVisibleFromBothEnds() {
+        var target = knowledgeBaseRepo.createFile(
+                station.id(), null, "Pointed At", "", KbFileType.TEXT, "text/plain", 0, null, member.id());
+        service.setRelatedFiles(fileId, List.of(target.id()));
+
+        var backlinks = service.findBacklinks(target.id());
+
+        assertEquals(1, backlinks.size());
+        assertEquals(fileId, backlinks.getFirst().id());
+        assertTrue(service.findBacklinks(fileId).isEmpty());
+
+        service.setRelatedFiles(fileId, List.of());
+        assertTrue(service.findBacklinks(target.id()).isEmpty());
+        knowledgeBaseRepo.deleteFile(target.id());
+    }
+
+    @Test
+    @Order(30)
+    void recentFilesAnswerNewestChangeFirst() {
+        var recent = service.createMarkdownFile(station.id(), null, "Freshly Touched", "", "# Fresh", member.id());
+
+        var files = service.findRecentFiles(station.id(), 3);
+
+        assertFalse(files.isEmpty());
+        assertEquals(recent.id(), files.getFirst().id());
+        service.deleteFile(recent.id());
+    }
+
     @Test
     @Order(31)
     void addAndRemoveFavourite() {

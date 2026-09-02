@@ -19,19 +19,78 @@ async function createFileInFolder(page: Page): Promise<{folder: string; file: st
     const file = unique('Datei')
 
     await page.goto('/station/knowledge')
-    await page.getByRole('button', {name: 'Neu'}).click()
-    await page.getByText('Neuer Ordner').last().click()
-    await page.getByPlaceholder('Ordnername').fill(folder)
-    await page.getByRole('button', {name: 'Neuer Ordner'}).last().click()
-    await page.getByText(folder).click()
-
-    await page.getByRole('button', {name: 'Neu'}).click()
-    await page.getByText('Markdown-Datei').last().click()
-    await page.getByPlaceholder('Dateiname').fill(file)
-    await page.getByRole('button', {name: 'Neue Datei'}).click()
-    await page.waitForURL(/\/station\/knowledge\/file\/\d+/)
+    await createFolder(page, folder)
+    await openFolder(page, folder)
+    await createMarkdownFile(page, file)
 
     return {folder, file}
+}
+
+/**
+ * Opens a folder of the listing and answers with its address.
+ *
+ * <p>It waits for the trail to name the folder rather than for the click to return: the address is
+ * rewritten a moment after the click, so reading it straight away answers with the folder the
+ * reader just left, and everything a story does afterwards happens in the wrong place.
+ *
+ * <p>The entry is reached through the listing rather than by its text alone, because a folder
+ * picker that has been open names the same folders and would make the name answer twice.
+ */
+async function openFolder(page: Page, name: string): Promise<string> {
+    await page.getByTestId('kb-item').filter({hasText: name}).click()
+    await expect(page.getByTestId('kb-breadcrumb')).toContainText(name)
+    return page.url()
+}
+
+/**
+ * Opens the create menu of the listing currently open.
+ *
+ * <p>The button is named exactly: "Neuer Ordner" carries "Neu" inside it, so a dialog still on
+ * screen from the entry before would otherwise make two buttons answer to the same name.
+ */
+async function openCreateMenu(page: Page) {
+    const create = page.getByRole('button', {name: 'Neu', exact: true})
+    await expect(create).toBeVisible()
+    await create.click()
+}
+
+/** Creates a folder in the listing currently open, and waits for the dialog to be gone again. */
+async function createFolder(page: Page, name: string) {
+    await openCreateMenu(page)
+    await page.getByText('Neuer Ordner').last().click()
+    await page.getByPlaceholder('Ordnername').fill(name)
+    await page.getByRole('button', {name: 'Neuer Ordner'}).last().click()
+    await expect(page.getByPlaceholder('Ordnername')).toHaveCount(0)
+    await expect(page.getByText(name).first()).toBeVisible()
+}
+
+/** Creates a Markdown article in the listing currently open, which opens it. */
+async function createMarkdownFile(page: Page, name: string) {
+    await openCreateMenu(page)
+    await page.getByText('Markdown-Datei').last().click()
+    await page.getByPlaceholder('Dateiname').fill(name)
+    await page.getByRole('button', {name: 'Neue Datei'}).last().click()
+    await page.waitForURL(/\/station\/knowledge\/file\/\d+/)
+}
+
+/**
+ * Moves one entry of the listing currently open into a folder, or to the top level when no folder
+ * is named. The entry offers several actions, so they sit behind a menu of their own per row.
+ */
+async function moveEntry(page: Page, entry: string, target: string | null) {
+    await page.getByTestId('kb-item').filter({hasText: entry})
+        .getByTestId('actions-menu-trigger').click()
+    await page.getByRole('button', {name: 'Verschieben', exact: true}).click()
+    const picker = page.getByTestId('kb-folder-picker')
+    if (target === null) await page.getByTestId('kb-folder-picker-root').click()
+    else await picker.getByRole('button', {name: target}).click()
+    await page.getByTestId('kb-move-confirm').click()
+    await expect(page.getByTestId('kb-move-confirm')).toHaveCount(0)
+}
+
+/** Ticks the box of one entry while the listing is in its marking mode. */
+async function markEntry(page: Page, entry: string) {
+    await page.getByTestId('kb-item').filter({hasText: entry}).getByTestId('kb-item-select').click()
 }
 
 /**
@@ -259,5 +318,119 @@ test.describe('Knowledge base', () => {
 
         await expect(page.getByPlaceholder('Suchen...')).toBeVisible()
         await expect(page.getByRole('button', {name: 'Neu'})).toHaveCount(0)
+    })
+
+    /**
+     * A branch put in the wrong place is the reason moving exists, so the story builds one three
+     * levels deep and lifts the middle of it out. What matters afterwards is that the trail above
+     * the folder reads differently while the address of the article inside it does not: a bookmark
+     * on a page has to survive somebody tidying up around it.
+     */
+    test('a folder moves two levels up and the article inside it keeps its address',
+        async ({managerPage: page}) => {
+            const top = unique('Oben')
+            const middle = unique('Mitte')
+            const moved = unique('Unten')
+
+            await page.goto('/station/knowledge')
+            await createFolder(page, top)
+            await openFolder(page, top)
+            await createFolder(page, middle)
+            const middleUrl = await openFolder(page, middle)
+            await createFolder(page, moved)
+            await openFolder(page, moved)
+            const article = unique('Artikel')
+            await createMarkdownFile(page, article)
+            const articleUrl = page.url()
+
+            // One level up, so the folder to move is an entry of the listing rather than the
+            // listing itself.
+            await page.goto(middleUrl)
+            await moveEntry(page, moved, null)
+
+            await page.goto('/station/knowledge')
+            await expect(page.getByText(moved)).toBeVisible()
+            await openFolder(page, moved)
+            const trail = page.getByTestId('kb-breadcrumb')
+            await expect(trail).not.toContainText(middle)
+            await expect(page.getByText(article).first()).toBeVisible()
+
+            await page.goto(articleUrl)
+            await expect(page.getByTestId('kb-file-header')).toContainText(article)
+        })
+
+    /**
+     * Marking several entries is worth having only if a selection that cannot go through as a whole
+     * still does what it can. The story marks two entries where one of them collides with a name
+     * already in the target, and reads the message: the article arrives, and the folder that stayed
+     * behind is named rather than counted.
+     */
+    test('a marked selection moves what it can and names what it could not',
+        async ({managerPage: page}) => {
+            const parent = unique('Sammel')
+            const target = unique('Ziel')
+            const clashing = unique('Doppelt')
+
+            await page.goto('/station/knowledge')
+            await createFolder(page, parent)
+            const parentUrl = await openFolder(page, parent)
+            await createFolder(page, target)
+            await createFolder(page, clashing)
+
+            // The same name a second time, inside the target, which is what the move runs into.
+            await openFolder(page, target)
+            await createFolder(page, clashing)
+            await page.goto(parentUrl)
+
+            const article = unique('Mitgenommen')
+            await createMarkdownFile(page, article)
+            await page.goto(parentUrl)
+
+            await page.getByTestId('kb-toggle-selecting').click()
+            await markEntry(page, clashing)
+            await markEntry(page, article)
+            await expect(page.getByTestId('kb-selection-bar')).toContainText('2 ausgewählt')
+
+            await page.getByTestId('kb-selection-move').click()
+            await page.getByTestId('kb-folder-picker').getByRole('button', {name: target}).click()
+            await page.getByTestId('kb-bulk-move-confirm').click()
+
+            const notice = page.getByTestId('kb-bulk-notice')
+            await expect(notice).toContainText('1 verschoben.')
+            await expect(notice).toContainText(clashing)
+
+            await openFolder(page, target)
+            await expect(page.getByText(article).first()).toBeVisible()
+        })
+
+    /**
+     * A reference written on one article has to be readable from the other end, or half of what a
+     * wiki is for is missing. Nothing is written on the second article: the list it shows is the
+     * same row read the other way round, which is also why it offers no way to remove it.
+     */
+    test('an article shows what points at it', async ({managerPage: page}) => {
+        const folder = unique('Verweise')
+        const source = unique('Quelle')
+        const target = unique('Verweisziel')
+
+        await page.goto('/station/knowledge')
+        await createFolder(page, folder)
+        const folderUrl = await openFolder(page, folder)
+        await createMarkdownFile(page, target)
+        const targetUrl = page.url()
+        await page.goto(folderUrl)
+        await createMarkdownFile(page, source)
+
+        // The picker reads the wiki search, which indexes words rather than the whole name, so the
+        // term is the readable part of it and the exact article is picked out of what comes back.
+        await page.getByTestId('kb-add-related').click()
+        await page.getByPlaceholder('Datei suchen...').fill('Verweisziel')
+        await page.getByRole('button', {name: target}).click()
+        await expect(page.getByRole('link', {name: target})).toBeVisible()
+
+        await page.goto(targetUrl)
+        const backlinks = page.getByTestId('kb-backlinks')
+        await expect(backlinks).toContainText(source)
+        await expect(backlinks.getByRole('button', {name: 'Entfernen'})).toHaveCount(0)
     })
 })

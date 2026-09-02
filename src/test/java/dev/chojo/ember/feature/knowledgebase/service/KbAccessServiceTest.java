@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
@@ -224,5 +225,70 @@ class KbAccessServiceTest extends RepositoryTestBase {
         knowledgeBaseRepo.deleteFile(fileInHidden.id());
         knowledgeBaseRepo.deleteFolder(child.id());
         knowledgeBaseRepo.deleteFolder(parent.id());
+    }
+
+    /**
+     * Asked about a folder an item does not sit in yet, which is what the move dialog needs in order
+     * to warn before a station that publishes by default publishes something nobody submitted.
+     */
+    @Test
+    void publicVisibilityCanBeAskedAboutAFolderAnItemIsNotInYet() {
+        var open = createFolder("Would Publish", null);
+        var closed = createFolder("Would Not Publish", null);
+        service.setPublicVisibility(closed.id(), null, false);
+        var article = createFile("Not Yet Moved", closed.id());
+
+        assertFalse(service.isPubliclyVisible(PublicKbMode.ALLOW_ALL, null, article.id()));
+        assertTrue(service.isPubliclyVisibleUnder(PublicKbMode.ALLOW_ALL, open.id(), null, article.id()));
+        assertTrue(service.isPubliclyVisibleUnder(PublicKbMode.ALLOW_ALL, null, null, article.id()));
+        assertFalse(service.isPubliclyVisibleUnder(PublicKbMode.ALLOW_ALL, closed.id(), null, article.id()));
+        assertFalse(service.isPubliclyVisibleUnder(PublicKbMode.OFF, open.id(), null, article.id()));
+
+        service.setRestrictions(null, article.id(), forUserType(StationUserType.MEMBER));
+        assertFalse(service.isPubliclyVisibleUnder(PublicKbMode.ALLOW_ALL, open.id(), null, article.id()));
+
+        service.setRestrictions(null, article.id(), RestrictionSelection.empty());
+        service.removePublicVisibility(closed.id(), null);
+        knowledgeBaseRepo.deleteFile(article.id());
+        knowledgeBaseRepo.deleteFolder(open.id());
+        knowledgeBaseRepo.deleteFolder(closed.id());
+    }
+
+    /**
+     * The whole tree at once, which is what a picker offering somewhere to put an entry needs. It
+     * has to agree with the answer a single lookup gives, gate included: a folder the reader is out
+     * of takes everything under it out too.
+     */
+    @Test
+    void theWholeTreeResolvesTheSameWayOneFolderDoes() {
+        var open = createFolder("Tree Open", null);
+        var inner = createFolder("Tree Inner", open.id());
+        var gated = createFolder("Tree Gated", null);
+        var belowGate = createFolder("Tree Below Gate", gated.id());
+        service.setRestrictions(gated.id(), null, forUserType(StationUserType.MEMBER));
+
+        var nodes = List.of(
+                new KbAccessService.TreeNode(open.id(), null, null),
+                new KbAccessService.TreeNode(inner.id(), open.id(), null),
+                new KbAccessService.TreeNode(gated.id(), null, null),
+                new KbAccessService.TreeNode(belowGate.id(), gated.id(), null));
+        var access = new KbAccessService.MemberAccess(
+                member.id(), StationUserType.GUARDIAN, List.of(), List.of(), true, false);
+
+        var levels = service.treeLevels(access, nodes);
+
+        assertEquals(KbAccessLevel.MANAGE, levels.get(open.id()));
+        assertEquals(KbAccessLevel.MANAGE, levels.get(inner.id()));
+        assertEquals(KbAccessLevel.NONE, levels.get(gated.id()));
+        assertEquals(KbAccessLevel.NONE, levels.get(belowGate.id()));
+        assertEquals(service.effectiveLevel(access, belowGate.id(), null), levels.get(belowGate.id()));
+
+        var manager = new KbAccessService.MemberAccess(
+                member.id(), StationUserType.GUARDIAN, List.of(), List.of(), true, true);
+        assertEquals(KbAccessLevel.MANAGE, service.treeLevels(manager, nodes).get(gated.id()));
+
+        service.setRestrictions(gated.id(), null, RestrictionSelection.empty());
+        knowledgeBaseRepo.deleteFolder(open.id());
+        knowledgeBaseRepo.deleteFolder(gated.id());
     }
 }
