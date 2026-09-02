@@ -10,7 +10,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import DummyVersionList from '@/views/helpcenter/stationview/knowledge/knowledgebasehelp/DummyVersionList.vue'
 import BulletList from '@/components/typography/BulletList.vue'
 import {StationPermission} from '@/api/types'
 
@@ -112,23 +112,7 @@ const { t } = useI18n()
         <p>{{ t('helpCenter.kb.versionsText') }}</p>
       </HelpSection>
 
-      <!-- Dummy: Version list -->
-      <NeutralContainer>
-        <div class="space-y-2">
-          <div class="flex items-center justify-between text-sm">
-            <span>Version 3 <SecondaryBadge>aktuell</SecondaryBadge></span>
-            <span class="text-xs text-(--text-muted)">vor 2 Stunden</span>
-          </div>
-          <div class="flex items-center justify-between text-sm">
-            <span>Version 2</span>
-            <span class="text-xs text-(--text-muted)">vor 1 Tag</span>
-          </div>
-          <div class="flex items-center justify-between text-sm">
-            <span>Version 1</span>
-            <span class="text-xs text-(--text-muted)">vor 3 Tagen</span>
-          </div>
-        </div>
-      </NeutralContainer>
+      <DummyVersionList/>
     </HelpPermissionGuard>
 
     <HelpSection :title="t('helpCenter.kb.searchTitle')">
