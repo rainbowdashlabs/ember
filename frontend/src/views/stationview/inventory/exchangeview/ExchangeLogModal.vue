@@ -73,7 +73,7 @@ watch(model, async (open) => {
               </span>
             </div>
             <div class="text-(--text-muted)">
-              {{ entry.changedByName }} &mdash; {{ formatDate(entry.changedAt) }}
+              {{ entry.changedByName }}, {{ formatDate(entry.changedAt) }}
             </div>
             <div v-if="entry.note">{{ entry.note }}</div>
           </NeutralContainer>

@@ -389,7 +389,7 @@ watch(() => [props.fileId, props.stationUid], () => {
             <!-- Last edit info -->
             <p v-if="file.updatedAt" class="text-xs text-[var(--text-muted)] mb-3">
                 {{ t('kb.lastEditedAt') }}: {{ formatDateTime(file.updatedAt) }}
-                <span v-if="lastEditedByName"> &mdash; {{ lastEditedByName }}</span>
+                <span v-if="lastEditedByName">, {{ lastEditedByName }}</span>
             </p>
 
             <!-- Tags (hide for federated files) -->

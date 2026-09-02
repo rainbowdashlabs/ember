@@ -126,7 +126,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
         >
           <div class="flex-1 min-w-0">
             <div class="font-medium">{{ run.name }}</div>
-            <div class="text-sm text-[var(--text-muted)]">{{ protocolName(run.protocolId) }} &mdash; {{ formatDate(run.testDate) }}</div>
+            <div class="text-sm text-[var(--text-muted)]">{{ protocolName(run.protocolId) }}, {{ formatDate(run.testDate) }}</div>
           </div>
           <SuccessBadge v-if="run.status === 'CLOSED'">{{ t('protocol.closed') }}</SuccessBadge>
           <PrimaryBadge v-else>{{ t('protocol.open') }}</PrimaryBadge>

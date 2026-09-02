@@ -55,7 +55,7 @@ const {t} = useI18n()
     <div v-if="props.sizes.length > 0" class="space-y-1">
       <FieldLabel>{{ t('itemDetail.size') }}</FieldLabel>
       <SelectInput v-model="sizeId">
-        <option value="">&#x2014;</option>
+        <option value="">–</option>
         <option v-for="s in props.sizes" :key="s.id" :value="String(s.id)">{{ s.label }}</option>
       </SelectInput>
     </div>

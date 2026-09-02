@@ -18,7 +18,7 @@ const {t} = useI18n()
 <template>
   <div class="space-y-6">
     <div class="flex items-center justify-between flex-wrap gap-2">
-      <SectionHeader>{{ t('profile.inventory') }} &mdash; Max Mustermann</SectionHeader>
+      <SectionHeader>{{ t('profile.inventory') }}: Max Mustermann</SectionHeader>
       <SecondaryButton :icon="['fas', 'chevron-left']">
         {{ t('common.back') }}
       </SecondaryButton>
