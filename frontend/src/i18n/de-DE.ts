@@ -1862,6 +1862,9 @@ export default {
     membersList: {
         accountPending: 'Konto noch nicht eingerichtet - die Person hat sich noch kein Passwort gesetzt.',
         accountPendingExpires: 'Der zugesendete Link ist gültig bis {date}.',
+        accountPendingExpired: 'Der zugesendete Link ist am {date} abgelaufen und funktioniert nicht '
+            + 'mehr. Sende die Einrichtungs-Mail erneut, damit ein neuer Link entsteht.',
+        setupLinkExpired: 'Link abgelaufen',
         accountPendingResend: 'Einrichtungs-Mail erneut senden',
         setupMailToMember: 'Die Mail geht an die Adresse des Mitglieds.',
         setupMailToGuardians: 'Das Mitglied hat keine eigene Adresse, die Mail geht an die '
