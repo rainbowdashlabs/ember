@@ -61,6 +61,12 @@ export interface MemberCheckState {
     assigned: InventoryItem[]
     lastCheck?: InventoryCheck | null
     unassigned: Record<number, InventoryItem[]>
+    /**
+     * The step each piece is standing on that already has something running on it, keyed by piece.
+     * A piece can only be on one movement at a time, so a walk offers no swap for these and says
+     * what is running instead.
+     */
+    onTheMove?: Record<number, string>
 }
 
 export interface InventoryCheck {

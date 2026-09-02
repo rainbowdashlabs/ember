@@ -105,12 +105,26 @@ export interface UpdateStatusRequest {
     exchangedItemId?: number | null
 }
 
+/**
+ * How long raising or advancing a movement waits for an answer.
+ *
+ * <p>Both are one short write, and both are pressed from a window that stays open until the answer
+ * comes. Waiting without an end leaves whoever pressed the button in front of a window that says
+ * nothing at all and cannot be told from one still working, so an answer that never arrives becomes
+ * a failure they can see and act on.
+ */
+const ANSWER_DEADLINE_MS = 30_000
+
 const exchanges = createCrudResource<ExchangeRequestEntry, CreateExchangeRequest>('/exchanges')
 
 export const listExchanges = exchanges.list
 export const getExchange = exchanges.get
-export const createExchange = exchanges.create
 export const deleteExchange = exchanges.remove
+
+export async function createExchange(data: CreateExchangeRequest): Promise<ExchangeRequestEntry> {
+    const res = await client.post<ExchangeRequestEntry>('/exchanges', data, {timeout: ANSWER_DEADLINE_MS})
+    return res.data
+}
 
 export async function getLogs(id: number): Promise<ExchangeLogEntry[]> {
     const res = await client.get<ExchangeLogEntry[]>(`/exchanges/${id}/logs`)
@@ -118,7 +132,8 @@ export async function getLogs(id: number): Promise<ExchangeLogEntry[]> {
 }
 
 export async function updateStatus(id: number, data: UpdateStatusRequest): Promise<ExchangeRequestEntry> {
-    const res = await client.put<ExchangeRequestEntry>(`/exchanges/${id}/status`, data)
+    const res = await client.put<ExchangeRequestEntry>(
+        `/exchanges/${id}/status`, data, {timeout: ANSWER_DEADLINE_MS})
     return res.data
 }
 

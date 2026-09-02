@@ -28,7 +28,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -730,12 +732,56 @@ public class InventoryRepository {
                 .all();
     }
 
+    /**
+     * What a member is recorded as holding, in the order the pieces were written down.
+     *
+     * <p>The order is named rather than left to the database, because everything that walks a member's
+     * gear walks it in this order: the quick check offers the pieces one after another and reloads the
+     * list after every hand-out. Without an order the same walk could offer them in a different order
+     * each time it reloaded, which reads as the walk jumping about.
+     *
+     * @param memberId the member
+     * @return their pieces, oldest first
+     */
     public List<InventoryItem> findItemsByMember(int memberId) {
         return query("""
-                SELECT %s FROM inventory_item WHERE assigned_to = :member_id;""", INVENTORY_ITEM_COLUMNS)
+                SELECT %s FROM inventory_item WHERE assigned_to = :member_id ORDER BY id;""", INVENTORY_ITEM_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(InventoryItem.map())
                 .all();
+    }
+
+    /**
+     * The pieces a member holds that already have a movement running on them, each with the words of
+     * the step it is standing on.
+     *
+     * <p>A piece can only be on one movement at a time, so a screen that offers to raise a second one
+     * for it is offering something the station will refuse. What is running is read here so the offer
+     * can be left out and the reason put in its place.
+     *
+     * <p>Unlike a member's own list this asks about the piece rather than about the member: a movement
+     * somebody else started on it blocks a second one just as much.
+     *
+     * @param memberId the member being walked
+     * @return the step of the open movement, by piece
+     */
+    public Map<Integer, String> findMovingItemsOfMember(int memberId) {
+        return query("""
+                SELECT DISTINCT ON (ii.id)
+                    ii.id AS item_id,
+                    COALESCE(s.label, '') AS movement_step
+                FROM inventory_item ii
+                JOIN item_movement m
+                  ON m.state = 'OPEN'
+                 AND m.outgoing_item_id = ii.id
+                LEFT JOIN movement_flow_step s ON s.id = m.current_step_id
+                WHERE ii.assigned_to = :member_id
+                ORDER BY ii.id, m.id;""")
+                .single(call().bind("member_id", memberId))
+                .map(row -> Map.entry(row.getInt("item_id"), row.getString("movement_step")))
+                .all()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     /**

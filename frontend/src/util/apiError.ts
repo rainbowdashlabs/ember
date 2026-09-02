@@ -45,10 +45,19 @@ export function apiErrorBody(e: unknown): ApiErrorBody | undefined {
 /**
  * Failure text supplied by the backend, or undefined when the response carried none.
  * Callers pick their own localised fallback.
+ *
+ * <p>Blank text counts as none. A caller writes what it gets straight into its error panel, and a
+ * panel holding an empty string renders as nothing at all: the screen would then say a request
+ * failed by showing the reader absolutely nothing.
  */
 export function apiErrorMessage(e: unknown): string | undefined {
     const data = asApiError(e).response?.data
-    return data?.message ?? data?.title
+    return said(data?.message) ?? said(data?.title)
+}
+
+/** The text where something was actually written, and undefined where it was blank or absent. */
+function said(text: string | undefined): string | undefined {
+    return text?.trim() ? text : undefined
 }
 
 /**

@@ -29,6 +29,8 @@ const props = defineProps<{
   sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
   /** What has been written down about each piece so far, so the walk shows the same note the list does. */
   itemNotes: Map<number, string>
+  /** The step a piece is standing on when something is already running on it, null otherwise. */
+  movementStep: (itemId: number) => string | null
 }>()
 
 const emit = defineEmits<{
@@ -116,6 +118,18 @@ const currentEntry = computed((): CheckEntry | null => {
   const next = entries.find(e => !skippedKeys.value.has(entryKey(e)))
   if (next) return next
   return entries[0] ?? null
+})
+
+/**
+ * What is already running on the piece in hand.
+ *
+ * <p>A piece can only be on one movement at a time, so a swap asked for beside a running one is
+ * refused. The walk says what is happening to the piece instead of offering a button that the
+ * station would only turn down.
+ */
+const runningStep = computed(() => {
+  const entry = currentEntry.value
+  return entry?.type === 'item' ? props.movementStep(entry.item.id) : null
 })
 
 function handleScan(value: string) {
@@ -250,8 +264,12 @@ defineExpose({ currentEntry })
         {{ t('inventory.check.lost') }}
       </ErrorButton>
     </div>
+    <p v-if="runningStep !== null" class="text-center text-sm text-(--text-muted)" data-testid="rapid-on-the-move">
+      {{ t('inventory.check.onTheMove') }}<span v-if="runningStep"> ({{ runningStep }})</span>
+    </p>
     <div class="flex flex-wrap justify-center gap-2">
       <InfoButton
+          v-if="runningStep === null"
           :icon="['fas', 'right-left']"
           data-testid="rapid-exchange"
           @click="emit('exchange', currentEntry)"
@@ -270,7 +288,7 @@ defineExpose({ currentEntry })
       <SecondaryButton v-if="walked.length > 0" :icon="['fas', 'arrow-left']" data-testid="rapid-back" @click="goBack">
         {{ t('inventory.check.previousItem') }}
       </SecondaryButton>
-      <SecondaryButton @click="skip">
+      <SecondaryButton data-testid="rapid-skip" @click="skip">
         {{ t('inventory.check.skip') }}
       </SecondaryButton>
       <ScanButton mode="continuous" @decoded="handleScan"/>
@@ -332,7 +350,7 @@ defineExpose({ currentEntry })
       <SecondaryButton v-if="walked.length > 0" :icon="['fas', 'arrow-left']" data-testid="rapid-back" @click="goBack">
         {{ t('inventory.check.previousItem') }}
       </SecondaryButton>
-      <SecondaryButton @click="skip">
+      <SecondaryButton data-testid="rapid-skip" @click="skip">
         {{ t('inventory.check.skip') }}
       </SecondaryButton>
       <ScanButton mode="continuous" @decoded="handleScan"/>

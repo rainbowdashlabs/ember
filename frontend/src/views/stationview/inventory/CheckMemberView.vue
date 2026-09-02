@@ -293,6 +293,7 @@ async function cancel() {
         :empty-slot-count="check.emptySlotCount"
         :size-label="check.sizeLabel"
         :item-label="check.itemLabel"
+        :movement-step="check.movementStep"
         @start-check-mode="startCheckMode"
         @mark-all-confirmed="check.markAllConfirmed"
         @cancel="cancel"

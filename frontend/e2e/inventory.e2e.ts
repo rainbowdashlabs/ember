@@ -58,6 +58,8 @@ const EXCHANGE_STATUS_LABELS: Record<string, string> = {
     SHIPPED: 'Versendet',
     ARRIVED: 'Angekommen',
     DONE: 'Erledigt',
+    CANCELLED: 'Abgebrochen',
+    DECLINED: 'Abgelehnt',
 }
 
 test.describe('Inventory', () => {
@@ -414,6 +416,10 @@ test.describe('Inventory', () => {
      * ones somebody thought of: the two common ones are offered, and anything else is written out. The
      * window opens on a reason already chosen, because a check that has to be filled in before it can
      * be saved is a check nobody raises.
+     *
+     * The walk steps past whatever already has something running on it. A piece can only be on one
+     * movement at a time, so those pieces are offered no swap at all, and the story goes on until it
+     * reaches one that can have one.
      */
     test('a check raises an exchange for a piece that does not fit', async ({managerPage: page}) => {
         await page.goto('/station/inventory/checks/member')
@@ -422,8 +428,11 @@ test.describe('Inventory', () => {
 
         await page.getByRole('button', {name: 'Schnellprüfung'}).click()
 
-        const exchange = page.getByTestId('rapid-exchange').first()
-        await expect(exchange).toBeVisible({timeout: 15000})
+        const exchange = page.getByTestId('rapid-exchange')
+        const skip = page.getByTestId('rapid-skip')
+        await expect(skip).toBeVisible({timeout: 15000})
+        for (let walked = 0; walked < 12 && !(await exchange.isVisible()); walked++) await skip.click()
+        await expect(exchange, 'the walk reaches a piece nothing is running on').toBeVisible({timeout: 15000})
         await exchange.click()
 
         const confirm = page.getByTestId('rapid-exchange-confirm')

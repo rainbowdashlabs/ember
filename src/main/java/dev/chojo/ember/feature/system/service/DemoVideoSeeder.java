@@ -15,7 +15,6 @@ import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
-import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
@@ -184,8 +183,10 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
             // A piece the association owns is moved by the association: one of the steps belongs to
             // the OWNER, and a Betreuer acknowledging it is refused. Only the station's own gear can
             // be walked through the stages from here.
+            var moving = inventoryRepository.findMovingItemsOfMember(kid.id());
             var item = inventoryRepository.findItemsByMember(kid.id()).stream()
                     .filter(candidate -> candidate.ownerKind() != ItemOwner.CLUSTER)
+                    .filter(candidate -> !moving.containsKey(candidate.id()))
                     .findFirst()
                     .orElse(null);
             if (item == null) continue;
@@ -328,14 +329,20 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
     /**
      * A running exchange on the member the camera is logged in as, so the list of open movements is
      * never empty when it is filmed.
+     *
+     * <p>A piece something is already running on is passed over: it can only be on one movement at a
+     * time, and an earlier seeder may well have set one going on it.
      */
     private void seedExchange(int stationId, StationMember kid) {
-        List<InventoryItem> items = inventoryRepository.findItemsByMember(kid.id());
-        if (items.isEmpty()) {
-            log.warn("Demo: No item assigned to member {}, no exchange for the videos", kid.id());
+        var moving = inventoryRepository.findMovingItemsOfMember(kid.id());
+        var item = inventoryRepository.findItemsByMember(kid.id()).stream()
+                .filter(candidate -> !moving.containsKey(candidate.id()))
+                .findFirst()
+                .orElse(null);
+        if (item == null) {
+            log.warn("Demo: No free item assigned to member {}, no exchange for the videos", kid.id());
             return;
         }
-        var item = items.getFirst();
         exchangeService.create(
                 stationId,
                 kid.id(),
