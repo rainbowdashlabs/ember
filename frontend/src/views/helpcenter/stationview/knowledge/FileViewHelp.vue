@@ -87,6 +87,11 @@ const {t} = useI18n()
           <DropdownMenuItem :icon="['fas', 'arrow-right-arrow-left']">{{ t('kb.move') }}</DropdownMenuItem>
         </NeutralContainer>
       </HelpSection>
+
+      <HelpSection :title="t('helpCenter.kbFileView.deleteTitle')">
+        <p>{{ t('helpCenter.kbFileView.deleteText') }}</p>
+        <p>{{ t('helpCenter.kbFileView.deleteEmbeddedText') }}</p>
+      </HelpSection>
     </HelpPermissionGuard>
 
     <HelpSection :title="t('helpCenter.kbFileView.commentsTitle')">

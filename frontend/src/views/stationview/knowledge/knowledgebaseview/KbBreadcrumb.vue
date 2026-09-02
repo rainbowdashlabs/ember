@@ -112,7 +112,7 @@ function goUp() {
             />
             <IconButton
                 v-if="canManage"
-                :icon="['fas', 'trash-can']"
+                :icon="['fas', 'trash']"
                 :label="t('kb.trash')"
                 data-testid="kb-open-trash"
                 @click="emit('openTrash')"
