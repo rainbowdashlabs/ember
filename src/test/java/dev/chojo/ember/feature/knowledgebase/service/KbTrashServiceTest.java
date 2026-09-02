@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
@@ -309,6 +311,48 @@ class KbTrashServiceTest extends RepositoryTestBase {
         service.deleteFile(picked.id(), member.id());
         service.purgeFile(picked.id());
         assertTrue(knowledgeBaseRepo.findDeletedFileById(inside.id()).isEmpty());
+    }
+
+    /**
+     * The surprise this warning exists to take away. A page names an article by number in its
+     * settings and no foreign key follows it, so deleting the article leaves a stand-in title on a
+     * page nobody thought to look at. A published page gets said more plainly than a draft.
+     */
+    @Test
+    void aDeleteNamesThePagesThatCarryTheArticle() {
+        var article = file(null, "trash-on-a-page");
+        var draft = pageWithArticle("Entwurf Ausbildung", "entwurf-ausbildung", article.id(), false);
+
+        var quiet = service.impactOf(station.id(), List.of(), List.of(article.id()));
+
+        assertEquals(List.of("Entwurf Ausbildung"), quiet.embeddedOn());
+        assertFalse(quiet.onPublicPage(), "a page nobody outside reads is the milder case");
+
+        pageRepo.setPublished(draft, true);
+        var loud = service.impactOf(station.id(), List.of(), List.of(article.id()));
+
+        assertTrue(loud.onPublicPage());
+        assertTrue(service.impactOf(station.id(), List.of(), List.of())
+                .embeddedOn()
+                .isEmpty());
+
+        pageRepo.delete(draft);
+        service.deleteFile(article.id(), member.id());
+        service.purgeFile(article.id());
+    }
+
+    /**
+     * A station page carrying one wiki article in a cell, which is the shape the warning reads.
+     */
+    private static int pageWithArticle(String title, String slug, int articleId, boolean published) {
+        var page = pageRepo.create(station.id(), title, slug, null, member.id());
+        var container = contentContainerRepo.create(station.id());
+        pageRepo.setContainer(page.id(), container.id());
+        pageRepo.setPublished(page.id(), published);
+        int rowId = contentContainerRepo.insertRow(container.id(), 0);
+        contentContainerRepo.insertCell(
+                rowId, 0, 100.0, CellContentType.KB_ARTICLE, "", new CellConfig.KbArticleConfig(articleId, title));
+        return page.id();
     }
 
     /**
