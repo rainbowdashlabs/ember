@@ -8,7 +8,9 @@ package dev.chojo.ember.feature.board.service;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BoardTicketChanged;
+import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.MentionedInComment;
+import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
@@ -406,6 +408,7 @@ public class BoardTicketService {
                             CommentEntityType.BOARD_TICKET,
                             ticketId,
                             ticketKey,
+                            comment.id(),
                             mentionPreview));
                 }
             }
@@ -424,14 +427,31 @@ public class BoardTicketService {
         return updated;
     }
 
-    public boolean deleteComment(int id) {
+    /**
+     * Deletes a comment on a ticket and announces the removal, so that whatever was written about
+     * it can be withdrawn.
+     *
+     * @param ticketId the ticket the comment hangs under, which names the owning station
+     * @param id       the comment to remove
+     * @return {@code true} when a comment was removed
+     */
+    public boolean deleteComment(int ticketId, int id) {
         boolean deleted = ticketRepository.deleteComment(id);
         if (deleted) {
+            eventBus.publish(new CommentDeleted(stationOf(ticketId), CommentEntityType.BOARD_TICKET, id));
             log.info("Deleted comment {}", id);
         } else {
             log.warn("Delete for comment {} affected zero rows", id);
         }
         return deleted;
+    }
+
+    private int stationOf(int ticketId) {
+        return ticketRepository
+                .findById(ticketId)
+                .flatMap(ticket -> boardRepository.findById(ticket.boardId()))
+                .map(Board::stationId)
+                .orElse(0);
     }
 
     public List<BoardWeblink> findWeblinks(int ticketId) {

@@ -6,10 +6,12 @@
 package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.conf.file.elements.Mailing;
+import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.event.events.FormDeleted;
 import dev.chojo.ember.event.events.NewsDeleted;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -140,6 +142,69 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
 
         assertGone(invitation);
         assertStanding(otherForm);
+    }
+
+    @Test
+    void deletingACommentTakesOnlyWhatWasWrittenAboutThatComment() {
+        int aboutIt = create(
+                NotificationType.NEWS_COMMENT,
+                new NotificationParams.NewsComment("Sturm", "Bea", "Unfreundlich"),
+                NotificationLinks.comment(CommentEntityType.NEWS, 41, 501));
+        int mentionInIt = create(
+                NotificationType.COMMENT_MENTION,
+                new NotificationParams.CommentMention("Sturm", "Bea", "@With"),
+                NotificationLinks.comment(CommentEntityType.NEWS, 41, 501));
+        notificationRepo.acknowledge(mentionInIt, member.id());
+        int aboutItsNeighbour = create(
+                NotificationType.NEWS_COMMENT,
+                new NotificationParams.NewsComment("Sturm", "Cem", "Danke"),
+                NotificationLinks.comment(CommentEntityType.NEWS, 41, 502));
+        int aboutTheArticle = create(
+                NotificationType.NEW_NEWS,
+                new NotificationParams.NewNews("Sturm", "Anna", "Es zog"),
+                NotificationLinks.news(41));
+        int sameNumberElsewhere = create(
+                NotificationType.NEWS_COMMENT,
+                new NotificationParams.NewsComment("Handbuch", "Bea", "Unfreundlich"),
+                NotificationLinks.comment(CommentEntityType.KB, 41, 501));
+
+        new CommentDeletedHandler(notifications).handle(new CommentDeleted(station.id(), CommentEntityType.NEWS, 501));
+
+        assertGone(aboutIt, mentionInIt);
+        assertStanding(aboutItsNeighbour, aboutTheArticle, sameNumberElsewhere);
+    }
+
+    /**
+     * A notification written before comments had an address of their own names only the page it
+     * hangs under. Nothing withdraws it, because no match narrow enough to spare its neighbours can
+     * tell it apart from them, and the page it opens is still there.
+     */
+    @Test
+    void deletingACommentLeavesTheNotificationsWrittenBeforeItHadAnAddress() {
+        int withoutAnAddress = create(
+                NotificationType.NEWS_COMMENT,
+                new NotificationParams.NewsComment("Sturm", "Bea", "Unfreundlich"),
+                NotificationLinks.news(42));
+
+        new CommentDeletedHandler(notifications).handle(new CommentDeleted(station.id(), CommentEntityType.NEWS, 503));
+
+        assertStanding(withoutAnAddress);
+    }
+
+    /**
+     * Removing the article still takes the comments written under it, which is what the comment
+     * riding along in the link must not break.
+     */
+    @Test
+    void deletingAnArticleStillTakesTheNotificationsNamingItsComments() {
+        int aboutAComment = create(
+                NotificationType.NEWS_COMMENT,
+                new NotificationParams.NewsComment("Sturm", "Bea", "Danke"),
+                NotificationLinks.comment(CommentEntityType.NEWS, 43, 504));
+
+        new NewsDeletedHandler(notifications).handle(new NewsDeleted(station.id(), 43, "Sturm"));
+
+        assertGone(aboutAComment);
     }
 
     private static int create(NotificationType type, NotificationParams params, NotificationLink link) {

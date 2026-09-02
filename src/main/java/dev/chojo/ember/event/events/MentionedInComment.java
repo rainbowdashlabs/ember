@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.comment.entity.CommentEntityType;
  * @param entityType        the type of entity the comment is on (e.g. "event")
  * @param entityId          the ID of the entity
  * @param entityTitle       the title/name of the entity
+ * @param commentId         the comment carrying the mention, so the notification opens on it
  * @param preview           a short snippet of the comment text (truncated by the publisher) so
  *                          the feed entry can surface the surrounding context without a lookup
  */
@@ -29,5 +30,6 @@ public record MentionedInComment(
         CommentEntityType entityType,
         int entityId,
         String entityTitle,
+        int commentId,
         String preview)
         implements DomainEvent {}

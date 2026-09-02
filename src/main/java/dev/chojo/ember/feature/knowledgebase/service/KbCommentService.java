@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.knowledgebase.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.CommentCreated;
+import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
@@ -108,12 +109,13 @@ public class KbCommentService {
                 authorName,
                 preview));
 
-        notifyMentions(stationId, fileId, fileTitle, authorId, authorName, content, preview);
+        notifyMentions(stationId, fileId, fileTitle, comment.id(), authorId, authorName, content, preview);
         return comment;
     }
 
     /**
-     * Deletes a knowledge-base comment.
+     * Deletes a knowledge-base comment and announces the removal, so that whatever was written
+     * about it can be withdrawn.
      *
      * @param stationId the station owning the file the comment belongs to
      * @param commentId the comment to remove
@@ -125,6 +127,7 @@ public class KbCommentService {
             log.warn("Delete for knowledge comment {} skipped: not found", commentId);
             return false;
         }
+        eventBus.publish(new CommentDeleted(stationId, CommentEntityType.KB, commentId));
         log.info("Deleted knowledge comment {} on station {}", commentId, stationId);
         return true;
     }
@@ -140,6 +143,7 @@ public class KbCommentService {
             int stationId,
             int fileId,
             String fileTitle,
+            int commentId,
             int authorId,
             String authorName,
             String content,
@@ -155,8 +159,8 @@ public class KbCommentService {
             }
             stationMemberService
                     .resolveId(stationId, memberUid)
-                    .ifPresent(mentionedId ->
-                            notifyMention(stationId, fileId, fileTitle, authorId, authorName, mentionedId, preview));
+                    .ifPresent(mentionedId -> notifyMention(
+                            stationId, fileId, fileTitle, commentId, authorId, authorName, mentionedId, preview));
         }
 
         var bulkMatcher = BULK_MENTION_PATTERN.matcher(content);
@@ -165,7 +169,16 @@ public class KbCommentService {
             var type = MentionType.valueOf(bulkMatcher.group(1));
             int targetId = Integer.parseInt(bulkMatcher.group(3));
             eventBus.publish(new BulkMentionedInComment(
-                    stationId, authorId, authorName, CommentEntityType.KB, fileId, fileTitle, type, targetId, preview));
+                    stationId,
+                    authorId,
+                    authorName,
+                    CommentEntityType.KB,
+                    fileId,
+                    fileTitle,
+                    type,
+                    targetId,
+                    commentId,
+                    preview));
         }
     }
 
@@ -173,12 +186,21 @@ public class KbCommentService {
             int stationId,
             int fileId,
             String fileTitle,
+            int commentId,
             int authorId,
             String authorName,
             int mentionedId,
             String preview) {
         if (mentionedId == authorId) return;
         eventBus.publish(new MentionedInComment(
-                stationId, mentionedId, authorId, authorName, CommentEntityType.KB, fileId, fileTitle, preview));
+                stationId,
+                mentionedId,
+                authorId,
+                authorName,
+                CommentEntityType.KB,
+                fileId,
+                fileTitle,
+                commentId,
+                preview));
     }
 }

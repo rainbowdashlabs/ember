@@ -278,7 +278,7 @@ class BoardServiceTest extends RepositoryTestBase {
     @Order(41)
     void deleteCommentWithoutChildren() {
         var comments = ticketService.findComments(ticketId1);
-        assertTrue(ticketService.deleteComment(comments.getFirst().id()));
+        assertTrue(ticketService.deleteComment(ticketId1, comments.getFirst().id()));
         var updated = ticketService.findComments(ticketId1);
         assertTrue(updated.isEmpty());
     }
@@ -768,7 +768,7 @@ class BoardServiceTest extends RepositoryTestBase {
                 ticketId1, null, memberIdentityFactory.local(station.id(), member.id()), "Test comment");
         assertNotNull(comment);
         assertTrue(ticketService.updateComment(comment.id(), "Updated comment"));
-        assertTrue(ticketService.deleteComment(comment.id()));
+        assertTrue(ticketService.deleteComment(ticketId1, comment.id()));
     }
 
     @Test
@@ -991,7 +991,7 @@ class BoardServiceTest extends RepositoryTestBase {
         var comment = ticketService.createComment(
                 ticketId1, null, memberIdentityFactory.local(station.id(), member.id()), mentionText);
         assertNotNull(comment);
-        ticketService.deleteComment(comment.id());
+        ticketService.deleteComment(ticketId1, comment.id());
     }
 
     @Test
@@ -1003,7 +1003,7 @@ class BoardServiceTest extends RepositoryTestBase {
                 memberIdentityFactory.local(station.id(), member.id()),
                 "Hello @[" + member.id() + ":Test]!");
         assertNotNull(comment);
-        ticketService.deleteComment(comment.id());
+        ticketService.deleteComment(ticketId1, comment.id());
     }
 
     // -- Cleanup --

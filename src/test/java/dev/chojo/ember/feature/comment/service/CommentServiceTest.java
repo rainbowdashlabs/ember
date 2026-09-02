@@ -175,13 +175,15 @@ class CommentServiceTest extends RepositoryTestBase {
                             CommentEntityType entityType,
                             int entityId,
                             String entityTitle,
+                            int commentId,
                             String preview))) return false;
             return stationId == station.id()
                     && mentionedMemberId == member2.id()
                     && authorMemberId == member1.id()
                     && "Alice".equals(authorName)
                     && entityType == CommentEntityType.EVENT
-                    && entityId == eventId;
+                    && entityId == eventId
+                    && commentId == comment.id();
         }));
     }
 

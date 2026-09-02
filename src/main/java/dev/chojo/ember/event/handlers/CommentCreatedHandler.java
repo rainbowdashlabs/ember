@@ -19,7 +19,6 @@ import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.util.Map;
 import java.util.Objects;
 
 @Singleton
@@ -41,22 +40,14 @@ public class CommentCreatedHandler implements DomainEventHandler<CommentCreated>
 
     @Override
     public void handle(CommentCreated event) {
-        var link =
-                switch (event.entityType()) {
-                    case NEWS -> NotificationLinks.news(event.entityId());
-                    case KB -> new NotificationData.NotificationLink("kb-file", Map.of("id", event.entityId()));
-                    case EVENT -> NotificationLinks.event(event.entityId());
-                    default -> new NotificationData.NotificationLink("events");
-                };
+        var link = NotificationLinks.comment(event.entityType(), event.entityId(), event.commentId());
         var data = NotificationData.of(
                 new NotificationParams.NewsComment(event.entityTitle(), event.authorName(), event.preview()), link);
 
-        // Notify the parent comment author (if this is a reply and they didn't write this comment)
         if (event.parentAuthorId() != null && !Objects.equals(event.parentAuthorId(), event.authorMemberId())) {
             notificationService.notifyIfAbsent(event.parentAuthorId(), NotificationType.NEWS_COMMENT, data);
         }
 
-        // Notify managers only for news comments
         if (CommentEntityType.NEWS.equals(event.entityType())) {
             var newsMgmtIds =
                     stationMemberRepository
