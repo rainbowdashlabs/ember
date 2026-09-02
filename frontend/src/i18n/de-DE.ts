@@ -3235,6 +3235,20 @@ export default {
             badgeLost: 'Verloren',
             badgeFree: 'Frei',
         },
+        artPicker: {
+            placeholder: 'Art suchen…',
+            empty: 'Keine passende Art.',
+        },
+        inventoryPicker: {
+            placeholder: 'Inventar suchen…',
+            empty: 'Kein passendes Inventar.',
+        },
+        stock: {
+            pieces: '{count} Stück',
+            available: 'Vorhanden: {count} Stück',
+            none: 'Davon ist gerade nichts an der Wache.',
+            short: 'Verlangt sind {requested}, an der Wache sind {available}. Eintragen lässt sich das trotzdem, gedeckt ist es nicht.',
+        },
         assign: {
             selectMember: 'Mitglied',
             pickMember: '- Bitte wählen -',
@@ -3731,12 +3745,9 @@ export default {
             kindCount: 'Eine Anzahl aus einem Inventar',
             kindHint: 'Ein benanntes Stück ist immer genau eines. Eine Anzahl einer Art holt vier blaue Funkgeräte und nicht vier beliebige Dinge aus der Schublade. Die Anzahl aus einem Inventar ist für Inventare, die nur eine Sorte in vielen Stücken halten.',
             item: 'Gegenstand',
-            selectItem: 'Gegenstand auswählen',
             art: 'Art',
-            selectArt: 'Art auswählen',
             noArts: 'In den gemischten Inventaren ist noch keine Art angelegt.',
             inventory: 'Inventar',
-            selectInventory: 'Inventar auswählen',
             quantity: 'Anzahl',
             from: 'Von',
             to: 'Bis',
