@@ -24,10 +24,10 @@ const {t} = useI18n()
   <div class="space-y-6">
     <NeutralContainer class="space-y-1">
       <div class="font-medium">{{ task.memberName }}</div>
-      <MutedText v-if="task.dueOn" size="sm" data-testid="self-check-due">
+      <MutedText v-if="task.dueOn" tag="p" size="sm" data-testid="self-check-due">
         {{ t('selfCheck.dueOn', {date: formatDate(task.dueOn)}) }}
       </MutedText>
-      <MutedText size="sm">{{ t('selfCheck.intro') }}</MutedText>
+      <MutedText tag="p" size="sm">{{ t('selfCheck.intro') }}</MutedText>
     </NeutralContainer>
 
     <Alert v-if="task.state === SelfCheckState.SUBMITTED" variant="info" data-testid="self-check-submitted">
