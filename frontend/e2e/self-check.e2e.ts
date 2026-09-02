@@ -91,6 +91,50 @@ async function takeRow(manager: Page, taskId: number, rowId: number): Promise<vo
     expect(response.ok(), `taking one answer is accepted (${response.status()} ${await response.text()})`).toBeTruthy()
 }
 
+/** One kind of gear the member is asked about, as the task itself describes it. */
+interface Required {
+    inventoryId: number
+    inventoryName: string
+    hasSizes: boolean
+    homogeneous: boolean
+    sizes: {id: number; label: string}[]
+    requiredQuantity: number
+    assignedQuantity: number
+}
+
+interface Assigned {
+    id: number
+    inventoryId: number
+    sizeId?: number | null
+    ownerKind: string
+    custody: string
+}
+
+/** The task as the person answering it reads it, which is the only view that carries their own gear. */
+async function ownTask(member: Page, taskId: number): Promise<{required: Required[]; assigned: Assigned[]}> {
+    const response = await member.request.get(`/api/v1/self-checks/${taskId}`, {headers: await apiHeaders(member)})
+    expect(response.ok(), `the member reads their own task (${await response.text()})`).toBeTruthy()
+    return response.json()
+}
+
+/**
+ * A kind of gear that comes in sizes, holds one thing in many copies, and the member holds a piece
+ * of. Both stories below need exactly that: one to take the piece away and leave a place the member
+ * can say they are holding something for, the other to raise a swap on the piece itself.
+ */
+function sizedKindTheMemberHolds(task: {required: Required[]; assigned: Assigned[]}): {req: Required; piece: Assigned} {
+    for (const req of task.required) {
+        if (!req.hasSizes || !req.homogeneous || req.sizes.length === 0) continue
+        const piece = task.assigned.find(item =>
+            item.inventoryId === req.inventoryId
+            && item.sizeId != null
+            && item.ownerKind !== 'PARTNER_STATION'
+            && item.custody !== 'LOST')
+        if (piece) return {req, piece}
+    }
+    throw new Error('the station keeps no gear in sizes that a member holds a piece of')
+}
+
 /** The task as the review endpoint reads it, which is where the settlement of each answer stands. */
 async function review(manager: Page, taskId: number) {
     const response = await manager.request.get(`/api/v1/self-check-reviews/${taskId}`, {
@@ -199,6 +243,93 @@ test.describe('Self-check', () => {
             expect(detail.check.checkedBy).not.toBe(detail.check.reportedBy)
             await memberPage.context().close()
         })
+
+    /**
+     * SFC-4: a member holding something nobody wrote down says which size it is, the checker reads
+     * that size on the submission, and putting the record right writes it onto the piece.
+     *
+     * <p>The place is made rather than looked for: the demo hands every member everything their role
+     * asks of them, so taking one piece back off the record is what leaves the empty place this
+     * story is about.
+     */
+    test('a size given for a piece nobody wrote down reaches the record', async ({browser, request, managerPage}) => {
+        const {page: memberPage, memberId, taskId} = await askSomebody(browser, request, managerPage)
+        const headers = await apiHeaders(managerPage)
+
+        const {req, piece} = sizedKindTheMemberHolds(await ownTask(memberPage, taskId))
+        const emptied = await managerPage.request.put(`/api/v1/inventory-items/${piece.id}/assign`, {
+            headers,
+            data: {memberId: null},
+        })
+        expect(emptied.ok(), `the checker takes the piece back off the record (${await emptied.text()})`).toBeTruthy()
+
+        const wanted = req.sizes[0]!
+        const placeKey = `place-${req.inventoryId}-0`
+
+        await memberPage.goto(`/station/inventory/self-check/${taskId}`)
+        await expect(memberPage.getByTestId('app-shell')).toBeVisible()
+        await answerEverything(memberPage)
+        await memberPage.getByTestId(`self-check-answer-${placeKey}-HAVE_ONE`).click()
+        await memberPage.getByTestId(`self-check-size-${placeKey}`).selectOption(String(wanted.id))
+        await memberPage.getByTestId('self-check-submit').click()
+        await expect(memberPage.getByTestId('self-check-submitted')).toBeVisible()
+
+        const submitted = await review(managerPage, taskId)
+        const held = submitted.rows.find((entry: {row: {inventoryId: number; slot: number | null}}) =>
+            entry.row.inventoryId === req.inventoryId && entry.row.slot === 0)
+        expect(held, 'the submission carries the answer about the empty place').toBeTruthy()
+        expect(held.row.sizeId, 'and the size the member gave').toBe(wanted.id)
+        expect(held.statedSize, 'spelled the way the inventory spells it').toBe(wanted.label)
+
+        await managerPage.goto(`/station/inventory/checks/self/${taskId}`)
+        await expect(managerPage.getByTestId('review-people')).toBeVisible()
+        await expect(managerPage.getByTestId(`review-stated-size-${held.row.id}`)).toContainText(wanted.label)
+
+        await managerPage.getByTestId(`review-correct-${held.row.id}`).click()
+        const source = managerPage.getByTestId('correct-source')
+        if (await source.isVisible()) await source.selectOption('NEW')
+        await managerPage.getByTestId('correct-confirm').click()
+        await expect(managerPage.getByTestId('correct-confirm')).toBeHidden()
+
+        const settled = await review(managerPage, taskId)
+        const named = settled.rows.find((entry: {row: {id: number}}) => entry.row.id === held.row.id)
+        expect(named.row.itemId, 'the answer now names a real piece').toBeTruthy()
+        expect(named.item.sizeId, 'and that piece carries the size the member gave').toBe(wanted.id)
+        expect(named.item.assignedTo, 'against the member it was about').toBe(memberId)
+        await memberPage.context().close()
+    })
+
+    /**
+     * SFC-5: a broken piece raises the same swap a piece that no longer fits does, saying which of
+     * the two it was and keeping the size it already is.
+     */
+    test('a broken piece raises a swap that says so and keeps its size', async ({browser, request, managerPage}) => {
+        const {page: memberPage, taskId} = await askSomebody(browser, request, managerPage)
+        const {piece} = sizedKindTheMemberHolds(await ownTask(memberPage, taskId))
+
+        await memberPage.goto(`/station/inventory/self-check/${taskId}`)
+        await expect(memberPage.getByTestId('app-shell')).toBeVisible()
+        await memberPage.getByTestId(`self-check-broken-piece-${piece.id}`).click()
+        await expect(memberPage.getByTestId('exchange-cause')).toContainText('kaputt')
+        await expect(memberPage.getByTestId('exchange-new-size')).toHaveValue(String(piece.sizeId))
+        await memberPage.getByTestId('exchange-submit').click()
+        await expect(memberPage.getByTestId(`self-check-broken-piece-${piece.id}`)).toBeDisabled()
+
+        const raised = (await ownTask(memberPage, taskId)) as unknown as {raised: {kind: string; itemId: number}[]}
+        expect(
+            raised.raised.some(entry => entry.kind === 'EXCHANGE' && entry.itemId === piece.id),
+            'the task records that a swap was set going here',
+        ).toBeTruthy()
+
+        const exchanges = await managerPage.request.get('/api/v1/exchanges', {headers: await apiHeaders(managerPage)})
+        expect(exchanges.ok(), `the station reads its swaps (${await exchanges.text()})`).toBeTruthy()
+        const swap = (await exchanges.json()).find(
+            (entry: {itemId: number | null}) => entry.itemId === piece.id)
+        expect(swap, 'the swap reached the station').toBeTruthy()
+        expect(swap.reason, 'and says why it arose').toContain('kaputt')
+        expect(swap.newSizeId, 'the same size comes back').toBe(piece.sizeId)
+        await memberPage.context().close()
+    })
 
     /**
      * SFC-3: a checker may not sign off a submission they entered themselves, whatever permission
