@@ -107,10 +107,10 @@ async function clear() {
   <Modal v-model="open" size="lg">
     <div class="space-y-4" data-testid="lending-share-modal">
       <SubHeader>{{ t('lendingShare.title') }}</SubHeader>
-      <MutedText>{{ targetName }}</MutedText>
+      <MutedText tag="p">{{ targetName }}</MutedText>
 
       <Alert v-if="error" variant="error">{{ error }}</Alert>
-      <MutedText v-if="loading">{{ t('lendingShare.loading') }}</MutedText>
+      <MutedText v-if="loading" tag="p">{{ t('lendingShare.loading') }}</MutedText>
 
       <template v-else>
         <div>
