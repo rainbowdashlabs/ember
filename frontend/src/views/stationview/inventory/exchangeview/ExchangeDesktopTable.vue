@@ -6,10 +6,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import ExchangeCorrectPanel from './ExchangeCorrectPanel.vue'
-import ExchangeStatusUpdatePanel from './ExchangeStatusUpdatePanel.vue'
 import ExchangeTableHeader from './ExchangeTableHeader.vue'
-import ExchangeTableRow from './ExchangeTableRow.vue'
+import ExchangeTableRowBlock from './ExchangeTableRowBlock.vue'
 import type { ExchangeRequestEntry, ExchangeStatusName } from '@/api/exchanges'
 import type { InventoryItem } from '@/api/inventory'
 import type { SortDirection } from '@/composables/useSortable'
@@ -64,42 +62,30 @@ const colSpan = computed(() => (props.showMemberColumn ? 9 : 8) + (props.exportM
         />
       </thead>
       <tbody>
-        <template v-for="req in requests" :key="req.id">
-          <ExchangeTableRow
-            :request="req"
-            :export-mode="exportMode"
-            :show-member-column="showMemberColumn"
-            :can-manage-exchanges="canManageExchanges"
-            :selected="selectedForExport.has(req.id)"
-            @toggle-export="emit('toggle-export', req.id)"
-            @open-log="emit('open-log', req.id)"
-            @start-update="emit('start-update', req)"
-            @start-correct="emit('start-correct', req)"
-            @delete="emit('delete', req.id)"
-          />
-          <tr v-if="updatingId === req.id" class="bg-(--bg-accent)/30">
-            <td :colspan="colSpan" class="px-3 py-3">
-              <ExchangeStatusUpdatePanel
-                :request="req"
-                :next-statuses="nextStatusesFor(req)"
-                :available-items="availableItems"
-                @done="emit('status-done')"
-                @cancel="emit('status-cancel')"
-                @error="(msg) => emit('status-error', msg)"
-              />
-            </td>
-          </tr>
-          <tr v-if="correctingId === req.id" class="bg-(--bg-accent)/30">
-            <td :colspan="colSpan" class="px-3 py-3">
-              <ExchangeCorrectPanel
-                :request="req"
-                @done="emit('correct-done')"
-                @cancel="emit('correct-cancel')"
-                @error="(msg) => emit('status-error', msg)"
-              />
-            </td>
-          </tr>
-        </template>
+        <ExchangeTableRowBlock
+          v-for="req in requests"
+          :key="req.id"
+          :request="req"
+          :export-mode="exportMode"
+          :show-member-column="showMemberColumn"
+          :can-manage-exchanges="canManageExchanges"
+          :selected="selectedForExport.has(req.id)"
+          :col-span="colSpan"
+          :updating="updatingId === req.id"
+          :correcting="correctingId === req.id"
+          :available-items="availableItems"
+          :next-statuses="nextStatusesFor(req)"
+          @toggle-export="emit('toggle-export', req.id)"
+          @open-log="emit('open-log', req.id)"
+          @start-update="emit('start-update', req)"
+          @start-correct="emit('start-correct', req)"
+          @delete="emit('delete', req.id)"
+          @status-done="emit('status-done')"
+          @status-cancel="emit('status-cancel')"
+          @status-error="(msg) => emit('status-error', msg)"
+          @correct-done="emit('correct-done')"
+          @correct-cancel="emit('correct-cancel')"
+        />
       </tbody>
     </table>
   </NeutralContainer>

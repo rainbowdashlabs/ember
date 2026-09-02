@@ -400,11 +400,23 @@ public class KnowledgeBaseRoutes implements Routes {
     private void listRecentFiles(Context ctx) {
         var session = UserSession.from(ctx);
         var access = KbRouteAccess.accessOf(ctx, accessService);
-        int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
-        ctx.json(service.findRecentFiles(session.stationId(), Math.min(Math.max(limit, 1), 50) * 4).stream()
-                .filter(file -> accessService.canAccess(access, null, file.id()))
-                .limit(Math.min(Math.max(limit, 1), 50))
-                .map(file -> new SearchResultResponse(file, "", resolveFolderPath(file.folderId()), null, null))
+        int limit =
+                Math.min(Math.max(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10), 1), 50);
+        var found = service.findRecentFiles(session.stationId(), limit * 4);
+        var readable = accessService.readableFiles(
+                access, found.stream().map(KbAccessService.FileNode::of).toList());
+        var visible = found.stream()
+                .filter(file -> readable.contains(file.id()))
+                .limit(limit)
+                .toList();
+        var folderPaths = service.findFolderPaths(visible.stream()
+                .map(KbFile::folderId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
+        ctx.json(visible.stream()
+                .map(file ->
+                        new SearchResultResponse(file, "", folderPaths.getOrDefault(file.folderId(), "/"), null, null))
                 .toList());
     }
 
