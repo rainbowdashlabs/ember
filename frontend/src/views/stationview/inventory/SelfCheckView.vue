@@ -20,7 +20,7 @@ import type {InventorySize, RequiredInventoryItem} from '@/api/inventory'
 import {SelfCheckState, type SelfCheckAnswerName, type SelfCheckResponse} from '@/api/selfChecks'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {useSelfCheck, type SelfCheckEntry} from '@/composables/useSelfCheck'
+import {ExchangeCause, useSelfCheck, type ExchangeCauseName, type SelfCheckEntry} from '@/composables/useSelfCheck'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -61,6 +61,11 @@ function setNote(key: string, note: string) {
 function setTypedInternalId(key: string, typedInternalId: string) {
   saved.value = ''
   check.setDraft(key, {typedInternalId})
+}
+
+function setSizeId(key: string, sizeId: string) {
+  saved.value = ''
+  check.setDraft(key, {sizeId})
 }
 
 /**
@@ -120,16 +125,28 @@ const showExchange = ref(false)
 const exchangeReason = ref('')
 const exchangeNewSizeId = ref('')
 const exchangeSizes = ref<InventorySize[]>([])
+const exchangeCause = ref<ExchangeCauseName>(ExchangeCause.DOES_NOT_FIT)
+
+/** Whether another size is the point of the exchange, which is what makes naming one unavoidable. */
+const wantsAnotherSize = computed(() => exchangeCause.value === ExchangeCause.DOES_NOT_FIT)
+
+/** What the exchange says it is for, which is the half of the reason nobody has to type. */
+const causeText = computed(() => t(`selfCheck.exchangeCause.${exchangeCause.value}`))
 
 /**
- * Asking for another size, which is on its way rather than waiting: the exchange lands on the
- * station's list at once and the task only records that it was raised here.
+ * Asking for a swap, which is on its way rather than waiting: the exchange lands on the station's
+ * list at once and the task only records that it was raised here.
+ *
+ * <p>A broken piece starts on the size it already is, because the replacement usually is that size.
+ * A piece that no longer fits starts on nothing, because the whole point is that the size changes.
  */
-async function openExchange(entry: SelfCheckEntry) {
+async function openExchange(entry: SelfCheckEntry, cause: ExchangeCauseName) {
   if (entry.type !== 'piece') return
   exchangeEntry.value = entry
+  exchangeCause.value = cause
   exchangeReason.value = ''
-  exchangeNewSizeId.value = ''
+  exchangeNewSizeId.value =
+      cause === ExchangeCause.BROKEN && entry.item.sizeId != null ? String(entry.item.sizeId) : ''
   clearExchangeError()
   exchangeSizes.value = entry.req.sizes
   showExchange.value = true
@@ -142,14 +159,15 @@ const {
   clearError: clearExchangeError,
 } = useAsyncAction(async () => {
   const entry = exchangeEntry.value
-  if (entry?.type !== 'piece' || !exchangeReason.value.trim()) return
+  if (entry?.type !== 'piece') return
+  const ownWords = exchangeReason.value.trim()
   await exchanges.createExchange({
     memberId: task.value?.task.memberId,
     itemId: entry.item.id,
     inventoryId: entry.req.inventoryId,
     oldSizeId: entry.item.sizeId ?? undefined,
     newSizeId: exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined,
-    reason: exchangeReason.value.trim(),
+    reason: ownWords ? `${causeText.value} - ${ownWords}` : causeText.value,
     selfCheckId: taskId.value,
   })
   showExchange.value = false
@@ -202,6 +220,7 @@ const exchangePiece = computed(() =>
             @set-answer="setAnswer"
             @set-note="setNote"
             @set-typed-internal-id="setTypedInternalId"
+            @set-size-id="setSizeId"
             @report-lost="openLost"
             @request-exchange="openExchange"
         />
@@ -236,6 +255,8 @@ const exchangePiece = computed(() =>
         v-model:new-size-id="exchangeNewSizeId"
         :item="exchangePiece"
         :sizes="exchangeSizes"
+        :cause="causeText"
+        :size-required="wantsAnotherSize"
         :submitting="submittingExchange"
         :error="exchangeError"
         @cancel="showExchange = false"

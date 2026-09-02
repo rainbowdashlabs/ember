@@ -20,6 +20,8 @@ const props = defineProps<{
   row: SelfCheckReviewRow
   busy: boolean
   mayApprove: boolean
+  /** Whether this answer is one the member could have named a size on. */
+  asksForASize: boolean
 }>()
 
 const emit = defineEmits<{
@@ -37,7 +39,7 @@ const settleable = computed(() => props.row.row.state === 'OUTSTANDING' && props
       :data-testid="`review-row-${row.row.id}`"
   >
     <div class="flex flex-col sm:flex-row sm:items-start gap-2">
-      <ReviewRowSummary :row="row"/>
+      <ReviewRowSummary :row="row" :asks-for-a-size="asksForASize"/>
       <ReviewRowActions
           v-if="settleable"
           :row="row"

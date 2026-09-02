@@ -19,7 +19,7 @@ import CorrectItemModal from './checkmemberview/CorrectItemModal.vue'
 import {selfChecks} from '@/api'
 import type {CorrectItemRequest} from '@/api/inventoryCheck'
 import type {InventoryItem, RequiredInventoryItem} from '@/api/inventory'
-import type {SelfCheckReview, SelfCheckReviewRow} from '@/api/selfChecks'
+import {SelfCheckAnswer, type SelfCheckReview, type SelfCheckReviewRow} from '@/api/selfChecks'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {formatDate} from '@/util/format'
@@ -45,6 +45,14 @@ function requirementOf(row: SelfCheckReviewRow): RequiredInventoryItem | null {
 
 function freeStockOf(inventoryId: number): InventoryItem[] {
   return review.value?.freeStock[inventoryId] ?? []
+}
+
+/**
+ * Whether the member could have named a size on this answer, which is what makes the absence of one
+ * worth saying. Anywhere else a missing size is not a gap but a question that was never asked.
+ */
+function asksForASize(row: SelfCheckReviewRow): boolean {
+  return row.row.answer === SelfCheckAnswer.HAVE_ONE && (requirementOf(row)?.hasSizes ?? false)
 }
 
 function itemLabel(item: InventoryItem, req: RequiredInventoryItem): string {
@@ -119,13 +127,13 @@ const outstanding = computed(() => (review.value?.rows ?? []).filter(row => row.
       <template v-if="!loading && review">
         <NeutralContainer class="space-y-1">
           <SubHeader>{{ review.memberName }}</SubHeader>
-          <MutedText size="sm" data-testid="review-people">
+          <MutedText size="sm" tag="p" data-testid="review-people">
             {{ t('selfCheck.review.people', {reporter: review.submittedByName, handedOut: review.handedOutByName}) }}
           </MutedText>
-          <MutedText v-if="review.task.dueOn" size="sm">
+          <MutedText v-if="review.task.dueOn" size="sm" tag="p">
             {{ t('selfCheck.dueOn', {date: formatDate(review.task.dueOn)}) }}
           </MutedText>
-          <MutedText size="sm" data-testid="review-outstanding">
+          <MutedText size="sm" tag="p" data-testid="review-outstanding">
             {{ t('selfCheck.review.outstanding', {count: outstanding}) }}
           </MutedText>
         </NeutralContainer>
@@ -136,7 +144,7 @@ const outstanding = computed(() => (review.value?.rows ?? []).filter(row => row.
 
         <NeutralContainer v-if="review.raised.length > 0" class="space-y-2">
           <SubHeader>{{ t('selfCheck.review.raisedTitle') }}</SubHeader>
-          <MutedText size="sm">{{ t('selfCheck.review.raisedHint') }}</MutedText>
+          <MutedText size="sm" tag="p">{{ t('selfCheck.review.raisedHint') }}</MutedText>
           <div v-for="entry in review.raised" :key="entry.raised.id" class="text-sm" data-testid="review-raised">
             {{ t(`selfCheck.review.raised.${entry.raised.kind}`, {item: entry.itemName, name: entry.raisedByName}) }}
           </div>
@@ -149,11 +157,14 @@ const outstanding = computed(() => (review.value?.rows ?? []).filter(row => row.
               :row="row"
               :busy="busy || correctBusy || refuseBusy"
               :may-approve="review.mayApprove"
+              :asks-for-a-size="asksForASize(row)"
               @take="take"
               @correct="openCorrect"
               @refuse="openRefuse"
           />
-          <MutedText v-if="review.rows.length === 0" size="sm">{{ t('selfCheck.review.nothingSaid') }}</MutedText>
+          <MutedText v-if="review.rows.length === 0" size="sm" tag="p">
+            {{ t('selfCheck.review.nothingSaid') }}
+          </MutedText>
         </div>
       </template>
     </div>
@@ -166,6 +177,7 @@ const outstanding = computed(() => (review.value?.rows ?? []).filter(row => row.
         :item="correcting?.item ?? null"
         :item-label="itemLabel"
         :req="correcting ? requirementOf(correcting) : null"
+        :stated-size-id="correcting?.row.sizeId ?? null"
         @confirm="applyCorrection"
     />
 

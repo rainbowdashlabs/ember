@@ -22,7 +22,7 @@ const {t} = useI18n()
 
 <template>
   <div v-if="identifier.finding !== 'NOTHING_TYPED'" class="space-y-1" data-testid="identifier-finding">
-    <MutedText size="xs">
+    <MutedText size="xs" tag="p">
       {{ t('selfCheck.review.typed', {typed: identifier.typed}) }}
       <span :data-testid="`identifier-${identifier.finding}`">{{ t(`selfCheck.review.finding.${identifier.finding}`) }}</span>
     </MutedText>

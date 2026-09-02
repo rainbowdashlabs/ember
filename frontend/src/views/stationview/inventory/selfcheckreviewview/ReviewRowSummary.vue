@@ -13,8 +13,18 @@ import MutedText from '@/components/typography/MutedText.vue'
 import IdentifierFinding from './IdentifierFinding.vue'
 import type {SelfCheckReviewRow} from '@/api/selfChecks'
 
-/** What the member said about one thing, and what settling it would do. */
-const props = defineProps<{row: SelfCheckReviewRow}>()
+/**
+ * What the member said about one thing, and what settling it would do.
+ *
+ * <p>Whether the gear comes in sizes is told rather than read off the answer, because a size nobody
+ * gave and a kind of gear that has none look the same from here and only one of them is worth a
+ * line on the screen.
+ */
+const props = defineProps<{
+  row: SelfCheckReviewRow
+  /** Whether this answer is one the member could have named a size on. */
+  asksForASize: boolean
+}>()
 
 const {t} = useI18n()
 
@@ -33,15 +43,21 @@ const title = computed(() => props.row.item?.name ?? props.row.inventoryName)
     <div class="text-sm" :data-testid="`review-answer-${row.row.id}`">
       {{ t(`selfCheck.answer.${row.row.answer}`) }}
     </div>
-    <MutedText v-if="row.row.note" size="sm">{{ row.row.note }}</MutedText>
-    <MutedText size="xs">{{ t('selfCheck.review.answeredBy', {name: row.answeredByName}) }}</MutedText>
-    <MutedText size="xs" :data-testid="`review-settlement-${row.row.id}`">
+    <MutedText v-if="row.row.note" size="sm" tag="p">{{ row.row.note }}</MutedText>
+    <MutedText v-if="row.statedSize" size="sm" tag="p" :data-testid="`review-stated-size-${row.row.id}`">
+      {{ t('selfCheck.review.statedSize', {size: row.statedSize}) }}
+    </MutedText>
+    <MutedText v-else-if="asksForASize" size="sm" tag="p" :data-testid="`review-stated-size-${row.row.id}`">
+      {{ t('selfCheck.review.noSizeGiven') }}
+    </MutedText>
+    <MutedText size="xs" tag="p">{{ t('selfCheck.review.answeredBy', {name: row.answeredByName}) }}</MutedText>
+    <MutedText size="xs" tag="p" :data-testid="`review-settlement-${row.row.id}`">
       {{ t(`selfCheck.review.settlement.${row.settlement}`) }}
     </MutedText>
-    <MutedText v-if="row.removal !== 'NOTHING'" size="xs" :data-testid="`review-removal-${row.row.id}`">
+    <MutedText v-if="row.removal !== 'NOTHING'" size="xs" tag="p" :data-testid="`review-removal-${row.row.id}`">
       {{ t(`selfCheck.review.removal.${row.removal}`) }}
     </MutedText>
-    <MutedText v-if="row.row.state === 'REFUSED'" size="xs">
+    <MutedText v-if="row.row.state === 'REFUSED'" size="xs" tag="p">
       {{ t('selfCheck.cameBack', {reason: row.row.reviewerReason}) }}
     </MutedText>
     <IdentifierFinding :identifier="row.identifier"/>

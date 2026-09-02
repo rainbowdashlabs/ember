@@ -31,9 +31,25 @@ export interface SelfCheckDraft {
     answer: SelfCheckAnswerName | null
     note: string
     typedInternalId: string
+    /** The size they gave for a piece nobody wrote down, empty where they did not say. */
+    sizeId: string
 }
 
-const EMPTY_DRAFT: SelfCheckDraft = {answer: null, note: '', typedInternalId: ''}
+const EMPTY_DRAFT: SelfCheckDraft = {answer: null, note: '', typedInternalId: '', sizeId: ''}
+
+/**
+ * Why a member wants a piece swapped.
+ *
+ * <p>Both raise the same exchange, and the difference is what it says and what it may ask for: a
+ * piece that no longer fits wants another size, a broken one wants a replacement and may perfectly
+ * well want the same size back, or none at all.
+ */
+export const ExchangeCause = {
+    DOES_NOT_FIT: 'DOES_NOT_FIT',
+    BROKEN: 'BROKEN',
+} as const
+
+export type ExchangeCauseName = (typeof ExchangeCause)[keyof typeof ExchangeCause]
 
 /** The key a saved answer hangs on, which is the piece where there is one and the place where not. */
 export function entryKey(inventoryId: number, itemId?: number | null, slot?: number | null): string {
@@ -139,6 +155,7 @@ export function useSelfCheck(task: Ref<SelfCheckResponse | null>) {
                 answer: row.answer,
                 note: row.note ?? '',
                 typedInternalId: row.typedInternalId ?? '',
+                sizeId: row.sizeId == null ? '' : String(row.sizeId),
             })
         }
         for (const [key, draft] of drafts.value) next.set(key, draft)
@@ -153,12 +170,14 @@ export function useSelfCheck(task: Ref<SelfCheckResponse | null>) {
         if (entry.type === 'piece') {
             return {itemId: entry.item.id, answer: draft.answer, note}
         }
+        const holdsOne = draft.answer === SelfCheckAnswer.HAVE_ONE
         return {
             inventoryId: entry.req.inventoryId,
             slot: entry.slot,
             answer: draft.answer,
             note,
-            typedInternalId: draft.answer === SelfCheckAnswer.HAVE_ONE ? draft.typedInternalId.trim() || null : null,
+            typedInternalId: holdsOne ? draft.typedInternalId.trim() || null : null,
+            sizeId: holdsOne && draft.sizeId ? Number(draft.sizeId) : null,
         }
     }
 

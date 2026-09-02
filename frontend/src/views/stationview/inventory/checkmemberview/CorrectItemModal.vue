@@ -39,6 +39,11 @@ const props = defineProps<{
   itemLabel: (item: InventoryItem, req: RequiredInventoryItem) => string
   busy?: boolean
   error?: string
+  /**
+   * The size the member already named, which the new piece starts on. Only a self-check carries one:
+   * a checker standing in front of the piece reads the size off it.
+   */
+  statedSizeId?: number | null
 }>()
 
 const show = defineModel<boolean>({required: true})
@@ -87,7 +92,7 @@ watch(show, async visible => {
   source.value = pickable.value.length > 0 ? 'STOCK' : 'NEW'
   pickedItemId.value = ''
   owner.value = props.req.inventoryType === InventoryTypes.EXTERNAL ? ItemOwner.CLUSTER : ItemOwner.STATION
-  sizeId.value = ''
+  sizeId.value = props.statedSizeId == null ? '' : String(props.statedSizeId)
   internalId.value = ''
   fieldValues.value = {}
   fields.value = await inventoryFields.listFields(props.req.inventoryId).catch(() => [])

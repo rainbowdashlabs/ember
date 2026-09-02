@@ -66,7 +66,7 @@ function open(task: SelfCheckTask) {
 <template>
   <NeutralContainer class="space-y-3" data-testid="self-check-panel">
     <SubHeader>{{ t('selfCheck.panel.title') }}</SubHeader>
-    <MutedText size="sm">{{ t('selfCheck.panel.hint') }}</MutedText>
+    <MutedText size="sm" tag="p">{{ t('selfCheck.panel.hint') }}</MutedText>
 
     <Alert v-if="error || askError" variant="error">{{ error || askError }}</Alert>
 
@@ -89,14 +89,14 @@ function open(task: SelfCheckTask) {
       </PrimaryButton>
     </div>
 
-    <MutedText v-if="!loading && tasks.length === 0" size="sm" data-testid="self-check-none">
+    <MutedText v-if="!loading && tasks.length === 0" size="sm" tag="p" data-testid="self-check-none">
       {{ t('selfCheck.panel.none') }}
     </MutedText>
 
     <div v-for="task in tasks" :key="task.id" class="flex items-center gap-2 text-sm" :data-testid="`self-check-task-${task.id}`">
       <div class="flex-1 min-w-0">
         <div class="truncate">{{ task.memberName }}</div>
-        <MutedText size="xs">
+        <MutedText size="xs" tag="p">
           {{ t(`selfCheck.state.${task.state}`) }}
           <template v-if="task.dueOn"> - {{ t('selfCheck.dueOn', {date: formatDate(task.dueOn)}) }}</template>
         </MutedText>

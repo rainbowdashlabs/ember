@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -20,12 +21,27 @@ const modelValue = defineModel<boolean>({required: true})
 const reason = defineModel<string>('reason', {required: true})
 const newSizeId = defineModel<string>('newSizeId', {required: true})
 
-defineProps<{
-  item: NamedPiece | null
-  sizes: InventorySize[]
-  submitting: boolean
-  error: string
-}>()
+/**
+ * Asking for a piece to be swapped.
+ *
+ * <p>Where the screen already knows why, it says so and the member's own words become an addition
+ * rather than the whole reason. That is also what decides the size: another size is the point of an
+ * exchange raised because a piece no longer fits, and it is not the point of one raised because a
+ * piece is broken, where the same size back is the ordinary outcome.
+ */
+const props = withDefaults(
+    defineProps<{
+      item: NamedPiece | null
+      sizes: InventorySize[]
+      submitting: boolean
+      error: string
+      /** Why the piece is being swapped, where the screen knows. Empty where the member says it themselves. */
+      cause?: string
+      /** Whether a different size is the point of it, which is what makes naming one unavoidable. */
+      sizeRequired?: boolean
+    }>(),
+    {cause: '', sizeRequired: true},
+)
 
 const emit = defineEmits<{
   cancel: []
@@ -33,6 +49,12 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+const ready = computed(() => {
+  if (props.submitting) return false
+  if (!props.cause && !reason.value.trim()) return false
+  return !props.sizeRequired || props.sizes.length === 0 || newSizeId.value !== ''
+})
 </script>
 
 <template>
@@ -43,18 +65,26 @@ const {t} = useI18n()
         {{ item.inventoryName }} - {{ item.name }}
         <SizeBadge>{{ item.sizeName ?? t('common.unisize') }}</SizeBadge>
       </p>
+      <p v-if="cause" class="text-sm" data-testid="exchange-cause">{{ cause }}</p>
       <div v-if="sizes.length > 0" class="space-y-1">
         <FieldLabel>{{ t('exchanges.newSize') }}</FieldLabel>
-        <SelectInput v-model="newSizeId" class="w-full">
-          <option value="" disabled>{{ t('exchanges.selectNewSize') }}</option>
+        <SelectInput v-model="newSizeId" class="w-full" data-testid="exchange-new-size">
+          <option value="" :disabled="sizeRequired">
+            {{ sizeRequired ? t('exchanges.selectNewSize') : t('exchanges.noSize') }}
+          </option>
           <option v-for="size in sizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
         </SelectInput>
       </div>
-      <TextAreaInput v-model="reason" :placeholder="t('profile.exchangeReasonPlaceholder')" :rows="3" />
+      <TextAreaInput
+          v-model="reason"
+          :placeholder="cause ? t('profile.exchangeExtraPlaceholder') : t('profile.exchangeReasonPlaceholder')"
+          :rows="3"
+          data-testid="exchange-reason"
+      />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
       <div class="flex justify-end gap-2">
         <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="submitting || !reason.trim() || (sizes.length > 0 && !newSizeId)" @click="emit('submit')">
+        <PrimaryButton :disabled="!ready" data-testid="exchange-submit" @click="emit('submit')">
           {{ t('profile.submitExchange') }}
         </PrimaryButton>
       </div>
