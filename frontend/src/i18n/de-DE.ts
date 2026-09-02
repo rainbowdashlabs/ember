@@ -3529,6 +3529,8 @@ export default {
             bySize: 'Nach Größe',
             size: 'Größe',
             noSize: 'Ohne Größe',
+            shareBarLabel: '{free} verfügbar, {assigned} zugewiesen, {away} verliehen oder verloren',
+            shareBarEmpty: 'Kein Bestand in dieser Größe',
             lostItems: 'Verlorene Gegenstände',
             freeItems: 'Verfügbare Gegenstände',
             item: 'Gegenstand',
