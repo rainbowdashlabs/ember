@@ -102,6 +102,7 @@ public class KbCommentService {
                 CommentEntityType.KB,
                 fileId,
                 fileTitle,
+                null,
                 comment.id(),
                 parentId,
                 parentAuthorId(parentId),
@@ -177,6 +178,7 @@ public class KbCommentService {
                     fileTitle,
                     type,
                     targetId,
+                    null,
                     commentId,
                     preview));
         }
@@ -200,6 +202,7 @@ public class KbCommentService {
                 CommentEntityType.KB,
                 fileId,
                 fileTitle,
+                null,
                 commentId,
                 preview));
     }

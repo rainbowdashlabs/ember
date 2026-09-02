@@ -34,7 +34,8 @@ public class MentionedInCommentHandler implements DomainEventHandler<MentionedIn
 
     @Override
     public void handle(MentionedInComment event) {
-        var link = NotificationLinks.comment(event.entityType(), event.entityId(), event.commentId());
+        var link = NotificationLinks.comment(
+                event.entityType(), event.entityId(), event.ticketAddress(), event.commentId());
         var data = NotificationData.of(
                 new NotificationParams.CommentMention(event.entityTitle(), event.authorName(), event.preview()), link);
         notificationService.notifyIfAbsent(event.mentionedMemberId(), NotificationType.COMMENT_MENTION, data);

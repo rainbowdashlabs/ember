@@ -11,6 +11,7 @@ import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.event.events.FormDeleted;
 import dev.chojo.ember.event.events.NewsDeleted;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
@@ -149,16 +150,16 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
         int aboutIt = create(
                 NotificationType.NEWS_COMMENT,
                 new NotificationParams.NewsComment("Sturm", "Bea", "Unfreundlich"),
-                NotificationLinks.comment(CommentEntityType.NEWS, 41, 501));
+                NotificationLinks.comment(CommentEntityType.NEWS, 41, null, 501));
         int mentionInIt = create(
                 NotificationType.COMMENT_MENTION,
                 new NotificationParams.CommentMention("Sturm", "Bea", "@With"),
-                NotificationLinks.comment(CommentEntityType.NEWS, 41, 501));
+                NotificationLinks.comment(CommentEntityType.NEWS, 41, null, 501));
         notificationRepo.acknowledge(mentionInIt, member.id());
         int aboutItsNeighbour = create(
                 NotificationType.NEWS_COMMENT,
                 new NotificationParams.NewsComment("Sturm", "Cem", "Danke"),
-                NotificationLinks.comment(CommentEntityType.NEWS, 41, 502));
+                NotificationLinks.comment(CommentEntityType.NEWS, 41, null, 502));
         int aboutTheArticle = create(
                 NotificationType.NEW_NEWS,
                 new NotificationParams.NewNews("Sturm", "Anna", "Es zog"),
@@ -166,7 +167,7 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
         int sameNumberElsewhere = create(
                 NotificationType.NEWS_COMMENT,
                 new NotificationParams.NewsComment("Handbuch", "Bea", "Unfreundlich"),
-                NotificationLinks.comment(CommentEntityType.KB, 41, 501));
+                NotificationLinks.comment(CommentEntityType.KB, 41, null, 501));
 
         new CommentDeletedHandler(notifications).handle(new CommentDeleted(station.id(), CommentEntityType.NEWS, 501));
 
@@ -200,11 +201,35 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
         int aboutAComment = create(
                 NotificationType.NEWS_COMMENT,
                 new NotificationParams.NewsComment("Sturm", "Bea", "Danke"),
-                NotificationLinks.comment(CommentEntityType.NEWS, 43, 504));
+                NotificationLinks.comment(CommentEntityType.NEWS, 43, null, 504));
 
         new NewsDeletedHandler(notifications).handle(new NewsDeleted(station.id(), 43, "Sturm"));
 
         assertGone(aboutAComment);
+    }
+
+    /**
+     * A ticket's link names its board, its number and its id beside the comment, and the withdrawal
+     * still reaches it while sparing the ticket's other comments. The match asks only that the link
+     * contains what it names, so the extra parameters cannot push it out of reach: this is the
+     * place where a later addition to the announcing side would quietly miss.
+     */
+    @Test
+    void deletingATicketCommentReachesItThroughAllTheParametersItsLinkCarries() {
+        int aboutIt = create(
+                NotificationType.COMMENT_MENTION,
+                new NotificationParams.CommentMention("DEV-42", "Bea", "@With"),
+                NotificationLinks.comment(CommentEntityType.BOARD_TICKET, 7, new BoardTicketAddress("DEV", 42), 601));
+        int aboutItsNeighbour = create(
+                NotificationType.COMMENT_MENTION,
+                new NotificationParams.CommentMention("DEV-42", "Cem", "@With"),
+                NotificationLinks.comment(CommentEntityType.BOARD_TICKET, 7, new BoardTicketAddress("DEV", 42), 602));
+
+        new CommentDeletedHandler(notifications)
+                .handle(new CommentDeleted(station.id(), CommentEntityType.BOARD_TICKET, 601));
+
+        assertGone(aboutIt);
+        assertStanding(aboutItsNeighbour);
     }
 
     private static int create(NotificationType type, NotificationParams params, NotificationLink link) {

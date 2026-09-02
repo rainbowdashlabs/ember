@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardFieldConfig;
 import dev.chojo.ember.feature.board.entity.BoardFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
+import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.entity.BoardTicketFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistory;
@@ -390,6 +391,7 @@ public class BoardTicketService {
             var board = boardRepository.findById(ticket.boardId()).orElse(null);
             var ticketKey = board != null ? board.shortKey() + "-" + ticket.ticketNumber() : "?";
             int stationId = board != null ? board.stationId() : 0;
+            var address = board != null ? new BoardTicketAddress(board.shortKey(), ticket.ticketNumber()) : null;
             // Resolve local author member ID for mention exclusion
             Integer authorMemberId = null;
             if (author != null) {
@@ -408,6 +410,7 @@ public class BoardTicketService {
                             CommentEntityType.BOARD_TICKET,
                             ticketId,
                             ticketKey,
+                            address,
                             comment.id(),
                             mentionPreview));
                 }
