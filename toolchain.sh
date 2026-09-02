@@ -80,6 +80,10 @@ Frontend tests
   fe-e2e-ssr            The JavaScript-disabled project, which is what proves the public routes
                         really are server-rendered
   fe-e2e-built [proj]   Rebuild the frontend first, then run the stories
+  fe-e2e-fresh [proj]   Restart the e2e stack, rebuild, and run the stories, all under one lock.
+                        The one to use when more than one checkout shares the machine: the stack
+                        holds a single instance, and two checkouts taking turns on it mid-run makes
+                        the stories report on the wrong backend.
   fe-e2e-list           List every end-to-end story without running anything or starting a server
   fe-e2e-report         Open the last end-to-end report
   fe-e2e-install        Download the Playwright browser binaries (once per machine)
@@ -261,6 +265,19 @@ case "$cmd" in
     fe-e2e-built)
         # Rebuilds first, for when the sources moved since the last build.
         project="${1:-chromium}"; shift || true
+        fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
+        fe; run npx playwright test --project "$project" "$@"
+        ;;
+    fe-e2e-fresh)
+        # The stack is single-tenant: one container name, one compose project, whoever started it.
+        # Restarting it and running the stories as two commands leaves a gap between them, and a
+        # second checkout that restarts in that gap puts its own backend under the first one's
+        # stories, which then pass or fail on somebody else's code. The lock is held for one
+        # command, so the two belong in one command. This is the right call after a backend change
+        # on a machine where more than one checkout is at work.
+        project="${1:-chromium}"; shift || true
+        cd "$ROOT/docker"
+        run docker compose -f compose.dev.yaml --profile e2e up -d --build --force-recreate
         fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
         fe; run npx playwright test --project "$project" "$@"
         ;;
