@@ -13,6 +13,7 @@ import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.ClusterItemIssued;
 import dev.chojo.ember.event.events.ClusterItemLost;
 import dev.chojo.ember.event.events.CommentCreated;
+import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
@@ -39,6 +40,7 @@ import dev.chojo.ember.event.handlers.BulkMentionedInCommentHandler;
 import dev.chojo.ember.event.handlers.ClusterItemIssuedHandler;
 import dev.chojo.ember.event.handlers.ClusterItemLostHandler;
 import dev.chojo.ember.event.handlers.CommentCreatedHandler;
+import dev.chojo.ember.event.handlers.CommentDeletedHandler;
 import dev.chojo.ember.event.handlers.EventCreatedHandler;
 import dev.chojo.ember.event.handlers.EventDeletedHandler;
 import dev.chojo.ember.event.handlers.EventRegistrationStatusHandler;
@@ -431,7 +433,9 @@ class DomainEventHandlerTest {
                 STATION_ID, CommentEntityType.NEWS, 5, "News Title", 100, 99, 20, MEMBER_ID, "Author", "preview"));
 
         verify(notificationService)
-                .notifyIfAbsent(eq(20), eq(NotificationType.NEWS_COMMENT), any(NotificationData.class));
+                .notifyIfAbsent(eq(20), eq(NotificationType.NEWS_COMMENT), argThat(data -> NotificationLinks.comment(
+                                CommentEntityType.NEWS, 5, 100)
+                        .equals(data.link())));
         verify(notificationService)
                 .notifyMembersIfAbsent(
                         eq(List.of(30)), eq(NotificationType.NEWS_COMMENT), any(NotificationData.class), eq(MEMBER_ID));
@@ -492,6 +496,18 @@ class DomainEventHandlerTest {
                         eq(List.of(30)), eq(NotificationType.NEWS_COMMENT), any(NotificationData.class), eq(MEMBER_ID));
     }
 
+    // -- CommentDeletedHandler --
+
+    @Test
+    void commentDeletedWithdrawsWhatNamesThatComment() {
+        var handler = new CommentDeletedHandler(notificationService);
+        assertEquals(CommentDeleted.class, handler.eventType());
+
+        handler.handle(new CommentDeleted(STATION_ID, CommentEntityType.NEWS, 100));
+
+        verify(notificationService).deleteAllPointingAt(NotificationLinks.commentAlone(CommentEntityType.NEWS, 100));
+    }
+
     // -- MentionedInCommentHandler --
 
     @Test
@@ -500,7 +516,7 @@ class DomainEventHandlerTest {
         assertEquals(MentionedInComment.class, handler.eventType());
 
         handler.handle(new MentionedInComment(
-                STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.NEWS, 5, "Test Title", "hi there"));
+                STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.NEWS, 5, "Test Title", 70, "hi there"));
 
         verify(notificationService)
                 .notifyIfAbsent(eq(25), eq(NotificationType.COMMENT_MENTION), any(NotificationData.class));
@@ -511,11 +527,12 @@ class DomainEventHandlerTest {
         var handler = new MentionedInCommentHandler(notificationService);
 
         handler.handle(new MentionedInComment(
-                STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.EVENT, 5, "Test Title", "hi there"));
+                STATION_ID, 25, MEMBER_ID, "Author", CommentEntityType.EVENT, 5, "Test Title", 70, "hi there"));
 
         verify(notificationService)
-                .notifyIfAbsent(eq(25), eq(NotificationType.COMMENT_MENTION), argThat(data -> "event-detail"
-                        .equals(data.link().route())));
+                .notifyIfAbsent(eq(25), eq(NotificationType.COMMENT_MENTION), argThat(data -> NotificationLinks.comment(
+                                CommentEntityType.EVENT, 5, 70)
+                        .equals(data.link())));
     }
 
     // -- BulkMentionedInCommentHandler --
@@ -552,6 +569,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.GROUP,
                         5,
+                        70,
                         "preview snippet"));
 
         verify(notificationService)
@@ -575,6 +593,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.GROUP,
                         5,
+                        70,
                         "preview snippet"));
 
         verify(notificationService, never())
@@ -608,6 +627,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.EVENT,
                         42,
+                        70,
                         "preview snippet"));
 
         verify(notificationService)
@@ -640,6 +660,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.EVENT,
                         42,
+                        70,
                         "preview snippet"));
 
         verify(notificationService)
@@ -670,6 +691,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.EVENT,
                         42,
+                        70,
                         "preview snippet"));
 
         verify(notificationService)
@@ -696,6 +718,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.GROUP,
                         5,
+                        70,
                         "preview snippet"));
 
         verify(memberGroupRepository, never()).findMembers(anyInt());
@@ -719,6 +742,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.REGISTERED,
                         42,
+                        70,
                         "preview snippet"));
 
         verify(registrationRepository, never()).findByEvent(anyInt());
@@ -746,6 +770,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.REGISTERED,
                         42,
+                        70,
                         "preview snippet"));
 
         verify(notificationService)
@@ -775,6 +800,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.DECLINED,
                         42,
+                        70,
                         "preview snippet"));
 
         verify(notificationService, never())
@@ -802,6 +828,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.REGISTERED,
                         42,
+                        70,
                         "preview snippet"));
 
         verify(notificationService)
@@ -825,6 +852,7 @@ class DomainEventHandlerTest {
                         "Title",
                         MentionType.GROUP,
                         5,
+                        70,
                         "preview snippet"));
 
         verify(notificationService)

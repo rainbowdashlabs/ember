@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.notifications.entity;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -92,14 +93,25 @@ public record NotificationData(NotificationParams params, NotificationLink link)
     }
 
     /**
-     * A link to a frontend route, optionally with route parameters.
+     * A link to a frontend route, optionally with route parameters and a query.
+     *
+     * <p>The query names a place inside the page the route opens, which is how a notification about
+     * a comment reaches that comment rather than the top of the article it hangs under. It is left
+     * out of the stored JSON when empty, so every link written before it existed still matches the
+     * links built for it today.
      *
      * @param route       the named frontend route
      * @param routeParams parameters to interpolate into the route path
+     * @param query       query parameters appended to the route, or {@code null} for none
      */
-    public record NotificationLink(String route, Map<String, Object> routeParams) {
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record NotificationLink(String route, Map<String, Object> routeParams, Map<String, Object> query) {
         public NotificationLink(String route) {
             this(route, Map.of());
+        }
+
+        public NotificationLink(String route, Map<String, Object> routeParams) {
+            this(route, routeParams, null);
         }
 
         /**

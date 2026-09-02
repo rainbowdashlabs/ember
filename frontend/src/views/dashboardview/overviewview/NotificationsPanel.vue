@@ -108,7 +108,7 @@ function renderMessage(n: NotificationEntry): string {
 async function navigateTo(n: NotificationEntry) {
   await ack(n.id)
   if (n.link) {
-    router.push({name: n.link.route, params: n.link.routeParams})
+    router.push({name: n.link.route, params: n.link.routeParams, query: n.link.query})
   }
 }
 

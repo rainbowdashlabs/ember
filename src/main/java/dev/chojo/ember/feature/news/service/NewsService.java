@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.CommentCreated;
+import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.event.events.NewsCreated;
 import dev.chojo.ember.event.events.NewsDeleted;
@@ -538,6 +539,7 @@ public class NewsService {
                                         CommentEntityType.NEWS,
                                         newsId,
                                         news.title(),
+                                        comment.id(),
                                         preview));
                             }
                         });
@@ -558,6 +560,7 @@ public class NewsService {
                             news.title(),
                             type,
                             targetId,
+                            comment.id(),
                             preview));
                 }
             }
@@ -617,6 +620,7 @@ public class NewsService {
             return false;
         }
         if (newsRepository.deleteComment(id)) {
+            eventBus.publish(new CommentDeleted(stationId, CommentEntityType.NEWS, id));
             log.info("Deleted news comment {} on station {}", id, stationId);
             return true;
         }

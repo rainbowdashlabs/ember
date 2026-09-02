@@ -10,8 +10,10 @@ import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.CommentCreated;
+import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
@@ -246,17 +248,24 @@ class KbCommentServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Removing a comment says nothing to anybody: what was written about it points at the file it
-     * sits under, which is still there.
+     * Removing a comment announces which comment went, so that what was written about that one can
+     * be withdrawn while the file it sat under keeps its own notifications.
      */
     @Test
-    void deletingACommentAnnouncesNothing() {
+    void deletingACommentAnnouncesWhichCommentWent() {
         when(commentRepository.findById(600)).thenReturn(Optional.of(storedComment(600, null, "farewell")));
         when(commentRepository.delete(600)).thenReturn(true);
 
         assertTrue(service.deleteComment(station.id(), 600));
 
-        verify(eventBus, never()).publish(any());
+        var deleted = publishedEvents().stream()
+                .filter(CommentDeleted.class::isInstance)
+                .map(CommentDeleted.class::cast)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(600, deleted.commentId());
+        assertEquals(CommentEntityType.KB, deleted.entityType());
+        assertEquals(station.id(), deleted.stationId());
     }
 
     /**

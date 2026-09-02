@@ -26,7 +26,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -74,14 +73,7 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
             addGuardians(memberIds);
         }
 
-        var link =
-                switch (event.entityType()) {
-                    case NEWS -> NotificationLinks.news(event.entityId());
-                    case BOARD_TICKET ->
-                        new NotificationData.NotificationLink("ticket-detail", Map.of("ticketId", event.entityId()));
-                    case KB -> new NotificationData.NotificationLink("kb-file", Map.of("id", event.entityId()));
-                    case EVENT -> NotificationLinks.event(event.entityId());
-                };
+        var link = NotificationLinks.comment(event.entityType(), event.entityId(), event.commentId());
 
         var data = NotificationData.of(
                 new NotificationParams.CommentMention(event.entityTitle(), event.authorName(), event.preview()), link);

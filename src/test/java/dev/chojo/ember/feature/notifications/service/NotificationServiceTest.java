@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.notifications.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
@@ -16,6 +17,7 @@ import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -727,6 +729,23 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertEquals(
                 "https://ember.example.com/station/events/42?station=" + stationUid,
                 service.resolveNotificationUrl("https://ember.example.com", stationUid, known));
+    }
+
+    /**
+     * A mail or feed entry about a comment opens on that comment, and still carries the station it
+     * belongs to.
+     */
+    @Test
+    @Order(106)
+    void resolveNotificationUrlCarriesTheCommentAndTheStation() {
+        var data = NotificationData.of(
+                new NotificationParams.NewsComment("Sturm", "Bea", "Danke"),
+                NotificationLinks.comment(CommentEntityType.NEWS, 7, 42));
+        var stationUid = UUID.fromString("00000000-0000-0000-0000-000000000042");
+
+        assertEquals(
+                "https://ember.example.com/station/news/7?comment=42&station=" + stationUid,
+                service.resolveNotificationUrl("https://ember.example.com", stationUid, data));
     }
 
     @Test

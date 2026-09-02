@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, nextTick, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import {useNewsRoutes} from '@/composables/useNewsRoutes'
@@ -49,7 +49,6 @@ const entry = ref<NewsEntry | null>(null)
  * holds no copy of them.
  */
 const mediaScope = computed(() => (entry.value?.systemEntry ? INSTANCE_MEDIA_SCOPE : stationUid.value))
-const highlightCommentId = ref<number | null>(null)
 interface ViewBadgeRef {
   refresh: () => Promise<void>
 }
@@ -81,24 +80,7 @@ const {
   error,
 })
 
-function scrollToComment() {
-  const commentId = route.query.comment
-  if (!commentId) return
-  highlightCommentId.value = Number(commentId)
-  nextTick(() => {
-    setTimeout(() => {
-      const el = document.getElementById(`comment-${commentId}`)
-      if (el) {
-        el.scrollIntoView({behavior: 'smooth', block: 'center'})
-      }
-    }, 500)
-  })
-}
-
 watch(() => route.params.id, reload)
-watch(loading, (isLoading) => {
-  if (!isLoading) scrollToComment()
-})
 </script>
 
 <template>
@@ -133,7 +115,7 @@ watch(loading, (isLoading) => {
         <AttachmentList :attachments="entry.attachments ?? []" :station-uid="stationUid"/>
 
         <div class="pt-3 border-t border-bg-light-accent dark:border-bg-dark-accent">
-          <NewsCommentSection :news-id="entry.id" :highlight-comment-id="highlightCommentId"/>
+          <NewsCommentSection :news-id="entry.id"/>
         </div>
       </NeutralContainer>
 

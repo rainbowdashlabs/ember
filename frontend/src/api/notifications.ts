@@ -22,6 +22,8 @@ export type NotificationType = 'NEW_NEWS' | 'NEWS_COMMENT' | 'COMMENT_MENTION' |
 export interface NotificationLink {
     route: string
     routeParams?: Record<string, string | number>
+    /** Names a place inside the page the route opens, such as the comment a notification is about. */
+    query?: Record<string, string | number>
 }
 
 export interface NotificationEntry {

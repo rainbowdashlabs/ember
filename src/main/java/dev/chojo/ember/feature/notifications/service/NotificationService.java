@@ -27,12 +27,15 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -58,6 +61,8 @@ public class NotificationService {
     private static final Localizer LOCALIZER = new Localizer();
     private static final Map<String, String> ROUTE_PATHS = Map.ofEntries(
             Map.entry("news-list", "/station/news"),
+            Map.entry("news-detail", "/station/news/{id}"),
+            Map.entry("kb-file", "/station/knowledge/file/{id}"),
             Map.entry("events-registrations", "/station/events/registrations"),
             Map.entry("events-upcoming", "/station/events/upcoming"),
             Map.entry("event-detail", "/station/events/{id}"),
@@ -800,7 +805,21 @@ public class NotificationService {
                 path = path.replace("{" + entry.getKey() + "}", String.valueOf(entry.getValue()));
             }
         }
-        return appendStation(baseUrl + path, stationUid);
+        return appendStation(baseUrl + path + queryString(data.link().query()), stationUid);
+    }
+
+    /**
+     * Renders the link's query, which is how a mail or feed entry about a comment opens on that
+     * comment rather than on the top of the page it hangs under.
+     */
+    private static String queryString(Map<String, Object> query) {
+        if (query == null || query.isEmpty()) return "";
+        var rendered = new StringJoiner("&", "?", "");
+        for (var entry : query.entrySet()) {
+            rendered.add(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8) + "="
+                    + URLEncoder.encode(String.valueOf(entry.getValue()), StandardCharsets.UTF_8));
+        }
+        return rendered.toString();
     }
 
     /**

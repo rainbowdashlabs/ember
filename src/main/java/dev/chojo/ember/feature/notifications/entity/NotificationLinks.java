@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.notifications.entity;
 
+import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
 
 import java.time.LocalDate;
@@ -18,6 +19,11 @@ import java.util.Map;
  * carries, so both sides take it from here.
  */
 public final class NotificationLinks {
+    private static final String NEWS_DETAIL = "news-detail";
+    private static final String EVENT_DETAIL = "event-detail";
+    private static final String KB_FILE = "kb-file";
+    private static final String TICKET_DETAIL = "ticket-detail";
+
     private NotificationLinks() {}
 
     /**
@@ -27,7 +33,7 @@ public final class NotificationLinks {
      * @return the link its notifications carry
      */
     public static NotificationLink news(int newsId) {
-        return new NotificationLink("news-detail", Map.of("id", newsId));
+        return new NotificationLink(NEWS_DETAIL, Map.of("id", newsId));
     }
 
     /**
@@ -37,7 +43,7 @@ public final class NotificationLinks {
      * @return the link its notifications carry
      */
     public static NotificationLink event(int eventId) {
-        return new NotificationLink("event-detail", Map.of("id", eventId));
+        return new NotificationLink(EVENT_DETAIL, Map.of("id", eventId));
     }
 
     /**
@@ -73,5 +79,46 @@ public final class NotificationLinks {
      */
     public static NotificationLink form(int formId) {
         return new NotificationLink("forms-fill", Map.of("id", String.valueOf(formId)));
+    }
+
+    /**
+     * The link to one comment: the page it hangs under, plus the comment itself, so that opening
+     * the notification lands on the comment instead of the top of a long list.
+     *
+     * @param entityType what the comment hangs under
+     * @param entityId   the article, file, appointment or ticket
+     * @param commentId  the comment
+     * @return the link its notifications carry
+     */
+    public static NotificationLink comment(CommentEntityType entityType, int entityId, int commentId) {
+        String idKey = entityType == CommentEntityType.BOARD_TICKET ? "ticketId" : "id";
+        return new NotificationLink(commentRoute(entityType), Map.of(idKey, entityId), commentQuery(commentId));
+    }
+
+    /**
+     * The same link with the page left out, which every notification about that comment carries in
+     * full. A comment id is unique among the comments of its kind, so naming only the comment is
+     * both enough to find them and narrow enough to leave the other comments of the same page
+     * alone. This one is for matching and not for navigating.
+     *
+     * @param entityType what the comment hangs under
+     * @param commentId  the comment
+     * @return the part of the link every notification about it shares
+     */
+    public static NotificationLink commentAlone(CommentEntityType entityType, int commentId) {
+        return new NotificationLink(commentRoute(entityType), Map.of(), commentQuery(commentId));
+    }
+
+    private static Map<String, Object> commentQuery(int commentId) {
+        return Map.of("comment", commentId);
+    }
+
+    private static String commentRoute(CommentEntityType entityType) {
+        return switch (entityType) {
+            case NEWS -> NEWS_DETAIL;
+            case EVENT -> EVENT_DETAIL;
+            case KB -> KB_FILE;
+            case BOARD_TICKET -> TICKET_DETAIL;
+        };
     }
 }
