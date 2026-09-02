@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.knowledgebase.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbTagService;
@@ -23,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireLevel;
 import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireOwnedFile;
 import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireOwnedFolder;
 
@@ -71,8 +73,11 @@ public class KnowledgeBaseTagRoutes implements Routes {
         if (!session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)) {
             var access = accessService.memberAccess(
                     session.member().id(), session.member().userType());
+            var readable = accessService.readableFiles(
+                    access,
+                    matchingFiles.stream().map(KbAccessService.FileNode::of).toList());
             matchingFiles = matchingFiles.stream()
-                    .filter(file -> accessService.canAccess(access, null, file.id()))
+                    .filter(file -> readable.contains(file.id()))
                     .toList();
         }
 
@@ -97,6 +102,7 @@ public class KnowledgeBaseTagRoutes implements Routes {
     private void getFileTags(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
         ctx.json(tagService.findFileTags(id));
     }
 
@@ -111,6 +117,7 @@ public class KnowledgeBaseTagRoutes implements Routes {
     private void getFolderTags(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
+        requireLevel(ctx, accessService, id, null, KbAccessLevel.READ);
         ctx.json(tagService.findFolderTags(id));
     }
 

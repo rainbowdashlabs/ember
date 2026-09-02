@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -172,6 +174,67 @@ class KbAccessServiceTest extends RepositoryTestBase {
         memberGroupRepo.removeMember(group.id(), member.id());
         memberGroupRepo.delete(group.id());
         userTagRepo.delete(tag.id());
+    }
+
+    /**
+     * A search hands back files from anywhere in the tree at once, so the batch has to answer
+     * exactly what a single check would, folder by folder and file by file.
+     */
+    @Test
+    void aBatchOfFilesResolvesTheSameLevelsAsOneCheckEach() {
+        var openFolder = createFolder("Batch Open", null);
+        var closedFolder = createFolder("Batch Closed", null);
+        var deepFolder = createFolder("Batch Deep", closedFolder.id());
+        var openFile = createFile("Batch Readable", openFolder.id());
+        var closedFile = createFile("Batch Hidden", closedFolder.id());
+        var deepFile = createFile("Batch Deeply Hidden", deepFolder.id());
+        var rootFile = createFile("Batch Root", null);
+        var deniedFile = createFile("Batch Denied", openFolder.id());
+        service.setRestrictions(closedFolder.id(), null, forUserType(StationUserType.MEMBER));
+        service.setRestrictions(null, deniedFile.id(), forUserType(StationUserType.MEMBER));
+
+        var files = List.of(openFile, closedFile, deepFile, rootFile, deniedFile);
+        var nodes = files.stream().map(KbAccessService.FileNode::of).toList();
+        var access = service.memberAccess(member.id(), null);
+        var levels = service.fileLevels(access, nodes);
+
+        for (var file : files) {
+            assertEquals(
+                    service.effectiveLevel(access, null, file.id()),
+                    levels.get(file.id()),
+                    "batch level differs for " + file.name());
+        }
+        assertEquals(Set.of(openFile.id(), rootFile.id()), service.readableFiles(access, nodes));
+
+        service.setRestrictions(closedFolder.id(), null, RestrictionSelection.empty());
+        service.setRestrictions(null, deniedFile.id(), RestrictionSelection.empty());
+        for (var file : files) knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.deleteFolder(deepFolder.id());
+        knowledgeBaseRepo.deleteFolder(closedFolder.id());
+        knowledgeBaseRepo.deleteFolder(openFolder.id());
+    }
+
+    /**
+     * A station manager reads everything, and an empty batch asks nothing of the database.
+     */
+    @Test
+    void aBatchAnswersManagersAndEmptyListsWithoutWalkingTheTree() {
+        var folder = createFolder("Batch Managed", null);
+        var file = createFile("Batch Managed File", folder.id());
+        service.setRestrictions(folder.id(), null, forUserType(StationUserType.MEMBER));
+
+        var manager = new KbAccessService.MemberAccess(member.id(), null, List.of(), List.of(), false, true);
+        var node = KbAccessService.FileNode.of(file);
+        assertEquals(
+                KbAccessLevel.MANAGE, service.fileLevels(manager, List.of(node)).get(file.id()));
+        assertEquals(Set.of(file.id()), service.readableFiles(manager, List.of(node)));
+        assertTrue(service.fileLevels(manager, List.of()).isEmpty());
+        assertTrue(service.readableFiles(service.memberAccess(member.id(), null), List.of())
+                .isEmpty());
+
+        service.setRestrictions(folder.id(), null, RestrictionSelection.empty());
+        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.deleteFolder(folder.id());
     }
 
     /**

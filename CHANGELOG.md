@@ -10,6 +10,7 @@
 
 - **Mail credentials were written into the application log in plain text.** The whole configuration is recorded once when Ember starts, and the mail password, the API key and the two webhook secrets were spelled out in it; that log is kept in the database and can be read from the administration pages. They are now reported only as set or not set. Treat any mail password, API key or webhook secret this instance has used as compromised and replace it.
 - **The container printed every setting it was given, secrets included, each time it started.** The database password, the token pepper, the mail credentials, the storage encryption key and the second-factor key all appeared in the container log, and an instance that cannot reach its database restarts until it can, filling the log with copies of them. Those logs are what gets pasted into a bug report. Nothing is printed there now. Treat any of these values that an affected instance has used as compromised and replace them.
+- **Searching the knowledge base found articles the reader was not allowed to open.** Anybody who could sign in got the title, the description and an excerpt around the matching words of every article of their station, including the ones kept for the leadership or for a single group, and the same held for the articles a partner station had not shared. A search now answers only what the reader may actually open, and a partner is answered only what the station shares with it.
 
 ### Fixes
 

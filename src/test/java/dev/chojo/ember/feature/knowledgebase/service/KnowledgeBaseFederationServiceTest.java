@@ -416,18 +416,42 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         knowledgeBaseRepo.deleteFile(file.id());
     }
 
+    /**
+     * A partner on this instance is reachable without leaving the process, which is no reason to
+     * answer more than it shares: a search across partners returns what each of them shared and
+     * nothing else, the same as it would over the wire.
+     */
     @Test
     @Order(5)
-    void searchFederatedKbFindsPartnerContent() {
+    void searchFederatedKbFindsOnlyWhatAPartnerShares() {
         var file = createFile(stationB.id(), "Loeschangriff");
         knowledgeBaseRepo.storeTextContent(file.id(), "Ablauf beim Loeschangriff");
         knowledgeBaseRepo.updateSearchIndex(file.id(), "Loeschangriff Ablauf", "simple");
+        var folder = knowledgeBaseRepo.createFolder(stationB.id(), null, "Interner Ablauf", "", member.id());
+        var kept = knowledgeBaseRepo.createFile(
+                stationB.id(),
+                folder.id(),
+                "Interner Loeschangriff",
+                "desc",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                0,
+                null,
+                member.id());
+        knowledgeBaseRepo.updateSearchIndex(kept.id(), "Loeschangriff intern", "simple");
 
+        assertTrue(service.searchFederatedKb(station.id(), "Loeschangriff").isEmpty());
+
+        var share = federationRepo.createKbShare(stationB.id(), file.id(), null, ShareScope.ALL_PARTNERS);
         var results = service.searchFederatedKb(station.id(), "Loeschangriff");
         assertTrue(results.stream().anyMatch(result -> result.file().id() == file.id()));
+        assertTrue(results.stream().noneMatch(result -> result.file().id() == kept.id()));
         assertTrue(results.stream().allMatch(result -> result.stationName() != null));
 
+        federationRepo.deleteKbShare(share.id(), stationB.id());
+        knowledgeBaseRepo.deleteFile(kept.id());
         knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.deleteFolder(folder.id());
     }
 
     @Test
@@ -654,22 +678,69 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertTrue(service.searchForPartner(requestingPartner, "  ").isEmpty());
     }
 
+    /**
+     * A search answers what the station shares, by the same rule that decides whether a single
+     * article may be opened: shared in its own right, or sitting below a shared folder. Anything
+     * else stays out, however well it matches.
+     */
     @Test
     @Order(42)
     void searchForPartnerOnlyReturnsSharedMatches() {
         var shared = createFile(station.id(), "Atemschutz");
         var unshared = createFile(station.id(), "Atemschutzgeraet");
+        var folder = knowledgeBaseRepo.createFolder(station.id(), null, "Atemschutzordner", "", member.id());
+        var inFolder = knowledgeBaseRepo.createFile(
+                station.id(),
+                folder.id(),
+                "AtemschutzImOrdner",
+                "desc",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                0,
+                null,
+                member.id());
         knowledgeBaseRepo.updateSearchIndex(shared.id(), "Atemschutz", "simple");
         knowledgeBaseRepo.updateSearchIndex(unshared.id(), "Atemschutz", "simple");
+        knowledgeBaseRepo.updateSearchIndex(inFolder.id(), "Atemschutz", "simple");
         var share = federationRepo.createKbShare(station.id(), shared.id(), null, ShareScope.ALL_PARTNERS);
 
         var results = service.searchForPartner(requestingPartner, "Atemschutz");
         assertTrue(results.stream().anyMatch(result -> result.id() == shared.id()));
         assertFalse(results.stream().anyMatch(result -> result.id() == unshared.id()));
+        assertFalse(results.stream().anyMatch(result -> result.id() == inFolder.id()));
 
+        var folderShare = federationRepo.createKbShare(station.id(), null, folder.id(), ShareScope.ALL_PARTNERS);
+        assertTrue(service.searchForPartner(requestingPartner, "Atemschutz").stream()
+                .anyMatch(result -> result.id() == inFolder.id()));
+
+        federationRepo.deleteKbShare(folderShare.id(), station.id());
         federationRepo.deleteKbShare(share.id(), station.id());
+        knowledgeBaseRepo.deleteFile(inFolder.id());
         knowledgeBaseRepo.deleteFile(shared.id());
         knowledgeBaseRepo.deleteFile(unshared.id());
+        knowledgeBaseRepo.deleteFolder(folder.id());
+    }
+
+    /**
+     * An article aimed at named stations is answered to those and to nobody else. A search that
+     * only asked whether the station shares an article at all would hand it to every partner.
+     */
+    @Test
+    @Order(42)
+    void searchForPartnerHonoursTheStationsAnEntryNames() {
+        var aimed = createFile(station.id(), "Kettensaege");
+        knowledgeBaseRepo.updateSearchIndex(aimed.id(), "Kettensaege", "simple");
+        var share = federationService.createKbShare(station.id(), aimed.id(), null, ShareScope.SPECIFIC, List.of());
+
+        assertTrue(service.searchForPartner(requestingPartner, "Kettensaege").stream()
+                .noneMatch(result -> result.id() == aimed.id()));
+
+        federationRepo.setKbShareTargets(share.id(), List.of(requestingPartner.id()));
+        assertTrue(service.searchForPartner(requestingPartner, "Kettensaege").stream()
+                .anyMatch(result -> result.id() == aimed.id()));
+
+        federationRepo.deleteKbShare(share.id(), station.id());
+        knowledgeBaseRepo.deleteFile(aimed.id());
     }
 
     @Test
