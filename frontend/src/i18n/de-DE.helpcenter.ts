@@ -1730,7 +1730,7 @@ volumes:
             whatIsText: 'Das Inventar weiß, was die Wache besitzt, und der Termin weiß, wer kommt. Keines von beiden wusste bisher, dass der Leistungsmarsch am Samstag vierzehn Garnituren und einen Anhänger braucht. Auf der Registerkarte Ausrüstung eines Termins steht genau das.',
             seriesText: 'Bei einer Terminreihe gilt eine Zeile für jeden Abend. Ein einzelner Abend kann zusätzlich etwas eintragen, ohne die Reihe anzufassen: der eine Dienst im Jahr, für den auch der Anhänger gebraucht wird.',
             linesTitle: 'Die Zeilen',
-            linesText: 'Eine Zeile benennt ein bestimmtes Stück, fragt nach einer Anzahl einer Art oder nach einer Anzahl aus einem ganzen Inventar.',
+            linesText: 'Eine Zeile benennt ein bestimmtes Stück, fragt nach einer Anzahl einer Art aus einer Sammlung oder nach einer Anzahl aus einem ganzen Vorrat.',
             pickText: 'Gesucht wird durch Tippen: ein paar Buchstaben aus dem Namen genügen, und jeder Treffer sagt gleich, in welchem Inventar er liegt und wie viele Stücke davon an der Wache sind. Eine Liste zum Durchscrollen gibt es nicht mehr, denn bei ein paar hundert Stücken war sie ohnehin nicht mehr zu lesen.',
             tooManyText: 'Steht neben einer Art oder einem Inventar eine kleinere Zahl als die verlangte, sagt der Dialog es sofort. Verboten wird es nicht: Was fehlt, lässt sich eintragen und danach bei den Partnerwachen suchen. Gezählt wird, was die Wache überhaupt besitzt; was an einem bestimmten Abend noch frei ist, steht neben der Zeile im Ausrüstungs-Reiter, weil eine Zeile für jeden Abend der Reihe gilt und nicht nur für einen.',
             leadText: 'Ausrüstung ist länger weg als der Termin dauert. Die Funkgeräte werden am Vorabend geholt und kommen am Montag zurück, deshalb trägt jede Zeile ein, wie viele Stunden vorher sie schon aus dem Regal ist und wie lange danach noch. Ein Tag in jede Richtung ist der Normalfall und voreingestellt.',
@@ -1738,7 +1738,7 @@ volumes:
             coverText: 'Neben jeder Zeile steht, woher die Stücke kommen: eigene, geliehene und angefragte. Eine geliehene Kiste ist an der eigenen Wache eine ganz gewöhnliche Zeile und zählt deshalb mit, sonst würde eine Lücke gemeldet, die vor einer Woche geschlossen wurde.',
             overClaimText: 'Zwei Termine dürfen dasselbe Wochenende mit demselben Anhänger planen. Das wird angezeigt und nennt die beteiligten Termine, statt den zweiten zu verbieten: Planen heißt aufschreiben, und ein Werkzeug, das einen Konflikt nicht aufschreiben lässt, verschiebt ihn nur auf den Samstag.',
             borrowTitle: 'Fehlendes leihen',
-            borrowText: 'Fehlt etwas, führt ein Knopf auf die Seite, auf der sich zusammenstellen lässt, was die Partnerwachen anbieten. Angeboten wird dort nach Art gezählt, nicht nach Schublade, damit „vier blaue“ auch vier blaue werden.',
+            borrowText: 'Fehlt etwas, führt ein Knopf auf die Seite, auf der sich zusammenstellen lässt, was die Partnerwachen anbieten. Angeboten wird dort nach Art gezählt und nicht nach ganzer Sammlung, damit „vier blaue“ auch vier blaue werden.',
             sendText: 'Nichts wird zurückgehalten, solange die Liste wächst. Vor dem Senden wird noch einmal gezählt und angezeigt, was sich geändert hat. Die Liste geht als eine Anfrage je Wache hinaus, und der Knopf sagt, wie viele das sind.',
             tip: 'Die angefragte Wache sieht nur den Namen des Termins und den Zeitraum. Alles andere am Termin bleibt bei euch.',
         },
@@ -4258,9 +4258,8 @@ volumes:
                 + 'demselben Namen, behält der Gegenstand sie. Sonst kommt er ohne Größe an. In der Liste '
                 + 'steht vor dem Verschieben an jedem Gegenstand, was mit seiner Größe geschieht.',
             whyTitle: 'Wozu das gut ist',
-            whyText: 'Ob ein Inventar eine Sache in vielen Exemplaren enthält oder eine Kiste mit lauter '
-                + 'verschiedenen Dingen, lässt sich nur umstellen, wenn nichts mehr daran hängt. Aufteilen '
-                + 'ist der andere Weg dorthin, und der ist ohne Verschieben nicht zu haben.',
+            whyText: 'Ob ein Inventar ein Vorrat oder eine Sammlung ist, lässt sich nur umstellen, wenn nichts '
+                + 'mehr daran hängt. Aufteilen ist der andere Weg dorthin, und der ist ohne Verschieben nicht zu haben.',
             tip: 'Wähle erst das Ziel und dann die Gegenstände: dann steht schon an jeder Zeile, ob die '
                 + 'Größe mitkommt.',
         },
@@ -4298,16 +4297,16 @@ volumes:
             title: 'Arten aufräumen',
             subtitle: 'Gleiche Dinge unter eine Art bringen und Tippfehler geraderücken.',
             whatIsArtTitle: 'Was eine Art ist',
-            whatIsArtText: 'Eine Art fasst gleiche Dinge in einem Inventar zusammen. In der Kiste mit den '
-                + 'Funkgeräten sind sechs blaue, fünf grüne und eine Ladestation. Blau und Grün sind zwei '
-                + 'Arten, die Ladestation ist eine dritte mit nur einem Stück.',
+            whatIsArtText: 'Eine Art fasst gleiche Dinge in einer Sammlung zusammen. In der Kiste liegen zwölf '
+                + 'Funkgeräte in drei Farben, dazu eine Ladestation und eine Antenne. „Funkgerät“ ist eine Art '
+                + 'mit einem Feld „Farbe“; Ladestation und Antenne tragen gar keine Art und liegen lose in der '
+                + 'Sammlung, was für alles gilt, das es nur einmal gibt.',
             threeWordsText: 'Die Art steht neben der Bezeichnung und ersetzt sie nicht. „Pager 01“ bleibt '
                 + '„Pager 01“ und ist ein Stück der Art „Pager“. Die Größe ist noch einmal etwas anderes: '
                 + 'sie sagt, wie groß etwas ist, die Art sagt, welches Ding es ist.',
             whereTitle: 'Wo es Arten gibt',
-            whereText: 'Nur in einem Inventar, das verschiedene Dinge enthält. Ein Inventar mit einer Sache '
-                + 'in vielen Exemplaren wird über Größen geordnet und bekommt keine Arten. Umstellen lässt '
-                + 'sich das erst wieder, wenn keine Art mehr darin steht.',
+            whereText: 'Nur in einer Sammlung. Ein Vorrat wird über Größen geordnet und bekommt keine Arten. '
+                + 'Umstellen lässt sich das erst wieder, wenn keine Art mehr darin steht.',
             screenTitle: 'Was diese Seite zeigt',
             screenText: 'Oben stehen die Bezeichnungen, die auf den Gegenständen dieses Inventars stehen, '
                 + 'mit ihrer Anzahl. So fällt sofort auf, wo dasselbe zweimal geschrieben wurde. Hake die '

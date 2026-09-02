@@ -3735,7 +3735,7 @@ export default {
             lineKind: 'Art der Zeile',
             kindItem: 'Ein bestimmtes Stück',
             kindArt: 'Eine Anzahl einer Art',
-            kindCount: 'Eine Anzahl aus einem Inventar',
+            kindCount: 'Eine Anzahl aus einem Vorrat',
             item: 'Gegenstand',
             art: 'Art',
             noArts: 'In den Sammlungen ist noch keine Art angelegt.',
