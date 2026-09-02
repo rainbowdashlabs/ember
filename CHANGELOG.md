@@ -83,6 +83,7 @@
 - **Somebody who had set their password still counted as not set up.** The member list waited for a first sign-in before dropping the hourglass beside a name, so people who had chosen their password and gone no further were chased with another setup mail. Choosing a password is now what settles the account, and only a password an administrator laid down still counts as outstanding.
 - **A code for connecting two stations was refused as having expired.** Such a code never runs out, so whatever really stood in the way, a connection that already existed, a request still waiting to be answered, or a code made on another Ember instance, was reported as a deadline that does not exist. The refusal now says which of them it is, and a station that had already asked to connect can use the code it is then handed instead of being turned away by its own unanswered request.
 - **The window asking for your second factor opened behind the window that needed it.** Connecting to a partner station asks for the code from your authenticator, and that window came up underneath the one it was raised from, where it could neither be read nor typed into. Windows now stand in the order they were opened, so the one opened last is in front.
+- **Two lines of small print could arrive as one run-on sentence.** In the dialog that loads the shipped legal sections and in the help article about importing a question catalogue, a short line and the one meant to follow it were printed with nothing at all between them, not even a space. Each now stands on a line of its own.
 
 ## v26.13.10
 
