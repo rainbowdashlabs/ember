@@ -122,8 +122,17 @@ export async function setDisabledModules(disabledModules: string[]): Promise<Mod
 
 // -- Station deletion --
 
-export async function requestStationDeletion(): Promise<{message: string}> {
-    const res = await client.post<{message: string}>('/station/manage/request-delete')
+export interface DeleteRequestResponse {
+    message: string
+    /**
+     * Whether the station is already gone. An instance with no way of sending has nobody to ask,
+     * so the confirmation counts as given and the deletion happens on the spot.
+     */
+    deleted: boolean
+}
+
+export async function requestStationDeletion(): Promise<DeleteRequestResponse> {
+    const res = await client.post<DeleteRequestResponse>('/station/manage/request-delete')
     return res.data
 }
 

@@ -27,8 +27,8 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 const { t } = useI18n()
 const route = useRoute()
 
-const { sessionInfo, hasPermission, isGuardian, canManageInventory, isModuleEnabled } = useSession()
-const canEdit = computed(() => hasPermission(StationPermission.MEMBER_EDIT))
+const { sessionInfo, hasPermission, isGuardian, canManageInventory, isModuleEnabled, canEditMemberAccounts } = useSession()
+const canEdit = computed(() => canEditMemberAccounts())
 const inventoryEnabled = computed(() => isModuleEnabled(StationModules.INVENTORY))
 const canReadInventory = computed(() => inventoryEnabled.value && hasPermission(StationPermission.INVENTORY_READ))
 const showInventoryManagement = computed(() => canReadInventory.value && canManageInventory())

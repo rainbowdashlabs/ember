@@ -93,6 +93,18 @@ function isAdmin(): boolean {
     return sessionInfo.value?.instanceUserType === 'ADMINISTRATOR'
 }
 
+/**
+ * Whether the caller may edit the account behind a name on a station's roll.
+ *
+ * <p>The station right is the ordinary way in. Whoever administers the instance is let in beside it,
+ * because of the one account nobody else can help: an administrator whose address cannot be written
+ * to cannot correct it themselves, since the confirmation would go to the address being corrected,
+ * and the person who can do it for them need not be at their station.
+ */
+function canEditMemberAccounts(): boolean {
+    return hasPermission(StationPermission.MEMBER_EDIT) || isAdmin()
+}
+
 function isModuleEnabled(module: string): boolean {
     return !(sessionInfo.value?.disabledModules?.includes(module) ?? false)
 }
@@ -107,6 +119,7 @@ export function usePermissions() {
         hasPermission,
         hasClusterPermission,
         isAdmin,
+        canEditMemberAccounts,
         isModuleEnabled,
         isManager: () => hasAny('stationManagement'),
         canManageMembers: () => hasAny('memberManagement'),

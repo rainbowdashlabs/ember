@@ -112,6 +112,11 @@ const {running: loggingIn, error: loginError, run: handleLogin} = useAsyncAction
     return
   }
 
+  if (result.addressRequired && result.addressToken) {
+    await navigateTo({path: '/set-address', query: {token: result.addressToken}})
+    return
+  }
+
   if (result.twoFactorRequired && result.preAuthToken) {
     const query: Record<string, string> = {token: result.preAuthToken}
     if (trustedDevice.value) query.trusted = '1'

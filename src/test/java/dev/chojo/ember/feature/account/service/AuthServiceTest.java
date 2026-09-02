@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.account.service;
 
+import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.auth.BreachCheckWorker;
 import dev.chojo.ember.auth.HibpClient;
@@ -15,6 +16,7 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailConfirmationPolicy;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
@@ -49,6 +51,7 @@ class AuthServiceTest extends RepositoryTestBase {
     private static EmailService emailService;
     private static TwoFactorRepository twoFactorRepoLocal;
     private static TrustedDeviceService trustedDeviceService;
+    private static MailConfirmationPolicy confirmationPolicy;
 
     @BeforeAll
     static void setup() {
@@ -63,8 +66,15 @@ class AuthServiceTest extends RepositoryTestBase {
         twoFactorRepoLocal = new TwoFactorRepository();
         trustedDeviceService = new TrustedDeviceService(
                 twoFactorRepoLocal, TokenHasher.forTesting("test-pepper"), new TwoFactorSettings());
+        confirmationPolicy = mock(MailConfirmationPolicy.class);
+        when(confirmationPolicy.confirmationCountsAsGranted()).thenReturn(false);
         service = new AuthService(
                 accountRepo,
+                new AccountEmailService(
+                        accountRepo,
+                        new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
+                        emailService),
+                confirmationPolicy,
                 new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
                 new MailRecipientService(accountRepo, stationMemberRepo),
                 registrationCodeRepo,
@@ -970,6 +980,11 @@ class AuthServiceTest extends RepositoryTestBase {
         when(hibpClient.isPwned(anyString())).thenReturn(false);
         return new AuthService(
                 accountRepo,
+                new AccountEmailService(
+                        accountRepo,
+                        new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
+                        mock(EmailService.class)),
+                confirmationPolicy,
                 new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
                 new MailRecipientService(accountRepo, stationMemberRepo),
                 registrationCodeRepo,
@@ -1159,6 +1174,280 @@ class AuthServiceTest extends RepositoryTestBase {
 
         assertEquals(AuthService.SetPasswordOutcome.TOKEN_INVALID, result.outcome());
         assertNull(result.login());
+    }
+
+    /**
+     * An administrator carrying a made-up address, which is what the first start used to hand out.
+     */
+    private TrustedDeviceFixture createAdministratorWithoutAddress() {
+        var fixture = createLoginCapableAccount("admin-unreachable");
+        String madeUp = "admin-" + UUID.randomUUID() + "@ember.local";
+        accountRepo.updateEmail(fixture.accountId(), madeUp);
+        accountRepo.setInstanceUserType(fixture.accountId(), InstanceUserType.ADMINISTRATOR);
+        return new TrustedDeviceFixture(fixture.accountId(), madeUp, fixture.stationId());
+    }
+
+    /**
+     * An administrator nobody can write to is stopped at the sign-in and asked where to write.
+     *
+     * <p>The password was right, so what comes back is the step and not a refusal, and it carries no
+     * session: the point of the step is that it cannot be walked past.
+     */
+    @Test
+    @Order(93)
+    void anAdministratorWithoutAReachableAddressIsAskedForOne() {
+        var fixture = createAdministratorWithoutAddress();
+
+        var result = service.login(fixture.email(), PASSWORD, "agent", "DE", null);
+
+        assertTrue(result.success(), result.message());
+        assertTrue(result.addressRequired(), "an administrator with a made-up address owes a real one");
+        assertNotNull(result.token(), "the step is handed out as a one-time token");
+        assertTrue(accountRepo.findSession(result.token()).isEmpty(), "the token must not be a session");
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /** Another made-up address answers the step with the same thing it was asked about. */
+    @Test
+    @Order(94)
+    void aMadeUpAddressIsRefusedAtTheStep() {
+        var fixture = createAdministratorWithoutAddress();
+        var login = service.login(fixture.email(), PASSWORD, "agent", "DE", null);
+
+        var refused = service.setRequiredAddress(login.token(), "somebody@else.local", "agent", "DE");
+
+        assertEquals(AuthService.AddressOutcome.ADDRESS_UNREACHABLE, refused.outcome());
+        assertNull(refused.login(), "a refused address earns nothing");
+        assertEquals(
+                fixture.email(),
+                accountRepo.findById(fixture.accountId()).orElseThrow().email(),
+                "the account keeps the address it had");
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /**
+     * A real address ends the step: it is written, it counts as verified, and the session it was
+     * standing in the way of is handed over at once.
+     */
+    @Test
+    @Order(95)
+    void aRealAddressEndsTheStepAndSignsThemIn() {
+        var fixture = createAdministratorWithoutAddress();
+        var login = service.login(fixture.email(), PASSWORD, "agent", "DE", null);
+        String address = "reachable-" + UUID.randomUUID() + "@example.com";
+
+        var accepted = service.setRequiredAddress(login.token(), address, "agent", "DE");
+
+        assertEquals(AuthService.AddressOutcome.OK, accepted.outcome());
+        assertNotNull(accepted.login());
+        assertNotNull(accepted.login().token());
+        assertFalse(accepted.login().addressRequired());
+        var account = accountRepo.findById(fixture.accountId()).orElseThrow();
+        assertEquals(address, account.email());
+        assertTrue(account.emailVerified(), "an unverified real address would refuse every later sign-in");
+
+        var again = service.login(address, PASSWORD, "agent", "DE", null);
+        assertFalse(again.addressRequired(), "the step is over once there is an address");
+        assertNotNull(accountRepo.findSession(again.token()).orElse(null));
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /**
+     * Nobody else is asked. A station holds people entered without an address on purpose, and the
+     * step is about the one account the instance itself has to be able to write to.
+     */
+    @Test
+    @Order(96)
+    void anOrdinaryMemberWithAMadeUpAddressStillSignsIn() {
+        var fixture = createLoginCapableAccount("member-unreachable");
+        String madeUp = "member-" + UUID.randomUUID() + "@ember.local";
+        accountRepo.updateEmail(fixture.accountId(), madeUp);
+
+        var result = service.login(madeUp, PASSWORD, "agent", "DE", null);
+
+        assertTrue(result.success(), result.message());
+        assertFalse(result.addressRequired());
+        assertNotNull(accountRepo.findSession(result.token()).orElse(null));
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /**
+     * The same instance, seen for the length of one story as one that has no way of sending.
+     *
+     * <p>The policy is asked rather than the configuration, so a test says which of the two worlds it
+     * is in by answering that question and putting the answer back afterwards.
+     */
+    private void withoutAMailServer(Runnable story) {
+        when(confirmationPolicy.confirmationCountsAsGranted()).thenReturn(true);
+        try {
+            story.run();
+        } finally {
+            when(confirmationPolicy.confirmationCountsAsGranted()).thenReturn(false);
+        }
+    }
+
+    /** A registration on an instance that cannot ask is not left waiting to be asked. */
+    @Test
+    @Order(93)
+    void registeringWithoutAMailServerNeedsNoVerification() {
+        String email = "no-mail-register-" + UUID.randomUUID() + "@test.com";
+        withoutAMailServer(() -> {
+            var result = service.registerSelf(email, "No", "Mail", PASSWORD, null);
+
+            assertTrue(result.success(), result.message());
+            assertTrue(result.account().emailVerified(), "there is nobody to ask, so the address counts as asked");
+            var login = service.login(email, PASSWORD, "agent", "DE");
+            assertTrue(login.success(), login.message());
+            accountRepo.delete(result.account().id());
+        });
+    }
+
+    /** An account left unverified by an instance that has since lost its mail server gets through. */
+    @Test
+    @Order(93)
+    void anUnverifiedAccountIsLetThroughWhenNothingCanBeSent() {
+        String email = "no-mail-stuck-" + UUID.randomUUID() + "@test.com";
+        var account = accountRepo.create(email, "Stuck", "Account", false);
+
+        withoutAMailServer(() -> assertTrue(service.resendVerification(email)));
+
+        assertTrue(accountRepo.findById(account.id()).orElseThrow().emailVerified());
+        accountRepo.delete(account.id());
+    }
+
+    /** Without a mail server the address is simply written, because no link could ever arrive. */
+    @Test
+    @Order(93)
+    void anAddressChangeWithoutAMailServerHappensAtOnce() {
+        var fixture = createLoginCapableAccount("no-mail-change");
+        String wanted = "moved-" + UUID.randomUUID() + "@test.com";
+
+        withoutAMailServer(() -> assertEquals(
+                AuthService.EmailChangeResult.COMMITTED, service.requestEmailChange(fixture.accountId(), wanted)));
+
+        assertEquals(
+                wanted, accountRepo.findById(fixture.accountId()).orElseThrow().email());
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /** The same for a question about intent: an unanswerable one leaves the station undeletable. */
+    @Test
+    @Order(93)
+    void aStationIsDeletedAtOnceWhenNobodyCanBeAsked() {
+        var fixture = createLoginCapableAccount("no-mail-delete");
+
+        withoutAMailServer(() -> assertEquals(
+                fixture.stationId(),
+                service.requestStationDeletion(fixture.accountId(), fixture.stationId())
+                        .orElseThrow(),
+                "the caller is handed the station to delete rather than a link to wait for"));
+
+        assertTrue(
+                service.requestStationDeletion(fixture.accountId(), fixture.stationId())
+                        .isEmpty(),
+                "with a mail server the question is asked and the deletion waits");
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /**
+     * A made-up address has no reader, so only the new address is asked, and its one click settles
+     * it. The old two-sided walk is what this used to be, and it could never finish.
+     */
+    @Test
+    @Order(94)
+    void anAddressNobodyReadsIsCorrectedOnASingleClick() {
+        var fixture = createLoginCapableAccount("one-sided");
+        accountRepo.updateEmail(fixture.accountId(), "made-up-" + UUID.randomUUID() + "@ember.local");
+        String wanted = "reachable-" + UUID.randomUUID() + "@test.com";
+        clearInvocations(emailService);
+
+        assertEquals(AuthService.EmailChangeResult.WAITING, service.requestEmailChange(fixture.accountId(), wanted));
+
+        var claimToken = ArgumentCaptor.forClass(String.class);
+        verify(emailService)
+                .sendEmailChangeClaimRequest(eq(wanted), anyString(), any(), claimToken.capture(), anyString());
+        verify(emailService, never()).sendEmailChangeReleaseRequest(any(), any(), any(), any(), any());
+
+        assertEquals(AuthService.EmailChangeResult.COMMITTED, service.confirmEmailChange(claimToken.getValue()));
+        assertEquals(
+                wanted, accountRepo.findById(fixture.accountId()).orElseThrow().email());
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /** An address somebody reads keeps both halves: one click is still only half an answer. */
+    @Test
+    @Order(94)
+    void anAddressSomebodyReadsStillTakesBothClicks() {
+        var fixture = createLoginCapableAccount("two-sided");
+        String wanted = "second-" + UUID.randomUUID() + "@test.com";
+        clearInvocations(emailService);
+
+        assertEquals(AuthService.EmailChangeResult.WAITING, service.requestEmailChange(fixture.accountId(), wanted));
+
+        var claimToken = ArgumentCaptor.forClass(String.class);
+        var releaseToken = ArgumentCaptor.forClass(String.class);
+        verify(emailService)
+                .sendEmailChangeClaimRequest(eq(wanted), anyString(), any(), claimToken.capture(), anyString());
+        verify(emailService)
+                .sendEmailChangeReleaseRequest(
+                        eq(fixture.email()), anyString(), eq(wanted), releaseToken.capture(), anyString());
+
+        assertEquals(AuthService.EmailChangeResult.WAITING, service.confirmEmailChange(claimToken.getValue()));
+        assertEquals(
+                fixture.email(),
+                accountRepo.findById(fixture.accountId()).orElseThrow().email(),
+                "one click changes nothing");
+        assertEquals(AuthService.EmailChangeResult.COMMITTED, service.confirmEmailChange(releaseToken.getValue()));
+        assertEquals(
+                wanted, accountRepo.findById(fixture.accountId()).orElseThrow().email());
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /** An address that is not one is refused at the forced step, as it is everywhere else. */
+    @Test
+    @Order(96)
+    void anAddressThatIsNotOneIsRefusedAtTheStep() {
+        var fixture = createAdministratorWithoutAddress();
+        var login = service.login(fixture.email(), PASSWORD, "agent", "DE", null);
+
+        var refused = service.setRequiredAddress(login.token(), "no-at-sign", "agent", "DE");
+
+        assertEquals(AuthService.AddressOutcome.ADDRESS_MALFORMED, refused.outcome());
+
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
+    }
+
+    /** Somebody else's address is refused too: an administrator cannot take over an account this way. */
+    @Test
+    @Order(96)
+    void somebodyElsesAddressIsRefusedAtTheStep() {
+        var fixture = createAdministratorWithoutAddress();
+        var other = accountRepo.create("taken-" + UUID.randomUUID() + "@test.com", "T", "A", true);
+        var login = service.login(fixture.email(), PASSWORD, "agent", "DE", null);
+
+        var refused = service.setRequiredAddress(login.token(), other.email(), "agent", "DE");
+
+        assertEquals(AuthService.AddressOutcome.ADDRESS_TAKEN, refused.outcome());
+
+        accountRepo.delete(other.id());
+        accountRepo.delete(fixture.accountId());
+        stationRepo.delete(fixture.stationId());
     }
 
     @Test

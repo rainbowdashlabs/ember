@@ -5,15 +5,19 @@
  */
 package dev.chojo.ember.feature.account.service;
 
+import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
+import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -75,5 +79,48 @@ class AccountEmailServiceTest extends RepositoryTestBase {
     @Test
     void anAddressAnotherAccountHasIsRefused() {
         assertThrows(BadRequestResponse.class, () -> service.setEmail(account.id(), other.email()));
+    }
+
+    /**
+     * One administrator puts another one's address right, which is the way out for an account whose
+     * own address cannot be written to. Nothing about the target's standing is asked: the caller has
+     * already been let this far, and an administrator is not a lesser account than any other.
+     */
+    @Test
+    void oneAccountWritesAnothersAddress() {
+        var target = accountRepo.create("stranded-" + UUID.randomUUID() + "@ember.local", "Stranded", "Admin", true);
+        accountRepo.setInstanceUserType(target.id(), InstanceUserType.ADMINISTRATOR);
+        String wanted = "rescued-" + UUID.randomUUID() + "@test.com";
+
+        assertTrue(service.setEmailFor(account.id(), target.id(), wanted));
+
+        assertEquals(wanted, accountRepo.findById(target.id()).orElseThrow().email());
+        accountRepo.delete(target.id());
+    }
+
+    /**
+     * The same call on one's own account is refused, whoever is making it. Writing an address without
+     * confirming it is a takeover in one step, and a stolen session is all it would take.
+     */
+    @Test
+    void nobodyWritesTheirOwnAddressThisWay() {
+        accountRepo.setInstanceUserType(account.id(), InstanceUserType.ADMINISTRATOR);
+        String before = accountRepo.findById(account.id()).orElseThrow().email();
+
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.setEmailFor(account.id(), account.id(), "self-service@test.com"));
+
+        assertEquals(before, accountRepo.findById(account.id()).orElseThrow().email());
+        accountRepo.setInstanceUserType(account.id(), InstanceUserType.USER);
+    }
+
+    /** Shaped like an address, but nothing can be delivered to it, which is the whole objection. */
+    @Test
+    void aMadeUpAddressIsRefused() {
+        assertEquals(
+                AccountEmailService.AddressProblem.UNREACHABLE,
+                service.problemWith(account.id(), "somebody@made.local"));
+        assertThrows(BadRequestResponse.class, () -> service.setEmail(account.id(), "somebody@made.local"));
     }
 }
