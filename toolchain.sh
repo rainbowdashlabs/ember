@@ -21,6 +21,57 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FRONTEND="$ROOT/frontend"
 NODE_HEAP="--max-old-space-size=8192"
 
+# One number for the checkout at the given path: the same on every call from it, and a different one
+# for every other path. Both the compose project name and the block of ports come from it, so a
+# checkout cannot end up with one checkout's name and another's ports.
+checkout_hash() {
+    printf '%s' "$1" | cksum | cut -d' ' -f1
+}
+
+# The compose project the end-to-end stack of the checkout at the given path runs under.
+#
+# Derived from the whole absolute path and not from the directory name: worktrees are named after
+# what they are for, and two of them are called the same often enough. The directory name is kept in
+# front of the digits anyway, so `docker ps` says which checkout a container belongs to without
+# anybody having to work it out. A compose project name takes lowercase letters, digits, hyphen and
+# underscore, and must start with a letter or a digit.
+e2e_project_name() {
+    local path="$1" slug
+    slug="$(printf '%s' "${path##*/}" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_-' '-')"
+    printf 'ember-e2e-%s-%s' "${slug:0:24}" "$(checkout_hash "$path")"
+}
+
+# Gives this checkout an end-to-end stack of its own, and tells the suite where it is.
+#
+# Every checkout on this machine used to share one stack, because the compose project name falls
+# out of the directory name - `docker` in every worktree alike - and the services named their
+# containers and their published ports outright. Whoever ran `up` last owned the stack; everybody
+# else was then testing somebody else's code against somebody else's database, or watching a
+# twenty-minute run be torn down halfway through. Separate stacks remove the question instead of
+# scheduling it, which is why the lock no longer covers any of this.
+#
+# Each checkout gets a block of eight ports, of which four are in use: the spare four are what lets a
+# fifth published port be added later without every checkout's block moving. The range sits above
+# what a developer machine normally publishes and below 32768, where the kernel starts handing out
+# ephemeral ports. Everything downstream reads the ports from here: the compose file publishes them,
+# Playwright and its fixtures take the addresses. Nothing is derived twice, so nothing can disagree
+# about which port the run is on.
+e2e_environment() {
+    local base
+    base=$((22000 + ($(checkout_hash "$ROOT") % 1000) * 8))
+
+    export COMPOSE_PROJECT_NAME
+    COMPOSE_PROJECT_NAME="$(e2e_project_name "$ROOT")"
+    export EMBER_E2E_NETWORK="${COMPOSE_PROJECT_NAME}_net"
+    export EMBER_E2E_WEB_PORT="$base"
+    export EMBER_E2E_API_PORT="$((base + 1))"
+    export EMBER_E2E_PEER_PORT="$((base + 2))"
+    export EMBER_E2E_DB_PORT="$((base + 3))"
+    export E2E_BASE_URL="http://localhost:$EMBER_E2E_WEB_PORT"
+    export NUXT_BACKEND_URL="http://localhost:$EMBER_E2E_API_PORT"
+    export E2E_PEER_URL="http://localhost:$EMBER_E2E_PEER_PORT"
+}
+
 # Runs a command inside the project's direnv/nix environment, falling back to running it
 # directly when direnv is not installed so the script still works on a plain checkout.
 run() {
@@ -74,16 +125,16 @@ Frontend tests
   fe-test-watch         vitest in watch mode
   fe-coverage           Tests with coverage and the threshold gate
   fe-e2e [project]      End-to-end tests, default project chromium. Starts the e2e stack (its own
-                        database and backend on 8899) and serves the last build on 3010; set
-                        E2E_NO_SERVER=1 when they already run
+                        database and backend) and serves the last build in front of it; set
+                        E2E_NO_SERVER=1 when they already run. Every port is derived from this
+                        checkout's path, so a run here takes nothing away from another checkout
   fe-e2e1 <file> [args] One end-to-end spec, e.g. `fe-e2e1 account`
   fe-e2e-ssr            The JavaScript-disabled project, which is what proves the public routes
                         really are server-rendered
   fe-e2e-built [proj]   Rebuild the frontend first, then run the stories
-  fe-e2e-fresh [proj]   Restart the e2e stack, rebuild, and run the stories, all under one lock.
-                        The one to use when more than one checkout shares the machine: the stack
-                        holds a single instance, and two checkouts taking turns on it mid-run makes
-                        the stories report on the wrong backend.
+  fe-e2e-fresh [proj]   Throw the e2e database away, rebuild the stack and the frontend, and run the
+                        stories. The one to use after a backend change: a stack that is already up
+                        still runs the sources it started with
   fe-e2e-list           List every end-to-end story without running anything or starting a server
   fe-e2e-report         Open the last end-to-end report
   fe-e2e-install        Download the Playwright browser binaries (once per machine)
@@ -120,10 +171,15 @@ Docker
   docker-app-restart    Build and start the containers again, which is how a change is picked up:
                         the backend compiles on start. Name one to restart only that, e.g.
                         `docker-app-restart ember`
-  docker-e2e            Start the stack the stories run against, detached: one database and two
-                        instances of the application on it, on 8899 and on 8898. The suite starts
-                        it itself when it is down, so this is for having it up in advance
-  docker-e2e-down       Stop it again. Add -v to throw the database away with it
+  docker-e2e            Start the stack the stories run against, detached: one database, two
+                        instances of the application on it, and the three storage services they
+                        switch a station between. One stack per checkout, on a compose project and
+                        a block of ports derived from this checkout's path, so several checkouts
+                        run the stories at once without meeting. The suite starts it itself when it
+                        is down, so this is for having it up in advance
+  docker-e2e-down       Stop it again. Add -v to throw this checkout's e2e volumes away with it
+  docker-e2e-prune      Take down the e2e stacks of checkouts that no longer exist, volumes and all.
+                        A deleted worktree leaves gigabytes of gradle cache and database behind
   docker-e2e-restart    Build and start it again, which is how a backend change reaches the stories:
                         a stack that is already up keeps running the sources it started with
   docker-e2e-logs       Follow what the two instances print, which is where a story that cannot
@@ -181,17 +237,24 @@ shift || true
 
 # Set EMBER_TOOLCHAIN_NO_LOCK=1 to bypass it, for a machine where the ports are known to be free.
 #
-# The path is fixed rather than taken from TMPDIR. What is being guarded is machine-wide: fixed
-# container names, fixed published ports, one shared stack whoever starts it. A lock that follows
-# TMPDIR gives every caller with its own temporary directory a lock of its own, and callers holding
-# different locks do not wait for one another at all, which is a lock that reads as working while
-# guarding nothing. That is what let several checkouts tear each other's e2e runs down.
+# The path is fixed rather than taken from TMPDIR. What is being guarded is machine-wide. A lock that
+# followed TMPDIR would give every caller with its own temporary directory a lock of its own, and
+# callers holding different locks do not wait for one another at all, which is a lock that reads as
+# working while guarding nothing.
 LOCKFILE="/tmp/ember-toolchain.lock"
 
+# What is left to guard is the development stack, and only that. It is the one stack still shared:
+# a person runs it, it keeps its fixed container names and its fixed ports on purpose, and every
+# checkout on this machine aims `docker-app` and `docker-storage` at that same one.
+#
+# The end-to-end commands are deliberately outside the lock. Each checkout's stack now has its own
+# compose project, its own network and its own block of ports, so two of them running the stories at
+# the same moment never meet: no container name, no port and no volume is shared between them.
+# Making the second one queue would cost it the first one's twenty minutes and prevent nothing.
 needs_lock() {
     case "$1" in
-        docker-app-logs | docker-e2e-logs) return 1 ;;
-        fe-e2e | fe-e2e* | docker-*) return 0 ;;
+        docker-app-logs) return 1 ;;
+        docker-app* | docker-storage*) return 0 ;;
         *) return 1 ;;
     esac
 }
@@ -204,6 +267,13 @@ if [ -z "${EMBER_TOOLCHAIN_LOCKED:-}" ] && [ -z "${EMBER_TOOLCHAIN_NO_LOCK:-}" ]
     fi
     exec flock "$LOCKFILE" "$0" "$cmd" "$@"
 fi
+
+# Before anything reaches compose or Playwright, so that the stack a command starts and the stack the
+# stories look for are the same one. Playwright starts the stack itself through its `webServer`, and
+# it inherits this.
+case "$cmd" in
+    fe-e2e* | docker-e2e*) e2e_environment ;;
+esac
 
 case "$cmd" in
     fe-build)
@@ -275,12 +345,11 @@ case "$cmd" in
         fe; run npx playwright test --project "$project" "$@"
         ;;
     fe-e2e-fresh)
-        # The stack is single-tenant: one container name, one compose project, whoever started it.
-        # Restarting it and running the stories as two commands leaves a gap between them, and a
-        # second checkout that restarts in that gap puts its own backend under the first one's
-        # stories, which then pass or fail on somebody else's code. The lock is held for one
-        # command, so the two belong in one command. This is the right call after a backend change
-        # on a machine where more than one checkout is at work.
+        # Throws the database away, builds the backend again and runs the stories, which is the one
+        # command to reach for after a backend change: a stack that is already up is still running
+        # the sources it started with, and a database another branch migrated further refuses the
+        # backend of this one outright. It has no other checkout to fear any more, since the stack
+        # it restarts is this checkout's own.
         project="${1:-chromium}"; shift || true
         cd "$ROOT/docker"
         run docker compose -f compose.dev.yaml --profile e2e down
@@ -346,22 +415,12 @@ case "$cmd" in
         cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile e2e up -d --build "$@"
         ;;
     docker-e2e-down)
-        # -v is refused here, and that is the whole point of the check. Dev and e2e are one compose
-        # project, so `down -v` under the e2e profile takes the dev volumes with it: object storage,
-        # the SMB share and the gradle caches, none of which the e2e stories own. Somebody lost a
-        # session's dev data to exactly that. `docker-e2e-reset` throws away the e2e database alone,
-        # which is what the flag was ever reached for.
-        cd "$ROOT/docker"
-        for arg in "$@"; do
-            case "$arg" in
-                -v | --volumes)
-                    echo "toolchain: -v would take the dev volumes with it, dev and e2e share one project." >&2
-                    echo "toolchain: use 'docker-e2e-reset' to throw away the e2e database alone." >&2
-                    exit 2
-                    ;;
-            esac
-        done
-        run docker compose -f compose.dev.yaml --profile e2e down "$@"
+        # -v is allowed again. It was refused while the development and the end-to-end stack were one
+        # compose project, where `down -v` under the e2e profile took the dev volumes with it -
+        # object storage, the SMB share, the gradle caches - and somebody lost a session's work to
+        # it. The end-to-end stack is a project of its own per checkout now, and a project's volumes
+        # are prefixed with its name, so the only ones this can reach are the ones it made.
+        cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile e2e down "$@"
         ;;
     docker-e2e-reset)
         # A stack built from one branch will not start against a database another branch has already
@@ -383,6 +442,35 @@ case "$cmd" in
         # not do. Recreating them costs nothing, since the caches live in named volumes.
         cd "$ROOT/docker"
         run docker compose -f compose.dev.yaml --profile full up -d --build --force-recreate "$@"
+        ;;
+    docker-e2e-prune)
+        # A stack per checkout means a checkout that is deleted leaves one behind, and nothing else
+        # ever takes it away: two gradle caches, a build directory, a database and a data directory
+        # per instance, which is gigabytes each. The project name says which checkout a stack belongs
+        # to, so the ones still wanted are exactly the ones derived from a worktree that is still
+        # there. Everything else carrying an `ember-e2e-` project goes, volumes and all.
+        live=""
+        while IFS= read -r path; do
+            [ -n "$path" ] || continue
+            live="$live $(e2e_project_name "$path")"
+        done < <(git -C "$ROOT" worktree list --porcelain | sed -n 's/^worktree //p')
+
+        # Volumes outlive their containers, so both are asked. They also answer differently: a
+        # container hands out one label by name, a volume only the whole set as one string.
+        found=$(
+            {
+                docker ps -a --format '{{.Label "com.docker.compose.project"}}'
+                docker volume ls --format '{{.Labels}}' | tr ',' '\n' |
+                    sed -n 's/^com.docker.compose.project=//p'
+            } | sort -u | grep '^ember-e2e-' || true
+        )
+
+        for project in $found; do
+            case " $live " in *" $project "*) continue ;; esac
+            echo "toolchain: removing the stack of a checkout that is gone: $project"
+            EMBER_E2E_NETWORK="${project}_net" run docker compose \
+                -f "$ROOT/docker/compose.dev.yaml" -p "$project" --profile e2e down -v --remove-orphans
+        done
         ;;
     docker-e2e-logs)
         cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile e2e logs -f "$@"
