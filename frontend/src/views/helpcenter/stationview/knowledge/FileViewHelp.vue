@@ -73,6 +73,22 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.kbFileView.relatedText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.kbFileView.backlinksTitle')">
+      <p>{{ t('helpCenter.kbFileView.backlinksText') }}</p>
+    </HelpSection>
+
+    <HelpPermissionGuard
+      :permissions="[StationPermission.KNOWLEDGE_EDIT]"
+      :label="t('helpCenter.permissionLabel.knowledgeEdit')"
+    >
+      <HelpSection :title="t('helpCenter.kbFileView.moveTitle')">
+        <p>{{ t('helpCenter.kbFileView.moveText') }}</p>
+        <NeutralContainer class="p-0! max-w-xs overflow-hidden">
+          <DropdownMenuItem :icon="['fas', 'arrow-right-arrow-left']">{{ t('kb.move') }}</DropdownMenuItem>
+        </NeutralContainer>
+      </HelpSection>
+    </HelpPermissionGuard>
+
     <HelpSection :title="t('helpCenter.kbFileView.commentsTitle')">
       <p>{{ t('helpCenter.kbFileView.commentsText') }}</p>
     </HelpSection>
