@@ -58,6 +58,8 @@ const EXCHANGE_STATUS_LABELS: Record<string, string> = {
     SHIPPED: 'Versendet',
     ARRIVED: 'Angekommen',
     DONE: 'Erledigt',
+    CANCELLED: 'Abgebrochen',
+    DECLINED: 'Abgelehnt',
 }
 
 test.describe('Inventory', () => {
