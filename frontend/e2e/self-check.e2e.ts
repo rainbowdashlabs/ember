@@ -445,6 +445,7 @@ test.describe('Self-check', () => {
             const pieceId = pieceOf(
                 await entryOfferingBoth(memberPage, 'self-check-broken-piece-', 'self-check-actual-size-piece-'),
             )
+            await answerEverything(memberPage)
             const task = await ownTask(memberPage, taskId)
             const piece = task.assigned.find(item => item.id === pieceId)!
             const sizes = task.required.find(req => req.inventoryId === piece.inventoryId)!.sizes
@@ -529,7 +530,11 @@ test.describe('Self-check', () => {
             await memberPage.getByTestId(`self-check-lost-piece-${pieceId}`).click()
             await memberPage.getByTestId('report-lost-note').fill('Im Zeltlager liegen geblieben')
             await memberPage.getByTestId('report-lost-submit').click()
-            await expect(memberPage.getByTestId(`self-check-lost-piece-${pieceId}`)).toBeDisabled()
+            await expect(
+                memberPage.getByTestId(`self-check-lost-piece-${pieceId}`),
+                'a piece the station has written off stops offering to be reported again',
+            ).toBeHidden()
+            await expect(memberPage.getByTestId(`self-check-entry-piece-${pieceId}`)).toContainText('vermisst')
 
             const raised = (await ownTask(memberPage, taskId)) as unknown as {
                 raised: {kind: string; state: string; itemId: number}[]
