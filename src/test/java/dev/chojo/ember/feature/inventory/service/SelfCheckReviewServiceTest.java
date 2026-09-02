@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCorrection;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
@@ -59,6 +60,8 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
     private static StationMember reviewer;
     private static StationMember walked;
     private static Inventory inventory;
+    private static Inventory sized;
+    private static InventorySize large;
 
     @BeforeAll
     static void setup() {
@@ -76,11 +79,17 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
 
         inventory = inventoryRepo.create(station.id(), "SelfCheckReviewInv", InventoryType.INTERNAL, false);
         inventoryRepo.createRequirement(inventory.id(), StationUserType.MEMBER, 0, null, 6);
+
+        sized = inventoryRepo.create(station.id(), "SelfCheckReviewSizedInv", InventoryType.INTERNAL, true);
+        inventoryRepo.createSize(sized.id(), "XL", 0, "");
+        large = inventoryRepo.findSizes(sized.id()).getFirst();
+        inventoryRepo.createRequirement(sized.id(), StationUserType.MEMBER, 0, null, 1);
     }
 
     @AfterAll
     static void cleanup() {
         inventoryRepo.delete(inventory.id());
+        inventoryRepo.delete(sized.id());
         stationRepo.delete(station.id());
         stationRepo.delete(otherStation.id());
     }
@@ -231,6 +240,67 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         assertEquals(
                 member.id(),
                 inventoryRepo.findItemById(unwritten.id()).orElseThrow().assignedTo());
+    }
+
+    @Test
+    void theSizeTheMemberGaveIsShownAndLandsOnThePieceThatIsNamed() {
+        SelfCheck task = submitted();
+        SelfCheckRow row = selfCheckRepo.answerForPlace(
+                task.id(), sized.id(), 0, SelfCheckAnswer.HAVE_ONE, "", "SCR-SIZED", large.id(), member.id());
+
+        var read = selfCheckReviewService.read(task.id(), station.id(), reviewer.id());
+        assertEquals(
+                "XL",
+                read.rows().stream()
+                        .filter(entry -> entry.row().id() == row.id())
+                        .findFirst()
+                        .orElseThrow()
+                        .statedSize());
+
+        var review = selfCheckReviewService.correctAndTake(
+                task.id(),
+                row.id(),
+                station.id(),
+                reviewer.id(),
+                new ItemCorrection(sized.id(), null, null, null, null, "SCR-SIZED", null));
+
+        Integer namedPiece = review.rows().stream()
+                .filter(entry -> entry.row().id() == row.id())
+                .findFirst()
+                .orElseThrow()
+                .row()
+                .itemId();
+        assertNotNull(namedPiece);
+        assertEquals(
+                large.id(), inventoryRepo.findItemById(namedPiece).orElseThrow().sizeId());
+    }
+
+    @Test
+    void aReviewerNamingASizeThemselvesOverridesTheOneTheMemberGave() {
+        inventoryRepo.createSize(sized.id(), "S", 1, "");
+        InventorySize small = inventoryRepo.findSizes(sized.id()).stream()
+                .filter(size -> "S".equals(size.label()))
+                .findFirst()
+                .orElseThrow();
+        SelfCheck task = submitted();
+        SelfCheckRow row = selfCheckRepo.answerForPlace(
+                task.id(), sized.id(), 0, SelfCheckAnswer.HAVE_ONE, "", "SCR-OVERRIDE", large.id(), member.id());
+
+        var review = selfCheckReviewService.correctAndTake(
+                task.id(),
+                row.id(),
+                station.id(),
+                reviewer.id(),
+                new ItemCorrection(sized.id(), null, null, small.id(), null, "SCR-OVERRIDE", null));
+
+        Integer namedPiece = review.rows().stream()
+                .filter(entry -> entry.row().id() == row.id())
+                .findFirst()
+                .orElseThrow()
+                .row()
+                .itemId();
+        assertEquals(
+                small.id(), inventoryRepo.findItemById(namedPiece).orElseThrow().sizeId());
     }
 
     @Test

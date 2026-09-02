@@ -70,6 +70,7 @@ public class ExchangeExportService {
      * in every language.
      */
     private static final String UNSIZED = "x";
+
     private final ExchangeService exchangeService;
     private final InventoryRepository inventoryRepository;
     private final StationMemberRepository stationMemberRepository;
