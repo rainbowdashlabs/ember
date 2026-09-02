@@ -151,7 +151,7 @@ Backend
   be-spotless           Apply Java formatting
   be-coverage           Coverage gate only (needs a prior test run)
   be-report             Generate the full JaCoCo report
-  be-javadoc            Build the javadoc, which is its own gate in CI and not part of be-verify
+  be-javadoc            Build the javadoc on its own; be-verify runs it too
   be-federation-version Regenerate the federation contract version
   be-data-tracking      Refresh data_tracking.json from the live DB schema (testcontainer)
 
@@ -378,7 +378,7 @@ case "$cmd" in
 
     be-verify)
         cd "$ROOT"
-        run ./gradlew spotlessJavaApply testRepositories testServices testOther testTracking jacocoCoverageCheck "$@"
+        run ./gradlew spotlessJavaApply testRepositories testServices testOther testTracking jacocoCoverageCheck javadoc "$@"
         ;;
     be-test)
         cd "$ROOT"
