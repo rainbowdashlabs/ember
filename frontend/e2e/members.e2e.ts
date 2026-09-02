@@ -603,6 +603,44 @@ test.describe('Members', () => {
      * the mail, and sending it there is what makes the link, so a member entered today and written
      * to next month gets a link that has not run out in between.
      */
+    /**
+     * A child entered without a login of their own gets no address, rather than one made up to look
+     * like one. The list has to say so plainly: an empty address, and no offer to write to them,
+     * because there is nowhere for that mail to go until a guardian with an address is attached.
+     */
+    test('a member entered without a login carries no address', async ({managerPage: page}) => {
+        const surname = unique('Ohnezugang')
+
+        await page.goto('/station/members/create')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+        await page.getByRole('button', {name: 'Weiter'}).first().click()
+
+        await page.getByPlaceholder('Vorname').fill('Testperson')
+        await page.getByPlaceholder('Nachname').fill(surname)
+
+        // Turning the login off takes the address field away entirely: nothing is typed, and
+        // nothing may be invented on the way to the server either.
+        await page.getByRole('switch').first().click()
+        await expect(page.getByPlaceholder('E-Mail-Adresse')).toHaveCount(0)
+
+        await page.getByRole('button', {name: 'Weiter'}).first().click()
+        for (let step = 0; step < 4; step += 1) {
+            const next = page.getByRole('button', {name: /Weiter|Konto erstellen|Erstellen/}).first()
+            if (!await next.isVisible().catch(() => false)) break
+            await next.click()
+        }
+
+        await page.goto('/station/members/list')
+        await page.getByPlaceholder(/Suche/).first().fill(surname)
+        const row = page.getByTestId('member-row').first()
+        await expect(row).toBeVisible()
+        await expect(row.getByText(surname)).toBeVisible()
+
+        // The address column reads as empty rather than carrying something ending in .local.
+        await expect(row).not.toContainText('.local')
+        await expect(row.getByRole('button', {name: 'Einrichtungs-Mail erneut senden'})).toHaveCount(0)
+    })
+
     test('a member entered today is written to from the list afterwards', async ({managerPage: page}) => {
         const surname = unique('Spaeter')
 

@@ -17,13 +17,11 @@ import {StationUserType, type MemberGroup, type StationMember} from '@/api/types
 import {memberGroups, members, profileFields, stationMembers} from '@/api'
 import {setFieldValue as writeFieldValue} from '@/util/profileFields'
 import {todayIsoDate} from '@/util/format'
-import {useStations} from '@/composables/useStations'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 const router = useRouter()
-const {currentStationId} = useStations()
 
 const step = ref<'userType' | 'identity' | 'fields' | 'groups' | 'manager' | 'done'>('userType')
 const selectedUserType = ref<'TRIAL' | 'MEMBER' | 'GUARDIAN' | 'TEAM'>(StationUserType.MEMBER)
@@ -136,11 +134,8 @@ async function createNewManager(data: { firstName: string; lastName: string; ema
 
 const {running: saving, error: createError, run: createAccount, clearError: clearCreateError} = useAsyncAction(async () => {
   error.value = ''
-  const inviteEmail = canLogin.value
-      ? email.value
-      : `${firstName.value.toLowerCase()}.${lastName.value.toLowerCase()}@${currentStationId.value}.local`
   const invited = await members.invite({
-    email: inviteEmail,
+    email: canLogin.value ? email.value : undefined,
     firstName: firstName.value,
     lastName: lastName.value,
     sendSetupMail: sendSetupMail.value,

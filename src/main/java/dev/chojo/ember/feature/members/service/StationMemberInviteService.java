@@ -57,6 +57,11 @@ public class StationMemberInviteService {
      * was asked to go now. The user type and group are only applied to memberships created by this
      * call - existing members keep their configuration.
      *
+     * <p>No address given means the member has none, and none is written down for them. Nobody is
+     * given a made-up one: an address that looks real and can never be delivered to shows in every
+     * list as though somebody could be written to there, and has to be explained to whoever reads
+     * it. Such a member is reached through the guardians who answer for them, or not at all.
+     *
      * @throws ProvisionException if the email belongs to an existing account and attaching is not
      *                            allowed (synthetic {@code .local} addresses)
      */
@@ -70,7 +75,9 @@ public class StationMemberInviteService {
             SetupMail setupMail) {
         AccountInviteService.Invited invited;
         try {
-            invited = accountInviteService.resolveOrCreate(stationId, email, firstName, lastName, setupMail);
+            invited = email == null || email.isBlank()
+                    ? accountInviteService.createWithoutAddress(stationId, firstName, lastName)
+                    : accountInviteService.resolveOrCreate(stationId, email, firstName, lastName, setupMail);
         } catch (AccountInviteService.EmailInUseException e) {
             throw ProvisionException.emailInUse(email.trim());
         }

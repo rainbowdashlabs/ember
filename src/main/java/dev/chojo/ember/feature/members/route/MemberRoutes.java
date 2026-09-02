@@ -166,7 +166,7 @@ public class MemberRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Invite a new user to a station",
             description =
-                    "Provisions a pre-verified account and station membership immediately and sends a password setup email. An email that already belongs to an account attaches that account to the station instead.",
+                    "Provisions a pre-verified account and station membership immediately and sends a password setup email. An email that already belongs to an account attaches that account to the station instead. Leaving the email out creates a member with no address of their own, who is reached through their guardians.",
             tags = {"Members"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InviteRequest.class)),
             responses = {
@@ -176,8 +176,8 @@ public class MemberRoutes implements Routes {
             })
     private void invite(Context ctx) {
         var request = ctx.bodyAsClass(InviteRequest.class);
-        if (isBlank(request.email()) || isBlank(request.firstName()) || isBlank(request.lastName())) {
-            throw new BadRequestResponse("email, firstName, and lastName are required");
+        if (isBlank(request.firstName()) || isBlank(request.lastName())) {
+            throw new BadRequestResponse("firstName and lastName are required");
         }
 
         UserSession session = UserSession.from(ctx);

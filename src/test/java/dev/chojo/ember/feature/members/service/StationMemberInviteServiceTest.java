@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.SetupMail;
+import dev.chojo.ember.feature.members.entity.MailReaches;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.GuardianRequest;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.InviteRequest;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.ProvisionException;
@@ -76,6 +77,60 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
         assertEquals(StationUserType.MEMBER, member.userType());
         assertFalse(memberPermissionResolver.resolve(member.id()).contains(StationPermission.LOGIN));
         assertFalse(memberPermissionResolver.resolve(member.id()).contains(StationPermission.MEMBER_GUARDIAN));
+    }
+
+    /**
+     * Somebody who is not meant to sign in is written down with no address at all. Until now the
+     * screen made one up that ended in {@code .local}, which stood in every list looking like
+     * somewhere mail could be sent, and counted as verified into the bargain.
+     */
+    @Test
+    void a_member_without_a_login_is_given_no_address_at_all() {
+        var result = provision(station.id(), null, "Kim", "Keine", StationUserType.MEMBER, null);
+
+        var account = accountRepo.findById(result.accountId()).orElseThrow();
+        assertNull(account.email());
+        assertFalse(account.emailVerified());
+        assertFalse(account.hasRealEmail());
+        verify(authService, never()).sendPasswordSetup(anyInt());
+    }
+
+    /** A blank address is the same statement as none, and must not become one made up either. */
+    @Test
+    void a_blank_address_is_read_as_no_address() {
+        var result = provision(station.id(), "   ", "Blank", "Keine", StationUserType.MEMBER, null);
+
+        var account = accountRepo.findById(result.accountId()).orElseThrow();
+        assertNull(account.email());
+    }
+
+    /** The counter-check: an address that was given is kept exactly as it was given. */
+    @Test
+    void an_address_that_was_given_is_kept_unchanged() {
+        String email = uniqueEmail("kept");
+
+        var result = provision(station.id(), email, "Klara", "Keeper", StationUserType.MEMBER, null);
+
+        var account = accountRepo.findById(result.accountId()).orElseThrow();
+        assertEquals(email, account.email());
+        assertTrue(account.emailVerified());
+        assertTrue(account.hasRealEmail());
+    }
+
+    /**
+     * The list the members screen is drawn from copes with an account that has no address: it shows
+     * an empty one rather than failing, and says plainly that nobody can be written to about them.
+     */
+    @Test
+    void the_member_list_copes_with_somebody_who_has_no_address() {
+        var result = provision(station.id(), null, "Kim", "Keine", StationUserType.MEMBER, null);
+
+        var row = stationMemberRepo.findRichMembers(station.id(), false).stream()
+                .filter(candidate -> candidate.id() == result.memberId())
+                .findFirst()
+                .orElseThrow();
+        assertEquals("", row.email());
+        assertEquals(MailReaches.NOBODY, row.mailReaches());
     }
 
     /** A guardian carries the right to sign in, which is the whole point of being one. */
