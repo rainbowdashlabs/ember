@@ -221,6 +221,7 @@ public class InventoryCheckService {
                 gear.assigned(),
                 gear.lastCheck(),
                 unassigned,
+                inventoryRepository.findMovingItemsOfMember(memberId),
                 overtaken);
     }
 
@@ -657,6 +658,8 @@ public class InventoryCheckService {
      * @param assigned   the items currently assigned to the member
      * @param lastCheck  the member's most recent check, or {@code null} if never checked
      * @param unassigned available unassigned items per inventory, keyed by inventory ID
+     * @param onTheMove  the step each piece is standing on that already has a movement running, keyed
+     *                   by piece, so the walk leaves out a swap the station would only refuse
      * @param overtookSelfChecks the tasks this walk closed, so the walker is told a member had been
      *                           asked to answer for themselves and that their answers are not applied
      */
@@ -667,6 +670,7 @@ public class InventoryCheckService {
             List<InventoryItem> assigned,
             InventoryCheck lastCheck,
             Map<Integer, List<InventoryItem>> unassigned,
+            Map<Integer, String> onTheMove,
             List<SelfCheck> overtookSelfChecks) {}
 
     /**
