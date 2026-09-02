@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.LoginNameService;
+import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.ProvisionException;
@@ -187,7 +188,8 @@ public class MemberRoutes implements Routes {
                     request.firstName(),
                     request.lastName(),
                     StationUserType.MEMBER,
-                    null);
+                    null,
+                    SetupMail.of(request.sendSetupMail()));
             ctx.status(HttpStatus.CREATED)
                     .json(new InviteResponse(
                             provisioned.accountId(),
@@ -229,7 +231,11 @@ public class MemberRoutes implements Routes {
 
     // -- Request/Response records --
 
-    public record InviteRequest(String email, String firstName, String lastName) {}
+    /**
+     * @param sendSetupMail whether the setup mail leaves with the account. Absent means it does,
+     *                      which is what inviting somebody has always done.
+     */
+    public record InviteRequest(String email, String firstName, String lastName, Boolean sendSetupMail) {}
 
     public record ResetPasswordRequest(Integer accountId, Boolean forceChange) {}
 

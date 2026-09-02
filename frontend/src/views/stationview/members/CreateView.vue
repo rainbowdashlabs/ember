@@ -31,6 +31,7 @@ const firstName = ref('')
 const lastName = ref('')
 const email = ref('')
 const canLogin = ref(true)
+const sendSetupMail = ref(true)
 const allFields = ref<ProfileField[]>([])
 const fieldValues = ref<Map<number, string>>(new Map())
 const allGroups = ref<MemberGroup[]>([])
@@ -107,7 +108,7 @@ function toggleManager(id: number) {
 async function createNewManager(data: { firstName: string; lastName: string; email: string }) {
   error.value = ''
   try {
-    const invited = await members.invite(data)
+    const invited = await members.invite({...data, sendSetupMail: sendSetupMail.value})
     const membersList = await stationMembers.listMembers()
     const newMember = membersList.find(m => m.accountId === invited.id)
     if (newMember) {
@@ -135,6 +136,7 @@ const {running: saving, error: createError, run: createAccount, clearError: clea
     email: inviteEmail,
     firstName: firstName.value,
     lastName: lastName.value,
+    sendSetupMail: sendSetupMail.value,
   })
 
   const membersList = await stationMembers.listMembers()
@@ -172,6 +174,7 @@ function startOver() {
   lastName.value = ''
   email.value = ''
   canLogin.value = true
+  sendSetupMail.value = true
   fieldValues.value = new Map()
   selectedGroupIds.value = new Set()
   selectedManagerIds.value = new Set()
@@ -201,6 +204,7 @@ function startOver() {
           v-model:step="step"
           v-model:selected-user-type="selectedUserType"
           v-model:can-login="canLogin"
+          v-model:send-setup-mail="sendSetupMail"
           v-model:email="email"
           v-model:first-name="firstName"
           v-model:last-name="lastName"

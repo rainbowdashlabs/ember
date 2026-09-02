@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
@@ -506,7 +507,8 @@ public class StationService {
                 .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
                 .orElseThrow(() -> new IllegalStateException("manager role not found"));
 
-        var provisioned = inviteService.provision(stationId, managerEmail, "", "", StationUserType.MANAGER, null);
+        var provisioned = inviteService.provision(
+                stationId, managerEmail, "", "", StationUserType.MANAGER, null, SetupMail.SEND_NOW);
         int memberId = provisioned.memberId();
 
         if (!holdsRole(memberId, managerRole)) {

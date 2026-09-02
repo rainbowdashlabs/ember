@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.MemberDocument;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -109,8 +110,8 @@ public class ClusterMemberManagementService {
                 ? email.trim()
                 : "%s.%s@%s%s".formatted(slug(firstName), slug(lastName), station.uid(), SYNTHETIC_EMAIL_SUFFIX);
 
-        var provisioned =
-                inviteService.provision(station.id(), address, firstName.trim(), lastName.trim(), userType, null);
+        var provisioned = inviteService.provision(
+                station.id(), address, firstName.trim(), lastName.trim(), userType, null, SetupMail.SEND_NOW);
         log.info("Cluster {} took on member {} at station {}", clusterId, provisioned.memberId(), station.id());
         return provisioned;
     }

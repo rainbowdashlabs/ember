@@ -22,6 +22,8 @@ export interface InviteEntry {
 
 export interface CreateInvitesRequest {
     invites: InviteEntry[]
+    /** Whether the setup mails leave with the accounts. Absent means they do. */
+    sendSetupMail?: boolean
 }
 
 export interface ProvisionedMemberResponse {

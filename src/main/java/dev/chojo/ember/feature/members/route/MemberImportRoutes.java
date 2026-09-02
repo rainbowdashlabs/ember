@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.service.MemberImportService;
 import dev.chojo.ember.feature.members.service.MemberImportService.ColumnMapping;
 import io.javalin.http.BadRequestResponse;
@@ -118,7 +119,8 @@ public class MemberImportRoutes implements Routes {
                         request.csv(),
                         request.separator(),
                         request.mappings(),
-                        request.ignoredRows()));
+                        request.ignoredRows(),
+                        SetupMail.of(request.sendSetupMail())));
     }
 
     @OpenApi(
@@ -163,15 +165,23 @@ public class MemberImportRoutes implements Routes {
                         request.csv(),
                         request.separator(),
                         request.mappings(),
-                        request.ignoredRows()));
+                        request.ignoredRows(),
+                        SetupMail.of(request.sendSetupMail())));
     }
 
     public record CsvRequest(String csv, String separator) {}
 
     /**
-     * @param ignoredRows the rows struck out in the preview, by their place in the file, counted from
-     *                    the first row after the heading. Absent where nothing was struck out.
+     * @param ignoredRows   the rows struck out in the preview, by their place in the file, counted from
+     *                      the first row after the heading. Absent where nothing was struck out.
+     * @param sendSetupMail whether the setup mails leave with the accounts. Absent means they do,
+     *                      which is what an import has always done. Ignored by the two preview
+     *                      routes, which write nothing and send nothing.
      */
     public record ImportRequest(
-            String csv, String separator, List<ColumnMapping> mappings, List<Integer> ignoredRows) {}
+            String csv,
+            String separator,
+            List<ColumnMapping> mappings,
+            List<Integer> ignoredRows,
+            Boolean sendSetupMail) {}
 }
