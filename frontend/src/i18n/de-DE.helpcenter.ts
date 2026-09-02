@@ -1514,7 +1514,7 @@ volumes:
             searchTitle: 'Suchen und sortieren',
             searchText: 'Die Suche geht über den Titel und, wo lesbar, über den Inhalt: bei PDFs '
                 + 'und Textdateien wird der Text mit durchsucht.',
-            tagsText: 'Schlagworte sind freier Text. Was es noch nicht gibt, entsteht beim '
+            tagsText: 'Tags sind freier Text. Was es noch nicht gibt, entsteht beim '
                 + 'Speichern, du musst nichts vorher anlegen.',
             keepTitle: 'Bei Archivierung behalten',
             keepText: 'Wird ein Mitglied als ehemalig markiert, verschwinden seine Dokumente. Was '
@@ -3793,7 +3793,7 @@ volumes:
                 + ' festgehalten. Ihr entscheidet über den Ersatz: Ihr schickt einen oder lehnt mit Begründung'
                 + ' ab. Vermisst bleibt das Teil so oder so.',
             tagsTitle: 'Wörter empfehlen',
-            tagsText: 'Ein Schlagwort fasst Dinge zusammen, die zusammengehören, ohne gleich zu sein: die'
+            tagsText: 'Ein Tag fasst Dinge zusammen, die zusammengehören, ohne gleich zu sein: die'
                 + ' Funkgeräte, die Ladestation und die Antenne. Hier schlagt ihr euren Abteilungen Wörter'
                 + ' dafür vor, wahlweise allen oder nur einer Gruppe von Abteilungen.',
             tagsStandsBesideText: 'Ein Vorschlag ersetzt nie das Wort einer Abteilung. Verglichen wird ohne'
@@ -4303,14 +4303,14 @@ volumes:
         inventoryTags: {
             title: 'Schlagwörter',
             subtitle: 'Dinge zusammenfassen, die zusammengehören, ohne gleich zu sein.',
-            whatIsTitle: 'Was ein Schlagwort ist',
-            whatIsText: 'Ein Schlagwort ist eine Eigenschaft eines Gegenstands, die immer gilt und keine '
+            whatIsTitle: 'Was ein Tag ist',
+            whatIsText: 'Ein Tag ist eine Eigenschaft eines Gegenstands, die immer gilt und keine '
                 + 'Menge kennt. Die zehn Funkgeräte und die zwei Ladestationen sind alle „Funk“, auch wenn '
                 + 'sie in verschiedenen Inventaren liegen und nicht dasselbe Ding sind.',
-            againstArtText: 'Die Art fasst gleiche Dinge zusammen, das Schlagwort fasst Dinge zusammen, die '
-                + 'zusammengehören. Eine Antenne unter „Sonstiges“ trägt dasselbe Schlagwort wie die '
+            againstArtText: 'Die Art fasst gleiche Dinge zusammen, das Tag fasst Dinge zusammen, die '
+                + 'zusammengehören. Eine Antenne unter „Sonstiges“ trägt dasselbe Tag wie die '
                 + 'Funkgeräte, obwohl sie keine Art mit ihnen teilt.',
-            pickedTitle: 'Schlagwörter werden ausgewählt, nicht getippt',
+            pickedTitle: 'Tags werden ausgewählt, nicht getippt',
             pickedText: 'Im Feld am Gegenstand steht, was es schon gibt. Ein neues Wort lässt sich anlegen, '
                 + 'sobald das Getippte zu nichts passt, und wird erst beim Speichern wirklich angelegt. So '
                 + 'wird aus „orange“ nicht nebenbei ein zweites „organge“.',

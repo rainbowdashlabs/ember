@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import KbCreateMenu from './KbCreateMenu.vue'
 import KbItemGrid from './KbItemGrid.vue'
@@ -52,7 +53,7 @@ const emit = defineEmits<{
                 {{ currentFolder.description }}
             </MutedText>
 
-            <div v-if="canManage" class="flex flex-wrap items-center gap-2">
+            <div v-if="canManage" class="flex flex-wrap items-center gap-2 mb-4">
                 <KbCreateMenu
                     @create-folder="emit('createFolder')"
                     @create-markdown="emit('createMarkdown')"
@@ -61,14 +62,14 @@ const emit = defineEmits<{
                     @link="emit('link')"
                     @import-document="emit('importDocument')"
                 />
-                <SecondaryButton
+                <IconButton
                     v-if="items.length > 0"
+                    :icon="['fas', selecting ? 'xmark' : 'square-check']"
+                    :label="selecting ? t('kb.stopSelecting') : t('kb.startSelecting')"
+                    class="ml-auto"
                     data-testid="kb-toggle-selecting"
                     @click="emit('toggleSelecting')"
-                >
-                    <font-awesome-icon :icon="['fas', selecting ? 'xmark' : 'square-check']" class="mr-1"/>
-                    {{ selecting ? t('kb.stopSelecting') : t('kb.startSelecting') }}
-                </SecondaryButton>
+                />
             </div>
 
             <KbSelectionBar

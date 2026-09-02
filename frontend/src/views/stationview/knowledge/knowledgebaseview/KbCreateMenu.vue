@@ -50,7 +50,7 @@ function doImportDocument() { closeDropdown(); emit('importDocument') }
 </script>
 
 <template>
-    <div class="flex flex-wrap gap-2 mb-4">
+    <div class="flex flex-wrap gap-2">
         <div class="relative create-dropdown-container">
             <PrimaryButton data-onboarding="knowledge.create" @click="showDropdown = !showDropdown">
                 <font-awesome-icon :icon="['fas', 'plus']"/>

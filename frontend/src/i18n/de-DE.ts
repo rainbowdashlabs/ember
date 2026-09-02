@@ -1921,9 +1921,9 @@ export default {
         uploadTitle: 'Dokument hochladen',
         file: 'Datei',
         titlePlaceholder: 'Wie das Dokument heißen soll',
-        tags: 'Schlagworte',
+        tags: 'Tags',
         tagsPlaceholder: 'Vertrag, Einverständnis',
-        tagsHint: 'Mit Komma getrennt. Neue Schlagworte entstehen beim Speichern.',
+        tagsHint: 'Mit Komma getrennt. Neue Tags entstehen beim Speichern.',
         keepOnArchive: 'Bei Archivierung behalten',
         keepOnArchiveHint: 'Bleibt erhalten, wenn das Mitglied als ehemalig markiert wird. Für rechtlich bindende Dokumente.',
         kept: 'Wird behalten',
@@ -1937,7 +1937,7 @@ export default {
         bindPlaceholder: 'Mitglied wählen',
         search: 'Suche',
         searchPlaceholder: 'Titel oder Inhalt',
-        searchOwnPlaceholder: 'Titel oder Schlagwort',
+        searchOwnPlaceholder: 'Titel oder Tag',
         searchHint: 'Durchsucht Titel und, wo lesbar, den Inhalt der Dokumente.',
         filterMember: 'Mitglied',
         allMembers: 'Alle Dokumente',
@@ -3674,22 +3674,22 @@ export default {
         },
         tag: {
             title: 'Schlagwörter',
-            intro: 'Ein Schlagwort sagt, wozu ein Gegenstand gehört, und gilt über alle Inventare hinweg. '
+            intro: 'Ein Tag sagt, wozu ein Gegenstand gehört, und gilt über alle Inventare hinweg. '
                 + 'Die Funkgeräte, die Ladestation und die Antenne tragen so dasselbe Wort, obwohl sie '
                 + 'nicht dasselbe sind.',
             field: 'Schlagwörter',
             fieldHint: 'Darf leer bleiben. Ein neues Wort wird erst beim Speichern angelegt.',
             column: 'Schlagwörter',
-            add: 'Schlagwort anlegen',
-            edit: 'Schlagwort bearbeiten',
+            add: 'Tag anlegen',
+            edit: 'Tag bearbeiten',
             name: 'Wort',
             namePlaceholder: 'z. B. Funk',
             color: 'Farbe',
             none: 'Keine Schlagwörter',
             none2: 'Diese Abteilung verwendet noch keine Schlagwörter.',
-            empty: 'Kein Schlagwort gefunden',
+            empty: 'Kein Tag gefunden',
             itemCount: '{count} Gegenstände',
-            deleteConfirm: 'Schlagwort „{name}“ löschen? Die Gegenstände bleiben erhalten und verlieren nur '
+            deleteConfirm: 'Tag „{name}“ löschen? Die Gegenstände bleiben erhalten und verlieren nur '
                 + 'dieses Wort.',
             recommended: 'Vom Verband empfohlen',
             recommendedHint: 'Der Verband schlägt diese Wörter vor. Ein Wort, das ihr schon verwendet, ist '
@@ -8039,7 +8039,7 @@ export default {
         unsavedChanges: 'Ungespeicherte Änderungen',
         goUp: 'Eine Ebene nach oben',
         tags: 'Schlagwörter',
-        tagPlaceholder: 'Neues Schlagwort...',
+        tagPlaceholder: 'Neues Tag...',
         share: 'Sichtbarkeit',
         reachPublic: 'Steht im öffentlichen Wiki',
         reachFederated: 'Alle verbundenen Wachen sehen das, die Öffentlichkeit nicht',
