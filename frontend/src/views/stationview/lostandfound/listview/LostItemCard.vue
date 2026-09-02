@@ -44,7 +44,8 @@ const canRelease = computed(() => props.canManage
 </script>
 
 <template>
-  <NeutralContainer class="space-y-3" :class="{'opacity-60': item.claimedBy && !canManage}">
+  <NeutralContainer class="space-y-3" data-testid="lost-item-card"
+                    :class="{'opacity-60': item.claimedBy && !canManage}">
     <img v-if="imageSrc"
          :src="imageSrc"
          :alt="item.description ?? t('lostAndFound.noDescription')"

@@ -37,6 +37,8 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -103,8 +105,7 @@ public class LostAndFoundRoutes implements Routes {
         boolean isManager = session.hasPermission(StationPermission.LOST_AND_FOUND_MANAGE);
         var items = isManager
                 ? lostAndFoundService.findByStation(session.stationId())
-                : lostAndFoundService.findUnclaimedOrClaimedBy(
-                        session.stationId(), session.member().id());
+                : lostAndFoundService.findUnclaimedOrClaimedBy(session.stationId(), speaksFor(session));
         ctx.json(items.stream().map(this::toResponse).toList());
     }
 
@@ -292,13 +293,20 @@ public class LostAndFoundRoutes implements Routes {
     }
 
     /**
+     * Everybody the caller may act as: themselves, and anybody in their care.
+     */
+    private List<Integer> speaksFor(UserSession session) {
+        var members = new ArrayList<Integer>();
+        members.add(session.member().id());
+        memberService.findManaged(session.member().id()).forEach(m -> members.add(m.id()));
+        return members;
+    }
+
+    /**
      * Whether the caller may act as the given member: themselves, or somebody in their care.
      */
     private boolean maySpeakFor(UserSession session, int memberId) {
-        if (memberId == session.member().id()) {
-            return true;
-        }
-        return memberService.findManaged(session.member().id()).stream().anyMatch(m -> m.id() == memberId);
+        return speaksFor(session).contains(memberId);
     }
 
     /**

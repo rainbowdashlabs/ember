@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -137,8 +138,11 @@ class LostAndFoundServiceTest extends RepositoryTestBase {
     @Test
     @Order(13)
     void claimedItemVisibleInUnclaimedOrClaimedBy() {
-        var items = service.findUnclaimedOrClaimedBy(station.id(), member.id());
+        var items = service.findUnclaimedOrClaimedBy(station.id(), List.of(member.id()));
         assertTrue(items.stream().anyMatch(i -> i.id() == itemId));
+
+        var others = service.findUnclaimedOrClaimedBy(station.id(), List.of(bystander.id()));
+        assertFalse(others.stream().anyMatch(i -> i.id() == itemId));
     }
 
     @Test

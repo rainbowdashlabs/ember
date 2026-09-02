@@ -65,14 +65,14 @@ public class LostAndFoundService {
     }
 
     /**
-     * Finds items that are unclaimed or claimed by a specific member.
+     * Finds items that are unclaimed or claimed for one of the given members.
      *
      * @param stationId the station to query
-     * @param memberId  the member whose claimed items should also be included
+     * @param memberIds the members whose claimed items should also be included
      * @return matching items ordered by creation date descending
      */
-    public List<LostAndFoundItem> findUnclaimedOrClaimedBy(int stationId, int memberId) {
-        return repository.findUnclaimedOrClaimedBy(stationId, memberId);
+    public List<LostAndFoundItem> findUnclaimedOrClaimedBy(int stationId, List<Integer> memberIds) {
+        return repository.findUnclaimedOrClaimedBy(stationId, memberIds);
     }
 
     /**
