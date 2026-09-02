@@ -158,6 +158,32 @@ public class ItemCustodyService {
     }
 
     /**
+     * Takes a missing item off the record of whoever it was on, and leaves it missing.
+     *
+     * <p>Putting a record right settles whose the piece was, and settles nothing whatever about
+     * where the piece is. Sending it to a store the way an ordinary correction does would grow the
+     * shelf by a thing nobody can find, and the station would go looking for it on the day it is
+     * handed out. The loss outlives the record it was written against, the reporter's note with it,
+     * and the piece stays missing with nobody named against it until it turns up.
+     *
+     * @param itemId the item ID
+     * @return the updated item, or empty if the item was not found
+     */
+    public Optional<InventoryItem> releaseLost(int itemId) {
+        var found = inventoryRepository.findItemById(itemId);
+        if (found.isEmpty()) {
+            log.warn("Lost-release skipped: item {} not found", itemId);
+            return Optional.empty();
+        }
+        var item = found.get();
+        closeCurrentSpell(item);
+        Integer holder = item.custodyStationId() != null ? item.custodyStationId() : stationOf(item);
+        inventoryRepository.updateCustody(itemId, ItemCustody.LOST, holder, null, null);
+        log.info("Item {} came off member {}'s record and stays missing", itemId, item.assignedTo());
+        return inventoryRepository.findItemById(itemId);
+    }
+
+    /**
      * Records that a missing item has turned up again. It goes back to whoever it was still on the
      * record of, or to its store when nobody had it.
      *

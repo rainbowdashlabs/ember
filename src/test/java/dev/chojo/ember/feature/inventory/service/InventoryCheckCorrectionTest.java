@@ -206,6 +206,59 @@ class InventoryCheckCorrectionTest extends RepositoryTestBase {
                         member.id(), new ItemCorrection(inventoryId, old.id(), theirs.id(), null, null, null, null)));
     }
 
+    /**
+     * A piece somebody has reported missing keeps being missing when the record it hung on is put
+     * right, and a piece nobody has reported goes back on the shelf exactly as it always did.
+     *
+     * <p>The two are corrected side by side because the difference between them is the whole point:
+     * putting the record right used to send both to the store, which quietly ended the loss and left
+     * the station counting a jacket nobody could find among the ones it could hand out.
+     */
+    @Test
+    void aPieceReportedMissingStaysMissingWhileAnUnreportedOneGoesBackToTheShelf() {
+        int inventoryId = inventory("Einsatzhosen", InventoryType.INTERNAL);
+        var missing = held(inventoryId, "EH-1", ItemOwner.STATION, null);
+        var present = held(inventoryId, "EH-2", ItemOwner.STATION, null);
+        itemCustodyService.markLost(missing.id(), "Im Zeltlager liegen geblieben", member.id());
+
+        service.correct(member.id(), makesANewPiece(inventoryId, missing.id(), null));
+        service.correct(member.id(), makesANewPiece(inventoryId, present.id(), null));
+
+        var released = reload(missing.id());
+        assertEquals(ItemCustody.LOST, released.custody(), "the piece nobody can find is still missing");
+        assertNull(released.assignedTo(), "and off the record of the member who never held it");
+        assertEquals(
+                "Im Zeltlager liegen geblieben", released.lostNote(), "with what was written about it still on it");
+
+        var free = inventoryRepo.findUnassignedItems(inventoryId);
+        assertTrue(
+                free.stream().noneMatch(item -> item.id() == missing.id()),
+                "a missing piece is not stock the station can hand out");
+        assertTrue(
+                free.stream().anyMatch(item -> item.id() == present.id()),
+                "while the piece that is simply on the wrong record goes back where it belongs");
+        assertEquals(ItemCustody.WITH_OWNER, reload(present.id()).custody(), "resting in the station's own store");
+    }
+
+    /**
+     * A loss the correction did not end can still be ended the ordinary way, and the piece then goes
+     * to its store rather than back to the member who never had it.
+     */
+    @Test
+    void aMissingPieceTakenOffARecordStillComesBackWhenItTurnsUp() {
+        int inventoryId = inventory("Feuerwehrgurte", InventoryType.INTERNAL);
+        var missing = held(inventoryId, "FG-1", ItemOwner.STATION, null);
+        itemCustodyService.markLost(missing.id(), "Nicht mehr auffindbar", member.id());
+        service.correct(member.id(), makesANewPiece(inventoryId, missing.id(), null));
+
+        itemCustodyService.markFound(missing.id());
+
+        var back = reload(missing.id());
+        assertEquals(ItemCustody.WITH_OWNER, back.custody(), "it turns up in the station's own store");
+        assertNull(back.assignedTo(), "on nobody's record");
+        assertNull(back.lostNote(), "and the note about the loss goes with the loss");
+    }
+
     @Test
     void theHistorySaysTheSpellEndedInACorrection() {
         int inventoryId = inventory("Hosen", InventoryType.INTERNAL);
