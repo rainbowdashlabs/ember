@@ -71,6 +71,7 @@
 
 ### Fixes
 
+- **A yearly appointment close to midnight was exported on the wrong day.** Which day of the year it repeats on was read off a different clock than every other date on the sheet, so an appointment near midnight was listed a day out from the one it is on. It is now read on the station's own clock, like the rest of the export.
 - **A wiki search could come back short, or empty, while matching articles existed.** The search read only as many articles as it meant to show and then removed the ones the reader may not open, so anything restricted at the top of the list ate the places of readable articles behind it. It now reads well beyond what it shows and counts to the page afterwards, on the member search, the public wiki and the search a partner station asks of you alike.
 - **A change to a ticket made while an earlier one was still saving was thrown away.** Leaving one field and going straight to another sent the first and dropped the second, with nothing on screen to say so, because the two are one save and the second was taken for a double click. The later change now goes out as soon as the first has finished.
 - **A member standing on an attendance sheet with no entry could not be marked.** Anybody who joined a group after the sheet was opened stood there saying there was no entry, with nothing to press, and the only way to give them one was hidden in a menu. The same buttons now stand on that row and write the entry on the first press, and nobody is offered for an evening before the day they joined the station.
