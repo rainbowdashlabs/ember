@@ -12,6 +12,7 @@ import type {
   AttendanceSession,
   AttendanceStatus,
   AttendanceTemplateField,
+  MemberNotes,
 } from '@/api/attendance'
 import type {MemberGroup, MemberIdentity, StationMember} from '@/api/types'
 import type {CheckRow} from './useCheckMode'
@@ -38,6 +39,9 @@ defineProps<{
   canEdit: boolean
   locked: boolean
   canManage: boolean
+  memberNotes: Map<number, MemberNotes>
+  canMoveSwap: boolean
+  canSignOffFound: boolean
   checkMode: boolean
   checkIndex: number
   openRows: CheckRow[]
@@ -70,6 +74,8 @@ const emit = defineEmits<{
   enter: [memberId: number, status: AttendanceStatus]
   unlock: []
   lock: []
+  moveSwap: [exchangeId: number, nextStatus: string]
+  signOffFound: [itemId: number]
   checkIn: [entryId: number, time: string]
   checkOut: [entryId: number, time: string]
   resetTimes: [entryId: number]
@@ -116,9 +122,14 @@ const emit = defineEmits<{
           :total-unchecked="openRows.length"
           :member-name="currentMemberName"
           :member-identity="currentMemberIdentity"
+          :notes="currentCheckRow ? memberNotes.get(currentCheckRow.memberId) : undefined"
+          :can-move-swap="canMoveSwap"
+          :can-sign-off-found="canSignOffFound"
           @set-status="emit('checkSetStatus', $event)"
           @skip="emit('skipCheck')"
           @end="emit('endCheckMode')"
+          @move-swap="(exchangeId, nextStatus) => emit('moveSwap', exchangeId, nextStatus)"
+          @sign-off-found="(itemId) => emit('signOffFound', itemId)"
       />
 
       <template v-if="!checkMode">
@@ -142,8 +153,13 @@ const emit = defineEmits<{
             :readonly="!canEdit"
             :session-end="session.endTime"
             :session-start="session.startTime"
+            :member-notes="memberNotes"
+            :can-move-swap="canMoveSwap"
+            :can-sign-off-found="canSignOffFound"
             @set-status="(entryId, status) => emit('setStatus', entryId, status)"
             @enter="(memberId, status) => emit('enter', memberId, status)"
+            @move-swap="(exchangeId, nextStatus) => emit('moveSwap', exchangeId, nextStatus)"
+            @sign-off-found="(itemId) => emit('signOffFound', itemId)"
             @check-in="(entryId, time) => emit('checkIn', entryId, time)"
             @check-out="(entryId, time) => emit('checkOut', entryId, time)"
             @reset-times="emit('resetTimes', $event)"

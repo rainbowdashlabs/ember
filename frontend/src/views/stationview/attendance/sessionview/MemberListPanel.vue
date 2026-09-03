@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MemberEntry from './MemberEntry.vue'
 import MemberPicker from '@/views/stationview/members/MemberPicker.vue'
-import type {AttendanceEntry, AttendanceStatus} from '@/api/attendance'
+import type {AttendanceEntry, AttendanceStatus, MemberNotes} from '@/api/attendance'
 import type {MemberGroup, StationMember} from '@/api/types'
 
 const {t} = useI18n()
@@ -23,6 +23,10 @@ const props = defineProps<{
   readonly?: boolean
   sessionStart?: string
   sessionEnd?: string
+  /** Absent where the screen has no notes to show, as the pitch does not. */
+  memberNotes?: Map<number, MemberNotes>
+  canMoveSwap?: boolean
+  canSignOffFound?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -32,6 +36,8 @@ const emit = defineEmits<{
   checkOut: [entryId: number, time: string]
   resetTimes: [entryId: number]
   addMember: []
+  moveSwap: [exchangeId: number, nextStatus: string]
+  signOffFound: [itemId: number]
 }>()
 
 const membersNotInSession = computed(() => {
@@ -87,8 +93,13 @@ function getEntry(memberId: number): AttendanceEntry | undefined {
           :readonly="readonly"
           :session-end="sessionEnd"
           :session-start="sessionStart"
+          :notes="memberNotes?.get(member.id)"
+          :can-move-swap="canMoveSwap"
+          :can-sign-off-found="canSignOffFound"
           @set-status="(entryId, status) => emit('setStatus', entryId, status)"
           @enter="(memberId, status) => emit('enter', memberId, status)"
+          @move-swap="(exchangeId, nextStatus) => emit('moveSwap', exchangeId, nextStatus)"
+          @sign-off-found="(itemId) => emit('signOffFound', itemId)"
           @check-in="(entryId, time) => emit('checkIn', entryId, time)"
           @check-out="(entryId, time) => emit('checkOut', entryId, time)"
           @reset-times="(entryId) => emit('resetTimes', entryId)"

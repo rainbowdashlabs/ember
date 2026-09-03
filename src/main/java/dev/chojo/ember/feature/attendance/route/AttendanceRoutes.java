@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.attendance.service.AttendanceExportService;
 import dev.chojo.ember.feature.attendance.service.AttendanceReportService;
 import dev.chojo.ember.feature.attendance.service.AttendanceReportService.ReportData;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
+import dev.chojo.ember.feature.attendance.service.MemberCheckNotesService;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -62,6 +63,7 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 @Singleton
 public class AttendanceRoutes implements Routes {
     private final AttendanceService attendanceService;
+    private final MemberCheckNotesService memberCheckNotesService;
     private final AttendanceExportService exportService;
     private final AttendanceReportService reportService;
     private final StationMemberRepository stationMemberRepository;
@@ -71,12 +73,14 @@ public class AttendanceRoutes implements Routes {
     @Inject
     public AttendanceRoutes(
             AttendanceService attendanceService,
+            MemberCheckNotesService memberCheckNotesService,
             AttendanceExportService exportService,
             AttendanceReportService reportService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             MemberIdentityFactory memberIdentityFactory) {
         this.attendanceService = attendanceService;
+        this.memberCheckNotesService = memberCheckNotesService;
         this.exportService = exportService;
         this.reportService = reportService;
         this.stationMemberRepository = stationMemberRepository;
@@ -149,6 +153,10 @@ public class AttendanceRoutes implements Routes {
         routes.post(
                 prefix + "/attendance/sessions/{id}/unlock", this::unlockSession, StationPermission.ATTENDANCE_MANAGER);
         routes.post(prefix + "/attendance/sessions/{id}/lock", this::lockSession, StationPermission.ATTENDANCE_MANAGER);
+        routes.get(
+                prefix + "/attendance/sessions/{id}/member-notes",
+                this::listMemberNotes,
+                StationPermission.ATTENDANCE_READ);
 
         routes.get(
                 prefix + "/attendance/sessions/{sessionId}/fields",
@@ -571,6 +579,25 @@ public class AttendanceRoutes implements Routes {
                         () -> {
                             throw new NotFoundResponse();
                         });
+    }
+
+    @OpenApi(
+            path = "/api/v1/attendance/sessions/{id}/member-notes",
+            methods = HttpMethod.GET,
+            summary = "What is outstanding for the members on this sheet",
+            tags = {"Attendance"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = MemberCheckNotesService.MemberNotes[].class)))
+    private void listMemberNotes(Context ctx) {
+        UserSession userSession = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        verifySessionOwnership(id, userSession);
+        ctx.json(memberCheckNotesService
+                .findForStation(userSession.stationId(), userSession.permissions())
+                .values());
     }
 
     @OpenApi(

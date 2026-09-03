@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {statSync} from 'node:fs'
-import {test, expect, type Page} from './fixtures/auth'
+import {test, expect, apiHeaders, type Page} from './fixtures/auth'
 
 test.describe('Attendance', () => {
     /**
@@ -34,6 +34,34 @@ test.describe('Attendance', () => {
 
         await page.reload()
         await expect(page.locator('button[aria-label="Anwesend"][disabled]').first()).toBeVisible()
+    })
+
+    /**
+     * The notes beside a name are what makes the check the moment to deal with what is outstanding,
+     * so the story asks the endpoint that feeds them rather than hunting for a member who happens to
+     * have something open in the demo data.
+     *
+     * <p>What matters is that the shape is the one the screen reads and that it is answered to
+     * whoever takes the attendance, since everything inside it is filtered by rights of its own.
+     */
+    test('the sheet says what is outstanding for its members', async ({managerPage: page}) => {
+        await page.goto('/station/attendance/new')
+        await page.getByRole('button', {name: 'Erstellen'}).first().click()
+        await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+        const sessionId = Number(page.url().match(/\/session\/(\d+)/)![1])
+
+        const response = await page.request.get(`/api/v1/attendance/sessions/${sessionId}/member-notes`, {
+            headers: await apiHeaders(page),
+        })
+        expect(response.status(), `the notes are answered (${await response.text()})`).toBe(200)
+
+        const notes = await response.json()
+        expect(Array.isArray(notes)).toBe(true)
+        for (const note of notes) {
+            expect(typeof note.memberId).toBe('number')
+            expect(Array.isArray(note.swaps)).toBe(true)
+            expect(Array.isArray(note.foundItems)).toBe(true)
+        }
     })
 
     /**
