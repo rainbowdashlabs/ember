@@ -46,7 +46,7 @@ public class PasskeySettings {
         }
     }
 
-    @Overwrite(env = @Env)
+    @Overwrite(env = @Env("AUTH_PASSKEYS_MODE"))
     private String mode = "OPTIONAL";
 
     /**
@@ -55,7 +55,7 @@ public class PasskeySettings {
      * staff their way out of: a passwordless instance whose administrator lost every passkey.
      * Meant to be set for one restart and removed again; the link lives an hour.
      */
-    @Overwrite(env = @Env)
+    @Overwrite(env = @Env("AUTH_PASSKEYS_PRINTADMINENROLLMENTLINK"))
     private boolean printAdminEnrollmentLink = false;
 
     /**

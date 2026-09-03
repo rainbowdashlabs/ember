@@ -308,6 +308,8 @@ export default {
         withPasskey: 'Mit Passkey anmelden',
         passkeyFailed: 'Die Anmeldung mit Passkey hat nicht geklappt. Du kannst dich weiter mit deinem Passwort anmelden.',
         passkeyElsewhere: 'Passkey auf einem anderen Gerät?',
+        passwordOff: 'Die Anmeldung mit Passwort ist für dieses Konto ausgeschaltet. Melde dich mit '
+            + 'deinem Passkey an, oder setze dein Passwort zurück, um sie wieder einzuschalten.',
     },
     passkeys: {
         // Ein Wort, überall: Passkey. Der erklärende Satz ist immer derselbe.

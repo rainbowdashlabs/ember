@@ -104,12 +104,12 @@ onMounted(async () => {
     consent.value = 'accepted'
   }
 
-  if (!isDemo.value) {
-    passkeys.publicPasskeyMode().then(mode => {
-      passkeyMode.value = mode
-      if (passkeyAvailable.value) void startConditionalPasskey()
-    }).catch(() => {})
-  }
+  // Asked on every instance: the server already answers OFF where passkeys cannot honestly be
+  // offered (the public demo among them), and a dev demo runs them like any other instance.
+  passkeys.publicPasskeyMode().then(mode => {
+    passkeyMode.value = mode
+    if (passkeyAvailable.value) void startConditionalPasskey()
+  }).catch(() => {})
 })
 
 /**
@@ -196,7 +196,10 @@ const {running: loggingIn, error: loginError, run: handleLogin} = useAsyncAction
   await completeSignIn(result)
 }, {formatError: (e) => {
   if (e instanceof StorageDeniedError) return t('login.storageDenied')
-  return apiErrorMessage(e) || t('common.error')
+  const message = apiErrorMessage(e)
+  // The one refusal a member walks into on purpose gets their language, with the way in named.
+  if (message?.startsWith('Password sign-in is switched off')) return t('login.passwordOff')
+  return message || t('common.error')
 }})
 
 const {running: passkeySigningIn, error: passkeyError, run: handlePasskeyLogin} = useAsyncAction(async () => {

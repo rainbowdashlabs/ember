@@ -7,7 +7,6 @@ package dev.chojo.ember.conf.file.elements;
 
 import dev.chojo.ocular.override.Env;
 import dev.chojo.ocular.override.Overwrite;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -19,18 +18,19 @@ import org.slf4j.LoggerFactory;
  */
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 public class WebAuthnSettings {
-    private static final Logger log = LoggerFactory.getLogger(WebAuthnSettings.class);
+    // Deliberately no logger field: the config loader walks every field of a config element
+    // recursively to apply overrides, and a logger would lead it into library internals.
 
-    @Overwrite(env = @Env)
+    @Overwrite(env = @Env("AUTH_WEBAUTHN_RPID"))
     private String rpId = "";
 
-    @Overwrite(env = @Env)
+    @Overwrite(env = @Env("AUTH_WEBAUTHN_RPNAME"))
     private String rpName = "";
 
-    @Overwrite(env = @Env)
+    @Overwrite(env = @Env("AUTH_WEBAUTHN_ATTESTATION"))
     private String attestation = "none";
 
-    @Overwrite(env = @Env)
+    @Overwrite(env = @Env("AUTH_WEBAUTHN_TIMEOUTSECONDS"))
     private int timeoutSeconds = 60;
 
     /**
@@ -45,8 +45,9 @@ public class WebAuthnSettings {
         WebAuthnSettings current = auth.webauthn();
         TwoFactorSettings.WebAuthnConfig legacy = auth.twoFactor().webauthn();
         if (current.isUntouched() && legacyCarriesValues(legacy)) {
-            log.warn("WebAuthn settings were read from auth.twoFactor.webauthn, which is deprecated. "
-                    + "Move them to auth.webauthn; the old location stops being read in the next release.");
+            LoggerFactory.getLogger(WebAuthnSettings.class)
+                    .warn("WebAuthn settings were read from auth.twoFactor.webauthn, which is deprecated. "
+                            + "Move them to auth.webauthn; the old location stops being read in the next release.");
             current.rpId = legacy.rpId() == null ? "" : legacy.rpId();
             current.rpName = legacy.rpName() == null ? "" : legacy.rpName();
             current.attestation = legacy.attestation() == null ? "none" : legacy.attestation();

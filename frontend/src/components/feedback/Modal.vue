@@ -15,9 +15,16 @@ const model = defineModel<boolean>({default: false})
 const props = withDefaults(defineProps<{
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full'
   mobileFull?: boolean
+  /**
+   * Renders above every other modal. Teleported dialogs stack by mount order, and a dialog
+   * mounted globally at app start (the step-up prompt) would otherwise sit under whatever
+   * feature dialog opened it and never receive a click.
+   */
+  topmost?: boolean
 }>(), {
   size: 'md',
   mobileFull: false,
+  topmost: false,
 })
 
 const sizeClass = computed(() => {
@@ -77,7 +84,7 @@ function onKeydown(e: KeyboardEvent) {
     <Transition name="modal">
       <div
           v-if="model"
-          class="fixed inset-0 z-50 flex items-center justify-center"
+          :class="['fixed inset-0 flex items-center justify-center', props.topmost ? 'z-[60]' : 'z-50']"
       >
         <!-- Backdrop -->
         <div

@@ -777,6 +777,7 @@ volumes:
                     webauthnAttestation: 'WebAuthn-Attestation-Stufe. "none" ist Standard und für die meisten Deployments ausreichend.',
                     webauthnTimeout: 'Wie lange (in Sekunden) der Browser auf die Antwort des Authenticators wartet, bevor abgebrochen wird.',
                     passkeysMode: 'Wie weit diese Instanz mit Passkeys geht: OFF, OPTIONAL, ENCOURAGED, PREFERRED oder PASSWORDLESS. Standard OPTIONAL.',
+                    passkeysPrintAdminLink: 'Rettung für einen ausgesperrten Administrator einer passwortlosen Instanz: Beim nächsten Start landet ein einmaliger Passkey-Einrichtungslink im Log (eine Stunde gültig, tötet den vorherigen). Danach wieder entfernen.',
                     authSessionMinutes: 'Wie lange eine Sitzung nach der letzten Aktivität gültig bleibt (in Minuten). Nach Ablauf muss sich der Nutzer erneut anmelden.',
                     authVerifyTokenHours: 'Wie viele Stunden ein E-Mail-Bestätigungslink gültig ist (z.B. bei der Registrierung).',
                     authPasswordTokenHours: 'Wie viele Stunden ein Passwort-Zurücksetzen-Link gültig ist.',

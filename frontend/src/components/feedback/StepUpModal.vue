@@ -148,7 +148,7 @@ function onCancel() {
 </script>
 
 <template>
-  <Modal v-model="open" size="sm">
+  <Modal v-model="open" size="sm" topmost>
     <div class="space-y-4 p-4">
       <SubHeader>{{ t('twoFactor.stepUp.title') }}</SubHeader>
       <MutedText tag="p" size="sm">{{ categoryHint }}</MutedText>

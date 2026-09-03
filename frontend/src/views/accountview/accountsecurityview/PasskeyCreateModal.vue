@@ -35,7 +35,11 @@ watch(open, (v) => {
   if (v) {
     label.value = ''
     reset()
+    return
   }
+  // Closing after a creation reloads the parent again: the trial ran in between, and what it
+  // proved decides whether the password switch may show at all.
+  if (phase.value !== 'idle') emit('created')
 })
 
 async function create() {
