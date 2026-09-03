@@ -233,6 +233,109 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         assertFalse(service.resetAccount2FA(999_999, null, "ua", null), "unknown account is a no-op");
     }
 
+    // -- The three predicates: enrolled, mandate-satisfying, and the proofs set --
+
+    private int createWebAuthnFactor(int accountId, boolean signIn, boolean secondFactor) {
+        var factor = twoFactorRepo.createFactor(accountId, TwoFactorKind.WEBAUTHN, signIn ? "Passkey" : "Key");
+        byte[] userHandle = new byte[64];
+        byte[] credentialId = ("cred-" + factor.id()).getBytes();
+        twoFactorRepo.createWebAuthn(
+                factor.id(),
+                credentialId,
+                new byte[] {1},
+                0,
+                null,
+                java.util.List.of("internal"),
+                "none",
+                userHandle,
+                signIn,
+                secondFactor,
+                signIn ? Boolean.TRUE : null,
+                signIn);
+        return factor.id();
+    }
+
+    @Test
+    void signInOnlyPasskeyDoesNotChangeThePasswordPath() {
+        int accountId = newAccount();
+        accountRepo.createCredential(accountId, "hash");
+        createWebAuthnFactor(accountId, true, false);
+
+        assertFalse(service.isEnrolled(accountId), "a passkey must not make the login ask for a second factor");
+        assertTrue(service.satisfiesTwoFactorMandate(accountId), "a passkey satisfies the mandate in full");
+        assertTrue(twoFactorRepo.hasSignInPasskey(accountId));
+        assertTrue(
+                service.getActiveFactors(accountId).isEmpty(),
+                "the two-factor screen must not list a sign-in-only passkey");
+        assertTrue(
+                twoFactorRepo
+                        .findActiveSecondFactorWebAuthnForAccount(accountId)
+                        .isEmpty(),
+                "the second-factor allow list must not carry a passkey");
+        assertEquals(
+                1,
+                twoFactorRepo.findActiveWebAuthnForAccount(accountId).size(),
+                "the registration exclude list must carry every credential");
+    }
+
+    @Test
+    void secondFactorKeyStillEnrolls() {
+        int accountId = newAccount();
+        createWebAuthnFactor(accountId, false, true);
+
+        assertTrue(service.isEnrolled(accountId));
+        assertTrue(service.satisfiesTwoFactorMandate(accountId));
+        assertFalse(twoFactorRepo.hasSignInPasskey(accountId));
+        assertEquals(1, service.getActiveFactors(accountId).size());
+    }
+
+    @Test
+    void proofsForPasswordOnlyAccount() {
+        int accountId = newAccount();
+        accountRepo.createCredential(accountId, "hash");
+
+        assertEquals(
+                java.util.Set.of(dev.chojo.ember.feature.twofactor.entity.StepUpProof.PASSWORD),
+                service.availableProofs(accountId));
+    }
+
+    @Test
+    void proofsForPasskeyOnlyAccountKeepThePassword() {
+        int accountId = newAccount();
+        accountRepo.createCredential(accountId, "hash");
+        createWebAuthnFactor(accountId, true, false);
+
+        assertEquals(
+                java.util.Set.of(
+                        dev.chojo.ember.feature.twofactor.entity.StepUpProof.PASSKEY,
+                        dev.chojo.ember.feature.twofactor.entity.StepUpProof.PASSWORD),
+                service.availableProofs(accountId),
+                "a lost passkey must never be the only proof on offer while the password is on");
+    }
+
+    @Test
+    void proofsForEnrolledAccountExcludeThePassword() {
+        int accountId = newAccount();
+        accountRepo.createCredential(accountId, "hash");
+        createWebAuthnFactor(accountId, false, true);
+
+        assertEquals(
+                java.util.Set.of(dev.chojo.ember.feature.twofactor.entity.StepUpProof.SECURITY_KEY),
+                service.availableProofs(accountId),
+                "a password would be a way past an enrolled second factor");
+    }
+
+    @Test
+    void proofsForAccountWithoutCredentialRowOfferNoPassword() {
+        int accountId = newAccount();
+        createWebAuthnFactor(accountId, true, false);
+
+        assertEquals(
+                java.util.Set.of(dev.chojo.ember.feature.twofactor.entity.StepUpProof.PASSKEY),
+                service.availableProofs(accountId),
+                "a missing credential row must not read as a password on offer");
+    }
+
     /**
      * Generates a TOTP code for the given Base32 secret using the {@link TotpService}'s own
      * verifier configuration. We need this so {@code confirmTotpEnrollment} sees a code

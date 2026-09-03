@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.twofactor.entity.BackupCode;
+import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorFactor;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
@@ -20,7 +21,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 @Singleton
 public class TwoFactorService {
@@ -54,6 +57,61 @@ public class TwoFactorService {
 
     public boolean isEnrolled(int accountId) {
         return repository.isEnrolled(accountId);
+    }
+
+    /**
+     * Whether the account satisfies a two-factor mandate: a second factor is enrolled, or a
+     * sign-in-capable passkey is held. Deliberately not {@link #isEnrolled(int)}: a passkey
+     * makes the account compliant without changing what its password does.
+     */
+    public boolean satisfiesTwoFactorMandate(int accountId) {
+        return repository.satisfiesTwoFactorMandate(accountId);
+    }
+
+    /**
+     * What this account can prove itself with right now, which is the set the step-up refusal
+     * names so the dialog can offer it. The rule is D8's: any proof the account can currently
+     * give - the second factor where one is enrolled, the passkey where one is held, and the
+     * password only where there is no second factor. The last clause is what keeps a phished
+     * password from clearing a gate an authenticator app currently holds shut.
+     *
+     * <p>"Password sign-in is on" is a two-part test, credential row present and not switched
+     * off: an account created without a password has no row at all, and reading a missing row
+     * as "not disabled, therefore on" would offer a proof the member cannot give.
+     */
+    public Set<StepUpProof> availableProofs(int accountId) {
+        Set<StepUpProof> proofs = EnumSet.noneOf(StepUpProof.class);
+        boolean secondFactor = false;
+        for (TwoFactorFactor factor : repository.findActiveSecondFactorFactors(accountId)) {
+            switch (factor.kind()) {
+                case TOTP -> {
+                    proofs.add(StepUpProof.TOTP);
+                    secondFactor = true;
+                }
+                case WEBAUTHN -> {
+                    proofs.add(StepUpProof.SECURITY_KEY);
+                    secondFactor = true;
+                }
+                case BACKUP_CODES -> {
+                    if (repository.countUnusedBackupCodes(factor.id()) > 0) {
+                        proofs.add(StepUpProof.BACKUP_CODE);
+                    }
+                }
+            }
+        }
+        if (repository.hasSignInPasskey(accountId)) {
+            proofs.add(StepUpProof.PASSKEY);
+        }
+        if (!secondFactor) {
+            boolean passwordOn = accountRepository
+                    .findCredential(accountId)
+                    .map(credential -> credential.passwordLoginDisabledAt() == null)
+                    .orElse(false);
+            if (passwordOn) {
+                proofs.add(StepUpProof.PASSWORD);
+            }
+        }
+        return proofs;
     }
 
     /**
@@ -96,8 +154,13 @@ public class TwoFactorService {
         return true;
     }
 
+    /**
+     * The factors the two-factor status screen lists. Sign-in-only passkeys are filtered out:
+     * they have a section and a listing of their own, and appearing here would present them as
+     * something asked for after a password, which they are not.
+     */
     public List<TwoFactorFactor> getActiveFactors(int accountId) {
-        return repository.findActiveFactors(accountId);
+        return repository.findActiveSecondFactorFactors(accountId);
     }
 
     public int countUnusedBackupCodes(int accountId) {
@@ -141,12 +204,13 @@ public class TwoFactorService {
     }
 
     /**
-     * Removes any factor (TOTP or WebAuthn) owned by the account, identified by row id.
-     * If this leaves the account with no non-backup factors, the backup-code factor is also
-     * disabled so the user is fully unenrolled.
+     * Removes any second factor (TOTP or security key) owned by the account, identified by row
+     * id. If this leaves the account with no non-backup factors, the backup-code factor is also
+     * disabled so the user is fully unenrolled. A sign-in-only passkey is not reachable here:
+     * it is not a second factor, and its removal has rules of its own.
      */
     public boolean removeFactor(int accountId, int factorId, String userAgent, String country) {
-        var factors = repository.findActiveFactors(accountId);
+        var factors = repository.findActiveSecondFactorFactors(accountId);
         var target = factors.stream().filter(f -> f.id() == factorId).findFirst();
         if (target.isEmpty()) return false;
         if (target.get().kind() == TwoFactorKind.BACKUP_CODES) return false;

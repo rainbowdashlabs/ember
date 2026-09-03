@@ -22,6 +22,11 @@ import java.util.UUID;
  * @param transports        client-reported transports (e.g. usb, nfc, internal)
  * @param attestationFormat attestation statement format used at registration
  * @param userHandle        64-byte stable handle for the account; shared across the account's credentials
+ * @param signIn            whether this credential may start a sign-in on its own
+ * @param secondFactor      whether this credential is asked for after a password
+ * @param discoverable      what the {@code credProps} extension reported at creation, or
+ *                          {@code null} when the authenticator did not say
+ * @param userVerified      whether user verification was performed at creation
  */
 public record WebAuthnCredential(
         int factorId,
@@ -31,7 +36,11 @@ public record WebAuthnCredential(
         UUID aaguid,
         List<String> transports,
         String attestationFormat,
-        byte[] userHandle) {
+        byte[] userHandle,
+        boolean signIn,
+        boolean secondFactor,
+        Boolean discoverable,
+        boolean userVerified) {
 
     public static RowMapping<WebAuthnCredential> map() {
         return row -> new WebAuthnCredential(
@@ -42,6 +51,10 @@ public record WebAuthnCredential(
                 row.get("aaguid", StandardValueConverter.UUID_STRING),
                 row.getList("transports"),
                 row.getString("attestation_format"),
-                row.getBytes("user_handle"));
+                row.getBytes("user_handle"),
+                row.getBoolean("sign_in"),
+                row.getBoolean("second_factor"),
+                row.getObject("discoverable", Boolean.class),
+                row.getBoolean("user_verified"));
     }
 }

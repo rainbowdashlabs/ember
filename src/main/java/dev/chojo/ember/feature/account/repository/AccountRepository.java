@@ -437,7 +437,8 @@ public class AccountRepository {
                     account_id,
                     password_hash,
                     force_password_change,
-                    last_breach_check_at
+                    last_breach_check_at,
+                    password_login_disabled_at
                 FROM
                     account_credential
                 WHERE account_id = :id;""")

@@ -40,7 +40,7 @@ public class TwoFactorRepository {
             "factor_id, secret_encrypted, secret_kid, digits, period_seconds, algorithm, last_used_step";
     private static final String ACCOUNT_2FA_WEBAUTHN_COLUMNS = """
             factor_id, credential_id, public_key_cose, signature_counter, aaguid, transports, \
-            attestation_format, user_handle""";
+            attestation_format, user_handle, sign_in, second_factor, discoverable, user_verified""";
     private static final String ACCOUNT_2FA_BACKUP_CODE_COLUMNS = "id, factor_id, code_hash, used_at, used_via_ip";
     private static final String ACCOUNT_2FA_TRUSTED_DEVICE_COLUMNS =
             "id, account_id, token_hash, user_agent, created_at, trusted_until, last_seen_at, revoked_at";
@@ -102,17 +102,78 @@ public class TwoFactorRepository {
                 .changed();
     }
 
+    /**
+     * Whether a second factor is asked for after a password. A WebAuthn credential counts only
+     * when it is flagged as a second factor: a passkey writes a factor row too, and counting it
+     * here would make creating one silently change what the account's password does.
+     */
     public boolean isEnrolled(int accountId) {
         return query("""
                 SELECT EXISTS(
-                    SELECT 1 FROM account_2fa_factor
-                    WHERE account_id = :account_id AND disabled_at IS NULL
-                    AND kind != CAST('BACKUP_CODES' AS two_factor_kind)
+                    SELECT 1 FROM account_2fa_factor f
+                    LEFT JOIN account_2fa_webauthn w ON w.factor_id = f.id
+                    WHERE f.account_id = :account_id AND f.disabled_at IS NULL
+                    AND f.kind != CAST('BACKUP_CODES' AS two_factor_kind)
+                    AND (f.kind != CAST('WEBAUTHN' AS two_factor_kind) OR w.second_factor)
                 ) AS enrolled;""")
                 .single(call().bind("account_id", accountId))
                 .map(row -> row.getBoolean("enrolled"))
                 .first()
                 .orElse(false);
+    }
+
+    /**
+     * Whether the account satisfies a two-factor mandate: a second factor is enrolled, or the
+     * account holds a passkey that can start a sign-in. The two questions diverge on purpose,
+     * which is why this is not {@link #isEnrolled(int)}: a passkey makes the account compliant
+     * without changing what its password does.
+     */
+    public boolean satisfiesTwoFactorMandate(int accountId) {
+        return query("""
+                SELECT EXISTS(
+                    SELECT 1 FROM account_2fa_factor f
+                    LEFT JOIN account_2fa_webauthn w ON w.factor_id = f.id
+                    WHERE f.account_id = :account_id AND f.disabled_at IS NULL
+                    AND f.kind != CAST('BACKUP_CODES' AS two_factor_kind)
+                    AND (f.kind != CAST('WEBAUTHN' AS two_factor_kind) OR w.second_factor OR w.sign_in)
+                ) AS satisfied;""")
+                .single(call().bind("account_id", accountId))
+                .map(row -> row.getBoolean("satisfied"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * Whether the account holds an active credential that may start a sign-in on its own.
+     */
+    public boolean hasSignInPasskey(int accountId) {
+        return query("""
+                SELECT EXISTS(
+                    SELECT 1 FROM account_2fa_factor f
+                    JOIN account_2fa_webauthn w ON w.factor_id = f.id
+                    WHERE f.account_id = :account_id AND f.disabled_at IS NULL AND w.sign_in
+                ) AS held;""")
+                .single(call().bind("account_id", accountId))
+                .map(row -> row.getBoolean("held"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * The active factors that belong to the second-factor world: everything except WebAuthn
+     * credentials that are only sign-in credentials. This is what the two-factor status screen
+     * lists; passkeys have a section and a listing of their own.
+     */
+    public List<TwoFactorFactor> findActiveSecondFactorFactors(int accountId) {
+        return query("""
+                SELECT %s
+                FROM account_2fa_factor f
+                LEFT JOIN account_2fa_webauthn w ON w.factor_id = f.id
+                WHERE f.account_id = :account_id AND f.disabled_at IS NULL
+                AND (f.kind != CAST('WEBAUTHN' AS two_factor_kind) OR w.second_factor);""", alias("f", ACCOUNT_2FA_FACTOR_COLUMNS))
+                .single(call().bind("account_id", accountId))
+                .map(TwoFactorFactor.map())
+                .all();
     }
 
     // -- TOTP --
@@ -152,6 +213,13 @@ public class TwoFactorRepository {
 
     // -- WebAuthn --
 
+    /**
+     * @param signIn whether this credential may start a sign-in on its own
+     * @param secondFactor whether this credential is asked for after a password
+     * @param discoverable what the {@code credProps} extension reported at creation, or
+     *         {@code null} when the authenticator did not say
+     * @param userVerified whether user verification was performed at creation
+     */
     public void createWebAuthn(
             int factorId,
             byte[] credentialId,
@@ -160,14 +228,20 @@ public class TwoFactorRepository {
             UUID aaguid,
             List<String> transports,
             String attestationFormat,
-            byte[] userHandle) {
+            byte[] userHandle,
+            boolean signIn,
+            boolean secondFactor,
+            Boolean discoverable,
+            boolean userVerified) {
         query("""
                 INSERT INTO account_2fa_webauthn (
                     factor_id, credential_id, public_key_cose, signature_counter,
-                    aaguid, transports, attestation_format, user_handle
+                    aaguid, transports, attestation_format, user_handle,
+                    sign_in, second_factor, discoverable, user_verified
                 ) VALUES (
                     :factor_id, :credential_id, :public_key, :counter,
-                    :aaguid::uuid, :transports, :attestation_format, :user_handle
+                    :aaguid::uuid, :transports, :attestation_format, :user_handle,
+                    :sign_in, :second_factor, :discoverable, :user_verified
                 );""")
                 .single(call().bind("factor_id", factorId)
                         .bind("credential_id", credentialId)
@@ -176,7 +250,11 @@ public class TwoFactorRepository {
                         .bind("aaguid", aaguid, UUID_STRING)
                         .bind("transports", transports, PostgreSqlTypes.TEXT)
                         .bind("attestation_format", attestationFormat)
-                        .bind("user_handle", userHandle))
+                        .bind("user_handle", userHandle)
+                        .bind("sign_in", signIn)
+                        .bind("second_factor", secondFactor)
+                        .bind("discoverable", discoverable)
+                        .bind("user_verified", userVerified))
                 .insert();
     }
 

@@ -136,7 +136,9 @@ public class TwoFactorPolicyService {
                 .map(m -> {
                     Account account = accountById.get(m.accountId());
                     if (account == null) return null;
-                    boolean enrolled = repository.isEnrolled(account.id());
+                    // What the mandate asks for, not what the login screen does: a passkey-only
+                    // account counts as compliant here while its password path stays unchanged.
+                    boolean enrolled = repository.satisfiesTwoFactorMandate(account.id());
                     boolean mandated = isMandated(account, m, stationId, instancePolicies, stationPolicies);
                     return new MemberStatus(
                             m.id(),

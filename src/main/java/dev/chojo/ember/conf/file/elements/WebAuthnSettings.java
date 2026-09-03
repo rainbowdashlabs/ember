@@ -40,6 +40,7 @@ public class WebAuthnSettings {
      * runtime and the admin screen agree on what applies and the next save writes the new
      * location.
      */
+    @SuppressWarnings("removal")
     public static WebAuthnSettings resolvedFrom(Auth auth) {
         WebAuthnSettings current = auth.webauthn();
         TwoFactorSettings.WebAuthnConfig legacy = auth.twoFactor().webauthn();
@@ -58,6 +59,7 @@ public class WebAuthnSettings {
         return rpId.isBlank() && rpName.isBlank() && "none".equals(attestation) && timeoutSeconds == 60;
     }
 
+    @SuppressWarnings("removal")
     private static boolean legacyCarriesValues(TwoFactorSettings.WebAuthnConfig legacy) {
         return !legacy.rpId().isBlank()
                 || !legacy.rpName().isBlank()

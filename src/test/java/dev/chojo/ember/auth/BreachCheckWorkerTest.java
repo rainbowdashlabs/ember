@@ -51,7 +51,7 @@ class BreachCheckWorkerTest {
         var hibp = mock(HibpClient.class);
         var repo = mock(AccountRepository.class);
         when(hibp.isPwned(anyString())).thenReturn(true);
-        when(repo.findCredential(eq(42))).thenReturn(Optional.of(new AccountCredential(42, "hash", false, null)));
+        when(repo.findCredential(eq(42))).thenReturn(Optional.of(new AccountCredential(42, "hash", false, null, null)));
 
         worker(hibp, repo, settings(true, 30)).enqueueCheck(42, "long-enough-passphrase");
 
@@ -63,7 +63,7 @@ class BreachCheckWorkerTest {
         var hibp = mock(HibpClient.class);
         var repo = mock(AccountRepository.class);
         when(hibp.isPwned(anyString())).thenReturn(false);
-        when(repo.findCredential(eq(11))).thenReturn(Optional.of(new AccountCredential(11, "hash", false, null)));
+        when(repo.findCredential(eq(11))).thenReturn(Optional.of(new AccountCredential(11, "hash", false, null, null)));
 
         worker(hibp, repo, settings(true, 30)).enqueueCheck(11, "long-enough-passphrase");
 
@@ -75,7 +75,7 @@ class BreachCheckWorkerTest {
         var hibp = mock(HibpClient.class);
         var repo = mock(AccountRepository.class);
         var recent = Instant.now().minusSeconds(60);
-        when(repo.findCredential(eq(7))).thenReturn(Optional.of(new AccountCredential(7, "hash", false, recent)));
+        when(repo.findCredential(eq(7))).thenReturn(Optional.of(new AccountCredential(7, "hash", false, recent, null)));
 
         worker(hibp, repo, settings(true, 30)).enqueueCheck(7, "long-enough-passphrase");
 

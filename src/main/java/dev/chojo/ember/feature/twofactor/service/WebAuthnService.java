@@ -215,7 +215,11 @@ public class WebAuthnService {
                 aaguid,
                 transports,
                 attestationFormat,
-                options.getUser().getId().getBytes());
+                options.getUser().getId().getBytes(),
+                false,
+                true,
+                result.isDiscoverable().orElse(null),
+                result.isUserVerified());
 
         auditService.record(accountId, null, TwoFactorEvent.ENROLLED, TwoFactorKind.WEBAUTHN, userAgent, country);
         log.info("WebAuthn credential enrolled for account {} (factor {})", accountId, factor.id());
