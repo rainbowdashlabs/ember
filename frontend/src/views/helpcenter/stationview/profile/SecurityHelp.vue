@@ -18,6 +18,12 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.security.whatIsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.security.passkeysTitle')">
+      <p>{{ t('helpCenter.security.passkeysText') }}</p>
+      <p>{{ t('helpCenter.security.passkeysPasswordText') }}</p>
+      <p>{{ t('helpCenter.security.passkeysLostText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.security.twoFactorTitle')">
       <p>{{ t('helpCenter.security.twoFactorText') }}</p>
       <p>{{ t('helpCenter.security.totpSetup') }}</p>

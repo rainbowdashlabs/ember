@@ -15,6 +15,7 @@ import SaveButton from '@/components/button/SaveButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import { auth } from '@/api'
 import TwoFactorSection from '@/views/stationview/profile/settingsview/TwoFactorSection.vue'
+import PasskeySection from '@/views/accountview/accountsecurityview/PasskeySection.vue'
 
 const { t } = useI18n()
 
@@ -69,6 +70,8 @@ async function changePassword() {
           {{ t('profile.changePassword') }}
         </SaveButton>
       </NeutralContainer>
+
+      <PasskeySection/>
 
       <TwoFactorSection data-onboarding="account.two-factor"/>
     </div>

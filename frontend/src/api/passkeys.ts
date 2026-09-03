@@ -4,8 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client, {scheduleTokenRefresh} from './client'
-import {isStorageDenied, setItem, StorageDeniedError} from './storage'
-import type {LoginResponse} from './auth'
+import {isStorageDenied, setItem} from './storage'
+import {StorageDeniedError, type LoginResponse} from './auth'
 import type {PasskeyModeName} from './adminSettings'
 
 export interface PasskeyCeremony {
