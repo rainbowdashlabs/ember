@@ -184,6 +184,22 @@ public class ProfileFieldRepository {
     }
 
     /**
+     * The answers to one field from every member of a station, in one read.
+     *
+     * <p>For anything that asks the same question of a whole list at once. Asking member by member is
+     * a query a member, which on a list of fifty is fifty round trips for one column.
+     *
+     * @param fieldId the field whose answers are wanted
+     * @return the answers, one row per member who has given one
+     */
+    public List<ProfileFieldValue> findValuesOfField(int fieldId) {
+        return query("SELECT member_id, field_id, value FROM profile_field_value WHERE field_id = :field_id;")
+                .single(call().bind("field_id", fieldId))
+                .map(ProfileFieldValue.map())
+                .all();
+    }
+
+    /**
      * Finds a specific profile field value for a member.
      */
     public Optional<ProfileFieldValue> findValue(int memberId, int fieldId) {

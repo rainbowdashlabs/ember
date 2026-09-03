@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.ManagedAccessService;
 import dev.chojo.ember.feature.members.service.ManagedAccessService.ManagedAccess;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.ProfileFieldScopes;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.Context;
@@ -44,7 +45,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -57,13 +57,6 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  */
 @Singleton
 public class ManagedMemberRoutes implements Routes {
-    private static final Set<StationPermission> TEAM_PERMISSIONS = Set.of(
-            StationPermission.STATION_ADMINISTRATOR,
-            StationPermission.ATTENDANCE_MANAGER,
-            StationPermission.INVENTORY_MANAGER,
-            StationPermission.EVENT_MANAGER,
-            StationPermission.MEMBER_MANAGER);
-
     private final StationMemberService memberService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
@@ -147,13 +140,7 @@ public class ManagedMemberRoutes implements Routes {
     }
 
     private Set<ProfileFieldScope> applicableScopes(int memberId) {
-        var permissions = accessManager.resolveExpandedMemberPermissions(memberId);
-        var scopes = new HashSet<ProfileFieldScope>();
-        if (permissions.contains(StationPermission.USER)) scopes.add(ProfileFieldScope.MEMBER);
-        if (permissions.contains(StationPermission.MEMBER_GUARDIAN)) scopes.add(ProfileFieldScope.GUARDIAN);
-        if (permissions.stream().anyMatch(TEAM_PERMISSIONS::contains)) scopes.add(ProfileFieldScope.TEAM);
-        if (permissions.contains(StationPermission.STATION_ADMINISTRATOR)) scopes.add(ProfileFieldScope.MANAGER);
-        return scopes;
+        return ProfileFieldScopes.readableBy(accessManager.resolveExpandedMemberPermissions(memberId));
     }
 
     private List<ProfileField> applicableFields(int stationId, int memberId) {

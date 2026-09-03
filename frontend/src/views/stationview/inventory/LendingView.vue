@@ -218,7 +218,11 @@ watch(loaded, (v) => {
                   </template>
                 </span>
               </div>
-              <PrimaryButton :icon="['fas', 'paper-plane']" @click="navigateToCreateRequest(item)">
+              <PrimaryButton
+                  :icon="['fas', 'paper-plane']"
+                  data-testid="lending-offer-request"
+                  @click="navigateToCreateRequest(item)"
+              >
                 {{ t('lending.requestItem') }}
               </PrimaryButton>
             </div>

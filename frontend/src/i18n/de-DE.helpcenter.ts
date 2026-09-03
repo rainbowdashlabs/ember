@@ -2015,6 +2015,13 @@ volumes:
                 + 'Die Statusknöpfe stehen trotzdem an der Zeile: Beim ersten Druck entsteht der Eintrag und bekommt sofort den gewählten Status.',
             beforeJoiningText: 'Liegt das Beitrittsdatum eines Mitglieds nach dem Abend, steht dort statt der Knöpfe "Noch nicht beigetreten". '
                 + 'Diese Person war an dem Abend noch nicht dabei und kann deshalb auch nicht nachgetragen werden. Ist kein Beitrittsdatum hinterlegt, gilt keine Einschränkung.',
+            notesTitle: 'Hinweise zum Mitglied',
+            notesText: 'Neben jedem Namen steht, was für dieses Mitglied noch offen ist: ein laufender Tausch mit dem, worauf gerade gewartet wird, eine Fundsache, die noch abgeholt werden muss, und ein Geburtstag der letzten sechs Tage. '
+                + 'Die Hinweise stehen sowohl in der Schnellprüfung als auch in der Liste aller Anwesenheiten, denn genau dann steht die Person vor dir.',
+            notesActionsText: 'Zwei davon lassen sich direkt erledigen: Ein Tausch kann einen Schritt weiterbewegt werden, und liegt der Ersatz bereit, ist dieser Schritt die Übergabe selbst. '
+                + 'Eine Fundsache wird mit "Übergabe quittieren" ausgehändigt und verschwindet damit aus der Liste.',
+            notesRightsText: 'Angezeigt wird nur, wofür du auch sonst die Rechte hast: Tauschvorgänge brauchen Leserechte auf das Inventar, das Weiterbewegen zusätzlich das Recht für Tauschvorgänge, Fundsachen das Recht zur Verwaltung des Fundbüros. '
+                + 'Der Geburtstag folgt der Sichtbarkeit des Profilfelds. Wer nichts davon hat, sieht die Anwesenheitsliste unverändert.',
             frozenTitle: 'Abgeschlossene Anwesenheiten',
             frozenText: 'Ein Bogen lässt sich nur eine begrenzte Zeit nach seinem Abend bearbeiten, standardmäßig sieben Tage. '
                 + 'Danach ist er abgeschlossen: Status, Zeiten, Felder und neue Namen sind gesperrt, Lesen und Exportieren bleiben möglich.',

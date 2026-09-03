@@ -13,7 +13,8 @@ import InfoButton from '@/components/button/InfoButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import {useBreakpoint} from '@/composables/useBreakpoint'
-import type {AttendanceStatus} from '@/api/attendance'
+import MemberCheckNotes from './MemberCheckNotes.vue'
+import type {AttendanceStatus, MemberNotes} from '@/api/attendance'
 import type {CheckRow} from './useCheckMode'
 import type {MemberIdentity} from '@/api/types'
 
@@ -26,12 +27,17 @@ defineProps<{
   totalUnchecked: number
   memberName: string
   memberIdentity?: MemberIdentity | null
+  notes?: MemberNotes
+  canMoveSwap?: boolean
+  canSignOffFound?: boolean
 }>()
 
 const emit = defineEmits<{
   setStatus: [status: AttendanceStatus]
   skip: []
   end: []
+  moveSwap: [exchangeId: number, nextStatus: string, replacementItemId: number | null]
+  signOffFound: [itemId: number]
 }>()
 </script>
 
@@ -43,6 +49,14 @@ const emit = defineEmits<{
         <MemberName :identity="memberIdentity" size="md"/>
       </p>
       <p class="text-sm text-(--text-muted)">{{ checkIndex + 1 }} / {{ totalUnchecked }}</p>
+      <MemberCheckNotes
+          :notes="notes"
+          :can-move-swap="canMoveSwap"
+          :can-sign-off-found="canSignOffFound"
+          class="text-left inline-block"
+          @move-swap="(exchangeId, nextStatus, replacementItemId) => emit('moveSwap', exchangeId, nextStatus, replacementItemId)"
+          @sign-off-found="(itemId) => emit('signOffFound', itemId)"
+      />
       <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
         <SuccessButton :icon="['fas', 'check']" :full-width="isMobile" @click="emit('setStatus', 'PRESENT')">
           {{ t('attendanceSession.present') }}
