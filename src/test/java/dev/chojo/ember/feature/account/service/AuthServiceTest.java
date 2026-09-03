@@ -1161,6 +1161,89 @@ class AuthServiceTest extends RepositoryTestBase {
         assertNull(result.login());
     }
 
+    /**
+     * D3's other half: switching password sign-in off refuses the password on the login screen,
+     * but only after it proved out, so a guesser learns nothing about the account's state.
+     */
+    @Test
+    @Order(93)
+    void passwordRefusedWhileSignInIsSwitchedOff() {
+        String email = "pw-off@test.com";
+        var registered = service.registerSelf(email, "Pw", "Off", PASSWORD, null);
+        int id = registered.account().id();
+        accountRepo.setEmailVerified(id);
+        accountRepo.setPasswordLoginDisabled(id, true);
+
+        var refused = service.login(email, PASSWORD, "agent", "DE");
+        assertFalse(refused.success());
+        assertTrue(refused.message().contains("passkey"), "the refusal must name the ways back in");
+
+        var wrongPassword = service.login(email, "WrongPassword!", "agent", "DE");
+        assertEquals(
+                "Invalid email or password",
+                wrongPassword.message(),
+                "a wrong password must not learn that sign-in is switched off");
+
+        accountRepo.setPasswordLoginDisabled(id, false);
+        assertTrue(service.login(email, PASSWORD, "agent", "DE").success(), "the switch must open again");
+        accountRepo.delete(id);
+    }
+
+    /** A passkey sign-in mints a session that already counts as freshly proved (D2). */
+    @Test
+    @Order(94)
+    void passkeyAdmissionMintsAVerifiedSession() {
+        String email = "pk-admit@test.com";
+        var registered = service.registerSelf(email, "Pk", "Admit", PASSWORD, null);
+        int id = registered.account().id();
+        accountRepo.setEmailVerified(id);
+
+        var result = service.admitPasskeyAccount(id, "agent", "DE", false);
+        assertTrue(result.success());
+        var session = accountRepo.findSession(result.token()).orElseThrow();
+        assertNotNull(session.twoFactorVerifiedAt(), "the user-verified assertion is the second factor");
+        assertNotNull(accountRepo.findLastSignInAt(id).orElseThrow(), "every sign-in stamps when it happened");
+        accountRepo.delete(id);
+    }
+
+    @Test
+    @Order(95)
+    void passkeyAdmissionRefusesUnverifiedEmail() {
+        String email = "pk-unverified@test.com";
+        var registered = service.registerSelf(email, "Pk", "Unverified", PASSWORD, null);
+        int id = registered.account().id();
+
+        var result = service.admitPasskeyAccount(id, "agent", "DE", false);
+        assertFalse(result.success());
+        assertEquals("Email not verified", result.message());
+        accountRepo.delete(id);
+    }
+
+    /**
+     * The forced rotation guards the login screen, so it is only demanded while the password
+     * still works there. Where it does, a passkey sign-in stops for it like a password one.
+     */
+    @Test
+    @Order(96)
+    void passkeyAdmissionAsksForRotationOnlyWhileThePasswordWorks() {
+        String email = "pk-rotate@test.com";
+        var registered = service.registerSelf(email, "Pk", "Rotate", PASSWORD, null);
+        int id = registered.account().id();
+        accountRepo.setEmailVerified(id);
+        accountRepo.setForcePasswordChange(id, true);
+
+        var stopped = service.admitPasskeyAccount(id, "agent", "DE", false);
+        assertTrue(stopped.passwordChangeRequired(), "a leaked password must still be rotated");
+
+        accountRepo.setPasswordLoginDisabled(id, true);
+        var admitted = service.admitPasskeyAccount(id, "agent", "DE", false);
+        assertTrue(admitted.success());
+        assertFalse(
+                admitted.passwordChangeRequired(),
+                "with password sign-in off there is nothing to rotate and nothing to reopen");
+        accountRepo.delete(id);
+    }
+
     @Test
     @Order(99)
     void cleanup() {

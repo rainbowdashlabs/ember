@@ -652,6 +652,15 @@ public class AuthService {
         }
 
         Account account = accountOpt.get();
+
+        // Only after the password proved out: answering earlier would tell a guesser which
+        // accounts exist and which of them switched their password off.
+        if (!credOpt.get().passwordLoginEnabled()) {
+            log.info("Login refused for account {} ({}): password sign-in is switched off", account.id(), identifier);
+            return LoginResult.failure("Password sign-in is switched off for this account. "
+                    + "Sign in with your passkey, or reset your password to switch it back on.");
+        }
+
         if (account.hasRealEmail() && !account.emailVerified()) {
             log.info("Login failed for account {} ({}): email not verified", account.id(), identifier);
             return LoginResult.failure("Email not verified");
@@ -669,6 +678,46 @@ public class AuthService {
 
         return admitVerifiedAccount(
                 account, credOpt.get().forcePasswordChange(), userAgent, location, trustedDeviceCookie, trustedDevice);
+    }
+
+    /**
+     * Admits an account a passkey has already identified and verified. Runs the branches
+     * {@link #admitVerifiedAccount} runs, in order, minus the second factor: the passkey's user
+     * verification already counts as it (D2), so the session is minted as freshly proved.
+     *
+     * <p>The forced password rotation applies only while the password still works on the login
+     * screen: the flag exists to stop a leaked password staying valid there, and demanding a
+     * rotation from an account whose password sign-in is off or absent would reopen the door
+     * the member deliberately closed.
+     *
+     * @param accountId the account the passkey assertion resolved to
+     * @return a session, or what has to happen before there can be one
+     */
+    public LoginResult admitPasskeyAccount(int accountId, String userAgent, String location, boolean trustedDevice) {
+        Optional<Account> accountOpt = accountRepository.findById(accountId);
+        if (accountOpt.isEmpty()) {
+            return LoginResult.failure("Sign-in failed");
+        }
+        Account account = accountOpt.get();
+
+        if (account.hasRealEmail() && !account.emailVerified()) {
+            log.info("Passkey sign-in refused for account {}: email not verified", account.id());
+            return LoginResult.failure("Email not verified");
+        }
+
+        Optional<AccountCredential> credOpt = accountRepository.findCredential(account.id());
+        boolean passwordWorks =
+                credOpt.map(AccountCredential::passwordLoginEnabled).orElse(false);
+        if (passwordWorks && credOpt.get().forcePasswordChange()) {
+            log.info("Account {} requires a password change before a passkey sign-in completes", account.id());
+            String token = generateToken();
+            accountRepository.deleteTokensByAccountAndType(account.id(), TokenType.FORCE_PASSWORD_CHANGE);
+            Instant expiresAt = Instant.now().plus(FORCE_PASSWORD_CHANGE_MINUTES, ChronoUnit.MINUTES);
+            accountRepository.createToken(account.id(), token, TokenType.FORCE_PASSWORD_CHANGE, expiresAt);
+            return LoginResult.passwordChangeRequired(token, expiresAt);
+        }
+
+        return createSession(account.id(), userAgent, location, Instant.now(), null, trustedDevice);
     }
 
     /**
@@ -1130,6 +1179,7 @@ public class AuthService {
                     deviceTrustId,
                     trustedDevice);
             accountRepository.markSetupCompleted(accountId);
+            accountRepository.touchLastSignIn(accountId);
             log.info("Session created for account {}", accountId);
             return LoginResult.success(stableToken, stableExpiry);
         }
@@ -1139,6 +1189,7 @@ public class AuthService {
         accountRepository.createSession(
                 accountId, token, expiresAt, userAgent, location, twoFactorVerifiedAt, deviceTrustId, trustedDevice);
         accountRepository.markSetupCompleted(accountId);
+        accountRepository.touchLastSignIn(accountId);
         log.info("Session created for account {}", accountId);
         return LoginResult.success(token, expiresAt);
     }
