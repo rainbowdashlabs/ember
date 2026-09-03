@@ -3777,6 +3777,12 @@ export default {
             submit: 'Bestätigen',
             cancel: 'Abbrechen',
             invalidCode: 'Ungültiger Code. Bitte versuche es erneut.',
+            usePasskey: 'Mit Passkey bestätigen',
+            passkeyFailed: 'Das hat nicht geklappt. Versuche es noch einmal oder nutze einen anderen Weg.',
+            passwordPlaceholder: 'Dein Passwort',
+            wrongPassword: 'Passwort falsch. Bitte versuche es erneut.',
+            usePassword: 'Passwort verwenden',
+            noProofs: 'Für dieses Konto ist gerade keine Bestätigung möglich. Melde dich neu an und versuche es dann noch einmal.',
             stillRequired: 'Die Bestätigung wurde angenommen, die Aktion aber trotzdem abgelehnt. '
                 + 'Melde dich bitte neu an und versuche es noch einmal.',
         },

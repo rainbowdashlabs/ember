@@ -14,6 +14,8 @@ export interface ApiErrorBody {
     title?: string
     error?: string
     category?: string
+    /** What the account can prove itself with, named by a step-up refusal. */
+    proofs?: string[]
 }
 
 interface ApiErrorShape {
