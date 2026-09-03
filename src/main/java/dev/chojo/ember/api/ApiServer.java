@@ -11,6 +11,7 @@ import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.auth.StepUpGuard;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
@@ -80,8 +81,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
@@ -169,6 +168,7 @@ public class ApiServer {
     private final RefererDomainExtractor refererExtractor;
     private final BotClassifier botClassifier;
     private final TwoFactorService twoFactorService;
+    private final StepUpGuard stepUpGuard;
     private final Network network;
     private final GlobalRateLimiter globalRateLimiter;
 
@@ -196,6 +196,7 @@ public class ApiServer {
             RefererDomainExtractor refererExtractor,
             BotClassifier botClassifier,
             TwoFactorService twoFactorService,
+            StepUpGuard stepUpGuard,
             Network network,
             GlobalRateLimiter globalRateLimiter) {
         this.routes = routes;
@@ -220,6 +221,7 @@ public class ApiServer {
         this.refererExtractor = refererExtractor;
         this.botClassifier = botClassifier;
         this.twoFactorService = twoFactorService;
+        this.stepUpGuard = stepUpGuard;
         this.network = network;
         this.globalRateLimiter = globalRateLimiter;
         this.apiRequestLogger.start();
@@ -817,10 +819,8 @@ public class ApiServer {
             throw new ForbiddenResponse("Insufficient permissions. Required: " + routeRoles + ", Current: " + held);
         }
 
-        if (stepUpCategory != null && !isStepUpFresh(session)) {
-            // The refusal names what this account can prove itself with, so the dialog offers
-            // exactly those. The lookup only runs on the refusal path, never on a fresh session.
-            throw new StepUpRequiredException(stepUpCategory, twoFactorService.availableProofs(session.accountId()));
+        if (stepUpCategory != null) {
+            stepUpGuard.require(session, stepUpCategory);
         }
     }
 
@@ -868,20 +868,6 @@ public class ApiServer {
                 throw new StationReadOnlyForTransferException(stationId);
             }
         }
-    }
-
-    /**
-     * Returns true when step-up enforcement is satisfied for the session: either the user has no
-     * 2FA enrolled (in which case there is nothing to step up against), or the session's last 2FA
-     * verification is within the configured freshness window.
-     */
-    private boolean isStepUpFresh(UserSession session) {
-        Instant verifiedAt = session.twoFactorVerifiedAt();
-        if (verifiedAt != null) {
-            Duration freshness = Duration.ofSeconds(authConfig.twoFactor().stepUpFreshnessSeconds());
-            if (verifiedAt.isAfter(Instant.now().minus(freshness))) return true;
-        }
-        return !twoFactorService.isEnrolled(session.accountId());
     }
 
     /**

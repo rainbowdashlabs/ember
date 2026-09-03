@@ -9,8 +9,12 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.api.auth.StepUpGuard;
+import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -48,6 +52,7 @@ public class MemberRoutes implements Routes {
     private final StationMemberInviteService inviteService;
     private final LoginNameService loginNameService;
     private final AccountEmailService accountEmailService;
+    private final StepUpGuard stepUpGuard;
 
     @Inject
     public MemberRoutes(
@@ -56,13 +61,15 @@ public class MemberRoutes implements Routes {
             StationMemberRepository stationMemberRepository,
             StationMemberInviteService inviteService,
             LoginNameService loginNameService,
-            AccountEmailService accountEmailService) {
+            AccountEmailService accountEmailService,
+            StepUpGuard stepUpGuard) {
         this.authService = authService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.inviteService = inviteService;
         this.loginNameService = loginNameService;
         this.accountEmailService = accountEmailService;
+        this.stepUpGuard = stepUpGuard;
     }
 
     private static boolean isBlank(String s) {
@@ -84,11 +91,30 @@ public class MemberRoutes implements Routes {
         }
     }
 
+    /**
+     * Refuses acting on an account that administers the instance from a permission below it.
+     * Resetting an administrator's password ends every session and token they hold, and moving
+     * their address aims every later mail at whoever chose it; the two together are a takeover
+     * kit, so neither is reachable from a mere member-editing permission.
+     */
+    private void requireNotAboveActor(Account target, UserSession actor) {
+        if (target.instanceUserType() == InstanceUserType.ADMINISTRATOR
+                && actor.instanceUserType() != InstanceUserType.ADMINISTRATOR) {
+            throw new ForbiddenResponse("Instance administrators can only be managed by an instance administrator");
+        }
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.post(prefix + "/members/invite", this::invite, StationPermission.MEMBER_EDIT);
+        // No route-level step-up category: everybody edits their own name here, and that is not
+        // sensitive. The one branch that is (moving somebody else's address) asks by hand below.
         routes.put(prefix + "/members/{accountId}", this::updateAccount, StationPermission.LOGIN);
-        routes.post(prefix + "/members/reset-password", this::resetPassword, StationPermission.MEMBER_EDIT);
+        routes.post(
+                prefix + "/members/reset-password",
+                this::resetPassword,
+                StationPermission.MEMBER_EDIT,
+                StepUpCategory.ACCOUNT_SECURITY);
     }
 
     @OpenApi(
@@ -142,6 +168,10 @@ public class MemberRoutes implements Routes {
         // where that cannot work: the address to be corrected is the wrong one, and it is the address
         // half of that confirmation would go to.
         if (actsForSomebodyElse) {
+            // Moving somebody's address aims every later mail (reset and re-onboarding alike) at
+            // whoever chose it, so it takes a fresh proof and never reaches upwards.
+            requireNotAboveActor(existing, session);
+            stepUpGuard.require(session, StepUpCategory.ACCOUNT_SECURITY);
             accountEmailService.setEmail(accountId, request.email());
             ctx.json(new MessageResponse("Account updated"));
             return;
@@ -208,6 +238,8 @@ public class MemberRoutes implements Routes {
             throw new BadRequestResponse("accountId is required");
         }
         requireStationAccount(request.accountId(), session);
+        requireNotAboveActor(
+                accountRepository.findById(request.accountId()).orElseThrow(NotFoundResponse::new), session);
 
         boolean forceChange = request.forceChange() != null && request.forceChange();
         if (authService.adminResetPassword(request.accountId(), forceChange)) {

@@ -126,6 +126,42 @@ export function storageStatePath(role: string): string {
     return `e2e/.auth/${role}.json`
 }
 
+/** The one password every seeded account shares. */
+export const DEMO_PASSWORD = 'demo'
+
+/**
+ * Answers the step-up prompt with the seeded password, wherever it appears.
+ *
+ * Step-up asks every account for a fresh proof on the sensitive routes, and the stories meet it
+ * like a member would: the dialog opens, the password goes in, the request is retried. Answered
+ * here rather than per story, because a dev session is one row per account replaced on every
+ * sign-in - a second worker signing in as the same person wipes the first one's freshness, and
+ * the five-minute window expires mid-run anyway, so the prompt can arrive in any story at any
+ * moment. Only the dev suite runs this rule at all; the public demo instance is exempt.
+ */
+export async function answerStepUpPrompts(page: Page): Promise<void> {
+    const passwordField = page.getByPlaceholder('Dein Passwort')
+    await page.addLocatorHandler(passwordField, async () => {
+        await passwordField.fill(DEMO_PASSWORD)
+        await page.getByRole('button', {name: 'Bestätigen', exact: true}).click()
+        await passwordField.waitFor({state: 'hidden'})
+    }, {times: 20})
+}
+
+/**
+ * Stamps the page's session as freshly proved, for a story that asks a guarded endpoint straight
+ * over the API rather than through a screen: no dialog appears there, so the proof is given
+ * up front. Good for the freshness window, which outlives any single story.
+ */
+export async function freshStepUpProof(page: Page): Promise<void> {
+    const headers = await apiHeaders(page)
+    const response = await page.request.post('/api/v1/auth/stepup/password', {
+        headers,
+        data: {password: DEMO_PASSWORD},
+    })
+    if (!response.ok()) throw new Error(`The password step-up answered ${response.status()}`)
+}
+
 /**
  * The headers a story needs to ask the backend something as the person whose page it holds.
  *
@@ -159,7 +195,9 @@ export async function apiHeaders(page: Page): Promise<Record<string, string>> {
  */
 export async function pageAs(browser: Browser, role: 'manager' | 'member' | 'admin'): Promise<Page> {
     const context = await browser.newContext({storageState: storageStatePath(role)})
-    return context.newPage()
+    const page = await context.newPage()
+    await answerStepUpPrompts(page)
+    return page
 }
 
 /**
@@ -196,7 +234,9 @@ export async function pageAsThrowaway(
         if (stationId) window.localStorage.setItem('station_id', stationId)
         window.localStorage.setItem('storage_consent', 'accepted')
     }, [token, account.stationId ?? ''])
-    return context.newPage()
+    const page = await context.newPage()
+    await answerStepUpPrompts(page)
+    return page
 }
 
 /**
@@ -346,6 +386,7 @@ export async function clusterPage(
         window.localStorage.setItem('storage_consent', 'accepted')
     }, [token, account.stationId ?? ''])
     const page = await context.newPage()
+    await answerStepUpPrompts(page)
     await enterCluster(page)
     return page
 }
