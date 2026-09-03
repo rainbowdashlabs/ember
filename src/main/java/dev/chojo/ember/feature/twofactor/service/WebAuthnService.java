@@ -10,7 +10,6 @@ import com.yubico.webauthn.AssertionResult;
 import com.yubico.webauthn.FinishAssertionOptions;
 import com.yubico.webauthn.FinishRegistrationOptions;
 import com.yubico.webauthn.RegistrationResult;
-import com.yubico.webauthn.RelyingParty;
 import com.yubico.webauthn.StartAssertionOptions;
 import com.yubico.webauthn.StartRegistrationOptions;
 import com.yubico.webauthn.data.AuthenticatorAssertionResponse;
@@ -27,7 +26,7 @@ import com.yubico.webauthn.data.UserIdentity;
 import com.yubico.webauthn.data.UserVerificationRequirement;
 import com.yubico.webauthn.exception.AssertionFailedException;
 import com.yubico.webauthn.exception.RegistrationFailedException;
-import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
+import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
 import dev.chojo.ember.feature.twofactor.entity.ChallengePurpose;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorFactor;
@@ -61,20 +60,20 @@ public class WebAuthnService {
     private static final Duration CHALLENGE_TTL = Duration.ofMinutes(5);
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private final RelyingParty relyingParty;
+    private final RelyingParties relyingParties;
     private final TwoFactorRepository repository;
     private final TwoFactorAuditService auditService;
     private final WebAuthnChallengeRepository challengeRepository;
-    private final TwoFactorSettings settings;
+    private final WebAuthnSettings settings;
 
     @Inject
     public WebAuthnService(
-            RelyingParty relyingParty,
+            RelyingParties relyingParties,
             TwoFactorRepository repository,
             TwoFactorAuditService auditService,
             WebAuthnChallengeRepository challengeRepository,
-            TwoFactorSettings settings) {
-        this.relyingParty = relyingParty;
+            WebAuthnSettings settings) {
+        this.relyingParties = relyingParties;
         this.repository = repository;
         this.auditService = auditService;
         this.challengeRepository = challengeRepository;
@@ -121,19 +120,20 @@ public class WebAuthnService {
                 .id(new ByteArray(userHandle))
                 .build();
 
+        // A second factor never needs to be discoverable: it is always named by an allow list.
+        // The passkey ceremony is the one that requires a resident key, and it has its own service.
         var selection = AuthenticatorSelectionCriteria.builder()
-                .residentKey(
-                        settings.webauthn().requireResidentKey()
-                                ? ResidentKeyRequirement.REQUIRED
-                                : ResidentKeyRequirement.DISCOURAGED)
+                .residentKey(ResidentKeyRequirement.DISCOURAGED)
                 .userVerification(UserVerificationRequirement.PREFERRED)
                 .build();
 
-        PublicKeyCredentialCreationOptions options = relyingParty.startRegistration(StartRegistrationOptions.builder()
-                .user(user)
-                .authenticatorSelection(selection)
-                .timeout(settings.webauthn().timeoutSeconds() * 1000L)
-                .build());
+        PublicKeyCredentialCreationOptions options = relyingParties
+                .passkey()
+                .startRegistration(StartRegistrationOptions.builder()
+                        .user(user)
+                        .authenticatorSelection(selection)
+                        .timeout(settings.timeoutSeconds() * 1000L)
+                        .build());
 
         String persistJson;
         try {
@@ -189,10 +189,12 @@ public class WebAuthnService {
 
         RegistrationResult result;
         try {
-            result = relyingParty.finishRegistration(FinishRegistrationOptions.builder()
-                    .request(options)
-                    .response(response)
-                    .build());
+            result = relyingParties
+                    .passkey()
+                    .finishRegistration(FinishRegistrationOptions.builder()
+                            .request(options)
+                            .response(response)
+                            .build());
         } catch (RegistrationFailedException e) {
             log.warn("WebAuthn registration verification failed for account {}", accountId, e);
             return Optional.empty();
@@ -221,11 +223,13 @@ public class WebAuthnService {
     }
 
     public AssertionStart startAssertion(int accountId) {
-        AssertionRequest request = relyingParty.startAssertion(StartAssertionOptions.builder()
-                .username(String.valueOf(accountId))
-                .userVerification(UserVerificationRequirement.PREFERRED)
-                .timeout(settings.webauthn().timeoutSeconds() * 1000L)
-                .build());
+        AssertionRequest request = relyingParties
+                .secondFactor()
+                .startAssertion(StartAssertionOptions.builder()
+                        .username(String.valueOf(accountId))
+                        .userVerification(UserVerificationRequirement.PREFERRED)
+                        .timeout(settings.timeoutSeconds() * 1000L)
+                        .build());
 
         String persistJson;
         try {
@@ -272,10 +276,12 @@ public class WebAuthnService {
 
         AssertionResult result;
         try {
-            result = relyingParty.finishAssertion(FinishAssertionOptions.builder()
-                    .request(request)
-                    .response(response)
-                    .build());
+            result = relyingParties
+                    .secondFactor()
+                    .finishAssertion(FinishAssertionOptions.builder()
+                            .request(request)
+                            .response(response)
+                            .build());
         } catch (AssertionFailedException e) {
             log.warn("WebAuthn assertion verification failed for account {}", accountId, e);
             return false;

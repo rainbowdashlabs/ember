@@ -78,7 +78,6 @@ export interface WebAuthnConfig {
     rpName: string
     attestation: string
     timeoutSeconds: number
-    requireResidentKey: boolean
 }
 
 /**
@@ -196,12 +195,12 @@ export async function updateBackupCodesConfig(data: BackupCodesConfig): Promise<
 }
 
 export async function getWebAuthnConfig(): Promise<WebAuthnConfig> {
-    const res = await client.get<WebAuthnConfig>('/admin/config/auth/two-factor/webauthn')
+    const res = await client.get<WebAuthnConfig>('/admin/config/auth/webauthn')
     return res.data
 }
 
 export async function updateWebAuthnConfig(data: WebAuthnConfig): Promise<WebAuthnConfig> {
-    const res = await client.put<WebAuthnConfig>('/admin/config/auth/two-factor/webauthn', data)
+    const res = await client.put<WebAuthnConfig>('/admin/config/auth/webauthn', data)
     return res.data
 }
 

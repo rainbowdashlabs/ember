@@ -21,6 +21,7 @@ import dev.chojo.ember.conf.file.elements.MailSettings;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Theming;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
+import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.legal.entity.DocumentPlaceholder;
 import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
@@ -248,12 +249,9 @@ public class AdminSettingsRoutes implements Routes {
                 this::updateBackupCodesConfig,
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
-        routes.get(
-                prefix + "/admin/config/auth/two-factor/webauthn",
-                this::getWebAuthnConfig,
-                InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/config/auth/webauthn", this::getWebAuthnConfig, InstancePermission.ADMINISTRATOR);
         routes.put(
-                prefix + "/admin/config/auth/two-factor/webauthn",
+                prefix + "/admin/config/auth/webauthn",
                 this::updateWebAuthnConfig,
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
@@ -700,7 +698,9 @@ public class AdminSettingsRoutes implements Routes {
     }
 
     private void getWebAuthnConfig(Context ctx) {
-        var webauthn = conf.main().auth().twoFactor().webauthn();
+        // The resolved settings rather than the raw new location, so an instance still carrying
+        // its values under the old auth.twoFactor.webauthn sees what actually applies.
+        var webauthn = WebAuthnSettings.resolvedFrom(conf.main().auth());
         ctx.json(buildWebAuthnResponse(webauthn));
     }
 
@@ -712,25 +712,12 @@ public class AdminSettingsRoutes implements Routes {
         if (!WEBAUTHN_ATTESTATIONS.contains(attestation)) {
             throw new BadRequestResponse("attestation must be one of none, indirect, direct");
         }
-        var webauthn = conf.main().auth().twoFactor().webauthn();
+        var webauthn = WebAuthnSettings.resolvedFrom(conf.main().auth());
         try {
-            setField(
-                    TwoFactorSettings.WebAuthnConfig.class,
-                    webauthn,
-                    "rpId",
-                    request.rpId() == null ? "" : request.rpId());
-            setField(
-                    TwoFactorSettings.WebAuthnConfig.class,
-                    webauthn,
-                    "rpName",
-                    request.rpName() == null ? "" : request.rpName());
-            setField(TwoFactorSettings.WebAuthnConfig.class, webauthn, "attestation", attestation);
-            setField(TwoFactorSettings.WebAuthnConfig.class, webauthn, "timeoutSeconds", request.timeoutSeconds());
-            setField(
-                    TwoFactorSettings.WebAuthnConfig.class,
-                    webauthn,
-                    "requireResidentKey",
-                    request.requireResidentKey());
+            setField(WebAuthnSettings.class, webauthn, "rpId", request.rpId() == null ? "" : request.rpId());
+            setField(WebAuthnSettings.class, webauthn, "rpName", request.rpName() == null ? "" : request.rpName());
+            setField(WebAuthnSettings.class, webauthn, "attestation", attestation);
+            setField(WebAuthnSettings.class, webauthn, "timeoutSeconds", request.timeoutSeconds());
             conf.save();
             ctx.json(buildWebAuthnResponse(webauthn));
         } catch (Exception e) {
@@ -741,13 +728,9 @@ public class AdminSettingsRoutes implements Routes {
 
     // -- Mailing config --
 
-    private WebAuthnConfigResponse buildWebAuthnResponse(TwoFactorSettings.WebAuthnConfig webauthn) {
+    private WebAuthnConfigResponse buildWebAuthnResponse(WebAuthnSettings webauthn) {
         return new WebAuthnConfigResponse(
-                webauthn.rpId(),
-                webauthn.rpName(),
-                webauthn.attestation(),
-                webauthn.timeoutSeconds(),
-                webauthn.requireResidentKey());
+                webauthn.rpId(), webauthn.rpName(), webauthn.attestation(), webauthn.timeoutSeconds());
     }
 
     @OpenApi(
@@ -1468,11 +1451,9 @@ public class AdminSettingsRoutes implements Routes {
 
     public record BackupCodesConfigRequest(int count) {}
 
-    public record WebAuthnConfigResponse(
-            String rpId, String rpName, String attestation, int timeoutSeconds, boolean requireResidentKey) {}
+    public record WebAuthnConfigResponse(String rpId, String rpName, String attestation, int timeoutSeconds) {}
 
-    public record WebAuthnConfigRequest(
-            String rpId, String rpName, String attestation, int timeoutSeconds, boolean requireResidentKey) {}
+    public record WebAuthnConfigRequest(String rpId, String rpName, String attestation, int timeoutSeconds) {}
 
     /**
      * @param deliveryWebhookUrl the address a mail provider reports delivery events to. It carries

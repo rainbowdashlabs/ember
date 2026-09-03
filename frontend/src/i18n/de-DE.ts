@@ -4389,8 +4389,6 @@ export default {
             },
             timeoutSeconds: 'Timeout (Sekunden)',
             timeoutSecondsHint: 'Wie lange der Browser auf eine Antwort wartet (10–300).',
-            requireResidentKey: 'Resident-Key erforderlich',
-            requireResidentKeyHint: 'Erzwingt einen lokal auf dem Authenticator gespeicherten Schlüssel (Passkey).',
         },
     },
     waitingList: {

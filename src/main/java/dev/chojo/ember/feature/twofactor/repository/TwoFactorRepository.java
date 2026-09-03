@@ -207,6 +207,22 @@ public class TwoFactorRepository {
                 .all();
     }
 
+    /**
+     * The credentials asked for after a password, and nothing else. This is what the
+     * second-factor relying party's allow list is built from; the full list above is what a
+     * registration's exclude list is built from, and one query cannot serve both.
+     */
+    public List<WebAuthnCredential> findActiveSecondFactorWebAuthnForAccount(int accountId) {
+        return query("""
+                SELECT %s
+                FROM account_2fa_webauthn w
+                JOIN account_2fa_factor f ON f.id = w.factor_id
+                WHERE f.account_id = :account_id AND f.disabled_at IS NULL AND w.second_factor;""", alias("w", ACCOUNT_2FA_WEBAUTHN_COLUMNS))
+                .single(call().bind("account_id", accountId))
+                .map(WebAuthnCredential.map())
+                .all();
+    }
+
     public void updateWebAuthnSignatureCounter(int factorId, long newCounter) {
         query("""
                 UPDATE account_2fa_webauthn

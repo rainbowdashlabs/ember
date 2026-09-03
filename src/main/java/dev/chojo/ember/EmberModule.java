@@ -9,7 +9,6 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.Multibinder;
-import com.yubico.webauthn.RelyingParty;
 import de.chojo.sadu.datasource.DataSourceCreator;
 import de.chojo.sadu.mapper.RowMapperRegistry;
 import de.chojo.sadu.postgresql.databases.PostgreSql;
@@ -29,8 +28,10 @@ import dev.chojo.ember.conf.file.elements.Logging;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
+import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
+import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
 import dev.chojo.ember.event.handlers.BulkMentionedInCommentHandler;
@@ -245,6 +246,8 @@ import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes;
 import dev.chojo.ember.feature.traffic.route.StationTrafficRoutes;
 import dev.chojo.ember.feature.twofactor.route.TwoFactorAdminRoutes;
 import dev.chojo.ember.feature.twofactor.route.TwoFactorRoutes;
+import dev.chojo.ember.feature.twofactor.service.RelyingParties;
+import dev.chojo.ember.feature.twofactor.service.SecondFactorCredentialStore;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnCredentialStore;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnRelyingPartyFactory;
 import dev.chojo.ember.feature.waitinglist.route.WaitingListRoutes;
@@ -555,8 +558,24 @@ public class EmberModule extends AbstractModule {
 
     @Provides
     @Singleton
-    RelyingParty webAuthnRelyingParty(TwoFactorSettings twoFactor, Api api, WebAuthnCredentialStore store) {
-        return WebAuthnRelyingPartyFactory.build(twoFactor, api, store);
+    WebAuthnSettings webAuthnSettings(Auth auth) {
+        return WebAuthnSettings.resolvedFrom(auth);
+    }
+
+    @Provides
+    @Singleton
+    PasskeySettings passkeySettings(Auth auth) {
+        return auth.passkeys();
+    }
+
+    @Provides
+    @Singleton
+    RelyingParties webAuthnRelyingParties(
+            WebAuthnSettings settings,
+            Api api,
+            WebAuthnCredentialStore fullStore,
+            SecondFactorCredentialStore secondFactorStore) {
+        return WebAuthnRelyingPartyFactory.build(settings, api, fullStore, secondFactorStore);
     }
 
     @Provides
