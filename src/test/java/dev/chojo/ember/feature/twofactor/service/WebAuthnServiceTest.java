@@ -177,6 +177,69 @@ class WebAuthnServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void finishAssertionRefusesACredentialThatIsNotASecondFactor() throws Exception {
+        // For an account whose only credentials are passkeys the allow list is empty, and the
+        // library then accepts any credential the account owns. The flag on the verified result
+        // is the check that holds.
+        int accountId = newAccount();
+        var factor = twoFactorRepo.createFactor(
+                accountId, dev.chojo.ember.feature.twofactor.entity.TwoFactorKind.WEBAUTHN, "Passkey");
+        byte[] credentialId = ("wa-pk-" + factor.id()).getBytes();
+        byte[] userHandle = new byte[64];
+        userHandle[0] = 3;
+        userHandle[1] = (byte) factor.id();
+        twoFactorRepo.createWebAuthn(
+                factor.id(),
+                credentialId,
+                new byte[] {1},
+                0,
+                null,
+                java.util.List.of("internal"),
+                "none",
+                userHandle,
+                true,
+                false,
+                true,
+                true);
+
+        var settings = new WebAuthnSettings();
+        var api = new Api();
+        setField(api, "baseUrl", "https://ember.test");
+        var store = new WebAuthnCredentialStore(twoFactorRepo);
+        var secondFactorStore = new SecondFactorCredentialStore(twoFactorRepo, store);
+        RelyingParties real = WebAuthnRelyingPartyFactory.build(settings, api, store, secondFactorStore);
+        RelyingParty spiedRp = spy(real.secondFactor());
+        var result = org.mockito.Mockito.mock(com.yubico.webauthn.AssertionResult.class);
+        org.mockito.Mockito.when(result.isSuccess()).thenReturn(true);
+        org.mockito.Mockito.when(result.getCredential())
+                .thenReturn(com.yubico.webauthn.RegisteredCredential.builder()
+                        .credentialId(new com.yubico.webauthn.data.ByteArray(credentialId))
+                        .userHandle(new com.yubico.webauthn.data.ByteArray(userHandle))
+                        .publicKeyCose(new com.yubico.webauthn.data.ByteArray(new byte[] {1}))
+                        .signatureCount(1)
+                        .build());
+        org.mockito.Mockito.doReturn(result).when(spiedRp).finishAssertion(any());
+        var parties = new RelyingParties(real.passkey(), spiedRp, false);
+        var audit = new TwoFactorAuditService(twoFactorRepo);
+        var spiedService = new WebAuthnService(parties, twoFactorRepo, audit, challengeRepo, settings);
+
+        var start = spiedService.startAssertion(accountId);
+        String credentialJson = "{\"id\":\"AA\",\"type\":\"public-key\",\"rawId\":\"AA\","
+                + "\"response\":{\"authenticatorData\":\""
+                + java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[37])
+                + "\",\"clientDataJSON\":\""
+                + java.util.Base64.getUrlEncoder()
+                        .withoutPadding()
+                        .encodeToString(
+                                "{\"type\":\"webauthn.get\",\"challenge\":\"AAAA\",\"origin\":\"https://ember.test\"}"
+                                        .getBytes())
+                + "\",\"signature\":\"AA\",\"userHandle\":null},\"clientExtensionResults\":{}}";
+        assertFalse(
+                spiedService.finishAssertion(accountId, start.challengeToken(), credentialJson),
+                "a passkey must not satisfy a second-factor assertion");
+    }
+
+    @Test
     void finishAssertionRejectsWhenVerificationThrows() throws Exception {
         var settings = new WebAuthnSettings();
         var api = new Api();

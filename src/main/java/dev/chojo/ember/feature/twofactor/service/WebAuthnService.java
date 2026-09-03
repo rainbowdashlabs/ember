@@ -296,10 +296,19 @@ public class WebAuthnService {
             return false;
         }
 
-        Optional<WebAuthnCredential> credential = repository.findWebAuthnByCredentialId(
+        Optional<WebAuthnCredential> credential = repository.findActiveWebAuthnByCredentialId(
                 result.getCredential().getCredentialId().getBytes());
         if (credential.isEmpty()) {
-            log.warn("WebAuthn assertion failed for account {}: the accepted credential is not on file", accountId);
+            log.warn(
+                    "WebAuthn assertion failed for account {}: the accepted credential is not on file or disabled",
+                    accountId);
+            return false;
+        }
+        // Splitting the allow list is not enough: for an account whose only credentials are
+        // passkeys, the second-factor allow list comes back empty, and the library then accepts
+        // any credential the account owns. So the flag is checked on the verified result.
+        if (!credential.get().secondFactor()) {
+            log.info("WebAuthn assertion refused for account {}: the credential is not a second factor", accountId);
             return false;
         }
         repository.updateWebAuthnSignatureCounter(credential.get().factorId(), result.getSignatureCount());

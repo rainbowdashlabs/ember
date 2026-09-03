@@ -258,6 +258,22 @@ public class TwoFactorRepository {
                 .insert();
     }
 
+    /**
+     * The credential by id, but only while its factor is active. The unfiltered lookup below
+     * exists for the library's own resolution; everything that decides whether an assertion
+     * counts must use this one, or a removed credential keeps answering.
+     */
+    public Optional<WebAuthnCredential> findActiveWebAuthnByCredentialId(byte[] credentialId) {
+        return query("""
+                SELECT %s
+                FROM account_2fa_webauthn w
+                JOIN account_2fa_factor f ON f.id = w.factor_id
+                WHERE w.credential_id = :credential_id AND f.disabled_at IS NULL;""", alias("w", ACCOUNT_2FA_WEBAUTHN_COLUMNS))
+                .single(call().bind("credential_id", credentialId))
+                .map(WebAuthnCredential.map())
+                .first();
+    }
+
     public Optional<WebAuthnCredential> findWebAuthnByCredentialId(byte[] credentialId) {
         return query(
                         "SELECT %s FROM account_2fa_webauthn WHERE credential_id = :credential_id;",
