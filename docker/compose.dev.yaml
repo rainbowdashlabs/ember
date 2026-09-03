@@ -72,6 +72,11 @@ services:
       # so a developer who switched their own instance to it would watch this suite fail for
       # reasons that have nothing to do with their change.
       DEMO_ENABLED: "false"
+      # The passkey stories need the login screen to offer the passkey path and the member's own
+      # password switch to exist. Decided here, with the setting, rather than left to whoever
+      # writes the last story; a story about the PASSWORDLESS mode switches it over the admin
+      # API and back.
+      AUTH_PASSKEYS_MODE: "PREFERRED"
       # A fixed key for this throwaway container, because SecretsInitializer deliberately generates
       # nothing on a dev instance: it would rewrite the committed config file. Without a key every
       # storage-backend apply answers with a cipher error, and the cause is nowhere near the symptom.
@@ -201,6 +206,9 @@ services:
       DB_DATABASE: ember
       DB_SCHEMA: ember_schema
       DEMO_DEV: "true"
+      # The same mode the end-to-end stack runs, so what a developer clicks through matches
+      # what the stories exercise.
+      AUTH_PASSKEYS_MODE: "PREFERRED"
       # Embedded in cross-instance transfer tokens AND used in email links. The compose
       # service name `frontend` resolves to the source's Nuxt container on the shared
       # docker network, so a target container can fetch the source via this URL. Browsers

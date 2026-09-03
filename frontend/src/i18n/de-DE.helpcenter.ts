@@ -4795,6 +4795,22 @@ volumes:
             backupCodesText: 'Backup-Codes sind einmal verwendbare Wiederherstellungscodes für den Fall, dass der primäre Faktor nicht verfügbar ist. Anzahl: wie viele Codes pro Einrichtung erzeugt werden (5–20, Standard 10). Mehr als 20 verleiten Nutzer dazu, sie unsicher zu speichern.',
             webauthn: 'WebAuthn / Passkeys',
             webauthnText: 'WebAuthn ist der Standard hinter Hardware-Sicherheits­schlüsseln (YubiKey etc.) und Passkeys; diese Einstellungen gelten für beide. Relying-Party-ID: Domäne der Anwendung - leer lassen für die automatische Ableitung aus der Basis-URL. Falsche Relying-Party-ID ist der häufigste Grund für „Schlüssel wird nicht akzeptiert". Relying-Party-Name: angezeigter Name im Browser-Dialog (leer = „Ember"). Attestation-Modus: „Keine" ist für die meisten Installationen richtig. Timeout: 10–300 Sekunden.',
+            passkeys: 'Passkeys',
+            passkeysText: 'Ein Passkey ist eine Anmeldung ohne Passwort: Das Gerät fragt nach Fingerabdruck, Gesicht oder der Geräte-PIN, '
+                + 'und das war es. Passkeys nutzen dieselben WebAuthn-Einstellungen wie Sicherheitsschlüssel, sind aber ein erster Faktor: '
+                + 'Sie starten eine Anmeldung, statt eine zu bestätigen. Das Passwort eines Kontos bleibt davon unberührt, bis das Mitglied '
+                + 'es selbst abschaltet.',
+            passkeysModesText: 'Die fünf Modi bauen aufeinander auf: „Aus" (keine Passkeys), „Optional" (funktionieren, werden aber niemandem '
+                + 'vorgeschlagen), „Angeboten" (die Anmeldeseite bietet den Weg an und Mitglieder werden einmalig gefragt), „Bevorzugt" '
+                + '(Konten mit erprobtem Passkey dürfen ihre Passwort-Anmeldung abschalten) und „Passwortlos" (neue Konten entstehen ganz '
+                + 'ohne Passwort). Einen Zwang gibt es bewusst nicht: Wer mehr will, kombiniert „Bevorzugt" mit der 2FA-Pflicht. '
+                + 'Für eine bestehende Instanz ist der Modus der letzte Schritt, nicht der erste: erst „Angeboten" eine Saison lang, dann '
+                + '„Bevorzugt", dann „Passwortlos".',
+            passkeysReadinessText: 'Der Bereitschaftsblock zeigt, woran Passkeys scheitern würden: eine auf localhost zurückgefallene Domäne '
+                + 'schaltet sie wirksam ab, der passwortlose Modus bleibt verweigert, bis nachweislich eine E-Mail hinausging, und unter '
+                + '„Angeboten" lässt sich der Modus nicht senken, solange Konten ohne Passkey nicht mehr hineinkommen. Der Bericht vor dem '
+                + 'Umstellen zählt, wer sein Passwort behielte, wer noch keinen Passkey hält, wer nur über den QR-Code im Raum erreichbar '
+                + 'ist und wer sich seit über einem Jahr nicht angemeldet hat.',
             tip: 'Wenn du 2FA in Produktion deaktivierst, bleiben die gespeicherten Faktoren erhalten - beim Wiederaktivieren funktionieren sie weiter.',
         },
         stationSecurity: {

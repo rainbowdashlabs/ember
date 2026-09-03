@@ -79,6 +79,10 @@ public class PasskeyRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
+        // Which mode the instance is in, for the login screen. It reveals only that, which is
+        // not sensitive: the login screen shows or hides the passkey path with it.
+        routes.get(prefix + "/public/settings/passkeys", this::publicMode);
+
         // The passwordless sign-in - unauthenticated, throttled by IP on begin and finish both.
         routes.post(prefix + "/auth/passkey/begin", this::beginSignIn);
         routes.post(prefix + "/auth/passkey/finish", this::finishSignIn);
@@ -140,6 +144,10 @@ public class PasskeyRoutes implements Routes {
         if (modeService.effectiveMode() == PasskeySettings.Mode.OFF) {
             throw new ForbiddenResponse("Passkeys are not available on this instance");
         }
+    }
+
+    private void publicMode(Context ctx) {
+        ctx.json(new PublicModeResponse(modeService.effectiveMode().name()));
     }
 
     // -- Sign-in --
@@ -356,6 +364,8 @@ public class PasskeyRoutes implements Routes {
     }
 
     public record CeremonyResponse(String challengeToken, String optionsJson) {}
+
+    public record PublicModeResponse(String mode) {}
 
     public record SignInFinishRequest(String challengeToken, String credentialJson, boolean trustedDevice) {}
 

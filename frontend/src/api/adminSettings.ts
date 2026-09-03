@@ -80,6 +80,37 @@ export interface WebAuthnConfig {
     timeoutSeconds: number
 }
 
+export const PasskeyMode = {
+    OFF: 'OFF',
+    OPTIONAL: 'OPTIONAL',
+    ENCOURAGED: 'ENCOURAGED',
+    PREFERRED: 'PREFERRED',
+    PASSWORDLESS: 'PASSWORDLESS',
+} as const
+
+export type PasskeyModeName = (typeof PasskeyMode)[keyof typeof PasskeyMode]
+
+/** The mode with the readiness the instance can check about itself, and the adoption figures. */
+export interface PasskeysConfig {
+    mode: PasskeyModeName
+    effectiveMode: PasskeyModeName
+    localhostFallback: boolean
+    rpId: string
+    lastMailSentAt: string | null
+    dependentAccounts: number
+    accountsWithTriedPasskey: number
+    accountsWithPassword: number
+    accountsWithPasswordAndNoPasskey: number
+}
+
+/** What would happen if the instance switched to the passwordless mode, counted. */
+export interface PasswordlessReport {
+    wouldKeepPassword: number
+    withoutPasskey: number
+    reachableOnlyByQr: number
+    dormantForAYear: number
+}
+
 /**
  * What is left of the mailing settings once the providers became a list of their own: what belongs
  * to the instance rather than to any one provider.
@@ -201,6 +232,21 @@ export async function getWebAuthnConfig(): Promise<WebAuthnConfig> {
 
 export async function updateWebAuthnConfig(data: WebAuthnConfig): Promise<WebAuthnConfig> {
     const res = await client.put<WebAuthnConfig>('/admin/config/auth/webauthn', data)
+    return res.data
+}
+
+export async function getPasskeysConfig(): Promise<PasskeysConfig> {
+    const res = await client.get<PasskeysConfig>('/admin/config/auth/passkeys')
+    return res.data
+}
+
+export async function updatePasskeysConfig(mode: PasskeyModeName): Promise<PasskeysConfig> {
+    const res = await client.put<PasskeysConfig>('/admin/config/auth/passkeys', {mode})
+    return res.data
+}
+
+export async function getPasswordlessReport(): Promise<PasswordlessReport> {
+    const res = await client.get<PasswordlessReport>('/admin/config/auth/passkeys/report')
     return res.data
 }
 

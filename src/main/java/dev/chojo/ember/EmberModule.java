@@ -174,6 +174,7 @@ import dev.chojo.ember.feature.notifications.route.NotificationRoutes;
 import dev.chojo.ember.feature.onboarding.route.OnboardingRoutes;
 import dev.chojo.ember.feature.page.route.PageRoutes;
 import dev.chojo.ember.feature.page.route.PublicPageRoutes;
+import dev.chojo.ember.feature.passkey.route.PasskeyAdminRoutes;
 import dev.chojo.ember.feature.passkey.route.PasskeyRoutes;
 import dev.chojo.ember.feature.procedure.route.ProcedureRoutes;
 import dev.chojo.ember.feature.protocol.route.FederatedTestProtocolRoutes;
@@ -410,6 +411,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(TwoFactorRoutes.class);
         routesBinder.addBinding().to(StepUpRoutes.class);
         routesBinder.addBinding().to(PasskeyRoutes.class);
+        routesBinder.addBinding().to(PasskeyAdminRoutes.class);
         routesBinder.addBinding().to(TwoFactorAdminRoutes.class);
 
         Multibinder<TableImporter> tableImporterBinder = Multibinder.newSetBinder(binder(), TableImporter.class);

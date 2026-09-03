@@ -34,6 +34,11 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.adminSecurityTwoFactor.webauthn')">
       <p>{{ t('helpCenter.adminSecurityTwoFactor.webauthnText') }}</p>
     </HelpSection>
+    <HelpSection :title="t('helpCenter.adminSecurityTwoFactor.passkeys')">
+      <p>{{ t('helpCenter.adminSecurityTwoFactor.passkeysText') }}</p>
+      <p>{{ t('helpCenter.adminSecurityTwoFactor.passkeysModesText') }}</p>
+      <p>{{ t('helpCenter.adminSecurityTwoFactor.passkeysReadinessText') }}</p>
+    </HelpSection>
     <HelpTip>{{ t('helpCenter.adminSecurityTwoFactor.tip') }}</HelpTip>
   </HelpArticle>
 </template>

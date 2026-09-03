@@ -131,4 +131,106 @@ public class PasskeyRepository {
     }
 
     public record OfferAnswer(Instant answeredAt, boolean declined) {}
+
+    // -- What the operator sees --
+
+    /**
+     * The three numbers the operator reads, because they mean different things: adoption is the
+     * first, the size of the remaining rope the second, and the group that cannot move yet the
+     * third.
+     */
+    public AdoptionFigures adoptionFigures() {
+        return query("""
+                SELECT
+                    (SELECT COUNT(DISTINCT f.account_id)
+                     FROM account_2fa_factor f
+                     JOIN account_2fa_webauthn w ON w.factor_id = f.id
+                     WHERE f.disabled_at IS NULL AND w.sign_in AND f.last_used_at IS NOT NULL) AS with_tried_passkey,
+                    (SELECT COUNT(*) FROM account_credential) AS with_password,
+                    (SELECT COUNT(*)
+                     FROM account_credential c
+                     WHERE NOT EXISTS (
+                         SELECT 1 FROM account_2fa_factor f
+                         JOIN account_2fa_webauthn w ON w.factor_id = f.id
+                         WHERE f.account_id = c.account_id AND f.disabled_at IS NULL AND w.sign_in
+                     )) AS with_password_and_no_passkey;""")
+                .single(call())
+                .map(row -> new AdoptionFigures(
+                        row.getInt("with_tried_passkey"),
+                        row.getInt("with_password"),
+                        row.getInt("with_password_and_no_passkey")))
+                .first()
+                .orElse(new AdoptionFigures(0, 0, 0));
+    }
+
+    /**
+     * How many accounts have no way in without a passkey: they hold one, and their password
+     * sign-in is off or they hold no password at all. This is the count that refuses lowering
+     * the mode below ENCOURAGED, where the login screen would stop offering the passkey path.
+     */
+    public int countAccountsDependingOnPasskey() {
+        return query("""
+                SELECT COUNT(DISTINCT f.account_id) AS depending
+                FROM account_2fa_factor f
+                JOIN account_2fa_webauthn w ON w.factor_id = f.id
+                LEFT JOIN account_credential c ON c.account_id = f.account_id
+                WHERE f.disabled_at IS NULL AND w.sign_in
+                AND (c.account_id IS NULL OR c.password_login_disabled_at IS NOT NULL);""")
+                .single(call())
+                .map(row -> row.getInt("depending"))
+                .first()
+                .orElse(0);
+    }
+
+    /**
+     * The report an operator reads before switching to the passwordless mode: what would
+     * actually happen, counted rather than promised. Every figure is about the accounts that
+     * hold a password today, because those are the ones the switch does not touch.
+     */
+    public PasswordlessReport passwordlessReport() {
+        return query("""
+                SELECT
+                    COUNT(*) AS password_holders,
+                    COUNT(*) FILTER (WHERE NOT has_passkey) AS without_passkey,
+                    COUNT(*) FILTER (WHERE NOT has_passkey AND NOT reachable AND NOT has_guardian) AS qr_only,
+                    COUNT(*) FILTER (WHERE last_sign_in IS NULL OR last_sign_in < now() - INTERVAL '1 year') AS dormant
+                FROM (
+                    SELECT a.last_sign_in_at AS last_sign_in,
+                           (a.email IS NOT NULL AND a.email != '' AND a.email NOT LIKE '%.local') AS reachable,
+                           EXISTS (SELECT 1 FROM account_2fa_factor f
+                                   JOIN account_2fa_webauthn w ON w.factor_id = f.id
+                                   WHERE f.account_id = a.id AND f.disabled_at IS NULL AND w.sign_in) AS has_passkey,
+                           EXISTS (SELECT 1 FROM member_manager mm
+                                   JOIN station_member sm ON sm.id = mm.managed_id
+                                   WHERE sm.account_id = a.id) AS has_guardian
+                    FROM account a
+                    JOIN account_credential c ON c.account_id = a.id
+                ) holders;""")
+                .single(call())
+                .map(row -> new PasswordlessReport(
+                        row.getInt("password_holders"),
+                        row.getInt("without_passkey"),
+                        row.getInt("qr_only"),
+                        row.getInt("dormant")))
+                .first()
+                .orElse(new PasswordlessReport(0, 0, 0, 0));
+    }
+
+    /**
+     * @param accountsWithTriedPasskey accounts holding a passkey that has completed a sign-in
+     * @param accountsWithPassword accounts still holding a password
+     * @param accountsWithPasswordAndNoPasskey the group that cannot move yet
+     */
+    public record AdoptionFigures(
+            int accountsWithTriedPasskey, int accountsWithPassword, int accountsWithPasswordAndNoPasskey) {}
+
+    /**
+     * @param wouldKeepPassword accounts that keep their password when the mode switches
+     * @param withoutPasskey of those, how many hold no passkey at all
+     * @param reachableOnlyByQr of those, how many have neither a reachable address nor a
+     *         guardian, which the QR code in the room is the only thing that gets to
+     * @param dormantForAYear password holders who have not signed in for a year
+     */
+    public record PasswordlessReport(
+            int wouldKeepPassword, int withoutPasskey, int reachableOnlyByQr, int dormantForAYear) {}
 }
