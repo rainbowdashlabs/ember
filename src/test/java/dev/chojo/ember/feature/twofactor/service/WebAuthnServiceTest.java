@@ -8,10 +8,11 @@ package dev.chojo.ember.feature.twofactor.service;
 import com.yubico.webauthn.RelyingParty;
 import com.yubico.webauthn.exception.AssertionFailedException;
 import com.yubico.webauthn.exception.RegistrationFailedException;
+import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
-import dev.chojo.ember.feature.account.entity.TokenType;
+import dev.chojo.ember.feature.twofactor.entity.ChallengePurpose;
+import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,7 @@ import static org.mockito.Mockito.spy;
 class WebAuthnServiceTest extends RepositoryTestBase {
 
     private static WebAuthnService service;
+    private static WebAuthnChallengeRepository challengeRepo;
 
     @BeforeAll
     static void setupService() throws Exception {
@@ -35,11 +37,11 @@ class WebAuthnServiceTest extends RepositoryTestBase {
         setField(settings, "enabled", true);
         var api = new Api();
         setField(api, "baseUrl", "https://ember.test");
-        var auth = new Auth();
         var store = new WebAuthnCredentialStore(twoFactorRepo);
         var rp = WebAuthnRelyingPartyFactory.build(settings, api, store);
         var audit = new TwoFactorAuditService(twoFactorRepo);
-        service = new WebAuthnService(rp, twoFactorRepo, audit, accountRepo, settings);
+        challengeRepo = new WebAuthnChallengeRepository(TokenHasher.forTesting("repository-test-pepper"));
+        service = new WebAuthnService(rp, twoFactorRepo, audit, challengeRepo, settings);
     }
 
     private static void setField(Object target, String name, Object value) throws Exception {
@@ -62,9 +64,9 @@ class WebAuthnServiceTest extends RepositoryTestBase {
         assertNotNull(start.optionsJson());
         assertTrue(start.optionsJson().contains("\"challenge\""));
 
-        var token = accountRepo.findToken(start.challengeToken()).orElseThrow();
-        assertEquals(accountId, token.accountId());
-        assertEquals(TokenType.TWO_FACTOR_WEBAUTHN_REG, token.tokenType());
+        var challenge = challengeRepo.consume(start.challengeToken()).orElseThrow();
+        assertEquals(accountId, challenge.accountId());
+        assertEquals(ChallengePurpose.REGISTRATION, challenge.purpose());
     }
 
     @Test
@@ -74,9 +76,9 @@ class WebAuthnServiceTest extends RepositoryTestBase {
         assertNotNull(start.challengeToken());
         assertNotNull(start.optionsJson());
 
-        var token = accountRepo.findToken(start.challengeToken()).orElseThrow();
-        assertEquals(accountId, token.accountId());
-        assertEquals(TokenType.TWO_FACTOR_WEBAUTHN_ASSERT, token.tokenType());
+        var challenge = challengeRepo.consume(start.challengeToken()).orElseThrow();
+        assertEquals(accountId, challenge.accountId());
+        assertEquals(ChallengePurpose.SECOND_FACTOR_ASSERTION, challenge.purpose());
     }
 
     @Test
@@ -123,14 +125,14 @@ class WebAuthnServiceTest extends RepositoryTestBase {
         var start = service.startAssertion(accountId);
         // First failed finish consumes the token
         service.finishAssertion(accountId, start.challengeToken(), "{}");
-        assertTrue(accountRepo.findToken(start.challengeToken()).isEmpty());
+        assertTrue(challengeRepo.consume(start.challengeToken()).isEmpty());
 
-        // Manually plant an expired token to exercise the expiry branch
+        // Manually plant an expired challenge to exercise the expiry branch
         String expiredToken = "expired-" + UUID.randomUUID();
-        accountRepo.createToken(
-                accountId,
+        challengeRepo.create(
                 expiredToken,
-                TokenType.TWO_FACTOR_WEBAUTHN_ASSERT,
+                ChallengePurpose.SECOND_FACTOR_ASSERTION,
+                accountId,
                 "{}",
                 Instant.now().minusSeconds(60));
         assertFalse(service.finishAssertion(accountId, expiredToken, "{}"));
@@ -158,7 +160,7 @@ class WebAuthnServiceTest extends RepositoryTestBase {
                 .when(spiedRp)
                 .finishRegistration(any());
         var audit = new TwoFactorAuditService(twoFactorRepo);
-        var spiedService = new WebAuthnService(spiedRp, twoFactorRepo, audit, accountRepo, settings);
+        var spiedService = new WebAuthnService(spiedRp, twoFactorRepo, audit, challengeRepo, settings);
 
         int accountId = newAccount();
         var start = spiedService.startRegistration(accountId, "rf@test.com", "RF");
@@ -184,7 +186,7 @@ class WebAuthnServiceTest extends RepositoryTestBase {
         RelyingParty spiedRp = spy(realRp);
         doThrow(new AssertionFailedException("nope")).when(spiedRp).finishAssertion(any());
         var audit = new TwoFactorAuditService(twoFactorRepo);
-        var spiedService = new WebAuthnService(spiedRp, twoFactorRepo, audit, accountRepo, settings);
+        var spiedService = new WebAuthnService(spiedRp, twoFactorRepo, audit, challengeRepo, settings);
 
         int accountId = newAccount();
         var start = spiedService.startAssertion(accountId);

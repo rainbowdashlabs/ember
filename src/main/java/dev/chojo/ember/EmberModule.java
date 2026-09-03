@@ -80,6 +80,7 @@ import dev.chojo.ember.feature.account.route.AccountSessionRoutes;
 import dev.chojo.ember.feature.account.route.AuthRoutes;
 import dev.chojo.ember.feature.account.route.AvatarRoutes;
 import dev.chojo.ember.feature.account.route.SessionRoutes;
+import dev.chojo.ember.feature.account.service.AuthCleanupSweeper;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
 import dev.chojo.ember.feature.board.route.BoardRoutes;
 import dev.chojo.ember.feature.board.route.BoardTicketAttachmentRoutes;
@@ -491,6 +492,7 @@ public class EmberModule extends AbstractModule {
         bind(EventReminderChecker.class).asEagerSingleton();
         bind(StorageReconciliationService.class).asEagerSingleton();
         bind(ManagedLoginNoticeSweeper.class).asEagerSingleton();
+        bind(AuthCleanupSweeper.class).asEagerSingleton();
         bind(FederationVersionBroadcaster.class).asEagerSingleton();
         bind(FeedMetricsService.class).asEagerSingleton();
         // Discovery chain

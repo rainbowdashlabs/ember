@@ -47,17 +47,5 @@ public enum TokenType {
      * Token sent to confirm station deletion, with the station ID stored as metadata.
      */
     STATION_DELETE,
-    TWO_FACTOR_PENDING,
-    /**
-     * Short-lived token holding a serialized {@code PublicKeyCredentialCreationOptions} while
-     * the user completes a WebAuthn registration ceremony. Metadata stores the JSON the client
-     * must hand back to {@code /webauthn/register/confirm}.
-     */
-    TWO_FACTOR_WEBAUTHN_REG,
-    /**
-     * Short-lived token holding a serialized {@code AssertionRequest} while the user completes
-     * a WebAuthn assertion ceremony for login or step-up. Metadata stores the JSON the client
-     * must hand back to the matching {@code /webauthn/.../finish} endpoint.
-     */
-    TWO_FACTOR_WEBAUTHN_ASSERT
+    TWO_FACTOR_PENDING
 }

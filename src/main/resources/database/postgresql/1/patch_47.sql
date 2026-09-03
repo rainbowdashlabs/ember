@@ -128,6 +128,13 @@ COMMENT ON COLUMN ember_schema.passkey_device_request.consumed_at IS
 COMMENT ON COLUMN ember_schema.passkey_device_request.attempts IS
     'Failed attempts against this request. The request dies after five.';
 
+-- The two-factor ceremonies move onto the challenge store above, and their token types leave the
+-- code. Whatever five-minute challenges were pending at the moment of the upgrade are dead either
+-- way, so their rows go with them.
+
+DELETE FROM ember_schema.account_token
+WHERE token_type IN ('TWO_FACTOR_WEBAUTHN_REG', 'TWO_FACTOR_WEBAUTHN_ASSERT');
+
 -- New audit events. Added but not used inside this patch, which is the only restriction
 -- ALTER TYPE ... ADD VALUE carries on the Postgres versions this project supports.
 
