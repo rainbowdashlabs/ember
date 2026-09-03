@@ -307,6 +307,7 @@ export default {
         incomplete: 'Unvollständig',
         withPasskey: 'Mit Passkey anmelden',
         passkeyFailed: 'Die Anmeldung mit Passkey hat nicht geklappt. Du kannst dich weiter mit deinem Passwort anmelden.',
+        passkeyElsewhere: 'Passkey auf einem anderen Gerät?',
     },
     passkeys: {
         // Ein Wort, überall: Passkey. Der erklärende Satz ist immer derselbe.
@@ -355,6 +356,33 @@ export default {
             passwordLoginHint: 'Ausgeschaltet meldet dich nur noch dein Passkey an. Dein Passwort bleibt gespeichert; '
                 + '"Passwort vergessen" schaltet die Anmeldung wieder ein.',
             passwordOffDone: 'Die Anmeldung mit Passwort ist ausgeschaltet. Dein Weg hinein ist jetzt dein Passkey.',
+        },
+        device: {
+            title: 'Dieses Gerät freischalten',
+            instruction: 'Öffne auf einem Gerät, auf dem du schon angemeldet bist, Konto, Sicherheit, '
+                + '"Neues Gerät freischalten" und gib dort diesen Code ein:',
+            qrAlt: 'QR-Code zum Freischalt-Bildschirm',
+            qrHint: 'Der QR-Code öffnet nur den Freischalt-Bildschirm. Den Code oben tippst du selbst ein.',
+            waiting: 'Warte auf die Freischaltung ...',
+            signingIn: 'Passkey angelegt. Du wirst angemeldet ...',
+            expired: 'Die Anfrage ist abgelaufen oder wurde nicht freigeschaltet.',
+            requestFailed: 'Die Anfrage konnte nicht erstellt werden. Versuche es später noch einmal.',
+            retry: 'Neuen Code anfordern',
+            backToLogin: 'Zurück zur Anmeldung',
+        },
+        approve: {
+            title: 'Neues Gerät freischalten',
+            hint: 'Ein Gerät ohne Passkey zeigt dir einen Code. Gib ihn hier ein, sieh dir an, was du '
+                + 'freischaltest, und bestätige nur, wenn du selbst davor sitzt.',
+            lookup: 'Code prüfen',
+            unknownCode: 'Diesen Code gibt es nicht oder er ist abgelaufen.',
+            unknownDevice: 'Unbekanntes Gerät',
+            place: 'Ort: {place}',
+            when: 'Angefragt am {when}',
+            warning: 'Nur freischalten, wenn du gerade selbst an diesem Gerät sitzt.',
+            approve: 'Freischalten',
+            done: 'Freigeschaltet. Das andere Gerät legt jetzt seinen Passkey an.',
+            another: 'Weiteren Code eingeben',
         },
         create: {
             preparing: 'Gleich fragt dich dein Gerät nach Fingerabdruck, Gesicht oder PIN. Bestätige einfach.',
@@ -1215,7 +1243,11 @@ export default {
         },
         'account-security': {
             title: 'Sicherheit',
-            subtitle: 'Passwort und Zwei-Faktor-Authentifizierung',
+            subtitle: 'Passwort, Passkeys und Zwei-Faktor-Authentifizierung',
+        },
+        'account-unlock-device': {
+            title: 'Neues Gerät freischalten',
+            subtitle: 'Einem Gerät ohne Passkey den Weg hinein geben',
         },
         'account-gdpr': {
             title: 'DSGVO',

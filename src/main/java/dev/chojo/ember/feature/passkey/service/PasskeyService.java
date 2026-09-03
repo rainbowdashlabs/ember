@@ -136,10 +136,66 @@ public class PasskeyService {
                         .timeout(settings.timeoutSeconds() * 1000L)
                         .build());
 
-        return persistCreationStart(options, accountId);
+        return persistCreationStart(options, accountId, ChallengePurpose.REGISTRATION);
     }
 
-    private CeremonyStart persistCreationStart(PublicKeyCredentialCreationOptions options, int accountId) {
+    /**
+     * Starts a passkey creation opened by a device-enrolment token rather than a session: the
+     * same options as {@link #startCreation}, on the enrolment's own challenge kind.
+     */
+    public CeremonyStart startDeviceEnrollment(int accountId, String email, String displayName) {
+        byte[] userHandle = repository.findUserHandleForAccount(accountId).orElseGet(PasskeyService::newUserHandle);
+
+        UserIdentity user = UserIdentity.builder()
+                .name(String.valueOf(accountId))
+                .displayName(displayName != null ? displayName : email)
+                .id(new ByteArray(userHandle))
+                .build();
+
+        var selection = AuthenticatorSelectionCriteria.builder()
+                .residentKey(ResidentKeyRequirement.REQUIRED)
+                .userVerification(UserVerificationRequirement.REQUIRED)
+                .build();
+
+        PublicKeyCredentialCreationOptions options = relyingParties
+                .passkey()
+                .startRegistration(StartRegistrationOptions.builder()
+                        .user(user)
+                        .authenticatorSelection(selection)
+                        .timeout(settings.timeoutSeconds() * 1000L)
+                        .build());
+
+        return persistCreationStart(options, accountId, ChallengePurpose.DEVICE_ENROLLMENT);
+    }
+
+    /**
+     * Completes a device enrolment: the creation ceremony verified as always, recorded as the
+     * enrolment it is.
+     */
+    public Optional<TwoFactorFactor> finishDeviceEnrollment(
+            int accountId, String challengeToken, String credentialJson, String userAgent, String country) {
+        Optional<WebAuthnChallenge> challengeOpt = challengeRepository
+                .consume(challengeToken)
+                .filter(stored -> !stored.isExpired()
+                        && stored.purpose() == ChallengePurpose.DEVICE_ENROLLMENT
+                        && stored.accountId() != null
+                        && stored.accountId() == accountId);
+        if (challengeOpt.isEmpty()) {
+            log.info("Device enrolment failed for account {}: challenge unknown or expired", accountId);
+            return Optional.empty();
+        }
+        return finishCreationCeremony(
+                accountId,
+                challengeOpt.get().optionsJson(),
+                credentialJson,
+                null,
+                userAgent,
+                country,
+                TwoFactorEvent.PASSKEY_ENROLLED_VIA_DEVICE_CODE);
+    }
+
+    private CeremonyStart persistCreationStart(
+            PublicKeyCredentialCreationOptions options, int accountId, ChallengePurpose purpose) {
         String persistJson;
         try {
             persistJson = options.toJson();
@@ -155,11 +211,7 @@ public class PasskeyService {
         }
         String token = newChallengeToken();
         challengeRepository.create(
-                token,
-                ChallengePurpose.REGISTRATION,
-                accountId,
-                persistJson,
-                Instant.now().plus(CHALLENGE_TTL));
+                token, purpose, accountId, persistJson, Instant.now().plus(CHALLENGE_TTL));
         return new CeremonyStart(token, browserJson);
     }
 

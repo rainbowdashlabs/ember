@@ -132,6 +132,63 @@ export async function answerOffer(answer: 'LATER' | 'DECLINED'): Promise<void> {
     await client.post('/account/passkeys/offer-answer', {answer})
 }
 
+// -- The device handshake --
+
+export interface DeviceRequest {
+    /** The eight-character code the approving member types, ungrouped. */
+    code: string
+    pollSecret: string
+    expiresAt: string
+    /** Base64 PNG of a QR code opening the approval screen. It does not carry the code. */
+    qrPng: string
+}
+
+export type DevicePollStatus = 'PENDING' | 'APPROVED' | 'EXPIRED' | 'UNKNOWN'
+
+export interface DevicePollResult {
+    status: DevicePollStatus
+    /** Present exactly once: on the poll that found the approval first. */
+    enrollToken: string | null
+}
+
+export interface DeviceLookup {
+    userAgent: string | null
+    country: string | null
+    createdAt: string
+}
+
+export async function deviceRequest(): Promise<DeviceRequest> {
+    const res = await client.post<DeviceRequest>('/auth/passkey/device-request')
+    return res.data
+}
+
+export async function devicePoll(pollSecret: string): Promise<DevicePollResult> {
+    const res = await client.post<DevicePollResult>('/auth/passkey/device-request/poll', {pollSecret})
+    return res.data
+}
+
+export async function deviceEnrollBegin(enrollToken: string): Promise<PasskeyCeremony> {
+    const res = await client.post<PasskeyCeremony>('/auth/passkey/enroll/begin', {enrollToken})
+    return res.data
+}
+
+export async function deviceEnrollFinish(
+    enrollToken: string,
+    challengeToken: string,
+    credentialJson: string,
+): Promise<void> {
+    await client.post('/auth/passkey/enroll/finish', {enrollToken, challengeToken, credentialJson})
+}
+
+export async function deviceLookup(code: string): Promise<DeviceLookup> {
+    const res = await client.post<DeviceLookup>('/account/passkeys/device-lookup', {code})
+    return res.data
+}
+
+export async function deviceApprove(code: string): Promise<void> {
+    await client.post('/account/passkeys/device-approve', {code})
+}
+
 // -- The trial that follows a creation --
 
 export async function trialBegin(): Promise<PasskeyCeremony> {

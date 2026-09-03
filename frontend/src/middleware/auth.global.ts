@@ -91,7 +91,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     const publicPaths = [
         '/forgot-password', '/set-password', '/reset-password', '/confirm-email-change', '/install',
         '/apply', '/waitlist', '/style', '/privacy', '/terms', '/imprint', '/patch-notes',
-        '/discovery', '/public', '/waiting-list',
+        '/discovery', '/public', '/waiting-list', '/unlock-device',
     ]
     if (publicPaths.some(p => to.path.startsWith(p))) return
 

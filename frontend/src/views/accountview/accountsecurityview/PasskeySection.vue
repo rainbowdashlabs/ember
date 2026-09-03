@@ -121,10 +121,16 @@ async function toggleAskWithPassword(enabled: boolean) {
                  @rename="entry => renameTarget = entry" @remove="removal.requestDelete"/>
     <MutedText v-else tag="p" size="sm">{{ t('passkeys.section.empty') }}</MutedText>
 
-    <PrimaryButton v-if="supported" :icon="['fas', 'plus']" @click="showCreate = true">
-      {{ t('passkeys.section.create') }}
-    </PrimaryButton>
-    <MutedText v-else tag="p" size="sm">{{ t('passkeys.errors.notSupported') }}</MutedText>
+    <div class="flex flex-wrap items-center gap-3">
+      <PrimaryButton v-if="supported" :icon="['fas', 'plus']" @click="showCreate = true">
+        {{ t('passkeys.section.create') }}
+      </PrimaryButton>
+      <MutedText v-else tag="p" size="sm">{{ t('passkeys.errors.notSupported') }}</MutedText>
+      <router-link class="text-sm text-(--text-muted) hover:text-(--text) transition-colors"
+                   to="/account/unlock-device">
+        {{ t('passkeys.approve.title') }}
+      </router-link>
+    </div>
 
     <PasskeySwitches v-if="status.passkeys.length" :status="status"
                      @toggle-password-login="togglePasswordLogin"

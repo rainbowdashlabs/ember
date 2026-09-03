@@ -67,6 +67,11 @@ const {t} = useI18n()
                      :icon="['fas', 'fingerprint']" @click="emit('passkey')">
       {{ t('login.withPasskey') }}
     </SecondaryButton>
+    <router-link v-if="props.passkeyAvailable"
+                 class="block w-full text-center text-sm text-(--text-muted) hover:text-(--text) transition-colors"
+                 to="/unlock-device">
+      {{ t('login.passkeyElsewhere') }}
+    </router-link>
 
     <router-link class="block w-full text-center text-sm text-(--text-muted) hover:text-(--text) transition-colors"
                  to="/forgot-password">

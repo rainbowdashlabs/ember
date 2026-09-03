@@ -1,0 +1,9 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>A new device can now sign in</h2>
+      <p>Hi {{ name }}, a passkey for your account was just created on a new device that you approved:</p>
+      <p><strong>{{ device }}</strong> ({{ place }})</p>
+      <p>If that was you, there is nothing to do.</p>
+      <p>If you did not approve this, remove the passkey right away and change your password:</p>
+      <div class="btn-wrap"><a class="btn" href="{{ securityUrl }}">Open security settings</a></div>
+{% endblock %}

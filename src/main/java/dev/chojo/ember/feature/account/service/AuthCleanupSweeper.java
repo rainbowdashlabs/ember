@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.account.service;
 
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.passkey.repository.PasskeyDeviceRequestRepository;
 import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -30,11 +31,16 @@ public class AuthCleanupSweeper {
 
     private final AccountRepository accountRepository;
     private final WebAuthnChallengeRepository challengeRepository;
+    private final PasskeyDeviceRequestRepository deviceRequestRepository;
 
     @Inject
-    public AuthCleanupSweeper(AccountRepository accountRepository, WebAuthnChallengeRepository challengeRepository) {
+    public AuthCleanupSweeper(
+            AccountRepository accountRepository,
+            WebAuthnChallengeRepository challengeRepository,
+            PasskeyDeviceRequestRepository deviceRequestRepository) {
         this.accountRepository = accountRepository;
         this.challengeRepository = challengeRepository;
+        this.deviceRequestRepository = deviceRequestRepository;
         var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var thread = new Thread(r, "auth-cleanup-sweeper");
             thread.setDaemon(true);
@@ -54,6 +60,10 @@ public class AuthCleanupSweeper {
             int challenges = challengeRepository.deleteExpired();
             if (challenges > 0) {
                 log.debug("Swept {} expired WebAuthn challenges", challenges);
+            }
+            int deviceRequests = deviceRequestRepository.deleteExpired();
+            if (deviceRequests > 0) {
+                log.debug("Swept {} expired device requests", deviceRequests);
             }
         } catch (Exception e) {
             log.warn("Sweeping expired sign-in state failed", e);

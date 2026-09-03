@@ -52,6 +52,11 @@ public class AuthRateLimiter {
     private final LeakyBucket passkeySignInIp;
     private final LeakyBucket stepUpPasswordIp;
     private final LeakyBucket stepUpPasswordIdentity;
+    private final LeakyBucket deviceRequestIp;
+    private final LeakyBucket devicePollIp;
+    private final LeakyBucket deviceEnrollIp;
+    private final LeakyBucket deviceCodeEntrySession;
+    private final LeakyBucket deviceApproveIdentity;
 
     public AuthRateLimiter() {
         this(Clock.systemUTC());
@@ -78,6 +83,11 @@ public class AuthRateLimiter {
         this.passkeySignInIp = new LeakyBucket(10, 10, PRUNE_AFTER, clock);
         this.stepUpPasswordIp = new LeakyBucket(20, 20, PRUNE_AFTER, clock);
         this.stepUpPasswordIdentity = new LeakyBucket(10, FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
+        this.deviceRequestIp = new LeakyBucket(5, FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
+        this.devicePollIp = new LeakyBucket(40, 40, PRUNE_AFTER, clock);
+        this.deviceEnrollIp = new LeakyBucket(10, 10, PRUNE_AFTER, clock);
+        this.deviceCodeEntrySession = new LeakyBucket(3, Duration.ofMinutes(1).dividedBy(3), PRUNE_AFTER, clock);
+        this.deviceApproveIdentity = new LeakyBucket(5, HOUR.dividedBy(5), PRUNE_AFTER, clock);
     }
 
     /**
@@ -163,5 +173,34 @@ public class AuthRateLimiter {
      */
     public Optional<Long> tryPasswordStepUp(String ip, int accountId) {
         return takeMax(stepUpPasswordIp.tryAcquire(ip), stepUpPasswordIdentity.tryAcquire(Integer.toString(accountId)));
+    }
+
+    /**
+     * Throttles opening a device request, by IP: the requester is unauthenticated and has no
+     * device identity to count by, and every request writes a row.
+     */
+    public Optional<Long> tryDeviceRequest(String ip) {
+        return deviceRequestIp.tryAcquire(ip);
+    }
+
+    /** Throttles the device request poll, generous enough for one device asking every few seconds. */
+    public Optional<Long> tryDevicePoll(String ip) {
+        return devicePollIp.tryAcquire(ip);
+    }
+
+    /** Throttles the enrolment ceremony a device-code token opens, by IP. */
+    public Optional<Long> tryDeviceEnroll(String ip) {
+        return deviceEnrollIp.tryAcquire(ip);
+    }
+
+    /**
+     * Throttles code entries on the approval screen: three a minute per session, and five
+     * approvals an hour per account, so neither a hijacked session nor a talked-into member can
+     * grind or mass-approve.
+     */
+    public Optional<Long> tryDeviceCodeEntry(int sessionId, int accountId) {
+        return takeMax(
+                deviceCodeEntrySession.tryAcquire(Integer.toString(sessionId)),
+                deviceApproveIdentity.tryAcquire(Integer.toString(accountId)));
     }
 }

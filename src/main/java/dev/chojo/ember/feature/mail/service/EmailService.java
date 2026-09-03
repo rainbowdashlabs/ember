@@ -452,6 +452,22 @@ public class EmailService {
      * fresh on next login. {@code actorLabel} is the admin's email (or a generic
      * "administrator" fallback when unknown).
      */
+    /**
+     * Sent when a new device was approved through the code handshake and a passkey was created
+     * on it. Names the device, because with a passkey nobody notices a takeover the way they
+     * notice a password that suddenly stops working.
+     */
+    public void sendPasskeyDeviceApprovedNotice(String email, String name, String device, String place, String locale) {
+        var vars = baseVars(name, null);
+        vars.put("device", device == null || device.isBlank() ? "?" : device);
+        vars.put("place", place == null || place.isBlank() ? "?" : place);
+        vars.put("securityUrl", api.baseUrl() + "/account/security");
+        enqueueGlobal(
+                email,
+                subject("passkey-device-approved", locale, null),
+                loadTemplate("passkey-device-approved.html", locale, vars));
+    }
+
     public void sendTwoFactorResetNotice(String email, String name, String actorLabel, Instant resetAt, String locale) {
         var vars = baseVars(name, null);
         vars.put("loginUrl", api.baseUrl() + "/login");

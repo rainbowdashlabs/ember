@@ -1,0 +1,9 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Ein neues Gerät kann sich jetzt anmelden</h2>
+      <p>Hallo {{ name }}, auf einem neuen Gerät, das du freigeschaltet hast, wurde gerade ein Passkey für dein Konto angelegt:</p>
+      <p><strong>{{ device }}</strong> ({{ place }})</p>
+      <p>Wenn das du warst, musst du nichts weiter tun.</p>
+      <p>Wenn du das nicht freigeschaltet hast, lösche den Passkey sofort und ändere dein Passwort:</p>
+      <div class="btn-wrap"><a class="btn" href="{{ securityUrl }}">Sicherheitseinstellungen öffnen</a></div>
+{% endblock %}

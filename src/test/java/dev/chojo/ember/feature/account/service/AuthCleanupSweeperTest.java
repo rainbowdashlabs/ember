@@ -22,7 +22,10 @@ class AuthCleanupSweeperTest extends RepositoryTestBase {
     @Test
     void sweepRemovesExpiredTokensSessionsAndChallenges() {
         var challengeRepo = new WebAuthnChallengeRepository(TokenHasher.forTesting("repository-test-pepper"));
-        var sweeper = new AuthCleanupSweeper(accountRepo, challengeRepo);
+        var sweeper = new AuthCleanupSweeper(
+                accountRepo,
+                challengeRepo,
+                new dev.chojo.ember.feature.passkey.repository.PasskeyDeviceRequestRepository());
 
         int accountId = accountRepo
                 .create("sweeper-" + UUID.randomUUID() + "@test.com", "Sweep", "Er", true)

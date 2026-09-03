@@ -21,7 +21,8 @@
     "waitlist-registered": "Waiting list registration{stationSuffix}",
     "waitlist-confirm-reminder": "Please confirm your interest{stationSuffix}",
     "waitlist-removal-warning": "Waiting list removal in 2 weeks{stationSuffix}",
-    "test-mail": "Test email from Ember"
+    "test-mail": "Test email from Ember",
+    "passkey-device-approved": "A new device can now sign in to your account"
   },
   "body": {
     "twoFactorReset.defaultActor": "an administrator"

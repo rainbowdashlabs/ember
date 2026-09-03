@@ -9,6 +9,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
@@ -17,9 +18,11 @@ import dev.chojo.ember.feature.account.route.AuthRoutes.LoginResponse;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.passkey.service.PasskeyAccountService;
+import dev.chojo.ember.feature.passkey.service.PasskeyDeviceService;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
 import dev.chojo.ember.feature.passkey.service.PasskeyService;
 import dev.chojo.ember.feature.twofactor.service.RelyingParties;
+import dev.chojo.ember.feature.twofactor.service.TotpService;
 import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -60,6 +63,9 @@ public class PasskeyRoutes implements Routes {
     private final AccountRepository accountRepository;
     private final AuthRateLimiter rateLimiter;
     private final RelyingParties relyingParties;
+    private final PasskeyDeviceService deviceService;
+    private final TotpService totpService;
+    private final Api api;
     private final Network network;
 
     @Inject
@@ -71,6 +77,9 @@ public class PasskeyRoutes implements Routes {
             AccountRepository accountRepository,
             AuthRateLimiter rateLimiter,
             RelyingParties relyingParties,
+            PasskeyDeviceService deviceService,
+            TotpService totpService,
+            Api api,
             Network network) {
         this.passkeyService = passkeyService;
         this.accountService = accountService;
@@ -79,6 +88,9 @@ public class PasskeyRoutes implements Routes {
         this.accountRepository = accountRepository;
         this.rateLimiter = rateLimiter;
         this.relyingParties = relyingParties;
+        this.deviceService = deviceService;
+        this.totpService = totpService;
+        this.api = api;
         this.network = network;
     }
 
@@ -131,6 +143,94 @@ public class PasskeyRoutes implements Routes {
         // The trial: authenticated, its own challenge kind, mints nothing.
         routes.post(prefix + "/account/passkeys/trial/begin", this::beginTrial, StationPermission.LOGIN);
         routes.post(prefix + "/account/passkeys/trial/finish", this::finishTrial, StationPermission.LOGIN);
+
+        // The device handshake: the new device asks (unauthenticated), a signed-in device
+        // approves, and the enrolment token the poll returns may create exactly one credential.
+        routes.post(prefix + "/auth/passkey/device-request", this::createDeviceRequest);
+        routes.post(prefix + "/auth/passkey/device-request/poll", this::pollDeviceRequest);
+        routes.post(prefix + "/auth/passkey/enroll/begin", this::beginDeviceEnrollment);
+        routes.post(prefix + "/auth/passkey/enroll/finish", this::finishDeviceEnrollment);
+        routes.post(prefix + "/account/passkeys/device-lookup", this::lookupDeviceRequest, StationPermission.LOGIN);
+        routes.post(
+                prefix + "/account/passkeys/device-approve",
+                this::approveDeviceRequest,
+                StationPermission.LOGIN,
+                StepUpCategory.ACCOUNT_SECURITY);
+    }
+
+    // -- The device handshake --
+
+    private void createDeviceRequest(Context ctx) {
+        requirePasskeysOn();
+        enforceLimit(rateLimiter.tryDeviceRequest(clientIp(ctx)));
+        var request = deviceService.createRequest(ctx.userAgent(), ctx.header("CF-IPCountry"));
+        // The QR opens the approval screen and nothing more. A link that arrives with the code
+        // already filled in would be exactly the relayable artifact this flow is shaped to avoid.
+        String approvalUrl = api.baseUrl() + "/account/unlock-device";
+        String qrPng = Base64.getEncoder().encodeToString(totpService.generateQrPng(approvalUrl, 240));
+        ctx.json(new DeviceRequestResponse(request.code(), request.pollSecret(), request.expiresAt(), qrPng));
+    }
+
+    private void pollDeviceRequest(Context ctx) {
+        enforceLimit(rateLimiter.tryDevicePoll(clientIp(ctx)));
+        var request = ctx.bodyAsClass(DevicePollRequest.class);
+        if (isBlank(request.pollSecret())) {
+            throw new BadRequestResponse("pollSecret is required");
+        }
+        var result = deviceService.poll(request.pollSecret());
+        ctx.json(new DevicePollResponse(result.status().name(), result.enrollToken()));
+    }
+
+    private void beginDeviceEnrollment(Context ctx) {
+        requirePasskeysOn();
+        enforceLimit(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
+        var request = ctx.bodyAsClass(DeviceEnrollBeginRequest.class);
+        if (isBlank(request.enrollToken())) {
+            throw new BadRequestResponse("enrollToken is required");
+        }
+        var start = deviceService
+                .beginEnrollment(request.enrollToken())
+                .orElseThrow(() -> new UnauthorizedResponse("Enrolment failed"));
+        ctx.json(new CeremonyResponse(start.challengeToken(), start.optionsJson()));
+    }
+
+    private void finishDeviceEnrollment(Context ctx) {
+        requirePasskeysOn();
+        enforceLimit(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
+        var request = ctx.bodyAsClass(DeviceEnrollFinishRequest.class);
+        if (isBlank(request.enrollToken()) || isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
+            throw new BadRequestResponse("enrollToken, challengeToken and credentialJson are required");
+        }
+        boolean created = deviceService.finishEnrollment(
+                request.enrollToken(), request.challengeToken(), request.credentialJson(), ctx.header("CF-IPCountry"));
+        if (!created) {
+            throw new UnauthorizedResponse("Enrolment failed");
+        }
+        ctx.json(Map.of("message", "Passkey created"));
+    }
+
+    private void lookupDeviceRequest(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        enforceLimit(rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
+        var request = ctx.bodyAsClass(DeviceCodeRequest.class);
+        if (isBlank(request.code())) {
+            throw new BadRequestResponse("code is required");
+        }
+        var open = deviceService.lookup(request.code()).orElseThrow(NotFoundResponse::new);
+        ctx.json(new DeviceLookupResponse(open.requestedUserAgent(), open.requestedCountry(), open.createdAt()));
+    }
+
+    private void approveDeviceRequest(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        enforceLimit(rateLimiter.tryDeviceCodeEntry(session.sessionId(), session.accountId()));
+        var request = ctx.bodyAsClass(DeviceCodeRequest.class);
+        if (isBlank(request.code())) {
+            throw new BadRequestResponse("code is required");
+        }
+        if (!deviceService.approve(session.accountId(), request.code())) {
+            throw new NotFoundResponse();
+        }
+        ctx.json(Map.of("message", "Device approved"));
     }
 
     private String clientIp(Context ctx) {
@@ -391,6 +491,24 @@ public class PasskeyRoutes implements Routes {
     public record RemovalResponse(boolean passwordLoginReenabled) {}
 
     public record TrialResponse(String outcome) {}
+
+    /**
+     * @param qrPng PNG of a QR code opening the approval screen. It does not carry the code:
+     *         both travel separately on purpose.
+     */
+    public record DeviceRequestResponse(String code, String pollSecret, Instant expiresAt, String qrPng) {}
+
+    public record DevicePollRequest(String pollSecret) {}
+
+    public record DevicePollResponse(String status, String enrollToken) {}
+
+    public record DeviceEnrollBeginRequest(String enrollToken) {}
+
+    public record DeviceEnrollFinishRequest(String enrollToken, String challengeToken, String credentialJson) {}
+
+    public record DeviceCodeRequest(String code) {}
+
+    public record DeviceLookupResponse(String userAgent, String country, Instant createdAt) {}
 
     public record PasskeyEntryResponse(
             int id,
