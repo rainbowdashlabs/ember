@@ -357,6 +357,29 @@ public class PasskeyService {
      * between a trial and a sign-in would come down to which URL the browser felt like calling.
      */
     public CeremonyStart startTrial(int accountId) {
+        return startOwnAssertion(accountId, ChallengePurpose.PASSKEY_TRIAL);
+    }
+
+    /**
+     * Starts a passkey step-up: the same discoverable, user-verified ceremony as the trial, on
+     * a challenge kind of its own so neither is spendable at the other's finish or at the
+     * sign-in's.
+     */
+    public CeremonyStart startStepUp(int accountId) {
+        return startOwnAssertion(accountId, ChallengePurpose.STEPUP_ASSERTION);
+    }
+
+    /**
+     * Finishes a passkey step-up: the trial's verification with the trial's own-account check,
+     * on the step-up's challenge kind. What the caller does with a success differs, which is
+     * why the purposes differ: this one stamps the session as freshly proved.
+     */
+    public boolean finishStepUp(int accountId, String challengeToken, String credentialJson) {
+        return finishOwnAssertion(accountId, ChallengePurpose.STEPUP_ASSERTION, challengeToken, credentialJson)
+                == TrialOutcome.OK;
+    }
+
+    private CeremonyStart startOwnAssertion(int accountId, ChallengePurpose purpose) {
         AssertionRequest request = relyingParties
                 .passkey()
                 .startAssertion(StartAssertionOptions.builder()
@@ -368,22 +391,18 @@ public class PasskeyService {
         try {
             persistJson = request.toJson();
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to serialize passkey trial request for storage", e);
+            throw new IllegalStateException("Failed to serialize passkey assertion request for storage", e);
         }
         String browserJson;
         try {
             browserJson = request.toCredentialsGetJson();
         } catch (Exception e) {
-            log.warn("Passkey trial request fell back to the stored shape for account {}", accountId, e);
+            log.warn("Passkey assertion request fell back to the stored shape for account {}", accountId, e);
             browserJson = persistJson;
         }
         String token = newChallengeToken();
         challengeRepository.create(
-                token,
-                ChallengePurpose.PASSKEY_TRIAL,
-                accountId,
-                persistJson,
-                Instant.now().plus(CHALLENGE_TTL));
+                token, purpose, accountId, persistJson, Instant.now().plus(CHALLENGE_TTL));
         return new CeremonyStart(token, browserJson);
     }
 
@@ -395,14 +414,19 @@ public class PasskeyService {
      * reads as evidence.
      */
     public TrialOutcome finishTrial(int accountId, String challengeToken, String credentialJson) {
+        return finishOwnAssertion(accountId, ChallengePurpose.PASSKEY_TRIAL, challengeToken, credentialJson);
+    }
+
+    private TrialOutcome finishOwnAssertion(
+            int accountId, ChallengePurpose purpose, String challengeToken, String credentialJson) {
         Optional<WebAuthnChallenge> challengeOpt = challengeRepository
                 .consume(challengeToken)
                 .filter(stored -> !stored.isExpired()
-                        && stored.purpose() == ChallengePurpose.PASSKEY_TRIAL
+                        && stored.purpose() == purpose
                         && stored.accountId() != null
                         && stored.accountId() == accountId);
         if (challengeOpt.isEmpty()) {
-            log.info("Passkey trial failed for account {}: challenge unknown or expired", accountId);
+            log.info("Passkey {} failed for account {}: challenge unknown or expired", purpose, accountId);
             return TrialOutcome.FAILED;
         }
 
@@ -418,7 +442,7 @@ public class PasskeyService {
         if (!credential.signIn()) {
             // A second-factor key that happens to be discoverable must not pass a trial: it
             // would be told "beim naechsten Mal genau so" and be refused at the next sign-in.
-            log.info("Passkey trial refused for account {}: the credential may not start a sign-in", accountId);
+            log.info("Passkey {} refused for account {}: the credential may not start a sign-in", purpose, accountId);
             return TrialOutcome.FAILED;
         }
         Optional<Integer> owner = repository.findAccountByUserHandle(
@@ -426,7 +450,8 @@ public class PasskeyService {
         if (owner.isEmpty() || owner.get() != accountId) {
             // On a shared family device the account picker shows every passkey the device
             // holds, siblings included, so this is one mistap away and gets its own answer.
-            log.info("Passkey trial refused for account {}: the credential belongs to another account", accountId);
+            log.info(
+                    "Passkey {} refused for account {}: the credential belongs to another account", purpose, accountId);
             return TrialOutcome.FOREIGN_CREDENTIAL;
         }
 

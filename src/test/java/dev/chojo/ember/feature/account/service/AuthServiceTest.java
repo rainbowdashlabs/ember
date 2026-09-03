@@ -1244,6 +1244,26 @@ class AuthServiceTest extends RepositoryTestBase {
         accountRepo.delete(id);
     }
 
+    /**
+     * A password typed at the login screen is the proof step-up asks of an account with no
+     * second factor, so the session it mints already counts as freshly proved.
+     */
+    @Test
+    @Order(97)
+    void passwordSignInStampsTheSessionAsProved() {
+        String email = "pw-stamp@test.com";
+        var registered = service.registerSelf(email, "Pw", "Stamp", PASSWORD, null);
+        int id = registered.account().id();
+        accountRepo.setEmailVerified(id);
+
+        var result = service.login(email, PASSWORD, "agent", "DE");
+        assertTrue(result.success());
+        assertNotNull(
+                accountRepo.findSession(result.token()).orElseThrow().twoFactorVerifiedAt(),
+                "the change-password screen must not ask for the password typed sixty seconds ago");
+        accountRepo.delete(id);
+    }
+
     @Test
     @Order(99)
     void cleanup() {

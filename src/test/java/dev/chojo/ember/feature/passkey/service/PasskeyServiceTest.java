@@ -132,6 +132,27 @@ class PasskeyServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void trialAndStepUpChallengesDoNotCrossSpend() {
+        int accountId = newAccount();
+
+        var trial = service.startTrial(accountId);
+        assertFalse(
+                service.finishStepUp(accountId, trial.challengeToken(), PARSEABLE_ASSERTION),
+                "a trial challenge must not clear a step-up");
+
+        var stepUp = service.startStepUp(accountId);
+        assertEquals(
+                PasskeyService.TrialOutcome.FAILED,
+                service.finishTrial(accountId, stepUp.challengeToken(), PARSEABLE_ASSERTION),
+                "a step-up challenge must not pass a trial");
+
+        var signIn = service.startSignIn();
+        assertFalse(
+                service.finishStepUp(accountId, signIn.challengeToken(), PARSEABLE_ASSERTION),
+                "a sign-in challenge must not clear a step-up");
+    }
+
+    @Test
     void signInRefusesAssertionWithoutUserVerification() throws Exception {
         RelyingParty spied = spy(realParties.passkey());
         AssertionResult unverified = mock(AssertionResult.class);

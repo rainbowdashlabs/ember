@@ -74,7 +74,7 @@ COMMENT ON COLUMN ember_schema.webauthn_challenge.id IS 'Auto-generated primary 
 COMMENT ON COLUMN ember_schema.webauthn_challenge.token_hash IS
     'HMAC-SHA-256 of the challenge token handed to the browser. The raw token is never stored.';
 COMMENT ON COLUMN ember_schema.webauthn_challenge.purpose IS
-    'Which ceremony minted the challenge: REGISTRATION, SECOND_FACTOR_ASSERTION, PASSKEY_SIGN_IN, PASSKEY_TRIAL or DEVICE_ENROLLMENT. A challenge is only spendable at the finish of its own ceremony.';
+    'Which ceremony minted the challenge: REGISTRATION, SECOND_FACTOR_ASSERTION, PASSKEY_SIGN_IN, PASSKEY_TRIAL, STEPUP_ASSERTION or DEVICE_ENROLLMENT. A challenge is only spendable at the finish of its own ceremony.';
 COMMENT ON COLUMN ember_schema.webauthn_challenge.account_id IS
     'The account the ceremony belongs to. NULL for a passwordless sign-in, which does not know the account until the assertion comes back.';
 COMMENT ON COLUMN ember_schema.webauthn_challenge.options_json IS

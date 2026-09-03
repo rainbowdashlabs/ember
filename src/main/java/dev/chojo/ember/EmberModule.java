@@ -245,6 +245,7 @@ import dev.chojo.ember.feature.system.service.DemoVideoSeeder;
 import dev.chojo.ember.feature.system.service.DemoWaitingListSeeder;
 import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes;
 import dev.chojo.ember.feature.traffic.route.StationTrafficRoutes;
+import dev.chojo.ember.feature.twofactor.route.StepUpRoutes;
 import dev.chojo.ember.feature.twofactor.route.TwoFactorAdminRoutes;
 import dev.chojo.ember.feature.twofactor.route.TwoFactorRoutes;
 import dev.chojo.ember.feature.twofactor.service.RelyingParties;
@@ -407,6 +408,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(StationTrafficRoutes.class);
         routesBinder.addBinding().to(StationInsightsRoutes.class);
         routesBinder.addBinding().to(TwoFactorRoutes.class);
+        routesBinder.addBinding().to(StepUpRoutes.class);
         routesBinder.addBinding().to(PasskeyRoutes.class);
         routesBinder.addBinding().to(TwoFactorAdminRoutes.class);
 

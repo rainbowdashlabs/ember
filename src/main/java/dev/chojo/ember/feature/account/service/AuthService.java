@@ -784,7 +784,11 @@ public class AuthService {
             return LoginResult.twoFactorRequired(token, expiresAt);
         }
 
-        return createSession(account.id(), userAgent, location, trustedDevice);
+        // A password typed sixty seconds ago is exactly the proof step-up asks of an account
+        // with no second factor, so the sign-in stamps the session as freshly proved. Here and
+        // not inside createSession: the demo quick login reaches that method without checking
+        // anything, and stamping there would mark every quick-login session as proved.
+        return createSession(account.id(), userAgent, location, Instant.now(), null, trustedDevice);
     }
 
     /**

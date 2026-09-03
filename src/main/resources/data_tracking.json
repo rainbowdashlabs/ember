@@ -1,7 +1,7 @@
 {
   "version" : 1,
   "schemaHash" : "sha256:abb0d6d27c4af2f573ec6cd7dc393f1ff5e69757c95fd66a4c19432ed724ff17",
-  "generatedAt" : "2026-09-03T12:05:58Z",
+  "generatedAt" : "2026-09-03T13:18:07Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -18005,7 +18005,7 @@
         "type" : "text",
         "nullable" : false,
         "verified" : true,
-        "description" : "Which ceremony minted the challenge: REGISTRATION, SECOND_FACTOR_ASSERTION, PASSKEY_SIGN_IN, PASSKEY_TRIAL or DEVICE_ENROLLMENT. A challenge is only spendable at the finish of its own ceremony."
+        "description" : "Which ceremony minted the challenge: REGISTRATION, SECOND_FACTOR_ASSERTION, PASSKEY_SIGN_IN, PASSKEY_TRIAL, STEPUP_ASSERTION or DEVICE_ENROLLMENT. A challenge is only spendable at the finish of its own ceremony."
       }, {
         "name" : "account_id",
         "type" : "int4",

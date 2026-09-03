@@ -30,6 +30,11 @@ public enum ChallengePurpose {
      */
     PASSKEY_TRIAL,
     /**
+     * A passkey assertion answering a step-up demand: verified like the sign-in, against the
+     * session's own account, stamping freshness and minting nothing.
+     */
+    STEPUP_ASSERTION,
+    /**
      * A registration opened by a device-enrolment token rather than a session.
      */
     DEVICE_ENROLLMENT

@@ -818,7 +818,9 @@ public class ApiServer {
         }
 
         if (stepUpCategory != null && !isStepUpFresh(session)) {
-            throw new StepUpRequiredException(stepUpCategory);
+            // The refusal names what this account can prove itself with, so the dialog offers
+            // exactly those. The lookup only runs on the refusal path, never on a fresh session.
+            throw new StepUpRequiredException(stepUpCategory, twoFactorService.availableProofs(session.accountId()));
         }
     }
 
@@ -924,7 +926,12 @@ public class ApiServer {
             ctx.status(HttpStatus.UNAUTHORIZED);
             ctx.header("X-StepUp-Required", err.category().name());
             ctx.json(Map.of(
-                    "error", "step_up_required", "category", err.category().name()));
+                    "error",
+                    "step_up_required",
+                    "category",
+                    err.category().name(),
+                    "proofs",
+                    err.proofs().stream().map(Enum::name).sorted().toList()));
         });
 
         routes.exception(ApiException.class, (err, ctx) -> {

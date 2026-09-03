@@ -50,6 +50,8 @@ public class AuthRateLimiter {
     private final LeakyBucket twoFactorIp;
     private final LeakyBucket twoFactorIdentity;
     private final LeakyBucket passkeySignInIp;
+    private final LeakyBucket stepUpPasswordIp;
+    private final LeakyBucket stepUpPasswordIdentity;
 
     public AuthRateLimiter() {
         this(Clock.systemUTC());
@@ -74,6 +76,8 @@ public class AuthRateLimiter {
         this.twoFactorIp = new LeakyBucket(20, 20, PRUNE_AFTER, clock);
         this.twoFactorIdentity = new LeakyBucket(10, FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
         this.passkeySignInIp = new LeakyBucket(10, 10, PRUNE_AFTER, clock);
+        this.stepUpPasswordIp = new LeakyBucket(20, 20, PRUNE_AFTER, clock);
+        this.stepUpPasswordIdentity = new LeakyBucket(10, FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
     }
 
     /**
@@ -149,5 +153,15 @@ public class AuthRateLimiter {
      */
     public Optional<Long> tryPasskeySignIn(String ip) {
         return passkeySignInIp.tryAcquire(ip);
+    }
+
+    /**
+     * Throttles the password step-up by account and by real client address. It is a password
+     * oracle behind any live session, so it gets its own buckets: the first-factor re-entry's
+     * bucket is keyed on a literal string where an address belongs, and one attacker grinding a
+     * shared bucket would lock every member out of every guarded screen.
+     */
+    public Optional<Long> tryPasswordStepUp(String ip, int accountId) {
+        return takeMax(stepUpPasswordIp.tryAcquire(ip), stepUpPasswordIdentity.tryAcquire(Integer.toString(accountId)));
     }
 }
