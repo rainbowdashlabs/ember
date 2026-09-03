@@ -1,12 +1,12 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:f3477787afa276c1324c3e45ecaaa1cd2de9d8a0afadb456aa2c9504a191d3a4",
-  "generatedAt" : "2026-08-29T16:09:32Z",
+  "schemaHash" : "sha256:abb0d6d27c4af2f573ec6cd7dc393f1ff5e69757c95fd66a4c19432ed724ff17",
+  "generatedAt" : "2026-09-03T12:05:58Z",
   "tables" : {
     "account" : {
       "feature" : "account",
       "scope" : "USER",
-      "tableHash" : "sha256:1457007338b6c64432a892dd6fdbdb2f090522555d03b59841489db7ce8854ea",
+      "tableHash" : "sha256:ee2f996b3319f6e328b5599c8e0669a2ce61781cbdebab4ecab4251017f620fb",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -71,6 +71,24 @@
         "nullable" : true,
         "verified" : true,
         "description" : "The name this account signs in with beside its address, or null when the address is the only way in. Never contains an at sign, and is unique without regard to case. A station arriving from another instance whose name is already taken here arrives without one."
+      }, {
+        "name" : "passkey_offer_answered_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the member last answered the passkey offer. A \"later\" answer re-offers thirty days after this stamp."
+      }, {
+        "name" : "passkey_offer_declined",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "TRUE when the member declined the passkey offer for good. Never offered again while set."
+      }, {
+        "name" : "last_sign_in_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the account last signed in, by any method. setup_completed_at answers when somebody started, not when they were last here."
       } ],
       "foreignKeys" : [ {
         "column" : "creating_station_id",
@@ -406,7 +424,7 @@
       "description" : "Trusted-device cookies allowing 2FA bypass within a time window."
     },
     "account_2fa_webauthn" : {
-      "tableHash" : "sha256:387ec0701de53616ea1a57053da7dedc49e4c0fdf4f5895dfc9ec85f5ba40ec8",
+      "tableHash" : "sha256:eec27e9b26e3d0890e129c1f2db25dd30d3313ebd2ab8bb83e8072507df3576a",
       "columns" : [ {
         "name" : "factor_id",
         "type" : "int4",
@@ -450,6 +468,30 @@
         "nullable" : false,
         "verified" : true,
         "description" : "64 random bytes per account, stable across credential registrations."
+      }, {
+        "name" : "sign_in",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "This credential may start a sign-in on its own. True for credentials created through the passkey flow."
+      }, {
+        "name" : "second_factor",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "This credential is asked for after a password. True for every credential that existed before passkeys."
+      }, {
+        "name" : "discoverable",
+        "type" : "bool",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "What the credProps extension reported at creation. NULL when the authenticator did not say."
+      }, {
+        "name" : "user_verified",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether user verification was performed when the credential was created."
       } ],
       "foreignKeys" : [ {
         "column" : "factor_id",
@@ -473,7 +515,7 @@
     "account_credential" : {
       "feature" : "account",
       "scope" : "USER",
-      "tableHash" : "sha256:98b23e74d4203cf3eb86d9c35122bd14c4613af3fc2d4d68569de4e8084e1d5a",
+      "tableHash" : "sha256:1194690f4a5942018fe99748bac7d6537cfaa0d95ab374f1bba8c4ab132a6a96",
       "columns" : [ {
         "name" : "account_id",
         "type" : "int4",
@@ -498,6 +540,12 @@
         "nullable" : true,
         "verified" : true,
         "description" : "Timestamp of the most recent HIBP breach check for this credential. NULL when the password has never been checked or was rotated since the last check."
+      }, {
+        "name" : "password_login_disabled_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the account switched password sign-in off. NULL means the password works on the login screen."
       } ],
       "foreignKeys" : [ {
         "column" : "account_id",
@@ -12331,6 +12379,101 @@
         "reason" : "Public page content, not per-member"
       }
     },
+    "passkey_device_request" : {
+      "tableHash" : "sha256:dd5c2548391da3a49d69771bf6c7c69073bd81b1db603c63ee1d24f173f6428a",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "code_hash",
+        "type" : "bpchar",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "HMAC-SHA-256 of the eight-character code the new device shows and the approving member types."
+      }, {
+        "name" : "poll_secret_hash",
+        "type" : "bpchar",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "HMAC-SHA-256 of the secret the requesting device polls with. Carried in the POST body, never in a path."
+      }, {
+        "name" : "requested_user_agent",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Browser and operating system of the requesting device, shown on the approval screen."
+      }, {
+        "name" : "requested_country",
+        "type" : "bpchar",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Rough location of the requesting device, shown on the approval screen."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the request was made."
+      }, {
+        "name" : "expires_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the request dies unanswered. Ten minutes, because somebody has to walk to another machine."
+      }, {
+        "name" : "approved_account_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The account whose signed-in session approved the request. NULL until approved."
+      }, {
+        "name" : "approved_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the request was approved."
+      }, {
+        "name" : "enroll_token_hash",
+        "type" : "bpchar",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "HMAC-SHA-256 of the one-time enrolment token the poll returns after approval. The token creates one passkey and does nothing else."
+      }, {
+        "name" : "consumed_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the enrolment token was spent. Written in the same transaction as the credential it created."
+      }, {
+        "name" : "attempts",
+        "type" : "int2",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Failed attempts against this request. The request dies after five."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "approved_account_id",
+        "refTable" : "account",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Short-lived sign-in ceremony data, meaningless on another instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Time-limited token, no permanent personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Time-limited token, cascade-deleted via account(id) foreign key"
+      },
+      "description" : "A device with no passkey asking a device that is already signed in to approve it. The approval hands the new device a token that may create exactly one credential."
+    },
     "problem_report" : {
       "feature" : "system",
       "scope" : "INSTANCE",
@@ -17842,6 +17985,71 @@
         "status" : "IGNORED",
         "reason" : "Time-limited token, no permanent personal data"
       }
+    },
+    "webauthn_challenge" : {
+      "tableHash" : "sha256:88fda1fc37f1ab23c893c3b0be90ea1cb26c271540eb453c225e2e0c225db54d",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "token_hash",
+        "type" : "bpchar",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "HMAC-SHA-256 of the challenge token handed to the browser. The raw token is never stored."
+      }, {
+        "name" : "purpose",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which ceremony minted the challenge: REGISTRATION, SECOND_FACTOR_ASSERTION, PASSKEY_SIGN_IN, PASSKEY_TRIAL or DEVICE_ENROLLMENT. A challenge is only spendable at the finish of its own ceremony."
+      }, {
+        "name" : "account_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The account the ceremony belongs to. NULL for a passwordless sign-in, which does not know the account until the assertion comes back."
+      }, {
+        "name" : "options_json",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The serialized ceremony options the finish needs to verify the response."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the challenge was minted."
+      }, {
+        "name" : "expires_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the challenge stops being spendable."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "account_id",
+        "refTable" : "account",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Short-lived sign-in ceremony data, meaningless on another instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Time-limited token, no permanent personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Time-limited token, cascade-deleted via account(id) foreign key"
+      },
+      "description" : "Pending WebAuthn challenges, single use, short lived. Replaces the account_token rows the two-factor ceremonies used, and additionally carries ceremonies that do not know the account yet."
     }
   },
   "fileStores" : { }
