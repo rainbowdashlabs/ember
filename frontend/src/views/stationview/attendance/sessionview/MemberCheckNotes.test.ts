@@ -57,6 +57,7 @@ describe('MemberCheckNotes', () => {
                         status: 'ARRIVED',
                         nextStatus: 'DONE',
                         handOverNext: true,
+                        replacementItemId: 42,
                         inventoryName: 'Einsatzjacke',
                     }],
                 }),
@@ -82,6 +83,7 @@ describe('MemberCheckNotes', () => {
                         status: 'ARRIVED',
                         nextStatus: 'DONE',
                         handOverNext: true,
+                        replacementItemId: 42,
                         inventoryName: 'Einsatzjacke',
                     }],
                 }),
@@ -90,7 +92,10 @@ describe('MemberCheckNotes', () => {
         })
 
         await wrapper.find('[data-testid="note-swap-hand-over"]').trigger('click')
-        expect(wrapper.emitted('moveSwap')).toEqual([[7, 'DONE']])
+        expect(
+            wrapper.emitted('moveSwap'),
+            'the piece set aside travels with the step, which refuses to run without it',
+        ).toEqual([[7, 'DONE', 42]])
     })
 
     /**
@@ -107,6 +112,7 @@ describe('MemberCheckNotes', () => {
                         status: 'ANNOUNCED',
                         nextStatus: 'RECEIVED',
                         handOverNext: false,
+                        replacementItemId: null,
                         inventoryName: 'Helm',
                     }],
                 }),
@@ -116,7 +122,7 @@ describe('MemberCheckNotes', () => {
 
         expect(wrapper.find('[data-testid="note-swap-hand-over"]').exists()).toBe(false)
         await wrapper.find('[data-testid="note-swap-move-on"]').trigger('click')
-        expect(wrapper.emitted('moveSwap')).toEqual([[9, 'RECEIVED']])
+        expect(wrapper.emitted('moveSwap')).toEqual([[9, 'RECEIVED', null]])
     })
 
     it('names a found item and signs it off only where the reader may', async () => {

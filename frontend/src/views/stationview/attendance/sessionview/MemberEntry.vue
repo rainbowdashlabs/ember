@@ -32,7 +32,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   setStatus: [entryId: number, status: AttendanceStatus]
   enter: [memberId: number, status: AttendanceStatus]
-  moveSwap: [exchangeId: number, nextStatus: string]
+  moveSwap: [exchangeId: number, nextStatus: string, replacementItemId: number | null]
   signOffFound: [itemId: number]
   checkIn: [entryId: number, time: string]
   checkOut: [entryId: number, time: string]
@@ -58,6 +58,7 @@ const hadJoined = computed(() => {
         'border-info bg-info/5': entry?.status === 'DECLINED',
         'border-bg-light-accent dark:border-bg-dark-accent bg-bg-light-accent/20 dark:bg-bg-dark-accent/20': !entry || entry?.status === 'UNCONFIRMED',
       }"
+      :data-testid="`member-row-${member.id}`"
       class="rounded-lg px-4 py-3 border-l-4 transition-all"
   >
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -94,7 +95,7 @@ const hadJoined = computed(() => {
         :can-move-swap="canMoveSwap"
         :can-sign-off-found="canSignOffFound"
         class="mt-2"
-        @move-swap="(exchangeId, nextStatus) => emit('moveSwap', exchangeId, nextStatus)"
+        @move-swap="(exchangeId, nextStatus, replacementItemId) => emit('moveSwap', exchangeId, nextStatus, replacementItemId)"
         @sign-off-found="(itemId) => emit('signOffFound', itemId)"
     />
   </div>

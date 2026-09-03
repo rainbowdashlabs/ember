@@ -36,7 +36,7 @@ const emit = defineEmits<{
   checkOut: [entryId: number, time: string]
   resetTimes: [entryId: number]
   addMember: []
-  moveSwap: [exchangeId: number, nextStatus: string]
+  moveSwap: [exchangeId: number, nextStatus: string, replacementItemId: number | null]
   signOffFound: [itemId: number]
 }>()
 
@@ -98,7 +98,7 @@ function getEntry(memberId: number): AttendanceEntry | undefined {
           :can-sign-off-found="canSignOffFound"
           @set-status="(entryId, status) => emit('setStatus', entryId, status)"
           @enter="(memberId, status) => emit('enter', memberId, status)"
-          @move-swap="(exchangeId, nextStatus) => emit('moveSwap', exchangeId, nextStatus)"
+          @move-swap="(exchangeId, nextStatus, replacementItemId) => emit('moveSwap', exchangeId, nextStatus, replacementItemId)"
           @sign-off-found="(itemId) => emit('signOffFound', itemId)"
           @check-in="(entryId, time) => emit('checkIn', entryId, time)"
           @check-out="(entryId, time) => emit('checkOut', entryId, time)"

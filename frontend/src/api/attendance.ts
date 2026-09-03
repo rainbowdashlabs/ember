@@ -258,6 +258,8 @@ export interface SwapNote {
     nextStatus: ExchangeStatusName | null
     /** Whether that step is putting the piece into the member's hands. */
     handOverNext: boolean
+    /** The piece set aside for the member, which the step that hands it over has to be told about. */
+    replacementItemId: number | null
     inventoryName: string
 }
 

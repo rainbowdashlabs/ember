@@ -159,6 +159,20 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
             return;
         }
 
+        // Which piece the member gets has to be named, and naming it is what makes the swap one that
+        // can actually be handed over. Without it the swap stands at "the old piece is in" and the
+        // handover is refused, which is a different state and not the one this is here to show.
+        var spare = inventoryRepository.findItems(item.inventoryId()).stream()
+                .filter(candidate -> candidate.id() != item.id())
+                .filter(candidate -> candidate.assignedTo() == null)
+                .filter(candidate -> candidate.ownerKind() != ItemOwner.CLUSTER)
+                .findFirst()
+                .orElse(null);
+        if (spare == null) {
+            log.info("Demo: no spare piece to offer as a replacement, station {}", station.stationId());
+            return;
+        }
+
         var exchange = exchangeService.create(
                 station.stationId(),
                 kid.id(),
@@ -169,7 +183,7 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
                 item.sizeId(),
                 "Zu klein geworden",
                 null);
-        exchangeService.updateStatus(exchange.id(), ExchangeStatus.ARRIVED, actor, "Ersatz liegt bereit");
+        exchangeService.updateStatus(exchange.id(), ExchangeStatus.ARRIVED, actor, "Ersatz liegt bereit", spare.id());
         log.info(
                 "Demo: swap {} for member {} waits to be handed over, station {}",
                 exchange.id(),

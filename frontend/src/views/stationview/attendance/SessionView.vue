@@ -305,10 +305,15 @@ async function loadNotes() {
   }
 }
 
-async function moveSwap(exchangeId: number, nextStatus: string) {
+/**
+ * Moving a swap on carries the piece set aside for it, because the step that hands one over refuses
+ * to run without being told which piece it is. The swap already knows; asking whoever is ticking off
+ * names to pick it out of a list would be asking a question that has been answered.
+ */
+async function moveSwap(exchangeId: number, nextStatus: string, replacementItemId: number | null) {
   error.value = ''
   try {
-    await exchanges.updateStatus(exchangeId, {status: nextStatus})
+    await exchanges.updateStatus(exchangeId, {status: nextStatus, exchangedItemId: replacementItemId})
     await loadNotes()
   } catch {
     error.value = t('common.error')

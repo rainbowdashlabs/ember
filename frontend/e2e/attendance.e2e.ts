@@ -5,6 +5,59 @@
  */
 import {statSync} from 'node:fs'
 import {test, expect, apiHeaders, type Page} from './fixtures/auth'
+import {unique} from './fixtures/unique'
+
+/**
+ * Raises a swap on a piece somebody holds and walks it to the point where the replacement is at the
+ * station, which is the one state that means "hand this over now".
+ *
+ * <p>Built by the story rather than borrowed from the demo, because handing a swap over uses it up.
+ */
+async function raiseSwapAwaitingHandover(page: Page, headers: Record<string, string>, onTheSheet: number[]) {
+    for (const memberId of onTheSheet) {
+        const member = {id: memberId}
+        const items = await page.request
+            .get(`/api/v1/station-members/${member.id}/inventory-items`, {headers})
+            .then(r => r.json())
+        for (const item of Array.isArray(items) ? items : []) {
+            // The sizes are what make a replacement be picked out. Without them the swap reaches the
+            // point of being called arrived while nothing was ever set aside, and handing over then
+            // fails because there is no piece to hand.
+            if (!item.inventoryHomogeneous || item.sizeId == null) continue
+            const created = await page.request.post('/api/v1/exchanges', {
+                headers,
+                data: {
+                    memberId: member.id,
+                    itemId: item.id,
+                    inventoryId: item.inventoryId,
+                    oldSizeId: item.sizeId,
+                    newSizeId: item.sizeId,
+                    reason: 'Von der Story angelegt',
+                },
+            })
+            if (!created.ok()) continue
+
+            const swap = await created.json()
+
+            // Which piece the member gets has to be named, and naming it is what makes the swap one
+            // that can be handed over at all. A free piece of the same inventory is the replacement.
+            const spare = await page.request
+                .get(`/api/v1/inventories/${item.inventoryId}/items`, {headers})
+                .then(r => r.json())
+                .then((all: {id: number; memberId?: number | null}[]) =>
+                    (Array.isArray(all) ? all : []).find(candidate =>
+                        candidate.id !== item.id && !candidate.memberId))
+            if (!spare) continue
+
+            const walked = await page.request.put(`/api/v1/exchanges/${swap.id}/status`, {
+                headers,
+                data: {status: 'ARRIVED', exchangedItemId: spare.id},
+            })
+            if (walked.ok()) return {...swap, memberId, replacementItemId: spare.id}
+        }
+    }
+    throw new Error('no piece was free to raise a swap on')
+}
 
 test.describe('Attendance', () => {
     /**
@@ -63,16 +116,106 @@ test.describe('Attendance', () => {
             expect(Array.isArray(note.foundItems)).toBe(true)
         }
 
-        // The demo leaves one member a swap whose replacement is at the station and a found item they
-        // have claimed, which is what makes both kinds of note reachable from here.
+        // The demo leaves swaps running and a claimed find, which is what makes both kinds of note
+        // reachable at all. Whether any one of them is still outstanding is not asserted here: the
+        // stories beside this one hand pieces over and sign finds off, so a count would race them.
         expect(
-            notes.some((note: {swaps: {handOverNext: boolean}[]}) => note.swaps.some(swap => swap.handOverNext)),
-            'somebody is owed a piece that can be handed over',
+            notes.some((note: {swaps: unknown[]}) => note.swaps.length > 0),
+            'the demo leaves somebody with a swap running',
         ).toBe(true)
-        expect(
-            notes.some((note: {foundItems: unknown[]}) => note.foundItems.length > 0),
-            'somebody has claimed a found item and not collected it',
-        ).toBe(true)
+    })
+
+    /**
+     * A swap whose replacement is at the station is handed over from the sheet itself, which is the
+     * point of being told about it there.
+     *
+     * <p>The story raises its own swap rather than spending the one the demo leaves: handing that one
+     * over consumes it, and a story that eats its own fixture passes once and fails every time after.
+     */
+    test('a swap waiting to be handed over is handed over from the sheet', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+
+        await page.goto('/station/attendance/new')
+        await page.getByRole('button', {name: 'Erstellen'}).first().click()
+        await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+        const sessionId = Number(page.url().match(/\/session\/(\d+)/)![1])
+
+        // Whose swap it is has to be somebody the sheet lists, or the note is perfectly correct and
+        // nowhere to be seen. The sheet says who those are.
+        const detail = await page.request
+            .get(`/api/v1/attendance/sessions/${sessionId}`, {headers})
+            .then(response => response.json())
+        const onTheSheet = (detail.entries ?? []).map((entry: {memberId: number}) => entry.memberId)
+        const waiting = await raiseSwapAwaitingHandover(page, headers, onTheSheet)
+        await page.reload()
+
+        // Scoped to the row of the member this swap was raised on. Reaching for the first handover
+        // button on the sheet would just as happily finish somebody else's swap, which is data
+        // another story is standing on.
+        const handOver = page
+            .getByTestId(`member-row-${waiting.memberId}`)
+            .getByTestId('note-swap-hand-over')
+        await expect(handOver.first(), 'a swap of ours is waiting to be handed over').toBeVisible()
+        const before = await handOver.count()
+
+        const handed = page.waitForResponse(
+            response => response.request().method() === 'PUT' && response.url().includes('/exchanges/'),
+        )
+        await handOver.first().click()
+        expect((await handed).status()).toBe(200)
+
+        await expect(handOver).toHaveCount(before - 1)
+
+        const after = await page.request
+            .get(`/api/v1/exchanges/${waiting.id}`, {headers})
+            .then(response => response.json())
+        expect(after.status, 'the swap is finished, not merely hidden').toBe('DONE')
+    })
+
+    /**
+     * A found item is signed over from the sheet and stops being outstanding. The story claims one
+     * for the manager themselves, which is who a claim may be made for without being their guardian.
+     */
+    test('a claimed find is signed over from the sheet', async ({managerPage: page, memberPage}) => {
+        const headers = await apiHeaders(page)
+        const memberHeaders = await apiHeaders(memberPage)
+
+        // A claim may only be made for oneself or somebody in one's care, so the member claims it.
+        // That also puts the note on a row the sheet actually lists, which the manager's own would
+        // not be: the templates cover the two groups of members and not the team.
+        const description = unique('Fundstueck')
+        const found = await page.request
+            .post('/api/v1/lost-and-found', {
+                headers,
+                data: {description, foundAt: new Date().toISOString().slice(0, 10)},
+            })
+            .then(response => response.json())
+        const claimed = await memberPage.request.post(`/api/v1/lost-and-found/${found.id}/claim`, {
+            headers: memberHeaders,
+            data: {},
+        })
+        expect(claimed.ok(), `the member claims it for themselves (${await claimed.text()})`).toBeTruthy()
+
+        await page.goto('/station/attendance/new')
+        await page.getByRole('button', {name: 'Erstellen'}).first().click()
+        await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+
+        // Scoped to the note naming the find this story reported. The demo leaves a claimed find of
+        // its own that another spec is standing on, and signing that one over would take it away.
+        const signOff = page
+            .getByTestId('note-found')
+            .filter({hasText: description})
+            .getByTestId('note-found-sign-off')
+        await expect(signOff.first(), 'a find of ours is waiting to be collected').toBeVisible()
+        const before = await signOff.count()
+
+        const handed = page.waitForResponse(
+            response => response.request().method() === 'POST' && response.url().includes('/provided'),
+        )
+        await signOff.first().click()
+        await handed
+
+        await expect(signOff).toHaveCount(before - 1)
     })
 
     /**
@@ -80,12 +223,26 @@ test.describe('Attendance', () => {
      * story finds the member the demo leaves a waiting handover on and looks at their row.
      */
     test('a member owed a piece is told so on the sheet', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+
         await page.goto('/station/attendance/new')
         await page.getByRole('button', {name: 'Erstellen'}).first().click()
         await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+        const sessionId = Number(page.url().match(/\/session\/(\d+)/)![1])
 
-        const notes = page.getByTestId('member-check-notes')
-        await expect(notes.first()).toBeVisible()
+        // Its own swap rather than the one the demo leaves: the story beside this one hands a swap
+        // over, and two stories reaching for the same one is a race whichever way it goes.
+        const detail = await page.request
+            .get(`/api/v1/attendance/sessions/${sessionId}`, {headers})
+            .then(response => response.json())
+        await raiseSwapAwaitingHandover(
+            page,
+            headers,
+            (detail.entries ?? []).map((entry: {memberId: number}) => entry.memberId),
+        )
+        await page.reload()
+
+        await expect(page.getByTestId('member-check-notes').first()).toBeVisible()
         await expect(page.getByTestId('note-swap').first()).toBeVisible()
         await expect(page.getByTestId('note-swap-hand-over').first()).toBeVisible()
     })

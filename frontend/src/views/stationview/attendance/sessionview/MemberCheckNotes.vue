@@ -22,7 +22,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  moveSwap: [exchangeId: number, nextStatus: string]
+  moveSwap: [exchangeId: number, nextStatus: string, replacementItemId: number | null]
   signOffFound: [itemId: number]
 }>()
 
@@ -65,18 +65,28 @@ const birthdayText = computed(() => {
       <span>{{ swap.inventoryName }}</span>
       <InfoBadge>{{ t('checkNotes.waitingOn.' + swap.status) }}</InfoBadge>
       <PrimaryButton
-          v-if="canMoveSwap && swap.nextStatus && swap.handOverNext"
+          v-if="canMoveSwap && swap.nextStatus && swap.handOverNext && swap.replacementItemId !== null"
           class="text-xs"
           data-testid="note-swap-hand-over"
-          @click="emit('moveSwap', swap.exchangeId, swap.nextStatus)"
+          @click="emit('moveSwap', swap.exchangeId, swap.nextStatus, swap.replacementItemId)"
       >
         {{ t('checkNotes.handOver') }}
       </PrimaryButton>
+      <!-- Handing a piece over means naming which piece, and that is not a decision to make from a
+           sheet of names. Where none is set aside yet the note says so instead of offering a button
+           that the step would refuse. -->
+      <span
+          v-else-if="swap.handOverNext"
+          class="text-xs text-(--text-muted)"
+          data-testid="note-swap-needs-replacement"
+      >
+        {{ t('checkNotes.replacementNotChosen') }}
+      </span>
       <SecondaryButton
           v-else-if="canMoveSwap && swap.nextStatus"
           class="text-xs"
           data-testid="note-swap-move-on"
-          @click="emit('moveSwap', swap.exchangeId, swap.nextStatus)"
+          @click="emit('moveSwap', swap.exchangeId, swap.nextStatus, swap.replacementItemId)"
       >
         {{ t('checkNotes.moveOn') }}
       </SecondaryButton>

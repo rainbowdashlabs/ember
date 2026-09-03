@@ -132,6 +132,7 @@ public class MemberCheckNotesService {
                             request.status(),
                             next,
                             next == ExchangeStatus.DONE,
+                            request.exchangedItemId(),
                             inventory.map(Inventory::name).orElse("")));
         }
         return byMember;
@@ -246,6 +247,10 @@ public class MemberCheckNotesService {
      * @param status        where it stands, which is what says who is being waited on
      * @param nextStatus    the one step it takes next, null where it is at its end
      * @param handOverNext  whether that step is putting the piece into the member's hands
+     * @param replacementItemId the piece set aside for the member, which the step that hands it over
+     *     has to be told about. Carried here because the swap already knows it: asking whoever runs
+     *     the check to pick it out again, from a sheet of names, would be asking them to answer a
+     *     question the swap has already answered
      * @param inventoryName what the swap is out of, for saying which swap this is
      */
     public record SwapNote(
@@ -253,6 +258,7 @@ public class MemberCheckNotesService {
             ExchangeStatus status,
             ExchangeStatus nextStatus,
             boolean handOverNext,
+            Integer replacementItemId,
             String inventoryName) {}
 
     /**

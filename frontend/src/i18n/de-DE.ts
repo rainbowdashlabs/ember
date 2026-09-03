@@ -1619,6 +1619,7 @@ export default {
         },
         moveOn: 'Weiterbewegen',
         handOver: 'Jetzt übergeben',
+        replacementNotChosen: 'Ersatzteil ist noch nicht ausgewählt',
         foundItem: 'Fundsache abzuholen: {description}',
         signOffFound: 'Übergabe quittieren',
     },
