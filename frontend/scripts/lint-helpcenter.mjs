@@ -49,7 +49,7 @@ const panels = [
     {
         label: 'Station',
         appFilter: (r) => !['help-', 'admin-', 'cluster-', 'account-', 'login', 'forgot', 'set-password', 'station-select',
-            'cross-station-dashboard', '2fa-verify', 'apply', 'waitlist-', 'waiting-list', 'home', 'privacy', 'terms', 'reconsent', 'imprint',
+            'cross-station-dashboard', '2fa-verify', 'passkey-offer', 'apply', 'waitlist-', 'waiting-list', 'home', 'privacy', 'terms', 'reconsent', 'imprint',
             'patch-notes', 'reset-password', 'confirm-email-change', 'install', 'public-', 'not-found', 'style', 'helpcenter-', 'requirements',
             'pitch']
             .some(p => r.name.startsWith(p)),

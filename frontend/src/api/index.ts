@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 export * as auth from './auth'
+export * as passkeys from './passkeys'
 export * as install from './install'
 export * as session from './session'
 export * as stations from './stations'

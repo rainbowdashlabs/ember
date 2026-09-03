@@ -19,9 +19,19 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * through the same code path.
  *
  * @param secondFactor whether the member also opted this credential into the password path
+ * @param credentialId the authenticator's credential id, which the browser needs to tell its
+ *         own store which credentials still exist after a removal
+ * @param userHandle the account's stable user handle, for the same signal
  */
 public record PasskeyListEntry(
-        int factorId, String label, Instant createdAt, Instant lastUsedAt, UUID aaguid, boolean secondFactor) {
+        int factorId,
+        String label,
+        Instant createdAt,
+        Instant lastUsedAt,
+        UUID aaguid,
+        boolean secondFactor,
+        byte[] credentialId,
+        byte[] userHandle) {
 
     public static RowMapping<PasskeyListEntry> map() {
         return row -> new PasskeyListEntry(
@@ -30,7 +40,9 @@ public record PasskeyListEntry(
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("last_used_at", INSTANT_TIMESTAMP),
                 row.get("aaguid", StandardValueConverter.UUID_STRING),
-                row.getBoolean("second_factor"));
+                row.getBoolean("second_factor"),
+                row.getBytes("credential_id"),
+                row.getBytes("user_handle"));
     }
 
     public boolean tried() {

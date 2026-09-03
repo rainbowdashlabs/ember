@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.passkey.service.PasskeyAccountService;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
 import dev.chojo.ember.feature.passkey.service.PasskeyService;
+import dev.chojo.ember.feature.twofactor.service.RelyingParties;
 import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -37,6 +38,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,6 +59,7 @@ public class PasskeyRoutes implements Routes {
     private final AuthService authService;
     private final AccountRepository accountRepository;
     private final AuthRateLimiter rateLimiter;
+    private final RelyingParties relyingParties;
     private final Network network;
 
     @Inject
@@ -67,6 +70,7 @@ public class PasskeyRoutes implements Routes {
             AuthService authService,
             AccountRepository accountRepository,
             AuthRateLimiter rateLimiter,
+            RelyingParties relyingParties,
             Network network) {
         this.passkeyService = passkeyService;
         this.accountService = accountService;
@@ -74,6 +78,7 @@ public class PasskeyRoutes implements Routes {
         this.authService = authService;
         this.accountRepository = accountRepository;
         this.rateLimiter = rateLimiter;
+        this.relyingParties = relyingParties;
         this.network = network;
     }
 
@@ -217,6 +222,7 @@ public class PasskeyRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var entries = accountService.list(session.accountId());
         Optional<AccountCredential> credential = accountRepository.findCredential(session.accountId());
+        var b64 = Base64.getUrlEncoder().withoutPadding();
         ctx.json(new PasskeysStatusResponse(
                 entries.stream()
                         .map(e -> new PasskeyEntryResponse(
@@ -225,13 +231,16 @@ public class PasskeyRoutes implements Routes {
                                 e.createdAt(),
                                 e.lastUsedAt(),
                                 e.aaguid() == null ? null : e.aaguid().toString(),
-                                e.tried()))
+                                e.tried(),
+                                b64.encodeToString(e.credentialId())))
                         .toList(),
                 credential.isPresent(),
                 credential.map(AccountCredential::passwordLoginEnabled).orElse(false),
                 entries.stream().anyMatch(e -> e.secondFactor()),
                 accountService.mayDisablePasswordLogin(session.accountId()),
-                modeService.effectiveMode().name()));
+                modeService.effectiveMode().name(),
+                relyingParties.passkey().getIdentity().getId(),
+                entries.isEmpty() ? null : b64.encodeToString(entries.getFirst().userHandle())));
     }
 
     private void beginCreation(Context ctx) {
@@ -263,7 +272,7 @@ public class PasskeyRoutes implements Routes {
         }
         ctx.status(HttpStatus.CREATED)
                 .json(new PasskeyEntryResponse(
-                        factor.get().id(), factor.get().label(), factor.get().createdAt(), null, null, false));
+                        factor.get().id(), factor.get().label(), factor.get().createdAt(), null, null, false, null));
     }
 
     private void rename(Context ctx) {
@@ -384,12 +393,20 @@ public class PasskeyRoutes implements Routes {
     public record TrialResponse(String outcome) {}
 
     public record PasskeyEntryResponse(
-            int id, String label, Instant createdAt, Instant lastUsedAt, String aaguid, boolean tried) {}
+            int id,
+            String label,
+            Instant createdAt,
+            Instant lastUsedAt,
+            String aaguid,
+            boolean tried,
+            String credentialId) {}
 
     /**
      * @param mayDisablePasswordLogin whether the switch-off is offered at all: the instance
      *         mode allows it, the address is reachable and a passkey has been shown to work
      * @param mode the effective passkey mode, so the screen knows what to show
+     * @param rpId the effective relying-party id, which the browser's signal calls need
+     * @param userHandle the account's user handle, for the same signals; null without passkeys
      */
     public record PasskeysStatusResponse(
             List<PasskeyEntryResponse> passkeys,
@@ -397,5 +414,7 @@ public class PasskeyRoutes implements Routes {
             boolean passwordLoginEnabled,
             boolean askWithPassword,
             boolean mayDisablePasswordLogin,
-            String mode) {}
+            String mode,
+            String rpId,
+            String userHandle) {}
 }

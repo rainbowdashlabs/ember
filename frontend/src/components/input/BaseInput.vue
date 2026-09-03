@@ -14,6 +14,12 @@ const props = defineProps<{
   disabled?: boolean
   step?: string
   borderless?: boolean
+  /**
+   * The standard autocomplete token(s) for the field, e.g. "username webauthn" or
+   * "new-password". Password managers and the browser's passkey autofill go by these rather
+   * than by heuristics, so the fields that mean something carry them explicitly.
+   */
+  autocomplete?: string
 }>()
 
 /** The types whose value is picked from a calendar or a clock rather than typed. */
@@ -60,6 +66,7 @@ function openPicker(event: Event) {
       :placeholder="placeholder"
       :step="step"
       :type="type ?? 'text'"
+      :autocomplete="autocomplete"
       :class="['w-full', props.borderless ? BORDERLESS_INPUT_CLASSES : BORDERED_INPUT_CLASSES]"
       @focus="openPicker"
   />

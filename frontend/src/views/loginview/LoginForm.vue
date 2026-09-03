@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -16,10 +17,13 @@ const props = defineProps<{
   error: string
   loading: boolean
   registrationEnabled: boolean
+  /** Whether the instance offers the passkey path and this browser can walk it. */
+  passkeyAvailable?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'submit'): void
+  (e: 'passkey'): void
 }>()
 
 const identifier = defineModel<string>('identifier', {required: true})
@@ -36,13 +40,15 @@ const {t} = useI18n()
     <div class="space-y-1">
       <FieldLabel>{{ t('login.identifier') }}</FieldLabel>
       <TextInput v-model="identifier"
-                 :disabled="props.loading" :placeholder="t('login.identifier')"/>
+                 :disabled="props.loading" :placeholder="t('login.identifier')"
+                 autocomplete="username webauthn"/>
     </div>
 
     <div class="space-y-1">
       <FieldLabel>{{ t('login.password') }}</FieldLabel>
       <PasswordInput v-model="password"
-                     :disabled="props.loading" :placeholder="t('login.password')"/>
+                     :disabled="props.loading" :placeholder="t('login.password')"
+                     autocomplete="current-password webauthn"/>
     </div>
 
     <label class="flex items-start gap-3">
@@ -56,6 +62,11 @@ const {t} = useI18n()
     <PrimaryButton :disabled="props.loading || !identifier || !password" class="w-full" @click="emit('submit')">
       {{ props.loading ? t('common.loading') : t('login.submit') }}
     </PrimaryButton>
+
+    <SecondaryButton v-if="props.passkeyAvailable" type="button" :disabled="props.loading" class="w-full"
+                     :icon="['fas', 'fingerprint']" @click="emit('passkey')">
+      {{ t('login.withPasskey') }}
+    </SecondaryButton>
 
     <router-link class="block w-full text-center text-sm text-(--text-muted) hover:text-(--text) transition-colors"
                  to="/forgot-password">

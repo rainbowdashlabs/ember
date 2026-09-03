@@ -12,6 +12,8 @@ defineProps<{
   placeholder?: string
   disabled?: boolean
   borderless?: boolean
+  /** Standard autocomplete token(s), e.g. "username webauthn" or "one-time-code". */
+  autocomplete?: string
 }>()
 </script>
 
@@ -21,6 +23,7 @@ defineProps<{
       :disabled="disabled"
       :placeholder="placeholder"
       :borderless="borderless"
+      :autocomplete="autocomplete"
       type="text"
   />
 </template>

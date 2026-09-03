@@ -305,6 +305,44 @@ export default {
         applyForStation: 'Neue Wache beantragen',
         storageDenied: 'Du musst der Speicherung zustimmen, um dich anzumelden.',
         incomplete: 'Unvollständig',
+        withPasskey: 'Mit Passkey anmelden',
+        passkeyFailed: 'Die Anmeldung mit Passkey hat nicht geklappt. Du kannst dich weiter mit deinem Passwort anmelden.',
+    },
+    passkeys: {
+        // Ein Wort, überall: Passkey. Der erklärende Satz ist immer derselbe.
+        explainer: 'Ein Passkey ist eine Anmeldung ohne Passwort. Dein Gerät fragt dich nach Fingerabdruck, '
+            + 'Gesicht oder deiner Geräte-PIN, und das war es.',
+        defaultLabel: 'Passkey',
+        errors: {
+            notAllowed: 'Abgebrochen oder zu lange gewartet. Es hat sich nichts geändert.',
+            alreadyRegistered: 'Auf diesem Gerät gibt es für dein Konto schon einen Passkey.',
+            notSupported: 'Dieses Gerät kann keine Passkeys. Melde dich wie bisher mit deinem Passwort an.',
+            security: 'Die Adresse dieser Seite passt nicht. Wende dich an deine Wehrführung.',
+            aborted: 'Abgebrochen.',
+            generic: 'Das hat nicht geklappt. Dein Passwort funktioniert weiter.',
+            foreignCredential: 'Das war der Passkey eines anderen Kontos. Wähle beim Ausprobieren deinen eigenen.',
+        },
+        offer: {
+            title: 'Beim nächsten Mal ohne Passwort anmelden',
+            body: 'Dein Gerät fragt dich dann nach Fingerabdruck, Gesicht oder deiner Geräte-PIN. '
+                + 'Das geht schneller und ist sicherer als ein Passwort.',
+            bulletBiometrics: 'Dein Fingerabdruck bleibt auf deinem Gerät. Wir bekommen ihn nie zu sehen.',
+            bulletPassword: 'Dein Passwort funktioniert weiter. Du kannst dich jederzeit wie bisher anmelden.',
+            bulletRemovable: 'Du kannst den Passkey jederzeit wieder löschen.',
+            accept: 'Passkey einrichten',
+            later: 'Später',
+            decline: 'Nein danke',
+        },
+        create: {
+            preparing: 'Gleich fragt dich dein Gerät nach Fingerabdruck, Gesicht oder PIN. Bestätige einfach.',
+            cancelled: 'Kein Problem, es hat sich nichts geändert. Du kannst das jederzeit wieder versuchen.',
+            trialPrompt: 'Und jetzt probieren wir ihn einmal aus.',
+            trialRun: 'Ausprobieren',
+            trialSkip: 'Später ausprobieren',
+            trialOk: 'Passt. Beim nächsten Mal meldest du dich genau so an.',
+            trialSkipped: 'Der Passkey ist angelegt, aber noch nicht ausprobiert. Dein Passwort funktioniert weiter.',
+            done: 'Fertig',
+        },
     },
     forgotPassword: {
         title: 'Passwort vergessen',

@@ -11,6 +11,8 @@ const model = defineModel<string>()
 defineProps<{
   placeholder?: string
   disabled?: boolean
+  /** Standard autocomplete token(s): "current-password webauthn" or "new-password". */
+  autocomplete?: string
 }>()
 </script>
 
@@ -19,6 +21,7 @@ defineProps<{
       v-model="model"
       :disabled="disabled"
       :placeholder="placeholder"
+      :autocomplete="autocomplete"
       type="password"
   />
 </template>

@@ -29,7 +29,7 @@ public class PasskeyRepository {
      */
     public List<PasskeyListEntry> listForAccount(int accountId) {
         return query("""
-                SELECT f.id, f.label, f.created_at, f.last_used_at, w.aaguid, w.second_factor
+                SELECT f.id, f.label, f.created_at, f.last_used_at, w.aaguid, w.second_factor, w.credential_id, w.user_handle
                 FROM account_2fa_factor f
                 JOIN account_2fa_webauthn w ON w.factor_id = f.id
                 WHERE f.account_id = :account_id AND f.disabled_at IS NULL AND w.sign_in
@@ -45,7 +45,7 @@ public class PasskeyRepository {
      */
     public Optional<PasskeyListEntry> findForAccount(int accountId, int factorId) {
         return query("""
-                SELECT f.id, f.label, f.created_at, f.last_used_at, w.aaguid, w.second_factor
+                SELECT f.id, f.label, f.created_at, f.last_used_at, w.aaguid, w.second_factor, w.credential_id, w.user_handle
                 FROM account_2fa_factor f
                 JOIN account_2fa_webauthn w ON w.factor_id = f.id
                 WHERE f.id = :factor_id AND f.account_id = :account_id AND f.disabled_at IS NULL AND w.sign_in;""")

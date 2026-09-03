@@ -129,6 +129,7 @@ function handleSetPassword() {
               v-model="newPassword"
               :disabled="loading"
               :placeholder="t('setPassword.newPassword')"
+              autocomplete="new-password"
           />
         </div>
 
@@ -138,6 +139,7 @@ function handleSetPassword() {
               v-model="confirmPassword"
               :disabled="loading"
               :placeholder="t('setPassword.confirmPassword')"
+              autocomplete="new-password"
           />
         </div>
 
