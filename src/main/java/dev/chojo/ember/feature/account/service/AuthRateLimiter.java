@@ -49,6 +49,7 @@ public class AuthRateLimiter {
     private final LeakyBucket changePasswordIdentity;
     private final LeakyBucket twoFactorIp;
     private final LeakyBucket twoFactorIdentity;
+    private final LeakyBucket passkeySignInIp;
 
     public AuthRateLimiter() {
         this(Clock.systemUTC());
@@ -72,6 +73,7 @@ public class AuthRateLimiter {
         this.changePasswordIdentity = new LeakyBucket(10, HOUR.dividedBy(5), PRUNE_AFTER, clock);
         this.twoFactorIp = new LeakyBucket(20, 20, PRUNE_AFTER, clock);
         this.twoFactorIdentity = new LeakyBucket(10, FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
+        this.passkeySignInIp = new LeakyBucket(10, 10, PRUNE_AFTER, clock);
     }
 
     /**
@@ -138,5 +140,14 @@ public class AuthRateLimiter {
      */
     public Optional<Long> tryTwoFactor(String ip, int accountId) {
         return takeMax(twoFactorIp.tryAcquire(ip), twoFactorIdentity.tryAcquire(Integer.toString(accountId)));
+    }
+
+    /**
+     * Throttles the passwordless sign-in, begin and finish alike, by client IP. The begin as
+     * well because it writes a challenge row for any anonymous visitor; there is no account to
+     * count by until the assertion comes back.
+     */
+    public Optional<Long> tryPasskeySignIn(String ip) {
+        return passkeySignInIp.tryAcquire(ip);
     }
 }

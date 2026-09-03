@@ -348,6 +348,99 @@ public class PasskeyService {
         return accountId;
     }
 
+    // -- The trial that follows a creation --
+
+    /**
+     * Starts the test drive: cryptographically the sign-in ceremony, discoverable and user
+     * verification required, but on a challenge kind of its own. Borrowing the sign-in's kind
+     * would make the same assertion just as valid at the sign-in finish, and the difference
+     * between a trial and a sign-in would come down to which URL the browser felt like calling.
+     */
+    public CeremonyStart startTrial(int accountId) {
+        AssertionRequest request = relyingParties
+                .passkey()
+                .startAssertion(StartAssertionOptions.builder()
+                        .userVerification(UserVerificationRequirement.REQUIRED)
+                        .timeout(settings.timeoutSeconds() * 1000L)
+                        .build());
+
+        String persistJson;
+        try {
+            persistJson = request.toJson();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to serialize passkey trial request for storage", e);
+        }
+        String browserJson;
+        try {
+            browserJson = request.toCredentialsGetJson();
+        } catch (Exception e) {
+            log.warn("Passkey trial request fell back to the stored shape for account {}", accountId, e);
+            browserJson = persistJson;
+        }
+        String token = newChallengeToken();
+        challengeRepository.create(
+                token,
+                ChallengePurpose.PASSKEY_TRIAL,
+                accountId,
+                persistJson,
+                Instant.now().plus(CHALLENGE_TTL));
+        return new CeremonyStart(token, browserJson);
+    }
+
+    /**
+     * Finishes the trial. Mirrors the sign-in finish exactly, user verification and the
+     * sign-in flag included, and differs from it in three things: the credential must belong
+     * to the session's own account, no session is minted, and no sign-in audit row is written.
+     * The factor's last-used stamp is the whole outcome; it is what a later password retirement
+     * reads as evidence.
+     */
+    public TrialOutcome finishTrial(int accountId, String challengeToken, String credentialJson) {
+        Optional<WebAuthnChallenge> challengeOpt = challengeRepository
+                .consume(challengeToken)
+                .filter(stored -> !stored.isExpired()
+                        && stored.purpose() == ChallengePurpose.PASSKEY_TRIAL
+                        && stored.accountId() != null
+                        && stored.accountId() == accountId);
+        if (challengeOpt.isEmpty()) {
+            log.info("Passkey trial failed for account {}: challenge unknown or expired", accountId);
+            return TrialOutcome.FAILED;
+        }
+
+        AssertionResult result = verifySignInAssertion(challengeOpt.get().optionsJson(), credentialJson);
+        if (result == null) return TrialOutcome.FAILED;
+
+        Optional<WebAuthnCredential> credentialOpt = repository.findActiveWebAuthnByCredentialId(
+                result.getCredential().getCredentialId().getBytes());
+        if (credentialOpt.isEmpty()) {
+            return TrialOutcome.FAILED;
+        }
+        WebAuthnCredential credential = credentialOpt.get();
+        if (!credential.signIn()) {
+            // A second-factor key that happens to be discoverable must not pass a trial: it
+            // would be told "beim naechsten Mal genau so" and be refused at the next sign-in.
+            log.info("Passkey trial refused for account {}: the credential may not start a sign-in", accountId);
+            return TrialOutcome.FAILED;
+        }
+        Optional<Integer> owner = repository.findAccountByUserHandle(
+                result.getCredential().getUserHandle().getBytes());
+        if (owner.isEmpty() || owner.get() != accountId) {
+            // On a shared family device the account picker shows every passkey the device
+            // holds, siblings included, so this is one mistap away and gets its own answer.
+            log.info("Passkey trial refused for account {}: the credential belongs to another account", accountId);
+            return TrialOutcome.FOREIGN_CREDENTIAL;
+        }
+
+        repository.touchFactorUsed(credential.factorId());
+        return TrialOutcome.OK;
+    }
+
+    /** How a trial ended. Nothing is minted either way; only the last-used stamp changes. */
+    public enum TrialOutcome {
+        OK,
+        FOREIGN_CREDENTIAL,
+        FAILED
+    }
+
     /**
      * Runs the passwordless verification against stored options and insists on user
      * verification (D2: possession plus the unlock is two factors in one gesture, and without

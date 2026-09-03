@@ -35,7 +35,15 @@ public class PasskeySettings {
         /** An account with a working passkey may switch its own password sign-in off. */
         PREFERRED,
         /** A new account is created with no password at all. */
-        PASSWORDLESS
+        PASSWORDLESS;
+
+        /**
+         * Whether this mode goes at least as far as {@code other}. The five values are ordered
+         * steps, so the comparison is the ordinal one.
+         */
+        public boolean atLeast(Mode other) {
+            return ordinal() >= other.ordinal();
+        }
     }
 
     @Overwrite(env = @Env)

@@ -132,6 +132,10 @@ public class TwoFactorService {
         repository.markAllBackupCodesUsed(targetAccountId);
         repository.revokeAllTrustedDevices(targetAccountId);
         accountRepository.deleteSessionsByAccount(targetAccountId);
+        // The reset exists for the member who cannot get in. Disabling every factor also took
+        // their passkeys, so a password sign-in they had switched off is their way back and is
+        // switched on again here. A no-op for an account holding no credential row.
+        accountRepository.setPasswordLoginDisabled(targetAccountId, false);
 
         auditService.record(targetAccountId, actorAccountId, TwoFactorEvent.ADMIN_RESET, null, userAgent, country);
 
