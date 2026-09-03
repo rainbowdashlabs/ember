@@ -11,6 +11,7 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.auth.PasswordPolicy;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.entity.AccountSession;
@@ -26,6 +27,7 @@ import dev.chojo.ember.feature.members.entity.RegistrationCode;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TrustedDeviceService;
 import jakarta.inject.Inject;
@@ -72,6 +74,7 @@ public class AuthService {
     private final BreachCheckWorker breachCheckWorker;
     private final TwoFactorRepository twoFactorRepository;
     private final TrustedDeviceService trustedDeviceService;
+    private final PasskeyModeService passkeyModeService;
     /**
      * Lazily-computed hash of a random throwaway password, used by {@link #login} when the
      * supplied email does not resolve to an account or has no stored credential. Running the
@@ -96,7 +99,8 @@ public class AuthService {
             HibpClient hibpClient,
             BreachCheckWorker breachCheckWorker,
             TwoFactorRepository twoFactorRepository,
-            TrustedDeviceService trustedDeviceService) {
+            TrustedDeviceService trustedDeviceService,
+            PasskeyModeService passkeyModeService) {
         this.accountRepository = accountRepository;
         this.mailLocaleService = mailLocaleService;
         this.mailRecipientService = mailRecipientService;
@@ -111,6 +115,7 @@ public class AuthService {
         this.breachCheckWorker = breachCheckWorker;
         this.twoFactorRepository = twoFactorRepository;
         this.trustedDeviceService = trustedDeviceService;
+        this.passkeyModeService = passkeyModeService;
     }
 
     /**
@@ -126,9 +131,15 @@ public class AuthService {
      */
     public RegistrationResult registerSelf(
             String email, String firstName, String lastName, String password, String registrationCode) {
-        var policy = validateNewPassword(password);
-        if (policy != PasswordPolicy.Result.OK) {
-            return RegistrationResult.failure(policy.message());
+        // On a passwordless instance the account is created with no credential row at all: not
+        // one it never uses, not a random one, none. The verification mail's link is where the
+        // passkey is made.
+        boolean passwordless = passkeyModeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS;
+        if (!passwordless) {
+            var policy = validateNewPassword(password);
+            if (policy != PasswordPolicy.Result.OK) {
+                return RegistrationResult.failure(policy.message());
+            }
         }
         RegistrationCode code = null;
         if (registrationCode != null && !registrationCode.isBlank()) {
@@ -151,11 +162,12 @@ public class AuthService {
             return RegistrationResult.maskedSuccess(email, firstName, lastName);
         }
 
-        String hash = passwordHasher.hash(password);
         var account = accountRepository.create(email, firstName, lastName, false);
         int accountId = account.id();
 
-        accountRepository.createCredential(accountId, hash);
+        if (!passwordless) {
+            accountRepository.createCredential(accountId, passwordHasher.hash(password));
+        }
 
         if (code != null) {
             // Create station membership from code's station
@@ -203,12 +215,13 @@ public class AuthService {
      * own. Sends nothing when nobody can be reached, and creates no token in that case either.
      *
      * @param accountId the account identifier
+     * @return whether anybody could be written to
      */
-    public void sendPasswordSetup(int accountId) {
+    public boolean sendPasswordSetup(int accountId) {
         var recipients = mailRecipientService.forAccount(accountId);
         if (recipients.isEmpty()) {
             log.info("No password-setup mail for account {}: nobody can be written to about it", accountId);
-            return;
+            return false;
         }
         accountRepository.deleteTokensByAccountAndType(accountId, TokenType.SET_PASSWORD);
         String token = generateToken();
@@ -221,6 +234,7 @@ public class AuthService {
         for (var recipient : recipients) {
             emailService.sendPasswordSetupEmail(recipient.email(), recipient.name(), token, locale);
         }
+        return true;
     }
 
     /**
@@ -295,7 +309,21 @@ public class AuthService {
 
         if (accountRepository.findCredential(accountToken.accountId()).isPresent()) {
             accountRepository.updateCredential(accountToken.accountId(), hash);
+            // Setting a new password reopens the login screen for it: this is the rope D5 hangs
+            // on, and it is what makes switching password sign-in off recoverable with machinery
+            // that already exists.
+            accountRepository.setPasswordLoginDisabled(accountToken.accountId(), false);
         } else {
+            // On a passwordless instance no reachable path may mint a password. The refusal
+            // keys on the mode, not on the account: a legacy member still rotates what they
+            // already hold, right up until that password is retired; an account that never had
+            // one is onboarded again instead, which is a person, not a bypass.
+            if (passkeyModeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS) {
+                log.info(
+                        "[set-password] refused: account {} holds no credential and the instance is passwordless",
+                        accountToken.accountId());
+                return SetPasswordOutcome.PASSWORDLESS_MODE;
+            }
             accountRepository.createCredential(accountToken.accountId(), hash);
         }
 
@@ -379,7 +407,13 @@ public class AuthService {
          * different words: an expired invitation is somebody's to reissue, an unknown link is a
          * typing mistake or a link that has already been used.
          */
-        TOKEN_EXPIRED
+        TOKEN_EXPIRED,
+        /**
+         * The instance is passwordless and the account holds no credential row to rotate, so no
+         * password may be minted for it. The way in is a passkey, and the way to one is being
+         * onboarded again.
+         */
+        PASSWORDLESS_MODE
     }
 
     /** What a link still in somebody's mailbox is worth, without spending it. */
@@ -460,7 +494,15 @@ public class AuthService {
         String hash = passwordHasher.hash(password);
         if (accountRepository.findCredential(account.id()).isPresent()) {
             accountRepository.updateCredential(account.id(), hash);
+            accountRepository.setPasswordLoginDisabled(account.id(), false);
         } else {
+            // The guardian's screen hands out the QR code instead on a passwordless instance;
+            // this refusal is what keeps that claim true for the fourth of the five places a
+            // password hash can come from.
+            if (passkeyModeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS) {
+                log.info("[set-password-for] refused for account {}: the instance is passwordless", account.id());
+                return SetPasswordOutcome.PASSWORDLESS_MODE;
+            }
             accountRepository.createCredential(account.id(), hash);
         }
         invalidateAfterPasswordRotation(account.id(), null);

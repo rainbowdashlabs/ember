@@ -83,7 +83,8 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
                 new AccountEmailService(
                         accountRepo,
                         new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
-                        mock(EmailService.class)));
+                        mock(EmailService.class)),
+                mock(dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService.class));
 
         station = stationRepo.create("Managed Access Station");
         guardianAccount = accountRepo.create("guardian@test.com", "Petra", "Sommer");

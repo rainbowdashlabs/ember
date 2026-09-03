@@ -14,13 +14,16 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Network;
+import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.feature.account.entity.LoginResult;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
 import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
@@ -47,13 +50,20 @@ public class AuthRoutes implements Routes {
     private final AuthRateLimiter rateLimiter;
     private final Network network;
     private final Demo demo;
+    private final PasskeyModeService passkeyModeService;
 
     @Inject
-    public AuthRoutes(AuthService authService, AuthRateLimiter rateLimiter, Network network, Demo demo) {
+    public AuthRoutes(
+            AuthService authService,
+            AuthRateLimiter rateLimiter,
+            Network network,
+            Demo demo,
+            PasskeyModeService passkeyModeService) {
         this.authService = authService;
         this.rateLimiter = rateLimiter;
         this.network = network;
         this.demo = demo;
+        this.passkeyModeService = passkeyModeService;
     }
 
     private static boolean isBlank(String s) {
@@ -121,10 +131,13 @@ public class AuthRoutes implements Routes {
     private void register(Context ctx) {
         enforceLimit(rateLimiter.tryRegister(clientIp(ctx)));
         var request = ctx.bodyAsClass(RegisterRequest.class);
+        // On a passwordless instance no password is asked for: the account is created without
+        // one, and the verification mail's link is where the passkey is made.
+        boolean passwordless = passkeyModeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS;
         if (isBlank(request.email())
                 || isBlank(request.firstName())
                 || isBlank(request.lastName())
-                || isBlank(request.password())) {
+                || (!passwordless && isBlank(request.password()))) {
             throw new BadRequestResponse("email, firstName, lastName, and password are required");
         }
 
@@ -226,6 +239,7 @@ public class AuthRoutes implements Routes {
             case PASSWORD_BREACHED -> throw new BadRequestResponse("setPassword.passwordBreached");
             case TOKEN_INVALID -> throw new BadRequestResponse("setPassword.tokenInvalid");
             case TOKEN_EXPIRED -> throw new BadRequestResponse("setPassword.tokenExpired");
+            case PASSWORDLESS_MODE -> throw new ForbiddenResponse("setPassword.passwordlessMode");
         }
     }
 

@@ -7,9 +7,11 @@ package dev.chojo.ember.feature.members.route;
 
 import dev.chojo.ember.api.AccessManager;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -109,7 +111,22 @@ public class ManagedMemberRoutes implements Routes {
         routes.put(
                 prefix + "/managed-members/{memberId}/username", this::setUsername, StationPermission.MEMBER_GUARDIAN);
         routes.put(
-                prefix + "/managed-members/{memberId}/password", this::setPassword, StationPermission.MEMBER_GUARDIAN);
+                prefix + "/managed-members/{memberId}/password",
+                this::setPassword,
+                StationPermission.MEMBER_GUARDIAN,
+                StepUpCategory.ACCOUNT_SECURITY);
+        // The QR code held up in the room, behind the same proof as every credential-planting
+        // action: a hijacked guardian session putting a credential on a child's account is what
+        // this is otherwise wide open to.
+        routes.post(
+                prefix + "/managed-members/{memberId}/passkey-code",
+                this::issuePasskeyCode,
+                StationPermission.MEMBER_GUARDIAN,
+                StepUpCategory.ACCOUNT_SECURITY);
+        routes.delete(
+                prefix + "/managed-members/{memberId}/passkey-code",
+                this::revokePasskeyCode,
+                StationPermission.MEMBER_GUARDIAN);
         routes.put(prefix + "/managed-members/{memberId}/login", this::setLogin, StationPermission.MEMBER_GUARDIAN);
         routes.get(
                 prefix + "/managed-members/{memberId}/inventory-items",
@@ -278,6 +295,25 @@ public class ManagedMemberRoutes implements Routes {
         var request = ctx.bodyAsClass(SetManagedPasswordRequest.class);
         ctx.json(accessService.setPassword(session.member().id(), pathInt(ctx, "memberId"), request.password()));
     }
+
+    private void issuePasskeyCode(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var issued = accessService.issuePasskeyCode(
+                session.member().id(),
+                pathInt(ctx, "memberId"),
+                session.accountId(),
+                ctx.userAgent(),
+                ctx.header("CF-IPCountry"));
+        ctx.json(new PasskeyCodeResponse(issued.code(), issued.qrPng(), issued.expiresAt()));
+    }
+
+    private void revokePasskeyCode(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        accessService.revokePasskeyCode(session.member().id(), pathInt(ctx, "memberId"));
+        ctx.json(new MessageResponse("Code revoked"));
+    }
+
+    public record PasskeyCodeResponse(String code, String qrPng, java.time.Instant expiresAt) {}
 
     @OpenApi(
             path = "/api/v1/managed-members/{memberId}/login",

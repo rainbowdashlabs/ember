@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.passkey.service.PasskeyAccountService;
 import dev.chojo.ember.feature.passkey.service.PasskeyDeviceService;
+import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
 import dev.chojo.ember.feature.passkey.service.PasskeyService;
 import dev.chojo.ember.feature.twofactor.service.RelyingParties;
@@ -64,6 +65,7 @@ public class PasskeyRoutes implements Routes {
     private final AuthRateLimiter rateLimiter;
     private final RelyingParties relyingParties;
     private final PasskeyDeviceService deviceService;
+    private final PasskeyEnrollmentService enrollmentService;
     private final TotpService totpService;
     private final Api api;
     private final Network network;
@@ -78,6 +80,7 @@ public class PasskeyRoutes implements Routes {
             AuthRateLimiter rateLimiter,
             RelyingParties relyingParties,
             PasskeyDeviceService deviceService,
+            PasskeyEnrollmentService enrollmentService,
             TotpService totpService,
             Api api,
             Network network) {
@@ -89,6 +92,7 @@ public class PasskeyRoutes implements Routes {
         this.rateLimiter = rateLimiter;
         this.relyingParties = relyingParties;
         this.deviceService = deviceService;
+        this.enrollmentService = enrollmentService;
         this.totpService = totpService;
         this.api = api;
         this.network = network;
@@ -150,6 +154,13 @@ public class PasskeyRoutes implements Routes {
         routes.post(prefix + "/auth/passkey/device-request/poll", this::pollDeviceRequest);
         routes.post(prefix + "/auth/passkey/enroll/begin", this::beginDeviceEnrollment);
         routes.post(prefix + "/auth/passkey/enroll/finish", this::finishDeviceEnrollment);
+
+        // The token doors: a mail link, a QR in the room or a console line carries a bearer
+        // that may create one passkey. The lookup names whose account it is before the device
+        // asks for a fingerprint.
+        routes.post(prefix + "/auth/passkey/token-enroll/lookup", this::lookupTokenEnrollment);
+        routes.post(prefix + "/auth/passkey/token-enroll/begin", this::beginTokenEnrollment);
+        routes.post(prefix + "/auth/passkey/token-enroll/finish", this::finishTokenEnrollment);
         routes.post(prefix + "/account/passkeys/device-lookup", this::lookupDeviceRequest, StationPermission.LOGIN);
         routes.post(
                 prefix + "/account/passkeys/device-approve",
@@ -204,6 +215,46 @@ public class PasskeyRoutes implements Routes {
         boolean created = deviceService.finishEnrollment(
                 request.enrollToken(), request.challengeToken(), request.credentialJson(), ctx.header("CF-IPCountry"));
         if (!created) {
+            throw new UnauthorizedResponse("Enrolment failed");
+        }
+        ctx.json(Map.of("message", "Passkey created"));
+    }
+
+    // -- The token doors --
+
+    private void lookupTokenEnrollment(Context ctx) {
+        requirePasskeysOn();
+        enforceLimit(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
+        var request = ctx.bodyAsClass(TokenEnrollRequest.class);
+        if (isBlank(request.token())) {
+            throw new BadRequestResponse("token is required");
+        }
+        var account = enrollmentService.lookup(request.token()).orElseThrow(NotFoundResponse::new);
+        ctx.json(new TokenEnrollLookupResponse(account.firstName(), account.lastName()));
+    }
+
+    private void beginTokenEnrollment(Context ctx) {
+        requirePasskeysOn();
+        enforceLimit(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
+        var request = ctx.bodyAsClass(TokenEnrollRequest.class);
+        if (isBlank(request.token())) {
+            throw new BadRequestResponse("token is required");
+        }
+        var start = enrollmentService
+                .begin(request.token())
+                .orElseThrow(() -> new UnauthorizedResponse("Enrolment failed"));
+        ctx.json(new CeremonyResponse(start.challengeToken(), start.optionsJson()));
+    }
+
+    private void finishTokenEnrollment(Context ctx) {
+        requirePasskeysOn();
+        enforceLimit(rateLimiter.tryDeviceEnroll(clientIp(ctx)));
+        var request = ctx.bodyAsClass(TokenEnrollFinishRequest.class);
+        if (isBlank(request.token()) || isBlank(request.challengeToken()) || isBlank(request.credentialJson())) {
+            throw new BadRequestResponse("token, challengeToken and credentialJson are required");
+        }
+        if (!enrollmentService.finish(
+                request.token(), request.challengeToken(), request.credentialJson(), ctx.header("CF-IPCountry"))) {
             throw new UnauthorizedResponse("Enrolment failed");
         }
         ctx.json(Map.of("message", "Passkey created"));
@@ -509,6 +560,12 @@ public class PasskeyRoutes implements Routes {
     public record DeviceCodeRequest(String code) {}
 
     public record DeviceLookupResponse(String userAgent, String country, Instant createdAt) {}
+
+    public record TokenEnrollRequest(String token) {}
+
+    public record TokenEnrollFinishRequest(String token, String challengeToken, String credentialJson) {}
+
+    public record TokenEnrollLookupResponse(String firstName, String lastName) {}
 
     public record PasskeyEntryResponse(
             int id,

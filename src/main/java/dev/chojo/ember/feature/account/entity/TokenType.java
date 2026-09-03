@@ -47,5 +47,12 @@ public enum TokenType {
      * Token sent to confirm station deletion, with the station ID stored as metadata.
      */
     STATION_DELETE,
-    TWO_FACTOR_PENDING
+    TWO_FACTOR_PENDING,
+    /**
+     * A bearer that may create exactly one passkey for the account it belongs to, and nothing
+     * else: no session, no reads. Handed out by the guardian's QR, the member manager's button,
+     * the passwordless first start and the console rescue; the setup and reset tokens above
+     * double as enrolment doors on a passwordless instance.
+     */
+    PASSKEY_ENROLLMENT
 }

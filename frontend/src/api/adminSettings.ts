@@ -250,6 +250,37 @@ export async function getPasswordlessReport(): Promise<PasswordlessReport> {
     return res.data
 }
 
+export interface ResidueEntry {
+    accountId: number
+    firstName: string
+    lastName: string
+    lastSignInAt: string | null
+    /** Whether mail to the member's own address can arrive. */
+    reachable: boolean
+    /** Whether somebody manages the member and can hold up the QR code. */
+    hasGuardian: boolean
+}
+
+/** The password holders with no exercised passkey: the group that cannot move yet. */
+export async function getPasskeyResidue(): Promise<ResidueEntry[]> {
+    const res = await client.get<ResidueEntry[]>('/admin/config/auth/passkeys/residue')
+    return res.data
+}
+
+export async function retirePassword(accountId: number): Promise<void> {
+    await client.post(`/admin/accounts/${accountId}/password/retire`)
+}
+
+export interface BulkRetireResult {
+    retired: number
+    passedOver: number
+}
+
+export async function retireAllPasswords(): Promise<BulkRetireResult> {
+    const res = await client.post<BulkRetireResult>('/admin/config/auth/passkeys/retire-all')
+    return res.data
+}
+
 export async function getMailingConfig(): Promise<MailingConfig> {
     const res = await client.get<MailingConfig>('/admin/config/mailing')
     return res.data

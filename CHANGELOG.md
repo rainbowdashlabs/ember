@@ -2,13 +2,28 @@
 
 ## v26.13.11
 
+### New Features
+
+- **Sign in with a passkey.** A passkey signs you in without a password: your device asks for your fingerprint, your face or its PIN, and that is it. Your password keeps working exactly as before until you switch it off yourself under Account → Security.
+- **An instance can go fully passwordless.** New accounts are then created without any password, and invitations, self-registration and the very first start hand out a passkey instead. That step refuses to be chosen until a test mail has proven the instance can deliver one, because for every member with an address the mail is the way back in.
+
+### Security
+
+- **Sensitive actions now always ask for a fresh proof.** Accounts without a second factor used to pass these checks without being asked anything; every account is now asked for whatever it can give: the second factor, the passkey, or the password where nothing else exists. Signing in with a password counts as that proof for the next few minutes, so the everyday flows ask nothing extra.
+- **A member editor could reset or re-address an administrator.** Whoever may edit members could trigger a password reset for an instance administrator in their own station and even move that administrator's mail address, which together opened a takeover path. Both actions now refuse administrators as targets and stand behind the fresh-proof check.
+
 ### Changes
 
+- **New operator setting `auth.passkeys.mode`.** Five steps from off to fully passwordless, optional by default: nothing changes on an upgraded instance until an operator moves it under Admin → Settings → Security. Lowering it below the step that offers passkeys at sign-in is refused while any account depends on one.
+- **The WebAuthn settings moved to `auth.webauthn`.** Passkeys and security keys share them now, and the old place under `auth.twoFactor.webauthn` is still read for one release. The resident-key switch is gone: a passkey always requires one and a security key never does.
+- **A console rescue for a locked-out administrator.** Setting `auth.passkeys.printAdminEnrollmentLink` prints a one-time passkey link into the log at the next start and kills the one before it. The link lives an hour and dies on use.
 - **An attendance expects only the groups its sheet names.** Whoever an appointment was not open to used to arrive on the attendance already marked off, which filled the sheet with people the evening never concerned. Whom an appointment is open to now has no say over who is expected, while a sign-up or a refusal still settles what stands beside a name.
 - **Two of the first steps now ask you to look rather than to act.** Answering an appointment has become a short explanation of the two kinds, the ones you sign up for and the ones where you are simply expected, and it no longer ends in a sign-up nobody asked for. Going through your profile is offered even when nothing is missing, because a profile that looks complete is the one worth reading over.
 
 ### Improvements
 
+- **A new device can be freed by one that is already signed in.** The login screen offers it for a device that holds no passkey yet: it shows a short code, and entering that code under Account → Security on a signed-in device lets the new one create its own passkey and sign in with it.
+- **The operator sees where passkeys stand.** Under Admin → Settings → Security three figures show who holds a working passkey, who still holds a password and who cannot move yet, and a report before the passwordless switch counts who it would leave behind.
 - **A page that walks you through putting your notifications on your phone.** Until now the help named a handful of reader apps to choose from; there is now one route told to the end, with Feeder on Android and NetNewsWire on iPhone. It also says plainly why it is worth doing: a notification left inside Ember waits until you next open Ember.
 - **The questions of an attendance sheet can be taken straight into an appointment.** Where an appointment names a sheet, its fields are now offered above the appointment's own questions, one at a time or all at once. They arrive with their name, their type and their settings, already tied to the field they came from, which is what makes the answer given at the appointment land on the sheet; a field already taken is not offered a second time. The same offer stands in the appointment templates.
 - **Checking an attendance reaches everybody the sheet expects.** It walked only the names something had already been recorded against, so anybody who joined a group after the sheet was opened was passed over and, where that was everybody, the button was not offered at all. Filling the sheet in from its appointment now puts such a member on it as well.

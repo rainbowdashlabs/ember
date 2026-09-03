@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.account.service.LoginNameService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.ProvisionException;
+import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
@@ -53,6 +54,7 @@ public class MemberRoutes implements Routes {
     private final LoginNameService loginNameService;
     private final AccountEmailService accountEmailService;
     private final StepUpGuard stepUpGuard;
+    private final PasskeyEnrollmentService enrollmentService;
 
     @Inject
     public MemberRoutes(
@@ -62,7 +64,8 @@ public class MemberRoutes implements Routes {
             StationMemberInviteService inviteService,
             LoginNameService loginNameService,
             AccountEmailService accountEmailService,
-            StepUpGuard stepUpGuard) {
+            StepUpGuard stepUpGuard,
+            PasskeyEnrollmentService enrollmentService) {
         this.authService = authService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -70,6 +73,7 @@ public class MemberRoutes implements Routes {
         this.loginNameService = loginNameService;
         this.accountEmailService = accountEmailService;
         this.stepUpGuard = stepUpGuard;
+        this.enrollmentService = enrollmentService;
     }
 
     private static boolean isBlank(String s) {
@@ -115,6 +119,69 @@ public class MemberRoutes implements Routes {
                 this::resetPassword,
                 StationPermission.MEMBER_EDIT,
                 StepUpCategory.ACCOUNT_SECURITY);
+        // Onboard again: every passkey disabled, every session ended, a fresh setup link where
+        // mail about the account already goes. Not a new power: whoever may press this can
+        // reset a password today.
+        routes.post(
+                prefix + "/members/onboard-again",
+                this::onboardAgain,
+                StationPermission.MEMBER_EDIT,
+                StepUpCategory.ACCOUNT_SECURITY);
+        // The member manager's passkey code, for an addressless member with no guardian to hand
+        // it over. Refused for anybody who has an address of their own: the mail path is right
+        // there and is the one with a second party in it.
+        routes.post(
+                prefix + "/members/passkey-code",
+                this::issuePasskeyCode,
+                StationPermission.MEMBER_EDIT,
+                StepUpCategory.ACCOUNT_SECURITY);
+        routes.delete(
+                prefix + "/members/passkey-code/{accountId}", this::revokePasskeyCode, StationPermission.MEMBER_EDIT);
+    }
+
+    private void onboardAgain(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var request = ctx.bodyAsClass(AccountActionRequest.class);
+        if (request.accountId() == null) {
+            throw new BadRequestResponse("accountId is required");
+        }
+        requireStationAccount(request.accountId(), session);
+        requireNotAboveActor(
+                accountRepository.findById(request.accountId()).orElseThrow(NotFoundResponse::new), session);
+
+        boolean mailed = enrollmentService.onboardAgain(
+                request.accountId(), session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
+        ctx.json(new OnboardAgainResponse(mailed));
+    }
+
+    private void issuePasskeyCode(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var request = ctx.bodyAsClass(AccountActionRequest.class);
+        if (request.accountId() == null) {
+            throw new BadRequestResponse("accountId is required");
+        }
+        requireStationAccount(request.accountId(), session);
+        Account target = accountRepository.findById(request.accountId()).orElseThrow(NotFoundResponse::new);
+        requireNotAboveActor(target, session);
+        if (target.hasRealEmail()) {
+            throw new ForbiddenResponse("This member has an address of their own; the mail path is theirs");
+        }
+
+        var issued = enrollmentService.issueCodeWithQr(
+                target.id(),
+                session.accountId(),
+                PasskeyEnrollmentService.QR_TTL,
+                ctx.userAgent(),
+                ctx.header("CF-IPCountry"));
+        ctx.json(new PasskeyCodeResponse(issued.code(), issued.qrPng(), issued.expiresAt()));
+    }
+
+    private void revokePasskeyCode(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int accountId = pathInt(ctx, "accountId");
+        requireStationAccount(accountId, session);
+        enrollmentService.revokeCode(accountId);
+        ctx.json(new MessageResponse("Code revoked"));
     }
 
     @OpenApi(
@@ -262,4 +329,14 @@ public class MemberRoutes implements Routes {
      *                 as it is; empty clears it.
      */
     public record UpdateAccountRequest(String email, String username, String firstName, String lastName) {}
+
+    public record AccountActionRequest(Integer accountId) {}
+
+    /**
+     * @param mailed whether a setup mail could go out; when not, the QR code in the room is
+     *         the way to the member
+     */
+    public record OnboardAgainResponse(boolean mailed) {}
+
+    public record PasskeyCodeResponse(String code, String qrPng, java.time.Instant expiresAt) {}
 }

@@ -49,6 +49,55 @@ public class PasskeyAdminRoutes implements Routes {
                 prefix + "/admin/config/auth/passkeys/report",
                 this::passwordlessReport,
                 InstancePermission.ADMINISTRATOR);
+        // The residue and the retiring: the rope comes away only from somebody already holding
+        // the other one, and never for a room full of people at once by accident.
+        routes.get(prefix + "/admin/config/auth/passkeys/residue", this::residue, InstancePermission.ADMINISTRATOR);
+        routes.post(
+                prefix + "/admin/accounts/{id}/password/retire",
+                this::retirePassword,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
+        routes.post(
+                prefix + "/admin/config/auth/passkeys/retire-all",
+                this::retireAll,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
+    }
+
+    private void residue(Context ctx) {
+        ctx.json(adminService.residue().stream()
+                .map(entry -> new ResidueEntryResponse(
+                        entry.accountId(),
+                        entry.firstName(),
+                        entry.lastName(),
+                        entry.lastSignInAt(),
+                        entry.reachable(),
+                        entry.hasGuardian()))
+                .toList());
+    }
+
+    private void retirePassword(Context ctx) {
+        var session = dev.chojo.ember.api.UserSession.from(ctx);
+        int accountId = dev.chojo.ember.api.RouteSupport.pathInt(ctx, "id");
+        var outcome = adminService.retirePassword(
+                accountId, session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
+        switch (outcome) {
+            case RETIRED -> ctx.json(Map.of("message", "Password retired"));
+            case NO_PASSWORD ->
+                throw new HttpResponseException(
+                        HttpStatus.CONFLICT.getCode(), "This account holds no password", Map.of());
+            case NO_TRIED_PASSKEY ->
+                throw new HttpResponseException(
+                        HttpStatus.CONFLICT.getCode(),
+                        "No passkey has completed a sign-in for this account; the rope stays",
+                        Map.of());
+        }
+    }
+
+    private void retireAll(Context ctx) {
+        var session = dev.chojo.ember.api.UserSession.from(ctx);
+        var result = adminService.retireAllEligible(session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
+        ctx.json(new BulkRetireResponse(result.retired(), result.passedOver()));
     }
 
     private void getConfig(Context ctx) {
@@ -119,4 +168,14 @@ public class PasskeyAdminRoutes implements Routes {
 
     public record PasswordlessReportResponse(
             int wouldKeepPassword, int withoutPasskey, int reachableOnlyByQr, int dormantForAYear) {}
+
+    public record ResidueEntryResponse(
+            int accountId,
+            String firstName,
+            String lastName,
+            Instant lastSignInAt,
+            boolean reachable,
+            boolean hasGuardian) {}
+
+    public record BulkRetireResponse(int retired, int passedOver) {}
 }

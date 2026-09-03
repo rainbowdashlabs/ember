@@ -73,8 +73,10 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
                 Set.of(
                         stationImporter,
                         new AccountTableImporter(accountRepo),
-                        new AccountCredentialTableImporter(accountRepo),
-                        new DisabledModuleTableImporter(stationRepo)));
+                        new AccountCredentialTableImporter(accountRepo, passkeyModeService),
+                        new DisabledModuleTableImporter(stationRepo)),
+                accountRepo,
+                org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class));
     }
 
     @Test

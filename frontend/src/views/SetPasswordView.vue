@@ -49,6 +49,20 @@ const status = ref<PasswordLinkStatus | null>(null)
 const checking = ref(true)
 
 onMounted(async () => {
+  // On a passwordless instance the same token is an enrolment door: the screen behind the
+  // setup mail creates a passkey instead of asking for a password. A legacy member who still
+  // rotates a password comes back here with ?password=1, and the server decides the rest.
+  if (route.query.password !== '1') {
+    try {
+      const {publicPasskeyMode} = await import('@/api/passkeys')
+      if (await publicPasskeyMode() === 'PASSWORDLESS') {
+        await navigateTo({path: '/enroll', query: {code: token, fromSetup: '1'}}, {replace: true})
+        return
+      }
+    } catch {
+      // The mode read failing must never block setting a password.
+    }
+  }
   try {
     status.value = await auth.passwordLinkStatus(token)
   } catch {

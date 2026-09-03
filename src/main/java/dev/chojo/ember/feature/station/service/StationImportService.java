@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
@@ -67,6 +69,8 @@ public class StationImportService {
     private static final Logger log = LoggerFactory.getLogger(StationImportService.class);
     private static final int PAGE_SIZE = 500;
 
+    private final AccountRepository accountRepository;
+    private final AuthService authService;
     private final StationRepository stationRepository;
     private final StationExportService exportService;
     private final Api api;
@@ -97,7 +101,11 @@ public class StationImportService {
             FederationPartnerTransferFixupService federationFixup,
             RemoteUrlValidator urlValidator,
             StationTableImporter stationImporter,
-            Set<TableImporter> importers) {
+            Set<TableImporter> importers,
+            AccountRepository accountRepository,
+            AuthService authService) {
+        this.accountRepository = accountRepository;
+        this.authService = authService;
         this.stationRepository = stationRepository;
         this.exportService = exportService;
         this.api = api;
@@ -467,6 +475,39 @@ public class StationImportService {
         p.startPhase("account_avatars");
         fileImporter.copyNewAccountAvatars(client, context.newAccounts(), p);
         p.completePhase();
+
+        sendReOnboardingMails(context);
+    }
+
+    /**
+     * Passkeys do not survive a transfer: a WebAuthn credential is bound to the source's domain,
+     * so an account that had no password there arrives here with no way in at all. Every such
+     * account with a reachable address gets the re-onboarding mail at import time, and the ones
+     * nobody can mail are named in the log: they are the QR code's population, reached in the
+     * room rather than by post.
+     */
+    private void sendReOnboardingMails(StationImportContext context) {
+        int mailed = 0;
+        int unreachable = 0;
+        for (var ref : context.newAccounts()) {
+            var account = accountRepository.findByUid(ref.destinationUid());
+            if (account.isEmpty()) continue;
+            if (accountRepository.findCredential(account.get().id()).isPresent()) continue;
+            if (authService.sendPasswordSetup(account.get().id())) {
+                mailed++;
+            } else {
+                unreachable++;
+                log.info(
+                        "Transferred account {} has no way in and no reachable address; onboard them again in person",
+                        account.get().id());
+            }
+        }
+        if (mailed > 0 || unreachable > 0) {
+            log.info(
+                    "Re-onboarding after transfer: {} setup mail(s) sent, {} account(s) reachable only in person",
+                    mailed,
+                    unreachable);
+        }
     }
 
     private void fetchAndImportPaginated(StationImportContext context, String table, TransferSourceClient client) {

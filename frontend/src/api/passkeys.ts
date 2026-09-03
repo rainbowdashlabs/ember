@@ -189,6 +189,31 @@ export async function deviceApprove(code: string): Promise<void> {
     await client.post('/account/passkeys/device-approve', {code})
 }
 
+// -- The token doors: a mail link, a QR in the room or a console line --
+
+export interface TokenEnrollLookup {
+    firstName: string
+    lastName: string
+}
+
+export async function tokenEnrollLookup(token: string): Promise<TokenEnrollLookup> {
+    const res = await client.post<TokenEnrollLookup>('/auth/passkey/token-enroll/lookup', {token})
+    return res.data
+}
+
+export async function tokenEnrollBegin(token: string): Promise<PasskeyCeremony> {
+    const res = await client.post<PasskeyCeremony>('/auth/passkey/token-enroll/begin', {token})
+    return res.data
+}
+
+export async function tokenEnrollFinish(
+    token: string,
+    challengeToken: string,
+    credentialJson: string,
+): Promise<void> {
+    await client.post('/auth/passkey/token-enroll/finish', {token, challengeToken, credentialJson})
+}
+
 // -- The trial that follows a creation --
 
 export async function trialBegin(): Promise<PasskeyCeremony> {

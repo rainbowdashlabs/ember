@@ -13,6 +13,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MemberEditTabs from './editview/MemberEditTabs.vue'
+import MemberAccessActions from './editview/MemberAccessActions.vue'
 import type {MemberEditData} from './editview/types'
 import {StationPermission, StationUserType, type MemberGroup, type PermissionGrant, type StationMember, type UserTag} from '@/api/types'
 import {profileFields, stationMembers, memberGroups, userTags, inventory} from '@/api'
@@ -159,6 +160,8 @@ function goBack() {
             @user-type-changed="onUserTypeChanged"
             @groups-changed="onGroupsChanged"
         />
+
+        <MemberAccessActions v-if="member.accountId" :member="member"/>
       </template>
     </div>
   </ViewContent>

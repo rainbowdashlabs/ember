@@ -357,6 +357,31 @@ export default {
                 + '"Passwort vergessen" schaltet die Anmeldung wieder ein.',
             passwordOffDone: 'Die Anmeldung mit Passwort ist ausgeschaltet. Dein Weg hinein ist jetzt dein Passkey.',
         },
+        enroll: {
+            title: 'Passkey einrichten',
+            codePrompt: 'Gib den Code ein, der dir gezeigt oder geschickt wurde.',
+            unknownCode: 'Diesen Code gibt es nicht oder er ist abgelaufen. Lass dir einen neuen geben.',
+            confirm: 'Du richtest einen Passkey für das Konto von {name} ein.',
+            setPasswordInstead: 'Stattdessen ein Passwort setzen',
+        },
+        code: {
+            title: 'Passkey über Code einrichten',
+            qrAlt: 'QR-Code zum Einrichten des Passkeys',
+            hint: 'Der Code lebt fünf Minuten und ist einmal verwendbar. Er stirbt, wenn du diesen Bildschirm verlässt.',
+            issue: 'Code anzeigen',
+            guardianHint: 'Zeig den QR-Code dem Mitglied: Es scannt ihn mit dem eigenen Gerät, bestätigt, '
+                + 'und der Passkey ist angelegt. Ohne Kamera tippt es den kurzen Code auf der Einrichtungsseite ein.',
+            managerHint: 'Für ein Mitglied ohne eigene Adresse und ohne Erziehungsberechtigte: Zeig den QR-Code '
+                + 'im Raum, das Mitglied scannt ihn und legt seinen Passkey an.',
+        },
+        onboardAgain: {
+            title: 'Zugang',
+            hint: 'Erneut onboarden schaltet alle Passkeys des Mitglieds ab, beendet alle Sitzungen und '
+                + 'schickt einen frischen Einrichtungslink dorthin, wo Post über dieses Konto ohnehin hingeht.',
+            button: 'Erneut onboarden',
+            mailed: 'Der Einrichtungslink ist unterwegs.',
+            unreachable: 'Niemand ist per Mail erreichbar. Der Weg ist der QR-Code hier im Raum.',
+        },
         device: {
             title: 'Dieses Gerät freischalten',
             instruction: 'Öffne auf einem Gerät, auf dem du schon angemeldet bist, Konto, Sicherheit, '
@@ -416,6 +441,8 @@ export default {
         passwordBreached: 'Dieses Passwort wurde in bekannten Datenlecks gefunden. Bitte wähle ein anderes.',
         tokenInvalid: 'Der Link ist ungültig oder abgelaufen. Logge dich erneut ein, um einen neuen Link zu bekommen.',
         tokenExpired: 'Dieser Link ist abgelaufen.',
+        passwordlessMode: 'Diese Instanz vergibt keine Passwörter mehr. Dein Weg hinein ist ein Passkey; '
+            + 'lass dich von deiner Wache erneut onboarden.',
         expiredTitle: 'Der Link ist abgelaufen',
         expiredText: 'Ein Einrichtungslink gilt nur eine begrenzte Zeit. Deiner ist inzwischen '
             + 'verfallen, dein Konto gibt es aber weiterhin. Du brauchst nur einen neuen Link.',
@@ -4526,6 +4553,16 @@ export default {
             reportQrOnly: 'Davon sind {count} weder per Mail noch über Erziehungsberechtigte erreichbar, nur über den QR-Code im Raum.',
             reportDormant: '{count} Konto/Konten haben sich seit über einem Jahr nicht angemeldet.',
             saveFailed: 'Der Modus konnte nicht gespeichert werden.',
+            loadResidue: 'Wer kann noch nicht?',
+            retireAll: 'Alle qualifizierten Passwörter stilllegen',
+            retireAllResult: '{retired} Passwort/Passwörter stillgelegt, {passedOver} übergangen: dort steht noch kein erprobter Passkey daneben.',
+            residueTitle: '{count} Konto/Konten können noch nicht umziehen',
+            residueHint: 'Passwort vorhanden, aber kein erprobter Passkey. Drei Antworten, alle von Menschen: erneut onboarden, so lassen, oder den Zugang nehmen.',
+            residueReachable: 'per Mail erreichbar',
+            residueGuardian: 'über Erziehungsberechtigte erreichbar',
+            residueQrOnly: 'nur über den QR-Code im Raum erreichbar',
+            residueLastSeen: 'zuletzt angemeldet am {date}',
+            residueNeverSeen: 'noch nie angemeldet',
         },
     },
     waitingList: {
@@ -6515,6 +6552,7 @@ export default {
     },
     common: {
         send: 'Abschicken',
+        continue: 'Weiter',
         loading: 'Laden...',
         error: 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.',
         empty: 'Leer - zum Bearbeiten klicken',

@@ -468,6 +468,21 @@ public class EmailService {
                 loadTemplate("passkey-device-approved.html", locale, vars));
     }
 
+    /**
+     * Sent to whoever mail about a managed member goes to when an enrolment code for their
+     * account was put on a screen. Somebody has to be told, and it cannot be the member: they
+     * have no mailbox, which is why the code exists.
+     */
+    public void sendPasskeyCodeIssuedNotice(String email, String memberName, String locale) {
+        var vars = baseVars(memberName, null);
+        vars.put("memberName", memberName);
+        vars.put("securityUrl", api.baseUrl() + "/account/security");
+        enqueueGlobal(
+                email,
+                subject("passkey-code-issued", locale, Map.of("name", memberName)),
+                loadTemplate("passkey-code-issued.html", locale, vars));
+    }
+
     public void sendTwoFactorResetNotice(String email, String name, String actorLabel, Instant resetAt, String locale) {
         var vars = baseVars(name, null);
         vars.put("loginUrl", api.baseUrl() + "/login");

@@ -194,6 +194,32 @@ public class PasskeyService {
                 TwoFactorEvent.PASSKEY_ENROLLED_VIA_DEVICE_CODE);
     }
 
+    /**
+     * Completes an enrolment opened by a mail link, a QR code or the console: the same ceremony
+     * as the device enrolment, recorded as the ordinary enrolment it is.
+     */
+    public Optional<TwoFactorFactor> finishTokenEnrollment(
+            int accountId, String challengeToken, String credentialJson, String country) {
+        Optional<WebAuthnChallenge> challengeOpt = challengeRepository
+                .consume(challengeToken)
+                .filter(stored -> !stored.isExpired()
+                        && stored.purpose() == ChallengePurpose.DEVICE_ENROLLMENT
+                        && stored.accountId() != null
+                        && stored.accountId() == accountId);
+        if (challengeOpt.isEmpty()) {
+            log.info("Token enrolment failed for account {}: challenge unknown or expired", accountId);
+            return Optional.empty();
+        }
+        return finishCreationCeremony(
+                accountId,
+                challengeOpt.get().optionsJson(),
+                credentialJson,
+                null,
+                null,
+                country,
+                TwoFactorEvent.ENROLLED);
+    }
+
     private CeremonyStart persistCreationStart(
             PublicKeyCredentialCreationOptions options, int accountId, ChallengePurpose purpose) {
         String persistJson;

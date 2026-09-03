@@ -176,6 +176,10 @@ public abstract class RepositoryTestBase {
             .withStartupAttempts(8);
 
     protected static AccountRepository accountRepo;
+
+    /** The passkey mode in its default (OPTIONAL, no fallback), for services that need one. */
+    protected static dev.chojo.ember.feature.passkey.service.PasskeyModeService passkeyModeService;
+
     protected static StationRepository stationRepo;
     protected static StationMemberRepository stationMemberRepo;
     protected static AttendanceRepository attendanceRepo;
@@ -338,6 +342,10 @@ public abstract class RepositoryTestBase {
                 .build();
         QueryConfiguration.setDefault(config);
         accountRepo = new AccountRepository(TokenHasher.forTesting("repository-test-pepper"));
+        passkeyModeService = new dev.chojo.ember.feature.passkey.service.PasskeyModeService(
+                new dev.chojo.ember.conf.file.elements.PasskeySettings(),
+                new dev.chojo.ember.conf.file.elements.Demo(),
+                new dev.chojo.ember.feature.twofactor.service.RelyingParties(null, null, false));
         stationRepo = new StationRepository();
         stationMemberRepo = new StationMemberRepository();
         memberLookupService = new MemberLookupService(stationMemberRepo, stationRepo);

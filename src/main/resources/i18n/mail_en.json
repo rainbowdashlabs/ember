@@ -22,7 +22,8 @@
     "waitlist-confirm-reminder": "Please confirm your interest{stationSuffix}",
     "waitlist-removal-warning": "Waiting list removal in 2 weeks{stationSuffix}",
     "test-mail": "Test email from Ember",
-    "passkey-device-approved": "A new device can now sign in to your account"
+    "passkey-device-approved": "A new device can now sign in to your account",
+    "passkey-code-issued": "A passkey code for {name} was issued"
   },
   "body": {
     "twoFactorReset.defaultActor": "an administrator"

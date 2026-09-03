@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.LoginNameService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
@@ -47,6 +48,7 @@ public class ManagedAccessService {
     private final ManagedLoginNoticeService noticeService;
     private final AuthService authService;
     private final AccountEmailService accountEmailService;
+    private final PasskeyEnrollmentService enrollmentService;
 
     @Inject
     public ManagedAccessService(
@@ -56,7 +58,8 @@ public class ManagedAccessService {
             StationMemberService memberService,
             ManagedLoginNoticeService noticeService,
             AuthService authService,
-            AccountEmailService accountEmailService) {
+            AccountEmailService accountEmailService,
+            PasskeyEnrollmentService enrollmentService) {
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
         this.loginNameService = loginNameService;
@@ -64,6 +67,7 @@ public class ManagedAccessService {
         this.noticeService = noticeService;
         this.authService = authService;
         this.accountEmailService = accountEmailService;
+        this.enrollmentService = enrollmentService;
     }
 
     /**
@@ -168,6 +172,7 @@ public class ManagedAccessService {
         switch (authService.setPasswordFor(account, password)) {
             case PASSWORD_TOO_SHORT -> throw new BadRequestResponse("setPassword.passwordTooShort");
             case PASSWORD_BREACHED -> throw new BadRequestResponse("setPassword.passwordBreached");
+            case PASSWORDLESS_MODE -> throw new ForbiddenResponse("setPassword.passwordlessMode");
             default ->
                 log.info(
                         "Guardian {} set the password of managed member {} (account {})",
@@ -176,6 +181,31 @@ public class ManagedAccessService {
                         account.id());
         }
         return get(guardianMemberId, memberId);
+    }
+
+    /**
+     * The QR code held up in the room: an enrolment code for a managed member, on exactly the
+     * check the password field uses. It grants nothing the guardian could not already have; the
+     * same guardian sets that member's password today.
+     */
+    public PasskeyEnrollmentService.IssuedCode issuePasskeyCode(
+            int guardianMemberId, int memberId, int actorAccountId, String userAgent, String country) {
+        StationMember member = requireManaged(guardianMemberId, memberId);
+        var account = account(member);
+        if (account.hasRealEmail()) {
+            throw new ForbiddenResponse("This member has an address of their own; the mail path is theirs");
+        }
+        return enrollmentService.issueCodeWithQr(
+                account.id(), actorAccountId, PasskeyEnrollmentService.QR_TTL, userAgent, country);
+    }
+
+    /**
+     * Kills the open code when the guardian leaves the screen, so an abandoned attempt does not
+     * leave a photographed code alive for the rest of its window.
+     */
+    public void revokePasskeyCode(int guardianMemberId, int memberId) {
+        StationMember member = requireManaged(guardianMemberId, memberId);
+        enrollmentService.revokeCode(account(member).id());
     }
 
     /**

@@ -377,6 +377,19 @@ public class AccountRepository {
     }
 
     /**
+     * An administrator account, for the console rescue that prints an enrolment link. Which one
+     * does not matter when there are several; the oldest is the predictable choice.
+     */
+    public Optional<Account> findAnyAdministrator() {
+        return query(
+                        "SELECT %s FROM account WHERE instance_user_type = 'ADMINISTRATOR' ORDER BY id LIMIT 1;",
+                        ACCOUNT_COLUMNS)
+                .single(call())
+                .map(Account.map())
+                .first();
+    }
+
+    /**
      * Sets the instance user type for an account.
      */
     public void setInstanceUserType(int accountId, InstanceUserType userType) {

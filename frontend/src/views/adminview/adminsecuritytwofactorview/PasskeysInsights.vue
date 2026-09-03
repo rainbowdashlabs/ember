@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import PasskeysResidue from '@/views/adminview/adminsecuritytwofactorview/PasskeysResidue.vue'
 import {adminSettings} from '@/api'
 import type {PasskeysConfig, PasswordlessReport} from '@/api/adminSettings'
 import {formatDateTime} from '@/util/format'
@@ -79,5 +80,7 @@ async function loadReport() {
         <div>{{ t('adminSecurity.passkeys.reportDormant', {count: report.dormantForAYear}) }}</div>
       </InfoContainer>
     </div>
+
+    <PasskeysResidue/>
   </div>
 </template>

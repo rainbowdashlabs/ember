@@ -50,6 +50,15 @@ public class PasskeySettings {
     private String mode = "OPTIONAL";
 
     /**
+     * When set, the next start prints a fresh one-time enrolment link for the administrator
+     * account and kills the one before it. This is the rescue for the one lockout nobody can
+     * staff their way out of: a passwordless instance whose administrator lost every passkey.
+     * Meant to be set for one restart and removed again; the link lives an hour.
+     */
+    @Overwrite(env = @Env)
+    private boolean printAdminEnrollmentLink = false;
+
+    /**
      * The configured mode. Unknown values read as {@link Mode#OPTIONAL}, the default: a typo in
      * a config file must not silently switch every member's login screen around.
      */
@@ -59,5 +68,9 @@ public class PasskeySettings {
         } catch (IllegalArgumentException e) {
             return Mode.OPTIONAL;
         }
+    }
+
+    public boolean printAdminEnrollmentLink() {
+        return printAdminEnrollmentLink;
     }
 }

@@ -103,6 +103,80 @@ public class PasskeyRepository {
     }
 
     /**
+     * Disables every credential that may start a sign-in, and only those: the onboard-again
+     * button wipes the passkeys but leaves second factors alone, because the member it rescues
+     * may still know their authenticator app perfectly well.
+     */
+    public int disableSignInPasskeys(int accountId) {
+        return query("""
+                UPDATE account_2fa_factor f
+                SET disabled_at = now()
+                FROM account_2fa_webauthn w
+                WHERE w.factor_id = f.id AND f.account_id = :account_id AND f.disabled_at IS NULL AND w.sign_in;""").single(call().bind("account_id", accountId)).update().rows();
+    }
+
+    /**
+     * The accounts whose password may be retired: they hold one, and a passkey that has
+     * completed a sign-in ceremony stands beside it. The rope comes away only from somebody
+     * already holding the other one.
+     */
+    public List<Integer> listRetireEligibleAccounts() {
+        return query("""
+                SELECT c.account_id
+                FROM account_credential c
+                WHERE EXISTS (
+                    SELECT 1 FROM account_2fa_factor f
+                    JOIN account_2fa_webauthn w ON w.factor_id = f.id
+                    WHERE f.account_id = c.account_id AND f.disabled_at IS NULL AND w.sign_in
+                    AND f.last_used_at IS NOT NULL
+                );""").single(call()).map(row -> row.getInt("account_id")).all();
+    }
+
+    /**
+     * The residue: password holders with no exercised passkey, which is the group that cannot
+     * move yet. A list rather than an automatic decision, because all three answers to it are
+     * decisions a person makes about somebody they know.
+     */
+    public List<ResidueEntry> listResidue() {
+        return query("""
+                SELECT a.id, a.first_name, a.last_name, a.last_sign_in_at,
+                       (a.email IS NOT NULL AND a.email != '' AND a.email NOT LIKE '%.local') AS reachable,
+                       EXISTS (SELECT 1 FROM member_manager mm
+                               JOIN station_member sm ON sm.id = mm.managed_id
+                               WHERE sm.account_id = a.id) AS has_guardian
+                FROM account a
+                JOIN account_credential c ON c.account_id = a.id
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM account_2fa_factor f
+                    JOIN account_2fa_webauthn w ON w.factor_id = f.id
+                    WHERE f.account_id = a.id AND f.disabled_at IS NULL AND w.sign_in
+                    AND f.last_used_at IS NOT NULL
+                )
+                ORDER BY a.last_sign_in_at DESC NULLS LAST;""")
+                .single(call())
+                .map(row -> new ResidueEntry(
+                        row.getInt("id"),
+                        row.getString("first_name"),
+                        row.getString("last_name"),
+                        row.get("last_sign_in_at", INSTANT_TIMESTAMP),
+                        row.getBoolean("reachable"),
+                        row.getBoolean("has_guardian")))
+                .all();
+    }
+
+    /**
+     * @param reachable whether mail to the member's own address can arrive
+     * @param hasGuardian whether somebody manages the member and can hold up the QR code
+     */
+    public record ResidueEntry(
+            int accountId,
+            String firstName,
+            String lastName,
+            Instant lastSignInAt,
+            boolean reachable,
+            boolean hasGuardian) {}
+
+    /**
      * The account's answer to the one-time passkey offer, or empty when it was never answered.
      */
     public Optional<OfferAnswer> findOfferAnswer(int accountId) {

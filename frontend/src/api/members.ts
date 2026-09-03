@@ -45,6 +45,36 @@ export async function resetPassword(data: ResetPasswordRequest): Promise<Message
     return res.data
 }
 
+export interface OnboardAgainResult {
+    /** Whether a setup mail could go out; when not, the QR code in the room is the way. */
+    mailed: boolean
+}
+
+/**
+ * Onboards a member again: every passkey disabled, every session ended, a fresh setup link where
+ * mail about the account already goes.
+ */
+export async function onboardAgain(accountId: number): Promise<OnboardAgainResult> {
+    const res = await client.post<OnboardAgainResult>('/members/onboard-again', {accountId})
+    return res.data
+}
+
+export interface MemberPasskeyCode {
+    code: string
+    qrPng: string
+    expiresAt: string
+}
+
+/** The member manager's passkey code, for an addressless member with no guardian to hand it over. */
+export async function issuePasskeyCode(accountId: number): Promise<MemberPasskeyCode> {
+    const res = await client.post<MemberPasskeyCode>('/members/passkey-code', {accountId})
+    return res.data
+}
+
+export async function revokePasskeyCode(accountId: number): Promise<void> {
+    await client.delete(`/members/passkey-code/${accountId}`)
+}
+
 // -- Page-editor picker. PAGE_EDIT-gated. --
 
 export interface MemberSearchResult {

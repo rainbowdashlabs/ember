@@ -51,7 +51,7 @@ const panels = [
         appFilter: (r) => !['help-', 'admin-', 'cluster-', 'account-', 'login', 'forgot', 'set-password', 'station-select',
             'cross-station-dashboard', '2fa-verify', 'passkey-offer', 'apply', 'waitlist-', 'waiting-list', 'home', 'privacy', 'terms', 'reconsent', 'imprint',
             'patch-notes', 'reset-password', 'confirm-email-change', 'install', 'public-', 'not-found', 'style', 'helpcenter-', 'requirements',
-            'pitch', 'unlock-device', 'passkey-offer']
+            'pitch', 'unlock-device', 'passkey-offer', 'enroll']
             .some(p => r.name.startsWith(p)),
         helpFilter: (r) => r.name.startsWith('help-') && !r.name.startsWith('help-admin') && !r.name.startsWith('help-cluster'),
         supplementaryHelp: (r) => r.name.startsWith('help-basics') || r.name === 'help-welcome'

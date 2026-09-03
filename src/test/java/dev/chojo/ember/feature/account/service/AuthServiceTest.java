@@ -77,7 +77,8 @@ class AuthServiceTest extends RepositoryTestBase {
                 hibpClient,
                 breachCheckWorker,
                 twoFactorRepoLocal,
-                trustedDeviceService);
+                trustedDeviceService,
+                passkeyModeService);
     }
 
     @Test
@@ -982,7 +983,8 @@ class AuthServiceTest extends RepositoryTestBase {
                 hibpClient,
                 mock(BreachCheckWorker.class),
                 twoFactorRepoLocal,
-                trustedDeviceService);
+                trustedDeviceService,
+                passkeyModeService);
     }
 
     /**
@@ -1262,6 +1264,95 @@ class AuthServiceTest extends RepositoryTestBase {
                 accountRepo.findSession(result.token()).orElseThrow().twoFactorVerifiedAt(),
                 "the change-password screen must not ask for the password typed sixty seconds ago");
         accountRepo.delete(id);
+    }
+
+    /** The same service on a passwordless instance, where no reachable path may mint a password. */
+    private AuthService passwordlessService() throws Exception {
+        var settings = new dev.chojo.ember.conf.file.elements.PasskeySettings();
+        var field = settings.getClass().getDeclaredField("mode");
+        field.setAccessible(true);
+        field.set(settings, "PASSWORDLESS");
+        var modeService = new dev.chojo.ember.feature.passkey.service.PasskeyModeService(
+                settings, new Demo(), new dev.chojo.ember.feature.twofactor.service.RelyingParties(null, null, false));
+        var hibpClient = mock(HibpClient.class);
+        when(hibpClient.isPwned(anyString())).thenReturn(false);
+        return new AuthService(
+                accountRepo,
+                new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
+                new MailRecipientService(accountRepo, stationMemberRepo),
+                registrationCodeRepo,
+                stationMemberRepo,
+                memberGroupRepo,
+                new PasswordHasher(),
+                emailService,
+                new Auth(),
+                new Demo(),
+                hibpClient,
+                mock(BreachCheckWorker.class),
+                twoFactorRepoLocal,
+                trustedDeviceService,
+                modeService);
+    }
+
+    /** G3: an account may hold no credential row, and the login refuses it deliberately. */
+    @Test
+    @Order(97)
+    void passwordlessRegistrationWritesNoCredentialRow() throws Exception {
+        var service = passwordlessService();
+        String email = "pwless-" + java.util.UUID.randomUUID() + "@test.com";
+        var result = service.registerSelf(email, "Pw", "Less", null, null);
+        assertTrue(result.success());
+        int id = result.account().id();
+
+        assertTrue(accountRepo.findCredential(id).isEmpty(), "not an unused password, not a random one, none");
+        accountRepo.setEmailVerified(id);
+        var login = service.login(email, "anything", "agent", "DE");
+        assertFalse(login.success(), "an account with no credential row signs nobody in");
+        assertEquals("Invalid email or password", login.message(), "and it does not say why");
+        accountRepo.delete(id);
+    }
+
+    /** G4: the one method behind every token refuses to create while it still rotates. */
+    @Test
+    @Order(98)
+    void passwordlessModeRefusesToMintButStillRotates() throws Exception {
+        var service = passwordlessService();
+
+        // A legacy member who still holds a password recovers as they always did.
+        String legacyEmail = "pwless-legacy-" + java.util.UUID.randomUUID() + "@test.com";
+        var legacy = accountRepo.create(legacyEmail, "Leg", "Acy", true);
+        accountRepo.createCredential(legacy.id(), new PasswordHasher().hash("OldPassword1!"));
+        accountRepo.createToken(
+                legacy.id(),
+                "pwless-rotate-token",
+                TokenType.RESET_PASSWORD,
+                Instant.now().plus(1, ChronoUnit.HOURS));
+        assertEquals(
+                AuthService.SetPasswordOutcome.OK,
+                service.setPassword("pwless-rotate-token", "ANewPassword1!"),
+                "rotating what already exists stays open until that password is retired");
+
+        // An account that never had one is told to be onboarded again instead.
+        String freshEmail = "pwless-fresh-" + java.util.UUID.randomUUID() + "@test.com";
+        var fresh = accountRepo.create(freshEmail, "Fre", "Sh", true);
+        accountRepo.createToken(
+                fresh.id(),
+                "pwless-mint-token",
+                TokenType.SET_PASSWORD,
+                Instant.now().plus(1, ChronoUnit.HOURS));
+        assertEquals(
+                AuthService.SetPasswordOutcome.PASSWORDLESS_MODE,
+                service.setPassword("pwless-mint-token", "ANewPassword1!"),
+                "no reachable path mints a password on a passwordless instance");
+        assertTrue(accountRepo.findCredential(fresh.id()).isEmpty());
+
+        // The guardian's door refuses the same way.
+        assertEquals(
+                AuthService.SetPasswordOutcome.PASSWORDLESS_MODE,
+                service.setPasswordFor(accountRepo.findById(fresh.id()).orElseThrow(), "ANewPassword1!"));
+
+        accountRepo.delete(legacy.id());
+        accountRepo.delete(fresh.id());
     }
 
     @Test
