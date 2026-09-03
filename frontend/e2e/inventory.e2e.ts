@@ -223,12 +223,14 @@ test.describe('Inventory', () => {
     test('equipment is asked for from a partner station', async ({managerPage: page}) => {
         await page.goto('/station/inventory/lending')
 
-        // The offers and the requests each have a tab of their own, and the tab for requests carries
-        // the same word as the button that sends one - so the button is the later of the two.
         await page.getByRole('button', {name: 'Angebote'}).click()
 
-        const offer = page.getByRole('button', {name: 'Anfragen'}).last()
-        await expect(offer).toBeVisible()
+        // The tab for requests carries the same word as the button that asks for an offer, so
+        // picking the later of the two was picking whichever there happened to be: with no offer on
+        // screen the tab itself was clicked, which switches tabs and navigates nowhere, and the
+        // story then waited a minute for a page it had never asked for.
+        const offer = page.getByTestId('lending-offer-request').first()
+        await expect(offer, 'a partner station offers something to ask for').toBeVisible()
         await offer.click()
         await page.waitForURL(/\/station\/inventory\/lending\/request\/new/)
 

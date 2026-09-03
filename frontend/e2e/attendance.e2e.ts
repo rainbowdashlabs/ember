@@ -62,6 +62,32 @@ test.describe('Attendance', () => {
             expect(Array.isArray(note.swaps)).toBe(true)
             expect(Array.isArray(note.foundItems)).toBe(true)
         }
+
+        // The demo leaves one member a swap whose replacement is at the station and a found item they
+        // have claimed, which is what makes both kinds of note reachable from here.
+        expect(
+            notes.some((note: {swaps: {handOverNext: boolean}[]}) => note.swaps.some(swap => swap.handOverNext)),
+            'somebody is owed a piece that can be handed over',
+        ).toBe(true)
+        expect(
+            notes.some((note: {foundItems: unknown[]}) => note.foundItems.length > 0),
+            'somebody has claimed a found item and not collected it',
+        ).toBe(true)
+    })
+
+    /**
+     * The notes are what the check is for, so one has to be readable where the walk puts it. The
+     * story finds the member the demo leaves a waiting handover on and looks at their row.
+     */
+    test('a member owed a piece is told so on the sheet', async ({managerPage: page}) => {
+        await page.goto('/station/attendance/new')
+        await page.getByRole('button', {name: 'Erstellen'}).first().click()
+        await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+
+        const notes = page.getByTestId('member-check-notes')
+        await expect(notes.first()).toBeVisible()
+        await expect(page.getByTestId('note-swap').first()).toBeVisible()
+        await expect(page.getByTestId('note-swap-hand-over').first()).toBeVisible()
     })
 
     /**
