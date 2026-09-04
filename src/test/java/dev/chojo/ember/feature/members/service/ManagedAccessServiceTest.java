@@ -49,6 +49,7 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
 
     private static ManagedAccessService service;
     private static AuthService authService;
+    private static dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService enrollmentService;
     private static ManagedLoginNoticeRepository noticeRepo;
     private static Station station;
     private static Account guardianAccount;
@@ -84,7 +85,7 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
                         accountRepo,
                         new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
                         mock(EmailService.class)),
-                mock(dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService.class));
+                enrollmentService = mock(dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService.class));
 
         station = stationRepo.create("Managed Access Station");
         guardianAccount = accountRepo.create("guardian@test.com", "Petra", "Sommer");
@@ -266,5 +267,28 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
         } finally {
             stationMemberRepo.setUserType(child.id(), StationUserType.MEMBER);
         }
+    }
+
+    @Test
+    void theGuardianGetsAPasskeyCodeOnlyForAnAddresslessChild() {
+        var issued = new dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService.IssuedCode(
+                "CODE1234", "png", java.time.Instant.now());
+        org.mockito.Mockito.when(enrollmentService.issueCodeWithQr(
+                        org.mockito.ArgumentMatchers.eq(childAccount.id()), any(), any(), any(), any()))
+                .thenReturn(issued);
+
+        assertEquals(
+                "CODE1234",
+                service.issuePasskeyCode(guardian.id(), child.id(), guardianAccount.id(), "ua", null)
+                        .code());
+
+        service.revokePasskeyCode(guardian.id(), child.id());
+        org.mockito.Mockito.verify(enrollmentService).revokeCode(childAccount.id());
+
+        // With an address of their own the mail path is theirs, and the button is refused.
+        service.setEmail(guardian.id(), child.id(), "lena-passkey@example.org");
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> service.issuePasskeyCode(guardian.id(), child.id(), guardianAccount.id(), "ua", null));
     }
 }

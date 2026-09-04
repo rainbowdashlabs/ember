@@ -187,4 +187,40 @@ class PasskeyAccountServiceTest extends RepositoryTestBase {
         int optionalMode = newAccount("offer4-" + UUID.randomUUID() + "@test.com");
         assertFalse(serviceInMode("OPTIONAL").shouldOffer(optionalMode), "OPTIONAL suggests nothing to anybody");
     }
+
+    @Test
+    void renamingTakesAFittingLabelAndOnlyTheOwnPasskey() throws Exception {
+        var service = serviceInMode("OPTIONAL");
+        int accountId = newAccount("rename-" + UUID.randomUUID() + "@test.com");
+        int factorId = createPasskey(accountId, false);
+
+        assertTrue(service.rename(accountId, factorId, "Handy"));
+        assertFalse(service.rename(accountId, factorId, "  "), "a blank label names nothing");
+        assertFalse(service.rename(accountId, factorId, "x".repeat(65)), "a novel is not a label");
+        assertFalse(service.rename(accountId + 1, factorId, "Fremd"), "another account's passkey is out of reach");
+    }
+
+    @Test
+    void theSwitchesAnswerForTheirPreconditions() throws Exception {
+        var service = serviceInMode("PREFERRED");
+        int accountId = newAccount("switches-" + UUID.randomUUID() + "@test.com");
+        accountRepo.createCredential(accountId, "hash");
+        createPasskey(accountId, true);
+
+        assertTrue(service.mayDisablePasswordLogin(accountId));
+        assertFalse(serviceInMode("OPTIONAL").mayDisablePasswordLogin(accountId), "the mode gates the switch");
+
+        int unreachable = newAccount("switches2-" + UUID.randomUUID() + "@family.local");
+        accountRepo.createCredential(unreachable, "hash");
+        createPasskey(unreachable, true);
+        assertFalse(service.mayDisablePasswordLogin(unreachable), "no reachable address, no switch");
+
+        assertTrue(service.setAskWithPassword(accountId, true));
+        assertFalse(
+                twoFactorRepo
+                        .findActiveSecondFactorWebAuthnForAccount(accountId)
+                        .isEmpty(),
+                "asking with the password makes the passkey count as a second factor");
+        assertTrue(service.setAskWithPassword(accountId, false));
+    }
 }

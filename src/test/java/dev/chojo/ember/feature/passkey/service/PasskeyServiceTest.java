@@ -116,6 +116,114 @@ class PasskeyServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void creationRunsToTheEndAndRecordsTheCredential() {
+        int accountId = newAccount();
+        var authenticator = new TestAuthenticator();
+        var start = service.startCreation(accountId, "pk@test.com", "PK User");
+
+        var factor = service.finishCreation(
+                        accountId,
+                        start.challengeToken(),
+                        authenticator.register(start.optionsJson()),
+                        "Handy",
+                        "ua",
+                        null)
+                .orElseThrow();
+
+        assertEquals("Handy", factor.label());
+        var stored = twoFactorRepo.findActiveSecondFactorWebAuthnForAccount(accountId);
+        assertTrue(stored.isEmpty(), "a fresh passkey is not a second factor");
+        assertTrue(twoFactorRepo.hasSignInPasskey(accountId));
+    }
+
+    @Test
+    void theWholeSignInRunsAgainstTheRealVerification() {
+        int accountId = newAccount();
+        var authenticator = new TestAuthenticator();
+        var creation = service.startCreation(accountId, "pk@test.com", "PK User");
+        service.finishCreation(
+                        accountId,
+                        creation.challengeToken(),
+                        authenticator.register(creation.optionsJson()),
+                        null,
+                        "ua",
+                        null)
+                .orElseThrow();
+
+        var signIn = service.startSignIn();
+        var resolved =
+                service.finishSignIn(signIn.challengeToken(), authenticator.sign(signIn.optionsJson()), "ua", null);
+
+        assertEquals(accountId, resolved.orElseThrow(), "the user handle resolves the account");
+    }
+
+    @Test
+    void theTrialProvesTheOwnPasskeyAndNamesAForeignOne() {
+        int owner = newAccount();
+        var authenticator = new TestAuthenticator();
+        var creation = service.startCreation(owner, "pk@test.com", "PK User");
+        service.finishCreation(
+                        owner,
+                        creation.challengeToken(),
+                        authenticator.register(creation.optionsJson()),
+                        null,
+                        "ua",
+                        null)
+                .orElseThrow();
+
+        var trial = service.startTrial(owner);
+        assertEquals(
+                PasskeyService.TrialOutcome.OK,
+                service.finishTrial(owner, trial.challengeToken(), authenticator.sign(trial.optionsJson())));
+
+        // On a shared family device the picker shows a sibling's passkey too; picking it is one
+        // mistap and earns its own answer rather than a bare failure.
+        int sibling = newAccount();
+        var siblingTrial = service.startTrial(sibling);
+        assertEquals(
+                PasskeyService.TrialOutcome.FOREIGN_CREDENTIAL,
+                service.finishTrial(
+                        sibling, siblingTrial.challengeToken(), authenticator.sign(siblingTrial.optionsJson())));
+    }
+
+    @Test
+    void theStepUpAcceptsTheOwnPasskey() {
+        int accountId = newAccount();
+        var authenticator = new TestAuthenticator();
+        var creation = service.startCreation(accountId, "pk@test.com", "PK User");
+        service.finishCreation(
+                        accountId,
+                        creation.challengeToken(),
+                        authenticator.register(creation.optionsJson()),
+                        null,
+                        "ua",
+                        null)
+                .orElseThrow();
+
+        var stepUp = service.startStepUp(accountId);
+        assertTrue(service.finishStepUp(accountId, stepUp.challengeToken(), authenticator.sign(stepUp.optionsJson())));
+    }
+
+    @Test
+    void creationRefusesACeremonyOverTheWrongChallenge() {
+        int accountId = newAccount();
+        var authenticator = new TestAuthenticator();
+        var start = service.startCreation(accountId, "pk@test.com", "PK User");
+        var stranger = service.startCreation(accountId, "pk@test.com", "PK User");
+
+        // Answered against the second ceremony's challenge but spent at the first: the library's
+        // verification is what says no.
+        assertTrue(service.finishCreation(
+                        accountId,
+                        start.challengeToken(),
+                        authenticator.register(stranger.optionsJson()),
+                        null,
+                        "ua",
+                        null)
+                .isEmpty());
+    }
+
+    @Test
     void signInRefusesUnknownChallenge() {
         assertTrue(service.finishSignIn("no-such-token", PARSEABLE_ASSERTION, "ua", null)
                 .isEmpty());
@@ -257,5 +365,137 @@ class PasskeyServiceTest extends RepositoryTestBase {
         assertNotNull(
                 twoFactorRepo.findActiveFactors(accountId).getFirst().lastUsedAt(),
                 "a sign-in must stamp the factor as used");
+    }
+
+    @Test
+    void theEnrolmentFinishesRefuseAnUnknownChallenge() {
+        int accountId = newAccount();
+        assertTrue(service.finishDeviceEnrollment(accountId, "no-such-token", "{}", "ua", null)
+                .isEmpty());
+        assertTrue(service.finishTokenEnrollment(accountId, "no-such-token", "{}", null)
+                .isEmpty());
+    }
+
+    @Test
+    void garbledStoredOptionsFailClosed() {
+        int accountId = newAccount();
+        String creation = "garbled-reg-" + accountId;
+        challengeRepo.create(
+                creation,
+                ChallengePurpose.REGISTRATION,
+                accountId,
+                "not-json",
+                java.time.Instant.now().plusSeconds(60));
+        assertTrue(service.finishCreation(accountId, creation, "{}", null, "ua", null)
+                .isEmpty());
+
+        String signIn = "garbled-signin-" + accountId;
+        challengeRepo.create(
+                signIn,
+                ChallengePurpose.PASSKEY_SIGN_IN,
+                null,
+                "not-json",
+                java.time.Instant.now().plusSeconds(60));
+        assertTrue(service.finishSignIn(signIn, PARSEABLE_ASSERTION, "ua", null).isEmpty());
+    }
+
+    @Test
+    void aCeremonyWithoutUserVerificationIsRefused() {
+        int accountId = newAccount();
+        var authenticator = new TestAuthenticator();
+        var start = service.startCreation(accountId, "pk@test.com", "PK User");
+
+        assertTrue(
+                service.finishCreation(
+                                accountId,
+                                start.challengeToken(),
+                                authenticator.register(start.optionsJson(), false),
+                                null,
+                                "ua",
+                                null)
+                        .isEmpty(),
+                "a passkey made without a fingerprint would sign in without one too");
+    }
+
+    @Test
+    void anAssertionThatIsNotEvenJsonFailsClosed() {
+        var start = service.startSignIn();
+        assertTrue(service.finishSignIn(start.challengeToken(), "not-json", "ua", null)
+                .isEmpty());
+    }
+
+    @Test
+    void anAssertionOverTheWrongChallengeIsRefused() {
+        int accountId = newAccount();
+        var authenticator = new TestAuthenticator();
+        var creation = service.startCreation(accountId, "pk@test.com", "PK User");
+        service.finishCreation(
+                        accountId,
+                        creation.challengeToken(),
+                        authenticator.register(creation.optionsJson()),
+                        null,
+                        "ua",
+                        null)
+                .orElseThrow();
+
+        var spent = service.startSignIn();
+        var other = service.startSignIn();
+        assertTrue(
+                service.finishSignIn(spent.challengeToken(), authenticator.sign(other.optionsJson()), "ua", null)
+                        .isEmpty(),
+                "an answer to one challenge must not clear another");
+    }
+
+    @Test
+    void anAcceptedCredentialThatIsNotOnFileFailsClosed() throws Exception {
+        RelyingParty spied = spy(realParties.passkey());
+        AssertionResult verified = mock(AssertionResult.class);
+        when(verified.isSuccess()).thenReturn(true);
+        when(verified.isUserVerified()).thenReturn(true);
+        when(verified.getCredential())
+                .thenReturn(RegisteredCredential.builder()
+                        .credentialId(new ByteArray("never-stored".getBytes()))
+                        .userHandle(new ByteArray(new byte[64]))
+                        .publicKeyCose(new ByteArray(new byte[] {1}))
+                        .signatureCount(1)
+                        .build());
+        doReturn(verified).when(spied).finishAssertion(any());
+        PasskeyService spiedService = serviceWith(spied);
+
+        var start = spiedService.startSignIn();
+        assertTrue(spiedService
+                .finishSignIn(start.challengeToken(), PARSEABLE_ASSERTION, "ua", null)
+                .isEmpty());
+    }
+
+    @Test
+    void aTrialOverASecondFactorKeyIsRefusedWithItsOwnReason() {
+        // A discoverable security key answers the trial's ceremony; the flag on the stored row
+        // is what refuses it, because "beim naechsten Mal genau so" would be a lie.
+        int accountId = newAccount();
+        var authenticator = new TestAuthenticator();
+        var factor = twoFactorRepo.createFactor(accountId, TwoFactorKind.WEBAUTHN, "Key");
+        byte[] userHandle = new byte[64];
+        userHandle[0] = 11;
+        userHandle[1] = (byte) factor.id();
+        authenticator.useHandle(userHandle);
+        twoFactorRepo.createWebAuthn(
+                factor.id(),
+                authenticator.credentialId(),
+                authenticator.coseKey(),
+                0,
+                null,
+                List.of("usb"),
+                "none",
+                userHandle,
+                false,
+                true,
+                true,
+                true);
+
+        var trial = service.startTrial(accountId);
+        assertEquals(
+                PasskeyService.TrialOutcome.FAILED,
+                service.finishTrial(accountId, trial.challengeToken(), authenticator.sign(trial.optionsJson())));
     }
 }

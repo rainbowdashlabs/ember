@@ -130,4 +130,101 @@ class PasskeyRepositoryTest extends RepositoryTestBase {
         repo.answerOffer(accountId, true);
         assertTrue(repo.findOfferAnswer(accountId).orElseThrow().declined());
     }
+
+    @Test
+    void theAskWithPasswordSwitchOnlyTouchesSignInCredentials() {
+        int accountId = newAccount("switch-" + UUID.randomUUID() + "@test.com");
+        int passkeyFactor = createPasskey(accountId, false);
+        var keyFactor = twoFactorRepo.createFactor(accountId, TwoFactorKind.WEBAUTHN, "Key");
+        twoFactorRepo.createWebAuthn(
+                keyFactor.id(),
+                ("sf-" + keyFactor.id()).getBytes(),
+                new byte[] {1},
+                0,
+                null,
+                List.of("usb"),
+                "none",
+                new byte[64],
+                false,
+                true,
+                null,
+                false);
+
+        assertTrue(repo.setSecondFactorForSignInPasskeys(accountId, true));
+
+        var secondFactors = twoFactorRepo.findActiveSecondFactorWebAuthnForAccount(accountId);
+        assertEquals(2, secondFactors.size(), "the passkey now counts beside the security key");
+
+        assertTrue(repo.setSecondFactorForSignInPasskeys(accountId, false));
+        var after = twoFactorRepo.findActiveSecondFactorWebAuthnForAccount(accountId);
+        assertEquals(1, after.size(), "the security key's flag was never this switch's to change");
+        assertEquals(keyFactor.id(), after.getFirst().factorId());
+        assertTrue(twoFactorRepo.hasSignInPasskey(accountId), "factor " + passkeyFactor + " stays a passkey");
+    }
+
+    @Test
+    void onboardingAgainDisablesOnlyWhatStartsASignIn() {
+        int accountId = newAccount("disable-" + UUID.randomUUID() + "@test.com");
+        createPasskey(accountId, true);
+        var keyFactor = twoFactorRepo.createFactor(accountId, TwoFactorKind.WEBAUTHN, "Key");
+        twoFactorRepo.createWebAuthn(
+                keyFactor.id(),
+                ("keep-" + keyFactor.id()).getBytes(),
+                new byte[] {1},
+                0,
+                null,
+                List.of("usb"),
+                "none",
+                new byte[64],
+                false,
+                true,
+                null,
+                false);
+
+        assertEquals(1, repo.disableSignInPasskeys(accountId));
+
+        assertFalse(twoFactorRepo.hasSignInPasskey(accountId));
+        assertEquals(
+                1,
+                twoFactorRepo
+                        .findActiveSecondFactorWebAuthnForAccount(accountId)
+                        .size(),
+                "the member may still know their security key perfectly well");
+    }
+
+    @Test
+    void retireEligibleMeansAPasswordWithAnExercisedPasskeyBesideIt() {
+        int eligible = newAccount("retire1-" + UUID.randomUUID() + "@test.com");
+        accountRepo.createCredential(eligible, "hash");
+        createPasskey(eligible, true);
+
+        int untried = newAccount("retire2-" + UUID.randomUUID() + "@test.com");
+        accountRepo.createCredential(untried, "hash");
+        createPasskey(untried, false);
+
+        var listed = repo.listRetireEligibleAccounts();
+        assertTrue(listed.contains(eligible));
+        assertFalse(listed.contains(untried), "an untried passkey holds no rope yet");
+    }
+
+    @Test
+    void theResidueListsThePasswordHoldersWhoCannotMoveYet() {
+        int stuck = newAccount("residue-" + UUID.randomUUID() + "@test.com");
+        accountRepo.createCredential(stuck, "hash");
+
+        int moved = newAccount("moved-" + UUID.randomUUID() + "@test.com");
+        accountRepo.createCredential(moved, "hash");
+        createPasskey(moved, true);
+
+        var residue = repo.listResidue();
+        var entry = residue.stream()
+                .filter(row -> row.accountId() == stuck)
+                .findFirst()
+                .orElseThrow();
+        assertTrue(entry.reachable(), "a test.com address is one mail can reach");
+        assertFalse(entry.hasGuardian());
+        assertTrue(
+                residue.stream().noneMatch(row -> row.accountId() == moved),
+                "an exercised passkey takes the account off the list");
+    }
 }

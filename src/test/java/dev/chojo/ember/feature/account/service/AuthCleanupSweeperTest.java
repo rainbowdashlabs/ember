@@ -22,10 +22,8 @@ class AuthCleanupSweeperTest extends RepositoryTestBase {
     @Test
     void sweepRemovesExpiredTokensSessionsAndChallenges() {
         var challengeRepo = new WebAuthnChallengeRepository(TokenHasher.forTesting("repository-test-pepper"));
-        var sweeper = new AuthCleanupSweeper(
-                accountRepo,
-                challengeRepo,
-                new dev.chojo.ember.feature.passkey.repository.PasskeyDeviceRequestRepository());
+        var deviceRequestRepo = new dev.chojo.ember.feature.passkey.repository.PasskeyDeviceRequestRepository();
+        var sweeper = new AuthCleanupSweeper(accountRepo, challengeRepo, deviceRequestRepo);
 
         int accountId = accountRepo
                 .create("sweeper-" + UUID.randomUUID() + "@test.com", "Sweep", "Er", true)
@@ -46,7 +44,14 @@ class AuthCleanupSweeperTest extends RepositoryTestBase {
         String expiredChallenge = "expired-challenge-" + UUID.randomUUID();
         challengeRepo.create(expiredChallenge, ChallengePurpose.REGISTRATION, accountId, "{}", past);
 
+        String expiredPollSecret = "expired-poll-" + UUID.randomUUID();
+        deviceRequestRepo.create("code-hash-" + UUID.randomUUID(), expiredPollSecret, "ua", null, past);
+
         sweeper.sweep();
+
+        assertTrue(
+                deviceRequestRepo.findByPollSecret(expiredPollSecret).isEmpty(),
+                "the sweep must take the expired device request");
 
         assertTrue(accountRepo.findToken(expiredToken).isEmpty(), "the sweep must take the expired token");
         assertTrue(accountRepo.findToken(liveToken).isPresent(), "the sweep must not touch a live token");
