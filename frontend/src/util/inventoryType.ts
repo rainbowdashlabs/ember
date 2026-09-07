@@ -5,6 +5,7 @@
  */
 import type {Component} from 'vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import {InventoryTypes} from '@/api/inventory'
@@ -50,11 +51,15 @@ export function inventoryTypeBadge(type?: string | null): Component {
  * piece is the half that decides where it goes and who has to confirm it.
  */
 export function itemOwnerBadge(ownerKind?: string | null): Component {
-    return ownerKind === 'STATION' ? InfoBadge : SecondaryBadge
+    if (ownerKind === 'STATION') return InfoBadge
+    if (ownerKind === 'PARTNER_STATION') return PrimaryBadge
+    return SecondaryBadge
 }
 
-/** What to call that owner: the station itself, or the body above it. */
+/** What to call that owner: the station itself, the body above it, or a partner it borrowed from. */
 export function itemOwnerLabel(t: InventoryTypeTranslator, ownerKind?: string | null): string {
     if (!ownerKind) return ''
-    return ownerKind === 'STATION' ? t('inventory.edit.ownerStation') : t('inventory.edit.ownerCluster')
+    if (ownerKind === 'STATION') return t('inventory.edit.ownerStation')
+    if (ownerKind === 'PARTNER_STATION') return t('inventory.edit.ownerPartner')
+    return t('inventory.edit.ownerCluster')
 }

@@ -171,3 +171,44 @@ export async function getLossReportSettings(): Promise<LossReportSettings> {
 export async function setLossReportSettings(requires: LossReportRequirementName): Promise<void> {
     await client.put('/cluster/inventory/loss-report', {requires})
 }
+
+/**
+ * A word an association recommends to the stations under it.
+ *
+ * It stands beside what a station already calls its things and never replaces it: both are compared
+ * trimmed and without regard to case, so the two rows are one word already.
+ */
+export interface ClusterInventoryTag {
+    id: number
+    name: string
+    color?: string | null
+    position: number
+    /** The group of stations it is meant for, or null for every station under the association. */
+    stationGroupId?: number | null
+}
+
+export interface ClusterInventoryTagRequest {
+    name: string
+    color?: string | null
+    position: number
+    stationGroupId?: number | null
+}
+
+export async function listTags(): Promise<ClusterInventoryTag[]> {
+    const res = await client.get<ClusterInventoryTag[]>('/cluster/inventory-tags')
+    return res.data
+}
+
+export async function createTag(body: ClusterInventoryTagRequest): Promise<ClusterInventoryTag> {
+    const res = await client.post<ClusterInventoryTag>('/cluster/inventory-tags', body)
+    return res.data
+}
+
+export async function updateTag(tagId: number, body: ClusterInventoryTagRequest): Promise<ClusterInventoryTag> {
+    const res = await client.put<ClusterInventoryTag>(`/cluster/inventory-tags/${tagId}`, body)
+    return res.data
+}
+
+export async function deleteTag(tagId: number): Promise<void> {
+    await client.delete(`/cluster/inventory-tags/${tagId}`)
+}

@@ -140,7 +140,8 @@ public class BoardTicketDetailRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CommentRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void updateComment(Context ctx) {
-        int commentId = requireOwnedComment(ctx);
+        UserSession session = UserSession.from(ctx);
+        int commentId = requireCommentOn(ctx, guards.editableTicketId(ctx, session));
         var req = ctx.bodyAsClass(CommentRequest.class);
         ticketService.updateComment(commentId, req.content());
         ctx.status(HttpStatus.OK);
@@ -158,7 +159,9 @@ public class BoardTicketDetailRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void deleteComment(Context ctx) {
-        ticketService.deleteComment(requireOwnedComment(ctx));
+        UserSession session = UserSession.from(ctx);
+        int ticketId = guards.editableTicketId(ctx, session);
+        ticketService.deleteComment(ticketId, requireCommentOn(ctx, ticketId));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -380,12 +383,11 @@ public class BoardTicketDetailRoutes implements Routes {
     }
 
     /**
-     * Resolves the comment named by the {@code commentId} path parameter, asserting the caller may
-     * edit the board and that the comment belongs to the addressed ticket.
+     * Reads the comment named by the {@code commentId} path parameter after asserting it belongs to
+     * the addressed ticket. Whether the caller may edit that ticket is settled by the guard that
+     * resolved it.
      */
-    private int requireOwnedComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int ticketId = guards.editableTicketId(ctx, session);
+    private int requireCommentOn(Context ctx, int ticketId) {
         int commentId = pathInt(ctx, "commentId");
         if (ticketService.findComments(ticketId).stream().noneMatch(c -> c.id() == commentId)) {
             throw new NotFoundResponse();

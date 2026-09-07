@@ -28,6 +28,17 @@ const reporter = createReporter()
 /** Built from its code point so this file does not trip over itself. */
 const EM_DASH = String.fromCharCode(0x2014)
 
+/**
+ * The names markup gives the same character, assembled here for the same reason.
+ *
+ * <p>A page can name the dash instead of carrying it, and it then reaches the reader as the dash
+ * while the file itself holds none. A check that looks only for the character passes such a page,
+ * which is how seventeen of them gathered before anybody noticed.
+ */
+const ENTITIES = ['mdash', '#8212', '#x2014', '#X2014'].map(name => `&${name};`)
+
+const SPELLINGS = [EM_DASH, ...ENTITIES]
+
 /** What is scanned inside the frontend, which is always present. */
 const FRONTEND_EXTENSIONS = ['.ts', '.vue', '.js', '.mjs']
 
@@ -48,13 +59,16 @@ const REPO_ROOT = new URL('../..', import.meta.url).pathname
 function check(file) {
     const lines = readFileSync(file, 'utf-8').split('\n')
     for (let i = 0; i < lines.length; i++) {
-        const column = lines[i].indexOf(EM_DASH)
-        if (column === -1) continue
-        reporter.error(
-            file,
-            i + 1,
-            `Em dash at column ${column + 1}. Use a comma, a colon, parentheses, a full stop or a spaced hyphen instead.`,
-        )
+        for (const spelling of SPELLINGS) {
+            const column = lines[i].indexOf(spelling)
+            if (column === -1) continue
+            reporter.error(
+                file,
+                i + 1,
+                `Em dash at column ${column + 1}. Use a comma, a colon, parentheses, a full stop or a spaced hyphen instead.`,
+            )
+            break
+        }
     }
 }
 

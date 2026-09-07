@@ -70,7 +70,7 @@ class KbContentServiceTest extends RepositoryTestBase {
         assertTrue(service.findVersion(fileId, 1).isPresent());
         assertTrue(service.findVersion(fileId, 99).isEmpty());
 
-        knowledgeBaseRepo.deleteFile(fileId);
+        knowledgeBaseRepo.purgeFile(fileId);
     }
 
     /**
@@ -89,7 +89,7 @@ class KbContentServiceTest extends RepositoryTestBase {
         assertEquals("# Version 2", service.reconstructVersion(fileId, 2).orElseThrow());
         assertEquals(3, service.findVersions(fileId).size());
 
-        knowledgeBaseRepo.deleteFile(fileId);
+        knowledgeBaseRepo.purgeFile(fileId);
     }
 
     /**
@@ -107,7 +107,7 @@ class KbContentServiceTest extends RepositoryTestBase {
         assertEquals("# Original", service.getMarkdownContent(fileId).orElseThrow());
         assertEquals(3, service.findVersions(fileId).size());
 
-        knowledgeBaseRepo.deleteFile(fileId);
+        knowledgeBaseRepo.purgeFile(fileId);
     }
 
     @Test
@@ -133,7 +133,7 @@ class KbContentServiceTest extends RepositoryTestBase {
         int fileId = createFile("Empty");
         service.storeText(fileId, "");
         assertEquals("", service.getMarkdownContent(fileId).orElseThrow());
-        knowledgeBaseRepo.deleteFile(fileId);
+        knowledgeBaseRepo.purgeFile(fileId);
     }
 
     /**
@@ -153,7 +153,7 @@ class KbContentServiceTest extends RepositoryTestBase {
         service.storeExtractedText(fileId, "extracted body");
         assertEquals("extracted body", service.getMarkdownContent(fileId).orElseThrow());
 
-        knowledgeBaseRepo.deleteFile(fileId);
+        knowledgeBaseRepo.purgeFile(fileId);
     }
 
     @Test
@@ -167,7 +167,7 @@ class KbContentServiceTest extends RepositoryTestBase {
         assertEquals(
                 "application/octet-stream", service.getFileContentType(fileId).orElseThrow());
 
-        knowledgeBaseRepo.deleteFile(fileId);
+        knowledgeBaseRepo.purgeFile(fileId);
     }
 
     @Test

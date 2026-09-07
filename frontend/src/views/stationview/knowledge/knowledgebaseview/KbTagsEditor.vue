@@ -12,6 +12,11 @@ import TextInput from '@/components/input/text/TextInput.vue'
 
 const {t} = useI18n()
 
+defineProps<{
+    /** Names the list, for the places that hold more than one of these at once. */
+    label?: string
+}>()
+
 const modelValue = defineModel<string[]>({required: true})
 
 const newTag = ref('')
@@ -30,7 +35,7 @@ function removeTag(tag: string) {
 
 <template>
     <div class="space-y-2 border-t border-bg-light-accent dark:border-bg-dark-accent pt-3">
-        <label class="text-sm font-semibold">{{ t('kb.tags') }}</label>
+        <label class="text-sm font-semibold">{{ label ?? t('kb.tags') }}</label>
         <div class="flex flex-wrap gap-1.5">
             <span v-for="tag in modelValue" :key="tag"
                   class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-[var(--bg-accent)] text-[var(--text)]">

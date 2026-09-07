@@ -11,6 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -42,6 +43,7 @@ const {t} = useI18n()
             <font-awesome-icon :icon="['fas', 'copy']"/>
             {{ t('federation.copyToStation') }}
           </PrimaryButton>
+          <IconButton :icon="['fas', 'ellipsis-vertical']" :label="t('common.actions')" disabled/>
         </div>
         <StationBadge station-name="Wache Nordstadt"/>
         <MutedText tag="p" size="sm">Ablauf und Ausrüstung für den Höhenrettungseinsatz.</MutedText>

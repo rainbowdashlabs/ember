@@ -60,7 +60,7 @@ const incompleteFields = computed(() => {
     const cfg = parseFieldConfig(f.config)
     if (!cfg.required || cfg.readonly) return false
     const val = getValue(f.id)
-    return !val || val === '""' || val === ''
+    return !val || val === '""' || val === '' || val === 'null'
   })
 })
 

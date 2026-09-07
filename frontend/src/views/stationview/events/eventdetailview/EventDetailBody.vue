@@ -14,13 +14,15 @@ import EventCancelModal from './EventCancelModal.vue'
 import EventRegistrationsTab from './EventRegistrationsTab.vue'
 import EventDetailHeader from './EventDetailHeader.vue'
 import EventInfoTab from './EventInfoTab.vue'
+import EventEquipmentTab from './EventEquipmentTab.vue'
 import EventRegistrationActions from '../eventshared/EventRegistrationActions.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {AbsentMember, EventField, EventRegistrationEntry, StationEvent} from '@/api/events'
-import type {StationMember} from '@/api/types'
+import {isRecurringEvent, type AbsentMember, type EventField, type EventRegistrationEntry, type StationEvent} from '@/api/events'
+import {StationModules, StationPermission, type StationMember} from '@/api/types'
 import {formatDateTime} from '@/util/format'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
+import {useSession} from '@/composables/useSession'
 
 const props = defineProps<{
   event: StationEvent
@@ -56,9 +58,24 @@ const emit = defineEmits<{
 
 const answers = computed(() => localAnswers(props.registrableMembers, props.myRegistrations))
 
-const {t} = useI18n()
+/**
+ * Who the station has today. Read from the same list the info tab names people from, which holds
+ * current members only, so anybody who has since left is absent from it by construction.
+ */
+const currentMemberIds = computed(() => props.allMembers.map(member => member.id))
 
-const activeTab = ref<'info' | 'registrations'>('info')
+const {t} = useI18n()
+const {isModuleEnabled} = useSession()
+
+const activeTab = ref<'info' | 'registrations' | 'equipment'>('info')
+
+/**
+ * Whether what the appointment needs can be read at all. The gear lives in the inventory, so a
+ * station that has switched it off has nothing to show, and somebody who may not read it is refused
+ * by the server: either way the tab would only stand for an answer nobody can get.
+ */
+const canReadEquipment = computed(() =>
+    isModuleEnabled(StationModules.INVENTORY) && props.hasPermission(StationPermission.INVENTORY_READ))
 
 /**
  * What the second tab is called, which follows what the appointment asks of people.
@@ -70,6 +87,17 @@ const activeTab = ref<'info' | 'registrations'>('info')
  */
 const answerTabLabel = computed(() =>
     props.event.requiresRegistration ? t('eventDetail.tabRegistrations') : t('eventDetail.tabAttendance'))
+
+const tabs = computed(() => {
+  const entries = [
+    {key: 'info', label: t('eventDetail.tabInfo')},
+    {key: 'registrations', label: answerTabLabel.value},
+  ]
+  if (canReadEquipment.value) {
+    entries.push({key: 'equipment', label: t('eventDetail.tabEquipment')})
+  }
+  return entries
+})
 
 const showCancelModal = ref(false)
 function onCancelled() {
@@ -89,6 +117,8 @@ function onCancelled() {
     <EventDetailHeader
         :event="event"
         :can-manage-events="canManageEvents"
+        :can-write-news="hasPermission(StationPermission.NEWS_EDIT)"
+        :effective-date="effectiveDate"
         :category-name="categoryName"
         @cancel="showCancelModal = true"
     />
@@ -121,7 +151,7 @@ function onCancelled() {
       <InfoBadge v-for="days in reminders" :key="days">{{ days }} {{ t('eventEdit.daysBefore') }}</InfoBadge>
     </div>
 
-    <TabBar v-model="activeTab" :tabs="[{key: 'info', label: t('eventDetail.tabInfo')}, {key: 'registrations', label: answerTabLabel}]" />
+    <TabBar v-model="activeTab" :tabs="tabs"/>
 
     <EventInfoTab
         v-if="activeTab === 'info'"
@@ -148,7 +178,16 @@ function onCancelled() {
         :current-member-id="currentMemberId"
         :registrable-members="registrableMembers"
         :has-managed-members="hasManagedMembers"
-        :next-occurrence-date="effectiveDate"
+        :effective-date="effectiveDate"
+        :current-member-ids="currentMemberIds"
+    />
+
+    <EventEquipmentTab
+        v-if="activeTab === 'equipment' && canReadEquipment"
+        :event-id="eventId"
+        :effective-date="effectiveDate"
+        :recurring="isRecurringEvent(event.eventType)"
+        :can-edit="canManageEvents"
     />
 
     <EventCancelModal

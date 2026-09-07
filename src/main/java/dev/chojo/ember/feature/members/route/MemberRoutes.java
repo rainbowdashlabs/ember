@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
@@ -19,6 +20,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.LoginNameService;
+import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.ProvisionException;
@@ -194,7 +196,7 @@ public class MemberRoutes implements Routes {
             pathParams = @OpenApiParam(name = "accountId", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UpdateAccountRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = UpdateAccountResponse.class)),
                 @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
@@ -202,7 +204,13 @@ public class MemberRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int accountId = pathInt(ctx, "accountId");
         boolean actsForSomebodyElse = session.accountId() != accountId;
-        if (actsForSomebodyElse) {
+        // Whoever administers the instance reaches any account, and reaches it without being at the
+        // same station. The account this exists for is another administrator: one whose address
+        // cannot be written to has no way of correcting it, because the confirmation would be sent
+        // to the address being corrected, and there is no reason the person who can help them
+        // should have to be a member of their station first.
+        boolean administersInstance = session.hasInstancePermission(InstancePermission.ADMINISTRATOR);
+        if (actsForSomebodyElse && !administersInstance) {
             if (!session.hasPermission(StationPermission.MEMBER_EDIT)) {
                 throw new ForbiddenResponse("Updating another account requires the member edit permission");
             }
@@ -226,7 +234,7 @@ public class MemberRoutes implements Routes {
         }
 
         if (!emailChanged) {
-            ctx.json(new MessageResponse("Account updated"));
+            ctx.json(new UpdateAccountResponse("Account updated", null));
             return;
         }
 
@@ -239,12 +247,15 @@ public class MemberRoutes implements Routes {
             // whoever chose it, so it takes a fresh proof and never reaches upwards.
             requireNotAboveActor(existing, session);
             stepUpGuard.require(session, StepUpCategory.ACCOUNT_SECURITY);
-            accountEmailService.setEmail(accountId, request.email());
-            ctx.json(new MessageResponse("Account updated"));
+            accountEmailService.setEmailFor(session.accountId(), accountId, request.email());
+            ctx.json(new UpdateAccountResponse("Account updated", AuthService.EmailChangeResult.COMMITTED));
             return;
         }
-        authService.requestEmailChange(accountId, request.email());
-        ctx.json(new MessageResponse("Name updated. A confirmation email has been sent to the new address."));
+        var outcome = authService.requestEmailChange(accountId, request.email());
+        if (outcome == AuthService.EmailChangeResult.DUPLICATE) {
+            throw new BadRequestResponse("This email address already belongs to another account");
+        }
+        ctx.json(new UpdateAccountResponse("Account updated", outcome));
     }
 
     @OpenApi(
@@ -252,7 +263,7 @@ public class MemberRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Invite a new user to a station",
             description =
-                    "Provisions a pre-verified account and station membership immediately and sends a password setup email. An email that already belongs to an account attaches that account to the station instead.",
+                    "Provisions a pre-verified account and station membership immediately and sends a password setup email. An email that already belongs to an account attaches that account to the station instead. Leaving the email out creates a member with no address of their own, who is reached through their guardians.",
             tags = {"Members"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InviteRequest.class)),
             responses = {
@@ -262,8 +273,8 @@ public class MemberRoutes implements Routes {
             })
     private void invite(Context ctx) {
         var request = ctx.bodyAsClass(InviteRequest.class);
-        if (isBlank(request.email()) || isBlank(request.firstName()) || isBlank(request.lastName())) {
-            throw new BadRequestResponse("email, firstName, and lastName are required");
+        if (isBlank(request.firstName()) || isBlank(request.lastName())) {
+            throw new BadRequestResponse("firstName and lastName are required");
         }
 
         UserSession session = UserSession.from(ctx);
@@ -274,7 +285,8 @@ public class MemberRoutes implements Routes {
                     request.firstName(),
                     request.lastName(),
                     StationUserType.MEMBER,
-                    null);
+                    null,
+                    SetupMail.of(request.sendSetupMail()));
             ctx.status(HttpStatus.CREATED)
                     .json(new InviteResponse(
                             provisioned.accountId(),
@@ -318,7 +330,11 @@ public class MemberRoutes implements Routes {
 
     // -- Request/Response records --
 
-    public record InviteRequest(String email, String firstName, String lastName) {}
+    /**
+     * @param sendSetupMail whether the setup mail leaves with the account. Absent means it does,
+     *                      which is what inviting somebody has always done.
+     */
+    public record InviteRequest(String email, String firstName, String lastName, Boolean sendSetupMail) {}
 
     public record ResetPasswordRequest(Integer accountId, Boolean forceChange) {}
 
@@ -339,4 +355,13 @@ public class MemberRoutes implements Routes {
     public record OnboardAgainResponse(boolean mailed) {}
 
     public record PasskeyCodeResponse(String code, String qrPng, java.time.Instant expiresAt) {}
+
+    /**
+     * The answer to an account update.
+     *
+     * @param emailChange what became of an address given in the same call: {@code null} when the
+     *                    address was left alone, COMMITTED when it is already the account's, and
+     *                    WAITING when it becomes so once a link in the reader's mail is clicked
+     */
+    public record UpdateAccountResponse(String message, AuthService.EmailChangeResult emailChange) {}
 }

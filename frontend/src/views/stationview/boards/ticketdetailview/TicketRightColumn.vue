@@ -25,6 +25,7 @@ const props = defineProps<{
     ticket: BoardTicket
     lanes: BoardLane[]
     members: MemberCompletion[]
+    assignableMembers: MemberCompletion[]
     allLabels: BoardLabel[]
     ticketLabels: BoardLabel[]
     boardFields: BoardField[]
@@ -86,6 +87,7 @@ onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
             v-model:editing="editingAssignee"
             :ticket="ticket"
             :members="members"
+            :assignable-members="assignableMembers"
             :can-edit="canEdit"
             @save="emit('saveTicket')"
             @open="closeAllEditors"

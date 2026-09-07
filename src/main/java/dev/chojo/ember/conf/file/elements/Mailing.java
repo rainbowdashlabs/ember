@@ -213,15 +213,25 @@ public class Mailing {
         return props;
     }
 
+    /**
+     * What this holds, with the secrets reported as present rather than written out.
+     *
+     * <p>The configuration is logged once at start, and the log is kept in the database and read back
+     * from the administration pages. Anything printed here is therefore readable by everybody who can
+     * reach either, which no credential may be.
+     */
     @Override
     public String toString() {
         return "Mailing{" + "smtp="
-                + smtp + ", user="
-                + user + '\'' + ", password='"
-                + password + '\'' + ", senderAddress='"
+                + smtp + ", user='"
+                + user + '\'' + ", passwordConfigured="
+                + !password.isBlank() + ", apiKeyConfigured="
+                + !apiKey.isBlank() + ", webhookSecretConfigured="
+                + !webhookSecret.isBlank() + ", sweegoWebhookSecretConfigured="
+                + !sweegoWebhookSecret.isBlank() + ", senderAddress='"
                 + senderAddress + '\'' + ", senderName='"
                 + senderName + '\'' + ", properties="
-                + properties + ", dailySendLimit="
+                + properties.keySet() + ", dailySendLimit="
                 + dailySendLimit + '}';
     }
 }

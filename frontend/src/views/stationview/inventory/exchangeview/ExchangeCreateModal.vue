@@ -8,7 +8,7 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import {ExchangeStatus, type CreateExchangeRequest, type ExchangeRequestEntry} from '@/api/exchanges'
+import {stillMoving, type CreateExchangeRequest, type ExchangeRequestEntry} from '@/api/exchanges'
 import type {InventorySize} from '@/api/inventory'
 import type {StationMember} from '@/api/types'
 import type { ManagedMember } from '@/api/managedMembers'
@@ -101,11 +101,13 @@ async function loadCreateMemberItems() {
     }
     const activeExchangeItemIds = new Set(
       props.requests
-        .filter(r => r.status !== ExchangeStatus.DONE && r.itemId)
+        .filter(r => stillMoving(r.status) && r.itemId)
         .map(r => r.itemId!)
     )
+    // A piece out of a drawer of different things has nothing to be swapped for, so it is not
+    // offered here rather than being offered and then refused
     createMemberItems.value = items
-      .filter(i => !i.lostAt && !activeExchangeItemIds.has(i.id))
+      .filter(i => !i.lostAt && !activeExchangeItemIds.has(i.id) && i.inventoryHomogeneous)
       .map(i => ({ id: i.id, inventoryId: i.inventoryId, name: i.name ?? '', internalId: i.internalId ?? '', sizeId: i.sizeId ?? null, sizeName: i.sizeName ?? null, inventoryName: i.inventoryName }))
   } catch (e) {
     reportCaughtError(e, 'exchange member item listing')

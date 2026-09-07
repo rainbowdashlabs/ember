@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
+import dev.chojo.ember.feature.knowledgebase.service.KbTrashService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -44,17 +45,20 @@ public class ClusterContentService {
     private final StationRepository stationRepository;
     private final StationMemberRepository memberRepository;
     private final KnowledgeBaseService knowledgeBaseService;
+    private final KbTrashService trashService;
 
     @Inject
     public ClusterContentService(
             ClusterRepository clusterRepository,
             StationRepository stationRepository,
             StationMemberRepository memberRepository,
-            KnowledgeBaseService knowledgeBaseService) {
+            KnowledgeBaseService knowledgeBaseService,
+            KbTrashService trashService) {
         this.clusterRepository = clusterRepository;
         this.stationRepository = stationRepository;
         this.memberRepository = memberRepository;
         this.knowledgeBaseService = knowledgeBaseService;
+        this.trashService = trashService;
     }
 
     /**
@@ -183,7 +187,7 @@ public class ClusterContentService {
         int homeStationId = homeStationOf(clusterId);
         KbFile file = knowledgeBaseService.findFile(fileId).orElseThrow(() -> new NotFoundResponse("No such article"));
         if (file.stationId() != homeStationId) throw new NotFoundResponse("No such article");
-        knowledgeBaseService.deleteFile(fileId);
+        trashService.deleteFile(fileId, null);
         log.info("Cluster {} withdrew knowledge article {}", clusterId, fileId);
     }
 

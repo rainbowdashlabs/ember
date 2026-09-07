@@ -9,6 +9,11 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
 /**
  * Summary of an inventory with item and lost counts.
+ *
+ * @param artCount how many kinds are defined in the inventory, which is what a collection shows
+ *                 beside its name. It counts what is defined rather than what the pieces happen to
+ *                 carry, so a kind nobody has a piece of still counts and the loose pieces do not
+ *                 lower it
  */
 public record InventorySummary(
         int id,
@@ -16,10 +21,13 @@ public record InventorySummary(
         String name,
         InventoryType inventoryType,
         boolean hasSizes,
+        boolean homogeneous,
+        boolean borrowed,
         int itemCount,
         int lostCount,
         int procurementCount,
-        int lentOutCount) {
+        int lentOutCount,
+        int artCount) {
     public static RowMapping<InventorySummary> map() {
         return row -> new InventorySummary(
                 row.getInt("id"),
@@ -27,9 +35,12 @@ public record InventorySummary(
                 row.getString("name"),
                 row.getEnum("inventory_type", InventoryType.class),
                 row.getBoolean("has_sizes"),
+                row.getBoolean("homogeneous"),
+                row.getBoolean("borrowed"),
                 row.getInt("item_count"),
                 row.getInt("lost_count"),
                 row.getInt("procurement_count"),
-                row.getInt("lent_out_count"));
+                row.getInt("lent_out_count"),
+                row.getInt("art_count"));
     }
 }

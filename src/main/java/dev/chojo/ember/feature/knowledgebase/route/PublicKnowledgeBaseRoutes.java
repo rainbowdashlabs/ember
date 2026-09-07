@@ -315,6 +315,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         ctx.json(results.stream()
                 .filter(r -> accessService.isPubliclyVisible(
                         station.publicKbMode(), null, r.file().id()))
+                .limit(KbSearchService.RESULT_LIMIT)
                 .map(r -> new SearchResultItem(r.file(), r.snippet()))
                 .toList());
     }

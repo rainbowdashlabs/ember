@@ -17,6 +17,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import RegistrationsPanelHeader from './RegistrationsPanelHeader.vue'
 import RegistrationStatsTable from './RegistrationStatsTable.vue'
 import RegistrationFieldAnswers from './RegistrationFieldAnswers.vue'
 import MemberPicker, {type PickableMember} from '@/views/stationview/members/MemberPicker.vue'
@@ -131,7 +132,10 @@ function statusLabel(status: string): string {
 
 <template>
   <NeutralContainer v-if="registrations.length > 0 || canRegisterOthers || !event.requiresRegistration" class="space-y-4">
-    <SubHeader>{{ event.requiresRegistration ? t('eventDetail.registrations') : t('eventDetail.attendanceTitle') }}</SubHeader>
+    <RegistrationsPanelHeader
+        :title="event.requiresRegistration ? t('eventDetail.registrations') : t('eventDetail.attendanceTitle')">
+      <slot name="header-actions"/>
+    </RegistrationsPanelHeader>
 
     <template v-if="!event.requiresRegistration">
       <MutedText size="sm" tag="p">{{ t('eventDetail.attendanceHint') }}</MutedText>

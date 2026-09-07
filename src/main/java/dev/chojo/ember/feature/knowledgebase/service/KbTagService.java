@@ -65,6 +65,72 @@ public class KbTagService {
     }
 
     /**
+     * Gives a file tags without touching the ones it already carries.
+     *
+     * <p>The counterpart of {@link #setFileTags(int, List, int)}, which replaces the whole list.
+     * Setting is what a reader editing one entry means; adding is what a reader marking twenty
+     * means, and using the setting form for that would strip every other tag off all twenty.
+     *
+     * @param fileId    the file to tag
+     * @param tagNames  the tag names to add, blank ones ignored
+     * @param stationId the station the tags belong to
+     */
+    public void addFileTags(int fileId, List<String> tagNames, int stationId) {
+        for (String name : tagNames) {
+            if (name == null || name.isBlank()) continue;
+            repository.addFileTag(
+                    fileId, repository.findOrCreateTag(stationId, name.trim()).id());
+        }
+    }
+
+    /**
+     * Takes tags off a file, leaving the ones not named alone.
+     *
+     * @param fileId    the file
+     * @param tagNames  the tag names to drop, names the station does not know ignored
+     * @param stationId the station the tags belong to
+     */
+    public void removeFileTags(int fileId, List<String> tagNames, int stationId) {
+        for (String name : tagNames) {
+            if (name == null || name.isBlank()) continue;
+            repository
+                    .findTagByName(stationId, name.trim())
+                    .ifPresent(tag -> repository.removeFileTag(fileId, tag.id()));
+        }
+    }
+
+    /**
+     * Gives a folder tags without touching the ones it already carries.
+     *
+     * @param folderId  the folder to tag
+     * @param tagNames  the tag names to add, blank ones ignored
+     * @param stationId the station the tags belong to
+     */
+    public void addFolderTags(int folderId, List<String> tagNames, int stationId) {
+        for (String name : tagNames) {
+            if (name == null || name.isBlank()) continue;
+            repository.addFolderTag(
+                    folderId, repository.findOrCreateTag(stationId, name.trim()).id());
+        }
+    }
+
+    /**
+     * Takes tags off a folder, leaving the ones not named alone.
+     *
+     * @param folderId  the folder
+     * @param tagNames  the tag names to drop, names the station does not know ignored
+     * @param stationId the station the tags belong to
+     */
+    public void removeFolderTags(int folderId, List<String> tagNames, int stationId) {
+        for (String name : tagNames) {
+            if (name == null || name.isBlank()) continue;
+            repository
+                    .findTagByName(stationId, name.trim())
+                    .ifPresent(tag -> repository.removeFolderTag(folderId, tag.id()));
+        }
+    }
+
+    /**
      * Lists the tags carried by a folder.
      *
      * @param folderId the folder to list for

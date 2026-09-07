@@ -40,7 +40,12 @@ class MailTemplateRendererTest {
             Map.entry("actor", "Admin"),
             Map.entry("resetAt", "2026-01-01 12:00"),
             Map.entry("logoHtml", "<img src=\"x\">"),
-            Map.entry("items", "<li>one</li><li>two</li>"));
+            Map.entry("items", "<li>one</li><li>two</li>"),
+            Map.entry("appointmentName", "Dienstabend"),
+            Map.entry("appointmentDate", "12.05.2026"),
+            Map.entry("appointmentTime", "18:00 - 20:00"),
+            Map.entry("arrivalTime", "17:45"),
+            Map.entry("location", "Feuerwache, Musterstadt"));
 
     private final MailTemplateRenderer renderer = new MailTemplateRenderer();
 

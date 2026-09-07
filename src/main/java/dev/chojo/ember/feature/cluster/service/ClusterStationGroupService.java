@@ -87,6 +87,10 @@ public class ClusterStationGroupService {
      * questions and every answer anybody gave to them, or quietly switch a denied module back on at every
      * station that was in the group.
      *
+     * <p>Everything the database refuses is asked about here, so the screen gets a sentence naming what
+     * is in the way rather than a failed statement. Adding a fourth thing that points at a group means
+     * adding a fourth question below.
+     *
      * @param clusterId the association
      * @param groupId   the group
      */
@@ -101,6 +105,16 @@ public class ClusterStationGroupService {
         if (denials > 0) {
             throw new BadRequestResponse(
                     "%d module(s) are switched off for this group. Switch them back on first.".formatted(denials));
+        }
+        int tags = groupRepository.countTagsUsing(groupId);
+        if (tags > 0) {
+            throw new BadRequestResponse(
+                    "%d tag(s) are recommended to this group. Point them somewhere else first.".formatted(tags));
+        }
+        int requirements = groupRepository.countRequirementsUsing(groupId);
+        if (requirements > 0) {
+            throw new BadRequestResponse("%d stock requirement(s) count at this group. Point them somewhere else first."
+                    .formatted(requirements));
         }
         groupRepository.delete(groupId);
         log.info("Cluster {} removed station group {}", clusterId, groupId);

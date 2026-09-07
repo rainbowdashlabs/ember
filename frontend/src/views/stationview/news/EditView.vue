@@ -13,9 +13,12 @@ import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {StationPermission, type MemberGroup, type UserTag} from '@/api/types'
+import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
 import type { PartnerResponse } from '@/api/federation'
-import { news, memberGroups, userTags, federation } from '@/api'
+import { news, memberGroups, userTags, federation, events, stationMembers } from '@/api'
+import { useEventRoutes } from '@/composables/useEventRoutes'
+import { buildAnnouncementDraft, type AnnouncementDraft } from './editview/announcementPrefill'
+import AnnouncementNotice from './editview/AnnouncementNotice.vue'
 import ContentPanel from './editview/ContentPanel.vue'
 import {ContentMode, type ContentModeName} from '@/api/news'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
@@ -35,14 +38,39 @@ const canFederateNews = () => hasPermission(StationPermission.NEWS_FEDERATE)
 
 const isEdit = computed(() => !!route.params.id)
 const newsId = computed(() => isEdit.value ? Number(route.params.id) : null)
+const eventRoutes = useEventRoutes()
+
+/**
+ * The appointment a new entry announces, and the one occurrence it is about.
+ *
+ * <p>Both travel in the address rather than in a handover between two screens, so the draft
+ * survives a reload and so the audience is read from the server rather than believed from a
+ * previous page. Only a new entry takes them: an entry that already exists was written once and
+ * does not get rewritten from an appointment behind its author's back.
+ */
+const announcedEventId = computed(() => {
+  if (isEdit.value) return null
+  const raw = Array.isArray(route.query.event) ? route.query.event[0] : route.query.event
+  const id = Number(raw)
+  return raw && Number.isFinite(id) && id > 0 ? id : null
+})
+
+const announcedDate = computed(() => {
+  const raw = Array.isArray(route.query.date) ? route.query.date[0] : route.query.date
+  return raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null
+})
+
+const announcement = ref<AnnouncementDraft | null>(null)
 
 const title = ref('')
 const contentMarkdown = ref('')
 const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
+const selectedMemberIds = ref<number[]>([])
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
+const members = ref<StationMember[]>([])
 
 const publicBlog = ref(false)
 const contentMode = ref<ContentModeName>(ContentMode.SIMPLE)
@@ -120,14 +148,78 @@ const canSave = computed(() =>
     !!title.value.trim() && (contentMode.value === ContentMode.RICH || !!contentMarkdown.value.trim()),
 )
 
+/**
+ * Whether the entry still names an audience of its own. An entry that does reaches nobody outside
+ * this station, whatever the two switches below it say, so lifting the last restriction is the
+ * deliberate act that lets an announcement travel.
+ */
+const stillRestricted = computed(() =>
+    selectedUserTypes.value.length > 0
+    || selectedGroupIds.value.length > 0
+    || selectedTagIds.value.length > 0
+    || selectedMemberIds.value.length > 0,
+)
+
+
+/**
+ * Reads the appointment the address names and writes the first draft from it.
+ *
+ * <p>The audience comes from the appointment's own view restriction rather than from anything the
+ * previous screen said, so an appointment only some members may know about produces an entry only
+ * those members may read. Such an entry reaches no partner station and no public page while it
+ * stays restricted, which is what makes announcing a restricted appointment safe to offer at all.
+ */
+async function loadAnnouncement(eventId: number) {
+  const [event, fields, restrictions] = await Promise.all([
+    events.getEvent(eventId),
+    events.getEventFields(eventId).catch(() => []),
+    events.getRestrictions(eventId).catch(() => null),
+  ])
+  const view = restrictions?.view
+  const audience = {
+    userTypes: view?.userTypes ?? [],
+    groupIds: view?.groupIds ?? [],
+    tagIds: view?.tagIds ?? [],
+    memberIds: view?.memberIds ?? [],
+    mode: 'AND' as const,
+  }
+  const names = new Map(members.value.map(m => [m.id, m.name ?? m.email ?? `#${m.id}`]))
+  const link = announcedDate.value
+      ? router.resolve({name: eventRoutes.detailOnDate, params: {id: eventId, date: announcedDate.value}}).href
+      : router.resolve({name: eventRoutes.detail, params: {id: eventId}}).href
+  const draft = buildAnnouncementDraft(
+      event,
+      announcedDate.value,
+      fields,
+      audience,
+      names,
+      {
+        when: t('news.announcement.when'),
+        until: t('news.announcement.until'),
+        linkLabel: t('news.announcement.linkLabel'),
+        yes: t('common.yes'),
+        no: t('common.no'),
+      },
+      link,
+  )
+  announcement.value = draft
+  title.value = draft.title
+  contentMarkdown.value = draft.markdown
+  selectedUserTypes.value = [...draft.audience.userTypes]
+  selectedGroupIds.value = [...draft.audience.groupIds]
+  selectedTagIds.value = [...draft.audience.tagIds]
+  selectedMemberIds.value = [...draft.audience.memberIds]
+}
 
 const { loading, error, reload } = useAsyncLoader(async () => {
-  const [groupList, tagList] = await Promise.all([
+  const [groupList, tagList, memberList] = await Promise.all([
     memberGroups.listGroups(),
     userTags.listTags(),
+    stationMembers.listCompletions().catch(() => []),
   ])
   groups.value = groupList
   tags.value = tagList
+  members.value = memberList.map(m => ({id: m.id, stationId: '', accountId: 0, name: m.name}))
   if (canFederateNews()) {
     partners.value = (await federation.listPartners()).filter(p => p.partner.status === 'ACTIVE')
   }
@@ -139,6 +231,7 @@ const { loading, error, reload } = useAsyncLoader(async () => {
     selectedUserTypes.value = entry.userTypes ?? []
     selectedGroupIds.value = entry.groupIds ?? []
     selectedTagIds.value = entry.tagIds ?? []
+    selectedMemberIds.value = entry.memberIds ?? []
     publicBlog.value = entry.publicBlog ?? false
     contentMode.value = entry.contentMode ?? ContentMode.SIMPLE
     rows.value = toEditRows(entry.rows ?? [])
@@ -153,6 +246,8 @@ const { loading, error, reload } = useAsyncLoader(async () => {
         federationPartnerIds.value = fedShare.partnerIds ?? []
       }
     }
+  } else if (announcedEventId.value) {
+    await loadAnnouncement(announcedEventId.value)
   }
 }, {autoLoad: false})
 
@@ -167,7 +262,7 @@ async function save() {
       userTypes: selectedUserTypes.value,
       groupIds: selectedGroupIds.value,
       tagIds: selectedTagIds.value,
-      memberIds: [] as number[],
+      memberIds: selectedMemberIds.value,
       publicBlog: publicBlog.value,
       contentMode: contentMode.value,
     }
@@ -217,16 +312,16 @@ watch(loaded, (isLoaded) => {
       :subtitle="t('pages.news-create.subtitle')"
   >
     <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: newsRoutes.list })">
-          {{ t('common.back') }}
-        </SecondaryButton>
-      </div>
+      <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: newsRoutes.list })">
+        {{ t('common.back') }}
+      </SecondaryButton>
 
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
+        <AnnouncementNotice v-if="announcement" :draft="announcement" :public-blog="publicBlog"
+                            :federated="federationShared" :restricted="stillRestricted"/>
         <ContentPanel
             v-model:title="title"
             v-model:content-markdown="contentMarkdown"
@@ -247,12 +342,14 @@ watch(loaded, (isLoaded) => {
             v-model:selected-user-types="selectedUserTypes"
             v-model:selected-group-ids="selectedGroupIds"
             v-model:selected-tag-ids="selectedTagIds"
+            v-model:selected-member-ids="selectedMemberIds"
             v-model:federation-shared="federationShared"
             v-model:federation-scope="federationScope"
             v-model:federation-partner-ids="federationPartnerIds"
             v-model:federation-visibility-role="federationVisibilityRole"
             :groups="groups"
             :tags="tags"
+            :members="members"
             :partners="partners"
             :can-federate="canFederateNews()"
         />

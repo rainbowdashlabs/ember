@@ -78,6 +78,16 @@ const rootComments = computed(() => {
           : a.createdAt.localeCompare(b.createdAt))
 })
 
+/**
+ * Whether the address named a comment this thread does not hold. The reader followed a notification
+ * to a comment that has since gone, or that they may not see, and would otherwise be left looking
+ * for a highlight that never appears.
+ */
+const highlightIsMissing = computed(() =>
+    (props.depth ?? 0) === 0
+    && props.highlightId != null
+    && !props.comments.some(c => c.id === props.highlightId))
+
 function childrenOf(commentId: number): Comment[] {
   return props.comments.filter(c => c.parentId === commentId)
 }
@@ -173,6 +183,7 @@ const maxDepth = 6
         <PrimaryButton :disabled="!newComment.trim()" compact @click="postTopLevel">{{ t('comments.post') }}</PrimaryButton>
       </div>
     </div>
+    <MutedText v-if="highlightIsMissing" size="xs" class="block mb-2">{{ t('comments.highlightMissing') }}</MutedText>
     <div v-if="(depth ?? 0) === 0 && rootComments.length > 1" class="flex justify-end mb-2">
       <SecondaryButton compact @click="sortDesc = !sortDesc">
         <font-awesome-icon :icon="['fas', sortDesc ? 'arrow-down-wide-short' : 'arrow-up-wide-short']" class="mr-1" />

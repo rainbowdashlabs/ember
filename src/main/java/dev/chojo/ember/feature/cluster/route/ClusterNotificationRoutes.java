@@ -112,7 +112,9 @@ public class ClusterNotificationRoutes implements Routes {
                 n.data().paramsAsMap(),
                 n.data().link() != null
                         ? new NotificationLinkResponse(
-                                n.data().link().route(), n.data().link().routeParams())
+                                n.data().link().route(),
+                                n.data().link().routeParams(),
+                                n.data().link().query())
                         : null,
                 n.createdAt(),
                 n.acknowledgedAt());

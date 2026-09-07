@@ -9,6 +9,7 @@ import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
+import StockShareBar from '@/components/inventory/StockShareBar.vue'
 
 const {t} = useI18n()
 
@@ -29,7 +30,10 @@ const rows = [
       <Th align="center">{{ t('inventory.detail.lost') }}</Th>
     </template>
     <TRow v-for="row in rows" :key="row.size">
-      <Td class="font-medium">{{ row.size }}</Td>
+      <Td class="font-medium">
+        {{ row.size }}
+        <StockShareBar :assigned="row.assigned" :free="row.free" :total="row.total"/>
+      </Td>
       <Td align="center">{{ row.total }}</Td>
       <Td align="center" class="text-success">{{ row.free }}</Td>
       <Td align="center" class="text-primary">{{ row.assigned }}</Td>

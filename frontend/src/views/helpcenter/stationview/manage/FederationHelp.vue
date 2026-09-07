@@ -123,6 +123,12 @@ const dummyPausedExport = ref(false)
       </div>
     </NeutralContainer>
 
+    <HelpSection :title="t('helpCenter.federation.acrossInstancesTitle')">
+      <p>{{ t('helpCenter.federation.acrossInstancesText') }}</p>
+      <p>{{ t('helpCenter.federation.acrossInstancesText2') }}</p>
+      <p>{{ t('helpCenter.federation.acrossInstancesText3') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.federation.capabilitiesTitle')">
       <p>{{ t('helpCenter.federation.capabilitiesText') }}</p>
       <p>{{ t('helpCenter.federation.capabilitiesText2') }}</p>

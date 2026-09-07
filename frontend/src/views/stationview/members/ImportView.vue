@@ -14,6 +14,7 @@ import ModeSelector from './importview/ModeSelector.vue'
 import ManagerCountSelect from './importview/ManagerCountSelect.vue'
 import MappingStep from './importshared/MappingStep.vue'
 import PreviewStep from './importshared/PreviewStep.vue'
+import SetupMailChoice from '@/components/input/toggle/SetupMailChoice.vue'
 import { useMemberCsvImport } from './importshared/useMemberCsvImport'
 import DoneStep from './importview/DoneStep.vue'
 import type { ImportResult } from './importview/DoneStep.vue'
@@ -25,7 +26,7 @@ const route = useRoute()
 
 const managerCount = ref(2)
 
-const { importer, targetOptions, fieldScopeGroups, needsValueMap, valuesForTarget, toggleRow, fieldLabel } = useMemberCsvImport<ImportResult>({
+const { importer, targetOptions, fieldScopeGroups, needsValueMap, valuesForTarget, toggleRow, fieldLabel, sendSetupMail } = useMemberCsvImport<ImportResult>({
   previewPath: '/members/import/preview',
   importPath: '/members/import',
   defaultScope: 'MEMBER',
@@ -79,6 +80,7 @@ function leaveImport() {
           :field-label="fieldLabel"
               @toggle-row="toggleRow"
               />
+          <SetupMailChoice v-model="sendSetupMail" class="mt-4"/>
         </template>
 
         <template #done>

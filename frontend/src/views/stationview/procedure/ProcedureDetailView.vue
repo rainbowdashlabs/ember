@@ -49,6 +49,21 @@ const isOverdue = computed(() => {
   return new Date(detail.value.procedure.dueAt) < new Date()
 })
 
+/**
+ * Back to the evening this was prepared for.
+ *
+ * <p>A procedure made out of who is coming records the appointment and the date, so the preparation
+ * and the occasion stay connected. One merely named after a Tuesday is connected to nothing.
+ */
+function openAppointment() {
+  const procedure = detail.value?.procedure
+  if (!procedure?.eventId || !procedure.eventDate) return
+  return router.push({
+    name: 'event-detail-date',
+    params: {id: procedure.eventId, date: procedure.eventDate},
+  })
+}
+
 const progress = computed(() => {
   if (!detail.value) return {checked: 0, total: 0, percent: 0}
   const total = detail.value.items.length
@@ -197,6 +212,16 @@ watch(loaded, (v) => {
               <font-awesome-icon :icon="['fas', 'check-circle']" class="w-3 h-3"/>
               {{ formatDateTime(detail.procedure.resolvedAt) }}
             </span>
+            <button
+                v-if="detail.procedure.eventId && detail.procedure.eventDate"
+                type="button"
+                class="flex items-center gap-1 hover:underline"
+                data-testid="procedure-appointment-link"
+                @click="openAppointment"
+            >
+              <font-awesome-icon :icon="['fas', 'calendar-days']" class="w-3 h-3"/>
+              {{ t('procedures.fromEvent', {date: formatDate(detail.procedure.eventDate)}) }}
+            </button>
           </div>
         </div>
         <div v-if="canEdit" class="flex gap-2 shrink-0">

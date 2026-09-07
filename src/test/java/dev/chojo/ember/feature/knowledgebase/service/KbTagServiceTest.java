@@ -43,8 +43,8 @@ class KbTagServiceTest extends RepositoryTestBase {
 
     @AfterAll
     static void cleanup() {
-        knowledgeBaseRepo.deleteFile(file.id());
-        knowledgeBaseRepo.deleteFolder(folderId);
+        knowledgeBaseRepo.purgeFile(file.id());
+        knowledgeBaseRepo.purgeFolder(folderId);
         stationRepo.delete(station.id());
         accountRepo.delete(account.id());
     }

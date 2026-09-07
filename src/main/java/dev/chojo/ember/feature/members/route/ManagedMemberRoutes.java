@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.ManagedAccessService;
 import dev.chojo.ember.feature.members.service.ManagedAccessService.ManagedAccess;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.ProfileFieldScopes;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.Context;
@@ -46,7 +47,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -59,13 +59,6 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  */
 @Singleton
 public class ManagedMemberRoutes implements Routes {
-    private static final Set<StationPermission> TEAM_PERMISSIONS = Set.of(
-            StationPermission.STATION_ADMINISTRATOR,
-            StationPermission.ATTENDANCE_MANAGER,
-            StationPermission.INVENTORY_MANAGER,
-            StationPermission.EVENT_MANAGER,
-            StationPermission.MEMBER_MANAGER);
-
     private final StationMemberService memberService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
@@ -164,13 +157,7 @@ public class ManagedMemberRoutes implements Routes {
     }
 
     private Set<ProfileFieldScope> applicableScopes(int memberId) {
-        var permissions = accessManager.resolveExpandedMemberPermissions(memberId);
-        var scopes = new HashSet<ProfileFieldScope>();
-        if (permissions.contains(StationPermission.USER)) scopes.add(ProfileFieldScope.MEMBER);
-        if (permissions.contains(StationPermission.MEMBER_GUARDIAN)) scopes.add(ProfileFieldScope.GUARDIAN);
-        if (permissions.stream().anyMatch(TEAM_PERMISSIONS::contains)) scopes.add(ProfileFieldScope.TEAM);
-        if (permissions.contains(StationPermission.STATION_ADMINISTRATOR)) scopes.add(ProfileFieldScope.MANAGER);
-        return scopes;
+        return ProfileFieldScopes.readableBy(accessManager.resolveExpandedMemberPermissions(memberId));
     }
 
     private List<ProfileField> applicableFields(int stationId, int memberId) {
@@ -372,10 +359,11 @@ public class ManagedMemberRoutes implements Routes {
         var items = inventoryService.findItemsByMember(memberId);
         ctx.json(items.stream()
                 .map(item -> {
-                    String inventoryName = inventoryService
-                            .findById(item.inventoryId())
-                            .map(Inventory::name)
-                            .orElse("");
+                    var inventory = inventoryService.findById(item.inventoryId());
+                    String inventoryName = inventory.map(Inventory::name).orElse("");
+                    // Whether the piece can be exchanged travels with it: a guardian's screen has no
+                    // list of inventories to look the answer up in
+                    boolean homogeneous = inventory.map(Inventory::homogeneous).orElse(true);
                     String sizeName = null;
                     if (item.sizeId() != null) {
                         sizeName = inventoryService.findSizes(item.inventoryId()).stream()
@@ -390,6 +378,7 @@ public class ManagedMemberRoutes implements Routes {
                             item.name(),
                             item.internalId(),
                             inventoryName,
+                            homogeneous,
                             item.sizeId(),
                             sizeName,
                             item.lostAt(),
@@ -440,6 +429,8 @@ public class ManagedMemberRoutes implements Routes {
             String name,
             String internalId,
             String inventoryName,
+            /** Whether the inventory holds one thing in many copies, which is what makes a piece exchangeable. */
+            boolean inventoryHomogeneous,
             Integer sizeId,
             String sizeName,
             Instant lostAt,

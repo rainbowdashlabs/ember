@@ -80,10 +80,10 @@ watch(show, open => {
   <Modal v-model="show" size="lg">
     <div class="space-y-4">
       <SubHeader>{{ t('adminSettings.legal.loadTemplateTitle') }}</SubHeader>
-      <MutedText size="sm">{{ t('adminSettings.legal.loadTemplateHint') }}</MutedText>
+      <MutedText tag="p" size="sm">{{ t('adminSettings.legal.loadTemplateHint') }}</MutedText>
 
       <Spinner v-if="loading" size="md"/>
-      <MutedText v-else-if="templates.length === 0" size="sm">
+      <MutedText v-else-if="templates.length === 0" tag="p" size="sm">
         {{ t('adminSettings.legal.noTemplates') }}
       </MutedText>
 
@@ -98,7 +98,7 @@ watch(show, open => {
         />
       </div>
 
-      <MutedText v-if="templates.length > 0" size="sm">
+      <MutedText v-if="templates.length > 0" tag="p" size="sm">
         {{ t('adminSettings.legal.selectedCount', {count: selected.size, total: templates.length}) }}
       </MutedText>
 

@@ -8,6 +8,8 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import {EventFieldTypes} from '@/api/events'
+import {formatDate, formatTime} from '@/util/format'
 
 const props = defineProps<{
   fieldType?: string
@@ -16,12 +18,21 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
+/**
+ * The answer as a station reads it. A date and a clock are stored the way a database wants them and
+ * were put on the page exactly like that, so an answer read as 2026-10-12 rather than as the
+ * 12.10.2026 it is. An answer nobody can parse is left as written rather than dropped.
+ */
 const displayValue = computed(() => {
   const v = props.value
   if (!v) return '–'
   switch (props.fieldType) {
     case 'BOOLEAN':
       return v === 'true' ? t('common.yes') : t('common.no')
+    case EventFieldTypes.DATE:
+      return formatDate(v) || v
+    case EventFieldTypes.TIME:
+      return formatTime(v) || v
     default:
       return v
   }

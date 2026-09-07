@@ -35,7 +35,7 @@ public class ProcedureResolvedHandler implements DomainEventHandler<ProcedureRes
         var data = NotificationData.of(
                 new NotificationParams.ProcedureResolvedParams(event.procedureName()),
                 // procedureId rides on the link so the feed renderer can surface progress.
-                new NotificationData.NotificationLink("procedures", Map.of("id", event.procedureId())));
+                new NotificationData.NotificationLink("procedure-detail", Map.of("id", event.procedureId())));
         notificationService.notifyMembersIfAbsent(
                 event.assigneeMemberIds(), NotificationType.PROCEDURE_RESOLVED, data, event.resolvedByMemberId());
     }

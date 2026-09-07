@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,6 +39,7 @@ class ProcedureServiceTest {
     private static final int TEMPLATE_ID = 100;
     private static final int PROCEDURE_ID = 200;
     private static final int ITEM_ID = 300;
+    private static final int EVENT_ID = 400;
 
     @BeforeEach
     void setup() {
@@ -175,11 +177,11 @@ class ProcedureServiceTest {
     @Test
     void createProcedureWithoutTemplate() {
         var proc = procedure(PROCEDURE_ID, null);
-        when(repository.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null))
+        when(repository.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, null, null))
                 .thenReturn(proc);
 
-        var result =
-                service.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, List.of(MEMBER_ID_2));
+        var result = service.createProcedure(
+                STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, List.of(MEMBER_ID_2), null, null);
 
         assertEquals(proc, result);
         verify(repository).addAssignee(PROCEDURE_ID, MEMBER_ID_2);
@@ -190,12 +192,38 @@ class ProcedureServiceTest {
     @Test
     void createProcedureNoAssignees() {
         var proc = procedure(PROCEDURE_ID, null);
-        when(repository.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null))
+        when(repository.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, null, null))
                 .thenReturn(proc);
 
-        service.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, List.of());
+        service.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, List.of(), null, null);
 
         verify(eventBus, never()).publish(any());
+    }
+
+    /**
+     * A procedure prepared for one evening carries the appointment and the date it was made for, so
+     * that pressing the same button again can find it rather than make a second one.
+     */
+    @Test
+    void createProcedureForOccurrenceRecordsIt() {
+        var date = LocalDate.of(2026, 3, 17);
+        var proc = procedure(PROCEDURE_ID, null);
+        when(repository.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, EVENT_ID, date))
+                .thenReturn(proc);
+
+        service.createProcedure(
+                STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, List.of(MEMBER_ID_2), EVENT_ID, date);
+
+        verify(repository).createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, EVENT_ID, date);
+    }
+
+    @Test
+    void findProceduresByOccurrence() {
+        var date = LocalDate.of(2026, 3, 17);
+        var proc = procedure(PROCEDURE_ID, null);
+        when(repository.findProceduresByOccurrence(STATION_ID, EVENT_ID, date)).thenReturn(List.of(proc));
+
+        assertEquals(List.of(proc), service.findProceduresByOccurrence(STATION_ID, EVENT_ID, date));
     }
 
     // ── Create procedure with template (snapshot) ──
@@ -203,7 +231,7 @@ class ProcedureServiceTest {
     @Test
     void createProcedureWithTemplateSnapshots() {
         var proc = procedure(PROCEDURE_ID, TEMPLATE_ID);
-        when(repository.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null))
+        when(repository.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null))
                 .thenReturn(proc);
 
         var ti1 = new ProcedureTemplateItem(10, TEMPLATE_ID, "S1", "D1", true, true, 1);
@@ -217,7 +245,7 @@ class ProcedureServiceTest {
         when(repository.snapshotTemplateItem(PROCEDURE_ID, ti2)).thenReturn(pi2);
 
         var result = service.createProcedure(
-                STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, List.of(MEMBER_ID));
+                STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, List.of(MEMBER_ID), null, null);
 
         assertEquals(proc, result);
         verify(repository).snapshotTemplateItem(PROCEDURE_ID, ti1);
@@ -229,7 +257,7 @@ class ProcedureServiceTest {
     @Test
     void createProcedureSnapshotSkipsUnmappedDependencies() {
         var proc = procedure(PROCEDURE_ID, TEMPLATE_ID);
-        when(repository.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null))
+        when(repository.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null))
                 .thenReturn(proc);
 
         var ti1 = new ProcedureTemplateItem(10, TEMPLATE_ID, "S1", "D1", true, true, 1);
@@ -240,7 +268,7 @@ class ProcedureServiceTest {
         var pi1 = procedureItem(501, false);
         when(repository.snapshotTemplateItem(PROCEDURE_ID, ti1)).thenReturn(pi1);
 
-        service.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, List.of());
+        service.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, List.of(), null, null);
 
         verify(repository, never()).addItemDependency(anyInt(), anyInt());
     }
@@ -523,6 +551,8 @@ class ProcedureServiceTest {
                 MEMBER_ID,
                 null,
                 Instant.now(),
+                null,
+                null,
                 null);
     }
 

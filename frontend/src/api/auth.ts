@@ -25,6 +25,13 @@ export interface LoginResponse {
     passwordChangeRequired: boolean
     passwordChangeToken?: string
     passwordChangeTokenExpiresAt?: string
+    /**
+     * Whether the account administers the instance and carries no address that can be written to.
+     * There is no session until it has one, and the token below is what the step is spent with.
+     */
+    addressRequired: boolean
+    addressToken?: string
+    addressTokenExpiresAt?: string
     twoFactorRequired: boolean
     preAuthToken?: string
     preAuthTokenExpiresAt?: string
@@ -69,6 +76,11 @@ export interface EmailChangeResponse {
 export interface SetPasswordRequest {
     token?: string
     password?: string
+}
+
+export interface SetAddressRequest {
+    token?: string
+    email?: string
 }
 
 export interface SessionResponse {
@@ -176,6 +188,24 @@ export async function passwordLinkStatus(token: string): Promise<PasswordLinkSta
  */
 export async function setPassword(data: SetPasswordRequest): Promise<LoginResponse> {
     const res = await client.post<LoginResponse>('/auth/set-password', data)
+    if (res.data.token) {
+        setItem('session_token', res.data.token)
+        if (res.data.expiresAt) {
+            setItem('session_expires_at', res.data.expiresAt)
+            scheduleTokenRefresh(res.data.expiresAt)
+        }
+    }
+    return res.data
+}
+
+/**
+ * Puts a reachable address on an account that a sign-in stopped for one, and signs in with it.
+ *
+ * <p>Answers exactly as setting a password does, because it is the other half of the same forced
+ * first step: a session where nothing else is owed, a second factor to give where there is one.
+ */
+export async function setAddress(data: SetAddressRequest): Promise<LoginResponse> {
+    const res = await client.post<LoginResponse>('/auth/set-address', data)
     if (res.data.token) {
         setItem('session_token', res.data.token)
         if (res.data.expiresAt) {

@@ -139,7 +139,35 @@ public sealed interface NotificationParams {
     record ProcedureItemCheckedParams(String procedureName, String itemTitle, String checkedByName)
             implements NotificationParams {}
 
+    /**
+     * A member has been asked to answer for the gear recorded against their name.
+     *
+     * @param memberName  whose gear it is about, which is the reader or somebody they look after
+     * @param handedOutBy who asked
+     * @param dueOn       the day the answer is wanted by, or an empty string where none was named
+     */
+    record SelfCheckAssigned(String memberName, String handedOutBy, String dueOn) implements NotificationParams {}
+
+    /**
+     * A member has handed their answers in and somebody with the check permission has to read them.
+     *
+     * @param memberName whose gear it is about
+     * @param answeredBy who entered the answers, which is the member or one of their guardians
+     */
+    record SelfCheckSubmitted(String memberName, String answeredBy) implements NotificationParams {}
+
+    /**
+     * One answer could not be settled and has come back to the member with a reason.
+     *
+     * @param memberName whose gear it is about
+     * @param itemName   the piece or the kind of gear the answer was about
+     * @param reason     what the reviewer wrote
+     */
+    record SelfCheckRowRefused(String memberName, String itemName, String reason) implements NotificationParams {}
+
     record WaitlistPublicRegistration(String childName, String listName) implements NotificationParams {}
+
+    record WaitlistInvitationAnswered(String childName, String listName, String answer) implements NotificationParams {}
 
     record StorageWarning(int usedPercent, String usedFormatted, String quotaFormatted) implements NotificationParams {}
 }

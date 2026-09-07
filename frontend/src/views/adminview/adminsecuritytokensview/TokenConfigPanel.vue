@@ -7,9 +7,8 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
+import NumberSetting from '@/views/adminview/adminsecuritytokensview/NumberSetting.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import type {TokensConfigResponse} from '@/api/adminSettings'
 
@@ -27,33 +26,30 @@ defineProps<{
     <MutedText tag="p" size="sm">{{ t('adminSecurity.tokens.hint') }}</MutedText>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <FieldLabel class="mb-1">{{ t('adminSecurity.tokens.tokenBytes') }}</FieldLabel>
-        <NumberInput v-model="config.tokenBytes"/>
-        <MutedText class="mt-1" size="sm" tag="div">{{ t('adminSecurity.tokens.tokenBytesHint') }}</MutedText>
-      </div>
-      <div>
-        <FieldLabel class="mb-1">{{ t('adminSecurity.tokens.sessionMinutes') }}</FieldLabel>
-        <NumberInput v-model="config.sessionMinutes"/>
-        <MutedText class="mt-1" size="sm" tag="div">{{ t('adminSecurity.tokens.sessionMinutesHint') }}</MutedText>
-      </div>
-      <div>
-        <FieldLabel class="mb-1">{{ t('adminSecurity.tokens.untrustedSessionMinutes') }}</FieldLabel>
-        <NumberInput v-model="config.untrustedSessionMinutes"/>
-        <MutedText class="mt-1" size="sm" tag="div">
-          {{ t('adminSecurity.tokens.untrustedSessionMinutesHint') }}
-        </MutedText>
-      </div>
-      <div>
-        <FieldLabel class="mb-1">{{ t('adminSecurity.tokens.verifyTokenHours') }}</FieldLabel>
-        <NumberInput v-model="config.verifyTokenHours"/>
-        <MutedText class="mt-1" size="sm" tag="div">{{ t('adminSecurity.tokens.verifyTokenHoursHint') }}</MutedText>
-      </div>
-      <div>
-        <FieldLabel class="mb-1">{{ t('adminSecurity.tokens.passwordTokenHours') }}</FieldLabel>
-        <NumberInput v-model="config.passwordTokenHours"/>
-        <MutedText class="mt-1" size="sm" tag="div">{{ t('adminSecurity.tokens.passwordTokenHoursHint') }}</MutedText>
-      </div>
+      <NumberSetting
+          v-model="config.tokenBytes"
+          :label="t('adminSecurity.tokens.tokenBytes')"
+          :hint="t('adminSecurity.tokens.tokenBytesHint')"/>
+      <NumberSetting
+          v-model="config.sessionMinutes"
+          :label="t('adminSecurity.tokens.sessionMinutes')"
+          :hint="t('adminSecurity.tokens.sessionMinutesHint')"/>
+      <NumberSetting
+          v-model="config.untrustedSessionMinutes"
+          :label="t('adminSecurity.tokens.untrustedSessionMinutes')"
+          :hint="t('adminSecurity.tokens.untrustedSessionMinutesHint')"/>
+      <NumberSetting
+          v-model="config.verifyTokenHours"
+          :label="t('adminSecurity.tokens.verifyTokenHours')"
+          :hint="t('adminSecurity.tokens.verifyTokenHoursHint')"/>
+      <NumberSetting
+          v-model="config.passwordTokenHours"
+          :label="t('adminSecurity.tokens.passwordTokenHours')"
+          :hint="t('adminSecurity.tokens.passwordTokenHoursHint')"/>
+      <NumberSetting
+          v-model="config.setupTokenDays"
+          :label="t('adminSecurity.tokens.setupTokenDays')"
+          :hint="t('adminSecurity.tokens.setupTokenDaysHint')" data-testid="setup-token-days"/>
     </div>
 
     <div class="flex justify-end">

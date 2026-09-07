@@ -30,6 +30,7 @@ import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useFlashMessage } from '@/composables/useFlashMessage'
 import { useListInvites } from './detailview/useListInvites'
 import { useEntryTransitions } from './detailview/useEntryTransitions'
+import { useEntryInvitation } from './detailview/useEntryInvitation'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -93,7 +94,8 @@ const sectionActions = computed(() => ({
   onSuccess: showSuccessMessage,
   onApprove: transitions.approve,
   onReject: transitions.reject,
-  onInvite: transitions.invite,
+  onInvite: invitation.request,
+  onBackToWaiting: transitions.backToWaiting,
   onMoveToTesting: transitions.moveToTesting,
   onMoveToJoined: transitions.moveToJoined,
   onWithdraw: transitions.withdraw,
@@ -125,6 +127,7 @@ const {loading, error} = useAsyncLoader(async () => {
 
 const invite = useListInvites(listId, invites, error, flash)
 const transitions = useEntryTransitions(listId, entries, error)
+const invitation = useEntryInvitation(listId, entries, error)
 
 async function toggleFieldVisibility(fieldId: number) {
   if (!list.value) return
@@ -179,7 +182,7 @@ const { running: deletingList, error: deleteListError, run: confirmDeleteList } 
 })
 
 const actionError = computed(() =>
-  invite.createError.value || transitions.error.value || deleteListError.value,
+  invite.createError.value || transitions.error.value || invitation.error.value || deleteListError.value,
 )
 
 function handleListUpdated(updated: WaitingList) {
@@ -230,21 +233,15 @@ function showErrorMessage(msg: string) {
       />
 
       <DetailModals
-        v-model:show-invite="invite.showModal.value"
-        v-model:invite-max-uses="invite.maxUses.value"
-        v-model:invite-expires-at="invite.expiresAt.value"
-        :creating-invite="invite.creating.value"
+        :invite="invite"
+        :transitions="transitions"
+        :invitation="invitation"
         v-model:show-delete="showDeleteModal"
         :list-name="list?.name"
         :deleting-list="deletingList"
-        :pending-transition="transitions.pending.value"
-        :running-transition="transitions.running.value"
         v-model:show-delete-entry="showDeleteEntryModal"
         :delete-entry-target="deleteEntryTarget"
-        @submit-invite="invite.create"
         @confirm-delete-list="confirmDeleteList"
-        @cancel-transition="transitions.pending.value = null"
-        @confirm-transition="transitions.confirm"
         @confirm-delete-entry="confirmDeleteEntry"
       />
     </div>

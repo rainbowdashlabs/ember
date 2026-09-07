@@ -58,6 +58,28 @@ export interface ChecklistRestrictionDto {
     mode: 'AND' | 'OR'
 }
 
+/**
+ * The one evening a list follows, when it follows one at all.
+ *
+ * <p>The date belongs to it as much as the appointment does: sign-ups are kept per appointment and
+ * date, so a weekly Dienst named without one would mean every Tuesday there has ever been.
+ */
+export interface ChecklistSourceOccurrence {
+    eventId: number
+    eventDate: string
+    /** The appointment's name, so the header can say what the list follows without a second request. */
+    eventName?: string | null
+}
+
+/**
+ * What a list should follow from now on, sent when it is created or when its membership is edited.
+ * Sending one replaces the filter; sending a filter instead stops the list following anything.
+ */
+export interface ChecklistSourceRequest {
+    eventId: number
+    date: string
+}
+
 export interface ChecklistDetail {
     id: number
     name: string
@@ -70,6 +92,8 @@ export interface ChecklistDetail {
     entries: ChecklistEntryDto[]
     cells: ChecklistCellDto[]
     restriction: ChecklistRestrictionDto
+    /** Absent when the list follows its filter, or when the appointment it followed has been deleted. */
+    source?: ChecklistSourceOccurrence | null
 }
 
 export interface ChecklistNoteHistoryEntry {
@@ -101,12 +125,14 @@ export interface ChecklistCreateRequest {
     description?: string
     columns: { label: string; description?: string }[]
     restriction: ChecklistRestrictionDto
+    source?: ChecklistSourceRequest
 }
 
 export interface ChecklistUpdateRequest {
     name?: string
     description?: string
     restriction?: ChecklistRestrictionDto
+    source?: ChecklistSourceRequest
 }
 
 interface ColumnCreateRequest {

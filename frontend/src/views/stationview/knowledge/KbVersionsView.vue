@@ -121,9 +121,10 @@ watch(loaded, (isLoaded) => {
                         <span class="text-sm text-[var(--text-muted)] ml-2">
                             {{ formatDateTime(version.createdAt) }}
                         </span>
-                        <span v-if="version.createdByName" class="text-sm text-[var(--text-muted)] ml-2">
-                            &mdash; {{ version.createdByName }}
-                        </span>
+                        <span
+                            v-if="version.createdByName"
+                            class="text-sm text-[var(--text-muted)]"
+                        >, {{ version.createdByName }}</span>
                     </div>
                     <div class="flex gap-2">
                         <SecondaryButton @click="viewVersion(version)">

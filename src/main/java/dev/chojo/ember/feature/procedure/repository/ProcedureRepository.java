@@ -14,6 +14,7 @@ import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,7 +35,7 @@ public class ProcedureRepository {
             "id, template_id, title, description, public, user_assigned, position";
     private static final String PROCEDURE_COLUMNS = """
             id, station_id, template_id, name, description, public, status, assigned_by, due_at, \
-            created_at, resolved_at""";
+            created_at, resolved_at, event_id, event_date""";
     private static final String PROCEDURE_ITEM_COLUMNS =
             "id, procedure_id, title, description, note, public, user_assigned, position, checked, checked_at, checked_by";
 
@@ -232,11 +233,17 @@ public class ProcedureRepository {
             String description,
             boolean isPublic,
             int assignedBy,
-            Instant dueAt) {
+            Instant dueAt,
+            Integer eventId,
+            LocalDate eventDate) {
         return insertReturning(
                 """
-                INSERT INTO procedure(station_id, template_id, name, description, public, assigned_by, due_at)
-                VALUES(:station_id, :template_id, :name, :description, :public, :assigned_by, :due_at)
+                INSERT INTO
+                    procedure(station_id, template_id, name, description, public, assigned_by, due_at,
+                              event_id, event_date)
+                VALUES
+                    (:station_id, :template_id, :name, :description, :public, :assigned_by, :due_at,
+                     :event_id, :event_date)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("template_id", templateId)
@@ -244,9 +251,36 @@ public class ProcedureRepository {
                         .bind("description", description)
                         .bind("public", isPublic)
                         .bind("assigned_by", assignedBy)
-                        .bind("due_at", dueAt, INSTANT_TIMESTAMP),
+                        .bind("due_at", dueAt, INSTANT_TIMESTAMP)
+                        .bind("event_id", eventId)
+                        .bind("event_date", eventDate),
                 Procedure.map(),
                 PROCEDURE_COLUMNS);
+    }
+
+    /**
+     * Every procedure prepared for one evening of one appointment, newest first.
+     *
+     * <p>This is what stops a second press of the same button making a second list for the same
+     * evening: the caller is offered what is already there instead.
+     *
+     * @param stationId the station the appointment belongs to
+     * @param eventId   the appointment
+     * @param eventDate the one occurrence of it
+     * @return the procedures recorded against that occurrence
+     */
+    public List<Procedure> findProceduresByOccurrence(int stationId, int eventId, LocalDate eventDate) {
+        return query("""
+                SELECT %s FROM procedure
+                WHERE station_id = :station_id
+                  AND event_id = :event_id
+                  AND event_date = :event_date
+                ORDER BY created_at DESC;""", PROCEDURE_COLUMNS)
+                .single(call().bind("station_id", stationId)
+                        .bind("event_id", eventId)
+                        .bind("event_date", eventDate))
+                .map(Procedure.map())
+                .all();
     }
 
     public boolean updateProcedure(int id, String name, String description, boolean isPublic, Instant dueAt) {

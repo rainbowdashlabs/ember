@@ -61,6 +61,7 @@ const toggleStates = ref(new Set([1, 3]))
       <DropdownMenuItem :icon="['fas', 'file-lines']">Neue Datei</DropdownMenuItem>
       <DropdownMenuItem :icon="['fas', 'upload']">Hochladen</DropdownMenuItem>
       <DropdownMenuItem :icon="['fab', 'youtube']" icon-class="text-red-600">YouTube</DropdownMenuItem>
+      <DropdownMenuItem :icon="['fas', 'trash']" destructive>Löschen</DropdownMenuItem>
     </NeutralContainer>
   </section>
 </template>

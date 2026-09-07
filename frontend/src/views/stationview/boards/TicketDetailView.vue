@@ -37,6 +37,7 @@ const board = ref<Board | null>(null)
 const ticket = ref<BoardTicket | null>(null)
 const lanes = ref<BoardLane[]>([])
 const members = ref<MemberCompletion[]>([])
+const assignableMembers = ref<MemberCompletion[]>([])
 const canEdit = ref(false)
 
 const title = ref('')
@@ -84,17 +85,19 @@ const allLabels = ref<BoardLabel[]>([])
 const ticketLabels = ref<BoardLabel[]>([])
 
 const {loading, error, reload} = useAsyncLoader(async () => {
-    const [boardResult, tk, l, m, bf] = await Promise.all([
+    const [boardResult, tk, l, m, am, bf] = await Promise.all([
         api.getBoard(),
         api.getTicket(),
         api.getLanes(),
         api.getMembers(),
+        api.getAssignableMembers(),
         api.getFields(),
     ])
     board.value = boardResult.board as Board
     ticket.value = tk
     lanes.value = l
     members.value = m
+    assignableMembers.value = am
     boardFields.value = bf
     canEdit.value = boardResult.canEdit
     allLabels.value = await api.getLabels()
@@ -140,7 +143,7 @@ const {error: saveError, run: runSaveTicket} = useAsyncAction(async () => {
     await api.updateTicket({ title: title.value, description: description.value || null, assignedMemberId: assignedMemberId.value ? Number(assignedMemberId.value) : null, priority: priority.value, dueDate: dueDate.value || null })
     ticket.value = await api.getTicket()
     await loadDetails()
-}, {formatError: () => t('common.error')})
+}, {formatError: () => t('common.error'), coalesce: true})
 
 function saveTicket() { error.value = ''; void runSaveTicket() }
 
@@ -243,6 +246,7 @@ watch(ticketNumber, reload)
                 v-model:show-add-link="showAddLink" v-model:show-add-weblink="showAddWeblink"
                 v-model:show-kb-search="showKbSearch"
                 :board="board" :ticket="ticket" :all-tickets="allTickets" :lanes="lanes" :members="members"
+                :assignable-members="assignableMembers"
                 :all-labels="allLabels" :ticket-labels="ticketLabels" :board-fields="boardFields"
                 :priority-options="priorityOptions" :checklist="checklist" :checklist-visible="checklistVisible"
                 :links="links" :weblinks="weblinks" :attachments="attachments" :transitions="transitions"

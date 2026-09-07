@@ -52,7 +52,8 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
                 memberIdentityFactory,
                 containerService,
                 itemCustodyService,
-                inventoryService);
+                inventoryService,
+                selfCheckRepo);
         station = stationRepo.create("CheckSvcStation");
         checkerAccount = accountRepo.create("checker-svc@test.com", "Check", "Er");
         targetAccount = accountRepo.create("target-svc@test.com", "Target", "Member");
@@ -139,6 +140,24 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     void nextMemberFindsUnchecked() {
         var next = service.nextMember(station.id(), checker.id(), false);
         assertTrue(next.isPresent());
+    }
+
+    /**
+     * A member who needs two of a thing and holds neither leaves two empty places, and a check has
+     * to be able to say so about both. The key that holds a check's rows apart counted two rows with
+     * no piece as one row, so closing such a check failed outright.
+     */
+    @Test
+    @Order(39)
+    void twoEmptyPlacesOfOneInventoryBothFitInACheck() {
+        service.startCheck(station.id(), target.id(), checker.id());
+
+        var results = List.of(
+                new CheckItemRequest(null, inventoryId, CheckResult.NOT_IN_POSSESSION, ""),
+                new CheckItemRequest(null, inventoryId, CheckResult.NOT_IN_POSSESSION, ""));
+        var check = service.completeCheck(station.id(), target.id(), checker.id(), results);
+
+        assertNotNull(check);
     }
 
     @Test
@@ -252,6 +271,39 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         itemMovementRepo.delete(movement.id());
         itemCustodyService.assignToMember(itemId, target.id(), "");
         inventoryRepo.deleteRequirement(requirement.id());
+    }
+
+    /**
+     * A piece that is already on its way is named as such on the walk.
+     *
+     * <p>A second movement on one piece is refused, so the walk reads this to leave the swap out
+     * instead of offering a button the station would only turn down.
+     */
+    @Test
+    @Order(60)
+    void aPieceAlreadyOnItsWayIsNamed() {
+        var movement = itemMovementService.create(
+                station.id(),
+                MovementPurpose.EXCHANGE,
+                target.id(),
+                "Target Member",
+                itemId,
+                inventoryId,
+                null,
+                null,
+                "Reißverschluss fehlt",
+                new ItemMovementService.Actor(target.id(), true),
+                null);
+
+        var walking = service.startCheck(station.id(), target.id(), checker.id());
+        assertTrue(walking.onTheMove().containsKey(itemId), "the walk is told what is running on the piece");
+
+        itemMovementRepo.delete(movement.id());
+        itemCustodyService.assignToMember(itemId, target.id(), "");
+
+        var afterwards = service.startCheck(station.id(), target.id(), checker.id());
+        assertFalse(afterwards.onTheMove().containsKey(itemId), "and claims nothing once it is over");
+        service.cancelCheck(target.id(), checker.id());
     }
 
     @Test

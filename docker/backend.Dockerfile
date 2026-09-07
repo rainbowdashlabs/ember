@@ -37,4 +37,10 @@ COPY templates templates
 
 RUN mkdir -p config
 
-ENTRYPOINT ["sh", "-c", "env && exec ./bin/ember"]
+# The environment carries every secret an operator sets: the database password, the token pepper,
+# the mail credentials, the storage encryption key, the second-factor key. Printing it wrote all of
+# them into the container log on every start, and a container that cannot reach its database restarts
+# for as long as that lasts, so the log fills with copies. Those logs are what an operator pastes
+# into a bug report. The application already logs which overrides exist and what it read, with the
+# secrets masked, so nothing is lost here.
+ENTRYPOINT ["./bin/ember"]

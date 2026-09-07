@@ -17,12 +17,28 @@ export const InventoryTypes = {
 export type InventoryTypeName = (typeof InventoryTypes)[keyof typeof InventoryTypes]
 
 /**
- * Who owns an item: the station running its inventory, or the one body above that station.
- * Members never own tracked items.
+ * Whether gear filed here can be offered to a partner station at all.
+ *
+ * <p>An external inventory holds nothing but the gear of the body above the station. The station
+ * does not own any of it and therefore cannot lend it, so an offer written on such an inventory
+ * could never be filled and the controls for one do not belong on its screens.
+ *
+ * <p>A mixed inventory is the other case and stays open: the station's own pieces stand in it
+ * beside the body's, and the pieces that are not the station's are dropped where the offer is read
+ * rather than by hiding the decision.
+ */
+export function isLendableInventory(inventoryType: InventoryTypeName | null | undefined): boolean {
+    return inventoryType !== InventoryTypes.EXTERNAL
+}
+
+/**
+ * Who owns an item: the station running its inventory, the one body above that station, or a
+ * federation partner the station has borrowed it from. Members never own tracked items.
  */
 export const ItemOwner = {
     STATION: 'STATION',
     CLUSTER: 'CLUSTER',
+    PARTNER_STATION: 'PARTNER_STATION',
 } as const
 
 export type ItemOwnerName = (typeof ItemOwner)[keyof typeof ItemOwner]
@@ -47,18 +63,55 @@ export function isAvailable(custody?: ItemCustodyName | null): boolean {
     return custody === ItemCustody.WITH_OWNER || custody === ItemCustody.AT_STATION
 }
 
+/**
+ * The two kinds of inventory, named on both sides.
+ *
+ * <p>The wire carries a single boolean, which reads as one kind and the absence of it. Screens
+ * speak in names instead, so the reader can tell which of the two they have in front of them.
+ */
+export const InventoryKinds = {
+    /** One thing in many copies: the shelf full of blousons. */
+    STOCK: 'STOCK',
+    /** Different things that belong together: twelve radios, a charging station and an antenna. */
+    COLLECTION: 'COLLECTION',
+} as const
+
+export type InventoryKindName = (typeof InventoryKinds)[keyof typeof InventoryKinds]
+
+/** Which kind the boolean on the wire stands for. */
+export function inventoryKindOf(homogeneous: boolean): InventoryKindName {
+    return homogeneous ? InventoryKinds.STOCK : InventoryKinds.COLLECTION
+}
+
+/** Whether a kind is the one thing in many copies, which is what the wire calls homogeneous. */
+export function isStock(kind: InventoryKindName): boolean {
+    return kind === InventoryKinds.STOCK
+}
+
 export interface Inventory {
     id: number
     stationId: string
     name?: string
     inventoryType?: InventoryTypeName
     hasSizes: boolean
+    /**
+     * Whether the inventory is a stock rather than a collection. Requirements, orders, exchanges and
+     * sizes are only offered for a stock.
+     */
+    homogeneous: boolean
+    /**
+     * Whether this is the station's one shelf for gear belonging to somebody else. It appears on the
+     * first handover, it can be renamed, and it refuses to go while anything is still on it.
+     */
+    borrowed: boolean
 }
 
 export interface InventoryRequest {
     name?: string
     inventoryType?: InventoryTypeName
     hasSizes: boolean
+    /** Left out it means "as it was", which on creation is one thing in many copies. */
+    homogeneous?: boolean
 }
 
 export interface InventoryDetail {
@@ -67,7 +120,49 @@ export interface InventoryDetail {
     name?: string
     inventoryType?: InventoryTypeName
     hasSizes: boolean
+    homogeneous: boolean
     sizes?: InventorySize[]
+}
+
+/** What sort of thing stands in the way of an inventory changing what it holds. */
+export const SwitchBlockerKinds = {
+    REQUIREMENT: 'REQUIREMENT',
+    PROCUREMENT: 'PROCUREMENT',
+    EXCHANGE: 'EXCHANGE',
+    SIZE: 'SIZE',
+} as const
+
+export type SwitchBlockerKindName = (typeof SwitchBlockerKinds)[keyof typeof SwitchBlockerKinds]
+
+/**
+ * One live thing standing in the way, named well enough to go and deal with.
+ *
+ * @property id the thing's own identifier, so the refusal can link straight to it
+ * @property label what it is called on the screen it lives on
+ */
+export interface SwitchBlocker {
+    kind: SwitchBlockerKindName
+    id: number
+    label: string
+}
+
+/** The body of the refusal the backend sends when a change of kind is turned down. */
+export interface SwitchRefusal {
+    error: string
+    message?: string
+    blockers: SwitchBlocker[]
+}
+
+/** The name the backend puts on that refusal, which is how it is told from any other bad request. */
+export const SWITCH_REFUSED = 'InventorySwitchRefusedException'
+
+/**
+ * Reads a refused change of kind out of a failed request, or nothing when it was some other failure.
+ */
+export function switchRefusal(e: unknown): SwitchRefusal | undefined {
+    const data = (e as {response?: {data?: SwitchRefusal}})?.response?.data
+    if (data?.error !== SWITCH_REFUSED) return undefined
+    return {error: data.error, message: data.message, blockers: data.blockers ?? []}
 }
 
 export interface InventorySize {
@@ -90,6 +185,11 @@ export interface InventoryItem {
     internalId?: string
     name?: string
     sizeId?: number | null
+    /**
+     * The kind of thing this piece is, or null when nobody has said. Null is the ordinary state
+     * rather than a gap: most pieces are written down by a path with nobody present to name a kind.
+     */
+    artId?: number | null
     metadata?: string | ItemMetadata | null
     assignedTo?: number | null
     lostAt?: string | null
@@ -100,8 +200,14 @@ export interface InventoryItem {
     ownerKind?: ItemOwnerName | null
     /** The owning association's stable identity. An internal id never leaves the backend. */
     ownerClusterId?: string | null
+    /** The partner station that owns it, set only for gear borrowed from one. */
+    ownerStationId?: number | null
+    /** The line of the lending request a borrowed piece came in on, and nothing else. */
+    loanRequestItemId?: number | null
     custody?: ItemCustodyName | null
     custodyStationId?: number | null
+    /** The partner holding the piece while it is out on loan. */
+    custodyPartnerStationId?: number | null
     custodyMovementId?: number | null
     containerId?: number | null
 }
@@ -112,8 +218,11 @@ export interface ItemMetadata {
 
 export interface ItemRequest {
     internalId?: string
+    /** What the piece is called. The kind sits beside this and never replaces it. */
     name?: string
     sizeId?: number
+    /** The kind of thing it is, or null for none. */
+    artId?: number | null
     metadata?: ItemMetadata
     ownerKind?: ItemOwnerName
     /** The owning association's stable identity, which is what the backend takes back. */
@@ -128,6 +237,13 @@ export interface AssignRequest {
 /** What was written when gear was reported missing. */
 export interface LostRequest {
     note?: string
+    /**
+     * The self-check this was reported during, where it was reported during one.
+     *
+     * <p>The piece counts as missing from the moment it is said, task or no task. Naming the task
+     * only records that it happened while the member was answering.
+     */
+    selfCheckId?: number | null
 }
 
 /** What the station has decided about its gear beyond any one inventory. */
@@ -182,12 +298,31 @@ export interface InventoryItemHistory {
     memberIdentity?: MemberIdentity | null
 }
 
+/**
+ * The little a dialogue about one piece needs in order to name it.
+ *
+ * <p>Both the loss and the exchange are raised from more than one screen now, and each screen holds
+ * its pieces in the shape its own endpoint returns. What the dialogue reads is the same three words
+ * either way.
+ */
+export interface NamedPiece {
+    inventoryName: string
+    name?: string
+    sizeId?: number | null
+    sizeName?: string | null
+}
+
 export interface MyInventoryItem {
     id: number
     inventoryId: number
     name?: string
     internalId?: string
     inventoryName: string
+    /**
+     * Whether the inventory holds one thing in many copies, which is what makes the piece
+     * exchangeable. Among a drawer of different things there is nothing to swap it for.
+     */
+    inventoryHomogeneous: boolean
     sizeId?: number | null
     sizeName?: string | null
     lostAt?: string | null
@@ -234,6 +369,11 @@ export interface RequiredInventoryItem {
     inventoryName: string
     inventoryType: string
     hasSizes: boolean
+    /**
+     * Whether the inventory holds one thing in many copies, which is what makes a piece of it
+     * exchangeable. Among a drawer of different things there is nothing to swap one for.
+     */
+    homogeneous: boolean
     sizes: InventorySize[]
     requiredQuantity: number
     /** What the member has towards it, counting pieces away in an exchange. */
@@ -337,12 +477,18 @@ export interface InventorySummary {
     id: number
     stationId: string
     name?: string
-    inventoryType?: string
+    inventoryType?: InventoryTypeName
     hasSizes: boolean
+    /** Whether it is a uniform inventory rather than a collection. */
+    homogeneous: boolean
+    /** Whether it is the station's one shelf for gear belonging to somebody else. */
+    borrowed: boolean
     itemCount: number
     lostCount: number
     procurementCount: number
     lentOutCount: number
+    /** How many kinds are defined in it, which only a collection has any use for. */
+    artCount: number
 }
 
 export async function listSummaries(): Promise<InventorySummary[]> {
@@ -390,6 +536,18 @@ export async function createItem(inventoryId: number, data: ItemRequest): Promis
 
 export const updateItem = items.update
 export const deleteItem = items.remove
+
+/**
+ * Moves a piece into another inventory of the same station, keeping the piece it has always been.
+ *
+ * Its identifier, its history, who has it and where it has been all stay with it. Only the size
+ * cannot come along as it stands: the size list belongs to the inventory being left, so the piece
+ * keeps a size of the same name in the new list and arrives without one where there is none.
+ */
+export async function moveItem(id: number, inventoryId: number): Promise<InventoryItem> {
+    const res = await client.put<InventoryItem>(`/inventory-items/${id}/inventory`, {inventoryId})
+    return res.data
+}
 
 export async function assignItem(id: number, data: AssignRequest): Promise<InventoryItem> {
     const res = await client.put<InventoryItem>(`/inventory-items/${id}/assign`, data)
@@ -451,6 +609,28 @@ export async function reportLoss(itemId: number, note: string, document?: File |
  * The body above this station that keeps its gear in Ember, or null when there is none. What a station
  * may ask for follows from it: with nobody above, there is nobody to ask.
  */
+/**
+ * One piece the station is holding that belongs to a partner station.
+ *
+ * The row is a copy taken when the gear changed hands and is not kept in step with the owner's
+ * afterwards, so what it shows is the thing as it was handed over.
+ */
+export interface BorrowedItem {
+    item: InventoryItem
+    /** The partner the gear belongs to. */
+    ownerStationName: string
+    /** The lending request it came in on, which is where anything about the loan is said. */
+    loanRequestId: number
+    /** The day the loan was asked to run to, or null when none was named. */
+    dueOn?: string | null
+}
+
+/** Everything the station has borrowed, by partner and then by name. */
+export async function listBorrowed(): Promise<BorrowedItem[]> {
+    const res = await client.get<BorrowedItem[]>('/inventory-borrowed')
+    return res.data
+}
+
 export async function ownerAbove(): Promise<string | null> {
     const res = await client.get<{name: string | null}>('/inventory-owner-above')
     return res.data.name

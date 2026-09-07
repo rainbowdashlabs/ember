@@ -28,13 +28,18 @@ import dev.chojo.ember.feature.cluster.service.ClusterAutoShareService;
 import dev.chojo.ember.feature.cluster.service.ClusterContentService;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
+import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
+import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
+import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.service.FederationContractRefreshService;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
@@ -42,6 +47,7 @@ import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
+import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
@@ -53,6 +59,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
+import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
 import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
@@ -60,6 +67,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbLinkMetadataService;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfExportService;
 import dev.chojo.ember.feature.knowledgebase.service.KbPresentationService;
 import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
+import dev.chojo.ember.feature.knowledgebase.service.KbTrashService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.knowledgebase.service.TextCompressionPolicy;
@@ -165,8 +173,13 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 memberLookupService,
                 accountRepo);
-        var inventoryService =
-                new InventoryService(inventoryRepo, itemCustodyService, clusterRepo, clusterStationGroupRepo);
+        var inventoryService = new InventoryService(
+                inventoryRepo,
+                artRepo,
+                fieldDefinitionService,
+                itemCustodyService,
+                clusterRepo,
+                clusterStationGroupRepo);
         var exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         var procurementService = new ProcurementService(
                 procurementRepo, inventoryService, inventoryRepo, clusterRepo, itemCustodyService, noOpBus);
@@ -200,6 +213,14 @@ class DemoServiceTest extends RepositoryTestBase {
                 new PresentationCompressor(kbStorageConfig),
                 new PdfCompressor(kbStorageConfig),
                 new ClusterAutoShareService(clusterRepo, new FederationRepository()));
+        var kbTrashService = new KbTrashService(
+                knowledgeBaseRepo,
+                kbFileStorage,
+                kbContentService,
+                kbSearchService,
+                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
+                new KbAuthorNameService(stationMemberRepo, accountRepo),
+                pageRepo);
         var kbFederationService = new KnowledgeBaseFederationService(
                 kbService,
                 kbContentService,
@@ -289,7 +310,17 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationService,
                 stationRepo,
                 inventoryRepo,
+                clusterRepo,
                 itemCustodyService,
+                borrowedGearService,
+                new InventoryShareService(new InventoryShareRepository(), federationService, inventoryRepo, artRepo),
+                artRepo,
+                lineTargetService,
+                new EquipmentAvailabilityService(
+                        new EquipmentAvailabilityRepository(),
+                        new EquipmentNeedRepository(),
+                        eventRepo,
+                        new EventBreakService(eventBreakRepo)),
                 noOpBus);
         var federatedBoardService = new FederatedBoardService(federatedBoardRepo);
 
@@ -298,12 +329,14 @@ class DemoServiceTest extends RepositoryTestBase {
         // read paths don't depend on its behavior and constructing a real one would drag in
         // EmailService + Mailing config that aren't relevant here.
         var notificationServiceMock = mock(NotificationService.class);
-        var lostAndFoundService = new LostAndFoundService(lostAndFoundRepo, notificationServiceMock);
+        var lostAndFoundService = new LostAndFoundService(
+                lostAndFoundRepo, notificationServiceMock, mock(LostAndFoundImageService.class));
         var boardService = new BoardService(boardRepo, memberSvc, groupService, tagService);
         var boardAttachmentSvc = new BoardAttachmentService(kbStorageSvc, stationRepo, kbBackend);
         var boardTicketService = new BoardTicketService(
                 boardTicketRepo,
                 boardRepo,
+                boardService,
                 noOpBus,
                 memberSvc,
                 memberIdentityFactory,
@@ -333,9 +366,11 @@ class DemoServiceTest extends RepositoryTestBase {
         var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo, stationMemberRepo);
         var containerSvc =
                 new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService);
-        var fieldDefSvc = new InventoryFieldDefinitionService(fieldDefinitionRepo);
+        var fieldDefSvc = new InventoryFieldDefinitionService(fieldDefinitionRepo, artRepo, inventoryRepo);
         var inventorySeeder = new DemoInventorySeeder(
                 inventoryRepo,
+                artRepo,
+                inventoryTagRepo,
                 inventoryCheckRepo,
                 accountRepo,
                 containerSvc,
@@ -351,7 +386,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 clusterInventoryService,
                 clusterProfileFieldService,
                 clusterStationGroupService,
-                new ClusterContentService(clusterRepo, stationRepo, stationMemberRepo, kbService),
+                new ClusterContentService(clusterRepo, stationRepo, stationMemberRepo, kbService, kbTrashService),
                 new ClusterApplicationService(
                         clusterApplicationRepo, clusterRepo, stationRepo, clusterService, noOpBus),
                 clusterStorageQuotaService,
@@ -396,10 +431,16 @@ class DemoServiceTest extends RepositoryTestBase {
                 memberIdentityFactory,
                 demoConfig,
                 apiConfig);
-        var lendingSeeder = new DemoLendingSeeder(lendingService, inventoryRepo);
+        var equipmentSeeder = new DemoEquipmentSeeder(equipmentNeedRepo, eventRepo, inventoryRepo, artRepo);
+        var lendingSeeder = new DemoLendingSeeder(
+                lendingService,
+                new InventoryShareService(new InventoryShareRepository(), federationService, inventoryRepo, artRepo),
+                inventoryRepo,
+                artRepo);
         var boardSeeder = new DemoBoardSeeder(
                 boardRepo, boardTicketRepo, federatedBoardService, federationService, memberIdentityFactory);
         var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
+        var selfCheckSeeder = new DemoSelfCheckSeeder(selfCheckRepo, inventoryRepo, itemCustodyService);
         var demoStorageConfig = new Storage();
         var demoBackend = new LocalStorageBackend();
         var demoResolver = new StorageBackendResolver(demoBackend);
@@ -424,8 +465,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 quizCatalogRepo);
         var newsSeeder = new DemoNewsSeeder(newsService, stationMemberRepo);
         var lostAndFoundSeederLocal = new DemoLostAndFoundSeeder(lostAndFoundService);
-        var checklistService =
-                new ChecklistService(new ChecklistRepository(), stationMemberRepo, memberGroupRepo, userTagRepo);
+        var checklistService = new ChecklistService(
+                new ChecklistRepository(), stationMemberRepo, memberGroupRepo, userTagRepo, eventRegistrationRepo);
         var checklistSeederLocal = new DemoChecklistSeeder(checklistService);
         var stationSeeder = new DemoStationSeeder(accountRepo, stationRepo);
         var mirrorStationSeeder = new DemoMirrorStationSeeder(
@@ -483,6 +524,7 @@ class DemoServiceTest extends RepositoryTestBase {
                         kbSeeder,
                         protocolSeeder,
                         procedureSeeder,
+                        selfCheckSeeder,
                         avatarSeeder,
                         federationSeeder,
                         settingsSeeder,
@@ -490,6 +532,7 @@ class DemoServiceTest extends RepositoryTestBase {
                         boardSeeder,
                         pageSeeder,
                         lendingSeeder,
+                        equipmentSeeder,
                         notificationSeeder,
                         setupSeeder,
                         freshStationSeeder,

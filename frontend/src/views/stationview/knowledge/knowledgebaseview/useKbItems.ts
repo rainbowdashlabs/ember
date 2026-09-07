@@ -82,9 +82,11 @@ interface KbItemHandlers {
     openFavourites: () => void
     editFolder: (folder: KbFolder) => void
     shareFolder: (folder: KbFolder) => void
+    moveFolder: (folder: KbFolder) => void
     deleteFolder: (folder: KbFolder) => void
     editFile: (file: KbFile) => void
     shareFile: (file: KbFile) => void
+    moveFile: (file: KbFile) => void
     deleteFile: (file: KbFile) => void
     exportFilePdf: (file: KbFile) => void
     copySharedFile: (id: number) => void
@@ -202,6 +204,13 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
         }
         if (sources.canManage.value && levelCovers(level, KbAccessLevel.MANAGE)) {
             actions.push({
+                key: 'move',
+                icon: ['fas', 'arrow-right-arrow-left'],
+                label: t('kb.move'),
+                onHover: true,
+                run: () => handlers.moveFile(file),
+            })
+            actions.push({
                 key: 'delete',
                 icon: ['fas', 'trash'],
                 label: t('kb.deleteFile'),
@@ -318,6 +327,13 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             })
         }
         if (levelCovers(level, KbAccessLevel.MANAGE)) {
+            actions.push({
+                key: 'move',
+                icon: ['fas', 'arrow-right-arrow-left'],
+                label: t('kb.move'),
+                onHover: true,
+                run: () => handlers.moveFolder(folder),
+            })
             actions.push({
                 key: 'delete',
                 icon: ['fas', 'trash'],

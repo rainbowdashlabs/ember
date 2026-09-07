@@ -8,55 +8,38 @@ import { computed } from 'vue'
 import CreateInviteModal from './CreateInviteModal.vue'
 import DeleteListModal from './DeleteListModal.vue'
 import TransitionConfirmModal from './TransitionConfirmModal.vue'
+import InviteEntryModal from './InviteEntryModal.vue'
 import DeleteEntryModal from './DeleteEntryModal.vue'
+import type { useListInvites } from './useListInvites'
+import type { useEntryTransitions } from './useEntryTransitions'
+import type { useEntryInvitation } from './useEntryInvitation'
 import type { WaitingListEntryWithScore } from '@/api/waitingList'
 
-type TransitionKind = 'invite' | 'testing' | 'join' | 'approve' | 'reject' | 'withdraw'
-
-interface PendingTransition {
-  entry: WaitingListEntryWithScore
-  kind: TransitionKind
-}
-
+/**
+ * Every window the list detail page can open.
+ *
+ * It is handed the three composables that own the work rather than a prop for each of their
+ * fields: what a modal shows and what it does when confirmed belong together, and splitting them
+ * into two dozen props and emits only moves the wiring somewhere it reads worse.
+ */
 const props = defineProps<{
-  showInvite: boolean
-  inviteMaxUses: number | undefined
-  inviteExpiresAt: string
-  creatingInvite: boolean
+  invite: ReturnType<typeof useListInvites>
+  transitions: ReturnType<typeof useEntryTransitions>
+  invitation: ReturnType<typeof useEntryInvitation>
   showDelete: boolean
   listName: string | undefined
   deletingList: boolean
-  pendingTransition: PendingTransition | null
-  runningTransition: boolean
   showDeleteEntry: boolean
   deleteEntryTarget: WaitingListEntryWithScore | null
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:showInvite', value: boolean): void
-  (e: 'update:inviteMaxUses', value: number | undefined): void
-  (e: 'update:inviteExpiresAt', value: string): void
-  (e: 'submit-invite'): void
   (e: 'update:showDelete', value: boolean): void
   (e: 'confirm-delete-list'): void
-  (e: 'cancel-transition'): void
-  (e: 'confirm-transition'): void
   (e: 'update:showDeleteEntry', value: boolean): void
   (e: 'confirm-delete-entry'): void
 }>()
 
-const showInviteModel = computed({
-  get: () => props.showInvite,
-  set: (v) => emit('update:showInvite', v),
-})
-const inviteMaxUsesModel = computed({
-  get: () => props.inviteMaxUses,
-  set: (v) => emit('update:inviteMaxUses', v),
-})
-const inviteExpiresAtModel = computed({
-  get: () => props.inviteExpiresAt,
-  set: (v) => emit('update:inviteExpiresAt', v),
-})
 const showDeleteModel = computed({
   get: () => props.showDelete,
   set: (v) => emit('update:showDelete', v),
@@ -69,11 +52,11 @@ const showDeleteEntryModel = computed({
 
 <template>
   <CreateInviteModal
-    v-model="showInviteModel"
-    v-model:max-uses="inviteMaxUsesModel"
-    v-model:expires-at="inviteExpiresAtModel"
-    :creating="creatingInvite"
-    @submit="emit('submit-invite')"
+    v-model="invite.showModal.value"
+    v-model:max-uses="invite.maxUses.value"
+    v-model:expires-at="invite.expiresAt.value"
+    :creating="invite.creating.value"
+    @submit="invite.create"
   />
   <DeleteListModal
     v-model="showDeleteModel"
@@ -82,10 +65,18 @@ const showDeleteEntryModel = computed({
     @confirm="emit('confirm-delete-list')"
   />
   <TransitionConfirmModal
-    :pending="pendingTransition"
-    :running="runningTransition"
-    @cancel="emit('cancel-transition')"
-    @confirm="emit('confirm-transition')"
+    :pending="transitions.pending.value"
+    :running="transitions.running.value"
+    @cancel="transitions.pending.value = null"
+    @confirm="transitions.confirm"
+  />
+  <InviteEntryModal
+    v-model:occurrence="invitation.occurrence.value"
+    v-model:arrival-time="invitation.arrivalTime.value"
+    :target="invitation.target.value"
+    :running="invitation.running.value"
+    @cancel="invitation.cancel"
+    @confirm="invitation.confirm"
   />
   <DeleteEntryModal
     v-model="showDeleteEntryModel"

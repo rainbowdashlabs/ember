@@ -130,6 +130,19 @@ public class StationMemberService {
         return memberRepository.findAllPermissions();
     }
 
+    /**
+     * The active members of a station holding a permission, counting the wider rights that carry
+     * it. Asked for a whole station at once rather than member by member, which is what keeps a
+     * question about everybody to one round trip.
+     *
+     * @param stationId  the station
+     * @param permission the permission to ask for
+     * @return the members who hold it
+     */
+    public List<StationMember> findMembersWithPermission(int stationId, StationPermission permission) {
+        return memberRepository.findMembersWithPermission(stationId, permission);
+    }
+
     public List<Permission> setPermissions(
             int memberId,
             List<Integer> desiredPermissionIds,

@@ -10,13 +10,14 @@ import CsvImportWizard from '@/components/csv/CsvImportWizard.vue'
 import TeamImportHeader from './teamimportview/TeamImportHeader.vue'
 import MappingStep from './importshared/MappingStep.vue'
 import PreviewStep from './importshared/PreviewStep.vue'
+import SetupMailChoice from '@/components/input/toggle/SetupMailChoice.vue'
 import { useMemberCsvImport } from './importshared/useMemberCsvImport'
 import DoneStep from './teamimportview/DoneStep.vue'
 import type { TeamImportResult } from './teamimportview/DoneStep.vue'
 
 const { t } = useI18n()
 
-const { importer, targetOptions, fieldScopeGroups, needsValueMap, valuesForTarget, toggleRow, fieldLabel } = useMemberCsvImport<TeamImportResult>({
+const { importer, targetOptions, fieldScopeGroups, needsValueMap, valuesForTarget, toggleRow, fieldLabel, sendSetupMail } = useMemberCsvImport<TeamImportResult>({
   previewPath: '/members/import-team/preview',
   importPath: '/members/import-team',
   defaultScope: 'TEAM',
@@ -57,6 +58,7 @@ const { mapping, headers, rows, preview, result } = importer
           :field-label="fieldLabel"
               @toggle-row="toggleRow"
           />
+          <SetupMailChoice v-model="sendSetupMail" class="mt-4"/>
         </template>
 
         <template #done>

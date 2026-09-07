@@ -6,6 +6,7 @@
 package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
+import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
 
@@ -21,6 +22,10 @@ import dev.chojo.ember.feature.comment.entity.MentionType;
  * @param entityTitle     the title/name of the entity
  * @param mentionType     the type of mention
  * @param mentionTargetId the ID of the target (group ID or event ID)
+ * @param ticketAddress   where the ticket's page is, when the comment hangs under one, and
+ *                        {@code null} for everything else: a ticket is the one thing here that its
+ *                        id alone does not open
+ * @param commentId       the comment carrying the mention, so the notification opens on it
  * @param preview         short snippet of the comment text so the feed entry surfaces context
  */
 public record BulkMentionedInComment(
@@ -32,5 +37,7 @@ public record BulkMentionedInComment(
         String entityTitle,
         MentionType mentionType,
         int mentionTargetId,
+        BoardTicketAddress ticketAddress,
+        int commentId,
         String preview)
         implements DomainEvent {}

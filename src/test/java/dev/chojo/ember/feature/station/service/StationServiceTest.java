@@ -343,6 +343,88 @@ class StationServiceTest extends RepositoryTestBase {
         accountRepo.delete(account.id());
     }
 
+    /**
+     * A made-up address is not a key to the account behind it. Naming one as a station's manager is
+     * refused, and the refusal has to carry its reason: an operator who sees only a fault presses the
+     * button again, which is exactly what happened.
+     */
+    @Test
+    @Order(47)
+    void updateWithManagerRefusesAMadeUpAddressOfAnotherAccount() {
+        Account other = accountRepo.create("svc-upd-taken@ember.local", "Taken", "Local");
+
+        var refused = assertThrows(
+                StationMemberInviteService.ProvisionException.class,
+                () -> service.updateWithManager(stationId, "UpdatedWithTaken", other.email()));
+        assertTrue(refused.getMessage().contains(other.email()));
+
+        accountRepo.delete(other.id());
+    }
+
+    @Test
+    @Order(48)
+    void namingAnotherManagerHandsTheStationOverAndKeepsThePreviousOne() {
+        var station = stationRepo.create("Wache Übergabe");
+        Account first = accountRepo.create("svc-mgr-first@test.com", "First", "Manager", true);
+        Account second = accountRepo.create("svc-mgr-second@test.com", "Second", "Manager", true);
+        var managerRole = stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+
+        service.updateWithManager(station.id(), "Wache Übergabe", first.email());
+        int firstMemberId = stationMemberRepo
+                .findByStationAndAccount(station.id(), first.id())
+                .orElseThrow()
+                .id();
+
+        service.updateWithManager(station.id(), "Wache Übergabe", second.email());
+        int secondMemberId = stationMemberRepo
+                .findByStationAndAccount(station.id(), second.id())
+                .orElseThrow()
+                .id();
+
+        assertEquals(
+                secondMemberId, stationRepo.findById(station.id()).orElseThrow().ownerMemberId());
+        assertEquals(
+                second.email(),
+                service.findManagerInfo(station.id()).orElseThrow().email());
+        assertTrue(stationMemberRepo.findPermissions(firstMemberId).stream().anyMatch(r -> r.id() == managerRole.id()));
+
+        stationMemberRepo.delete(secondMemberId);
+        stationMemberRepo.delete(firstMemberId);
+        stationRepo.delete(station.id());
+        accountRepo.delete(second.id());
+        accountRepo.delete(first.id());
+    }
+
+    @Test
+    @Order(49)
+    void anAdministratorWithoutAnAccountIsPassedOver() {
+        var station = stationRepo.create("Wache Ehemalige");
+        Account gone = accountRepo.create("svc-mgr-gone@test.com", "Gone", "Manager", true);
+        Account present = accountRepo.create("svc-mgr-present@test.com", "Present", "Manager", true);
+        var managerRole = stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+
+        var former = stationMemberRepo.create(station.id(), gone.id());
+        stationMemberRepo.grantPermission(former.id(), managerRole.id());
+        stationMemberRepo.setDisplayNameAndClearAccount(former.id(), "Gone Manager");
+
+        var current = stationMemberRepo.create(station.id(), present.id());
+        stationMemberRepo.grantPermission(current.id(), managerRole.id());
+
+        assertEquals(
+                present.email(),
+                service.findManagerInfo(station.id()).orElseThrow().email());
+
+        stationMemberRepo.delete(current.id());
+        stationMemberRepo.delete(former.id());
+        stationRepo.delete(station.id());
+        accountRepo.delete(present.id());
+        accountRepo.delete(gone.id());
+    }
+
     @Test
     @Order(50)
     void updatePublicWaitlistEnabled() {

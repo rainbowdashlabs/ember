@@ -36,7 +36,15 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
     const favouriteIds = computed(() => new Set(favourites.value.map(f => f.id)))
 
     const {loading, error, reload: loadData} = useAsyncLoader(async () => {
-        if (navigation.isSharedFolderView.value) {
+        if (navigation.isTrashView.value) {
+            currentFolder.value = null
+            folders.value = []
+            files.value = []
+            sharedFiles.value = []
+            sharedFolders.value = []
+            sharedTrail.value = []
+            breadcrumbs.value = []
+        } else if (navigation.isSharedFolderView.value) {
             const level = await federation.browseSharedKbFolder(
                 navigation.sharedStationUid.value!, navigation.sharedFolderId.value!)
             currentFolder.value = null

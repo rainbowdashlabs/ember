@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
+import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository.FolderPathNode;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.util.PdfText;
@@ -20,8 +21,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The folder and file tree of a station's knowledge base: creating entries of every kind, reading
@@ -100,6 +105,58 @@ public class KnowledgeBaseService {
     }
 
     /**
+     * The written path of many folders at once, from the root down, so a listing whose rows sit in
+     * different folders spells them out in one query rather than one lookup per level per row.
+     *
+     * @param folderIds the folders to spell out
+     * @return the path per folder id, each starting at the root
+     */
+    public Map<Integer, String> findFolderPaths(List<Integer> folderIds) {
+        var paths = new HashMap<Integer, String>();
+        repository
+                .findFolderPaths(folderIds)
+                .forEach((folderId, path) -> paths.put(
+                        folderId, "/" + path.stream().map(FolderPathNode::name).collect(Collectors.joining("/"))));
+        return paths;
+    }
+
+    /**
+     * Every folder from the root down to each of the given folders, by id, so a check asking
+     * whether something sits inside a set of folders does not climb one lookup at a time.
+     *
+     * @param folderIds the folders to walk up from
+     * @return the ancestry per folder id, itself included
+     */
+    public Map<Integer, Set<Integer>> findFolderAncestries(List<Integer> folderIds) {
+        var ancestries = new HashMap<Integer, Set<Integer>>();
+        repository
+                .findFolderPaths(folderIds)
+                .forEach((folderId, path) -> ancestries.put(
+                        folderId, path.stream().map(FolderPathNode::id).collect(Collectors.toSet())));
+        return ancestries;
+    }
+
+    /**
+     * Reads a folder that is in the trash, which no other read answers with.
+     *
+     * @param id the folder to read
+     * @return the folder, or empty when it does not exist or is still in use
+     */
+    public Optional<KbFolder> findDeletedFolder(int id) {
+        return repository.findDeletedFolderById(id);
+    }
+
+    /**
+     * Reads an article that is in the trash, which no other read answers with.
+     *
+     * @param id the article to read
+     * @return the article, or empty when it does not exist or is still in use
+     */
+    public Optional<KbFile> findDeletedFile(int id) {
+        return repository.findDeletedFileById(id);
+    }
+
+    /**
      * Creates a folder.
      *
      * @param stationId   the station the folder belongs to
@@ -134,22 +191,6 @@ public class KnowledgeBaseService {
             log.warn("KB folder {} update matched no rows", id);
         }
         return updated;
-    }
-
-    /**
-     * Deletes a folder.
-     *
-     * @param id the folder to delete
-     * @return {@code true} when the folder existed
-     */
-    public boolean deleteFolder(int id) {
-        boolean deleted = repository.deleteFolder(id);
-        if (deleted) {
-            log.info("KB folder {} deleted", id);
-        } else {
-            log.warn("KB folder {} delete matched no rows", id);
-        }
-        return deleted;
     }
 
     /**
@@ -355,27 +396,6 @@ public class KnowledgeBaseService {
     }
 
     /**
-     * Deletes a file along with the binary payload behind it.
-     *
-     * @param id the file to delete
-     * @return {@code true} when the file existed
-     */
-    public boolean deleteFile(int id) {
-        repository.findFileById(id).ifPresent(file -> {
-            fileStorage.delete(file.stationId(), id);
-            // The container is the owned side, so nothing else would clean it up.
-            contentService.deleteBlocks(file);
-        });
-        boolean deleted = repository.deleteFile(id);
-        if (deleted) {
-            log.info("KB file {} deleted", id);
-        } else {
-            log.warn("KB file {} delete matched no rows", id);
-        }
-        return deleted;
-    }
-
-    /**
      * Lists the files cross-referenced from a file.
      *
      * @param fileId the file to list for
@@ -383,6 +403,31 @@ public class KnowledgeBaseService {
      */
     public List<KbFile> findRelatedFiles(int fileId) {
         return repository.findRelatedFiles(fileId);
+    }
+
+    /**
+     * Lists the files that cross-reference a file.
+     *
+     * <p>Derived from the rows that already exist rather than written alongside them, so a
+     * reference points both ways without either side being able to take the other's away, and
+     * every reference written so far reads back here without anything being changed.
+     *
+     * @param fileId the file being pointed at
+     * @return the files pointing at it
+     */
+    public List<KbFile> findBacklinks(int fileId) {
+        return repository.findBacklinks(fileId);
+    }
+
+    /**
+     * Lists the articles of a station that were changed most recently.
+     *
+     * @param stationId the station to list for
+     * @param limit     how many to answer with
+     * @return the articles, newest change first
+     */
+    public List<KbFile> findRecentFiles(int stationId, int limit) {
+        return repository.findRecentFiles(stationId, limit);
     }
 
     /**

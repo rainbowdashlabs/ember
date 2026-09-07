@@ -21,6 +21,16 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * stations have moved to a different Ember instance. A station is resolved local by
  * {@code SELECT 1 FROM station WHERE uid = ?}; if no row matches, the station lives on a remote
  * instance reached via {@code federation_partner}.
+ *
+ * <p>What the request is for travels as {@code occasion}, a copy of the appointment's name taken when
+ * it was sent, and never as a link. Why a request is being made is the question that decides a yes,
+ * and a title plus a window answers it; everything else on an appointment, the sign-ups, the fields
+ * and the description, is no business of another station and may be restricted in the first place.
+ * The appointment itself is named only at the requesting station, for counting what a need has.
+ *
+ * @param eventId   the appointment at the requesting station, or {@code null}
+ * @param eventDate the evening of that appointment, or {@code null}
+ * @param occasion  what the request is for, as the owning station reads it
  */
 public record LendingRequest(
         int id,
@@ -31,7 +41,10 @@ public record LendingRequest(
         LocalDate requestedDateTo,
         Integer createdBy,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        Integer eventId,
+        LocalDate eventDate,
+        String occasion) {
 
     public static RowMapping<LendingRequest> map() {
         return row -> new LendingRequest(
@@ -43,6 +56,9 @@ public record LendingRequest(
                 row.getObject("requested_date_to", LocalDate.class),
                 row.getObject("created_by", Integer.class),
                 row.get("created_at", INSTANT_TIMESTAMP),
-                row.get("updated_at", INSTANT_TIMESTAMP));
+                row.get("updated_at", INSTANT_TIMESTAMP),
+                row.getObject("event_id", Integer.class),
+                row.getObject("event_date", LocalDate.class),
+                row.getString("occasion"));
     }
 }

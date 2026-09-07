@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.knowledgebase.service;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessGrant;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository.FolderPathNode;
@@ -24,11 +25,15 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Who may see a knowledge-base folder or file, along both axes the knowledge base has: the
@@ -203,7 +208,7 @@ public class KbAccessService {
         }
 
         if (fileId != null) {
-            var file = repository.findFileById(fileId);
+            var file = repository.findAnyFileById(fileId);
             if (file.isPresent() && file.get().folderId() != null) {
                 return canAccessFolder(memberId, file.get().folderId(), memberUserType, memberGroupIds, memberTagIds);
             }
@@ -231,19 +236,41 @@ public class KbAccessService {
         if (repository.hasRestrictions(folderId, fileId)) return false;
 
         if (fileId != null) {
-            var file = repository.findFileById(fileId).orElse(null);
+            var file = repository.findAnyFileById(fileId).orElse(null);
             if (file != null && file.folderId() != null && !isPubliclyVisible(mode, file.folderId(), null)) {
                 return false;
             }
         }
 
         if (folderId != null) {
-            var folder = repository.findFolderById(folderId).orElse(null);
+            var folder = repository.findAnyFolderById(folderId).orElse(null);
             if (folder != null && folder.parentId() != null && !isPubliclyVisible(mode, folder.parentId(), null)) {
                 return false;
             }
         }
 
+        return repository.findPublicVisibility(folderId, fileId).orElseGet(() -> mode == PublicKbMode.ALLOW_ALL);
+    }
+
+    /**
+     * Whether a folder or file would stand on the public knowledge base once it sat in a target
+     * folder, rather than where it sits now.
+     *
+     * <p>This is the question the move dialog asks. It matters in one direction in particular: a
+     * station that publishes everything by default turns an entry nobody ever published into a
+     * public page the moment it lands in a public folder, and the reader deserves to be told that
+     * before it happens rather than after.
+     *
+     * @param mode           the station's public knowledge-base mode
+     * @param targetFolderId the folder it would sit in, or {@code null} for the tree root
+     * @param folderId       the folder being moved, or {@code null} when moving a file
+     * @param fileId         the file being moved, or {@code null} when moving a folder
+     * @return {@code true} when the item would be public there
+     */
+    public boolean isPubliclyVisibleUnder(PublicKbMode mode, Integer targetFolderId, Integer folderId, Integer fileId) {
+        if (mode == PublicKbMode.OFF) return false;
+        if (repository.hasRestrictions(folderId, fileId)) return false;
+        if (targetFolderId != null && !isPubliclyVisible(mode, targetFolderId, null)) return false;
         return repository.findPublicVisibility(folderId, fileId).orElseGet(() -> mode == PublicKbMode.ALLOW_ALL);
     }
 
@@ -308,7 +335,7 @@ public class KbAccessService {
     private String levelSource(MemberAccess access, Integer folderId, Integer fileId) {
         Integer startFolder = folderId;
         if (fileId != null) {
-            var file = repository.findFileById(fileId);
+            var file = repository.findAnyFileById(fileId);
             if (file.isEmpty()) return null;
             startFolder = file.get().folderId();
         }
@@ -361,7 +388,7 @@ public class KbAccessService {
 
         Integer startFolder = folderId;
         if (fileId != null) {
-            var file = repository.findFileById(fileId);
+            var file = repository.findAnyFileById(fileId);
             if (file.isEmpty()) return stationDefault(access);
             startFolder = file.get().folderId();
         }
@@ -432,6 +459,100 @@ public class KbAccessService {
         return new ChildLevels(folderLevels, fileLevels);
     }
 
+    /**
+     * Resolves the level of files spread anywhere across the tree in two queries rather than one
+     * walk per file.
+     *
+     * <p>A search hit is reached without walking the folders above it, so nothing about the caller's
+     * standing there has been resolved by the time the hit is in hand. Answering that per hit turns
+     * one search into a round trip per result, which is why the ancestries and the grants on them
+     * are read for the whole batch at once and applied in memory.
+     *
+     * @param access the member's memberships and station rights
+     * @param files  the files to resolve, each with the folder it sits in
+     * @return the level per file id
+     */
+    public Map<Integer, KbAccessLevel> fileLevels(MemberAccess access, List<FileNode> files) {
+        if (files.isEmpty()) return Map.of();
+        if (access.canManage()) {
+            var levels = new HashMap<Integer, KbAccessLevel>();
+            for (var file : files) levels.put(file.id(), KbAccessLevel.MANAGE);
+            return levels;
+        }
+
+        var folderIds = files.stream()
+                .map(FileNode::folderId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        var paths = repository.findFolderPaths(folderIds);
+        var pathFolderIds = paths.values().stream()
+                .flatMap(List::stream)
+                .map(FolderPathNode::id)
+                .distinct()
+                .toList();
+        var grants = repository.findRestrictionsForNodes(
+                pathFolderIds, files.stream().map(FileNode::id).toList());
+
+        var carried = new HashMap<Integer, KbAccessLevel>();
+        for (var folderId : folderIds) {
+            carried.put(folderId, applyPath(access, paths.getOrDefault(folderId, List.of()), grants));
+        }
+
+        var levels = new HashMap<Integer, KbAccessLevel>();
+        for (var file : files) {
+            var inherited = file.folderId() != null ? carried.get(file.folderId()) : null;
+            if (inherited == KbAccessLevel.NONE) {
+                levels.put(file.id(), KbAccessLevel.NONE);
+                continue;
+            }
+            var rows = grants.stream()
+                    .filter(grant -> grant.fileId() != null && grant.fileId() == file.id())
+                    .toList();
+            levels.put(file.id(), resolveChild(access, rows, file.mode(), inherited));
+        }
+        return levels;
+    }
+
+    /**
+     * Whether a member may read every one of a batch of files, resolved together.
+     *
+     * @param access the member's memberships and station rights
+     * @param files  the files to resolve, each with the folder it sits in
+     * @return the ids of the files the member may see
+     */
+    public Set<Integer> readableFiles(MemberAccess access, List<FileNode> files) {
+        return fileLevels(access, files).entrySet().stream()
+                .filter(entry -> entry.getValue().covers(KbAccessLevel.READ))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * One file of a batch: its id, the folder it sits in, and the mode its own grants combine in.
+     */
+    public record FileNode(int id, Integer folderId, RestrictionMode mode) {
+        public static FileNode of(KbFile file) {
+            return new FileNode(file.id(), file.folderId(), file.restrictionMode());
+        }
+    }
+
+    /**
+     * Applies the grants of a whole ancestry, root first, to arrive at the level carried down to
+     * its last folder.
+     */
+    private KbAccessLevel applyPath(MemberAccess access, List<FolderPathNode> path, List<KbAccessGrant> grants) {
+        KbAccessLevel carried = null;
+        for (var node : path) {
+            var rows = grants.stream()
+                    .filter(grant -> grant.folderId() != null && grant.folderId() == node.id())
+                    .toList();
+            carried = applyNode(access, rows, node.restrictionMode(), carried);
+            if (carried == KbAccessLevel.NONE) return KbAccessLevel.NONE;
+        }
+        return carried;
+    }
+
     private KbAccessLevel resolveChild(
             MemberAccess access, List<KbAccessGrant> rows, RestrictionMode mode, KbAccessLevel carried) {
         var resolved = applyNode(access, rows, mode, carried);
@@ -454,17 +575,65 @@ public class KbAccessService {
         var path = repository.findFolderPath(folderId);
         var grants = repository.findRestrictionsForPath(
                 path.stream().map(FolderPathNode::id).toList(), null);
-
-        KbAccessLevel carried = null;
-        for (var node : path) {
-            var rows = grants.stream()
-                    .filter(grant -> grant.folderId() != null && grant.folderId() == node.id())
-                    .toList();
-            carried = applyNode(access, rows, node.restrictionMode(), carried);
-            if (carried == KbAccessLevel.NONE) return KbAccessLevel.NONE;
-        }
-        return carried;
+        return applyPath(access, path, grants);
     }
+
+    /**
+     * Resolves the level of every folder of a station in one pass down the whole tree.
+     *
+     * <p>A picker that offers somewhere to put an entry has to know what the reader may do in every
+     * folder at once, which per folder would be two queries each. Walking the tree from the roots
+     * down instead reads all grants once and carries each folder's answer into its children, the
+     * way a single lookup would if it went the same way.
+     *
+     * @param access the member's memberships and station rights
+     * @param nodes  every folder of the station, in any order
+     * @return the level per folder id
+     */
+    public Map<Integer, KbAccessLevel> treeLevels(MemberAccess access, List<TreeNode> nodes) {
+        if (access.canManage()) {
+            var levels = new HashMap<Integer, KbAccessLevel>();
+            for (var node : nodes) levels.put(node.id(), KbAccessLevel.MANAGE);
+            return levels;
+        }
+
+        var byParent = new HashMap<Integer, List<TreeNode>>();
+        for (var node : nodes) {
+            byParent.computeIfAbsent(node.parentId(), key -> new ArrayList<>()).add(node);
+        }
+        var grants = repository.findRestrictionsForNodes(
+                nodes.stream().map(TreeNode::id).toList(), List.of());
+
+        var levels = new HashMap<Integer, KbAccessLevel>();
+        var pending = new ArrayDeque<PendingNode>();
+        for (var root : byParent.getOrDefault(null, List.of())) pending.add(new PendingNode(root, null));
+        while (!pending.isEmpty()) {
+            var current = pending.poll();
+            KbAccessLevel carried;
+            if (current.carried() == KbAccessLevel.NONE) {
+                carried = KbAccessLevel.NONE;
+            } else {
+                var rows = grants.stream()
+                        .filter(grant -> grant.folderId() != null
+                                && grant.folderId() == current.node().id())
+                        .toList();
+                carried = applyNode(access, rows, current.node().mode(), current.carried());
+            }
+            levels.put(current.node().id(), carried != null ? carried : stationDefault(access));
+            for (var child : byParent.getOrDefault(current.node().id(), List.of())) {
+                pending.add(new PendingNode(child, carried));
+            }
+        }
+        return levels;
+    }
+
+    private record PendingNode(TreeNode node, KbAccessLevel carried) {}
+
+    /**
+     * One folder of a station's whole tree: its id, where it hangs, and the mode its own grants
+     * combine in.
+     */
+    public record TreeNode(int id, Integer parentId, RestrictionMode mode) {}
 
     /**
      * One child of a listed folder: its id and the mode its own grants combine in.
@@ -515,11 +684,11 @@ public class KbAccessService {
 
     private RestrictionMode restrictionMode(Integer folderId, Integer fileId) {
         if (fileId != null) {
-            var file = repository.findFileById(fileId);
+            var file = repository.findAnyFileById(fileId);
             if (file.isPresent() && file.get().restrictionMode() != null)
                 return file.get().restrictionMode();
         } else if (folderId != null) {
-            var folder = repository.findFolderById(folderId);
+            var folder = repository.findAnyFolderById(folderId);
             if (folder.isPresent() && folder.get().restrictionMode() != null)
                 return folder.get().restrictionMode();
         }
@@ -532,7 +701,7 @@ public class KbAccessService {
             StationUserType memberUserType,
             List<Integer> memberGroupIds,
             List<Integer> memberTagIds) {
-        var folder = repository.findFolderById(folderId);
+        var folder = repository.findAnyFolderById(folderId);
         if (folder.isEmpty()) return true;
 
         var rawRestrictions = repository.findRestrictions(folderId, null);

@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
 import dev.chojo.ember.feature.system.service.ApplicationLogWriter;
 import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.feature.system.service.DemoService;
+import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import dev.chojo.ember.util.service.CloudflareRangesService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,17 +42,28 @@ import java.util.Base64;
  */
 public class Bootstrapper {
     private static final Logger log = LoggerFactory.getLogger(Bootstrapper.class);
-    private static final String ADMIN_EMAIL = "admin@ember.local";
+    private static final String ADMIN_LOGIN_NAME = "admin";
     private static final String ADMIN_FIRST_NAME = "Admin";
     private static final String ADMIN_LAST_NAME = "Admin";
 
     /**
-     * Creates a default admin account and a default station if no account with the ADMIN role
-     * exists yet. On an ordinary instance a random password lands in the log with a forced
-     * change at first sign-in; on a passwordless one no credential row is written at all, and a
-     * one-time enrolment link goes to the log instead. Whoever can read the console is the
+     * Creates the account that administers a brand new instance and a default station, unless
+     * somebody already administers it. Logs what to sign in with: on an ordinary instance a
+     * random password with a forced change at first sign-in, on a passwordless one no credential
+     * row at all and a one-time enrolment link instead. Whoever can read the console is the
      * person installing the instance, and a link that can do nothing but create one passkey is
      * a smaller thing to leave lying in a log file than a working password.
+     *
+     * <p>The account is given a login name and no address at all. It used to be given a made-up
+     * one ending in {@code .local}, which read as an address without being one: no password reset
+     * reached it, no security notice did, and naming it as somebody's address elsewhere in the
+     * application was refused as a collision, because a made-up address that is already taken is
+     * two different people rather than one. A name is what an account signs in with when it has no
+     * address of its own, which is exactly this account's position, and it is a truthful one: it
+     * says the instance does not yet know where to write.
+     *
+     * <p>Where to write is then asked for at the first sign-in, beside the password, and there is
+     * no session until it has been answered.
      */
     private static void createDefaultAdmin(
             AccountRepository accountRepository,
@@ -65,9 +77,11 @@ public class Bootstrapper {
             return;
         }
         boolean passwordless = passkeyModeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS;
+        String loginName = freeLoginName(accountRepository);
 
-        var account = accountRepository.create(ADMIN_EMAIL, ADMIN_FIRST_NAME, ADMIN_LAST_NAME, true);
+        var account = accountRepository.create(null, ADMIN_FIRST_NAME, ADMIN_LAST_NAME, false);
         int accountId = account.id();
+        accountRepository.updateUsername(accountId, loginName);
         String password = null;
         if (!passwordless) {
             password = generatePassword();
@@ -81,14 +95,15 @@ public class Bootstrapper {
 
         log.info("==========================================================");
         log.info("  Default admin account created");
-        log.info("  Email:    {}", ADMIN_EMAIL);
+        log.info("  Username: {}", loginName);
         if (passwordless) {
             String code = enrollmentService.issueCode(accountId, PasskeyEnrollmentService.LINK_TTL);
             log.info("  This instance is passwordless. Create the admin's passkey here (link lives one hour):");
             log.info("  {}/enroll?code={}", api.baseUrl(), code);
         } else {
             log.info("  Password: {}", password);
-            log.info("  You will be required to change this password on first login.");
+            log.info("  You will be required to change this password and to give an email address");
+            log.info("  the instance can write to on first login.");
         }
         log.info("  Default station '{}' created (id={})", station.name(), station.id());
         log.info("==========================================================");
@@ -111,11 +126,26 @@ public class Bootstrapper {
         String code = enrollmentService.issueCode(admin.get().id(), PasskeyEnrollmentService.LINK_TTL);
         log.warn("==========================================================");
         log.warn(
-                "  One-time passkey enrolment link for administrator {} (lives one hour):",
-                admin.get().email());
+                "  One-time passkey enrolment link for administrator account {} (lives one hour):",
+                admin.get().id());
         log.warn("  {}/enroll?code={}", api.baseUrl(), code);
         log.warn("  Remove auth.passkeys.printAdminEnrollmentLink again after using it.");
         log.warn("==========================================================");
+    }
+
+    /**
+     * The name to sign in with, moved out of the way of whoever already holds it. Nobody normally
+     * does on an instance with no administrator, but an instance whose only administrator was
+     * deleted comes through here again, with everybody else still on it.
+     */
+    private static String freeLoginName(AccountRepository accountRepository) {
+        if (!accountRepository.usernameTaken(ADMIN_LOGIN_NAME, null)) return ADMIN_LOGIN_NAME;
+        var random = new SecureRandom();
+        String name;
+        do {
+            name = ADMIN_LOGIN_NAME + "-" + Integer.toString(random.nextInt(0x10000), 16);
+        } while (accountRepository.usernameTaken(name, null));
+        return name;
     }
 
     /**
@@ -168,6 +198,8 @@ public class Bootstrapper {
         injector.getInstance(ConsentService.class).initialize();
 
         injector.getInstance(CloudflareRangesService.class).refreshAsync();
+
+        injector.getInstance(UpdateCheckService.class).start();
 
         // Media moved from the page-files prefix onto media/. The move is per station and
         // resumable, so it runs off the boot path and picks up where it left off after a crash.

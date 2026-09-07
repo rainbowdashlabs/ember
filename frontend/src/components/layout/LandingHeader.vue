@@ -55,7 +55,7 @@ onMounted(() => {
 <template>
   <header
       class="flex h-14 items-center justify-between border-b border-bg-light-accent dark:border-bg-dark-accent px-4">
-    <router-link class="flex items-center gap-2 text-lg font-bold text-primary no-underline hover:no-underline" to="/">
+    <router-link class="flex items-center gap-2 text-lg font-bold text-primary no-underline hover:no-underline" to="/?home">
       <LayeredEmberLogo :layers="logo.layers" :active-layers="logo.activeLayers" size="h-7 w-7" :pixel-size="64" />
       <PrideText :active="prideActive" :variant="prideVariant">Ember</PrideText>
     </router-link>

@@ -15,9 +15,9 @@ import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
 import MemberTypeBadge from './MemberTypeBadge.vue'
+import MemberSetupIndicator from './MemberSetupIndicator.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {useMemberRowExtras} from './memberRowExtras'
-import {formatDate} from '@/util/format'
 import type {ProfileField} from '@/api/profileFields'
 import type {StationMember} from '@/api/types'
 
@@ -47,32 +47,6 @@ const emit = defineEmits<{
 const extras = useMemberRowExtras()
 const rowNote = computed(() => extras.note(props.member.id))
 const blockedReason = computed(() => extras.blockedReason(props.member.id))
-
-/**
- * Whether sending the setup mail again could reach anybody at all.
- *
- * <p>A member entered without an address carries one that was made up for them, ending in
- * {@code .local}, and nothing can be delivered to it. Where a guardian has a real address the mail
- * goes to them instead, which is why the offer stands beside an address that looks dead.
- */
-const canBeWrittenTo = computed(() => props.member.mailReaches !== 'NOBODY')
-
-const pendingTitle = computed(() => {
-  const base = t('membersList.accountPending')
-  if (!props.member.setupMailExpiresAt) return base
-  return `${base} ${t('membersList.accountPendingExpires', {date: formatDate(props.member.setupMailExpiresAt)})}`
-})
-
-/** What pressing the paper plane will do, said in full, because who receives it is not obvious. */
-const resendTitle = computed(() => {
-  const who = props.member.mailReaches === 'GUARDIANS'
-      ? t('membersList.setupMailToGuardians')
-      : t('membersList.setupMailToMember')
-  return `${pendingTitle.value} ${who}`
-})
-
-/** Why there is no button here, which the hourglass alone never said. */
-const waitingTitle = computed(() => `${pendingTitle.value} ${t('membersList.setupMailToNobody')}`)
 </script>
 
 <template>
@@ -104,20 +78,7 @@ const waitingTitle = computed(() => `${pendingTitle.value} ${t('membersList.setu
         <MemberName :identity="member.identity" size="sm" class="font-medium"/>
         <MutedText v-if="rowNote" data-testid="member-note" size="sm">{{ rowNote }}</MutedText>
         <ErrorBadge v-if="member.profileComplete === false" class="ml-1.5 text-[10px]">{{ t('membersList.incomplete') }}</ErrorBadge>
-        <IconButton
-            v-if="member.accountSetupPending && canEdit && canBeWrittenTo"
-            :icon="['fas', 'paper-plane']"
-            :title="resendTitle"
-            :label="t('membersList.accountPendingResend')"
-            class="ml-auto text-warning hover:bg-warning/15"
-            @click.stop="emit('resendSetup', $event)"
-        />
-        <font-awesome-icon
-            v-else-if="member.accountSetupPending"
-            :icon="['fas', 'hourglass-half']"
-            :title="waitingTitle"
-            class="ml-auto text-warning w-3.5 h-3.5"
-        />
+        <MemberSetupIndicator :member="member" :can-edit="canEdit" @resend-setup="emit('resendSetup', $event)"/>
       </div>
     </Td>
     <Td>

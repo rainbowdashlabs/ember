@@ -57,6 +57,12 @@ function locked(field: LaidOutField): boolean {
   if (field.readonlyAtStation) return true
   return !props.canEditReadonly && !!parseFieldConfig(field.config).readonly
 }
+
+/** The sentence the station wrote to say what the question is after, empty when it wrote none. */
+function descriptionOf(field: LaidOutField): string {
+  const described = parseFieldConfig(field.config).description
+  return typeof described === 'string' ? described : ''
+}
 </script>
 
 <template>
@@ -74,11 +80,13 @@ function locked(field: LaidOutField): boolean {
           </SecondaryBadge>
           <MutedText v-if="locked(field)" class="ml-1">({{ t('profile.readonlyHint') }})</MutedText>
         </FieldLabel>
+        <MutedText v-if="descriptionOf(field)" class="block text-xs">{{ descriptionOf(field) }}</MutedText>
         <ProfileFieldInput
             :field-type="field.fieldType ?? 'TEXT'"
             :model-value="props.getValue(field)"
             :options="(parseFieldConfig(field.config).options as string[]) ?? []"
             :disabled="locked(field)"
+            :required="!!parseFieldConfig(field.config).required"
             @update:model-value="emit('update', field, $event)"
         />
       </div>

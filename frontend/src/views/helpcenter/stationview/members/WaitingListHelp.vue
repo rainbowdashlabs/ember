@@ -82,7 +82,18 @@ const { t } = useI18n()
           <ErrorBadge>{{ t('waitingList.status_WITHDRAWN') }}</ErrorBadge>
         </div>
         <p class="text-sm text-(--text-muted)">{{ t('helpCenter.waitingList.statusFlowText') }}</p>
+        <p class="text-sm text-(--text-muted)">{{ t('helpCenter.waitingList.statusAccountText') }}</p>
       </NeutralContainer>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.waitingList.invitationTitle')">
+      <p>{{ t('helpCenter.waitingList.invitationText') }}</p>
+      <ul class="list-disc list-inside mt-2 space-y-1">
+        <li>{{ t('helpCenter.waitingList.invitationComing') }}</li>
+        <li>{{ t('helpCenter.waitingList.invitationDate') }}</li>
+        <li>{{ t('helpCenter.waitingList.invitationNo') }}</li>
+      </ul>
+      <p class="mt-2 text-sm">{{ t('helpCenter.waitingList.invitationStays') }}</p>
     </HelpSection>
 
     <!-- Dummy: Create entry form -->

@@ -52,6 +52,7 @@ const emit = defineEmits<{
 
 const fieldName = ref('')
 const fieldType = ref<string>(FieldTypes.TEXT)
+const fieldDescription = ref('')
 const fieldRequired = ref(false)
 const fieldReadonly = ref(false)
 const fieldNotifyOnChange = ref(false)
@@ -76,6 +77,7 @@ watch(modelValue, (open) => {
     fieldName.value = f.name ?? ''
     fieldType.value = f.fieldType ?? FieldTypes.TEXT
     const cfg = parseFieldConfig(f.config)
+    fieldDescription.value = typeof cfg.description === 'string' ? cfg.description : ''
     fieldRequired.value = !!cfg.required
     fieldReadonly.value = !!cfg.readonly
     fieldNotifyOnChange.value = !!cfg.notifyOnChange
@@ -99,6 +101,7 @@ watch(modelValue, (open) => {
   } else {
     fieldName.value = ''
     fieldType.value = FieldTypes.TEXT
+    fieldDescription.value = ''
     fieldRequired.value = false
     fieldReadonly.value = false
     fieldNotifyOnChange.value = false
@@ -119,6 +122,7 @@ watch(modelValue, (open) => {
 
 function buildConfig(): ProfileFieldConfig {
   const cfg: ProfileFieldConfig = {}
+  if (fieldDescription.value.trim()) cfg.description = fieldDescription.value.trim()
   if (fieldRequired.value) cfg.required = true
   if (fieldReadonly.value) cfg.readonly = true
   if (fieldNotifyOnChange.value) cfg.notifyOnChange = true
@@ -166,7 +170,8 @@ function submit() {
   <Modal v-model="modelValue">
     <div class="space-y-4">
       <SubHeader>{{ field ? t('membersConfig.editField') : t('membersConfig.addField') }}</SubHeader>
-      <BasicFields v-model:name="fieldName" v-model:field-type="fieldType" :scope="scope"
+      <BasicFields v-model:name="fieldName" v-model:field-type="fieldType"
+                   v-model:description="fieldDescription" :scope="scope"
                    :birth-date-available="birthDateAvailable"/>
       <template v-if="holdsValue">
         <EnumOptionsField v-if="fieldType === 'ENUM'" v-model="fieldEnumOptions"/>

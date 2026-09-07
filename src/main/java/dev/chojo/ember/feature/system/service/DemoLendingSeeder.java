@@ -5,9 +5,13 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.federation.entity.ShareGrant;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
+import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -25,12 +29,20 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoLendingSeeder.class);
 
     private final LendingService lendingService;
+    private final InventoryShareService shareService;
     private final InventoryRepository inventoryRepository;
+    private final InventoryArtRepository artRepository;
 
     @Inject
-    public DemoLendingSeeder(LendingService lendingService, InventoryRepository inventoryRepository) {
+    public DemoLendingSeeder(
+            LendingService lendingService,
+            InventoryShareService shareService,
+            InventoryRepository inventoryRepository,
+            InventoryArtRepository artRepository) {
         this.lendingService = lendingService;
+        this.shareService = shareService;
         this.inventoryRepository = inventoryRepository;
+        this.artRepository = artRepository;
     }
 
     /**
@@ -83,14 +95,21 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 "Zelte",
                 List.of(new Stock("Z-001", "Mannschaftszelt 6x4m"), new Stock("Z-002", "Faltzelt 3x3m")));
 
+        offerToPartners(partnerStationId, partnerFeuerloescher.id());
+        offerToPartners(partnerStationId, partnerSchlaeuche.id());
+        offerToPartners(partnerStationId, partnerZelte.id());
+
         // -- Request 1: APPROVED - partner lends Feuerlöscher to main station --
         var approvedRequest = lendingService.createRequest(
                 stationId,
                 partnerStationId,
                 LocalDate.now().plusDays(7),
                 LocalDate.now().plusDays(14),
-                createdBy);
-        lendingService.addRequestItem(approvedRequest.id(), partnerFeuerloescher.id(), null, 2);
+                createdBy,
+                null,
+                null,
+                "");
+        lendingService.addRequestItem(approvedRequest.id(), partnerFeuerloescher.id(), null, null, 2, null);
         lendingService.approveRequest(approvedRequest.id(), partnerStationId);
 
         // Chat messages
@@ -113,8 +132,11 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 partnerStationId,
                 LocalDate.now().plusDays(21),
                 LocalDate.now().plusDays(28),
-                createdBy);
-        lendingService.addRequestItem(requestedRequest.id(), partnerSchlaeuche.id(), null, 3);
+                createdBy,
+                null,
+                null,
+                "");
+        lendingService.addRequestItem(requestedRequest.id(), partnerSchlaeuche.id(), null, null, 3, null);
 
         // Chat message
         lendingService.sendMessage(
@@ -130,8 +152,11 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 partnerStationId,
                 LocalDate.now().minusDays(30),
                 LocalDate.now().minusDays(23),
-                createdBy);
-        lendingService.addRequestItem(returnedRequest.id(), partnerZelte.id(), null, 1);
+                createdBy,
+                null,
+                null,
+                "");
+        lendingService.addRequestItem(returnedRequest.id(), partnerZelte.id(), null, null, 1, null);
         lendingService.approveRequest(returnedRequest.id(), partnerStationId);
         lendingService.markLent(returnedRequest.id(), partnerStationId);
         lendingService.markReturned(returnedRequest.id(), stationId);
@@ -152,8 +177,16 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
         var wt2 = inventoryRepository.createItem(walkieTalkies.id(), "FG-002", "Motorola DP1400", null, null);
         inventoryRepository.createItem(walkieTalkies.id(), "FG-003", "Motorola DP1400", null, null);
         inventoryRepository.createItem(walkieTalkies.id(), "FG-004", "Motorola DP1400", null, null);
-        inventoryRepository.createItem(walkieTalkies.id(), "FG-005", "Motorola DP3441e", null, null);
-        inventoryRepository.createItem(walkieTalkies.id(), "FG-006", "Motorola DP3441e", null, null);
+        var goodRadio = inventoryRepository.createItem(walkieTalkies.id(), "FG-005", "Motorola DP3441e", null, null);
+        var otherGoodRadio =
+                inventoryRepository.createItem(walkieTalkies.id(), "FG-006", "Motorola DP3441e", null, null);
+
+        var goodRadios = artRepository.create(walkieTalkies.id(), "Motorola DP3441e", "Die guten Geräte", 10);
+        artRepository.setArt(goodRadios.id(), List.of(goodRadio.id(), otherGoodRadio.id()));
+
+        offerToPartners(stationId, walkieTalkies.id());
+        shareService.setArtShare(stationId, goodRadios.id(), ShareScope.ALL_PARTNERS, ShareGrant.WITHHOLD, List.of());
+        shareService.setItemShare(stationId, goodRadio.id(), ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
 
         // -- Request 4 (INCOMING): partner requests Funkgeräte from main station (LENT - currently out) --
         var lentRequest = lendingService.createRequest(
@@ -161,9 +194,12 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 stationId,
                 LocalDate.now().minusDays(3),
                 LocalDate.now().plusDays(4),
-                createdBy);
-        lendingService.addRequestItem(lentRequest.id(), walkieTalkies.id(), wt1.id(), 1);
-        lendingService.addRequestItem(lentRequest.id(), walkieTalkies.id(), wt2.id(), 1);
+                createdBy,
+                null,
+                null,
+                "");
+        lendingService.addRequestItem(lentRequest.id(), walkieTalkies.id(), wt1.id(), null, 1, null);
+        lendingService.addRequestItem(lentRequest.id(), walkieTalkies.id(), wt2.id(), null, 1, null);
         lendingService.approveRequest(lentRequest.id(), stationId);
         lendingService.markLent(lentRequest.id(), stationId);
 
@@ -181,8 +217,11 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 stationId,
                 LocalDate.now().plusDays(14),
                 LocalDate.now().plusDays(16),
-                createdBy);
-        lendingService.addRequestItem(incomingPending.id(), walkieTalkies.id(), null, 3);
+                createdBy,
+                null,
+                null,
+                "");
+        lendingService.addRequestItem(incomingPending.id(), walkieTalkies.id(), null, null, 3, null);
 
         lendingService.sendMessage(
                 incomingPending.id(),
@@ -197,8 +236,11 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 stationId,
                 LocalDate.now().plusDays(1),
                 LocalDate.now().plusDays(5),
-                createdBy);
-        lendingService.addRequestItem(aboutToLend.id(), walkieTalkies.id(), null, 2);
+                createdBy,
+                null,
+                null,
+                "");
+        lendingService.addRequestItem(aboutToLend.id(), walkieTalkies.id(), null, null, 2, null);
         lendingService.approveRequest(aboutToLend.id(), stationId);
 
         lendingService.sendMessage(
@@ -216,8 +258,11 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 stationId,
                 LocalDate.now().minusDays(14),
                 LocalDate.now().minusDays(7),
-                createdBy);
-        lendingService.addRequestItem(overdueRequest.id(), walkieTalkies.id(), null, 1);
+                createdBy,
+                null,
+                null,
+                "");
+        lendingService.addRequestItem(overdueRequest.id(), walkieTalkies.id(), null, null, 1, null);
         lendingService.approveRequest(overdueRequest.id(), stationId);
         lendingService.markLent(overdueRequest.id(), stationId);
 
@@ -239,6 +284,14 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
                 "Kreisfeuerwehrtag");
 
         log.info("Demo: Created lending requests, messages, and blocks");
+    }
+
+    /**
+     * Puts a whole inventory on offer to every partner, which is what a demo station has to say
+     * before anything of it can be found: sharing is opt-in and an unshared shelf is invisible.
+     */
+    private void offerToPartners(int stationId, int inventoryId) {
+        shareService.setInventoryShare(stationId, inventoryId, ShareScope.ALL_PARTNERS, ShareGrant.GRANT, List.of());
     }
 
     /** One piece on the partner's shelf: what it is called on the label, and what it is. */

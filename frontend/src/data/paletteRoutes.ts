@@ -66,6 +66,7 @@ export const PALETTE_ROUTES: PaletteRouteEntry[] = [
     {scope: 'station', to: '/station/inventory/procurement', labelKey: 'sidebar.inventoryProcurement', icon: 'folder-plus', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_PROCUREMENT},
     {scope: 'station', to: '/station/inventory/requirements', labelKey: 'sidebar.inventoryRequirements', icon: 'clipboard-list', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_READ},
     {scope: 'station', to: '/station/inventory/lending', labelKey: 'sidebar.inventoryLending', icon: 'handshake', module: StationModules.INVENTORY, anyPermission: [StationPermission.INVENTORY_LENDING_REQUEST, StationPermission.INVENTORY_LENDING_MANAGER]},
+    {scope: 'station', to: '/station/inventory/lending/shares', labelKey: 'sidebar.inventoryLendingShares', icon: 'share-nodes', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_LENDING_MANAGER},
 
     {scope: 'station', to: '/station/attendance/new', labelKey: 'sidebar.attendance', icon: 'clipboard-user', module: StationModules.ATTENDANCE, permission: StationPermission.ATTENDANCE_EDIT},
     {scope: 'station', to: '/station/attendance/past', labelKey: 'sidebar.pastAttendance', icon: 'clock-rotate-left', module: StationModules.ATTENDANCE, permission: StationPermission.ATTENDANCE_READ},

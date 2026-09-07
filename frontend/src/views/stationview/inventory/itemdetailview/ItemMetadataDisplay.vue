@@ -20,12 +20,17 @@ import {formatDate} from '@/util/format'
 
 const routes = useInventoryRoutes()
 
-const props = defineProps<{
-  item: InventoryItem
-  sizes: InventorySize[]
-  location: ItemLocationResponse | null
-  assignedMemberIdentity: MemberIdentity | null
-}>()
+const props = withDefaults(
+    defineProps<{
+      item: InventoryItem
+      sizes: InventorySize[]
+      location: ItemLocationResponse | null
+      assignedMemberIdentity: MemberIdentity | null
+      /** What kind of thing this piece is, or null when nobody has said, which is the ordinary state. */
+      artName?: string | null
+    }>(),
+    {artName: null},
+)
 
 const {t} = useI18n()
 
@@ -52,6 +57,9 @@ const ownerLabel = computed(() => {
   <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
     <ItemFact v-if="props.item.internalId" :label="t('itemDetail.internalId')">
       <span class="font-mono">{{ props.item.internalId }}</span>
+    </ItemFact>
+    <ItemFact v-if="props.artName" :label="t('inventory.art.field')">
+      <span>{{ props.artName }}</span>
     </ItemFact>
     <ItemFact v-if="props.sizes.length > 0" :label="t('itemDetail.size')">
       <span>{{ sizeLabel(props.item.sizeId) }}</span>

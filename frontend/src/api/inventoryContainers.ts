@@ -220,6 +220,12 @@ export interface ItemCheckHistoryEntry {
     result: string
     checkedAt: string
     checkerName: string
+    /**
+     * Whoever said what was there, where that is somebody other than the person who signed the
+     * check off. Empty on a check somebody walked themselves, which is what tells a piece checked at
+     * arm's length from one somebody held.
+     */
+    reporterName: string
     containerName: string | null
     scope: 'CONTAINER' | 'MEMBER'
     note: string

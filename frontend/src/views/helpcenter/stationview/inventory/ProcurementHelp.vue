@@ -48,7 +48,7 @@ const {t} = useI18n()
               <span class="text-sm text-(--text-muted)">(L)</span>
               <ErrorBadge>{{ t('procurement.open') }}</ErrorBadge>
             </div>
-            <div class="text-sm text-(--text-muted)">Max Mustermann &mdash; 10.05.2026</div>
+            <div class="text-sm text-(--text-muted)">Max Mustermann, 10.05.2026</div>
             <div class="text-sm">Alter Helm gerissen</div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
@@ -68,7 +68,7 @@ const {t} = useI18n()
               <span class="text-sm text-(--text-muted)">(M)</span>
               <SuccessBadge>{{ t('procurement.fulfilled') }}</SuccessBadge>
             </div>
-            <div class="text-sm text-(--text-muted)">Erika Musterfrau &mdash; 01.05.2026</div>
+            <div class="text-sm text-(--text-muted)">Erika Musterfrau, 01.05.2026</div>
             <div class="text-xs text-(--text-muted)">{{ t('procurement.fulfilledAt') }}: 08.05.2026</div>
           </div>
           <div class="flex items-center gap-2 shrink-0">

@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -72,7 +73,8 @@ class LendingRepositoryTest extends RepositoryTestBase {
     void createRequest() {
         var dateFrom = LocalDate.now();
         var dateTo = LocalDate.now().plusDays(7);
-        var request = lendingRepo.createRequest(stationB.uid(), stationA.uid(), dateFrom, dateTo, memberB.id());
+        var request = lendingRepo.createRequest(
+                stationB.uid(), stationA.uid(), dateFrom, dateTo, memberB.id(), null, null, "");
         assertNotNull(request);
         assertTrue(request.id() > 0);
         assertEquals(stationB.uid(), request.requestingStationUid());
@@ -109,14 +111,14 @@ class LendingRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void addRequestItem() {
-        var item = lendingRepo.addRequestItem(requestId, inventoryIdA, itemIdA, 1);
+        var item = lendingRepo.addRequestItem(requestId, inventoryIdA, itemIdA, null, 1, null);
         assertNotNull(item);
         assertTrue(item.id() > 0);
         assertEquals(requestId, item.requestId());
         assertEquals(inventoryIdA, item.inventoryId());
         assertEquals(itemIdA, item.itemId());
         assertEquals(1, item.quantity());
-        assertNull(item.assignedItemId());
+        assertTrue(lendingRepo.findAssignedItems(item.id()).isEmpty());
         requestItemId = item.id();
     }
 
@@ -132,10 +134,7 @@ class LendingRepositoryTest extends RepositoryTestBase {
     @Order(12)
     void assignItem() {
         assertTrue(lendingRepo.assignItem(requestItemId, itemIdA));
-        var items = lendingRepo.findItemsByRequest(requestId);
-        var assigned =
-                items.stream().filter(i -> i.id() == requestItemId).findFirst().orElseThrow();
-        assertEquals(itemIdA, assigned.assignedItemId());
+        assertEquals(List.of(itemIdA), lendingRepo.findAssignedItems(requestItemId));
     }
 
     // -- Status Transitions --
@@ -336,8 +335,9 @@ class LendingRepositoryTest extends RepositoryTestBase {
         // Create a new request with LENT status
         var dateFrom = LocalDate.now();
         var dateTo = LocalDate.now().plusDays(7);
-        var request = lendingRepo.createRequest(stationB.uid(), stationA.uid(), dateFrom, dateTo, memberB.id());
-        lendingRepo.addRequestItem(request.id(), inventoryIdA, itemIdA, 1);
+        var request = lendingRepo.createRequest(
+                stationB.uid(), stationA.uid(), dateFrom, dateTo, memberB.id(), null, null, "");
+        lendingRepo.addRequestItem(request.id(), inventoryIdA, itemIdA, null, 1, null);
         lendingRepo.updateRequestStatus(request.id(), LendingStatus.APPROVED);
         lendingRepo.updateRequestStatus(request.id(), LendingStatus.LENT);
 

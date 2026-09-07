@@ -27,6 +27,7 @@ const step = ref<'basic' | 'sizes'>('basic')
 const name = ref('')
 const type = ref<InventoryTypeName>(InventoryTypes.INTERNAL)
 const hasSizes = ref(false)
+const homogeneous = ref(true)
 const sizes = ref<string[]>([])
 
 function reset() {
@@ -34,6 +35,8 @@ function reset() {
   name.value = ''
   type.value = InventoryTypes.INTERNAL
   hasSizes.value = false
+  // One thing in many copies is the permissive kind, so it is what a new inventory starts as
+  homogeneous.value = true
   sizes.value = []
 }
 
@@ -54,6 +57,7 @@ const {running: saving, run: runCreate} = useAsyncAction(async () => {
     name: name.value,
     inventoryType: type.value,
     hasSizes: hasSizes.value,
+    homogeneous: homogeneous.value,
   })
   if (hasSizes.value && sizes.value.length > 0) {
     for (let i = 0; i < sizes.value.length; i++) {
@@ -81,6 +85,7 @@ async function submit() {
         v-model:name="name"
         v-model:type="type"
         v-model:hasSizes="hasSizes"
+        v-model:homogeneous="homogeneous"
         @cancel="show = false"
         @next="nextStep"
       />

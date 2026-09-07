@@ -9,6 +9,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.CommentCreated;
+import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.MentionedInComment;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
@@ -132,6 +133,7 @@ public class CommentService {
                             CommentEntityType.EVENT,
                             eventId,
                             entityTitle,
+                            null,
                             comment.id(),
                             parentId,
                             parentAuthorId,
@@ -156,6 +158,8 @@ public class CommentService {
                             CommentEntityType.EVENT,
                             eventId,
                             entityTitle,
+                            null,
+                            comment.id(),
                             mentionPreview));
                 }
             }
@@ -166,6 +170,7 @@ public class CommentService {
                     CommentEntityType.EVENT,
                     eventId,
                     entityTitle,
+                    comment.id(),
                     content,
                     mentionPreview);
         }
@@ -191,14 +196,18 @@ public class CommentService {
     }
 
     /**
-     * Deletes a comment by ID.
+     * Deletes a comment by ID and announces the removal, so that whatever was written about it can
+     * be withdrawn. The owning station is read before the row goes, since afterwards there is
+     * nothing left to read it from.
      *
      * @param id the comment ID
      * @return {@code true} if the comment was deleted
      */
     public boolean delete(int id) {
+        int stationId = commentRepository.findCommentStation(id).orElse(0);
         boolean deleted = commentRepository.delete(id);
         if (deleted) {
+            eventBus.publish(new CommentDeleted(stationId, CommentEntityType.EVENT, id));
             log.info("Deleted event comment {}", id);
         } else {
             log.warn("Delete for event comment {} affected zero rows", id);
@@ -232,6 +241,7 @@ public class CommentService {
             CommentEntityType entityType,
             int entityId,
             String entityTitle,
+            int commentId,
             String content,
             String preview) {
         var matcher = BULK_MENTION_PATTERN.matcher(content);
@@ -240,7 +250,17 @@ public class CommentService {
             var type = MentionType.valueOf(matcher.group(1));
             int targetId = Integer.parseInt(matcher.group(3));
             eventBus.publish(new BulkMentionedInComment(
-                    stationId, authorMemberId, authorName, entityType, entityId, entityTitle, type, targetId, preview));
+                    stationId,
+                    authorMemberId,
+                    authorName,
+                    entityType,
+                    entityId,
+                    entityTitle,
+                    type,
+                    targetId,
+                    null,
+                    commentId,
+                    preview));
         }
     }
 

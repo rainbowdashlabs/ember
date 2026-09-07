@@ -18,7 +18,7 @@ const logo = emberLogo()
     <!-- Landing header -->
     <header class="border-b border-(--border) bg-(--bg)">
       <div class="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between">
-        <router-link to="/" class="flex items-center gap-2 no-underline">
+        <router-link to="/?home" class="flex items-center gap-2 no-underline">
           <LayeredEmberLogo :layers="logo.layers" :active-layers="logo.activeLayers" :auto-blink="true" size="h-8 w-8" :pixel-size="64" />
           <span class="text-lg font-bold">Ember</span>
         </router-link>

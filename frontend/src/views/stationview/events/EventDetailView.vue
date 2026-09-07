@@ -20,6 +20,7 @@ import EventDetailBody from './eventdetailview/EventDetailBody.vue'
 import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
 import {useEventAnswer} from '@/composables/useEventAnswer'
 import type {AnswerablePerson} from '@/util/eventAnswers'
+import {formatTime, formatWeekdayDate, instantToDate, toIsoDate} from '@/util/format'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -54,18 +55,28 @@ async function reloadMyRegistrations() {
   allMyRegistrations.value = await events.listMyRegistrations().catch(() => [])
 }
 
+/**
+ * The next date this repeating appointment falls on.
+ *
+ * <p>Today counts as long as today's evening is still ahead. The comparison is against the clock
+ * the appointment ends at rather than against the stored end of its very first evening, which lies
+ * in the past for every series that has run once and used to send the reader a week forward on the
+ * one day the appointment actually takes place.
+ */
 function nextOccurrence(dayOfWeek: number): string {
   const now = new Date()
   const todayDow = now.getDay() === 0 ? 7 : now.getDay()
   let daysAhead = dayOfWeek - todayDow
   if (daysAhead < 0) daysAhead += 7
   if (daysAhead === 0 && event.value?.endTime) {
-    const endToday = new Date(event.value.endTime)
+    const end = new Date(event.value.endTime)
+    const endToday = new Date(now)
+    endToday.setHours(end.getHours(), end.getMinutes(), 0, 0)
     if (now > endToday) daysAhead = 7
   }
   const next = new Date(now)
   next.setDate(now.getDate() + daysAhead)
-  return next.toISOString().slice(0, 10)
+  return toIsoDate(next)
 }
 
 const nextOccurrenceDate = computed(() => {
@@ -79,31 +90,40 @@ const nextOccurrenceDate = computed(() => {
  *   2. {@link nextOccurrenceDate} for a recurring event without a path date - sensible default.
  *   3. The event's {@code startTime} date for one-time events.
  *
- * Every downstream lookup (absences, registrations, start/end formatting) reads from this so the
- * view never mixes "template" times (raw startTime) with "occurrence" times.
+ * <p>Every lookup keyed by an evening - absences, sign-ups, the gear claimed for it - reads from
+ * here, so this is the name the server knows the evening by and not the day the reader sees. For a
+ * one-off the server names it after the start time, and it is asked rather than guessed at.
  */
 const effectiveDate = computed((): string | null => {
   if (focusedDate.value) return focusedDate.value
   if (nextOccurrenceDate.value) return nextOccurrenceDate.value
-  if (event.value?.startTime) return new Date(event.value.startTime).toISOString().slice(0, 10)
+  if (event.value?.startTime) return instantToDate(event.value.startTime)
   return null
 })
 
-function combineDateAndTime(date: string, iso: string): string {
-  const parsed = new Date(iso)
-  const hh = String(parsed.getHours()).padStart(2, '0')
-  const mm = String(parsed.getMinutes()).padStart(2, '0')
-  return `${new Date(`${date}T00:00:00`).toLocaleDateString('de-DE', {weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'})}, ${hh}:${mm}`
+/**
+ * The day written above a time on this page.
+ *
+ * <p>A repeating appointment is shown on the occurrence the page is bound to, whose clock is the
+ * one it repeats. A one-off is shown on the day its own moment falls on where the reader stands, so
+ * the day and the clock beside it are read off one and the same moment rather than off two.
+ */
+function dayShownFor(iso: string): string {
+  return focusedDate.value ?? nextOccurrenceDate.value ?? toIsoDate(new Date(iso))
+}
+
+function combineDateAndTime(iso: string): string {
+  return `${formatWeekdayDate(dayShownFor(iso))}, ${formatTime(iso)}`
 }
 
 const startFormatted = computed(() => {
-  if (!event.value?.startTime || !effectiveDate.value) return ''
-  return combineDateAndTime(effectiveDate.value, event.value.startTime)
+  if (!event.value?.startTime) return ''
+  return combineDateAndTime(event.value.startTime)
 })
 
 const endFormatted = computed(() => {
-  if (!event.value?.endTime || !effectiveDate.value) return ''
-  return combineDateAndTime(effectiveDate.value, event.value.endTime)
+  if (!event.value?.endTime) return ''
+  return combineDateAndTime(event.value.endTime)
 })
 
 const registrableMembers = computed((): AnswerablePerson[] => {

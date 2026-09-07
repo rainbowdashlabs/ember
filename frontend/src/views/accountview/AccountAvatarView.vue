@@ -27,21 +27,25 @@ const editUsername = ref('')
 
 const displayName = computed(() => (editFirstName.value + ' ' + editLastName.value).trim())
 
+/**
+ * Whether the address typed here is not the account's yet, because a link in the reader's mail
+ * still has to be clicked. Read from the answer rather than guessed from what was typed: an
+ * instance that cannot send at all, and an address nobody could read, both write it straight away.
+ */
 const emailChangePending = ref(false)
 
 async function saveAccount() {
   error.value = ''
   const account = sessionInfo.value?.account
   if (!account) return
-  const emailChanged = editEmail.value.trim().toLowerCase() !== (account.email ?? '').toLowerCase()
   try {
-    await members.updateAccount(account.id, {
+    const result = await members.updateAccount(account.id, {
       email: editEmail.value,
       username: editUsername.value,
       firstName: editFirstName.value,
       lastName: editLastName.value,
     })
-    emailChangePending.value = emailChanged
+    emailChangePending.value = result.emailChange === 'WAITING'
     await load()
   } catch (e) {
     error.value = t('common.error')

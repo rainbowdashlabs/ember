@@ -39,6 +39,7 @@ export interface DetailActions {
   onApprove: (id: number) => void
   onReject: (id: number) => void
   onInvite: (id: number) => void
+  onBackToWaiting: (id: number) => void
   onMoveToTesting: (id: number) => void
   onMoveToJoined: (id: number) => void
   onWithdraw: (id: number) => void
@@ -97,6 +98,7 @@ defineProps<{
     :readonly="!permissions.canEdit"
     :can-add="permissions.canAdd"
     @invite="actions.onInvite"
+    @back-to-waiting="actions.onBackToWaiting"
     @move-to-testing="actions.onMoveToTesting"
     @navigate-to-entry="actions.onNavigateToEntry"
     @delete-entry="actions.onDeleteEntry"

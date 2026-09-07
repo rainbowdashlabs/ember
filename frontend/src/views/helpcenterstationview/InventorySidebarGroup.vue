@@ -27,6 +27,10 @@ const {t} = useI18n()
                  to="/helpcenter/station/inventory/my" @navigate="close">
       {{ t('sidebar.myInventory') }}
     </SidebarLink>
+    <SidebarLink :icon="['fas', 'hand-holding']" name="help-inventory-borrowed"
+                 to="/helpcenter/station/inventory/borrowed" @navigate="close">
+      {{ t('helpCenter.inventoryBorrowed.title') }}
+    </SidebarLink>
     <SidebarLink :icon="['fas', 'rotate']" name="help-inventory-exchanges"
                  to="/helpcenter/station/inventory/exchanges" @navigate="close">
       {{ t('sidebar.inventoryExchanges') }}
@@ -49,6 +53,18 @@ const {t} = useI18n()
       <SidebarLink :icon="['fas', 'pen']" name="help-inventory-edit"
                    to="/helpcenter/station/inventory/edit" @navigate="close">
         {{ t('sidebar.inventoryEdit') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'right-left']" name="help-inventory-move"
+                   to="/helpcenter/station/inventory/move" @navigate="close">
+        {{ t('helpCenter.inventoryMove.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'hashtag']" name="help-inventory-tags"
+                   to="/helpcenter/station/inventory/tags" @navigate="close">
+        {{ t('helpCenter.inventoryTags.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'broom']" name="help-inventory-tidy"
+                   to="/helpcenter/station/inventory/tidy" @navigate="close">
+        {{ t('helpCenter.inventoryTidy.title') }}
       </SidebarLink>
       <SidebarLink :icon="['fas', 'tag']" name="help-inventory-item-detail"
                    to="/helpcenter/station/inventory/item/0" @navigate="close">
@@ -77,6 +93,14 @@ const {t} = useI18n()
       <SidebarLink :icon="['fas', 'clipboard-list']" name="help-inventory-check-result"
                    to="/helpcenter/station/inventory/checks/0/result" @navigate="close">
         {{ t('sidebar.inventoryCheckResult') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'shirt']" name="help-inventory-self-check"
+                   to="/helpcenter/station/inventory/self-check/0" @navigate="close">
+        {{ t('helpCenter.inventorySelfCheck.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'inbox']" name="help-inventory-self-check-review"
+                   to="/helpcenter/station/inventory/checks/self/0" @navigate="close">
+        {{ t('helpCenter.inventorySelfCheckReview.title') }}
       </SidebarLink>
     </SidebarExpandableLink>
     <SidebarLink :icon="['fas', 'folder-plus']" name="help-inventory-procurement"

@@ -23,7 +23,7 @@ import {createMemberAbsence, deleteMemberAbsence, listMemberAbsences, type Membe
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useFlashMessage } from '@/composables/useFlashMessage'
-import { formatDate } from '@/util/format'
+import { formatDate, todayIsoDate } from '@/util/format'
 
 const props = defineProps<{
   memberId: number
@@ -42,7 +42,7 @@ const newUntil = ref('')
 const newReason = ref('')
 
 function statusOf(a: MemberAbsence): 'active' | 'upcoming' | 'expired' {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayIsoDate()
   if (a.absentUntil && a.absentUntil < today) return 'expired'
   if (a.absentFrom && a.absentFrom > today) return 'upcoming'
   return 'active'

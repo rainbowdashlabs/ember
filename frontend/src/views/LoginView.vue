@@ -136,6 +136,10 @@ async function completeSignIn(result: LoginResponse) {
     await navigateTo({path: '/set-password', query: {token: result.passwordChangeToken}})
     return
   }
+  if (result.addressRequired && result.addressToken) {
+    await navigateTo({path: '/set-address', query: {token: result.addressToken}})
+    return
+  }
   await legal.recordAfterLogin()
   if (await shouldOfferPasskey()) {
     const redirect = route.query.redirect as string | undefined

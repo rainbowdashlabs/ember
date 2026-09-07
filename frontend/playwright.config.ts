@@ -13,8 +13,19 @@ import {defineConfig, devices} from '@playwright/test'
  * The `ssr-no-js` project is not a nicety. Public routes are server-rendered by route rule, and a
  * context with JavaScript switched off is the only way to assert that they really are rather than
  * being repaired by hydration.
+ *
+ * Every address below is a variable with the single-checkout value as its default, because the
+ * stack is one per checkout: `toolchain.sh` derives a compose project and a block of ports from the
+ * checkout path and exports them, so several checkouts can run the suite at once without dividing
+ * the ports between them by hand. Run `npx playwright test` with none of them set and it is the
+ * stack it always was, on 8899 and 3010.
+ *
+ * The Nuxt server's port is read back out of its own address rather than carried as a second
+ * variable, so the two can never disagree about which port the run is on.
  */
 const backendUrl = process.env.NUXT_BACKEND_URL || 'http://localhost:8899'
+const baseUrl = process.env.E2E_BASE_URL || 'http://localhost:3010'
+const webPort = new URL(baseUrl).port || '3000'
 
 export default defineConfig({
     testDir: './e2e',
@@ -39,7 +50,7 @@ export default defineConfig({
     reporter: process.env.CI ? [['html', {outputFolder: 'e2e/report'}], ['list']] : 'list',
 
     use: {
-        baseURL: process.env.E2E_BASE_URL || 'http://localhost:3010',
+        baseURL: baseUrl,
         trace: 'on-first-retry',
         screenshot: 'only-on-failure',
         video: 'on-first-retry',
@@ -58,7 +69,8 @@ export default defineConfig({
 
     /**
      * A stack of its own, on ports nobody works on: the database and backend come from the `e2e`
-     * compose profile and answer on 8899, and the Nuxt server runs from this checkout on 3010.
+     * compose profile and answer on 8899, and the Nuxt server runs from this checkout on 3010,
+     * unless the environment names other ones.
      *
      * That separation is what lets the suite reset the database before every run. Pointed at the
      * dev stack it would delete whatever a developer had just set up.
@@ -77,7 +89,7 @@ export default defineConfig({
                 // the stack is still building the backend at that point. Staying attached also means
                 // the stack goes down with the run that brought it up.
                 command: 'docker compose -f ../docker/compose.dev.yaml --profile e2e up',
-                url: 'http://localhost:8899/api/v1/public/config',
+                url: `${backendUrl}/api/v1/public/config`,
                 reuseExistingServer: true,
                 // The backend is built inside its container from the sources beside it. On a machine
                 // that has done it before this is a moment; on a cold one - a fresh runner with no
@@ -89,14 +101,14 @@ export default defineConfig({
                     // Named in the command rather than handed over as an environment, which does
                     // not always reach the process: without the address the server falls back to
                     // its default backend and every proxied call answers 500.
-                    command: `NUXT_BACKEND_URL=${backendUrl} NITRO_PORT=3010 node .output/server/index.mjs`,
-                    url: 'http://localhost:3010',
+                    command: `NUXT_BACKEND_URL=${backendUrl} NITRO_PORT=${webPort} node .output/server/index.mjs`,
+                    url: baseUrl,
                     reuseExistingServer: !process.env.CI,
                     timeout: 120_000,
                 }
                 : {
-                    command: `NUXT_BACKEND_URL=${backendUrl} npm run dev -- --port 3010`,
-                    url: 'http://localhost:3010',
+                    command: `NUXT_BACKEND_URL=${backendUrl} npm run dev -- --port ${webPort}`,
+                    url: baseUrl,
                     reuseExistingServer: !process.env.CI,
                     timeout: 120_000,
                 },

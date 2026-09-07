@@ -28,6 +28,14 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryEdit.whatShownText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.inventoryEdit.backTitle')">
+      <p>{{ t('helpCenter.inventoryEdit.backText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.inventoryEdit.fieldsTitle')">
+      <p>{{ t('helpCenter.inventoryEdit.fieldsText') }}</p>
+    </HelpSection>
+
     <!-- Dummy: Settings section -->
     <HelpSection :title="t('helpCenter.inventoryEdit.settingsTitle')">
       <p>{{ t('helpCenter.inventoryEdit.settingsText') }}</p>

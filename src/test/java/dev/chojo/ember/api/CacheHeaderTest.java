@@ -63,6 +63,20 @@ class CacheHeaderTest {
                 headersFor("/api/v1/public/kb/some-station/article").get("Cache-Control"));
     }
 
+    /**
+     * A waiting-list entry behind its own link carries a name, an address and the evening somebody
+     * was invited to, and it changes the moment they answer. Held for an hour it was both a copy of
+     * a family's details sitting in a cache nobody owns and an answer the page could not see it had
+     * given.
+     */
+    @Test
+    void anEntryBehindItsOwnLinkIsKeptNowhere() throws Exception {
+        var headers = headersFor("/api/v1/public/waiting-list/entry/some-token");
+
+        assertEquals("private, no-store", headers.get("Cache-Control"));
+        assertEquals(false, headers.containsKey("ETag"), "there is nothing to revalidate against");
+    }
+
     @Test
     void aPageFileIsHeldForAYearBecauseItsNameCarriesItsContent() throws Exception {
         assertEquals(

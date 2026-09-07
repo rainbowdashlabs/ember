@@ -15,7 +15,8 @@ const {t} = useI18n()
 const {isMobile} = useBreakpoint()
 
 defineProps<{
-  status: AttendanceStatus
+  /** Undefined where the member has no row yet, so no button reads as the one already chosen. */
+  status?: AttendanceStatus
 }>()
 
 const emit = defineEmits<{

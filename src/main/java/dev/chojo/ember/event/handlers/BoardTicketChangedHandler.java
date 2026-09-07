@@ -7,14 +7,14 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.BoardTicketChanged;
+import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-
-import java.util.Map;
 
 @Singleton
 public class BoardTicketChangedHandler implements DomainEventHandler<BoardTicketChanged> {
@@ -35,14 +35,8 @@ public class BoardTicketChangedHandler implements DomainEventHandler<BoardTicket
         var data = NotificationData.of(
                 new NotificationParams.BoardTicketUpdate(
                         event.boardName(), event.ticketKey(), event.changeDescription()),
-                // ticket-detail route uses boardKey + ticketNumber; ticketId rides along so the
-                // feed renderer can enrich with title / assignee / priority.
-                new NotificationData.NotificationLink(
-                        "ticket-detail",
-                        Map.of(
-                                "boardKey", event.boardKey(),
-                                "ticketNumber", event.ticketNumber(),
-                                "ticketId", event.ticketId())));
+                NotificationLinks.ticket(
+                        new BoardTicketAddress(event.boardKey(), event.ticketNumber()), event.ticketId()));
 
         notificationService.notifyMembersIfAbsent(
                 event.watcherMemberIds(),

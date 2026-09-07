@@ -61,6 +61,12 @@ function goBack() {
           <div class="text-sm text-(--text-muted)">
             {{ formatDateTime(detail.check.checkedAt) || '-' }}
             &middot; {{ t('inventory.check.checkedBy') }}: {{ detail.checkerFirstName }} {{ detail.checkerLastName }}
+            <template v-if="detail.reporterFirstName">
+              &middot;
+              <span data-testid="check-result-reporter">
+                {{ t('inventory.check.reportedBy') }}: {{ detail.reporterFirstName }} {{ detail.reporterLastName }}
+              </span>
+            </template>
           </div>
         </NeutralContainer>
 

@@ -17,7 +17,7 @@ import type {
   TemplateGroupEntry,
 } from '@/api/attendance'
 import {StationPermission, type MemberGroup, type StationMember} from '@/api/types'
-import {attendance, memberGroups, stationMembers} from '@/api'
+import {attendance, exchanges, lostAndFound, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSessionMeta} from './sessionview/useSessionMeta'
 import {useCheckMode, type CheckRow} from './sessionview/useCheckMode'
@@ -32,7 +32,23 @@ const route = useRoute()
 const router = useRouter()
 const {loaded, hasPermission} = useSession()
 
-const canEdit = computed(() => hasPermission(StationPermission.ATTENDANCE_EDIT))
+const canManage = computed(() => hasPermission(StationPermission.ATTENDANCE_MANAGER))
+
+/**
+ * Whether the sheet is closed. Decided by the backend, which owns the span and the two moments that
+ * can override it, so the rule is not written down a second time here where it could drift.
+ */
+const locked = ref(false)
+
+const canEdit = computed(() => hasPermission(StationPermission.ATTENDANCE_EDIT) && !locked.value)
+
+/**
+ * Seeing that a swap is waiting and being allowed to move it on are different rights, and so are
+ * seeing a found item and signing it over. The server already leaves out what may not be seen; these
+ * decide whether the button beside it is offered.
+ */
+const canMoveSwap = computed(() => hasPermission(StationPermission.INVENTORY_EXCHANGE))
+const canSignOffFound = computed(() => hasPermission(StationPermission.LOST_AND_FOUND_MANAGE))
 
 const sessionId = computed(() => Number(route.params.id))
 
@@ -156,9 +172,11 @@ async function loadData() {
       stationMembers.listMembers(true),
       memberGroups.listGroups(),
     ])
+    await loadNotes()
     session.value = detail.session ?? null
     sessionFields.value = detail.fields ?? []
     entries.value = detail.entries ?? []
+    locked.value = detail.locked ?? false
     allMembers.value = members
     groups.value = allGroups
 
@@ -269,6 +287,69 @@ async function syncFromEvent() {
   }
 }
 
+/**
+ * What is outstanding for the people on this sheet, read once for the whole sheet rather than once a
+ * member: the walk steps through every name and a read a step is a read a member.
+ *
+ * <p>A reader allowed none of it gets an empty answer, which is why a failure here is quiet: the
+ * notes are a convenience beside the check, and losing them must not stop the check.
+ */
+const memberNotes = ref<Map<number, attendance.MemberNotes>>(new Map())
+
+async function loadNotes() {
+  try {
+    const notes = await attendance.getMemberNotes(sessionId.value)
+    memberNotes.value = new Map(notes.map(note => [note.memberId, note]))
+  } catch {
+    memberNotes.value = new Map()
+  }
+}
+
+/**
+ * Moving a swap on carries the piece set aside for it, because the step that hands one over refuses
+ * to run without being told which piece it is. The swap already knows; asking whoever is ticking off
+ * names to pick it out of a list would be asking a question that has been answered.
+ */
+async function moveSwap(exchangeId: number, nextStatus: string, replacementItemId: number | null) {
+  error.value = ''
+  try {
+    await exchanges.updateStatus(exchangeId, {status: nextStatus, exchangedItemId: replacementItemId})
+    await loadNotes()
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
+async function signOffFound(itemId: number) {
+  error.value = ''
+  try {
+    await lostAndFound.markProvided(itemId)
+    await loadNotes()
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
+async function unlockSession() {
+  error.value = ''
+  try {
+    await attendance.unlockSession(sessionId.value)
+    await loadData()
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
+async function lockSession() {
+  error.value = ''
+  try {
+    await attendance.lockSession(sessionId.value)
+    await loadData()
+  } catch {
+    error.value = t('common.error')
+  }
+}
+
 async function exportPdf() {
   error.value = ''
   try {
@@ -319,6 +400,11 @@ watch(loaded, (isLoaded) => {
         :error="error"
         :session="session"
         :can-edit="canEdit"
+        :locked="locked"
+        :can-manage="canManage"
+        :member-notes="memberNotes"
+        :can-move-swap="canMoveSwap"
+        :can-sign-off-found="canSignOffFound"
         :check-mode="checkMode"
         :check-index="checkIndex"
         :open-rows="openRows"
@@ -345,6 +431,11 @@ watch(loaded, (isLoaded) => {
         @field-update="onFieldUpdate"
         @field-member-ids="setFieldMemberIds"
         @set-status="setStatus"
+        @enter="(memberId, status) => markRow({memberId, entryId: null}, status)"
+        @unlock="unlockSession"
+        @lock="lockSession"
+        @move-swap="moveSwap"
+        @sign-off-found="signOffFound"
         @check-in="setCheckIn"
         @check-out="setCheckOut"
         @reset-times="resetEntryTimes"

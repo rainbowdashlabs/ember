@@ -11,14 +11,18 @@ import {expect} from './auth'
  * prove that a switch moved anything.
  *
  * The one thing that catches everybody: inside the compose network the ports are the container ports and
- * not the ones mapped to the host. `sftp:22`, not `sftp:2222`. That mistake is made here once.
+ * not the ones mapped to the host. `sftp-e2e:22`, not `sftp-e2e:2222`. That mistake is made here once.
+ *
+ * The names carry the `-e2e` suffix the rest of this stack does, because these are the end-to-end stack's own
+ * three and not the development stack's. Each checkout runs a set of its own, so two runs no longer write into
+ * one bucket, and none of them publishes a port: only the two backends ever ask them anything.
  */
 
 /** The SFTP service, as the backend reaches it. */
 export function sftpTarget() {
     return {
         type: 'SFTP' as const,
-        host: 'sftp',
+        host: 'sftp-e2e',
         port: 22,
         username: 'ember',
         knownHostsFingerprint: '',
@@ -32,7 +36,7 @@ export function sftpTarget() {
 export function s3Target() {
     return {
         type: 'S3' as const,
-        endpoint: 'http://rustfs:9000',
+        endpoint: 'http://rustfs-e2e:9000',
         region: 'us-east-1',
         bucket: 'ember',
         pathStyle: true,
@@ -47,7 +51,7 @@ export function s3Target() {
 export function smbTarget() {
     return {
         type: 'SMB' as const,
-        host: 'smb',
+        host: 'smb-e2e',
         port: 445,
         share: 'ember',
         domain: 'WORKGROUP',

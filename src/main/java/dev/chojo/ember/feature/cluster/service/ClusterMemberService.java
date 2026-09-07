@@ -12,6 +12,7 @@ import dev.chojo.ember.event.events.ClusterMemberRoleChanged;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AccountNameRequiredException;
+import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.entity.ClusterMemberGroup;
@@ -94,7 +95,7 @@ public class ClusterMemberService {
                     "No account has that address yet, so a first and last name are needed");
         }
         var invited = accountInviteService.resolveOrCreate(
-                cluster.homeStationId(), address, firstName.trim(), lastName.trim());
+                cluster.homeStationId(), address, firstName.trim(), lastName.trim(), SetupMail.SEND_NOW);
         log.info("Cluster {} made an account for {}", clusterId, address);
         return clusterService.addMember(clusterId, invited.account().id(), userType);
     }

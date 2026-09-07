@@ -43,6 +43,14 @@ const {loading, error} = useAsyncLoader(async () => {
   members.value = m
 })
 
+/**
+ * What may be ordered more of: only an inventory holding one thing in many copies.
+ *
+ * "Three more" needs something to be three more of, which a drawer holding a laminator and a toy
+ * fire engine does not have, so it is not offered rather than being offered and then refused.
+ */
+const orderableInventories = computed(() => inventories.value.filter(i => i.homogeneous))
+
 async function reloadEntries() {
   try {
     entries.value = await procurement.listProcurement()
@@ -119,7 +127,7 @@ function onCreateError() {
 
       <ProcurementCreateModal
         v-model="showCreateModal"
-        :inventories="inventories"
+        :inventories="orderableInventories"
         :members="members"
         @created="onCreated"
         @error="onCreateError"

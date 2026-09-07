@@ -1,0 +1,18 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hello {{ name }},</h2>
+      <p><strong>{{ stationName }}</strong> would like to invite you to come along and have a look.</p>
+      {% if appointmentName %}
+      <p>We would be glad to see you here:</p>
+      <ul class="notification-list">
+        <li class="notification-item"><strong>{{ appointmentName }}</strong></li>
+        {% if appointmentDate %}<li class="notification-item">Date: {{ appointmentDate }}</li>{% endif %}
+        {% if appointmentTime %}<li class="notification-item">Time: {{ appointmentTime }}</li>{% endif %}
+        {% if arrivalTime %}<li class="notification-item">Please be there by {{ arrivalTime }} so we can welcome you properly.</li>{% endif %}
+        {% if location %}<li class="notification-item">Where: {{ location }}</li>{% endif %}
+      </ul>
+      {% endif %}
+      <p>Please let us know on the page below whether that suits you. You can also say there that the date does not work for you, or that you are no longer interested:</p>
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">Answer the invitation</a></div>
+      <p class="hint">Until you have been here for the first time you are still only on the waiting list. Nothing is created and you are committed to nothing.</p>
+{% endblock %}

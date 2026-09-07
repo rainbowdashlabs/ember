@@ -82,6 +82,26 @@ export interface WaitingListInvite {
     createdAt: string
 }
 
+/**
+ * The one appointment an entry has been invited to, or null while nobody has been invited.
+ *
+ * Nobody is signed up from it: they have not joined anything, so they are on no attendee list and
+ * count towards no total the station plans from.
+ */
+export interface WaitingListInvitation {
+    eventId: number
+    date: string
+    /** When they were asked to be there, usually earlier than everybody else. */
+    arrivalTime?: string | null
+}
+
+/** What the station sends when it invites: the evening, or nothing to invite without one. */
+export interface WaitingListInvitationRequest {
+    eventId: number
+    date: string
+    arrivalTime?: string | null
+}
+
 export interface WaitingListEntry {
     id: number
     listId: number
@@ -101,6 +121,8 @@ export interface WaitingListEntry {
     joinedAt?: string | null
     withdrawnAt?: string | null
     attendanceCount: number
+    invitation?: WaitingListInvitation | null
+    answer?: WaitingListInvitationAnswer | null
 }
 
 export interface WaitingListEntryValue {
@@ -135,6 +157,32 @@ export interface WaitingListWithCount {
     entryCount: number
 }
 
+export const WaitingListAnswers = {
+    COMING: 'COMING',
+    NOT_INTERESTED: 'NOT_INTERESTED',
+    DATE_DOES_NOT_SUIT: 'DATE_DOES_NOT_SUIT',
+} as const
+
+export type WaitingListAnswerName = (typeof WaitingListAnswers)[keyof typeof WaitingListAnswers]
+
+/** What came back to the invitation an entry currently holds, or null while nothing has. */
+export interface WaitingListInvitationAnswer {
+    answer: WaitingListAnswerName
+    answeredAt: string
+    note: string
+}
+
+/** The evening the entry is invited to, already written out the way the mail wrote it. */
+export interface WaitingListPublicInvitation {
+    eventId: number
+    date: string
+    appointmentName: string
+    appointmentDate: string
+    appointmentTime: string
+    arrivalTime: string
+    location: string
+}
+
 export interface WaitingListPublicStatus {
     firstname: string
     lastname: string
@@ -149,6 +197,8 @@ export interface WaitingListPublicStatus {
     fields: WaitingListField[]
     values: WaitingListEntryValue[]
     guardians: WaitingListEntryGuardian[]
+    invitation?: WaitingListPublicInvitation | null
+    answer?: WaitingListInvitationAnswer | null
 }
 
 export interface WaitingListInviteInfo {
@@ -275,8 +325,18 @@ export async function updateCreatedAt(listId: number, entryId: number, createdAt
 
 // State transitions
 
-export async function inviteEntry(listId: number, entryId: number): Promise<WaitingListEntry> {
-    const res = await client.post<WaitingListEntry>(`/waiting-lists/${listId}/entries/${entryId}/invite`)
+export async function inviteEntry(
+    listId: number,
+    entryId: number,
+    invitation?: WaitingListInvitationRequest | null,
+): Promise<WaitingListEntry> {
+    const res = await client.post<WaitingListEntry>(
+        `/waiting-lists/${listId}/entries/${entryId}/invite`, invitation ?? {})
+    return res.data
+}
+
+export async function returnToWaiting(listId: number, entryId: number): Promise<WaitingListEntry> {
+    const res = await client.post<WaitingListEntry>(`/waiting-lists/${listId}/entries/${entryId}/back-to-waiting`)
     return res.data
 }
 
@@ -327,6 +387,22 @@ export async function removeEntry(token: string): Promise<void> {
 
 export async function confirmInterest(token: string): Promise<void> {
     await client.post(`/public/waiting-list/entry/${token}/confirm`)
+}
+
+/**
+ * Answers the invitation the entry currently holds.
+ *
+ * The evening travels with the answer so it says what it answers: an entry carries one current
+ * invitation, and a click from a mail that has been superseded is refused rather than applied to
+ * the invitation that replaced it.
+ */
+export async function answerInvitation(token: string, data: {
+    eventId?: number | null
+    date?: string | null
+    answer: WaitingListAnswerName
+    note?: string
+}): Promise<void> {
+    await client.post(`/public/waiting-list/entry/${token}/answer`, data)
 }
 
 // --- Approve / Reject ---

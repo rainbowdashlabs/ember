@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.news.repository;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.news.entity.NewsFederationShare;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
+import dev.chojo.ember.feature.restriction.RestrictionSql;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -104,6 +106,12 @@ public class NewsFederationRepository {
      * A news article is shared if it has scope='ALL_PARTNERS', or scope='SPECIFIC' with the partner in targets.
      * Only published news articles are returned.
      *
+     * <p>An entry that not every member of the owning station may read is never among them, whatever
+     * the share says, the same way an event that not everybody may know about is never handed over.
+     * Deciding it here rather than at each caller also settles the order the two settings were made
+     * in: restricting an entry that was already shared withdraws it, and an entry that starts
+     * restricted only reaches a partner once somebody deliberately lifts the restriction.
+     *
      * @param partnerId the federation partner ID
      * @param stationId the station ID
      * @return the list of shared news IDs
@@ -115,10 +123,11 @@ public class NewsFederationRepository {
                     JOIN news n ON n.id = nfs.news_id
                 WHERE n.station_id = :station_id
                   AND n.published_at IS NOT NULL
+                  AND %s
                   AND (nfs.scope = 'ALL_PARTNERS'
                        OR (nfs.scope = 'SPECIFIC'
                            AND exists (SELECT 1 FROM news_federation_share_target nfst
-                                       WHERE nfst.share_id = nfs.id AND nfst.partner_id = :partner_id)));""")
+                                       WHERE nfst.share_id = nfs.id AND nfst.partner_id = :partner_id)));""", RestrictionSql.unrestricted(RestrictionType.NEWS, "n.id"))
                 .single(call().bind("station_id", stationId).bind("partner_id", partnerId))
                 .map(row -> row.getInt("news_id"))
                 .all();

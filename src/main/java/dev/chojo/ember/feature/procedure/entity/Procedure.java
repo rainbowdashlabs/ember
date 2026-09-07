@@ -9,9 +9,17 @@ import de.chojo.sadu.mapper.annotation.MappingProvider;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * A list of steps a station works through, optionally prepared for one evening of one appointment.
+ *
+ * @param eventId   the appointment this was prepared for, or {@code null} when it stands on its own
+ * @param eventDate the single occurrence of that appointment, {@code null} exactly when the
+ *                  appointment is
+ */
 public record Procedure(
         int id,
         int stationId,
@@ -23,7 +31,9 @@ public record Procedure(
         int assignedBy,
         Instant dueAt,
         Instant createdAt,
-        Instant resolvedAt) {
+        Instant resolvedAt,
+        Integer eventId,
+        LocalDate eventDate) {
 
     @MappingProvider("")
     public static RowMapping<Procedure> map() {
@@ -38,6 +48,8 @@ public record Procedure(
                 row.getInt("assigned_by"),
                 row.get("due_at", INSTANT_TIMESTAMP),
                 row.get("created_at", INSTANT_TIMESTAMP),
-                row.get("resolved_at", INSTANT_TIMESTAMP));
+                row.get("resolved_at", INSTANT_TIMESTAMP),
+                row.getObject("event_id", Integer.class),
+                row.getObject("event_date", LocalDate.class));
     }
 }

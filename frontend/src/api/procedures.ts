@@ -48,6 +48,10 @@ export interface Procedure {
     dueAt: string | null
     createdAt: string
     resolvedAt: string | null
+    /** The appointment this was prepared for, or null when it stands on its own. */
+    eventId: number | null
+    /** The one occurrence of that appointment, as a calendar date. */
+    eventDate: string | null
 }
 
 export interface ProcedureItem {
@@ -98,9 +102,14 @@ export interface ProcedureRequest {
     name?: string
     description?: string
     templateId?: number
+    /** An instant, not a calendar date. Run what a date field holds through `dateToInstant` first. */
     dueAt?: string
     isPublic?: boolean
     assigneeIds?: number[]
+    /** The appointment this is being prepared for. Recorded only together with the date. */
+    eventId?: number
+    /** The one occurrence of that appointment, as a calendar date. */
+    eventDate?: string
 }
 
 interface ProcedureUpdateRequest {
@@ -181,6 +190,20 @@ export async function setProcedureDependencies(procedureId: number, dependencies
 
 export async function getProcedures(params?: { status?: string; assignee?: string }): Promise<Procedure[]> {
     return procedures.list(params)
+}
+
+/**
+ * What has already been prepared for one evening of one appointment.
+ *
+ * <p>Read before offering to prepare something: a second list for the same evening is a state
+ * nobody tidies up, so the caller offers what is already there instead of making another.
+ *
+ * @param eventId the appointment
+ * @param date    the one occurrence of it, as a calendar date
+ */
+export async function getProceduresForEvent(eventId: number, date: string): Promise<Procedure[]> {
+    const res = await client.get<Procedure[]>(`/procedures/for-event/${eventId}`, { params: { date } })
+    return res.data
 }
 
 export const getProcedure = procedures.get

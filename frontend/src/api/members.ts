@@ -4,12 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type {EmailChangeStatusName} from './auth'
 import type {MessageResponse} from './types'
 
 export interface InviteRequest {
     email?: string
     firstName?: string
     lastName?: string
+    /** Whether the setup mail leaves with the account. Absent means it does. */
+    sendSetupMail?: boolean
 }
 
 export interface InviteResponse {
@@ -29,14 +32,22 @@ export async function invite(data: InviteRequest): Promise<InviteResponse> {
     return res.data
 }
 
+export interface UpdateAccountResponse extends MessageResponse {
+    /**
+     * What became of an address given in the same call. Absent when the address was left alone,
+     * COMMITTED when it is already the account's, WAITING when a link still has to be clicked.
+     */
+    emailChange?: EmailChangeStatusName | null
+}
+
 export async function updateAccount(accountId: number, data: {
     email?: string;
     /** The name this account signs in with. Absent leaves it alone; empty clears it. */
     username?: string;
     firstName?: string;
     lastName?: string
-}): Promise<MessageResponse> {
-    const res = await client.put<MessageResponse>(`/members/${accountId}`, data)
+}): Promise<UpdateAccountResponse> {
+    const res = await client.put<UpdateAccountResponse>(`/members/${accountId}`, data)
     return res.data
 }
 

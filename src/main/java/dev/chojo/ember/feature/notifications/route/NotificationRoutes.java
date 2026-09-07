@@ -123,7 +123,9 @@ public class NotificationRoutes implements Routes {
                 n.data().paramsAsMap(),
                 n.data().link() != null
                         ? new NotificationLinkResponse(
-                                n.data().link().route(), n.data().link().routeParams())
+                                n.data().link().route(),
+                                n.data().link().routeParams(),
+                                n.data().link().query())
                         : null,
                 n.createdAt(),
                 n.acknowledgedAt());
@@ -131,7 +133,11 @@ public class NotificationRoutes implements Routes {
 
     record CountResponse(long count) {}
 
-    public record NotificationLinkResponse(String route, Map<String, Object> routeParams) {}
+    /**
+     * The link a notification carries. The query names a place inside the page the route opens,
+     * which is how a notification about a comment reaches that comment.
+     */
+    public record NotificationLinkResponse(String route, Map<String, Object> routeParams, Map<String, Object> query) {}
 
     public record NotificationResponse(
             int id,

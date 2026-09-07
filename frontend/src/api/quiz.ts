@@ -236,6 +236,7 @@ export interface CatalogTransferProblem {
 }
 import {uploadFile} from './upload'
 import {downloadAuthed} from '@/util/downloadAuthed'
+import {prepareImageUpload} from '@/util/imageUpload'
 
 // -- Shared catalog entry from federation --
 
@@ -509,8 +510,12 @@ export function questionImageUrl(questionId: number, size?: number): string {
     return size ? `${base}?size=${size}` : base
 }
 
+/**
+ * Sends the picture for a question, redrawn to a format and a size the endpoint takes, so a photo
+ * taken on the spot is not refused for being what a camera produces.
+ */
 export async function uploadQuestionImage(questionId: number, file: File): Promise<void> {
-    await uploadFile(`/quiz/questions/${questionId}/image`, {image: file})
+    await uploadFile(`/quiz/questions/${questionId}/image`, {image: await prepareImageUpload(file)})
 }
 
 export async function deleteQuestionImage(questionId: number): Promise<void> {

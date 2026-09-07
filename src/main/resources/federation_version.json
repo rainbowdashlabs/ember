@@ -1,9 +1,9 @@
 {
-  "core" : "65670c3b5e2767a9",
+  "core" : "6d98dcb46ec5ee75",
   "features" : {
     "BOARD_SHARE" : "b523ca16e7916380",
     "EVENT_SHARE" : "0be6ed247fc2d07c",
-    "INVENTORY_LEND" : "cec1e7dcba7ca610",
+    "INVENTORY_LEND" : "c6b2407d79967eb6",
     "KB_SHARE" : "97d7ab71fcf1db9c",
     "NEWS_SHARE" : "b13124d75a46f058",
     "PROTOCOL_SHARE" : "147a2973404f3a32",

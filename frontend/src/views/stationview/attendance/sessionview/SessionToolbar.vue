@@ -4,17 +4,21 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
+import ActionsMenu from '@/components/button/ActionsMenu.vue'
+import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 
 const {t} = useI18n()
 
-defineProps<{
+const props = defineProps<{
   checkMode: boolean
   uncheckedCount: number
   readonly?: boolean
+  locked?: boolean
+  canManage?: boolean
 }>()
 
 defineEmits<{
@@ -23,7 +27,20 @@ defineEmits<{
   sync: []
   startCheckMode: []
   remove: []
+  unlock: []
+  lock: []
 }>()
+
+/**
+ * Checking the attendance is what the reader came for while anybody is still unchecked, so it is
+ * the one action that stays a button of its own.
+ *
+ * <p>It is not always there: it goes once every entry has been decided, and it is not offered
+ * while the check is already running. The export takes its place then, because a finished list is
+ * kept in order to be handed on. A reader without edit rights has no action here at all, so their
+ * toolbar is the back button and nothing else, exactly as it was before.
+ */
+const canCheck = computed(() => !props.checkMode && props.uncheckedCount > 0)
 </script>
 
 <template>
@@ -31,24 +48,41 @@ defineEmits<{
     <SecondaryButton :icon="['fas', 'chevron-left']" @click="$emit('back')">
       {{ t('attendanceSession.back') }}
     </SecondaryButton>
-    <div v-if="!readonly" class="grid grid-cols-2 sm:flex sm:items-center gap-2">
-      <SecondaryButton :icon="['fas', 'download']" @click="$emit('export')">
+    <div v-if="locked" class="flex items-center gap-2">
+      <PrimaryButton :icon="['fas', 'download']" @click="$emit('export')">
         {{ t('attendanceSession.export') }}
-      </SecondaryButton>
-      <SecondaryButton :icon="['fas', 'clipboard-check']" @click="$emit('sync')">
-        {{ t('attendanceSession.sync') }}
-      </SecondaryButton>
-      <PrimaryButton
-          v-if="!checkMode && uncheckedCount > 0"
-          :icon="['fas', 'clipboard-user']"
-          class="col-span-2"
-          @click="$emit('startCheckMode')"
+      </PrimaryButton>
+      <SecondaryButton
+          v-if="canManage"
+          :icon="['fas', 'lock-open']"
+          data-testid="unlock-session"
+          @click="$emit('unlock')"
       >
+        {{ t('attendanceSession.reopen') }}
+      </SecondaryButton>
+    </div>
+    <div v-else-if="!readonly" class="flex items-center gap-2">
+      <PrimaryButton v-if="canCheck" :icon="['fas', 'clipboard-user']" @click="$emit('startCheckMode')">
         {{ t('attendanceSession.checkMode') }} ({{ uncheckedCount }})
       </PrimaryButton>
-      <ErrorButton data-testid="delete-session" :icon="['fas', 'trash']" @click="$emit('remove')">
-        {{ t('attendanceSession.delete') }}
-      </ErrorButton>
+      <PrimaryButton v-else :icon="['fas', 'download']" @click="$emit('export')">
+        {{ t('attendanceSession.export') }}
+      </PrimaryButton>
+      <ActionsMenu :label="t('common.actions')" test-id="session-actions">
+        <DropdownMenuItem v-if="canCheck" :icon="['fas', 'download']" @click="$emit('export')">
+          {{ t('attendanceSession.export') }}
+        </DropdownMenuItem>
+        <DropdownMenuItem :icon="['fas', 'clipboard-check']" @click="$emit('sync')">
+          {{ t('attendanceSession.sync') }}
+        </DropdownMenuItem>
+        <DropdownMenuItem v-if="canManage" :icon="['fas', 'lock']" data-testid="lock-session" @click="$emit('lock')">
+          {{ t('attendanceSession.close') }}
+        </DropdownMenuItem>
+        <DropdownMenuItem :icon="['fas', 'trash']" data-testid="delete-session" destructive
+                          @click="$emit('remove')">
+          {{ t('attendanceSession.delete') }}
+        </DropdownMenuItem>
+      </ActionsMenu>
     </div>
   </div>
 </template>

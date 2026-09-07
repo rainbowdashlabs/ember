@@ -9,12 +9,13 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import IdentityButton from '@/components/button/IdentityButton.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import ExchangeStatusBadge from './ExchangeStatusBadge.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
-import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
+import {stillMoving, type ExchangeRequestEntry} from '@/api/exchanges'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import { itemOwnerBadge, itemOwnerLabel as toItemOwnerLabel } from '@/util/inventoryType'
 import { formatDate } from '@/util/format'
@@ -36,6 +37,7 @@ const emit = defineEmits<{
   (e: 'toggle-export'): void
   (e: 'open-log'): void
   (e: 'start-update'): void
+  (e: 'start-correct'): void
   (e: 'delete'): void
 }>()
 
@@ -46,16 +48,15 @@ function ownerLabel(ownerKind?: string | null): string {
 </script>
 
 <template>
-  <TRow>
+  <TRow data-testid="exchange-row" :data-exchange-id="request.id">
     <td v-if="exportMode" class="px-1 py-2.5 w-8">
       <CheckboxInput :model-value="selected" @update:model-value="emit('toggle-export')" />
     </td>
     <Td v-if="showMemberColumn">
-      <SecondaryButton
+      <IdentityButton
         v-if="canManageExchanges && routes.member"
-        class="!bg-transparent !p-0 text-primary font-normal hover:underline cursor-pointer"
         @click="routes.member && router.push({ name: routes.member, params: { memberId: request.memberId } })"
-      ><MemberName :identity="request.memberIdentity ?? null"/></SecondaryButton>
+      ><MemberName :identity="request.memberIdentity ?? null"/></IdentityButton>
       <MemberName v-else :identity="request.memberIdentity ?? null"/>
     </Td>
     <Td class="font-medium">{{ request.inventoryName }}</Td>
@@ -79,11 +80,19 @@ function ownerLabel(ownerKind?: string | null): string {
           <font-awesome-icon :icon="['fas', 'clock-rotate-left']" />
         </SecondaryButton>
         <SecondaryButton
-            v-if="canManageExchanges && request.status !== ExchangeStatus.DONE"
+            v-if="canManageExchanges && stillMoving(request.status)"
             data-testid="exchange-advance"
             @click="emit('start-update')"
         >
           <font-awesome-icon :icon="['fas', 'arrow-right']" />
+        </SecondaryButton>
+        <SecondaryButton
+            v-if="canManageExchanges"
+            data-testid="exchange-correct"
+            :title="t('exchanges.correct')"
+            @click="emit('start-correct')"
+        >
+          <font-awesome-icon :icon="['fas', 'pen']" />
         </SecondaryButton>
         <DeleteButton v-if="canManageExchanges" @click="emit('delete')" />
       </div>

@@ -670,12 +670,19 @@ public class StationManageRoutes implements Routes {
             path = "/api/v1/station/manage/request-delete",
             methods = HttpMethod.POST,
             summary = "Request station deletion (sends confirmation email)",
+            description = "Sends a confirmation link and waits for it. On an instance that cannot send at all "
+                    + "there is nobody to ask, so the station is deleted straight away and the answer says so.",
             tags = {"Station Manage"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DeleteRequestResponse.class)))
     private void requestDelete(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        authService.requestStationDeletion(session.accountId(), session.stationId());
-        ctx.json(new MessageResponse("Confirmation email sent. Check your inbox."));
+        var deleteNow = authService.requestStationDeletion(session.accountId(), session.stationId());
+        if (deleteNow.isPresent()) {
+            stationService.delete(deleteNow.get());
+            ctx.json(new DeleteRequestResponse("Station deleted", true));
+            return;
+        }
+        ctx.json(new DeleteRequestResponse("Confirmation email sent. Check your inbox.", false));
     }
 
     @OpenApi(
@@ -798,6 +805,14 @@ public class StationManageRoutes implements Routes {
         stationService.delete(stationIdOpt.get());
         ctx.json(new MessageResponse("Station deleted"));
     }
+
+    /**
+     * The answer to a deletion request.
+     *
+     * @param deleted whether the station is already gone, rather than waiting for a link to be
+     *                clicked in the owner's mail
+     */
+    public record DeleteRequestResponse(String message, boolean deleted) {}
 
     /**
      * Request body for updating station settings.

@@ -26,6 +26,11 @@ public enum TokenType {
      */
     FORCE_PASSWORD_CHANGE,
     /**
+     * Token issued at login when an account that administers the instance carries no address mail
+     * can reach, and has to be given one before there can be a session.
+     */
+    FORCE_ADDRESS,
+    /**
      * Legacy single-step email-change token retained for stored rows. The current code
      * no longer issues this type; see {@link #EMAIL_CHANGE_RELEASE} and
      * {@link #EMAIL_CHANGE_CLAIM} for the two-step flow.

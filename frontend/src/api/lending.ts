@@ -29,6 +29,11 @@ export interface LendingRequest {
     createdBy: number
     createdAt: string
     updatedAt: string
+    /** The appointment the request was collected for, at the requesting station. */
+    eventId: number | null
+    eventDate: string | null
+    /** What the request is for, as the owning station reads it. A copy of the name, never a link. */
+    occasion: string
 }
 
 export interface LendingRequestResponse {
@@ -45,8 +50,11 @@ export interface LendingRequestItem {
     requestId: number
     inventoryId: number | null
     itemId: number | null
+    /** The kind of thing the line asks for, which is how it says four blue radios. */
+    artId: number | null
     quantity: number
-    assignedItemId: number | null
+    /** The line of an appointment's needs this fills, at the requesting station. */
+    needId: number | null
 }
 
 export interface EnrichedItem {
@@ -103,7 +111,15 @@ export interface CreateLendingRequestPayload {
     owningStationId: string
     dateFrom: string
     dateTo: string | null
-    items: { inventoryId?: number | null; itemId?: number | null; quantity: number }[]
+    eventId?: number | null
+    eventDate?: string | null
+    items: {
+        inventoryId?: number | null
+        itemId?: number | null
+        artId?: number | null
+        quantity: number
+        needId?: number | null
+    }[]
 }
 
 export interface CreateBlockPayload {
@@ -117,10 +133,84 @@ export interface CreateBlockPayload {
 export interface AvailableInventoryEntry {
     inventoryId: number
     inventoryName: string
+    /** The kind counted, or null where the row counts a whole inventory. */
+    artId: number | null
+    artName: string | null
+    /** The owning station, as the public UUID the API speaks in. */
     stationId: string
     stationName: string
     availableCount: number
     distanceKm: number | null
+}
+
+/**
+ * Why a browse answer came back empty. It names the situation and never the gear: which
+ * inventories a partner holds back is that partner's business.
+ */
+export const LendingEmptyReason = {
+    NOTHING_SHARED: 'NOTHING_SHARED',
+    NOTHING_FREE: 'NOTHING_FREE',
+} as const
+
+export type LendingEmptyReasonName = (typeof LendingEmptyReason)[keyof typeof LendingEmptyReason]
+
+export interface AvailableInventoryResult {
+    entries: AvailableInventoryEntry[]
+    emptyReason: LendingEmptyReasonName | null
+}
+
+export const ShareGrant = {
+    GRANT: 'GRANT',
+    WITHHOLD: 'WITHHOLD',
+} as const
+
+export type ShareGrantName = (typeof ShareGrant)[keyof typeof ShareGrant]
+
+export const ShareScope = {
+    ALL_PARTNERS: 'ALL_PARTNERS',
+    SPECIFIC: 'SPECIFIC',
+} as const
+
+export type ShareScopeName = (typeof ShareScope)[keyof typeof ShareScope]
+
+export interface ShareSetting {
+    shared: boolean
+    grant: ShareGrantName | null
+    scope: ShareScopeName | null
+    partnerIds: number[]
+}
+
+export interface InventoryShare {
+    id: number
+    stationId: number
+    inventoryId: number | null
+    artId: number | null
+    itemId: number | null
+    shareScope: ShareScopeName
+    shareGrant: ShareGrantName
+}
+
+/** Which of the three levels a sharing row speaks at. The narrowest one that exists decides. */
+export type ShareTarget = 'inventory' | 'art' | 'item'
+
+export interface SharePartner {
+    partnerId: number
+    stationName: string
+}
+
+export interface ShareDetail {
+    share: InventoryShare
+    inventoryName: string | null
+    artName: string | null
+    itemName: string | null
+    itemInternalId: string | null
+    partners: SharePartner[]
+}
+
+export interface SetSharePayload {
+    grant: ShareGrantName
+    scope: ShareScopeName
+    partnerIds: number[]
 }
 
 // -- Lent-out items by inventory --
@@ -144,13 +234,53 @@ export async function getLentOutByInventory(inventoryId: number): Promise<LentOu
 
 // -- Available inventory --
 
-export async function listAvailable(options?: { q?: string; from?: string; to?: string }): Promise<AvailableInventoryEntry[]> {
+export async function listAvailable(options?: { q?: string; from?: string; to?: string }): Promise<AvailableInventoryResult> {
     const params: Record<string, string> = {}
     if (options?.q) params.q = options.q
     if (options?.from) params.from = options.from
     if (options?.to) params.to = options.to
-    const res = await client.get<AvailableInventoryEntry[]>('/federated/lending/available', {params})
+    const res = await client.get<AvailableInventoryResult>('/federated/lending/available', {params})
     return res.data
+}
+
+/**
+ * What one row of the station's whole offer says, in the shape a single screen reads.
+ *
+ * <p>A row existing at all is what "shared" means: it says somebody has decided about this thing,
+ * and the grant then says which way. Reading the overview and reading one thing therefore give the
+ * same answer instead of two that could drift.
+ */
+export function settingOf(detail: ShareDetail): ShareSetting {
+    return {
+        shared: true,
+        grant: detail.share.shareGrant,
+        scope: detail.share.shareScope,
+        partnerIds: detail.partners.map(partner => partner.partnerId),
+    }
+}
+
+export async function listShares(): Promise<ShareDetail[]> {
+    const res = await client.get<ShareDetail[]>('/lending/shares')
+    return res.data
+}
+
+/**
+ * What is currently said about one inventory, one kind or one piece. The three levels answer the
+ * same shape, so the level travels as an argument rather than splitting into three near-identical
+ * calls that every caller would then have to choose between.
+ */
+export async function getShare(target: ShareTarget, id: number): Promise<ShareSetting> {
+    const res = await client.get<ShareSetting>(`/lending/shares/${target}/${id}`)
+    return res.data
+}
+
+export async function setShare(target: ShareTarget, id: number, payload: SetSharePayload): Promise<ShareSetting> {
+    const res = await client.put<ShareSetting>(`/lending/shares/${target}/${id}`, payload)
+    return res.data
+}
+
+export async function removeShare(target: ShareTarget, id: number): Promise<void> {
+    await client.delete(`/lending/shares/${target}/${id}`)
 }
 
 // -- Requests --

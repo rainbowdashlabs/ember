@@ -23,5 +23,11 @@ public enum AckKind {
      * note, because an unresponsive counterparty must not be able to freeze an item in transit
      * forever and the record should say who decided that it would not.
      */
-    FORCED
+    FORCED,
+    /**
+     * Nobody acknowledged anything: somebody put the movement where it should have been. Carries a
+     * mandatory reason, and reads as a correction rather than as a step, because a record that
+     * cannot tell the two apart is worth less than one that admits the difference.
+     */
+    CORRECTED
 }

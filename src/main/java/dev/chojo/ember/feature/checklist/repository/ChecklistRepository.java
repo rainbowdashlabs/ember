@@ -22,6 +22,7 @@ import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,7 +42,7 @@ import static dev.chojo.ember.util.sql.SqlSupport.reorder;
 @Singleton
 public class ChecklistRepository {
     private static final String CHECKLIST_COLUMNS =
-            "id, station_id, name, description, restriction_mode, created_at, created_by, last_refreshed_at";
+            "id, station_id, name, description, restriction_mode, created_at, created_by, last_refreshed_at, source_event_id, source_event_date";
     private static final String CHECKLIST_COLUMN_COLUMNS = "id, checklist_id, position, label, description";
     private static final String CHECKLIST_ENTRY_COLUMNS = "id, checklist_id, member_id, added_at, deleted_at";
     private static final String CHECKLIST_CELL_COLUMNS =
@@ -74,22 +75,50 @@ public class ChecklistRepository {
         return SqlSupport.findById("checklist", CHECKLIST_COLUMNS, id, Checklist.map());
     }
 
-    public Checklist create(int stationId, String name, String description, RestrictionMode mode, int createdBy) {
+    public Checklist create(
+            int stationId,
+            String name,
+            String description,
+            RestrictionMode mode,
+            int createdBy,
+            Integer sourceEventId,
+            LocalDate sourceEventDate) {
         return insertReturning(
                 """
                 INSERT INTO
-                    checklist(station_id, name, description, restriction_mode, created_by, last_refreshed_at)
+                    checklist(station_id, name, description, restriction_mode, created_by, last_refreshed_at,
+                              source_event_id, source_event_date)
                 VALUES
-                    (:station_id, :name, :description, :mode, :created_by, :refreshed_at)
+                    (:station_id, :name, :description, :mode, :created_by, :refreshed_at,
+                     :source_event_id, :source_event_date)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("description", description != null ? description : "")
                         .bind("mode", mode.name())
                         .bind("created_by", createdBy)
-                        .bind("refreshed_at", Instant.now(), INSTANT_TIMESTAMP),
+                        .bind("refreshed_at", Instant.now(), INSTANT_TIMESTAMP)
+                        .bind("source_event_id", sourceEventId)
+                        .bind("source_event_date", sourceEventId == null ? null : sourceEventDate),
                 Checklist.map(),
                 CHECKLIST_COLUMNS);
+    }
+
+    /**
+     * Points the checklist at one occurrence of an appointment, or clears the reference when
+     * {@code sourceEventId} is {@code null}. The date is dropped along with the appointment, so a
+     * list that has stopped following carries neither half of the reference.
+     */
+    public void updateSourceEvent(int id, Integer sourceEventId, LocalDate sourceEventDate) {
+        query("""
+                        UPDATE checklist
+                           SET source_event_id = :source_event_id,
+                               source_event_date = :source_event_date
+                         WHERE id = :id;""")
+                .single(call().bind("id", id)
+                        .bind("source_event_id", sourceEventId)
+                        .bind("source_event_date", sourceEventId == null ? null : sourceEventDate))
+                .update();
     }
 
     public void updateMetadata(int id, String name, String description, RestrictionMode mode) {

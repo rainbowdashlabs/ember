@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -139,7 +138,7 @@ public class EventExportService {
         var result = new ArrayList<ExpandedEvent>();
         for (var event : events) {
             if (event.isRecurring()) {
-                expandRecurring(event, from, to, breaks, result);
+                expandRecurring(event, from, to, breaks, result, zone);
             } else {
                 if (event.startTime() == null) continue;
                 LocalDate eventDate = event.startTime().atZone(zone).toLocalDate();
@@ -152,8 +151,31 @@ public class EventExportService {
         return result;
     }
 
+    /**
+     * Whether a day is the one a yearly appointment repeats on.
+     *
+     * <p>Which day of the year that is has to be read on the station's own clock, the same clock the
+     * rest of this export reads. Read anywhere else, an appointment near midnight belongs to the day
+     * either side of the one it is actually on, and the yearly line is then listed on the wrong date.
+     *
+     * @param startTime when the appointment starts, or null where it has no start
+     * @param zone      the station's clock
+     * @param day       the day being considered
+     * @return true where the day is the appointment's own day of the year
+     */
+    static boolean fallsOnYearlyAnchor(Instant startTime, ZoneId zone, LocalDate day) {
+        if (startTime == null) return false;
+        LocalDate anchor = startTime.atZone(zone).toLocalDate();
+        return day.getMonthValue() == anchor.getMonthValue() && day.getDayOfMonth() == anchor.getDayOfMonth();
+    }
+
     private void expandRecurring(
-            StationEvent event, LocalDate from, LocalDate to, List<EventBreak> breaks, List<ExpandedEvent> result) {
+            StationEvent event,
+            LocalDate from,
+            LocalDate to,
+            List<EventBreak> breaks,
+            List<ExpandedEvent> result,
+            ZoneId zone) {
         if (event.dayOfWeek() == null && event.eventType() != StationEvent.EventType.YEARLY) return;
         for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) {
             LocalDate date = d;
@@ -170,16 +192,11 @@ public class EventExportService {
                             d.getDayOfWeek().getValue() == event.dayOfWeek()
                                     && d.getDayOfMonth() <= 7
                                     && (d.getMonthValue() - 1) % 3 == 0;
-                        case YEARLY ->
-                            event.startTime() != null
-                                    && d.getMonthValue()
-                                            == event.startTime()
-                                                    .atZone(ZoneOffset.UTC)
-                                                    .getMonthValue()
-                                    && d.getDayOfMonth()
-                                            == event.startTime()
-                                                    .atZone(ZoneOffset.UTC)
-                                                    .getDayOfMonth();
+                        // Which day of the year an appointment falls on is read in the station's
+                        // own timezone, the same way every other date in this export is. Read in
+                        // UTC, an appointment late in the evening lands on the day before and
+                        // the yearly one is then listed on the wrong date.
+                        case YEARLY -> fallsOnYearlyAnchor(event.startTime(), zone, d);
                         default -> false;
                     };
             if (matches && !event.isAfterLastDate(d)) result.add(new ExpandedEvent(event, d));

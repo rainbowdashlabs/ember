@@ -6,8 +6,10 @@
 <script setup lang="ts">
 import HomeView from '~/views/HomeView.vue'
 import {useCanonical} from '~/composables/useCanonical'
+import {useReturnToLastArea} from '~/composables/useReturnToLastArea'
 
 useCanonical('/')
+useReturnToLastArea()
 
 useHead({
   title: 'Digitale Verwaltung für Jugendfeuerwehren',

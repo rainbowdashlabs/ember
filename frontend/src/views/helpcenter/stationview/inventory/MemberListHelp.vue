@@ -80,12 +80,12 @@ const {t} = useI18n()
           <Td class="font-medium text-primary">Erika Musterfrau</Td>
           <Td><span class="text-xs text-error">Helm [S] ({{ t('inventoryMembers.lost') }})</span></Td>
           <Td><span class="text-xs">Jacke [M]</span></Td>
-          <Td><MutedText size="base">&mdash;</MutedText></Td>
+          <Td><MutedText size="base">–</MutedText></Td>
         </TRow>
         <TRow class="hover:bg-(--bg-accent)/30 cursor-pointer">
           <Td class="font-medium text-primary">Jan Schmidt</Td>
           <Td><span class="text-xs">Helm [L]</span></Td>
-          <Td><MutedText size="base">&mdash;</MutedText></Td>
+          <Td><MutedText size="base">–</MutedText></Td>
           <Td><span class="text-xs">Stiefel [44]</span></Td>
         </TRow>
       </DataTable>

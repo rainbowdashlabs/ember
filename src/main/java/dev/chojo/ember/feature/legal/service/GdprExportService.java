@@ -255,17 +255,27 @@ public class GdprExportService {
         }
     }
 
+    /**
+     * The wiki articles this member wrote, the ones waiting in the trash included.
+     *
+     * <p>An article in the trash is still there and still theirs, so leaving it out would make the
+     * export incomplete. It goes into a folder of its own instead, because handing it over beside
+     * the live articles would say it is one.
+     */
     private void addKbFiles(ZipOutputStream zip, int memberId) throws IOException {
-        // Find KB files created by this member
         var files = query("""
-                SELECT kf.id, kf.name, kf.file_type, kf.station_id
+                SELECT kf.id, kf.name, kf.file_type, kf.station_id, kf.deleted_at IS NOT NULL AS deleted
                 FROM kb_file kf
                 JOIN kb_file_version kfv ON kfv.file_id = kf.id
                 WHERE kfv.version = 1 AND kfv.created_by = :member_id;
                 """)
                 .single(call().bind("member_id", memberId))
                 .map(row -> new KbFileEntry(
-                        row.getInt("id"), row.getString("name"), row.getString("file_type"), row.getInt("station_id")))
+                        row.getInt("id"),
+                        row.getString("name"),
+                        row.getString("file_type"),
+                        row.getInt("station_id"),
+                        row.getBoolean("deleted")))
                 .all();
 
         for (var file : files) {
@@ -273,6 +283,7 @@ public class GdprExportService {
             String name = file.name();
             String fileType = file.fileType();
             String safeName = name.replaceAll("[^a-zA-Z0-9äöüÄÖÜß._\\- ]", "_");
+            String folder = file.deleted() ? "files/kb/deleted/" : "files/kb/";
 
             if ("MARKDOWN".equals(fileType) || "TEXT".equals(fileType)) {
                 var textOpt = query("SELECT text_content FROM kb_file_content WHERE file_id = :id;")
@@ -281,7 +292,7 @@ public class GdprExportService {
                         .first();
                 if (textOpt.isPresent()) {
                     String ext = "MARKDOWN".equals(fileType) ? ".md" : ".txt";
-                    zip.putNextEntry(new ZipEntry("files/kb/" + safeName + ext));
+                    zip.putNextEntry(new ZipEntry(folder + safeName + ext));
                     zip.write(textOpt.get().getBytes(StandardCharsets.UTF_8));
                     zip.closeEntry();
                 }
@@ -294,7 +305,7 @@ public class GdprExportService {
                                 case "IMAGE" -> ".img";
                                 default -> "";
                             };
-                    zip.putNextEntry(new ZipEntry("files/kb/" + safeName + ext));
+                    zip.putNextEntry(new ZipEntry(folder + safeName + ext));
                     zip.write(fileDataOpt.get().data());
                     zip.closeEntry();
                 }
@@ -302,5 +313,9 @@ public class GdprExportService {
         }
     }
 
-    record KbFileEntry(int id, String name, String fileType, int stationId) {}
+    /**
+     * @param deleted whether the article is waiting in the trash, which decides where in the export
+     *                it lands rather than whether it lands there at all
+     */
+    record KbFileEntry(int id, String name, String fileType, int stationId, boolean deleted) {}
 }

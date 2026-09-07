@@ -28,7 +28,7 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, stationMembers, memberGroups, userTags } from '@/api'
 import type { TestProtocol, TestProtocolRun } from '@/api/protocol'
 import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
-import { formatDate } from '@/util/format'
+import { formatDate, todayIsoDate } from '@/util/format'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -44,7 +44,7 @@ const allTags = ref<UserTag[]>([])
 const showCreateModal = ref(false)
 const newProtocolId = ref<string>('')
 const newName = ref('')
-const newDate = ref(new Date().toISOString().split('T')[0])
+const newDate = ref(todayIsoDate())
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 
 const memberOptions = computed(() =>
@@ -92,7 +92,7 @@ async function handleCreate() {
 function resetCreateModal() {
   newProtocolId.value = ''
   newName.value = ''
-  newDate.value = new Date().toISOString().split('T')[0]
+  newDate.value = todayIsoDate()
   restriction.value = emptyRestriction()
 }
 
@@ -126,7 +126,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
         >
           <div class="flex-1 min-w-0">
             <div class="font-medium">{{ run.name }}</div>
-            <div class="text-sm text-[var(--text-muted)]">{{ protocolName(run.protocolId) }} &mdash; {{ formatDate(run.testDate) }}</div>
+            <div class="text-sm text-[var(--text-muted)]">{{ protocolName(run.protocolId) }}, {{ formatDate(run.testDate) }}</div>
           </div>
           <SuccessBadge v-if="run.status === 'CLOSED'">{{ t('protocol.closed') }}</SuccessBadge>
           <PrimaryBadge v-else>{{ t('protocol.open') }}</PrimaryBadge>

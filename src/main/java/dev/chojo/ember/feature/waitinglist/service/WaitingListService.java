@@ -8,9 +8,11 @@ package dev.chojo.ember.feature.waitinglist.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.WaitlistInvitationAnswered;
 import dev.chojo.ember.event.events.WaitlistPublicRegistration;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
+import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -24,6 +26,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryGuardian;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
@@ -31,9 +34,12 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
+import dev.chojo.ember.util.sql.Transactions;
 import io.javalin.http.BadRequestResponse;
+import io.javalin.http.ConflictResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -66,6 +72,7 @@ public class WaitingListService {
     private final EmailService emailService;
     private final NotificationService notificationService;
     private final AccountInviteService accountInviteService;
+    private final WaitlistInvitationMessage invitationMessage;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -78,6 +85,7 @@ public class WaitingListService {
             EmailService emailService,
             NotificationService notificationService,
             AccountInviteService accountInviteService,
+            WaitlistInvitationMessage invitationMessage,
             DomainEventBus eventBus) {
         this.repository = repository;
         this.stationRepository = stationRepository;
@@ -87,6 +95,7 @@ public class WaitingListService {
         this.emailService = emailService;
         this.notificationService = notificationService;
         this.accountInviteService = accountInviteService;
+        this.invitationMessage = invitationMessage;
         this.eventBus = eventBus;
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "waitlist-confirmation-checker");
@@ -359,14 +368,34 @@ public class WaitingListService {
         return repository.findEntryValues(entryId);
     }
 
+    /**
+     * Takes an entry off the list on the strength of its own access token, and removes it for good.
+     *
+     * <p>Only while the entry is WAITING or INVITED, because that is where nothing has been built on
+     * it yet. The token never rotates and never expires, so a link that has been sitting in a mailbox
+     * for years still names the entry it was sent for; once that entry is in testing or has joined
+     * there is a member behind it, with attendance and guardians of their own, and a mail nobody has
+     * to prove they still hold must not be able to destroy that. Withdrawal from the station side
+     * keeps its wider reach, because somebody with a permission is standing behind it.
+     *
+     * @param token the entry's access token
+     * @throws ConflictResponse when the entry has moved past being a list entry
+     */
     public void removeByToken(String token) {
         repository
                 .findEntryByToken(token)
                 .ifPresentOrElse(
                         entry -> {
-                            repository.updateEntryStatusWithTimestamp(
-                                    entry.id(), WaitingListEntryStatus.WITHDRAWN, "withdrawn_at");
-                            log.info("Withdrew waiting-list entry {} via self-service token", entry.id());
+                            if (entry.status() != WaitingListEntryStatus.WAITING
+                                    && entry.status() != WaitingListEntryStatus.INVITED) {
+                                log.info(
+                                        "Self-service removal refused for waiting-list entry {} (is {})",
+                                        entry.id(),
+                                        entry.status());
+                                throw new ConflictResponse("This entry can no longer be removed from the list");
+                            }
+                            withdrawEntry(entry.id());
+                            log.info("Removed waiting-list entry {} via self-service token", entry.id());
                         },
                         () -> log.warn("Self-service withdrawal skipped: no waiting-list entry for token"));
     }
@@ -462,67 +491,147 @@ public class WaitingListService {
     }
 
     /**
-     * Invite a WAITING entry: set status to INVITED, create a non-login member, assign testing group, link member.
+     * Invite a WAITING entry: record the evening it is about, set status to INVITED, stamp the
+     * moment and write the invitation to the guardians.
+     *
+     * <p>Nothing is created here. The account, the membership, the trial user type and the testing
+     * group only come into being once the person actually turns up, in {@link #moveToTesting(int)}.
+     * Until then the entry is a waiting list entry and nothing else, so a refusal or a withdrawal
+     * leaves no member behind.
+     *
+     * <p>The invitation names an appointment and a date and nobody is signed up from it. They have
+     * not joined anything, so putting them on the attendee list would make them part of a Tuesday
+     * they never agreed to and would count them in the totals the station plans from.
+     *
+     * @param invitation the evening they are asked to come to, or {@code null} to invite without
+     *                   naming one
      */
-    public WaitingListEntry inviteEntry(int entryId) {
+    public WaitingListEntry inviteEntry(int entryId, WaitingListInvitation invitation) {
         var entry =
                 repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
         if (entry.status() != WaitingListEntryStatus.WAITING) {
             throw new IllegalStateException("Entry must be in WAITING status to invite");
         }
         var list = repository.findById(entry.listId()).orElseThrow();
+        var station = stationRepository.findById(list.stationId()).orElseThrow();
 
-        var account = accountRepository.create(null, entry.firstname(), entry.lastname(), list.stationId());
-        var member = stationMemberRepository.create(list.stationId(), account.id());
-        stationMemberRepository.setUserType(member.id(), StationUserType.TRIAL);
-        stationMemberRepository
-                .findPermissionByName(StationPermission.USER)
-                .ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
+        Transactions.run(() -> {
+            repository.updateInvitation(entryId, invitation);
+            repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.INVITED, "invited_at");
+        });
+        log.info("Invited waiting-list entry {} on station {}", entryId, list.stationId());
 
-        // Assign testing group if configured
-        if (list.testingGroupId() != null) {
-            memberGroupRepository.addMember(list.testingGroupId(), member.id());
-        }
-
-        // Link member to entry and update status
-        repository.linkMember(entryId, member.id());
-        repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.INVITED, "invited_at");
-        log.info(
-                "Invited waiting-list entry {} on station {} (created member {})",
-                entryId,
-                list.stationId(),
-                member.id());
-
-        // Send invite email to all guardians
-        String stationName = resolveStationName(list.stationId());
-        var guardians = repository.findGuardiansByEntry(entryId);
-        if (!guardians.isEmpty()) {
-            for (var g : guardians) {
-                if (!g.email().isBlank()) {
-                    emailService.sendWaitlistRegistrationEmail(
-                            g.email(),
-                            g.firstname().isBlank() ? entry.fullName() : g.fullName(),
-                            entry.accessToken(),
-                            stationName,
-                            "de",
-                            list.stationId());
-                }
-            }
-        } else if (!entry.email().isBlank()) {
-            emailService.sendWaitlistRegistrationEmail(
-                    entry.email(),
-                    entry.parentName().isBlank() ? entry.fullName() : entry.parentName(),
-                    entry.accessToken(),
-                    stationName,
-                    "de",
-                    list.stationId());
-        }
+        invitationMessage.send(entry, repository.findGuardiansByEntry(entryId), station, invitation);
 
         return repository.findEntryById(entryId).orElseThrow();
     }
 
     /**
-     * Move an INVITED entry to TESTING status.
+     * Takes an invited entry back to waiting, which is what a station does when the answer was that
+     * the date does not suit.
+     *
+     * <p>The invitation goes with it: an entry carries one current invitation, so an answer given
+     * from a mail that has been superseded can never apply to the one that replaced it.
+     */
+    public WaitingListEntry returnToWaiting(int entryId) {
+        var entry =
+                repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
+        if (entry.status() != WaitingListEntryStatus.INVITED) {
+            throw new IllegalStateException("Entry must be in INVITED status to go back to waiting");
+        }
+        Transactions.run(() -> {
+            repository.updateInvitation(entryId, null);
+            repository.updateEntryStatus(entryId, WaitingListEntryStatus.WAITING);
+        });
+        log.info("Returned waiting-list entry {} to waiting", entryId);
+        return repository.findEntryById(entryId).orElseThrow();
+    }
+
+    /**
+     * Records what somebody answered to the invitation their entry currently holds, and tells the
+     * station.
+     *
+     * <p>The answer names the evening it answers and is refused when that is not the evening the
+     * entry is currently invited to. Together with an entry carrying one current invitation, that is
+     * what makes a click from a mail that has been superseded harmless rather than misleading.
+     *
+     * <p>A refusal is recorded and nothing more. Withdrawing the entry would move it out of the
+     * section the manager is looking at, and an answer that disappears on arrival is the same
+     * failure as no answer at all.
+     *
+     * @param eventId the appointment the answer is about, {@code null} for an invitation naming none
+     * @param date    the one date of it, {@code null} for the same
+     */
+    public WaitingListEntry answerInvitation(
+            String token, Integer eventId, LocalDate date, WaitingListAnswer answer, String note) {
+        var entry =
+                repository.findEntryByToken(token).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
+        if (entry.status() != WaitingListEntryStatus.INVITED) {
+            log.info("Invitation answer refused for waiting-list entry {} (is {})", entry.id(), entry.status());
+            throw new ConflictResponse("This invitation can no longer be answered");
+        }
+        requireAnswersTheCurrentInvitation(entry, eventId, date);
+
+        repository.updateInvitationAnswer(entry.id(), answer, note == null ? "" : note.trim());
+        log.info("Waiting-list entry {} answered its invitation with {}", entry.id(), answer);
+
+        repository
+                .findById(entry.listId())
+                .ifPresent(list -> eventBus.publish(
+                        new WaitlistInvitationAnswered(list.stationId(), entry.fullName(), list.name(), answer)));
+
+        return repository.findEntryById(entry.id()).orElseThrow();
+    }
+
+    /**
+     * Refuses an answer given to an invitation the entry no longer holds.
+     *
+     * <p>The token never expires and an old mail stays in a mailbox for good, so what the answer
+     * says it is about has to match what the entry is actually invited to.
+     */
+    private static void requireAnswersTheCurrentInvitation(WaitingListEntry entry, Integer eventId, LocalDate date) {
+        var current = entry.invitation();
+        boolean matches = current == null
+                ? eventId == null
+                : Integer.valueOf(current.eventId()).equals(eventId)
+                        && current.date().equals(date);
+        if (!matches) {
+            throw new ConflictResponse("This answer is about a different appointment");
+        }
+    }
+
+    /**
+     * Counts one evening towards the trial period of whoever turned up.
+     *
+     * <p>The list carries a threshold and a counter, and this is what feeds the counter. Reaching
+     * the threshold changes nothing by itself: it is shown, and joining stays the deliberate act it
+     * is. A trial that ended automatically because somebody turned up five times would be a decision
+     * the station should make rather than the software.
+     *
+     * <p>A member belongs to one station, so an account in a trial period at two stations has an
+     * entry at each and only the one that saw them raises its count.
+     *
+     * @param memberId whoever was recorded as present
+     */
+    public void recordTrialAttendance(int memberId) {
+        for (var entry : repository.findEntriesByMemberAndStatus(memberId, WaitingListEntryStatus.TESTING)) {
+            repository.incrementAttendanceCount(entry.id());
+            log.info("Counted an evening towards the trial period of waiting-list entry {}", entry.id());
+        }
+    }
+
+    /**
+     * Move an INVITED entry to TESTING, which is where the member comes into being: the account, the
+     * membership, the trial user type, the testing group and the permission that lets the station
+     * see them.
+     *
+     * <p>Every effect carries its own guard rather than one guard around the block. An entry invited
+     * before this moved here already has a member, and skipping everything for it would leave it out
+     * of a testing group the list gained after the invitation. Setting the user type and granting the
+     * permission are idempotent on their own; adding somebody to a group is not, so that one is asked
+     * about first.
+     *
+     * <p>The writes run as one, so a failure halfway cannot leave a member nothing points at.
      */
     public WaitingListEntry moveToTesting(int entryId) {
         var entry =
@@ -530,9 +639,47 @@ public class WaitingListService {
         if (entry.status() != WaitingListEntryStatus.INVITED) {
             throw new IllegalStateException("Entry must be in INVITED status to move to testing");
         }
-        repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.TESTING, "testing_at");
-        log.info("Moved waiting-list entry {} to testing", entryId);
+        var list = repository.findById(entry.listId()).orElseThrow();
+
+        int memberId = Transactions.call(() -> {
+            int member = entry.memberId() != null ? entry.memberId() : createTrialMember(entry, list.stationId());
+            stationMemberRepository.setUserType(member, StationUserType.TRIAL);
+            stationMemberRepository
+                    .findPermissionByName(StationPermission.USER)
+                    .ifPresent(permission -> stationMemberRepository.grantPermission(member, permission.id()));
+            if (list.testingGroupId() != null && !isInGroup(member, list.testingGroupId())) {
+                memberGroupRepository.addMember(list.testingGroupId(), member);
+            }
+            repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.TESTING, "testing_at");
+            return member;
+        });
+
+        log.info(
+                "Moved waiting-list entry {} to testing on station {} (member {})",
+                entryId,
+                list.stationId(),
+                memberId);
         return repository.findEntryById(entryId).orElseThrow();
+    }
+
+    /**
+     * Creates the account and the membership the trial period runs on and points the entry at it.
+     *
+     * <p>The account carries no address of its own: the people who can be written to are the
+     * guardians, and they get their own accounts when the entry joins.
+     *
+     * @return the id of the new member
+     */
+    private int createTrialMember(WaitingListEntry entry, int stationId) {
+        var account = accountRepository.create(null, entry.firstname(), entry.lastname(), stationId);
+        var member = stationMemberRepository.create(stationId, account.id());
+        repository.linkMember(entry.id(), member.id());
+        return member.id();
+    }
+
+    /** Whether the member already sits in that group, which has no room for a second row. */
+    private boolean isInGroup(int memberId, int groupId) {
+        return memberGroupRepository.findGroupsForMember(memberId).stream().anyMatch(group -> group.id() == groupId);
     }
 
     /**
@@ -1033,7 +1180,7 @@ public class WaitingListService {
                         ? accountInviteService.createWithoutAddress(
                                 stationId, guardian.firstname(), guardian.lastname())
                         : accountInviteService.resolveOrCreate(
-                                stationId, address, guardian.firstname(), guardian.lastname());
+                                stationId, address, guardian.firstname(), guardian.lastname(), SetupMail.SEND_NOW);
             } catch (AccountInviteService.EmailInUseException e) {
                 log.warn("Guardian of member {} was not taken on: {} is somebody else's", entry.memberId(), address);
                 continue;

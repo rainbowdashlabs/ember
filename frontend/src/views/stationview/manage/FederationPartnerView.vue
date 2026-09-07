@@ -144,8 +144,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
     <template v-if="!loading && partner">
       <MutedText tag="p" size="sm">
         <template v-if="partner.partner.federationContract">
-          {{ t('federation.version') }}: v{{ resolveFederationVersion(partner.partner.federationContract.core) }}
-          &mdash;
+          {{ t('federation.version') }}: v{{ resolveFederationVersion(partner.partner.federationContract.core) }},
         </template>
         {{ t('federation.since') }}: {{ formatDate(partner.partner.createdAt) }}
       </MutedText>

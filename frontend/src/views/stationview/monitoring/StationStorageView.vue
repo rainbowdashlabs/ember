@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, onUnmounted, ref} from 'vue'
+import {computed, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {use} from 'echarts/core'
 import {CanvasRenderer} from 'echarts/renderers'
@@ -21,13 +21,11 @@ import {type StationUsageResponse, getStationUsage} from '@/api/storageMonitorin
 import {buildStorageCategoryLabeler, formatBytes} from '@/util/storage'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {errorMessage} from '@/util/apiError'
+import {darkThemeActive as isDark} from '@/util/themeState'
 
 use([CanvasRenderer, BarChart, TitleComponent, TooltipComponent, GridComponent])
 
 const {t} = useI18n()
-
-const isDark = ref(document.documentElement.classList.contains('dark'))
-let observer: MutationObserver | null = null
 
 const {config: usage, loading, error, reload: loadData} = useConfigPanel<StationUsageResponse | null>({
   initial: null,
@@ -36,17 +34,7 @@ const {config: usage, loading, error, reload: loadData} = useConfigPanel<Station
   formatError: (e) => errorMessage(e) || 'Failed to load storage data',
 })
 
-onMounted(() => {
-  observer = new MutationObserver(() => {
-    isDark.value = document.documentElement.classList.contains('dark')
-  })
-  observer.observe(document.documentElement, {attributes: true, attributeFilter: ['class']})
-  loadData()
-})
-
-onUnmounted(() => {
-  observer?.disconnect()
-})
+onMounted(loadData)
 
 const textColor = computed(() => isDark.value ? '#e0e0e0' : '#333333')
 

@@ -108,6 +108,37 @@ class PublicWaitingListRateLimiterTest {
         }
     }
 
+    /**
+     * The status page is what a family opens again and again, and behind a shared connection one
+     * address is many families. Reading must never spend what signing up needs.
+     */
+    @Test
+    void readingAnEntryLeavesTheRegistrationAllowanceAlone() {
+        var limiter = new PublicWaitingListRateLimiter(new MutableClock());
+
+        for (int i = 0; i < PublicWaitingListRateLimiter.PER_ADDRESS_CAPACITY + 1; i++) {
+            assertFalse(limiter.tryAcquireRead("198.51.100.7").isPresent(), "page view " + i);
+        }
+
+        for (int i = 0; i < PublicWaitingListRateLimiter.PER_ADDRESS_CAPACITY; i++) {
+            assertFalse(limiter.tryAcquire("198.51.100.7", CODE).isPresent(), "registration " + i);
+        }
+    }
+
+    @Test
+    void readingIsAdmittedUpToItsOwnCapacity() {
+        var limiter = new PublicWaitingListRateLimiter(new MutableClock());
+
+        for (int i = 0; i < PublicWaitingListRateLimiter.PER_ADDRESS_READ_CAPACITY; i++) {
+            assertFalse(limiter.tryAcquireRead("198.51.100.7").isPresent(), "page view " + i);
+        }
+
+        var retry = limiter.tryAcquireRead("198.51.100.7");
+        assertTrue(retry.isPresent());
+        assertTrue(retry.get() > 0);
+        assertFalse(limiter.tryAcquireRead("203.0.113.9").isPresent());
+    }
+
     @Test
     void refillRestoresOneRegistration() {
         var clock = new MutableClock();

@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
+import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -151,10 +152,16 @@ public class MemberImportService {
      * @param separator the column separator
      * @param mappings  the column-to-field mappings
      * @param ignored   the rows the reader struck out in the preview, by their place in the file
+     * @param setupMail whether the setup mails leave with the accounts or wait to be sent by hand
      * @return the import result with counts and warnings
      */
     public ImportResult importMembers(
-            int stationId, String csv, String separator, List<ColumnMapping> mappings, List<Integer> ignored) {
+            int stationId,
+            String csv,
+            String separator,
+            List<ColumnMapping> mappings,
+            List<Integer> ignored,
+            SetupMail setupMail) {
         var parsed = parseCsv(csv, separator);
         var struckOut = struckOut(ignored);
         var profileFields = valueFields(stationId);
@@ -190,7 +197,8 @@ public class MemberImportService {
             try {
                 invited = email.isBlank()
                         ? accountInviteService.createWithoutAddress(stationId, mapped.firstName(), mapped.lastName())
-                        : accountInviteService.resolveOrCreate(stationId, email, mapped.firstName(), mapped.lastName());
+                        : accountInviteService.resolveOrCreate(
+                                stationId, email, mapped.firstName(), mapped.lastName(), setupMail);
             } catch (AccountInviteService.EmailInUseException e) {
                 warnings.add("Zeile " + (i + 2) + ": " + email + " gehört bereits jemand anderem, übersprungen");
                 continue;
@@ -257,7 +265,8 @@ public class MemberImportService {
                         try {
                             mgrInvited = mgrEmail.isBlank()
                                     ? accountInviteService.createWithoutAddress(stationId, mgrFirst, mgrLast)
-                                    : accountInviteService.resolveOrCreate(stationId, mgrEmail, mgrFirst, mgrLast);
+                                    : accountInviteService.resolveOrCreate(
+                                            stationId, mgrEmail, mgrFirst, mgrLast, setupMail);
                         } catch (AccountInviteService.EmailInUseException e) {
                             warnings.add("Zeile " + (i + 2) + ": " + mgrEmail
                                     + " gehört bereits jemand anderem, Kontaktperson übersprungen");
@@ -308,10 +317,16 @@ public class MemberImportService {
      * @param csv       the CSV content
      * @param separator the column separator
      * @param mappings  the column-to-field mappings
+     * @param setupMail whether the setup mails leave with the accounts or wait to be sent by hand
      * @return the team import result with counts and warnings
      */
     public TeamImportResult importTeamMembers(
-            int stationId, String csv, String separator, List<ColumnMapping> mappings, List<Integer> ignored) {
+            int stationId,
+            String csv,
+            String separator,
+            List<ColumnMapping> mappings,
+            List<Integer> ignored,
+            SetupMail setupMail) {
         var parsed = parseCsv(csv, separator);
         var profileFields = valueFields(stationId);
         var struckOut = struckOut(ignored);
@@ -340,7 +355,8 @@ public class MemberImportService {
             try {
                 invited = email.isBlank()
                         ? accountInviteService.createWithoutAddress(stationId, mapped.firstName(), mapped.lastName())
-                        : accountInviteService.resolveOrCreate(stationId, email, mapped.firstName(), mapped.lastName());
+                        : accountInviteService.resolveOrCreate(
+                                stationId, email, mapped.firstName(), mapped.lastName(), setupMail);
             } catch (AccountInviteService.EmailInUseException e) {
                 warnings.add("Zeile " + (i + 2) + ": " + email + " gehört bereits jemand anderem, übersprungen");
                 continue;

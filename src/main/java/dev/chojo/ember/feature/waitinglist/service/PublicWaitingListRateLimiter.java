@@ -26,6 +26,12 @@ import java.util.Optional;
  * <p>A development instance keeps the machinery with a capacity nothing reaches: the end-to-end
  * suite registers through the same invite on every run, and a limit meant for the open internet
  * would make it fail as though the list were broken.
+ *
+ * <p>Reading an entry is counted separately and far more generously. Opening the status page costs
+ * this instance a database read and nothing else, the link carries a token nobody can guess, and
+ * the reader is a family checking where they stand rather than a caller creating anything. Behind a
+ * shared connection one address is many families, so putting those reads in the registration bucket
+ * meant a handful of page views could take the whole building's ability to sign up with them.
  */
 @Singleton
 public class PublicWaitingListRateLimiter {
@@ -36,29 +42,40 @@ public class PublicWaitingListRateLimiter {
     /** Registrations admitted through one invite or one open list per hour, whoever sends them. */
     public static final int PER_INVITE_CAPACITY = 30;
 
+    /**
+     * Entry pages served to one address per hour. Wide enough for a household that reloads, and for
+     * the many households a shared connection speaks for, while still ending a script that walks
+     * tokens from one address.
+     */
+    public static final int PER_ADDRESS_READ_CAPACITY = 120;
+
     private static final int DEV_CAPACITY = 1_000_000;
     private static final Duration PRUNE_AFTER = Duration.ofHours(2);
 
     private final LeakyBucket perAddress;
     private final LeakyBucket perInvite;
+    private final LeakyBucket perAddressRead;
 
     @Inject
     public PublicWaitingListRateLimiter(Demo demoConfig) {
         this(
                 Clock.systemUTC(),
                 demoConfig.dev() ? DEV_CAPACITY : PER_ADDRESS_CAPACITY,
-                demoConfig.dev() ? DEV_CAPACITY : PER_INVITE_CAPACITY);
+                demoConfig.dev() ? DEV_CAPACITY : PER_INVITE_CAPACITY,
+                demoConfig.dev() ? DEV_CAPACITY : PER_ADDRESS_READ_CAPACITY);
     }
 
     public PublicWaitingListRateLimiter(Clock clock) {
-        this(clock, PER_ADDRESS_CAPACITY, PER_INVITE_CAPACITY);
+        this(clock, PER_ADDRESS_CAPACITY, PER_INVITE_CAPACITY, PER_ADDRESS_READ_CAPACITY);
     }
 
-    private PublicWaitingListRateLimiter(Clock clock, int addressCapacity, int inviteCapacity) {
+    private PublicWaitingListRateLimiter(Clock clock, int addressCapacity, int inviteCapacity, int readCapacity) {
         this.perAddress =
                 new LeakyBucket(addressCapacity, Duration.ofMinutes(60 / PER_ADDRESS_CAPACITY), PRUNE_AFTER, clock);
         this.perInvite =
                 new LeakyBucket(inviteCapacity, Duration.ofMinutes(60 / PER_INVITE_CAPACITY), PRUNE_AFTER, clock);
+        this.perAddressRead =
+                new LeakyBucket(readCapacity, Duration.ofSeconds(3600 / PER_ADDRESS_READ_CAPACITY), PRUNE_AFTER, clock);
     }
 
     /**
@@ -72,5 +89,16 @@ public class PublicWaitingListRateLimiter {
         var addressRetry = perAddress.tryAcquire("address:" + clientIp);
         if (addressRetry.isPresent()) return addressRetry;
         return perInvite.tryAcquire("route:" + route);
+    }
+
+    /**
+     * Guards reading one entry by its token, which creates nothing and sends nothing.
+     *
+     * @param clientIp the resolved address of the caller
+     * @return empty when the read is allowed, or the seconds until the next refill when the caller
+     * should be served {@code 429} with {@code Retry-After}
+     */
+    public Optional<Long> tryAcquireRead(String clientIp) {
+        return perAddressRead.tryAcquire("read:" + clientIp);
     }
 }

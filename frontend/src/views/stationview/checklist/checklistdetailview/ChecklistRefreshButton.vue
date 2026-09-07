@@ -13,6 +13,21 @@ import type {ChecklistRefreshResult} from '@/api/checklists'
 
 const props = defineProps<{
   lastRefreshedAt?: string | null
+  /**
+   * Whether this list was made from a named set of people rather than from a rule.
+   *
+   * <p>Then refreshing resolves the very same names again and can never bring anybody in, which is
+   * the opposite of what a button called Auffrischen promises. It says so instead of pretending.
+   */
+  frozen?: boolean
+  /**
+   * Whether this list follows one evening of an appointment.
+   *
+   * <p>Then refreshing does bring people in, namely whoever has taken a place since the list was
+   * last looked at, and that is worth saying because "follows" invites the stronger reading that
+   * it happens on its own.
+   */
+  followsEvent?: boolean
   onRefresh: () => Promise<ChecklistRefreshResult>
 }>()
 
@@ -22,6 +37,8 @@ const {running: refreshing, run} = useAsyncAction(() => props.onRefresh())
 
 const label = computed(() => {
   if (refreshing.value) return t('common.loading')
+  if (props.frozen) return t('checklist.frozenSetHint')
+  if (props.followsEvent) return t('checklist.followsEventRefresh')
   if (!props.lastRefreshedAt) return t('checklist.neverRefreshed')
   return t('checklist.lastRefreshed', {when: formatDateTime(props.lastRefreshedAt)})
 })

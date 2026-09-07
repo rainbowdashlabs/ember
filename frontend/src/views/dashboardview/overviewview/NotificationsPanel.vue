@@ -50,6 +50,7 @@ const typeIcons: Record<string, string> = {
   BOARD_TICKET_UPDATE: 'list-check',
   WAITLIST_NEW_ENTRY: 'list-ol',
   WAITLIST_PUBLIC_REGISTRATION: 'list-ol',
+  WAITLIST_INVITATION_ANSWERED: 'envelope-open-text',
   STORAGE_WARNING: 'triangle-exclamation',
   CLUSTER_APPLICATION_SUBMITTED: 'sitemap',
   CLUSTER_APPLICATION_APPROVED: 'sitemap',
@@ -69,6 +70,9 @@ const typeIcons: Record<string, string> = {
   PROCEDURE_RESOLVED: 'clipboard-check',
   PROCEDURE_REOPENED: 'rotate',
   PROCEDURE_ITEM_CHECKED: 'square-check',
+  SELF_CHECK_ASSIGNED: 'shirt',
+  SELF_CHECK_SUBMITTED: 'inbox',
+  SELF_CHECK_ROW_REFUSED: 'rotate-left',
 }
 
 /**
@@ -104,7 +108,7 @@ function renderMessage(n: NotificationEntry): string {
 async function navigateTo(n: NotificationEntry) {
   await ack(n.id)
   if (n.link) {
-    router.push({name: n.link.route, params: n.link.routeParams})
+    router.push({name: n.link.route, params: n.link.routeParams, query: n.link.query})
   }
 }
 
@@ -185,7 +189,8 @@ onMounted(loadData)
       </EmptyState>
 
       <template v-if="notifs.length > 0">
-        <NeutralContainer v-for="n in notifs" :key="n.id" class="flex items-start justify-between gap-3 py-2 px-3"
+        <NeutralContainer v-for="n in notifs" :key="n.id" data-testid="notification-entry"
+                          class="flex items-start justify-between gap-3 py-2 px-3"
                           :class="{ 'cursor-pointer hover:bg-(--bg-accent)': n.link }" @click="navigateTo(n)">
           <div class="flex items-start gap-3">
             <font-awesome-icon :icon="['fas', typeIcons[n.type] ?? 'bell']"

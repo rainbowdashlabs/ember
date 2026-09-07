@@ -61,4 +61,70 @@ test.describe('Dashboard', () => {
 
             await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})
         })
+
+    /**
+     * A notice about a comment names the comment and not merely the page it hangs under, so tapping
+     * it lands on the comment itself. Removing that comment takes its notice along, and the story
+     * insists on the other half: the notices about the other comments of the same article stand.
+     */
+    test('a mention opens on its comment, and goes when that comment goes',
+        async ({managerPage, memberPage}) => {
+            const managerHeaders = await apiHeaders(managerPage)
+            const memberHeaders = await apiHeaders(memberPage)
+            const title = `Erwähnung ${test.info().workerIndex}-${Date.now()}`
+
+            const session = await memberPage.request.get('/api/v1/session', {headers: memberHeaders})
+            expect(session.ok(), `the member has a session to be named by (${await session.text()})`).toBeTruthy()
+            const reader = await session.json()
+            const mention = `@[${reader.stationId}/${reader.member.uid}:Mitglied]`
+
+            const article = await managerPage.request.post('/api/v1/news', {
+                headers: managerHeaders,
+                data: {
+                    title,
+                    contentMarkdown: 'Zum Kommentieren.',
+                    userTypes: [],
+                    groupIds: [],
+                    tagIds: [],
+                    memberIds: [],
+                },
+            })
+            expect(article.ok(), `the organiser wrote an article (${await article.text()})`).toBeTruthy()
+            const newsId = (await article.json()).id
+
+            const written: number[] = []
+            for (const word of ['erster', 'zweiter', 'dritter']) {
+                const comment = await managerPage.request.post(`/api/v1/news/${newsId}/comments`, {
+                    headers: managerHeaders,
+                    data: {parentId: null, content: `${mention} ${word} Kommentar`},
+                })
+                expect(comment.ok(), `the organiser wrote a comment (${await comment.text()})`).toBeTruthy()
+                written.push((await comment.json()).id)
+            }
+
+            await memberPage.goto('/station/dashboard/overview')
+            const mentions = memberPage.getByTestId('notification-entry')
+                .filter({hasText: title})
+                .filter({hasText: 'erwähnt'})
+            await expect(mentions).toHaveCount(3, {timeout: 15000})
+
+            await mentions.first().click()
+            await memberPage.waitForURL(new RegExp(`/station/news/${newsId}\\?.*comment=\\d+`))
+            const opened = Number(new URL(memberPage.url()).searchParams.get('comment'))
+            expect(written, 'the notice named one of the comments written').toContain(opened)
+            await expect(memberPage.locator(`#comment-${opened}`)).toHaveClass(/bg-primary/)
+
+            const [removed, kept] = written.filter(id => id !== opened)
+            const deleted = await managerPage.request.delete(`/api/v1/news/comments/${removed}`,
+                {headers: managerHeaders})
+            expect(deleted.ok(), `the organiser removed a comment (${await deleted.text()})`).toBeTruthy()
+
+            await memberPage.goto('/station/dashboard/overview')
+            await expect(mentions).toHaveCount(1, {timeout: 15000})
+
+            await mentions.first().click()
+            await memberPage.waitForURL(new RegExp(`/station/news/${newsId}\\?.*comment=${kept}`))
+
+            await managerPage.request.delete(`/api/v1/news/${newsId}`, {headers: managerHeaders})
+        })
 })

@@ -45,11 +45,12 @@ export const StepSubject = {
 
 export type StepSubjectName = (typeof StepSubject)[keyof typeof StepSubject]
 
-/** How a step came to be acknowledged. */
+/** How a step came to be acknowledged, or that nobody did and it was set by hand. */
 export const AckKind = {
     CONFIRMED: 'CONFIRMED',
     ASSERTED: 'ASSERTED',
     FORCED: 'FORCED',
+    CORRECTED: 'CORRECTED',
 } as const
 
 export type AckKindName = (typeof AckKind)[keyof typeof AckKind]

@@ -20,6 +20,12 @@ const GAP = 4
  * <p>The placement is redone while the panel is open, because everything it was measured against
  * can move: the page scrolls, a pane scrolls, the window is resized.
  *
+ * <p>A panel has to be in the document before it can be measured, so for one frame it stands at
+ * the top left of the window. It is therefore held transparent until it has been placed, which is
+ * the difference between a menu that appears where it belongs and one that flashes in the corner
+ * first. Transparent rather than hidden, because a hidden element cannot take focus, and the menu
+ * hands focus to its first entry the moment it opens.
+ *
  * @param anchor the element the panel belongs to, whose rectangle it is placed against
  * @param open   whether the panel is showing
  */
@@ -27,6 +33,7 @@ export function useFloatingPanel(anchor: Ref<HTMLElement | null>, open: Ref<bool
     const panel = ref<HTMLElement | null>(null)
     const top = ref(0)
     const left = ref(0)
+    const placed = ref(false)
 
     function place() {
         const trigger = anchor.value
@@ -44,6 +51,7 @@ export function useFloatingPanel(anchor: Ref<HTMLElement | null>, open: Ref<bool
         const rightAligned = rect.right - width
         const furthestLeft = Math.max(GAP, window.innerWidth - width - GAP)
         left.value = Math.min(Math.max(GAP, rightAligned), furthestLeft)
+        placed.value = true
     }
 
     function watchTheView() {
@@ -58,6 +66,7 @@ export function useFloatingPanel(anchor: Ref<HTMLElement | null>, open: Ref<bool
 
     watch(open, async (showing) => {
         if (!showing) {
+            placed.value = false
             stopWatching()
             return
         }
@@ -72,6 +81,7 @@ export function useFloatingPanel(anchor: Ref<HTMLElement | null>, open: Ref<bool
         position: 'fixed',
         top: `${top.value}px`,
         left: `${left.value}px`,
+        opacity: placed.value ? 1 : 0,
     }))
 
     return {panel, style, place}

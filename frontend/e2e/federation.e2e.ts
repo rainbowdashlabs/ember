@@ -9,6 +9,12 @@ import {test, expect} from './fixtures/auth'
  * The station's own side of federation. Connecting two stations and reading a partner's content
  * needs both of them answering, which the seeded partner stations allow; those stories follow once
  * the suite knows how to drive two stations at once.
+ *
+ * <p>Connecting two stations that live on different instances has no story here and cannot have
+ * one: this suite runs a single instance, and the whole of that feature is one instance calling
+ * another. A story pretending otherwise would be checking a refusal on the way out rather than the
+ * connection it claims to be about. The two sides meet in the backend tests instead, where both
+ * instances can be stood up at once.
  */
 test.describe('Federation', () => {
     /**
@@ -61,6 +67,27 @@ test.describe('Federation', () => {
         await page.goto('/station/federation/boards')
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
+    })
+
+    /**
+     * Making a code asks for the second factor, and that question is raised over the dialog the
+     * reader is standing in. The click is what proves it: it only lands when nothing covers the
+     * field, which is exactly what used to be wrong.
+     */
+    test('the security question opens in front of the dialog that raised it', async ({managerPage: page}) => {
+        await page.goto('/station/federate')
+        await page.getByRole('button', {name: /Partner hinzufügen/}).click()
+
+        const addPartner = page.getByRole('dialog').filter({hasText: 'Einladung erstellen'})
+        await addPartner.getByRole('button', {name: /Code generieren/}).click()
+
+        const confirmation = page.getByRole('dialog').filter({hasText: 'Sicherheitsbestätigung'})
+        const factor = confirmation.getByPlaceholder('000000')
+        await factor.click()
+        await factor.fill('123456')
+
+        await expect(factor).toHaveValue('123456')
+        await confirmation.getByRole('button', {name: 'Abbrechen'}).click()
     })
 
     test('a member does not configure what the station shares', async ({memberPage: page}) => {

@@ -9,6 +9,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.BatchResult;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.GuardianRequest;
@@ -65,7 +66,8 @@ public class StationMemberInviteRoutes implements Routes {
         var serviceRequests = request.invites().stream()
                 .map(StationMemberInviteRoutes::toServiceRequest)
                 .toList();
-        BatchResult result = service.createBatch(session.stationId(), serviceRequests);
+        BatchResult result =
+                service.createBatch(session.stationId(), serviceRequests, SetupMail.of(request.sendSetupMail()));
         ctx.status(HttpStatus.CREATED)
                 .json(new CreateInvitesResponse(
                         result.provisioned().stream()
@@ -100,8 +102,13 @@ public class StationMemberInviteRoutes implements Routes {
         return new InviteRequest(entry.email(), entry.firstName(), entry.lastName(), type, entry.groupId(), guardians);
     }
 
-    /** Request body for {@link #createInvites(Context)}. */
-    public record CreateInvitesRequest(List<InviteEntry> invites) {}
+    /**
+     * Request body for {@link #createInvites(Context)}.
+     *
+     * @param sendSetupMail whether the setup mails leave with the accounts. Absent means they do,
+     *                      which is what the batch has always done.
+     */
+    public record CreateInvitesRequest(List<InviteEntry> invites, Boolean sendSetupMail) {}
 
     /** One row in the create-invites request. */
     public record InviteEntry(

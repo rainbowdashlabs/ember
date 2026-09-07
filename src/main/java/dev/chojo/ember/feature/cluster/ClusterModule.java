@@ -11,6 +11,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.cluster.route.ClusterFieldRoutes;
 import dev.chojo.ember.feature.cluster.route.ClusterGovernanceRoutes;
 import dev.chojo.ember.feature.cluster.route.ClusterInventoryRoutes;
+import dev.chojo.ember.feature.cluster.route.ClusterInventoryTagRoutes;
 import dev.chojo.ember.feature.cluster.route.ClusterMemberManagementRoutes;
 import dev.chojo.ember.feature.cluster.route.ClusterMemberRoutes;
 import dev.chojo.ember.feature.cluster.route.ClusterNotificationRoutes;
@@ -43,6 +44,7 @@ public class ClusterModule extends AbstractModule {
         routesBinder.addBinding().to(ClusterMemberManagementRoutes.class);
         routesBinder.addBinding().to(ClusterFieldRoutes.class);
         routesBinder.addBinding().to(ClusterInventoryRoutes.class);
+        routesBinder.addBinding().to(ClusterInventoryTagRoutes.class);
         routesBinder.addBinding().to(ClusterNotificationRoutes.class);
         routesBinder.addBinding().to(StationClusterRoutes.class);
     }

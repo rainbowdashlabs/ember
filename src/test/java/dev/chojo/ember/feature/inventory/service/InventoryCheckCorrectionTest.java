@@ -51,7 +51,8 @@ class InventoryCheckCorrectionTest extends RepositoryTestBase {
                 memberIdentityFactory,
                 containerService,
                 itemCustodyService,
-                inventoryService);
+                inventoryService,
+                selfCheckRepo);
         station = stationRepo.create("CorrectionStation");
         account = accountRepo.create("correction@test.com", "Kora", "Rektur");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -114,6 +115,45 @@ class InventoryCheckCorrectionTest extends RepositoryTestBase {
     }
 
     /**
+     * The piece that went home stops being the station's stock, and the station's own does not.
+     *
+     * <p>Both rest with their owner after a correction and both keep their row, so the two look alike
+     * from the row alone. Who the owner is decides which of them the station still has, and reading
+     * that off the custody without the owner is what left a radio the association took back lying in
+     * the station's list.
+     */
+    @Test
+    void whatWentHomeLeavesTheStationsStockAndTheStationsOwnStaysInIt() {
+        var home = stationRepo.create("Träger Bestand");
+        var cluster = clusterRepo.create("Kreisverband Bestand", null, home.id());
+        stationRepo.setCluster(station.id(), cluster.id());
+        int inventoryId = inventory("Funkgeräte", InventoryType.MIXED);
+        var theirs = held(inventoryId, "F-1", ItemOwner.CLUSTER, cluster.id());
+        var ours = held(inventoryId, "F-2", ItemOwner.STATION, null);
+
+        service.correct(member.id(), makesANewPiece(inventoryId, theirs.id(), ItemOwner.STATION));
+        service.correct(member.id(), makesANewPiece(inventoryId, ours.id(), ItemOwner.STATION));
+
+        var stock = inventoryRepo.findStock(inventoryId);
+        assertTrue(
+                stock.stream().noneMatch(item -> item.id() == theirs.id()),
+                "what the association took back is no longer the station's to count");
+        assertTrue(
+                stock.stream().anyMatch(item -> item.id() == ours.id()),
+                "what the station owns is in its own store and stays in the list");
+
+        var summary = inventoryRepo.findSummariesByStation(station.id()).stream()
+                .filter(entry -> entry.id() == inventoryId)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(stock.size(), summary.itemCount(), "and the figure beside the inventory says the same");
+
+        stationRepo.setCluster(station.id(), null);
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(home.id());
+    }
+
+    /**
      * Gear kept for a body that does not use Ember has no store to go back to. Leaving the row behind
      * would leave a piece nobody owns and nobody can ever tidy up, and the correction says exactly that
      * the member never held it.
@@ -164,6 +204,59 @@ class InventoryCheckCorrectionTest extends RepositoryTestBase {
                 BadRequestResponse.class,
                 () -> service.correct(
                         member.id(), new ItemCorrection(inventoryId, old.id(), theirs.id(), null, null, null, null)));
+    }
+
+    /**
+     * A piece somebody has reported missing keeps being missing when the record it hung on is put
+     * right, and a piece nobody has reported goes back on the shelf exactly as it always did.
+     *
+     * <p>The two are corrected side by side because the difference between them is the whole point:
+     * putting the record right used to send both to the store, which quietly ended the loss and left
+     * the station counting a jacket nobody could find among the ones it could hand out.
+     */
+    @Test
+    void aPieceReportedMissingStaysMissingWhileAnUnreportedOneGoesBackToTheShelf() {
+        int inventoryId = inventory("Einsatzhosen", InventoryType.INTERNAL);
+        var missing = held(inventoryId, "EH-1", ItemOwner.STATION, null);
+        var present = held(inventoryId, "EH-2", ItemOwner.STATION, null);
+        itemCustodyService.markLost(missing.id(), "Im Zeltlager liegen geblieben", member.id());
+
+        service.correct(member.id(), makesANewPiece(inventoryId, missing.id(), null));
+        service.correct(member.id(), makesANewPiece(inventoryId, present.id(), null));
+
+        var released = reload(missing.id());
+        assertEquals(ItemCustody.LOST, released.custody(), "the piece nobody can find is still missing");
+        assertNull(released.assignedTo(), "and off the record of the member who never held it");
+        assertEquals(
+                "Im Zeltlager liegen geblieben", released.lostNote(), "with what was written about it still on it");
+
+        var free = inventoryRepo.findUnassignedItems(inventoryId);
+        assertTrue(
+                free.stream().noneMatch(item -> item.id() == missing.id()),
+                "a missing piece is not stock the station can hand out");
+        assertTrue(
+                free.stream().anyMatch(item -> item.id() == present.id()),
+                "while the piece that is simply on the wrong record goes back where it belongs");
+        assertEquals(ItemCustody.WITH_OWNER, reload(present.id()).custody(), "resting in the station's own store");
+    }
+
+    /**
+     * A loss the correction did not end can still be ended the ordinary way, and the piece then goes
+     * to its store rather than back to the member who never had it.
+     */
+    @Test
+    void aMissingPieceTakenOffARecordStillComesBackWhenItTurnsUp() {
+        int inventoryId = inventory("Feuerwehrgurte", InventoryType.INTERNAL);
+        var missing = held(inventoryId, "FG-1", ItemOwner.STATION, null);
+        itemCustodyService.markLost(missing.id(), "Nicht mehr auffindbar", member.id());
+        service.correct(member.id(), makesANewPiece(inventoryId, missing.id(), null));
+
+        itemCustodyService.markFound(missing.id());
+
+        var back = reload(missing.id());
+        assertEquals(ItemCustody.WITH_OWNER, back.custody(), "it turns up in the station's own store");
+        assertNull(back.assignedTo(), "on nobody's record");
+        assertNull(back.lostNote(), "and the note about the loss goes with the loss");
     }
 
     @Test

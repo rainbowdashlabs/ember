@@ -12,11 +12,13 @@ import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
+import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.knowledgebase.service.KbLinkMetadataService;
 import dev.chojo.ember.feature.knowledgebase.service.KbPresentationService;
 import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
+import dev.chojo.ember.feature.knowledgebase.service.KbTrashService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
@@ -53,17 +55,26 @@ class ClusterContentServiceTest extends RepositoryTestBase {
                 stationRepo,
                 fileStorage,
                 searchService);
+        var accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
         var kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 fileStorage,
                 contentService,
-                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
+                accessService,
                 new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService),
                 new KbLinkMetadataService(new RemoteUrlValidator(new Federation(), new Demo())),
                 new PresentationCompressor(storage),
                 new PdfCompressor(storage),
                 new ClusterAutoShareService(clusterRepo, new FederationRepository()));
-        service = new ClusterContentService(clusterRepo, stationRepo, stationMemberRepo, kbService);
+        var trashService = new KbTrashService(
+                knowledgeBaseRepo,
+                fileStorage,
+                contentService,
+                searchService,
+                accessService,
+                new KbAuthorNameService(stationMemberRepo, accountRepo),
+                pageRepo);
+        service = new ClusterContentService(clusterRepo, stationRepo, stationMemberRepo, kbService, trashService);
     }
 
     @Test

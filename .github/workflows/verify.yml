@@ -424,6 +424,38 @@ jobs:
           echo "When the change is the point, put [modify patch] in a commit message on this branch."
           exit 1
 
+  # A patch that has not reached main has not reached any database either, so several of them on one
+  # branch carry no history worth keeping apart and are free to become one file.
+  verify-one-migration-per-change:
+    runs-on: ubuntu-latest
+    name: Verify One Migration Per Change
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Check that at most one migration is added
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+        run: |
+          base=$(git merge-base "$BASE_SHA" HEAD)
+          added=$(git diff --name-only --diff-filter=A "$base" HEAD -- \
+            'src/main/resources/database/postgresql/**/patch_*.sql')
+          count=$(printf '%s' "$added" | grep -c . || true)
+
+          if [ "$count" -le 1 ]; then
+            echo "This change adds $count migration(s)."
+            exit 0
+          fi
+
+          echo "This change adds $count migrations:"
+          printf '  %s\n' $added
+          echo
+          echo "None of them has been applied anywhere, so they can be one file. Merge their"
+          echo "statements into the lowest-numbered patch, delete the rest, and set"
+          echo "src/main/resources/database/version to that one number."
+          exit 1
+
   verify-docker:
     runs-on: ubuntu-latest
     name: Verify Docker Build

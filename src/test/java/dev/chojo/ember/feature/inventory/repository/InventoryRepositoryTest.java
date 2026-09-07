@@ -76,12 +76,13 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void update() {
-        assertTrue(inventoryRepo.update(inventoryId, "Jackets", InventoryType.INTERNAL, false));
+        assertTrue(inventoryRepo.update(inventoryId, "Jackets", InventoryType.INTERNAL, false, true));
         Inventory updated = inventoryRepo.findById(inventoryId).orElseThrow();
         assertEquals("Jackets", updated.name());
         assertFalse(updated.hasSizes());
+        assertTrue(updated.homogeneous());
         // restore
-        inventoryRepo.update(inventoryId, "Helmets", InventoryType.EXTERNAL, true);
+        inventoryRepo.update(inventoryId, "Helmets", InventoryType.EXTERNAL, true, true);
     }
 
     // -- Sizes --
@@ -121,6 +122,28 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         assertTrue(summaries.stream().anyMatch(s -> s.id() == inventoryId));
     }
 
+    /**
+     * The number a collection shows beside its name counts the kinds written down for it, not the
+     * kinds its pieces happen to carry, so a kind nobody owns a piece of still counts and a piece
+     * lying there without one does not lower it.
+     */
+    @Test
+    @Order(98)
+    void summaryCountsTheKindsDefinedInAnInventory() {
+        var collection = inventoryRepo.create(station.id(), "Funkkiste", InventoryType.INTERNAL, false, false);
+        artRepo.create(collection.id(), "Funkgerät", "", 0);
+        artRepo.create(collection.id(), "Ladegerät", "", 10);
+        inventoryRepo.createItem(collection.id(), null, "Antenne", null, null);
+
+        var summary = inventoryRepo.findSummariesByStation(station.id()).stream()
+                .filter(s -> s.id() == collection.id())
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(2, summary.artCount());
+        assertEquals(1, summary.itemCount());
+    }
+
     @Test
     @Order(20)
     void createItem() {
@@ -152,7 +175,8 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(23)
     void updateItem() {
-        assertTrue(inventoryRepo.updateItem(itemId, "H-002", "Blue Helmet", sizeId, InventoryItemMetadata.empty()));
+        assertTrue(
+                inventoryRepo.updateItem(itemId, "H-002", "Blue Helmet", sizeId, null, InventoryItemMetadata.empty()));
         InventoryItem updated = inventoryRepo.findItemById(itemId).orElseThrow();
         assertEquals("H-002", updated.internalId());
         assertEquals("Blue Helmet", updated.name());

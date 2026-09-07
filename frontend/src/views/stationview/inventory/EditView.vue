@@ -20,6 +20,7 @@ import SettingsSection from './editview/SettingsSection.vue'
 import SizesSection from './editview/SizesSection.vue'
 import ItemListSection from './editview/ItemListSection.vue'
 import FieldDefinitionsSection from './editview/FieldDefinitionsSection.vue'
+import ArtSection from './editview/ArtSection.vue'
 
 const routes = useInventoryRoutes()
 
@@ -69,9 +70,19 @@ function onError(message: string) {
       :subtitle="t('pages.inventory-edit.subtitle')"
   >
     <div class="space-y-6">
-      <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: routes.manage })">
-        {{ t('inventory.edit.back') }}
-      </SecondaryButton>
+      <div class="flex flex-wrap gap-2">
+        <SecondaryButton :icon="['fas', 'chevron-left']" data-testid="inventory-edit-back"
+                         @click="router.push({ name: routes.detail, params: { id: inventoryId } })">
+          {{ t('inventory.edit.backToStock') }}
+        </SecondaryButton>
+        <SecondaryButton :icon="['fas', 'boxes-stacked']" @click="router.push({ name: routes.manage })">
+          {{ t('inventory.edit.back') }}
+        </SecondaryButton>
+        <SecondaryButton v-if="routes.move" :icon="['fas', 'right-left']" data-testid="inventory-move"
+                         @click="router.push({ name: routes.move, params: { id: inventoryId } })">
+          {{ t('inventory.edit.moveItems') }}
+        </SecondaryButton>
+      </div>
 
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
@@ -82,6 +93,9 @@ function onError(message: string) {
 
         <SizesSection v-if="detail.hasSizes" :inventory-id="inventoryId" :sizes="detail.sizes ?? []"
                       @updated="onSizesUpdated" @error="onError"/>
+
+        <ArtSection v-if="detail.homogeneous === false" :inventory-id="inventoryId"
+                    :inventory-type="detail.inventoryType"/>
 
         <FieldDefinitionsSection :inventory-id="inventoryId"/>
 

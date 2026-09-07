@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -63,7 +65,7 @@ class KbAccessServiceTest extends RepositoryTestBase {
         assertTrue(service.canAccess(member.id(), null, null, null, List.of(), List.of()));
         assertTrue(service.canAccess(member.id(), 999999, null, null, List.of(), List.of()));
         assertTrue(service.findRestrictions(null, file.id()).isEmpty());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     /**
@@ -83,8 +85,8 @@ class KbAccessServiceTest extends RepositoryTestBase {
         assertTrue(service.canAccess(member.id(), null, file.id(), StationUserType.MEMBER, List.of(), List.of()));
 
         service.setRestrictions(folder.id(), null, RestrictionSelection.empty());
-        knowledgeBaseRepo.deleteFile(file.id());
-        knowledgeBaseRepo.deleteFolder(folder.id());
+        knowledgeBaseRepo.purgeFile(file.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
     }
 
     /**
@@ -101,9 +103,9 @@ class KbAccessServiceTest extends RepositoryTestBase {
         assertTrue(service.canAccess(member.id(), child.id(), null, StationUserType.MEMBER, List.of(), List.of()));
 
         service.setRestrictions(grandparent.id(), null, RestrictionSelection.empty());
-        knowledgeBaseRepo.deleteFolder(child.id());
-        knowledgeBaseRepo.deleteFolder(parent.id());
-        knowledgeBaseRepo.deleteFolder(grandparent.id());
+        knowledgeBaseRepo.purgeFolder(child.id());
+        knowledgeBaseRepo.purgeFolder(parent.id());
+        knowledgeBaseRepo.purgeFolder(grandparent.id());
     }
 
     @Test
@@ -116,7 +118,7 @@ class KbAccessServiceTest extends RepositoryTestBase {
         assertFalse(service.canAccess(member.id() + 9999, null, file.id(), null, List.of(), List.of()));
 
         service.setRestrictions(null, file.id(), RestrictionSelection.empty());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -139,8 +141,8 @@ class KbAccessServiceTest extends RepositoryTestBase {
 
         service.setRestrictions(null, groupFile.id(), RestrictionSelection.empty());
         service.setRestrictions(null, tagFile.id(), RestrictionSelection.empty());
-        knowledgeBaseRepo.deleteFile(groupFile.id());
-        knowledgeBaseRepo.deleteFile(tagFile.id());
+        knowledgeBaseRepo.purgeFile(groupFile.id());
+        knowledgeBaseRepo.purgeFile(tagFile.id());
         memberGroupRepo.delete(group.id());
         userTagRepo.delete(tag.id());
     }
@@ -167,11 +169,72 @@ class KbAccessServiceTest extends RepositoryTestBase {
         assertFalse(service.canAccess(service.memberAccess(member.id(), null), null, file.id()));
 
         service.setRestrictions(null, file.id(), RestrictionSelection.empty());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
         userTagRepo.removeMember(tag.id(), member.id());
         memberGroupRepo.removeMember(group.id(), member.id());
         memberGroupRepo.delete(group.id());
         userTagRepo.delete(tag.id());
+    }
+
+    /**
+     * A search hands back files from anywhere in the tree at once, so the batch has to answer
+     * exactly what a single check would, folder by folder and file by file.
+     */
+    @Test
+    void aBatchOfFilesResolvesTheSameLevelsAsOneCheckEach() {
+        var openFolder = createFolder("Batch Open", null);
+        var closedFolder = createFolder("Batch Closed", null);
+        var deepFolder = createFolder("Batch Deep", closedFolder.id());
+        var openFile = createFile("Batch Readable", openFolder.id());
+        var closedFile = createFile("Batch Hidden", closedFolder.id());
+        var deepFile = createFile("Batch Deeply Hidden", deepFolder.id());
+        var rootFile = createFile("Batch Root", null);
+        var deniedFile = createFile("Batch Denied", openFolder.id());
+        service.setRestrictions(closedFolder.id(), null, forUserType(StationUserType.MEMBER));
+        service.setRestrictions(null, deniedFile.id(), forUserType(StationUserType.MEMBER));
+
+        var files = List.of(openFile, closedFile, deepFile, rootFile, deniedFile);
+        var nodes = files.stream().map(KbAccessService.FileNode::of).toList();
+        var access = service.memberAccess(member.id(), null);
+        var levels = service.fileLevels(access, nodes);
+
+        for (var file : files) {
+            assertEquals(
+                    service.effectiveLevel(access, null, file.id()),
+                    levels.get(file.id()),
+                    "batch level differs for " + file.name());
+        }
+        assertEquals(Set.of(openFile.id(), rootFile.id()), service.readableFiles(access, nodes));
+
+        service.setRestrictions(closedFolder.id(), null, RestrictionSelection.empty());
+        service.setRestrictions(null, deniedFile.id(), RestrictionSelection.empty());
+        for (var file : files) knowledgeBaseRepo.purgeFile(file.id());
+        knowledgeBaseRepo.purgeFolder(deepFolder.id());
+        knowledgeBaseRepo.purgeFolder(closedFolder.id());
+        knowledgeBaseRepo.purgeFolder(openFolder.id());
+    }
+
+    /**
+     * A station manager reads everything, and an empty batch asks nothing of the database.
+     */
+    @Test
+    void aBatchAnswersManagersAndEmptyListsWithoutWalkingTheTree() {
+        var folder = createFolder("Batch Managed", null);
+        var file = createFile("Batch Managed File", folder.id());
+        service.setRestrictions(folder.id(), null, forUserType(StationUserType.MEMBER));
+
+        var manager = new KbAccessService.MemberAccess(member.id(), null, List.of(), List.of(), false, true);
+        var node = KbAccessService.FileNode.of(file);
+        assertEquals(
+                KbAccessLevel.MANAGE, service.fileLevels(manager, List.of(node)).get(file.id()));
+        assertEquals(Set.of(file.id()), service.readableFiles(manager, List.of(node)));
+        assertTrue(service.fileLevels(manager, List.of()).isEmpty());
+        assertTrue(service.readableFiles(service.memberAccess(member.id(), null), List.of())
+                .isEmpty());
+
+        service.setRestrictions(folder.id(), null, RestrictionSelection.empty());
+        knowledgeBaseRepo.purgeFile(file.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
     }
 
     /**
@@ -196,7 +259,7 @@ class KbAccessServiceTest extends RepositoryTestBase {
         service.removePublicVisibility(folder.id(), null);
         assertTrue(service.findPublicVisibility(folder.id(), null).isEmpty());
 
-        knowledgeBaseRepo.deleteFolder(folder.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
     }
 
     /**
@@ -221,8 +284,73 @@ class KbAccessServiceTest extends RepositoryTestBase {
         assertFalse(service.isPubliclyVisible(PublicKbMode.ALLOW_ALL, null, fileInHidden.id()));
 
         service.setRestrictions(parent.id(), null, RestrictionSelection.empty());
-        knowledgeBaseRepo.deleteFile(fileInHidden.id());
-        knowledgeBaseRepo.deleteFolder(child.id());
-        knowledgeBaseRepo.deleteFolder(parent.id());
+        knowledgeBaseRepo.purgeFile(fileInHidden.id());
+        knowledgeBaseRepo.purgeFolder(child.id());
+        knowledgeBaseRepo.purgeFolder(parent.id());
+    }
+
+    /**
+     * Asked about a folder an item does not sit in yet, which is what the move dialog needs in order
+     * to warn before a station that publishes by default publishes something nobody submitted.
+     */
+    @Test
+    void publicVisibilityCanBeAskedAboutAFolderAnItemIsNotInYet() {
+        var open = createFolder("Would Publish", null);
+        var closed = createFolder("Would Not Publish", null);
+        service.setPublicVisibility(closed.id(), null, false);
+        var article = createFile("Not Yet Moved", closed.id());
+
+        assertFalse(service.isPubliclyVisible(PublicKbMode.ALLOW_ALL, null, article.id()));
+        assertTrue(service.isPubliclyVisibleUnder(PublicKbMode.ALLOW_ALL, open.id(), null, article.id()));
+        assertTrue(service.isPubliclyVisibleUnder(PublicKbMode.ALLOW_ALL, null, null, article.id()));
+        assertFalse(service.isPubliclyVisibleUnder(PublicKbMode.ALLOW_ALL, closed.id(), null, article.id()));
+        assertFalse(service.isPubliclyVisibleUnder(PublicKbMode.OFF, open.id(), null, article.id()));
+
+        service.setRestrictions(null, article.id(), forUserType(StationUserType.MEMBER));
+        assertFalse(service.isPubliclyVisibleUnder(PublicKbMode.ALLOW_ALL, open.id(), null, article.id()));
+
+        service.setRestrictions(null, article.id(), RestrictionSelection.empty());
+        service.removePublicVisibility(closed.id(), null);
+        knowledgeBaseRepo.purgeFile(article.id());
+        knowledgeBaseRepo.purgeFolder(open.id());
+        knowledgeBaseRepo.purgeFolder(closed.id());
+    }
+
+    /**
+     * The whole tree at once, which is what a picker offering somewhere to put an entry needs. It
+     * has to agree with the answer a single lookup gives, gate included: a folder the reader is out
+     * of takes everything under it out too.
+     */
+    @Test
+    void theWholeTreeResolvesTheSameWayOneFolderDoes() {
+        var open = createFolder("Tree Open", null);
+        var inner = createFolder("Tree Inner", open.id());
+        var gated = createFolder("Tree Gated", null);
+        var belowGate = createFolder("Tree Below Gate", gated.id());
+        service.setRestrictions(gated.id(), null, forUserType(StationUserType.MEMBER));
+
+        var nodes = List.of(
+                new KbAccessService.TreeNode(open.id(), null, null),
+                new KbAccessService.TreeNode(inner.id(), open.id(), null),
+                new KbAccessService.TreeNode(gated.id(), null, null),
+                new KbAccessService.TreeNode(belowGate.id(), gated.id(), null));
+        var access = new KbAccessService.MemberAccess(
+                member.id(), StationUserType.GUARDIAN, List.of(), List.of(), true, false);
+
+        var levels = service.treeLevels(access, nodes);
+
+        assertEquals(KbAccessLevel.MANAGE, levels.get(open.id()));
+        assertEquals(KbAccessLevel.MANAGE, levels.get(inner.id()));
+        assertEquals(KbAccessLevel.NONE, levels.get(gated.id()));
+        assertEquals(KbAccessLevel.NONE, levels.get(belowGate.id()));
+        assertEquals(service.effectiveLevel(access, belowGate.id(), null), levels.get(belowGate.id()));
+
+        var manager = new KbAccessService.MemberAccess(
+                member.id(), StationUserType.GUARDIAN, List.of(), List.of(), true, true);
+        assertEquals(KbAccessLevel.MANAGE, service.treeLevels(manager, nodes).get(gated.id()));
+
+        service.setRestrictions(gated.id(), null, RestrictionSelection.empty());
+        knowledgeBaseRepo.purgeFolder(open.id());
+        knowledgeBaseRepo.purgeFolder(gated.id());
     }
 }

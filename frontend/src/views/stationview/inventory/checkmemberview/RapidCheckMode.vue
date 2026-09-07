@@ -29,6 +29,8 @@ const props = defineProps<{
   sizeLabel: (req: RequiredInventoryItem, sizeId?: number | null) => string
   /** What has been written down about each piece so far, so the walk shows the same note the list does. */
   itemNotes: Map<number, string>
+  /** The step a piece is standing on when something is already running on it, null otherwise. */
+  movementStep: (itemId: number) => string | null
 }>()
 
 const emit = defineEmits<{
@@ -41,6 +43,8 @@ const emit = defineEmits<{
   assign: [itemId: string]
   createAndAssign: [sizeId: string]
   skip: []
+  undoResult: [itemId: number]
+  undoNotInPossession: [inventoryId: number, slotIndex: number]
   done: []
 }>()
 
@@ -51,6 +55,52 @@ const rapidCreateSizeId = ref('')
 const skippedKeys = ref<Set<string>>(new Set())
 const preferredEntryKey = ref<string | null>(null)
 const scanError = ref('')
+
+/**
+ * How a piece was left behind, so that stepping back can put it the way it was.
+ *
+ * <p>A skipped piece never left the walk and only has to be offered again. A decided one did leave
+ * it, so going back has to take the decision off it first, which is why what was decided is kept
+ * here rather than worked out again from a list the piece is no longer in.
+ */
+type LeftBehind =
+  | { kind: 'skipped', key: string }
+  | { kind: 'item', key: string, itemId: number }
+  | { kind: 'slot', key: string, inventoryId: number, slotIndex: number }
+
+const walked = ref<LeftBehind[]>([])
+
+function remember(entry: CheckEntry | null, skipped: boolean) {
+  if (!entry) return
+  const key = entryKey(entry)
+  if (skipped) walked.value.push({ kind: 'skipped', key })
+  else if (entry.type === 'item') walked.value.push({ kind: 'item', key, itemId: entry.item.id })
+  else walked.value.push({ kind: 'slot', key, inventoryId: entry.req.inventoryId, slotIndex: entry.slotIndex })
+}
+
+/**
+ * Puts the walk back on the piece it just left, undoing what was said about it.
+ *
+ * <p>Only what this walk decided is taken back, one step at a time, so a slip on the piece just
+ * handled does not mean starting the whole check again.
+ */
+function goBack() {
+  const previous = walked.value.pop()
+  if (!previous) return
+  if (previous.kind === 'skipped') {
+    const next = new Set(skippedKeys.value)
+    next.delete(previous.key)
+    skippedKeys.value = next
+  } else if (previous.kind === 'item') {
+    emit('undoResult', previous.itemId)
+  } else {
+    emit('undoNotInPossession', previous.inventoryId, previous.slotIndex)
+  }
+  rapidAssignSelection.value = ''
+  rapidCreateSizeId.value = ''
+  scanError.value = ''
+  preferredEntryKey.value = previous.key
+}
 
 function entryKey(entry: CheckEntry): string {
   return entry.type === 'item'
@@ -68,6 +118,18 @@ const currentEntry = computed((): CheckEntry | null => {
   const next = entries.find(e => !skippedKeys.value.has(entryKey(e)))
   if (next) return next
   return entries[0] ?? null
+})
+
+/**
+ * What is already running on the piece in hand.
+ *
+ * <p>A piece can only be on one movement at a time, so a swap asked for beside a running one is
+ * refused. The walk says what is happening to the piece instead of offering a button that the
+ * station would only turn down.
+ */
+const runningStep = computed(() => {
+  const entry = currentEntry.value
+  return entry?.type === 'item' ? props.movementStep(entry.item.id) : null
 })
 
 function handleScan(value: string) {
@@ -96,6 +158,7 @@ function resetSelections() {
 
 function handleSetResult(result: CheckResult) {
   const entry = currentEntry.value
+  remember(entry, false)
   emit('setResult', result)
   if (entry) skippedKeys.value.delete(entryKey(entry))
   resetSelections()
@@ -103,6 +166,7 @@ function handleSetResult(result: CheckResult) {
 
 function handleMarkNotInPossession() {
   const entry = currentEntry.value
+  remember(entry, false)
   emit('markNotInPossession')
   if (entry) skippedKeys.value.delete(entryKey(entry))
   resetSelections()
@@ -152,6 +216,7 @@ function writeNote(note: string) {
 
 function skip() {
   const entry = currentEntry.value
+  remember(entry, true)
   if (entry) {
     const next = new Set(skippedKeys.value)
     next.add(entryKey(entry))
@@ -199,8 +264,12 @@ defineExpose({ currentEntry })
         {{ t('inventory.check.lost') }}
       </ErrorButton>
     </div>
+    <p v-if="runningStep !== null" class="text-center text-sm text-(--text-muted)" data-testid="rapid-on-the-move">
+      {{ t('inventory.check.onTheMove') }}<span v-if="runningStep"> ({{ runningStep }})</span>
+    </p>
     <div class="flex flex-wrap justify-center gap-2">
       <InfoButton
+          v-if="runningStep === null"
           :icon="['fas', 'right-left']"
           data-testid="rapid-exchange"
           @click="emit('exchange', currentEntry)"
@@ -216,7 +285,10 @@ defineExpose({ currentEntry })
       </SecondaryButton>
     </div>
     <div class="flex justify-center gap-2">
-      <SecondaryButton @click="skip">
+      <SecondaryButton v-if="walked.length > 0" :icon="['fas', 'arrow-left']" data-testid="rapid-back" @click="goBack">
+        {{ t('inventory.check.previousItem') }}
+      </SecondaryButton>
+      <SecondaryButton data-testid="rapid-skip" @click="skip">
         {{ t('inventory.check.skip') }}
       </SecondaryButton>
       <ScanButton mode="continuous" @decoded="handleScan"/>
@@ -275,7 +347,10 @@ defineExpose({ currentEntry })
       </InfoButton>
     </div>
     <div class="flex justify-center gap-2">
-      <SecondaryButton @click="skip">
+      <SecondaryButton v-if="walked.length > 0" :icon="['fas', 'arrow-left']" data-testid="rapid-back" @click="goBack">
+        {{ t('inventory.check.previousItem') }}
+      </SecondaryButton>
+      <SecondaryButton data-testid="rapid-skip" @click="skip">
         {{ t('inventory.check.skip') }}
       </SecondaryButton>
       <ScanButton mode="continuous" @decoded="handleScan"/>

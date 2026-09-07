@@ -27,6 +27,7 @@ const lintScripts = [
   'lint-browser-storage.mjs',
   'lint-em-dash.mjs',
   'lint-markdown-render.mjs',
+  'lint-stacked-text.mjs',
   'lint-standalone.mjs',
 ]
 

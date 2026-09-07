@@ -5,15 +5,19 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -64,7 +68,7 @@ class KbSearchServiceTest extends RepositoryTestBase {
         assertTrue(snippets.stream().anyMatch(r -> r.file().id() == file.id()));
         assertFalse(snippets.getFirst().snippet().isBlank());
 
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     /**
@@ -78,7 +82,7 @@ class KbSearchServiceTest extends RepositoryTestBase {
 
         assertTrue(service.search(station.id(), "Zumischer").stream().anyMatch(f -> f.id() == file.id()));
 
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     /**
@@ -94,13 +98,110 @@ class KbSearchServiceTest extends RepositoryTestBase {
         var blank = createFile(" ", " ");
         service.reindex(blank.id(), null);
 
-        knowledgeBaseRepo.deleteFile(named.id());
-        knowledgeBaseRepo.deleteFile(blank.id());
+        knowledgeBaseRepo.purgeFile(named.id());
+        knowledgeBaseRepo.purgeFile(blank.id());
     }
 
     @Test
     void reindexingAnUnknownFileDoesNothing() {
         service.reindex(999999, "orphaned text");
+    }
+
+    /**
+     * A search reaches an article without walking the folders above it, so a match says nothing
+     * about whether the searcher may see it. A word that appears in one restricted article and
+     * nowhere else must not lead anyone else to its title or its excerpt, while the readers it was
+     * restricted to keep finding it.
+     */
+    @Test
+    void aRestrictedArticleIsNotFoundByTheWordOnlyItContains() {
+        var accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
+        var folder = knowledgeBaseRepo.createFolder(station.id(), null, "Leadership Only", "", member.id());
+        var restricted = knowledgeBaseRepo.createFile(
+                station.id(),
+                folder.id(),
+                "Alarm Chain",
+                "",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                0,
+                null,
+                member.id());
+        service.reindex(restricted.id(), "The Klingelsonderzeichen roster is kept here.");
+        accessService.setRestrictions(
+                folder.id(),
+                null,
+                new RestrictionSelection(List.of(StationUserType.MANAGER), List.of(), List.of(), List.of(), null));
+
+        var hits = service.searchWithSnippets(station.id(), "Klingelsonderzeichen");
+        assertTrue(hits.stream().anyMatch(hit -> hit.file().id() == restricted.id()));
+        var nodes = hits.stream()
+                .map(hit -> KbAccessService.FileNode.of(hit.file()))
+                .toList();
+
+        var outsider = accessService.memberAccess(member.id(), StationUserType.MEMBER);
+        assertFalse(accessService.readableFiles(outsider, nodes).contains(restricted.id()));
+
+        var allowed = accessService.memberAccess(member.id(), StationUserType.MANAGER);
+        assertTrue(accessService.readableFiles(allowed, nodes).contains(restricted.id()));
+
+        accessService.setRestrictions(folder.id(), null, RestrictionSelection.empty());
+        knowledgeBaseRepo.purgeFile(restricted.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
+    }
+
+    /**
+     * A search reads more rows than it means to show, because every caller drops some of them again
+     * for what the reader may not see. Reading only as many as fit on the page is how a search comes
+     * back short: fill the page with restricted articles and the readable ones behind them are never
+     * read at all.
+     *
+     * <p>Written against more restricted articles than a page holds, so it fails on a search that
+     * cuts before it filters and passes on one that cuts after.
+     */
+    @Test
+    void aPageIsStillFullWhenRestrictedArticlesOutrankTheReadableOnes() {
+        var accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
+        var folder = knowledgeBaseRepo.createFolder(station.id(), null, "Hidden Shelf", "", member.id());
+        var hidden = new java.util.ArrayList<KbFile>();
+        for (int i = 0; i < KbSearchService.RESULT_LIMIT + 5; i++) {
+            var file = knowledgeBaseRepo.createFile(
+                    station.id(),
+                    folder.id(),
+                    "Hidden " + i,
+                    "",
+                    KbFileType.MARKDOWN,
+                    "text/markdown",
+                    0,
+                    null,
+                    member.id());
+            service.reindex(file.id(), "Loeschzugverfuegung stands here.");
+            hidden.add(file);
+        }
+        var readable = createFile("Readable Notice", "");
+        service.reindex(readable.id(), "Loeschzugverfuegung stands here too.");
+        accessService.setRestrictions(
+                folder.id(),
+                null,
+                new RestrictionSelection(List.of(StationUserType.MANAGER), List.of(), List.of(), List.of(), null));
+
+        var hits = service.searchWithSnippets(station.id(), "Loeschzugverfuegung");
+        var outsider = accessService.memberAccess(member.id(), StationUserType.MEMBER);
+        var visible = accessService.readableFiles(
+                outsider,
+                hits.stream()
+                        .map(hit -> KbAccessService.FileNode.of(hit.file()))
+                        .toList());
+
+        assertTrue(
+                visible.contains(readable.id()),
+                "the one article the reader may see is behind more restricted ones than a page holds, "
+                        + "and a search that cuts before it filters would never reach it");
+
+        accessService.setRestrictions(folder.id(), null, RestrictionSelection.empty());
+        hidden.forEach(file -> knowledgeBaseRepo.purgeFile(file.id()));
+        knowledgeBaseRepo.purgeFile(readable.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
     }
 
     /**

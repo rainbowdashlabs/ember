@@ -13,6 +13,8 @@ import dev.chojo.ember.feature.checklist.entity.ChecklistColumn;
 import dev.chojo.ember.feature.checklist.entity.ChecklistEntry;
 import dev.chojo.ember.feature.checklist.entity.ChecklistSummary;
 import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
@@ -27,6 +29,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -40,6 +43,11 @@ import java.util.stream.Collectors;
  * Orchestrates checklist creation, refresh, manual member add/restore, cell upserts and column edits.
  * Member resolution against the materialisation filter is performed in Java with
  * {@link RestrictionSet#matches} per active station member.
+ *
+ * <p>A list follows one thing at a time: either its filter rows or one occurrence of an appointment.
+ * Both are resolved by {@link #resolveMembership}, and neither ever removes a row. Refresh adds, a
+ * row taken off by hand stays off, and everything a read has to say about somebody who no longer
+ * belongs is said by marking their row.
  */
 @Singleton
 public class ChecklistService {
@@ -49,17 +57,20 @@ public class ChecklistService {
     private final StationMemberRepository memberRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
+    private final EventRegistrationRepository registrationRepository;
 
     @Inject
     public ChecklistService(
             ChecklistRepository repository,
             StationMemberRepository memberRepository,
             MemberGroupRepository memberGroupRepository,
-            UserTagRepository userTagRepository) {
+            UserTagRepository userTagRepository,
+            EventRegistrationRepository registrationRepository) {
         this.repository = repository;
         this.memberRepository = memberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
+        this.registrationRepository = registrationRepository;
     }
 
     public List<ChecklistSummary> findSummaries(int stationId) {
@@ -110,28 +121,74 @@ public class ChecklistService {
             List<ColumnSpec> columns,
             FilterSpec filter,
             int createdBy) {
-        var checklist = repository.create(stationId, name, description, mode, createdBy);
+        return create(stationId, name, description, mode, columns, filter, null, createdBy);
+    }
+
+    /**
+     * Creates a checklist and materialises the people it starts with.
+     *
+     * <p>Passing an {@code occurrence} makes the list follow that evening's accepted sign-ups
+     * instead of a filter, and the filter is left empty: the two never stand together, because an
+     * appointment already decides who it is for.
+     */
+    public Checklist create(
+            int stationId,
+            String name,
+            String description,
+            RestrictionMode mode,
+            List<ColumnSpec> columns,
+            FilterSpec filter,
+            OccurrenceSpec occurrence,
+            int createdBy) {
+        var checklist = repository.create(
+                stationId,
+                name,
+                description,
+                mode,
+                createdBy,
+                occurrence == null ? null : occurrence.eventId(),
+                occurrence == null ? null : occurrence.date());
         for (int i = 0; i < columns.size(); i++) {
             var spec = columns.get(i);
             repository.createColumn(checklist.id(), i, spec.label(), spec.description());
         }
+        FilterSpec effective = occurrence != null ? FilterSpec.empty() : filter;
         repository.replaceFilter(
-                checklist.id(), filter.userTypes(), filter.groupIds(), filter.tagIds(), filter.memberIds());
-        materialise(checklist.id(), stationId, mode);
-        log.info("Created checklist {} at station {} by member {}", checklist.id(), stationId, createdBy);
+                checklist.id(), effective.userTypes(), effective.groupIds(), effective.tagIds(), effective.memberIds());
+        materialise(repository.findById(checklist.id()).orElseThrow());
+        log.info(
+                "Created checklist {} at station {} by member {} (followsEvent={})",
+                checklist.id(),
+                stationId,
+                createdBy,
+                occurrence != null);
         return repository.findById(checklist.id()).orElseThrow();
     }
 
     /**
      * Updates checklist metadata. Restriction-filter rows are NOT touched here; pass
-     * {@code filter} non-null to replace them. Refresh must be triggered explicitly.
+     * {@code filter} non-null to replace them, which also stops the list following an appointment.
+     * Refresh must be triggered explicitly.
      */
     public Checklist update(int id, String name, String description, RestrictionMode mode, FilterSpec filter) {
         repository.updateMetadata(id, name, description, mode);
         if (filter != null) {
             repository.replaceFilter(id, filter.userTypes(), filter.groupIds(), filter.tagIds(), filter.memberIds());
+            repository.updateSourceEvent(id, null, null);
         }
         log.info("Updated checklist {} (name='{}', mode={}, filterReplaced={})", id, name, mode, filter != null);
+        return repository.findById(id).orElseThrow();
+    }
+
+    /**
+     * Makes the list follow one occurrence of an appointment and drops whatever filter it carried,
+     * because a list follows one thing at a time. Nobody is added or removed here: the new source
+     * only takes effect on the next refresh, which is the one thing that ever brings people in.
+     */
+    public Checklist followOccurrence(int id, OccurrenceSpec occurrence) {
+        repository.replaceFilter(id, List.of(), List.of(), List.of(), List.of());
+        repository.updateSourceEvent(id, occurrence.eventId(), occurrence.date());
+        log.info("Checklist {} now follows appointment {} on {}", id, occurrence.eventId(), occurrence.date());
         return repository.findById(id).orElseThrow();
     }
 
@@ -149,7 +206,7 @@ public class ChecklistService {
      */
     public RefreshResult refresh(int checklistId) {
         var checklist = repository.findById(checklistId).orElseThrow();
-        var resolved = resolveMatchingMemberIds(checklistId, checklist.stationId(), checklist.mode());
+        var resolved = resolveMembership(checklist).memberIds();
         var existing = existingMemberIds(checklistId);
         int added = 0;
         int alreadyPresent = 0;
@@ -284,17 +341,27 @@ public class ChecklistService {
     }
 
     /**
-     * Resolves the current materialisation filter against the station's current active members,
-     * applying {@link RestrictionSet#matches} per member with its own group / tag context.
+     * Works out who belongs on the list right now, and whether the list follows anything at all.
+     *
+     * <p>Two sources, never both. An appointment occurrence resolves to the accepted sign-ups of
+     * that one evening; anything else resolves the filter rows against the station's current
+     * members with {@link RestrictionSet#matches}. A list that follows neither, which is what a
+     * deleted appointment leaves behind, resolves to nothing and marks nobody.
+     *
+     * @param checklist the list to resolve
+     * @return what it follows and who currently matches
      */
-    public Set<Integer> resolveMatchingMemberIds(int checklistId, int stationId, RestrictionMode mode) {
-        var filterRows = repository.findFilterRows(checklistId);
-        if (filterRows.isEmpty()) return Set.of();
-        var restrictionSet = new RestrictionSet(filterRows, mode);
+    public MembershipResolution resolveMembership(Checklist checklist) {
+        if (checklist.followsEvent()) {
+            return new MembershipResolution(true, resolveFromOccurrence(checklist));
+        }
+        var filterRows = repository.findFilterRows(checklist.id());
+        if (filterRows.isEmpty()) return new MembershipResolution(false, Set.of());
+        var restrictionSet = new RestrictionSet(filterRows, checklist.mode());
         var groups = new HashMap<Integer, List<Integer>>();
         var tags = new HashMap<Integer, List<Integer>>();
         var matching = new LinkedHashSet<Integer>();
-        for (StationMember member : memberRepository.findByStation(stationId)) {
+        for (StationMember member : memberRepository.findByStation(checklist.stationId())) {
             var groupIds =
                     groups.computeIfAbsent(member.id(), id -> memberGroupRepository.findGroupsForMember(id).stream()
                             .map(MemberGroup::id)
@@ -307,6 +374,30 @@ public class ChecklistService {
                 matching.add(member.id());
             }
         }
+        return new MembershipResolution(true, matching);
+    }
+
+    /**
+     * The people holding a place on the followed evening, narrowed to the members this station has
+     * today.
+     *
+     * <p>Only a place actually taken counts, which is the set the appointment itself measures. Two
+     * groups fall away and both are deliberate: partner-station guests are kept against a remote
+     * member and can never become a row here, and somebody who has since left the station is no
+     * longer among its members, exactly as for every other way a list is made.
+     */
+    private Set<Integer> resolveFromOccurrence(Checklist checklist) {
+        var current = new HashSet<Integer>();
+        for (StationMember member : memberRepository.findByStation(checklist.stationId())) {
+            current.add(member.id());
+        }
+        var matching = new LinkedHashSet<Integer>();
+        for (var registration :
+                registrationRepository.findByEventAndDate(checklist.sourceEventId(), checklist.sourceEventDate())) {
+            if (registration.status() != RegistrationStatus.ACCEPTED) continue;
+            if (!current.contains(registration.memberId())) continue;
+            matching.add(registration.memberId());
+        }
         return matching;
     }
 
@@ -318,9 +409,9 @@ public class ChecklistService {
         return set;
     }
 
-    private void materialise(int checklistId, int stationId, RestrictionMode mode) {
-        for (int memberId : resolveMatchingMemberIds(checklistId, stationId, mode)) {
-            repository.createEntry(checklistId, memberId);
+    private void materialise(Checklist checklist) {
+        for (int memberId : resolveMembership(checklist).memberIds()) {
+            repository.createEntry(checklist.id(), memberId);
         }
     }
 
@@ -334,6 +425,26 @@ public class ChecklistService {
             return new FilterSpec(List.of(), List.of(), List.of(), List.of());
         }
     }
+
+    /**
+     * One evening of one appointment, which is what a following list names.
+     *
+     * <p>The date is the whole point. Sign-ups are kept per appointment and date, so an appointment
+     * on its own would resolve to the union of every Tuesday a weekly Dienst has ever had.
+     *
+     * @param eventId the appointment
+     * @param date    the one occurrence of it whose sign-ups are followed
+     */
+    public record OccurrenceSpec(int eventId, LocalDate date) {}
+
+    /**
+     * What a list follows and who currently matches it.
+     *
+     * @param following whether the list follows anything at all; {@code false} for one whose
+     *                  appointment has been deleted, and nobody on it is marked as no longer fitting
+     * @param memberIds the members who match right now, in a stable order
+     */
+    public record MembershipResolution(boolean following, Set<Integer> memberIds) {}
 
     /**
      * Lightweight bag used by the create flow to pass each column's label and description.

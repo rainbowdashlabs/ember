@@ -131,6 +131,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         ticketService = new BoardTicketService(
                 boardTicketRepo,
                 boardRepo,
+                boardService,
                 new DomainEventBus(Set.of()),
                 newStationMemberService(null, null),
                 memberIdentityFactory,

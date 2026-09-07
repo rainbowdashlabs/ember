@@ -31,11 +31,16 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.inventoryDetail.whatShownText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.inventoryDetail.headerTitle')">
+      <p>{{ t('helpCenter.inventoryDetail.headerText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.inventoryDetail.statsTitle')">
       <p>{{ t('helpCenter.inventoryDetail.statsText') }}</p>
       <StatsRow/>
       <SubHeader>{{ t('inventory.detail.bySize') }}</SubHeader>
       <SizeDistributionTable/>
+      <p>{{ t('helpCenter.inventoryDetail.barText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryDetail.itemsTitle')">

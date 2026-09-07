@@ -7,7 +7,10 @@
 import { useI18n } from 'vue-i18n'
 import Th from '@/components/table/Th.vue'
 import THead from '@/components/table/THead.vue'
+import SortableHeader from '@/components/table/SortableHeader.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
+import type { SortDirection, SortKey } from '@/composables/useSortable'
+import type { ExchangeSortKey } from './exchangeFilter'
 
 const { t } = useI18n()
 
@@ -16,26 +19,46 @@ defineProps<{
   showMemberColumn: boolean
   canManageExchanges: boolean
   allSelected: boolean
+  sortKey: ExchangeSortKey
+  direction: SortDirection
 }>()
 
 const emit = defineEmits<{
   (e: 'toggle-select-all'): void
+  (e: 'sort', key: ExchangeSortKey): void
 }>()
+
+function onSort(key: SortKey) {
+  emit('sort', key as ExchangeSortKey)
+}
 </script>
 
 <template>
   <THead>
     <th v-if="exportMode" class="px-1 py-2 w-8">
-      <CheckboxInput :model-value="allSelected" @update:model-value="emit('toggle-select-all')" />
+      <CheckboxInput :model-value="allSelected" data-testid="exchange-select-all" @update:model-value="emit('toggle-select-all')" />
     </th>
-    <Th v-if="showMemberColumn">{{ t('exchanges.colMember') }}</Th>
-    <Th>{{ t('exchanges.colInventory') }}</Th>
+    <SortableHeader
+        v-if="showMemberColumn"
+        :label="t('exchanges.colMember')" sort-key="member" :active-key="sortKey" :direction="direction"
+        @sort="onSort"
+    />
+    <SortableHeader
+        :label="t('exchanges.colInventory')" sort-key="inventory" :active-key="sortKey" :direction="direction"
+        @sort="onSort"
+    />
     <Th v-if="canManageExchanges">{{ t('exchanges.colType') }}</Th>
     <Th>{{ t('exchanges.colOldSize') }}</Th>
     <Th>{{ t('exchanges.colNewSize') }}</Th>
-    <Th>{{ t('exchanges.colStatus') }}</Th>
+    <SortableHeader
+        :label="t('exchanges.colStatus')" sort-key="status" :active-key="sortKey" :direction="direction"
+        @sort="onSort"
+    />
     <Th>{{ t('exchanges.colReason') }}</Th>
-    <Th>{{ t('exchanges.colDate') }}</Th>
+    <SortableHeader
+        :label="t('exchanges.colDate')" sort-key="date" :active-key="sortKey" :direction="direction"
+        @sort="onSort"
+    />
     <th class="px-3 py-2"></th>
   </THead>
 </template>

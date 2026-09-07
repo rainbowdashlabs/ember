@@ -155,22 +155,50 @@ public class NotificationRepository {
     }
 
     /**
-     * Deletes unacknowledged notifications of a given type whose data contains the specified JSON fragment.
-     * Uses PostgreSQL's {@code @>} containment operator for partial matching.
+     * Deletes unacknowledged notifications of a given type that point at one particular entity,
+     * for the case where the entity is still there and only the message has stopped being true.
      *
-     * @param type        the notification type to match
-     * @param partialData the data fragment that must be contained in the notification data
+     * <p>Matching on the link rather than on the message text is what keeps a withdrawal to the one
+     * thing it is about: two entities may well carry the same words, and an entity with nothing
+     * written about it carries none at all, so a text fragment matches everything.
+     *
+     * <p>Read notifications stay: their reader has seen them and the link still leads somewhere.
+     * Where the entity itself is gone, {@link #deleteAllPointingAt} is the one to use.
+     *
+     * @param type the notification type to match
+     * @param link the link the notification must carry
      * @return the number of notifications deleted
      */
-    public int deleteByTypeContaining(NotificationType type, NotificationData partialData) {
+    public int deleteByTypeAndLink(NotificationType type, NotificationData.NotificationLink link) {
         return query("""
                 DELETE FROM notification
                 WHERE type = :type
-                  AND data @> :partial::JSONB
+                  AND data -> 'link' @> :link::JSONB
                   AND acknowledged_at IS NULL;""")
-                .single(call().bind("type", type).bind("partial", partialData.toJson()))
+                .single(call().bind("type", type).bind("link", link.toJson()))
                 .delete()
                 .rows();
+    }
+
+    /**
+     * Deletes every notification pointing at one entity, of whatever type and read or not, for the
+     * case where the entity itself is gone.
+     *
+     * <p>A read notification is kept out of nothing here: the entity behind it no longer exists, so
+     * tapping it in the feed lands on a page that is not there. Neither is the type asked for, since
+     * everything written about a removed entity is a dead end alike.
+     *
+     * <p>A link that names only some of its route parameters reaches every notification whose link
+     * carries at least those, which is how the reminders for one appointment are reached without
+     * naming each of their dates.
+     *
+     * @param link the link the notification must carry
+     * @return the number of notifications deleted
+     */
+    public int deleteAllPointingAt(NotificationData.NotificationLink link) {
+        return query("""
+                DELETE FROM notification
+                WHERE data -> 'link' @> :link::JSONB;""").single(call().bind("link", link.toJson())).delete().rows();
     }
 
     /**

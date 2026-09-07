@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -75,7 +76,7 @@ class LostAndFoundRepositoryTest extends RepositoryTestBase {
         assertEquals(
                 1,
                 lostAndFoundRepo
-                        .findUnclaimedOrClaimedBy(station.id(), member.id())
+                        .findUnclaimedOrClaimedBy(station.id(), List.of(member.id()))
                         .size());
     }
 
@@ -114,15 +115,45 @@ class LostAndFoundRepositoryTest extends RepositoryTestBase {
         assertEquals(1, lostAndFoundRepo.countClaimedNotProvided(station.id()));
     }
 
+    /**
+     * The claimer keeps seeing it, and so does anybody speaking for them, while somebody with no
+     * part in the claim no longer does.
+     */
     @Test
     @Order(24)
     void findUnclaimedOrClaimedByAfterClaim() {
-        // Should still find it since we claimed it ourselves
         assertEquals(
                 1,
                 lostAndFoundRepo
-                        .findUnclaimedOrClaimedBy(station.id(), member.id())
+                        .findUnclaimedOrClaimedBy(station.id(), List.of(member.id()))
                         .size());
+        assertEquals(
+                1,
+                lostAndFoundRepo
+                        .findUnclaimedOrClaimedBy(station.id(), List.of(999999, member.id()))
+                        .size());
+        assertEquals(
+                0,
+                lostAndFoundRepo
+                        .findUnclaimedOrClaimedBy(station.id(), List.of(999999))
+                        .size());
+    }
+
+    @Test
+    @Order(30)
+    void releaseFreesTheItemAgain() {
+        assertTrue(lostAndFoundRepo.release(itemId));
+        var item = lostAndFoundRepo.findById(itemId).orElseThrow();
+        assertNull(item.claimedBy());
+        assertNull(item.claimedAt());
+        assertEquals(1, lostAndFoundRepo.findUnclaimedByStation(station.id()).size());
+        assertEquals(0, lostAndFoundRepo.countClaimedNotProvided(station.id()));
+    }
+
+    @Test
+    @Order(31)
+    void releaseAnUnclaimedItemChangesNothing() {
+        assertFalse(lostAndFoundRepo.release(itemId));
     }
 
     @Test

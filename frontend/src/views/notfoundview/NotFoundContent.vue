@@ -21,7 +21,7 @@ const faqLogo = emberLogoFaq()
     <p class="text-xl font-medium mb-2">{{ t('notFound.title') }}</p>
     <p class="text-(--text-muted) mb-8 max-w-md">{{ t('notFound.text') }}</p>
     <div class="flex gap-3">
-      <router-link to="/">
+      <router-link to="/?home">
         <SecondaryButton :icon="['fas', 'house']">
           {{ t('notFound.home') }}
         </SecondaryButton>

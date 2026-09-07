@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.procedure.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -184,21 +186,68 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     void createProcedure() {
         Instant dueAt = Instant.now().plus(7, ChronoUnit.DAYS);
         Procedure p = procedureRepo.createProcedure(
-                station.id(), templateId, "Drill Instance", "Run the drill", true, member.id(), dueAt);
+                station.id(), templateId, "Drill Instance", "Run the drill", true, member.id(), dueAt, null, null);
         assertNotNull(p);
         assertEquals("Drill Instance", p.name());
         assertEquals(ProcedureStatus.OPEN, p.status());
         assertEquals(station.id(), p.stationId());
         assertEquals(templateId, p.templateId());
         assertNull(p.resolvedAt());
+        assertNull(p.eventId());
+        assertNull(p.eventDate());
         procedureId = p.id();
+    }
+
+    /**
+     * A procedure prepared for one evening keeps the appointment and the date it was made for, and
+     * is found again by them. That is what a second press of the button reads, so that the reader is
+     * offered the list already there rather than a second one beside it.
+     */
+    @Test
+    @Order(120)
+    void createProcedureForOccurrence() {
+        var date = LocalDate.now().plusDays(7);
+        var event = eventRepo.create(
+                station.id(),
+                "Dienstabend",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(7, ChronoUnit.DAYS),
+                Instant.now().plus(7, ChronoUnit.DAYS).plus(2, ChronoUnit.HOURS),
+                null,
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        Procedure p = procedureRepo.createProcedure(
+                station.id(), null, "Vorbereitung", null, true, member.id(), null, event.id(), date);
+
+        assertEquals(event.id(), p.eventId());
+        assertEquals(date, p.eventDate());
+
+        var found = procedureRepo.findProceduresByOccurrence(station.id(), event.id(), date);
+        assertEquals(1, found.size());
+        assertEquals(p.id(), found.getFirst().id());
+
+        assertTrue(procedureRepo
+                .findProceduresByOccurrence(station.id(), event.id(), date.plusDays(1))
+                .isEmpty());
+
+        procedureRepo.deleteProcedure(p.id());
+        eventRepo.delete(event.id());
     }
 
     @Test
     @Order(21)
     void createAdHocProcedure() {
         Procedure p = procedureRepo.createProcedure(
-                station.id(), null, "Ad Hoc Task", "No template", false, member.id(), null);
+                station.id(), null, "Ad Hoc Task", "No template", false, member.id(), null, null, null);
         assertNotNull(p);
         assertNull(p.templateId());
         assertNull(p.dueAt());

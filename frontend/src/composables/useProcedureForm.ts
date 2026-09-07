@@ -10,6 +10,7 @@ import type { ProcedureTemplate, TemplateDetail } from '@/api/procedures'
 import type { MemberCompletion } from '@/api/stationMembers'
 import type { EditableItem } from '@/views/stationview/procedure/procedurecreateview/types'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { dateToInstant, instantToDate } from '@/util/format'
 import { moveWithin } from '@/util/reorder'
 
 /**
@@ -29,6 +30,11 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
 
   const name = ref('')
   const description = ref('')
+  /**
+   * The due day as a date field holds it, `yyyy-MM-dd`. The endpoint speaks instants, so it is
+   * converted on the way out and back again on the way in rather than being passed straight
+   * through, which is a request the backend refuses whole.
+   */
   const dueAt = ref('')
   const isPublic = ref(true)
 
@@ -121,7 +127,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       const detail = await procedures.getProcedure(editId.value!)
       name.value = detail.procedure.name
       description.value = detail.procedure.description ?? ''
-      dueAt.value = detail.procedure.dueAt ?? ''
+      dueAt.value = instantToDate(detail.procedure.dueAt)
       isPublic.value = detail.procedure.isPublic
       selectedAssigneeIds.value = [...detail.assigneeIds]
       existingItemIds.value = new Set(detail.items.map(i => i.id))
@@ -236,7 +242,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       await procedures.updateProcedure(pid, {
         name: name.value.trim(),
         description: description.value || undefined,
-        dueAt: dueAt.value || null,
+        dueAt: dateToInstant(dueAt.value),
         isPublic: isPublic.value,
       })
       await syncAssignees(pid)
@@ -247,7 +253,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     const created = await procedures.createProcedure({
       name: name.value.trim(),
       description: description.value || undefined,
-      dueAt: dueAt.value || undefined,
+      dueAt: dateToInstant(dueAt.value) ?? undefined,
       isPublic: isPublic.value,
       assigneeIds: selectedAssigneeIds.value,
     })

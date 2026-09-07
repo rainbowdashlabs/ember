@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, type Page} from './fixtures/auth'
+import {test, expect, apiHeaders, pageAsThrowaway, stationPeers, type Page} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 
 /**
@@ -233,4 +233,54 @@ test.describe('News', () => {
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
     })
+
+    /**
+     * The notice about an entry is only worth anything as long as the entry is there: a reader taps
+     * it expecting the article and would otherwise land on a page the application no longer has.
+     * The tap is part of the story because it is also what marks the notice read, and a read notice
+     * about something deleted leads just as nowhere as an unread one. The second half is the one
+     * that matters, because a withdrawal reaching too far would empty the whole feed instead.
+     */
+    test('deleting an article withdraws the notice about it and leaves the others standing',
+        async ({browser, request, managerPage}) => {
+            const {member} = await stationPeers(request)
+            const memberPage = await pageAsThrowaway(browser, request, [], member)
+            const removed = unique('Neuigkeit-Entfernt')
+            const kept = unique('Neuigkeit-Geblieben')
+
+            try {
+                const removedId = idOf(await writeArticle(managerPage, removed, 'Geht wieder weg.'))
+                const keptId = idOf(await writeArticle(managerPage, kept, 'Bleibt stehen.'))
+
+                expect(await newsNotice(memberPage, removedId), 'the station hears about the entry').toBeTruthy()
+
+                await memberPage.goto('/station/dashboard/overview')
+                await memberPage.getByTestId('notification-entry').filter({hasText: removed}).click()
+                await memberPage.waitForURL(new RegExp(`/station/news/${removedId}$`))
+
+                await managerPage.request.delete(`/api/v1/news/${removedId}`, {
+                    headers: await apiHeaders(managerPage),
+                })
+
+                expect(await newsNotice(memberPage, removedId),
+                    'nothing is left pointing at an entry that is gone, read or not').toBeUndefined()
+                expect(await newsNotice(memberPage, keptId),
+                    'and the entry still there keeps its notice').toBeTruthy()
+            } finally {
+                await memberPage.context().close()
+            }
+        })
 })
+
+/** The number a news detail address ends in. */
+function idOf(detailUrl: string): string {
+    return detailUrl.split('/').pop() as string
+}
+
+/** The notice announcing one particular article, read or not, or nothing where there is none. */
+async function newsNotice(page: Page, newsId: string) {
+    const response = await page.request.get('/api/v1/notifications', {headers: await apiHeaders(page)})
+    expect(response.ok(), 'the notices can be read').toBeTruthy()
+    return (await response.json()).find((entry: {type: string; link?: {routeParams?: {id?: number}}}) =>
+        entry.type === 'NEW_NEWS' && String(entry.link?.routeParams?.id) === newsId)
+}

@@ -12,7 +12,7 @@ import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 
-export type TransitionKind = 'invite' | 'testing' | 'join' | 'approve' | 'reject' | 'withdraw'
+export type TransitionKind = 'testing' | 'join' | 'approve' | 'reject' | 'withdraw' | 'backToWaiting'
 
 export interface PendingTransition {
   entry: WaitingListEntryWithScore
@@ -25,6 +25,9 @@ export interface PendingTransition {
  * Every move is confirmed before it runs - each one is visible to the applicant, and joining in
  * particular creates a member. Joining therefore also hands over to the member editor when the
  * acting user may edit members, so the new member can be completed straight away.
+ *
+ * Inviting is not among them. It is the one move with something to fill in, so it has a screen of
+ * its own rather than a line of confirmation text.
  *
  * @param listId  the list being worked on
  * @param entries the entry list, reloaded after each move
@@ -61,8 +64,8 @@ export function useEntryTransitions(
         router.push({name: 'members-edit', params: {id: result.memberId}})
         return
       }
-    } else if (kind === 'invite') {
-      await waitingList.inviteEntry(listId.value, entryId)
+    } else if (kind === 'backToWaiting') {
+      await waitingList.returnToWaiting(listId.value, entryId)
     } else if (kind === 'testing') {
       await waitingList.moveToTesting(listId.value, entryId)
     } else if (kind === 'approve') {
@@ -83,7 +86,7 @@ export function useEntryTransitions(
     running,
     error: transitionError,
     confirm,
-    invite: (id: number) => request(id, 'invite'),
+    backToWaiting: (id: number) => request(id, 'backToWaiting'),
     moveToTesting: (id: number) => request(id, 'testing'),
     moveToJoined: (id: number) => request(id, 'join'),
     approve: (id: number) => request(id, 'approve'),

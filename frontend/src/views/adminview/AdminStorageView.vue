@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, onUnmounted, ref} from 'vue'
+import {computed, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {use} from 'echarts/core'
 import {CanvasRenderer} from 'echarts/renderers'
@@ -35,6 +35,7 @@ import {
 import {STORAGE_CATEGORY_COLORS, buildStorageCategoryLabeler, formatBytes} from '@/util/storage'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useStorageQuotas, type StorageQuotasPort} from '@/composables/useStorageQuotas'
+import {darkThemeActive as isDark} from '@/util/themeState'
 
 use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent])
 
@@ -47,9 +48,6 @@ interface TooltipParam {
 }
 
 const {t} = useI18n()
-
-const isDark = ref(document.documentElement.classList.contains('dark'))
-let observer: MutationObserver | null = null
 
 /**
  * The instance's own quotas: every station on it, the tiers it keeps, and the count of what is really there.
@@ -75,17 +73,7 @@ const {
   saveTier, removeTier, applyTier, resetStation, recalculateStation: recount,
 } = useStorageQuotas(port, {canRecalculate: true, showsOrigin: false, deferToCluster: true})
 
-onMounted(() => {
-  observer = new MutationObserver(() => {
-    isDark.value = document.documentElement.classList.contains('dark')
-  })
-  observer.observe(document.documentElement, {attributes: true, attributeFilter: ['class']})
-  reload()
-})
-
-onUnmounted(() => {
-  observer?.disconnect()
-})
+onMounted(reload)
 
 const totalUsage = computed(() => stations.value.reduce((s, st) => s + st.totalBytes, 0))
 const stationsWarning = computed(() => stations.value.filter(s => s.quotaUsedPercent >= 80 && s.quotaUsedPercent < 95).length)

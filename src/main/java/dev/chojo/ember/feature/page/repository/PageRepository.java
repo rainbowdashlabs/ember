@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.page.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.util.sql.SqlSupport;
@@ -208,6 +209,45 @@ public class PageRepository {
                 .map(row -> row.getObject("landing_page_id") != null ? row.getInt("landing_page_id") : null)
                 .first();
     }
+
+    /**
+     * The pages of a station that put one of these wiki articles on themselves.
+     *
+     * <p>A page cell names an article by number in its settings and no foreign key follows it, so
+     * deleting the article leaves the cell falling back to its stand-in title without anybody being
+     * told. This is the one question that turns that into something a delete dialog can say first.
+     *
+     * <p>The number is compared as it is written rather than cast, because the settings of a cell
+     * are free-form and one that never held a number would fail the cast rather than not match.
+     *
+     * @param stationId the station whose pages are asked about
+     * @param fileIds   the articles being deleted
+     * @return the pages that carry any of them, each named once
+     */
+    public List<EmbeddingPage> findPagesEmbeddingArticles(int stationId, List<Integer> fileIds) {
+        if (fileIds.isEmpty()) return List.of();
+        return query("""
+                SELECT DISTINCT p.title, p.published
+                FROM page_cell c
+                    JOIN page_row r ON r.id = c.row_id
+                    JOIN station_page p ON p.container_id = r.container_id
+                WHERE p.station_id = :station_id
+                  AND c.content_type = 'KB_ARTICLE'
+                  AND c.config ->> 'articleId' = ANY(:article_ids)
+                ORDER BY p.title;""")
+                .single(call().bind("station_id", stationId)
+                        .bind(
+                                "article_ids",
+                                fileIds.stream().map(String::valueOf).toList(),
+                                PostgreSqlTypes.TEXT))
+                .map(row -> new EmbeddingPage(row.getString("title"), row.getBoolean("published")))
+                .all();
+    }
+
+    /**
+     * A page that carries a wiki article, and whether anybody outside can see that page.
+     */
+    public record EmbeddingPage(String title, boolean published) {}
 
     /**
      * Lightweight picker result row for the page picker. Exposes only the public UUID - never the

@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
+import dev.chojo.ember.feature.knowledgebase.entity.KbSearchResult;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.RemoteKbFile;
@@ -429,6 +430,82 @@ public class KnowledgeBaseFederationService {
     }
 
     /**
+     * Whether putting entries into a target folder would let one of their shares reach further than
+     * the folder above allows.
+     *
+     * <p>The same rule {@link #shareEntry} enforces when a share is created, asked the other way
+     * round. Without it, moving is a second way past a refusal somebody set on purpose: a folder
+     * open to every partner slid under one aimed at two stations would keep reaching everybody.
+     *
+     * @param stationId      the station the entries belong to
+     * @param folderIds      the folders being moved, subfolders included
+     * @param fileIds        the articles being moved, those inside the moved folders included
+     * @param targetFolderId the folder they would go into, or {@code null} for the tree root
+     * @return {@code true} when a share would end up wider than the target folder allows
+     */
+    public boolean wouldOverreach(int stationId, Set<Integer> folderIds, Set<Integer> fileIds, Integer targetFolderId) {
+        var reachable = inheritedAim(stationId, targetFolderId);
+        if (reachable == null) return false;
+        for (var share : federationRepository.findKbShares(stationId)) {
+            boolean moved = (share.folderId() != null && folderIds.contains(share.folderId()))
+                    || (share.fileId() != null && fileIds.contains(share.fileId()));
+            if (!moved) continue;
+            if (share.shareScope() != ShareScope.SPECIFIC) return true;
+            var targets = federationRepository.findKbShareTargets(share.id());
+            if (targets.stream().anyMatch(id -> !reachable.contains(id))) return true;
+        }
+        return false;
+    }
+
+    /**
+     * How far outside this station an entry would be read once it sat in a target folder.
+     *
+     * <p>Its own share decides where it has one, because sharing an entry says something about that
+     * entry. Where it has none, the nearest shared folder above the target decides, which is what
+     * sharing a folder means.
+     *
+     * @param stationId      the station the entry belongs to
+     * @param folderId       the folder being moved, or {@code null} when moving a file
+     * @param fileId         the file being moved, or {@code null} when moving a folder
+     * @param targetFolderId the folder it would go into, or {@code null} for the tree root
+     * @return whether every partner, only named stations, or nobody outside would read it
+     */
+    public PartnerReach reachUnder(int stationId, Integer folderId, Integer fileId, Integer targetFolderId) {
+        var shares = federationRepository.findKbShares(stationId);
+        for (var share : shares) {
+            boolean own = fileId != null
+                    ? Objects.equals(share.fileId(), fileId)
+                    : Objects.equals(share.folderId(), folderId);
+            if (own) return scopeReach(share.shareScope());
+        }
+        for (Integer id = targetFolderId; id != null; ) {
+            for (var share : shares) {
+                if (Objects.equals(share.folderId(), id)) return scopeReach(share.shareScope());
+            }
+            var folder = knowledgeBaseService.findFolder(id).orElse(null);
+            if (folder == null) break;
+            id = folder.parentId();
+        }
+        return PartnerReach.NOBODY;
+    }
+
+    private static PartnerReach scopeReach(ShareScope scope) {
+        return scope == ShareScope.SPECIFIC ? PartnerReach.NAMED_STATIONS : PartnerReach.EVERY_PARTNER;
+    }
+
+    /**
+     * How far an entry is read outside the station that owns it.
+     */
+    public enum PartnerReach {
+        /** Nobody outside the station reads it. */
+        NOBODY,
+        /** Every partner station reads it. */
+        EVERY_PARTNER,
+        /** The stations it names read it, and no others. */
+        NAMED_STATIONS
+    }
+
+    /**
      * The stations the nearest shared folder above reaches, or {@code null} when nothing above narrows
      * anything: either no folder above is shared, or one is shared with everybody.
      */
@@ -723,18 +800,52 @@ public class KnowledgeBaseFederationService {
      */
     public List<RemoteKbSearchResultItem> searchForPartner(FederationPartner partner, String query) {
         if (query == null || query.isBlank()) return List.of();
-        var results = searchService.searchWithSnippets(partner.stationId(), query);
-        var sharedFileIds = federationRepository.findKbShares(partner.stationId()).stream()
-                .map(FederationShare::fileId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        var results = sharedHits(
+                partner.stationId(), partner.id(), searchService.searchWithSnippets(partner.stationId(), query));
         return results.stream()
-                .filter(result -> sharedFileIds.contains(result.file().id()))
                 .map(result -> new RemoteKbSearchResultItem(
                         result.file().id(),
                         result.file().name(),
                         result.file().description() != null ? result.file().description() : "",
                         result.snippet() != null ? result.snippet() : ""))
+                .toList();
+    }
+
+    /**
+     * Keeps the search hits one station actually shares with one reader.
+     *
+     * <p>The same rule the single-file guard applies, only for a whole result set at once: an
+     * article counts as shared when it is shared in its own right or sits anywhere below a shared
+     * folder, and a share aimed at named stations reaches only those. The shares and the ancestry
+     * of every hit are read once for the batch, so a search stays a fixed number of queries however
+     * many articles match.
+     *
+     * @param servingStationId the station whose knowledge base was searched
+     * @param readingPartnerId the partnership the reader arrives on, as the serving station keeps it
+     * @param hits             the unfiltered matches
+     * @return the matches the reader may be told about
+     */
+    private List<KbSearchResult> sharedHits(int servingStationId, Integer readingPartnerId, List<KbSearchResult> hits) {
+        if (hits.isEmpty()) return List.of();
+        var shares = sharesReaching(servingStationId, readingPartnerId);
+        var sharedFiles = shares.stream()
+                .map(FederationShare::fileId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        var sharedFolders = shares.stream()
+                .map(FederationShare::folderId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        var ancestries = knowledgeBaseService.findFolderAncestries(hits.stream()
+                .map(hit -> hit.file().folderId())
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
+        return hits.stream()
+                .filter(hit -> sharedFiles.contains(hit.file().id())
+                        || ancestries.getOrDefault(hit.file().folderId(), Set.<Integer>of()).stream()
+                                .anyMatch(sharedFolders::contains))
+                .limit(KbSearchService.RESULT_LIMIT)
                 .toList();
     }
 
@@ -1035,10 +1146,18 @@ public class KnowledgeBaseFederationService {
         return new SharedKbLevel(folders, result);
     }
 
+    /**
+     * Searches a partner that lives on this instance. The partner's knowledge base is reachable
+     * without leaving the process, which is exactly why the sharing rule has to be applied here
+     * too: the reader is owed the same answer they would get over the wire.
+     */
     private List<FederatedSearchResult> searchKbDirect(FederationPartner partner, String query) {
         String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "?");
         String stationUid = partner.partnerStationId().toString();
-        return searchService.searchWithSnippets(partnerStationId(partner), query).stream()
+        int servingStationId = partnerStationId(partner);
+        var hits = sharedHits(
+                servingStationId, servingSideId(partner), searchService.searchWithSnippets(servingStationId, query));
+        return hits.stream()
                 .map(result -> new FederatedSearchResult(
                         KbFileSummary.of(result.file()), result.snippet(), stationName, stationUid))
                 .toList();

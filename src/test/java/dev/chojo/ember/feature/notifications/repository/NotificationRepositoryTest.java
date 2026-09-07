@@ -21,7 +21,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -225,5 +227,104 @@ class NotificationRepositoryTest extends RepositoryTestBase {
         clusterService.removeMember(clusterMember.id());
         accountRepo.delete(clusterAccount.id());
         clusterService.delete(cluster.id());
+    }
+
+    /**
+     * Withdrawing by what a notification points at reaches exactly that one, where withdrawing by
+     * the words it carries reaches every notification worded the same.
+     */
+    @Test
+    @Order(60)
+    void deleteByTypeAndLinkTakesOnlyTheOneItPointsAt() {
+        var about7 = new NotificationData.NotificationLink("lost-and-found", Map.of("id", 7));
+        var about8 = new NotificationData.NotificationLink("lost-and-found", Map.of("id", 8));
+        notificationRepo.create(
+                member.id(),
+                NotificationType.LOST_AND_FOUND_NEW,
+                NotificationData.of(new NotificationParams.LostAndFoundNew(""), about7));
+        notificationRepo.create(
+                member.id(),
+                NotificationType.LOST_AND_FOUND_NEW,
+                NotificationData.of(new NotificationParams.LostAndFoundNew(""), about8));
+
+        assertEquals(1, notificationRepo.deleteByTypeAndLink(NotificationType.LOST_AND_FOUND_NEW, about7));
+
+        var left = notificationRepo.findUnacknowledged(member.id()).stream()
+                .filter(n -> n.type() == NotificationType.LOST_AND_FOUND_NEW)
+                .toList();
+        assertEquals(1, left.size());
+        assertEquals(
+                8,
+                Integer.parseInt(String.valueOf(
+                        left.getFirst().data().link().routeParams().get("id"))));
+
+        assertEquals(0, notificationRepo.deleteByTypeAndLink(NotificationType.LOST_AND_FOUND_CLAIMED, about8));
+        assertEquals(1, notificationRepo.deleteByTypeAndLink(NotificationType.LOST_AND_FOUND_NEW, about8));
+    }
+
+    /**
+     * Where the thing itself is gone, everything pointing at it goes: of whatever type, and read as
+     * well as unread, because a read notification leads to the same missing page as an unread one.
+     */
+    @Test
+    @Order(61)
+    void deleteAllPointingAtTakesTheReadOnesTooButOnlyForThatOneThing() {
+        var about21 = new NotificationData.NotificationLink("event-detail", Map.of("id", 21));
+        var about22 = new NotificationData.NotificationLink("event-detail", Map.of("id", 22));
+        notificationRepo.create(
+                member.id(),
+                NotificationType.NEW_EVENT,
+                NotificationData.of(new NotificationParams.NewEvent("Probe", ""), about21));
+        var read = notificationRepo.create(
+                member.id(),
+                NotificationType.EVENT_CANCELLED,
+                NotificationData.of(new NotificationParams.EventCancelled("Probe", "Krank"), about21));
+        assertTrue(notificationRepo.acknowledge(read.id(), member.id()));
+        notificationRepo.create(
+                member.id(),
+                NotificationType.NEW_EVENT,
+                NotificationData.of(new NotificationParams.NewEvent("Probe", ""), about22));
+
+        assertEquals(2, notificationRepo.deleteAllPointingAt(about21));
+        assertEquals(1, notificationRepo.deleteAllPointingAt(about22));
+    }
+
+    /**
+     * A link that leaves a route parameter out reaches every notification carrying at least the
+     * ones it names, which is how all the reminders for one appointment are withdrawn at once.
+     */
+    @Test
+    @Order(62)
+    void deleteAllPointingAtReachesEveryDateOfOneAppointment() {
+        notificationRepo.create(
+                member.id(),
+                NotificationType.EVENT_REMINDER,
+                NotificationData.of(
+                        new NotificationParams.EventReminder("Probe", 2, LocalDate.of(2026, 5, 4)),
+                        new NotificationData.NotificationLink(
+                                "event-detail-date", Map.of("id", "31", "date", "2026-05-04"))));
+        notificationRepo.create(
+                member.id(),
+                NotificationType.EVENT_REMINDER,
+                NotificationData.of(
+                        new NotificationParams.EventReminder("Probe", 2, LocalDate.of(2026, 5, 11)),
+                        new NotificationData.NotificationLink(
+                                "event-detail-date", Map.of("id", "31", "date", "2026-05-11"))));
+        notificationRepo.create(
+                member.id(),
+                NotificationType.EVENT_REMINDER,
+                NotificationData.of(
+                        new NotificationParams.EventReminder("Andere", 2, LocalDate.of(2026, 5, 4)),
+                        new NotificationData.NotificationLink(
+                                "event-detail-date", Map.of("id", "32", "date", "2026-05-04"))));
+
+        assertEquals(
+                2,
+                notificationRepo.deleteAllPointingAt(
+                        new NotificationData.NotificationLink("event-detail-date", Map.of("id", "31"))));
+        assertEquals(
+                1,
+                notificationRepo.deleteAllPointingAt(
+                        new NotificationData.NotificationLink("event-detail-date", Map.of("id", "32"))));
     }
 }

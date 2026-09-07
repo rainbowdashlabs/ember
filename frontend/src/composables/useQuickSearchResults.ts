@@ -11,13 +11,15 @@ import { StationModules, StationPermission, type MemberIdentity } from '@/api/ty
 import { listCompletions, type MemberCompletion } from '@/api/stationMembers'
 import { search as searchKb, type SearchResult as KbSearchResult } from '@/api/knowledgeBase'
 import { listUpcomingOccurrences, type UpcomingEventOccurrence } from '@/api/events'
+import { listInventories, type Inventory } from '@/api/inventory'
+import { matchesWords } from '@/util/listSearch'
 
 const MAX_PER_SECTION = 8
 const SEARCH_DEBOUNCE_MS = 200
 const MIN_KB_QUERY_LENGTH = 2
 
 export interface PaletteResult {
-  kind: 'page' | 'member' | 'kb' | 'event'
+  kind: 'page' | 'member' | 'kb' | 'event' | 'inventory'
   label: string
   sublabel?: string
   icon: string
@@ -35,9 +37,10 @@ export interface PaletteSection {
  * What the quick-search palette offers for the current query.
  *
  * Pages are filtered in the browser from the static route list, because they are few and always
- * known. Members, knowledge base files and events come from the server: members once per opening,
- * the other two debounced per keystroke. Every source is capped and every failure degrades to an
- * empty section, so one unavailable module cannot stop the palette from answering.
+ * known, and the inventories are filtered the same way and for the same reason. Members, knowledge
+ * base files and events come from the server: members and inventories once per opening, the other
+ * two debounced per keystroke. Every source is capped and every failure degrades to an empty
+ * section, so one unavailable module cannot stop the palette from answering.
  *
  * @param query the current search text
  * @param scope which route set applies - the station palette or the admin one
@@ -47,12 +50,15 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
   const { hasPermission, hasClusterPermission, isModuleEnabled } = useSession()
 
   const members = ref<MemberCompletion[]>([])
+  const inventories = ref<Inventory[]>([])
   const kbResults = ref<KbSearchResult[]>([])
   const eventResults = ref<UpcomingEventOccurrence[]>([])
   const dataLoading = ref(false)
 
   let kbDebounce: ReturnType<typeof setTimeout> | null = null
   let eventDebounce: ReturnType<typeof setTimeout> | null = null
+  /** Whether the inventories of this opening are in hand, so a lost request is asked for again. */
+  let inventoriesLoaded = false
 
   function entryAllowed(entry: PaletteRouteEntry): boolean {
     if (entry.scope !== scope.value) return false
@@ -106,6 +112,20 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
       }))
   })
 
+  const inventoryResults = computed<PaletteResult[]>(() => {
+    if (!inStation.value || !normalisedQuery.value) return []
+    return inventories.value
+      .filter(entry => matchesWords(entry.name ?? '', normalisedQuery.value))
+      .slice(0, MAX_PER_SECTION)
+      .map(entry => ({
+        kind: 'inventory' as const,
+        label: entry.name ?? String(entry.id),
+        sublabel: t(entry.homogeneous ? 'inventory.manage.kindStockName' : 'inventory.manage.kindCollectionName'),
+        icon: 'warehouse',
+        to: {name: 'inventory-detail', params: {id: entry.id}},
+      }))
+  })
+
   const kbResultEntries = computed<PaletteResult[]>(() => {
     if (!inStation.value) return []
     return kbResults.value.slice(0, MAX_PER_SECTION).map(r => ({
@@ -132,6 +152,7 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
     {key: 'pages', title: t('quickSearch.sectionPages'), items: pageResults.value},
     {key: 'members', title: t('quickSearch.sectionMembers'), items: memberResults.value},
     {key: 'events', title: t('quickSearch.sectionEvents'), items: eventResultEntries.value},
+    {key: 'inventories', title: t('quickSearch.sectionInventories'), items: inventoryResults.value},
     {key: 'kb', title: t('quickSearch.sectionKnowledge'), items: kbResultEntries.value},
   ].filter(section => section.items.length > 0))
 
@@ -143,6 +164,27 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
       members.value = await listCompletions()
     } catch {
       members.value = []
+    }
+  }
+
+  /**
+   * The inventories the palette filters, fetched once per opening.
+   *
+   * <p>A request that does not arrive leaves the section silently absent, which reads exactly like a
+   * station that owns nothing, so a failed fetch is tried again on the next keystroke rather than
+   * being the answer for as long as the palette stays open.
+   */
+  async function loadInventories() {
+    if (inventoriesLoaded) return
+    if (!inStation.value || !isModuleEnabled(StationModules.INVENTORY) || !hasPermission(StationPermission.INVENTORY_READ)) {
+      inventories.value = []
+      return
+    }
+    try {
+      inventories.value = await listInventories()
+      inventoriesLoaded = true
+    } catch {
+      inventories.value = []
     }
   }
 
@@ -175,15 +217,17 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
     if (eventDebounce) clearTimeout(eventDebounce)
     kbDebounce = setTimeout(() => runKbSearch(q.trim()), SEARCH_DEBOUNCE_MS)
     eventDebounce = setTimeout(() => runEventSearch(q.trim()), SEARCH_DEBOUNCE_MS)
+    loadInventories()
   })
 
   /**
-   * Loads what the palette needs on opening: the member list it filters locally, and the upcoming
-   * events shown before anything is typed.
+   * Loads what the palette needs on opening: the member and inventory lists it filters locally, and
+   * the upcoming events shown before anything is typed.
    */
   async function loadForOpen() {
     dataLoading.value = true
-    await Promise.all([loadMembers(), runEventSearch('')])
+    inventoriesLoaded = false
+    await Promise.all([loadMembers(), loadInventories(), runEventSearch('')])
     dataLoading.value = false
   }
 

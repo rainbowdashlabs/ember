@@ -45,7 +45,7 @@ public class ProcedureAssignedHandler implements DomainEventHandler<ProcedureAss
                 new NotificationParams.ProcedureAssigned(event.procedureName(), assignedByName),
                 // procedureId rides on the link so the feed renderer can surface progress (items
                 // checked / total) in the body without a separate lookup table.
-                new NotificationData.NotificationLink("procedures", Map.of("id", event.procedureId())));
+                new NotificationData.NotificationLink("procedure-detail", Map.of("id", event.procedureId())));
         notificationService.notifyMembersIfAbsent(
                 event.assigneeMemberIds(), NotificationType.PROCEDURE_ASSIGNED, data, event.assignedByMemberId());
     }

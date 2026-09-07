@@ -23,7 +23,8 @@ const dueDate = defineModel<string>('dueDate', { required: true })
 
 defineProps<{
     laneOptions: BoardLane[]
-    members: MemberCompletion[]
+    /** Whom the new ticket may be handed to, which is who the picker offers. */
+    assignableMembers: MemberCompletion[]
 }>()
 
 const { t } = useI18n()
@@ -59,7 +60,7 @@ const { t } = useI18n()
     <div class="grid grid-cols-2 gap-4">
         <div>
             <FieldLabel class="mb-1">{{ t('boards.assignee') }}</FieldLabel>
-            <MemberSelectInput v-model="assignee" :members="members" :placeholder="t('boards.unassigned')" />
+            <MemberSelectInput v-model="assignee" :members="assignableMembers" :placeholder="t('boards.unassigned')" />
         </div>
         <div>
             <FieldLabel class="mb-1">{{ t('boards.dueDate') }}</FieldLabel>

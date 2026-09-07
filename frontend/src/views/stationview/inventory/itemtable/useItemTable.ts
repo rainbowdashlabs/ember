@@ -6,6 +6,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {listFields, type InventoryFieldDefinition} from '@/api/inventoryFields'
+import {inventoryItemTags} from '@/api/inventoryTags'
 import {ItemOwner, type InventoryItem} from '@/api/inventory'
 import type { ColumnPickerOption } from '@/components/table/columns'
 import { byValue, useSortable } from '@/composables/useSortable'
@@ -32,6 +33,7 @@ export function useItemTable(options: ItemTableOptions) {
   const { t } = useI18n()
 
   const fieldDefs = ref<InventoryFieldDefinition[]>([])
+  const tagNamesByItem = ref<Map<number, string[]>>(new Map())
   const searchText = ref('')
   const hiddenKeys = ref<Set<string>>(new Set())
   const extraKeys = ref<Set<string>>(new Set())
@@ -51,6 +53,12 @@ export function useItemTable(options: ItemTableOptions) {
     } catch {
       fieldDefs.value = []
     }
+    try {
+      const worn = await inventoryItemTags(options.inventoryId())
+      tagNamesByItem.value = new Map(worn.map(entry => [entry.itemId, entry.tags.map(tag => tag.name)]))
+    } catch {
+      tagNamesByItem.value = new Map()
+    }
   })
 
   const defaultColumns = computed<ItemTableColumn[]>(() => [
@@ -58,6 +66,7 @@ export function useItemTable(options: ItemTableOptions) {
     { key: 'internalId', label: t('inventory.edit.colId') },
     ...(options.hasSizes() ? [{ key: 'size', label: t('inventory.edit.colSize') }] : []),
     ...(options.isMixed() ? [{ key: 'owner', label: t('inventory.edit.colOwner') }] : []),
+    { key: 'tags', label: t('inventory.tag.column') },
     { key: 'assigned', label: t('inventory.edit.colAssigned') },
   ])
 
@@ -115,6 +124,7 @@ export function useItemTable(options: ItemTableOptions) {
   function ownerLabel(item: InventoryItem): string {
     if (item.ownerKind === ItemOwner.STATION) return t('inventory.edit.ownerStation')
     if (item.ownerKind === ItemOwner.CLUSTER) return t('inventory.edit.ownerCluster')
+    if (item.ownerKind === ItemOwner.PARTNER_STATION) return t('inventory.edit.ownerPartner')
     return ''
   }
 
@@ -124,9 +134,14 @@ export function useItemTable(options: ItemTableOptions) {
       case 'internalId': return item.internalId ?? ''
       case 'size': return options.sizeLabel(item)
       case 'owner': return ownerLabel(item)
+      case 'tags': return itemTagNames(item).join(', ')
       case 'assigned': return item.assignedTo ? options.assignedName(item) : ''
       default: return fieldValue(item, key.slice(FIELD_PREFIX.length))
     }
+  }
+
+  function itemTagNames(item: InventoryItem): string[] {
+    return tagNamesByItem.value.get(item.id) ?? []
   }
 
   function assignedStatuses(item: InventoryItem): string[] {
@@ -138,6 +153,7 @@ export function useItemTable(options: ItemTableOptions) {
 
   function filterValues(item: InventoryItem, key: string): string[] {
     if (key === 'assigned') return assignedStatuses(item)
+    if (key === 'tags') return itemTagNames(item)
     const value = columnValue(item, key)
     return value ? [value] : []
   }
@@ -153,8 +169,9 @@ export function useItemTable(options: ItemTableOptions) {
     }
     const values = new Set<string>()
     for (const item of options.items()) {
-      const value = columnValue(item, key)
-      if (value) values.add(value)
+      for (const value of filterValues(item, key)) {
+        if (value) values.add(value)
+      }
     }
     return [...values].sort()
   }

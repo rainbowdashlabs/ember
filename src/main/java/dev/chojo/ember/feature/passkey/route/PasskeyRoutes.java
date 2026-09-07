@@ -361,10 +361,10 @@ public class PasskeyRoutes implements Routes {
             throw new UnauthorizedResponse(result.message());
         }
         if (result.passwordChangeRequired()) {
-            ctx.json(new LoginResponse(null, null, true, result.token(), result.expiresAt(), false, null, null));
+            ctx.json(LoginResponse.passwordChange(result.token(), result.expiresAt()));
             return;
         }
-        ctx.json(new LoginResponse(result.token(), result.expiresAt(), false, null, null, false, null, null));
+        ctx.json(LoginResponse.session(result.token(), result.expiresAt()));
     }
 
     // -- The member's list and switches --

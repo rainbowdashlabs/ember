@@ -62,6 +62,20 @@ const requirements = [
       <p class="mt-3">{{ t('helpCenter.basics.hosting.dockerText2') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.basics.hosting.firstStart')">
+      <p>{{ t('helpCenter.basics.hosting.firstStartText') }}</p>
+      <BulletList>
+        <li>{{ t('helpCenter.basics.hosting.firstStartStep1') }}</li>
+        <li>{{ t('helpCenter.basics.hosting.firstStartStep2') }}</li>
+        <li>{{ t('helpCenter.basics.hosting.firstStartStep3') }}</li>
+      </BulletList>
+      <HelpTip class="mt-3">{{ t('helpCenter.basics.hosting.firstStartWhy') }}</HelpTip>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.basics.hosting.noMail')">
+      <p>{{ t('helpCenter.basics.hosting.noMailText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.basics.hosting.configLinkTitle')">
       <p>{{ t('helpCenter.basics.hosting.configLinkText') }}</p>
       <router-link :to="{name: 'help-basics-hosting-configuration'}">

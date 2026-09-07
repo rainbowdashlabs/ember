@@ -80,6 +80,17 @@ export function useBoardApi() {
         return boards.getBoardMembers(boardKey.value)
     }
 
+    /**
+     * Whom a ticket may be handed to. A partner's board answers only with its members, and asking
+     * it who may write there would change what the two instances promise each other, so a
+     * federated board keeps offering all of them and the owning station turns down what it will
+     * not take.
+     */
+    async function getAssignableMembers(): Promise<MemberCompletion[]> {
+        if (isFederated.value) return federatedBoards.getBoardMembers(partnerUid.value!, boardKey.value)
+        return boards.getAssignableMembers(boardKey.value)
+    }
+
     // -- Ticket detail data --
 
     async function getChecklist(): Promise<BoardChecklistItem[]> {
@@ -270,6 +281,7 @@ export function useBoardApi() {
         getLabels,
         listTickets,
         getMembers,
+        getAssignableMembers,
         getChecklist,
         getLinks,
         getTransitions,

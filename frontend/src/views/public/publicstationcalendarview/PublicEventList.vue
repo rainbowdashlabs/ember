@@ -10,7 +10,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {PublicEvent} from '@/api/publicEvents'
 import {renderMarkdown} from '@/util/markdown'
-import {formatTime} from '@/util/format'
+import {formatTime, formatWeekdayDate, weekdayName} from '@/util/format'
 import ProseContent from '@/components/display/ProseContent.vue'
 
 defineProps<{
@@ -18,13 +18,6 @@ defineProps<{
 }>()
 
 const {t} = useI18n()
-
-const dayNames = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
-
-function formatDate(iso?: string): string {
-  if (!iso) return ''
-  return new Date(iso).toLocaleDateString('de-DE', {weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric'})
-}
 
 function isRecurring(eventType?: string): boolean {
   return eventType != null && eventType !== 'ONE_TIME'
@@ -50,10 +43,10 @@ function isRecurring(eventType?: string): boolean {
         </div>
         <span class="text-sm text-(--text-muted)">
           <template v-if="isRecurring(ev.eventType) && ev.dayOfWeek">
-            {{ dayNames[ev.dayOfWeek] }}, {{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}
+            {{ weekdayName(ev.dayOfWeek) }}, {{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}
           </template>
           <template v-else>
-            {{ formatDate(ev.startTime) }}, {{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}
+            {{ formatWeekdayDate(ev.startTime, 'short') }}, {{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}
           </template>
         </span>
       </div>

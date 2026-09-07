@@ -12,6 +12,7 @@ import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
+import StockShareBar from '@/components/inventory/StockShareBar.vue'
 import type { InventorySize } from '@/api/inventory'
 
 interface SizeStat {
@@ -71,7 +72,10 @@ const { t } = useI18n()
         <Th align="center">{{ t('inventory.detail.lost') }}</Th>
       </template>
       <TRow v-for="row in props.sizeStats" :key="row.size?.id ?? 'none'" data-testid="stats-size-row">
-        <Td class="font-medium">{{ row.size?.label ?? t('inventory.detail.noSize') }}</Td>
+        <Td class="font-medium">
+          {{ row.size?.label ?? t('inventory.detail.noSize') }}
+          <StockShareBar :assigned="row.assigned" :free="row.free" :total="row.total"/>
+        </Td>
         <Td align="center">{{ row.total }}</Td>
         <Td align="center" class="text-success">{{ row.free }}</Td>
         <Td align="center" class="text-primary">{{ row.assigned }}</Td>

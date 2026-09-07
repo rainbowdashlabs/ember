@@ -20,6 +20,7 @@ const props = defineProps<{
   step: Step
   selectedUserType: 'TRIAL' | 'MEMBER' | 'GUARDIAN' | 'TEAM'
   canLogin: boolean
+  sendSetupMail: boolean
   email: string
   firstName: string
   lastName: string
@@ -37,6 +38,7 @@ const emit = defineEmits<{
   (e: 'update:step', value: Step): void
   (e: 'update:selectedUserType', value: 'TRIAL' | 'MEMBER' | 'GUARDIAN' | 'TEAM'): void
   (e: 'update:canLogin', value: boolean): void
+  (e: 'update:sendSetupMail', value: boolean): void
   (e: 'update:email', value: string): void
   (e: 'update:firstName', value: string): void
   (e: 'update:lastName', value: string): void
@@ -68,10 +70,12 @@ const submitLabel = () =>
   <IdentityStep
     v-if="step === 'identity'"
     :can-login="canLogin"
+    :send-setup-mail="sendSetupMail"
     :email="email"
     :first-name="firstName"
     :last-name="lastName"
     @update:can-login="emit('update:canLogin', $event)"
+    @update:send-setup-mail="emit('update:sendSetupMail', $event)"
     @update:email="emit('update:email', $event)"
     @update:first-name="emit('update:firstName', $event)"
     @update:last-name="emit('update:lastName', $event)"

@@ -21,6 +21,7 @@ import type { QuestionDraft } from './builderview/types'
 import {FormPurpose, QUESTION_TYPES_BY_PURPOSE, QuestionTypes, type FormPurposeName, type FormQuestionRequest, type QuestionType} from '@/api/forms'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
+import { instantToLocalInput } from '@/util/format'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -124,8 +125,8 @@ const { loading, error } = useAsyncLoader(async () => {
   shuffleQuestions.value = form.shuffleQuestions
   allowEdit.value = form.allowEdit
   forced.value = form.forced ?? false
-  startAt.value = form.startAt ? form.startAt.slice(0, 16) : ''
-  endAt.value = form.endAt ? form.endAt.slice(0, 16) : ''
+  startAt.value = instantToLocalInput(form.startAt)
+  endAt.value = instantToLocalInput(form.endAt)
   purpose.value = form.purpose
 
   restriction.value = {

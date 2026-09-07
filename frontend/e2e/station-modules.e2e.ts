@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Page} from '@playwright/test'
-import {test, expect} from './fixtures/auth'
+import {test, expect, apiHeaders} from './fixtures/auth'
 import {sidebar, sidebarEntry} from './fixtures/sidebar'
 
 /**
@@ -121,4 +121,40 @@ test.describe('Station modules', () => {
         await page.goto('/station/quiz/tests')
         await expect(sidebarEntry(page, 'Quiz & Prüfungen')).toBeVisible()
     })
+
+    /**
+     * An appointment's equipment reads the inventory. A station that has switched the inventory off
+     * has nothing to read there, and the tab would only ever answer with a refusal, which the screen
+     * has no way of telling apart from an appointment that needs nothing.
+     */
+    test('an appointment keeps its equipment tab only while the inventory is on',
+        async ({partnerManagerPage: page}) => {
+            const headers = await apiHeaders(page)
+            const start = new Date(Date.now() + 28 * 86400000).toISOString()
+            const created = await page.request.post('/api/v1/events', {
+                headers,
+                data: {
+                    name: `Modulabend ${Date.now()}`,
+                    eventType: 'ONE_TIME',
+                    startTime: start,
+                    endTime: new Date(new Date(start).getTime() + 3 * 3600000).toISOString(),
+                    requiresRegistration: false,
+                },
+            })
+            expect(created.ok(), `the manager made an appointment (${await created.text()})`).toBeTruthy()
+            const eventId = (await created.json()).id
+            const detail = `/station/events/${eventId}/${start.slice(0, 10)}`
+
+            await page.goto(detail)
+            await expect(page.getByRole('button', {name: 'Ausrüstung'})).toBeVisible()
+
+            await setModule(page, 'INVENTORY', false)
+            await page.goto(detail)
+            await expect(page.getByTestId('app-shell')).toBeVisible()
+            await expect(page.getByRole('button', {name: 'Ausrüstung'}), 'the tab is gone with the module')
+                .toHaveCount(0)
+
+            await setModule(page, 'INVENTORY', true)
+            await page.request.delete(`/api/v1/events/${eventId}`, {headers})
+        })
 })

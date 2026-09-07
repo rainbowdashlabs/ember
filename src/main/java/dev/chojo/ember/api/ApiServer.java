@@ -30,6 +30,7 @@ import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
+import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
@@ -964,6 +965,16 @@ public class ApiServer {
                     .status(HttpStatus.BAD_REQUEST);
         });
 
+        // Somebody who cannot be given an account is the same kind of answer: the address is already
+        // somebody's, and the caller has to be told so. It is mapped here rather than at each route
+        // because provisioning happens as a side effect of several acts, naming a manager for a
+        // station among them, and every route that forgot the mapping turned a refusal into a fault
+        // with no message at all.
+        routes.exception(StationMemberInviteService.ProvisionException.class, (err, ctx) -> {
+            log.warn("Member could not be provisioned on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+            ctx.json(new ErrorResponseWrapper("Conflict", err.getMessage())).status(HttpStatus.CONFLICT);
+        });
+
         routes.exception(StreamReadException.class, (err, ctx) -> {
             log.warn("Malformed body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
             ctx.json(new ErrorResponseWrapper("Bad Request", "The request body is not valid JSON"))
@@ -1039,8 +1050,9 @@ public class ApiServer {
      * After-handler that sets Cache-Control and ETag headers based on the request path.
      *
      * <p>Ordering matters: content-hashed page files get an immutable year-long cache; the public
-     * configuration is revalidated every time because it names the running version;
-     * everything else under {@code /public/} is publicly cacheable; only then are non-public
+     * configuration is revalidated every time because it names the running version; a waiting-list
+     * entry behind its own link is nobody's to keep, so it is stored nowhere; everything else under
+     * {@code /public/} is publicly cacheable; only then are non-public
      * binary resources given a short private cache. Error responses receive no caching
      * headers, and the binary-resource match is segment-precise so an authenticated path
      * that merely contains {@code image}/{@code logo} as a substring (e.g. the logout
@@ -1102,6 +1114,11 @@ public class ApiServer {
         if (path.equals(API_PREFIX + "/public/config")) {
             ctx.header("Cache-Control", "public, no-cache");
             addETag(ctx);
+            return;
+        }
+
+        if (path.startsWith(API_PREFIX + "/public/waiting-list/entry/")) {
+            ctx.header("Cache-Control", "private, no-store");
             return;
         }
 

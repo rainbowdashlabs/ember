@@ -46,7 +46,7 @@ const { t } = useI18n()
 
     <div class="space-y-1">
       <FieldLabel>{{ t('inventory.requirements.inventory') }}</FieldLabel>
-      <SelectInput v-model="inventoryId">
+      <SelectInput v-model="inventoryId" data-testid="requirement-inventory">
         <option value="" disabled>{{ t('inventory.requirements.selectInventory') }}</option>
         <option v-for="inv in inventories" :key="inv.id" :value="String(inv.id)">{{ inv.name }}</option>
       </SelectInput>

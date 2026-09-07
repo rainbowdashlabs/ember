@@ -198,7 +198,9 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                 "Termin für den jährlichen Erste-Hilfe-Auffrischungskurs finden und buchen.",
                 true,
                 admin.id(),
-                Instant.now().minus(3, ChronoUnit.DAYS));
+                Instant.now().minus(3, ChronoUnit.DAYS),
+                null,
+                null);
         repo.addAssignee(overdueProc.id(), betreuer.get(0).id());
         if (betreuer.size() > 1) {
             repo.addAssignee(overdueProc.id(), betreuer.get(1).id());
@@ -220,7 +222,9 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                 "Vorbereitung und Abgabe des Jahresberichts an den Kreisfeuerwehrverband.",
                 false,
                 admin.id(),
-                Instant.now().plus(30, ChronoUnit.DAYS));
+                Instant.now().plus(30, ChronoUnit.DAYS),
+                null,
+                null);
         repo.addAssignee(privateProc.id(), admin.id());
         repo.createItem(privateProc.id(), "Mitgliederzahlen zusammenstellen", null, false, false, 0);
         repo.createItem(privateProc.id(), "Übungsstunden auswerten", null, false, false, 1);
@@ -237,7 +241,8 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
             boolean isPublic,
             int assignedBy,
             Instant dueAt) {
-        var procedure = repo.createProcedure(stationId, templateId, name, description, isPublic, assignedBy, dueAt);
+        var procedure =
+                repo.createProcedure(stationId, templateId, name, description, isPublic, assignedBy, dueAt, null, null);
 
         // Snapshot template items
         var templateItems = repo.findTemplateItems(templateId);

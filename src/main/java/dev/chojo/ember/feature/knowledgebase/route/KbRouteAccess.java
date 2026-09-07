@@ -44,6 +44,23 @@ final class KbRouteAccess {
     }
 
     /**
+     * Loads a knowledge-base file that is in the trash and asserts it belongs to the caller's
+     * station. Answers {@code 404} for one that is still in use, so a trash action cannot be a
+     * second way of reaching a live entry.
+     */
+    static KbFile requireOwnedTrashedFile(Context ctx, KnowledgeBaseService service, int fileId) {
+        return requireOwnedOrNotFound(ctx, fileId, service::findDeletedFile, KbFile::stationId);
+    }
+
+    /**
+     * Loads a knowledge-base folder that is in the trash and asserts it belongs to the caller's
+     * station.
+     */
+    static KbFolder requireOwnedTrashedFolder(Context ctx, KnowledgeBaseService service, int folderId) {
+        return requireOwnedOrNotFound(ctx, folderId, service::findDeletedFolder, KbFolder::stationId);
+    }
+
+    /**
      * Reads the caller's access context, carrying the station-wide knowledge rights so the grant
      * resolution knows what they may do where the tree says nothing.
      *

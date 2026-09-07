@@ -48,15 +48,46 @@ public final class ItemCustodySql {
      * @return the SQL predicate, expecting {@code :custody_station} to be bound
      */
     public static String heldBy(String itemAlias, String inventoryAlias) {
+        return heldByStation(itemAlias, inventoryAlias, ":" + STATION_BIND);
+    }
+
+    /**
+     * A predicate matching the stock of one inventory: what the station that inventory belongs to
+     * actually holds of it, minus what is in the post.
+     *
+     * <p>Being written down in an inventory is not the same as being there. Gear the body above the
+     * station owns and has taken back rests with its owner, and the row stays where it is because the
+     * history of the piece hangs on it; counting that row as stock says the station has something
+     * that went back to the association last month. Which station to ask about is the one the
+     * inventory belongs to, so this needs no bind of its own.
+     *
+     * <p>A piece on its way somewhere is left out for the older reason: it is at neither end, and
+     * every figure drawn from the list would inherit that.
+     *
+     * @param itemAlias      the alias of {@code inventory_item}
+     * @param inventoryAlias the alias of the joined {@code inventory} row
+     * @return the SQL predicate, needing no bind of its own
+     */
+    public static String stockOf(String itemAlias, String inventoryAlias) {
+        return "(%s AND %s.custody <> 'IN_TRANSIT')"
+                .formatted(heldByStation(itemAlias, inventoryAlias, inventoryAlias + ".station_id"), itemAlias);
+    }
+
+    /**
+     * The one formulation of "this station holds this piece", with the station left open so it can be
+     * a bind in one place and the inventory's own station in another. Writing it twice is how the two
+     * drifted apart before.
+     */
+    private static String heldByStation(String itemAlias, String inventoryAlias, String station) {
         return """
                 (
-                    (%1$s.custody = 'WITH_OWNER' AND %1$s.owner_kind = 'STATION' AND %2$s.station_id = :%3$s)
+                    (%1$s.custody = 'WITH_OWNER' AND %1$s.owner_kind = 'STATION' AND %2$s.station_id = %3$s)
                     OR (%1$s.custody IN ('AT_STATION', 'WITH_MEMBER', 'WITH_PARTNER', 'LOST')
-                        AND %1$s.custody_station_id = :%3$s)
+                        AND %1$s.custody_station_id = %3$s)
                     OR (%1$s.custody = 'IN_TRANSIT' AND EXISTS(
                         SELECT 1 FROM item_movement mv
-                        WHERE mv.id = %1$s.custody_movement_id AND mv.station_id = :%3$s))
-                )""".formatted(itemAlias, inventoryAlias, STATION_BIND);
+                        WHERE mv.id = %1$s.custody_movement_id AND mv.station_id = %3$s))
+                )""".formatted(itemAlias, inventoryAlias, station);
     }
 
     /**
@@ -86,5 +117,29 @@ public final class ItemCustodySql {
     public static String freeStock(String itemAlias) {
         return "(%1$s.custody = 'AT_STATION' OR (%1$s.custody = 'WITH_OWNER' AND %1$s.owner_kind = 'STATION'))"
                 .formatted(itemAlias);
+    }
+
+    /**
+     * A predicate matching the gear a station can actually put its hands on.
+     *
+     * <p>Narrower than {@link #heldBy(String, String)} and wider than {@link #freeStock(String)}, and
+     * it exists because neither of those answers "can this station bring the thing along". Held-by
+     * counts gear that is lost or in the post, which cannot be brought. Free stock leaves out gear a
+     * member keeps, and radios permanently handed to a group leader are the ordinary case rather than
+     * the exception: a list that reports them missing because somebody at the station is holding them
+     * is worse than no list.
+     *
+     * <p>Gear with a federation partner is out for the same reason lost gear is: it is somewhere else.
+     *
+     * @param itemAlias      the alias of {@code inventory_item}
+     * @param inventoryAlias the alias of the joined {@code inventory} row
+     * @return the SQL predicate, expecting {@code :custody_station} to be bound
+     */
+    public static String atHand(String itemAlias, String inventoryAlias) {
+        return """
+                (
+                    (%1$s.custody = 'WITH_OWNER' AND %1$s.owner_kind = 'STATION' AND %2$s.station_id = :%3$s)
+                    OR (%1$s.custody IN ('AT_STATION', 'WITH_MEMBER') AND %1$s.custody_station_id = :%3$s)
+                )""".formatted(itemAlias, inventoryAlias, STATION_BIND);
     }
 }

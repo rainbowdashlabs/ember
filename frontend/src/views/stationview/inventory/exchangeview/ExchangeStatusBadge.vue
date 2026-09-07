@@ -5,6 +5,7 @@
  */
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
@@ -27,4 +28,5 @@ function statusLabel(status: ExchangeStatusName): string {
   <PrimaryBadge v-else-if="status === ExchangeStatus.RECEIVED || status === ExchangeStatus.ARRIVED">{{ statusLabel(status) }}</PrimaryBadge>
   <SecondaryBadge v-else-if="status === ExchangeStatus.SHIPPED">{{ statusLabel(status) }}</SecondaryBadge>
   <SuccessBadge v-else-if="status === ExchangeStatus.DONE">{{ statusLabel(status) }}</SuccessBadge>
+  <ErrorBadge v-else-if="status === ExchangeStatus.CANCELLED || status === ExchangeStatus.DECLINED" data-testid="exchange-status-closed">{{ statusLabel(status) }}</ErrorBadge>
 </template>

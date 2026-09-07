@@ -7,6 +7,7 @@ import {readonly} from 'vue'
 import {session} from '@/api'
 import {getItem} from '@/api/storage'
 import {usePermissions} from '@/composables/usePermissions'
+import {claimVisitedArea} from '@/util/landingMemoryState'
 import {
     sessionClusterId,
     sessionInfo,
@@ -52,6 +53,7 @@ export function useSession() {
         sessionStationId.value = requestedStation
         sessionClusterId.value = requestedCluster
         sessionLoaded.value = true
+        claimVisitedArea()
     }
 
     function clear() {

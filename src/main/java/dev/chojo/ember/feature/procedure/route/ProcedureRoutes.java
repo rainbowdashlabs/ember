@@ -25,6 +25,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -69,6 +71,10 @@ public class ProcedureRoutes implements Routes {
 
         // Procedures (USER can list/view their assigned procedures; PROCEDURE_READ sees all)
         routes.get(prefix + "/procedures", this::listProcedures, StationPermission.USER);
+        routes.get(
+                prefix + "/procedures/for-event/{eid}",
+                this::listProceduresForOccurrence,
+                StationPermission.PROCEDURE_EDIT);
         routes.post(prefix + "/procedures", this::createProcedure, StationPermission.PROCEDURE_EDIT);
         routes.get(prefix + "/procedures/{rid}", this::getProcedure, StationPermission.USER);
         routes.put(prefix + "/procedures/{rid}", this::updateProcedure, StationPermission.PROCEDURE_EDIT);
@@ -211,6 +217,24 @@ public class ProcedureRoutes implements Routes {
         }
     }
 
+    /**
+     * What has already been prepared for one evening of one appointment, so a second press of the
+     * button that made it offers the list rather than a copy of it.
+     */
+    private void listProceduresForOccurrence(Context ctx) {
+        var session = UserSession.from(ctx);
+        int eventId = pathInt(ctx, "eid");
+        String date = ctx.queryParam("date");
+        if (date == null || date.isBlank()) throw new BadRequestResponse("date is required");
+        LocalDate eventDate;
+        try {
+            eventDate = LocalDate.parse(date);
+        } catch (DateTimeParseException e) {
+            throw new BadRequestResponse("date must be a calendar date");
+        }
+        ctx.json(procedureService.findProceduresByOccurrence(session.stationId(), eventId, eventDate));
+    }
+
     private void getProcedure(Context ctx) {
         var session = UserSession.from(ctx);
         int rid = pathInt(ctx, "rid");
@@ -249,7 +273,9 @@ public class ProcedureRoutes implements Routes {
                 req.isPublic(),
                 session.member().id(),
                 req.dueAt(),
-                req.assigneeIds() != null ? req.assigneeIds() : List.of());
+                req.assigneeIds() != null ? req.assigneeIds() : List.of(),
+                req.eventDate() != null ? req.eventId() : null,
+                req.eventId() != null ? req.eventDate() : null);
         ctx.json(procedure);
     }
 
@@ -389,13 +415,20 @@ public class ProcedureRoutes implements Routes {
 
     public record DependencyRequest(List<DependencyEntry> dependencies) {}
 
+    /**
+     * @param eventId   the appointment the procedure is being prepared for, or {@code null}
+     * @param eventDate the one occurrence of that appointment. Both are recorded only when both are
+     *                  given: an appointment without a date names every evening it has ever had
+     */
     public record CreateProcedureRequest(
             Integer templateId,
             String name,
             String description,
             boolean isPublic,
             Instant dueAt,
-            List<Integer> assigneeIds) {}
+            List<Integer> assigneeIds,
+            Integer eventId,
+            LocalDate eventDate) {}
 
     public record UpdateProcedureRequest(String name, String description, boolean isPublic, Instant dueAt) {}
 

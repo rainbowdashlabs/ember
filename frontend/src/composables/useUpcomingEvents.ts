@@ -22,6 +22,7 @@ import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { events, managedMembers as managedMembersApi, memberGroups, userTags } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useEventAnswer } from '@/composables/useEventAnswer'
+import { toIsoDate } from '@/util/format'
 
 const PAGE_SIZE = 10
 const SEARCH_DEBOUNCE_MS = 250
@@ -67,7 +68,7 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
    */
   function multiDayEndDate(event: StationEvent, startDateStr: string): string | null {
     if (isRecurringEvent(event.eventType) || !event.endTime) return null
-    const endStr = new Date(event.endTime).toISOString().slice(0, 10)
+    const endStr = toIsoDate(new Date(event.endTime))
     return endStr > startDateStr ? endStr : null
   }
 

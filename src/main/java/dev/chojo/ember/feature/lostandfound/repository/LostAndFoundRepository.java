@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.lostandfound.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
@@ -65,22 +66,26 @@ public class LostAndFoundRepository {
     }
 
     /**
-     * Finds items that are either unclaimed or claimed by a specific member.
+     * Finds items that are either unclaimed or claimed for one of the given members.
+     *
+     * <p>Several members rather than one, because somebody claiming a glove for the child they
+     * look after has to keep seeing it: the claim names the child, and a list that only knows the
+     * reader's own name would hide the entry from the very person who made it.
      *
      * @param stationId the station to query
-     * @param memberId  the member whose claimed items should also be included
+     * @param memberIds the members whose claimed items should also be included
      * @return matching items ordered by creation date descending
      */
-    public List<LostAndFoundItem> findUnclaimedOrClaimedBy(int stationId, int memberId) {
+    public List<LostAndFoundItem> findUnclaimedOrClaimedBy(int stationId, List<Integer> memberIds) {
         return query("""
                 SELECT
                     %s
                 FROM
                     lost_and_found_item
                 WHERE station_id = :station_id
-                  AND ( claimed_by IS NULL OR claimed_by = :member_id )
+                  AND ( claimed_by IS NULL OR claimed_by = ANY(:member_ids) )
                 ORDER BY created_at DESC;""", LOST_AND_FOUND_ITEM_COLUMNS)
-                .single(call().bind("station_id", stationId).bind("member_id", memberId))
+                .single(call().bind("station_id", stationId).bind("member_ids", memberIds, PostgreSqlTypes.INTEGER))
                 .map(LostAndFoundItem.map())
                 .all();
     }
@@ -134,6 +139,20 @@ public class LostAndFoundRepository {
                 .single(call().bind("claimed_by", claimedBy)
                         .bind("claimed_at", Instant.now(), INSTANT_TIMESTAMP)
                         .bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Takes a claim back off an item, so it stands unclaimed again.
+     *
+     * @param id the item ID
+     * @return true if a claim was actually taken back
+     */
+    public boolean release(int id) {
+        return query("UPDATE lost_and_found_item SET claimed_by = NULL, claimed_at = NULL"
+                        + " WHERE id = :id AND claimed_by IS NOT NULL;")
+                .single(call().bind("id", id))
                 .update()
                 .changed();
     }

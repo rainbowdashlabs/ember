@@ -15,6 +15,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import type {FederatedEventRegistration} from '@/api/events'
+import {formatDate} from '@/util/format'
 
 defineProps<{
   registrations: FederatedEventRegistration[]
@@ -35,7 +36,7 @@ const {t} = useI18n()
       <NeutralContainer v-for="fr in registrations" :key="fr.registration.id" class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2">
           <MemberName v-if="fr.memberIdentity" :identity="fr.memberIdentity"/>
-          <MutedText size="sm">{{ fr.registration.eventDate }}</MutedText>
+          <MutedText size="sm">{{ formatDate(fr.registration.eventDate) }}</MutedText>
           <SuccessBadge v-if="fr.registration.status === 'ACCEPTED'">{{ t('eventsUpcoming.statusAccepted') }}</SuccessBadge>
           <InfoBadge v-else-if="fr.registration.status === 'PENDING'">{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
           <ErrorBadge v-else-if="fr.registration.status === 'DENIED'">{{ t('eventsUpcoming.statusDenied') }}</ErrorBadge>

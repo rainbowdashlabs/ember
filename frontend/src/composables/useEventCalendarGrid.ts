@@ -5,6 +5,7 @@
  */
 import { computed, ref, type Ref } from 'vue'
 import { EventTypes, isRecurringEvent, type EventBreak, type StationEvent } from '@/api/events'
+import { toIsoDate } from '@/util/format'
 
 /**
  * One cell of the month grid. Cells outside the visible month are still rendered so the grid
@@ -45,18 +46,6 @@ export interface CalendarSource {
   searchQuery: string
 }
 
-function pad2(n: number): string {
-  return String(n).padStart(2, '0')
-}
-
-/**
- * The local calendar date of {@code d} as {@code yyyy-MM-dd}. Deliberately not
- * {@code toISOString()}, which would shift the date across the UTC boundary for evening events.
- */
-function isoDate(d: Date): string {
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
-}
-
 function isoToYmd(iso: string): [number, number, number] {
   const [y, m, d] = iso.split('-').map(Number) as [number, number, number]
   return [y, m - 1, d]
@@ -80,7 +69,7 @@ function addDays(iso: string, days: number): string {
  */
 export function useEventCalendarGrid(source: Ref<CalendarSource>) {
   const today = new Date()
-  const todayIso = isoDate(today)
+  const todayIso = toIsoDate(today)
   const viewYear = ref(today.getFullYear())
   const viewMonth = ref(today.getMonth())
 
@@ -111,8 +100,8 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
 
   function eventDayDuration(ev: StationEvent): number {
     if (!ev.startTime || !ev.endTime) return 0
-    const startDay = new Date(ev.startTime).toISOString().slice(0, 10)
-    const endDay = new Date(ev.endTime).toISOString().slice(0, 10)
+    const startDay = toIsoDate(new Date(ev.startTime))
+    const endDay = toIsoDate(new Date(ev.endTime))
     if (endDay <= startDay) return 0
     return Math.round(
         (Date.UTC(...isoToYmd(endDay)) - Date.UTC(...isoToYmd(startDay))) / (24 * 3600 * 1000),
@@ -136,7 +125,7 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
   }
 
   function singleDayEventsForDate(date: Date): {event: StationEvent; date: string}[] {
-    const dateStr = isoDate(date)
+    const dateStr = toIsoDate(date)
     if (inBreak(dateStr)) return []
 
     const result: {event: StationEvent; date: string}[] = []
@@ -145,7 +134,7 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
 
       if (ev.eventType === EventTypes.ONE_TIME) {
         if (!ev.startTime) continue
-        if (dateStr === new Date(ev.startTime).toISOString().slice(0, 10)) {
+        if (dateStr === toIsoDate(new Date(ev.startTime))) {
           result.push({event: ev, date: dateStr})
         }
         continue
@@ -184,14 +173,14 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
   function barStartDates(ev: StationEvent, weekStart: string, weekEnd: string, dur: number): string[] {
     if (ev.eventType === EventTypes.ONE_TIME) {
       if (!ev.startTime) return []
-      return [new Date(ev.startTime).toISOString().slice(0, 10)]
+      return [toIsoDate(new Date(ev.startTime))]
     }
     if (!isRecurringEvent(ev.eventType)) return []
     const starts: string[] = []
     let cursor = new Date(addDays(weekStart, -dur) + 'T12:00:00')
     const stop = new Date(weekEnd + 'T12:00:00')
     while (cursor.getTime() <= stop.getTime()) {
-      if (recurringOccurrenceStartsOn(ev, cursor)) starts.push(isoDate(cursor))
+      if (recurringOccurrenceStartsOn(ev, cursor)) starts.push(toIsoDate(cursor))
       cursor = new Date(cursor.getTime() + 24 * 3600 * 1000)
     }
     return starts
@@ -242,7 +231,7 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
     const allCells: DayCell[] = []
     for (let i = 0; i < 42; i++) {
       const d = new Date(viewYear.value, viewMonth.value, 1 - firstWeekdayMon + i)
-      const iso = isoDate(d)
+      const iso = toIsoDate(d)
       allCells.push({
         date: d,
         iso,

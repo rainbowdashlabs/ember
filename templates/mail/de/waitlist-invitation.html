@@ -1,0 +1,18 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hallo {{ name }},</h2>
+      <p><strong>{{ stationName }}</strong> lädt dich ein, einmal vorbeizukommen und uns kennenzulernen.</p>
+      {% if appointmentName %}
+      <p>Wir würden uns freuen, dich hier zu sehen:</p>
+      <ul class="notification-list">
+        <li class="notification-item"><strong>{{ appointmentName }}</strong></li>
+        {% if appointmentDate %}<li class="notification-item">Datum: {{ appointmentDate }}</li>{% endif %}
+        {% if appointmentTime %}<li class="notification-item">Uhrzeit: {{ appointmentTime }}</li>{% endif %}
+        {% if arrivalTime %}<li class="notification-item">Bitte sei schon um {{ arrivalTime }} da, damit wir dich in Ruhe begrüßen können.</li>{% endif %}
+        {% if location %}<li class="notification-item">Wo: {{ location }}</li>{% endif %}
+      </ul>
+      {% endif %}
+      <p>Sag uns bitte über die folgende Seite Bescheid, ob es dir passt. Dort kannst du auch sagen, dass der Termin nicht passt oder dass du kein Interesse mehr hast:</p>
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">Einladung beantworten</a></div>
+      <p class="hint">Bis du zum ersten Mal da warst, bist du weiterhin nur auf der Warteliste. Es wird nichts angelegt und du bist zu nichts verpflichtet.</p>
+{% endblock %}

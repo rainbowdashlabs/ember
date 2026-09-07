@@ -179,7 +179,7 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
     @Test
     void gearAPartnerHasCannotBeHandedOutAndComesBackOnReturn() {
         int itemId = stationOwned("C-8");
-        itemCustodyService.lendToPartner(itemId);
+        itemCustodyService.lendToPartner(itemId, null);
 
         assertEquals(ItemCustody.WITH_PARTNER, custodyOf(itemId));
         assertThrows(
@@ -235,7 +235,7 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
         assertTrue(itemCustodyService.placeInContainer(gone, null).isEmpty());
         assertTrue(itemCustodyService.markLost(gone, null, null).isEmpty());
         assertTrue(itemCustodyService.markFound(gone).isEmpty());
-        assertTrue(itemCustodyService.lendToPartner(gone).isEmpty());
+        assertTrue(itemCustodyService.lendToPartner(gone, null).isEmpty());
         assertTrue(itemCustodyService.returnFromPartner(gone).isEmpty());
     }
 

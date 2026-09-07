@@ -17,6 +17,10 @@ import static org.slf4j.LoggerFactory.getLogger;
  * Configuration options for a profile field, parsed from JSON.
  *
  * @param required       whether the field must be filled
+ * @param description    a sentence saying what the question is after, shown under its label. A
+ *                       field name has to be short enough for a table column, which leaves no room
+ *                       to say what counts as an answer, and the person filling it in is the one
+ *                       who needs that said.
  * @param readonly       whether the field is read-only for non-managers
  * @param notifyOnChange whether changes to this field require manager acknowledgement
  * @param overview       whether the field is shown in the member overview table
@@ -35,6 +39,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  */
 public record ProfileFieldConfig(
         boolean required,
+        String description,
         boolean readonly,
         boolean notifyOnChange,
         boolean overview,
@@ -48,7 +53,7 @@ public record ProfileFieldConfig(
     private static final Logger log = getLogger(ProfileFieldConfig.class);
     private static final ObjectMapper MAPPER = Json.CONFIG_MAPPER;
     private static final ProfileFieldConfig EMPTY =
-            new ProfileFieldConfig(false, false, false, false, null, null, false, null, null, null, null);
+            new ProfileFieldConfig(false, null, false, false, false, null, null, false, null, null, null, null);
 
     /**
      * The settings of a field that names none.

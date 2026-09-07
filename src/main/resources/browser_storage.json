@@ -238,6 +238,15 @@
       }
     },
     {
+      "key": "landing_area",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Der Bereich, in dem Sie zuletzt gearbeitet haben (Wache, Verband oder Verwaltung), zusammen mit dem Konto, zu dem er gehört. Rufen Sie die Startseite auf, während Sie angemeldet sind, bringt Sie die Anwendung dorthin zurück.",
+        "en": "The area you last worked in (station, cluster or administration), together with the account it belongs to. If you open the start page while signed in, the application takes you back there."
+      }
+    },
+    {
       "key": "onboarding_tour_completed",
       "necessity": "COMFORT",
       "retention": "UNTIL_CLEARED",

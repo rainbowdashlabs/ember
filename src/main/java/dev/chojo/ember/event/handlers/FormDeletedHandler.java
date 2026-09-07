@@ -7,14 +7,10 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.FormDeleted;
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
-import dev.chojo.ember.feature.notifications.entity.NotificationParams;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-
-import java.util.Map;
 
 @Singleton
 public class FormDeletedHandler implements DomainEventHandler<FormDeleted> {
@@ -30,13 +26,11 @@ public class FormDeletedHandler implements DomainEventHandler<FormDeleted> {
         return FormDeleted.class;
     }
 
+    /**
+     * Takes the invitation to fill the form with it, read or not, because the form it opens is gone.
+     */
     @Override
     public void handle(FormDeleted event) {
-        notificationService.deleteByTypeContaining(
-                NotificationType.NEW_FORM,
-                NotificationData.of(
-                        new NotificationParams.NewForm(null),
-                        new NotificationData.NotificationLink(
-                                "forms-fill", Map.of("id", String.valueOf(event.formId())))));
+        notificationService.deleteAllPointingAt(NotificationLinks.form(event.formId()));
     }
 }

@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import {FieldTypes} from '@/api/profileFields'
 import {useFieldsCapabilities} from '@/composables/useFieldsConfig'
 import {FIELD_TYPE_ORDER, fieldTypeLabel} from '../fieldTypes'
@@ -21,6 +22,7 @@ const props = defineProps<{
 
 const name = defineModel<string>('name', {required: true})
 const fieldType = defineModel<string>('fieldType', {required: true})
+const description = defineModel<string>('description', {required: true})
 
 const {t} = useI18n()
 
@@ -54,6 +56,14 @@ const availableOptions = computed(() => FIELD_TYPE_ORDER
       <SelectInput v-model="fieldType" data-testid="field-type">
         <option v-for="ft in availableOptions" :key="ft.value" :value="ft.value">{{ ft.label }}</option>
       </SelectInput>
+    </div>
+    <div class="space-y-1">
+      <FieldLabel>{{ t('membersConfig.fieldDescription') }}</FieldLabel>
+      <TextInput
+          v-model="description"
+          data-testid="field-description"
+          :placeholder="t('membersConfig.fieldDescriptionPlaceholder')"/>
+      <MutedText class="text-xs">{{ t('membersConfig.fieldDescriptionHint') }}</MutedText>
     </div>
   </div>
 </template>

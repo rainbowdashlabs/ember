@@ -11,8 +11,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import ExchangeStatusBadge from './ExchangeStatusBadge.vue'
+import ExchangeCorrectPanel from './ExchangeCorrectPanel.vue'
 import ExchangeStatusUpdatePanel from './ExchangeStatusUpdatePanel.vue'
-import {ExchangeStatus, type ExchangeRequestEntry, type ExchangeStatusName} from '@/api/exchanges'
+import {stillMoving, type ExchangeRequestEntry, type ExchangeStatusName} from '@/api/exchanges'
 import type { InventoryItem } from '@/api/inventory'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import { itemOwnerBadge, itemOwnerLabel as toItemOwnerLabel } from '@/util/inventoryType'
@@ -27,6 +28,7 @@ const props = defineProps<{
   exportMode: boolean
   selected: boolean
   isUpdating: boolean
+  isCorrecting: boolean
   nextStatuses: ExchangeStatusName[]
   availableItems: InventoryItem[]
 }>()
@@ -35,10 +37,13 @@ const emit = defineEmits<{
   (e: 'toggle-export'): void
   (e: 'open-log'): void
   (e: 'start-update'): void
+  (e: 'start-correct'): void
   (e: 'delete'): void
   (e: 'status-done'): void
   (e: 'status-cancel'): void
   (e: 'status-error', msg: string): void
+  (e: 'correct-done'): void
+  (e: 'correct-cancel'): void
 }>()
 
 /** Who owns the piece this row is about, which a mixed inventory cannot answer for the inventory. */
@@ -70,18 +75,32 @@ function ownerLabel(ownerKind?: string | null): string {
       <SecondaryButton @click="emit('open-log')">
         <font-awesome-icon :icon="['fas', 'clock-rotate-left']" />
       </SecondaryButton>
-      <SecondaryButton v-if="canManageExchanges && request.status !== ExchangeStatus.DONE" @click="emit('start-update')">
+      <SecondaryButton v-if="canManageExchanges && stillMoving(request.status)" @click="emit('start-update')">
         <font-awesome-icon :icon="['fas', 'arrow-right']" />
+      </SecondaryButton>
+      <SecondaryButton v-if="canManageExchanges" :title="t('exchanges.correct')" @click="emit('start-correct')">
+        <font-awesome-icon :icon="['fas', 'pen']" />
       </SecondaryButton>
       <DeleteButton v-if="canManageExchanges" @click="emit('delete')" />
     </div>
-    <div v-if="isUpdating" class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
+    <div
+      v-if="isUpdating || isCorrecting"
+      class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent"
+    >
       <ExchangeStatusUpdatePanel
+        v-if="isUpdating"
         :request="request"
         :next-statuses="nextStatuses"
         :available-items="availableItems"
         @done="emit('status-done')"
         @cancel="emit('status-cancel')"
+        @error="(msg) => emit('status-error', msg)"
+      />
+      <ExchangeCorrectPanel
+        v-else
+        :request="request"
+        @done="emit('correct-done')"
+        @cancel="emit('correct-cancel')"
         @error="(msg) => emit('status-error', msg)"
       />
     </div>

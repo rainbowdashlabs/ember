@@ -360,6 +360,60 @@ class FederationRepositoryTest extends RepositoryTestBase {
         federationRepo.deletePartner(remote.id());
     }
 
+    /**
+     * The row a cross-instance handshake produces is finished as it is written: active, both keys in
+     * place, the partner's name carried over because that station is in another instance's database.
+     */
+    @Test
+    @Order(715)
+    void createRemotePartner() {
+        var contract = new FederationContract("core-hash", Map.of("KB_SHARE", "kb-hash"));
+
+        var remote = federationRepo.createRemotePartner(
+                stationA.id(),
+                stationC.uid(),
+                "ourKey",
+                "theirKey",
+                "https://elsewhere.example.com",
+                "Wache Anderswo",
+                contract);
+
+        assertEquals(FederationPartner.FederationStatus.ACTIVE, remote.status());
+        assertEquals("ourKey", remote.publicKey());
+        assertEquals("theirKey", remote.partnerPublicKey());
+        assertEquals("https://elsewhere.example.com", remote.remoteHost());
+        assertEquals("Wache Anderswo", remote.partnerStationName());
+        assertEquals("core-hash", remote.federationContract().core());
+        federationRepo.deletePartner(remote.id());
+    }
+
+    /**
+     * A pair made a second time overwrites the first: one side ending the connection leaves the other
+     * side's row behind, and a fresh code is the two of them starting over.
+     */
+    @Test
+    @Order(716)
+    void createRemotePartnerReplacesAnEarlierOne() {
+        var first = federationRepo.createRemotePartner(
+                stationA.id(), stationC.uid(), "oldKey", "oldTheirs", "https://old.example.com", "Alt", null);
+
+        var second = federationRepo.createRemotePartner(
+                stationA.id(),
+                stationC.uid(),
+                "newKey",
+                "newTheirs",
+                "https://new.example.com",
+                "Neu",
+                new FederationContract("fresh", Map.of()));
+
+        assertEquals(first.id(), second.id());
+        assertEquals("newKey", second.publicKey());
+        assertEquals("https://new.example.com", second.remoteHost());
+        assertEquals("Neu", second.partnerStationName());
+        assertEquals("fresh", second.federationContract().core());
+        federationRepo.deletePartner(second.id());
+    }
+
     @Test
     @Order(72)
     void updateRemoteHost() {

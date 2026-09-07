@@ -5,6 +5,7 @@
  */
 import client from './client'
 import {createCrudResource, createScopedCrudResource} from './crud'
+import type {ExchangeStatusName} from './exchanges'
 export interface AttendanceTemplate {
     id: number
     stationId: string
@@ -56,6 +57,10 @@ export interface AttendanceSession {
     createdAt?: string
     eventId?: number | null
     title?: string
+    /** When a manager's reopening runs out, null where the sheet's age alone decides. */
+    unlockedUntil?: string | null
+    /** When somebody closed the sheet by hand, null where nobody did. */
+    lockedAt?: string | null
 }
 
 export interface SessionRequest {
@@ -84,6 +89,8 @@ export interface SessionDetail {
     session?: AttendanceSession
     fields?: AttendanceSessionField[]
     entries?: AttendanceEntry[]
+    /** Whether the sheet refuses writes; decided by the backend, which owns the span. */
+    locked?: boolean
 }
 
 export type AttendanceStatus = 'UNCONFIRMED' | 'PRESENT' | 'ABSENT' | 'DECLINED'
@@ -240,6 +247,52 @@ export async function updateEntryStatus(entryId: number, status: string): Promis
 
 export async function syncFromEvent(sessionId: number): Promise<AttendanceEntry[]> {
     const res = await client.post<AttendanceEntry[]>(`/attendance/sessions/${sessionId}/sync-event`)
+    return res.data
+}
+
+/** A swap of the member's that has not finished. */
+export interface SwapNote {
+    exchangeId: number
+    status: ExchangeStatusName
+    /** The one step it takes next, null where it is at its end. */
+    nextStatus: ExchangeStatusName | null
+    /** Whether that step is putting the piece into the member's hands. */
+    handOverNext: boolean
+    /** The piece set aside for the member, which the step that hands it over has to be told about. */
+    replacementItemId: number | null
+    inventoryName: string
+}
+
+/** A found item the member claimed and has not collected. */
+export interface FoundNote {
+    itemId: number
+    description: string
+}
+
+/**
+ * What is outstanding for one member. Absent entirely where they have nothing, and carrying only
+ * what the reader is allowed to see: the server leaves the rest out rather than sending it.
+ */
+export interface MemberNotes {
+    memberId: number
+    swaps: SwapNote[]
+    foundItems: FoundNote[]
+    /** How many days ago their birthday fell, zero for today, null where there is none to show. */
+    birthdayDaysAgo: number | null
+}
+
+export async function getMemberNotes(sessionId: number): Promise<MemberNotes[]> {
+    const res = await client.get<MemberNotes[]>(`/attendance/sessions/${sessionId}/member-notes`)
+    return res.data
+}
+
+export async function unlockSession(sessionId: number): Promise<AttendanceSession> {
+    const res = await client.post<AttendanceSession>(`/attendance/sessions/${sessionId}/unlock`)
+    return res.data
+}
+
+export async function lockSession(sessionId: number): Promise<AttendanceSession> {
+    const res = await client.post<AttendanceSession>(`/attendance/sessions/${sessionId}/lock`)
     return res.data
 }
 

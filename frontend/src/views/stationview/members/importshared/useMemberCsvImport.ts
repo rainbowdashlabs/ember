@@ -57,6 +57,13 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
      */
     const ignoredRows = ref<number[]>([])
 
+    /**
+     * Whether the setup mails leave with the accounts this import writes. A list is often read in
+     * long before anybody is meant to hear about it, and the mails are then sent from the member
+     * list, one at a time, when the station is ready to be asked about them.
+     */
+    const sendSetupMail = ref(true)
+
     async function toggleRow(row: number) {
         ignoredRows.value = ignoredRows.value.includes(row)
             ? ignoredRows.value.filter(candidate => candidate !== row)
@@ -80,8 +87,13 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
             return response.data
         },
         commit: async ({text, separator, mapping}) => {
-            const response = await client.post<TResult>(options.importPath,
-                {csv: text, separator, mappings: mapping, ignoredRows: ignoredRows.value})
+            const response = await client.post<TResult>(options.importPath, {
+                csv: text,
+                separator,
+                mappings: mapping,
+                ignoredRows: ignoredRows.value,
+                sendSetupMail: sendSetupMail.value,
+            })
             return response.data
         },
     })
@@ -208,5 +220,15 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
         if (isLoaded) loadFields()
     })
 
-    return {importer, targetOptions, fieldScopeGroups, needsValueMap, valuesForTarget, ignoredRows, toggleRow, fieldLabel}
+    return {
+        importer,
+        targetOptions,
+        fieldScopeGroups,
+        needsValueMap,
+        valuesForTarget,
+        ignoredRows,
+        toggleRow,
+        fieldLabel,
+        sendSetupMail,
+    }
 }

@@ -11,7 +11,7 @@ import MovementsPanel from '@/components/inventory/MovementsPanel.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {inventory, managedMembers, exchanges} from '@/api'
-import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
+import {stillMoving, type ExchangeRequestEntry} from '@/api/exchanges'
 import type {InventorySize, MyInventoryItem, MyRequirement} from '@/api/inventory'
 import type {ManagedMember} from '@/api/managedMembers'
 import {useSession} from '@/composables/useSession'
@@ -121,7 +121,7 @@ async function loadOwnInventory() {
 const {loading, error, reload} = useAsyncLoader(async () => {
   try {
     const allExch = await exchanges.listExchanges()
-    activeExchanges.value = allExch.filter(e => e.status !== ExchangeStatus.DONE)
+    activeExchanges.value = allExch.filter(e => stillMoving(e.status))
   } catch { activeExchanges.value = [] }
   const mid = viewingMemberId.value
   if (mid) {

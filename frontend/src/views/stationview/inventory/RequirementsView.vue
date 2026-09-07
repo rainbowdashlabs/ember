@@ -65,6 +65,15 @@ function inventoryName(invId: number): string {
   return inventories.value.find(i => i.id === invId)?.name ?? `#${invId}`
 }
 
+/**
+ * What may be asked for: only an inventory holding one thing in many copies.
+ *
+ * "Everybody needs one Sonstiges" is not a sentence, so a drawer of different things is simply not
+ * offered here rather than being offered and then refused. The full list stays as it is, because it
+ * is also what puts a name on the requirements that already exist.
+ */
+const requirableInventories = computed(() => inventories.value.filter(i => i.homogeneous))
+
 const grouped = computed((): RequirementGroup[] => {
   const userTypeMap = new Map<string, InventoryRequirement[]>()
   const groupMap = new Map<number, InventoryRequirement[]>()
@@ -177,7 +186,7 @@ async function onReorder(group: RequirementGroup, fromIndex: number, toIndex: nu
 
       <template v-if="!loading">
         <div class="flex items-center justify-end">
-          <PrimaryButton :icon="['fas', 'plus']" @click="openAdd()">
+          <PrimaryButton :icon="['fas', 'plus']" data-testid="requirement-add" @click="openAdd()">
             {{ t('inventory.requirements.add') }}
           </PrimaryButton>
         </div>
@@ -209,7 +218,7 @@ async function onReorder(group: RequirementGroup, fromIndex: number, toIndex: nu
         v-model:inventory-id="addInventoryId"
         v-model:quantity="addQuantity"
         v-model:station-group-id="addStationGroupId"
-        :inventories="inventories"
+        :inventories="requirableInventories"
         :all-groups="allGroups"
         :station-groups="stationGroups"
         :saving="saving"

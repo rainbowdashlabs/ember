@@ -183,7 +183,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertTrue(items.stream().allMatch(item -> item.sourceStationId() == stationB.id()));
 
         federationRepo.deleteKbShare(share.id(), stationB.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -211,8 +211,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertTrue(inside.files().stream().anyMatch(item -> item.remoteId() == file.id()));
 
         federationRepo.deleteKbShare(share.id(), stationB.id());
-        knowledgeBaseRepo.deleteFile(file.id());
-        knowledgeBaseRepo.deleteFolder(folder.id());
+        knowledgeBaseRepo.purgeFile(file.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
     }
 
     /**
@@ -255,9 +255,9 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertTrue(deepLevel.files().stream().anyMatch(candidate -> candidate.remoteId() == deep.id()));
 
         federationRepo.deleteKbShare(share.id(), stationB.id());
-        knowledgeBaseRepo.deleteFile(deep.id());
-        knowledgeBaseRepo.deleteFolder(inner.id());
-        knowledgeBaseRepo.deleteFolder(outer.id());
+        knowledgeBaseRepo.purgeFile(deep.id());
+        knowledgeBaseRepo.purgeFolder(inner.id());
+        knowledgeBaseRepo.purgeFolder(outer.id());
     }
 
     /**
@@ -292,7 +292,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 .noneMatch(item -> item.file().id() == forOne.id()));
 
         federationRepo.deleteKbShare(share.id(), stationB.id());
-        knowledgeBaseRepo.deleteFile(forOne.id());
+        knowledgeBaseRepo.purgeFile(forOne.id());
     }
 
     /** A folder for named stations holding an article for a different one is a contradiction, so it is refused. */
@@ -329,8 +329,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
 
         federationRepo.deleteKbShare(narrowed.id(), stationB.id());
         federationRepo.deleteKbShare(folderShare.id(), stationB.id());
-        knowledgeBaseRepo.deleteFile(inside.id());
-        knowledgeBaseRepo.deleteFolder(folder.id());
+        knowledgeBaseRepo.purgeFile(inside.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
     }
 
     /**
@@ -355,7 +355,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 .noneMatch(item -> item.remoteId() == forTeam.id()));
 
         federationRepo.deleteKbShare(share.id(), stationB.id());
-        knowledgeBaseRepo.deleteFile(forTeam.id());
+        knowledgeBaseRepo.purgeFile(forTeam.id());
     }
 
     /**
@@ -391,7 +391,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 BadRequestResponse.class,
                 () -> service.setAudience(stationB.id(), file.id(), 1, ShareScope.ALL_PARTNERS, List.of()));
 
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -413,21 +413,45 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals(requestingPartner.id(), item.partnerId());
 
         federationRepo.deleteKbShare(share.id(), stationB.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
+    /**
+     * A partner on this instance is reachable without leaving the process, which is no reason to
+     * answer more than it shares: a search across partners returns what each of them shared and
+     * nothing else, the same as it would over the wire.
+     */
     @Test
     @Order(5)
-    void searchFederatedKbFindsPartnerContent() {
+    void searchFederatedKbFindsOnlyWhatAPartnerShares() {
         var file = createFile(stationB.id(), "Loeschangriff");
         knowledgeBaseRepo.storeTextContent(file.id(), "Ablauf beim Loeschangriff");
         knowledgeBaseRepo.updateSearchIndex(file.id(), "Loeschangriff Ablauf", "simple");
+        var folder = knowledgeBaseRepo.createFolder(stationB.id(), null, "Interner Ablauf", "", member.id());
+        var kept = knowledgeBaseRepo.createFile(
+                stationB.id(),
+                folder.id(),
+                "Interner Loeschangriff",
+                "desc",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                0,
+                null,
+                member.id());
+        knowledgeBaseRepo.updateSearchIndex(kept.id(), "Loeschangriff intern", "simple");
 
+        assertTrue(service.searchFederatedKb(station.id(), "Loeschangriff").isEmpty());
+
+        var share = federationRepo.createKbShare(stationB.id(), file.id(), null, ShareScope.ALL_PARTNERS);
         var results = service.searchFederatedKb(station.id(), "Loeschangriff");
         assertTrue(results.stream().anyMatch(result -> result.file().id() == file.id()));
+        assertTrue(results.stream().noneMatch(result -> result.file().id() == kept.id()));
         assertTrue(results.stream().allMatch(result -> result.stationName() != null));
 
-        knowledgeBaseRepo.deleteFile(file.id());
+        federationRepo.deleteKbShare(share.id(), stationB.id());
+        knowledgeBaseRepo.purgeFile(kept.id());
+        knowledgeBaseRepo.purgeFile(file.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
     }
 
     @Test
@@ -498,7 +522,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var file = createFile(stationB.id(), "FedDetail");
         var result = service.getFederatedKbFile(station.id(), stationB.uid(), file.id());
         assertEquals(file.id(), result.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -507,7 +531,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var file = createFile(station.id(), "OwnFile");
         assertThrows(
                 BadRequestResponse.class, () -> service.getFederatedKbFile(station.id(), stationB.uid(), file.id()));
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -517,7 +541,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         knowledgeBaseRepo.storeTextContent(file.id(), "# Content");
         assertTrue(service.getFederatedKbFileContent(station.id(), stationB.uid(), file.id())
                 .contains("Content"));
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -586,8 +610,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertNotEquals(file.id(), copied.id());
         assertTrue(contentService.getMarkdownContent(copied.id()).orElseThrow().contains("Copy Me"));
 
-        knowledgeBaseRepo.deleteFile(copied.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(copied.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -602,8 +626,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
 
         knowledgeBaseRepo.removeFavourite(member.id(), copied.id());
         knowledgeBaseRepo.removeFavourite(member.id(), file.id());
-        knowledgeBaseRepo.deleteFile(copied.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(copied.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -623,8 +647,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals("RemoteCopySource", copied.name());
         assertTrue(contentService.getMarkdownContent(copied.id()).orElseThrow().contains("From remote"));
 
-        knowledgeBaseRepo.deleteFile(copied.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(copied.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -644,7 +668,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertNotNull(entry.updatedAt());
 
         federationRepo.deleteKbShare(share.id(), station.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -654,22 +678,69 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertTrue(service.searchForPartner(requestingPartner, "  ").isEmpty());
     }
 
+    /**
+     * A search answers what the station shares, by the same rule that decides whether a single
+     * article may be opened: shared in its own right, or sitting below a shared folder. Anything
+     * else stays out, however well it matches.
+     */
     @Test
     @Order(42)
     void searchForPartnerOnlyReturnsSharedMatches() {
         var shared = createFile(station.id(), "Atemschutz");
         var unshared = createFile(station.id(), "Atemschutzgeraet");
+        var folder = knowledgeBaseRepo.createFolder(station.id(), null, "Atemschutzordner", "", member.id());
+        var inFolder = knowledgeBaseRepo.createFile(
+                station.id(),
+                folder.id(),
+                "AtemschutzImOrdner",
+                "desc",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                0,
+                null,
+                member.id());
         knowledgeBaseRepo.updateSearchIndex(shared.id(), "Atemschutz", "simple");
         knowledgeBaseRepo.updateSearchIndex(unshared.id(), "Atemschutz", "simple");
+        knowledgeBaseRepo.updateSearchIndex(inFolder.id(), "Atemschutz", "simple");
         var share = federationRepo.createKbShare(station.id(), shared.id(), null, ShareScope.ALL_PARTNERS);
 
         var results = service.searchForPartner(requestingPartner, "Atemschutz");
         assertTrue(results.stream().anyMatch(result -> result.id() == shared.id()));
         assertFalse(results.stream().anyMatch(result -> result.id() == unshared.id()));
+        assertFalse(results.stream().anyMatch(result -> result.id() == inFolder.id()));
+
+        var folderShare = federationRepo.createKbShare(station.id(), null, folder.id(), ShareScope.ALL_PARTNERS);
+        assertTrue(service.searchForPartner(requestingPartner, "Atemschutz").stream()
+                .anyMatch(result -> result.id() == inFolder.id()));
+
+        federationRepo.deleteKbShare(folderShare.id(), station.id());
+        federationRepo.deleteKbShare(share.id(), station.id());
+        knowledgeBaseRepo.purgeFile(inFolder.id());
+        knowledgeBaseRepo.purgeFile(shared.id());
+        knowledgeBaseRepo.purgeFile(unshared.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
+    }
+
+    /**
+     * An article aimed at named stations is answered to those and to nobody else. A search that
+     * only asked whether the station shares an article at all would hand it to every partner.
+     */
+    @Test
+    @Order(42)
+    void searchForPartnerHonoursTheStationsAnEntryNames() {
+        var aimed = createFile(station.id(), "Kettensaege");
+        knowledgeBaseRepo.updateSearchIndex(aimed.id(), "Kettensaege", "simple");
+        var share = federationService.createKbShare(station.id(), aimed.id(), null, ShareScope.SPECIFIC, List.of());
+
+        assertTrue(service.searchForPartner(requestingPartner, "Kettensaege").stream()
+                .noneMatch(result -> result.id() == aimed.id()));
+
+        federationRepo.setKbShareTargets(share.id(), List.of(requestingPartner.id()));
+        assertTrue(service.searchForPartner(requestingPartner, "Kettensaege").stream()
+                .anyMatch(result -> result.id() == aimed.id()));
 
         federationRepo.deleteKbShare(share.id(), station.id());
-        knowledgeBaseRepo.deleteFile(shared.id());
-        knowledgeBaseRepo.deleteFile(unshared.id());
+        knowledgeBaseRepo.purgeFile(aimed.id());
     }
 
     @Test
@@ -677,7 +748,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     void fileForPartnerRejectsForeignStation() {
         var file = createFile(stationB.id(), "ForeignFile");
         assertThrows(NotFoundResponse.class, () -> service.fileForPartner(requestingPartner, file.id()));
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     /**
@@ -698,7 +769,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 service.fileForPartner(requestingPartner, file.id()).name());
 
         federationRepo.deleteKbShare(share.id(), station.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     /**
@@ -726,8 +797,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 service.fileForPartner(requestingPartner, file.id()).name());
 
         federationRepo.deleteKbShare(share.id(), station.id());
-        knowledgeBaseRepo.deleteFile(file.id());
-        knowledgeBaseRepo.deleteFolder(folder.id());
+        knowledgeBaseRepo.purgeFile(file.id());
+        knowledgeBaseRepo.purgeFolder(folder.id());
     }
 
     @Test
@@ -744,7 +815,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         knowledgeBaseRepo.storeTextContent(file.id(), "served text");
         assertEquals("served text", service.fileContentForPartner(requestingPartner, file.id()));
         federationRepo.deleteKbShare(share.id(), station.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -754,7 +825,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var share = federationRepo.createKbShare(station.id(), file.id(), null, ShareScope.ALL_PARTNERS);
         assertEquals("", service.fileContentForPartner(requestingPartner, file.id()));
         federationRepo.deleteKbShare(share.id(), station.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -770,7 +841,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals("Partner sagt hallo", responses.getFirst().content());
 
         commentRepo.delete(comment.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -787,7 +858,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals(stationB.uid(), comment.author().stationUid());
 
         commentRepo.delete(comment.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -802,7 +873,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals("Zweite", updated.content());
 
         commentRepo.delete(comment.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -818,7 +889,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 () -> service.updateRemoteComment(requestingPartner, comment.id(), stranger, "Fremd"));
 
         commentRepo.delete(comment.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -845,7 +916,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals(created.id(), listed.getFirst().id());
 
         commentRepo.delete(created.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -860,7 +931,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals("Zweite", updated.content());
 
         commentRepo.delete(created.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -876,7 +947,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 () -> service.updateFederatedComment(station.id(), stationB.uid(), created.id(), stranger, "Fremd"));
 
         commentRepo.delete(created.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test
@@ -890,7 +961,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertTrue(service.deleteFederatedComment(station.id(), stationB.uid(), created.id(), memberUid));
         assertTrue(commentRepo.findById(created.id()).isEmpty());
 
-        knowledgeBaseRepo.deleteFile(file.id());
+        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test

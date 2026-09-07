@@ -25,6 +25,7 @@ import {
 } from '@/api/events'
 import {events} from '@/api'
 import {useSession} from '@/composables/useSession'
+import {formatDate} from '@/util/format'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -109,7 +110,7 @@ onMounted(loadData)
                 {{ categoryOf(reg.eventId)!.name }}
               </ColorBadge>
             </div>
-            <p class="text-xs text-(--text-muted)">{{ reg.eventDate }}</p>
+            <p class="text-xs text-(--text-muted)">{{ formatDate(reg.eventDate) }}</p>
           </div>
           <component :is="statusBadgeComponent(reg.status)">
             {{ t(`dashboard.registrationStatus.${reg.status}`) }}

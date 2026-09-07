@@ -26,6 +26,12 @@ export interface CheckDetail {
     check: InventoryCheck
     checkerFirstName?: string
     checkerLastName?: string
+    /**
+     * Whoever said what the check records, where that is somebody other than the person who signed
+     * it off. Empty on a check somebody walked themselves.
+     */
+    reporterFirstName?: string
+    reporterLastName?: string
     items: EnrichedCheckItem[]
 }
 
@@ -55,6 +61,12 @@ export interface MemberCheckState {
     assigned: InventoryItem[]
     lastCheck?: InventoryCheck | null
     unassigned: Record<number, InventoryItem[]>
+    /**
+     * The step each piece is standing on that already has something running on it, keyed by piece.
+     * A piece can only be on one movement at a time, so a walk offers no swap for these and says
+     * what is running instead.
+     */
+    onTheMove?: Record<number, string>
 }
 
 export interface InventoryCheck {

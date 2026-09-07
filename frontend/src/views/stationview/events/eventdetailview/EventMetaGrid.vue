@@ -132,11 +132,11 @@ async function toggle(field: EventField) {
   <div class="grid grid-cols-6 gap-4">
     <div class="col-span-3">
       <DetailLabel>{{ t('events.startTime') }}</DetailLabel>
-      <p class="text-sm">{{ startFormatted }}</p>
+      <p class="text-sm" data-testid="event-start">{{ startFormatted }}</p>
     </div>
     <div class="col-span-3">
       <DetailLabel>{{ t('events.endTime') }}</DetailLabel>
-      <p class="text-sm">{{ endFormatted }}</p>
+      <p class="text-sm" data-testid="event-end">{{ endFormatted }}</p>
     </div>
     <div v-if="canEditEvent" class="col-span-6 sm:col-span-3">
       <DetailLabel>{{ t('events.template') }}</DetailLabel>

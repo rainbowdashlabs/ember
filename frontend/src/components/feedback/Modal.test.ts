@@ -20,6 +20,11 @@ function mountModal(open: boolean) {
     })
 }
 
+/** The layer the open dialog paints on, which is what decides which of two dialogs is in front. */
+function layerOf(wrapper: ReturnType<typeof mountModal>): number {
+    return Number((wrapper.find('.fixed.inset-0').element as HTMLElement).style.zIndex)
+}
+
 describe('Modal', () => {
     it('shows its content when open', () => {
         expect(mountModal(true).text()).toContain('Inhalt')
@@ -97,6 +102,23 @@ describe('Modal', () => {
 
         expect(answered, 'the dialog was answered').toBe(1)
         wrapper.unmount()
+    })
+
+    /**
+     * The step-up challenge is opened by the API layer over whatever dialog asked for it, and it is
+     * mounted for the whole app long before that dialog exists. Opening order has to decide, or the
+     * challenge comes up behind and its code field cannot be reached.
+     */
+    it('puts the dialog opened last in front of the one already open', async () => {
+        const first = mountModal(false)
+        const second = mountModal(false)
+
+        await first.setProps({modelValue: true})
+        await second.setProps({modelValue: true})
+
+        expect(layerOf(second)).toBeGreaterThan(layerOf(first))
+        first.unmount()
+        second.unmount()
     })
 
     it('leaves a plain enter to whatever has the focus', async () => {

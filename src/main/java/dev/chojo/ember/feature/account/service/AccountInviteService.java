@@ -49,16 +49,18 @@ public class AccountInviteService {
 
     /**
      * The account for this address, made if there is none, with the password-setup mail sent when it is
-     * still owed one.
+     * still owed one and whoever entered them asked for it to go now.
      *
      * @param stationId  the station the account is stamped with, which brands the mail
      * @param email      the address, already trimmed by the caller or not
      * @param firstName  their first name, used only when the account is made
      * @param lastName   their last name, used only when the account is made
+     * @param setupMail  whether that mail leaves now or waits to be sent by hand
      * @return the account and whether this call made it
      * @throws EmailInUseException when a made-up address already belongs to somebody
      */
-    public Invited resolveOrCreate(int stationId, String email, String firstName, String lastName) {
+    public Invited resolveOrCreate(
+            int stationId, String email, String firstName, String lastName, SetupMail setupMail) {
         String address = email.trim();
         boolean synthetic = address.endsWith(SYNTHETIC_EMAIL_SUFFIX);
 
@@ -72,7 +74,7 @@ public class AccountInviteService {
         Account account = created ? accountRepository.create(address, firstName, lastName, true, stationId) : existing;
         if (created) log.info("Account {} created by invitation from station {}", account.id(), stationId);
 
-        if (!synthetic && needsSetup(account)) {
+        if (setupMail.sendsNow() && !synthetic && needsSetup(account)) {
             authService.sendPasswordSetup(account.id());
         }
         return new Invited(account, created);

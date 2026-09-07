@@ -11,6 +11,7 @@ import type {MemberGroup} from '@/api/types'
 import type {MemberCompletion} from '@/api/stationMembers'
 import type {SpecialMention} from '@/components/comment/MentionInput.vue'
 import {comments as commentsApi, stationMembers, memberGroups} from '@/api'
+import {useCommentHighlight} from '@/composables/useCommentHighlight'
 import CommentThread from './CommentThread.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -28,6 +29,7 @@ const props = defineProps<{
 }>()
 
 const {t} = useI18n()
+const {highlightId, revealComment} = useCommentHighlight()
 
 const commentsList = ref<Comment[]>([])
 const members = ref<MemberCompletion[]>([])
@@ -84,7 +86,10 @@ async function deleteComment(commentId: number) {
   } catch { error.value = t('common.error') }
 }
 
-onMounted(loadComments)
+onMounted(async () => {
+  await loadComments()
+  await revealComment()
+})
 </script>
 
 <template>
@@ -98,6 +103,7 @@ onMounted(loadComments)
         :comments="commentsList"
         :members="members"
         :groups="groups"
+        :highlight-id="highlightId"
         :special-mentions="specialMentions"
         @create="createComment"
         @update="updateComment"

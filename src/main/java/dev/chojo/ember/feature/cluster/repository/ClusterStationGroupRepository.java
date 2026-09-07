@@ -129,6 +129,35 @@ public class ClusterStationGroupRepository {
     }
 
     /**
+     * How many recommended tags are aimed at one group, so a refused delete can say what is in the
+     * way.
+     *
+     * @param groupId the group
+     * @return the number of tags keyed to it
+     */
+    public int countTagsUsing(int groupId) {
+        return query("SELECT count(*) AS used FROM cluster_inventory_tag WHERE station_group_id = :group_id;")
+                .single(call().bind("group_id", groupId))
+                .map(row -> row.getInt("used"))
+                .first()
+                .orElse(0);
+    }
+
+    /**
+     * How many stock requirements count at one group, so a refused delete can say what is in the way.
+     *
+     * @param groupId the group
+     * @return the number of requirements keyed to it
+     */
+    public int countRequirementsUsing(int groupId) {
+        return query("SELECT count(*) AS used FROM inventory_requirement WHERE station_group_id = :group_id;")
+                .single(call().bind("group_id", groupId))
+                .map(row -> row.getInt("used"))
+                .first()
+                .orElse(0);
+    }
+
+    /**
      * Every station a question would reach.
      *
      * <p>The association's whole list when the question names no group, and the group's stations otherwise.
