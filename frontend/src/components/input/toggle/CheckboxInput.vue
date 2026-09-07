@@ -4,15 +4,26 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {ref, watchEffect} from 'vue'
+
 const model = defineModel<boolean>({ default: false })
 
-defineProps<{
+const props = defineProps<{
   disabled?: boolean
+  /** The browser's mixed state, for a box standing for partly selected children. Display only. */
+  indeterminate?: boolean
 }>()
+
+const el = ref<HTMLInputElement | null>(null)
+
+watchEffect(() => {
+  if (el.value) el.value.indeterminate = props.indeterminate ?? false
+})
 </script>
 
 <template>
   <input
+    ref="el"
     v-model="model"
     type="checkbox"
     :disabled="disabled"
