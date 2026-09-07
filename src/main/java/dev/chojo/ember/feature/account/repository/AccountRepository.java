@@ -307,6 +307,28 @@ public class AccountRepository {
     }
 
     /**
+     * Stamps when the account last signed in, by any method. {@code setup_completed_at} answers
+     * when somebody started; this answers when they were last here, which is what the operator
+     * report reads and what nothing recorded durably before.
+     */
+    public void touchLastSignIn(int accountId) {
+        query("UPDATE account SET last_sign_in_at = now() WHERE id = :id;")
+                .single(call().bind("id", accountId))
+                .update();
+    }
+
+    /**
+     * When the account last signed in, by any method. Empty while it never has, and for an
+     * account that does not exist.
+     */
+    public Optional<Instant> findLastSignInAt(int accountId) {
+        return query("SELECT last_sign_in_at FROM account WHERE id = :id;")
+                .single(call().bind("id", accountId))
+                .map(row -> row.get("last_sign_in_at", INSTANT_TIMESTAMP))
+                .first();
+    }
+
+    /**
      * The language of the station {@code accountId} was created from, as a short ISO 639 code
      * (e.g. {@code "de"}). Empty for an account with no known origin - somebody who signed up on
      * their own, the administrator laid down at first start. What to write to those instead is a
@@ -352,6 +374,19 @@ public class AccountRepository {
      */
     public boolean anyAdministratorExists() {
         return SqlSupport.exists("SELECT 1 FROM account WHERE instance_user_type = 'ADMINISTRATOR' LIMIT 1;", call());
+    }
+
+    /**
+     * An administrator account, for the console rescue that prints an enrolment link. Which one
+     * does not matter when there are several; the oldest is the predictable choice.
+     */
+    public Optional<Account> findAnyAdministrator() {
+        return query(
+                        "SELECT %s FROM account WHERE instance_user_type = 'ADMINISTRATOR' ORDER BY id LIMIT 1;",
+                        ACCOUNT_COLUMNS)
+                .single(call())
+                .map(Account.map())
+                .first();
     }
 
     /**
@@ -437,7 +472,8 @@ public class AccountRepository {
                     account_id,
                     password_hash,
                     force_password_change,
-                    last_breach_check_at
+                    last_breach_check_at,
+                    password_login_disabled_at
                 FROM
                     account_credential
                 WHERE account_id = :id;""")
@@ -544,6 +580,21 @@ public class AccountRepository {
      * @param accountId the account identifier
      * @return {@code true} if a credential was deleted
      */
+    /**
+     * Switches password sign-in off or back on for the account. A switch on the login path, not
+     * a deletion: the hash stays, which is what keeps the forgotten-password flow able to open
+     * the door again.
+     */
+    public boolean setPasswordLoginDisabled(int accountId, boolean disabled) {
+        return query("""
+                UPDATE account_credential
+                SET password_login_disabled_at = CASE WHEN :disabled THEN now() ELSE NULL END
+                WHERE account_id = :id;""")
+                .single(call().bind("id", accountId).bind("disabled", disabled))
+                .update()
+                .changed();
+    }
+
     public boolean deleteCredential(int accountId) {
         return query("DELETE FROM account_credential WHERE account_id = :id;")
                 .single(call().bind("id", accountId))

@@ -31,6 +31,8 @@ const props = defineProps<{
   registrationSummary: { accepted: number; pending: number; declined: number; total: number }
   detailRoute: RouteLocationRaw
   eligibleMembers: AnswerablePerson[]
+  /** Why seeing this appointment does not mean being able to answer it, absent where it does. */
+  restrictionNote?: string | null
   registrations: EventRegistrationEntry[]
   hasManagedMembers: boolean
   registering: boolean
@@ -70,6 +72,9 @@ const containerClass = computed(() => [
           </InfoBadge>
           <MutedText v-if="event.requiresRegistration && event.registrationDeadline" class="text-xs text-(--text-muted)">({{ t('eventsUpcoming.deadline') }}: {{ formatDeadline(event.registrationDeadline) }})</MutedText>
         </EventHeadline>
+        <p v-if="restrictionNote" class="text-xs text-(--text-muted) mt-0.5" data-testid="upcoming-event-restriction-note">
+          <font-awesome-icon :icon="['fas', 'lock']" class="mr-1"/>{{ restrictionNote }}
+        </p>
         <p v-if="event.description" class="text-sm text-(--text-muted) mt-0.5">
           {{ markdownSnippet(event.description) }}
         </p>

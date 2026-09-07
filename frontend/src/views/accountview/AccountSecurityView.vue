@@ -15,6 +15,7 @@ import SaveButton from '@/components/button/SaveButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import { auth } from '@/api'
 import TwoFactorSection from '@/views/stationview/profile/settingsview/TwoFactorSection.vue'
+import PasskeySection from '@/views/accountview/accountsecurityview/PasskeySection.vue'
 
 const { t } = useI18n()
 
@@ -54,21 +55,23 @@ async function changePassword() {
         <div class="grid gap-4 sm:grid-cols-3">
           <div class="space-y-1">
             <FieldLabel>{{ t('profile.currentPassword') }}</FieldLabel>
-            <PasswordInput v-model="currentPassword" :placeholder="t('profile.currentPassword')"/>
+            <PasswordInput v-model="currentPassword" :placeholder="t('profile.currentPassword')" autocomplete="current-password"/>
           </div>
           <div class="space-y-1">
             <FieldLabel>{{ t('profile.newPassword') }}</FieldLabel>
-            <PasswordInput v-model="newPassword" :placeholder="t('profile.newPassword')"/>
+            <PasswordInput v-model="newPassword" :placeholder="t('profile.newPassword')" autocomplete="new-password"/>
           </div>
           <div class="space-y-1">
             <FieldLabel>{{ t('profile.confirmPassword') }}</FieldLabel>
-            <PasswordInput v-model="confirmPassword" :placeholder="t('profile.confirmPassword')"/>
+            <PasswordInput v-model="confirmPassword" :placeholder="t('profile.confirmPassword')" autocomplete="new-password"/>
           </div>
         </div>
         <SaveButton :disabled="!currentPassword || !newPassword || !confirmPassword" :action="changePassword">
           {{ t('profile.changePassword') }}
         </SaveButton>
       </NeutralContainer>
+
+      <PasskeySection/>
 
       <TwoFactorSection data-onboarding="account.two-factor"/>
     </div>

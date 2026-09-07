@@ -81,7 +81,37 @@ export interface WebAuthnConfig {
     rpName: string
     attestation: string
     timeoutSeconds: number
-    requireResidentKey: boolean
+}
+
+export const PasskeyMode = {
+    OFF: 'OFF',
+    OPTIONAL: 'OPTIONAL',
+    ENCOURAGED: 'ENCOURAGED',
+    PREFERRED: 'PREFERRED',
+    PASSWORDLESS: 'PASSWORDLESS',
+} as const
+
+export type PasskeyModeName = (typeof PasskeyMode)[keyof typeof PasskeyMode]
+
+/** The mode with the readiness the instance can check about itself, and the adoption figures. */
+export interface PasskeysConfig {
+    mode: PasskeyModeName
+    effectiveMode: PasskeyModeName
+    localhostFallback: boolean
+    rpId: string
+    lastMailSentAt: string | null
+    dependentAccounts: number
+    accountsWithTriedPasskey: number
+    accountsWithPassword: number
+    accountsWithPasswordAndNoPasskey: number
+}
+
+/** What would happen if the instance switched to the passwordless mode, counted. */
+export interface PasswordlessReport {
+    wouldKeepPassword: number
+    withoutPasskey: number
+    reachableOnlyByQr: number
+    dormantForAYear: number
 }
 
 /**
@@ -199,12 +229,58 @@ export async function updateBackupCodesConfig(data: BackupCodesConfig): Promise<
 }
 
 export async function getWebAuthnConfig(): Promise<WebAuthnConfig> {
-    const res = await client.get<WebAuthnConfig>('/admin/config/auth/two-factor/webauthn')
+    const res = await client.get<WebAuthnConfig>('/admin/config/auth/webauthn')
     return res.data
 }
 
 export async function updateWebAuthnConfig(data: WebAuthnConfig): Promise<WebAuthnConfig> {
-    const res = await client.put<WebAuthnConfig>('/admin/config/auth/two-factor/webauthn', data)
+    const res = await client.put<WebAuthnConfig>('/admin/config/auth/webauthn', data)
+    return res.data
+}
+
+export async function getPasskeysConfig(): Promise<PasskeysConfig> {
+    const res = await client.get<PasskeysConfig>('/admin/config/auth/passkeys')
+    return res.data
+}
+
+export async function updatePasskeysConfig(mode: PasskeyModeName): Promise<PasskeysConfig> {
+    const res = await client.put<PasskeysConfig>('/admin/config/auth/passkeys', {mode})
+    return res.data
+}
+
+export async function getPasswordlessReport(): Promise<PasswordlessReport> {
+    const res = await client.get<PasswordlessReport>('/admin/config/auth/passkeys/report')
+    return res.data
+}
+
+export interface ResidueEntry {
+    accountId: number
+    firstName: string
+    lastName: string
+    lastSignInAt: string | null
+    /** Whether mail to the member's own address can arrive. */
+    reachable: boolean
+    /** Whether somebody manages the member and can hold up the QR code. */
+    hasGuardian: boolean
+}
+
+/** The password holders with no exercised passkey: the group that cannot move yet. */
+export async function getPasskeyResidue(): Promise<ResidueEntry[]> {
+    const res = await client.get<ResidueEntry[]>('/admin/config/auth/passkeys/residue')
+    return res.data
+}
+
+export async function retirePassword(accountId: number): Promise<void> {
+    await client.post(`/admin/accounts/${accountId}/password/retire`)
+}
+
+export interface BulkRetireResult {
+    retired: number
+    passedOver: number
+}
+
+export async function retireAllPasswords(): Promise<BulkRetireResult> {
+    const res = await client.post<BulkRetireResult>('/admin/config/auth/passkeys/retire-all')
     return res.data
 }
 

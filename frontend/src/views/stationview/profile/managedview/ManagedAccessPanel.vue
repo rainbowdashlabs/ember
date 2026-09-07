@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -13,10 +13,13 @@ import MutedText from '@/components/typography/MutedText.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import {managedMembers} from '@/api'
-import type {ManagedAccess} from '@/api/managedMembers'
+import PasskeyCodeDisplay from '@/components/passkey/PasskeyCodeDisplay.vue'
+import {managedMembers, passkeys} from '@/api'
+import type {ManagedAccess, PasskeyCode} from '@/api/managedMembers'
+import type {PasskeyModeName} from '@/api/adminSettings'
 import {apiErrorMessage} from '@/util/apiError'
 
 /**
@@ -94,6 +97,34 @@ async function savePassword() {
   }
 }
 
+const passkeyMode = ref<PasskeyModeName>('OFF')
+const passkeyCode = ref<PasskeyCode | null>(null)
+const passwordless = computed(() => passkeyMode.value === 'PASSWORDLESS')
+
+onMounted(() => {
+  passkeys.publicPasskeyMode().then(mode => passkeyMode.value = mode).catch(() => {})
+})
+
+async function issueCode() {
+  error.value = ''
+  try {
+    passkeyCode.value = await managedMembers.issuePasskeyCode(props.memberId)
+  } catch (e) {
+    error.value = apiErrorMessage(e) ?? t('common.error')
+  }
+}
+
+/** The abandoned attempt must not leave a photographed code alive for the rest of its window. */
+async function revokeCode() {
+  if (!passkeyCode.value) return
+  passkeyCode.value = null
+  try {
+    await managedMembers.revokePasskeyCode(props.memberId)
+  } catch {
+    // The code still dies with its five minutes.
+  }
+}
+
 async function toggleLogin(enabled: boolean) {
   error.value = ''
   notice.value = ''
@@ -147,12 +178,21 @@ watch(() => props.memberId, load, {immediate: true})
                      @update:model-value="toggleLogin"/>
       </div>
 
-      <div v-if="!access.email" class="space-y-1 border-t border-(--border) pt-4">
+      <div v-if="!access.email && !passwordless" class="space-y-1 border-t border-(--border) pt-4">
         <FieldLabel>{{ t('profileManaged.access.password') }}</FieldLabel>
         <TextInput v-model="password" type="password" data-onboarding="managed.access.password"
                    :placeholder="t('profileManaged.access.passwordPlaceholder')"/>
         <MutedText tag="p" size="sm">{{ t('profileManaged.access.passwordHint') }}</MutedText>
         <SaveButton data-onboarding="managed.access.password-save" :action="savePassword" :disabled="!password"/>
+      </div>
+
+      <div v-if="!access.email && passkeyMode !== 'OFF'" class="space-y-2 border-t border-(--border) pt-4">
+        <FieldLabel>{{ t('passkeys.code.title') }}</FieldLabel>
+        <MutedText tag="p" size="sm">{{ t('passkeys.code.guardianHint') }}</MutedText>
+        <SecondaryButton v-if="!passkeyCode" type="button" :icon="['fas', 'fingerprint']" @click="issueCode">
+          {{ t('passkeys.code.issue') }}
+        </SecondaryButton>
+        <PasskeyCodeDisplay v-else :code="passkeyCode.code" :qr-png="passkeyCode.qrPng" @gone="revokeCode"/>
       </div>
     </template>
   </NeutralContainer>

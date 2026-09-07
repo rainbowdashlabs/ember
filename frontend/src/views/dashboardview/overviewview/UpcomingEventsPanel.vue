@@ -11,14 +11,14 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
-import RegistrationStatusBadge from '@/views/stationview/events/eventshared/RegistrationStatusBadge.vue'
+import DashboardEventTile from './upcomingeventspanel/DashboardEventTile.vue'
 import EventAnswerDialog from '@/views/stationview/events/eventshared/EventAnswerDialog.vue'
 import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
 import {
   EventTypes,
   isRecurringEvent,
   type EventBreak,
+  type EventCategory,
   type EventRegistrationEntry,
   type StationEvent,
 } from '@/api/events'
@@ -35,6 +35,7 @@ const router = useRouter()
 const {sessionInfo, isGuardian} = useSession()
 
 const allEvents = ref<StationEvent[]>([])
+const categories = ref<EventCategory[]>([])
 const eventBreaks = ref<EventBreak[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
 const feedStatus = ref<FeedStatusResponse | null>(null)
@@ -54,6 +55,14 @@ const feedCtaMessage = computed(() => {
   if (!feedStatus.value.hasToken) return t('dashboard.feedIcalSetupHint')
   return t('dashboard.feedIcalInactiveHint')
 })
+
+/** The category an event was put in, absent where it was put in none. */
+const categoriesById = computed(() => new Map(categories.value.map(cat => [cat.id, cat])))
+
+function categoryOf(ev: StationEvent): EventCategory | undefined {
+  return ev.categoryId != null ? categoriesById.value.get(ev.categoryId) : undefined
+}
+
 
 interface UpcomingEvent {
   event: StationEvent
@@ -111,8 +120,9 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
 
 async function loadData() {
   try {
-    const [ev, br, elig, fs, regs, mine] = await Promise.all([
+    const [ev, cats, br, elig, fs, regs, mine] = await Promise.all([
       events.listEvents(),
+      events.listCategories().catch(() => []),
       events.listBreaks().catch(() => []),
       events.listEligibleMembers().catch(() => ({})),
       getFeedStatus().catch(() => null),
@@ -120,6 +130,7 @@ async function loadData() {
       isGuardian() ? managedMembersApi.listManaged().catch(() => []) : Promise.resolve([]),
     ])
     allEvents.value = ev
+    categories.value = cats
     eventBreaks.value = br
     eligibleMembers.value = elig
     feedStatus.value = fs
@@ -245,43 +256,21 @@ onMounted(loadData)
           {{ t('dashboard.feedSetup') }}
         </SecondaryButton>
       </InfoContainer>
-      <NeutralContainer v-for="item in upcomingEvents" :key="`${item.event.id}-${item.date}`"
-                        class="py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
-                        @click="router.push(isRecurringEvent(item.event.eventType)
-                          ? { name: 'event-detail-date', params: { id: item.event.id, date: item.date } }
-                          : { name: 'event-detail', params: { id: item.event.id } })">
-        <div class="flex items-start justify-between gap-2">
-          <div class="min-w-0">
-            <p class="truncate text-sm font-medium">{{ item.event.name }}</p>
-            <p class="text-xs text-(--text-muted)">
-              {{ item.dayLabel }}, {{ formatDate(item.date + 'T00:00:00') }}
-              <template v-if="item.event.startTime"> · {{ formatTime(item.event.startTime) }}</template>
-              <template v-if="item.event.endTime"> – {{ formatTime(item.event.endTime) }}</template>
-            </p>
-          </div>
-
-          <InfoBadge v-if="item.event.requiresRegistration && answersOn(item).length === 0" class="shrink-0">
-            {{ t('dashboard.registrationRequired') }}
-          </InfoBadge>
-          <SecondaryButton
-              v-else-if="!item.event.requiresRegistration && withoutAnswer(item).length > 0"
-              :disabled="decliningBusy"
-              :data-testid="`dashboard-decline-${item.event.id}`"
-              class="shrink-0"
-              compact
-              @click.stop="decline(item)"
-          >
-            {{ t('eventsUpcoming.decline') }}
-          </SecondaryButton>
-        </div>
-
-        <div v-if="answersOn(item).length > 0" class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span v-for="answer in answersOn(item)" :key="answer.registration.id" class="flex items-center gap-1">
-            <span v-if="managed.length > 0" class="text-xs text-(--text-muted)">{{ answer.name }}</span>
-            <RegistrationStatusBadge :status="answer.registration.status"/>
-          </span>
-        </div>
-      </NeutralContainer>
+      <DashboardEventTile
+          v-for="item in upcomingEvents" :key="`${item.event.id}-${item.date}`"
+          :event="item.event"
+          :date="item.date"
+          :day-label="item.dayLabel"
+          :category="categoryOf(item.event)"
+          :answers="answersOn(item)"
+          :open-count="withoutAnswer(item).length"
+          :show-names="managed.length > 0"
+          :busy="decliningBusy"
+          @open="router.push(isRecurringEvent(item.event.eventType)
+            ? { name: 'event-detail-date', params: { id: item.event.id, date: item.date } }
+            : { name: 'event-detail', params: { id: item.event.id } })"
+          @decline="decline(item)"
+      />
     </div>
 
     <SignOffConfirm v-model="showSignOffConfirm" :busy="decliningBusy" @confirm="confirmSignOff"/>

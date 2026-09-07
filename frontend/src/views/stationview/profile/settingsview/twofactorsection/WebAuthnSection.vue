@@ -13,7 +13,6 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -36,15 +35,8 @@ const {t} = useI18n()
 const securityKeys = computed(() => props.factors.filter(f => f.kind === 'WEBAUTHN'))
 const supported = computed(() => isWebAuthnSupported())
 
-/**
- * A password re-entry is required only when enrolling the very first factor, mirroring the
- * backend gate that stops a hijacked session from silently planting one.
- */
-const requiresPassword = computed(() => !props.factors.some(f => f.kind === 'TOTP' || f.kind === 'WEBAUTHN'))
-
 const showLabelPrompt = ref(false)
 const newLabel = ref('')
-const enrollPassword = ref('')
 const enrolling = ref(false)
 const error = ref('')
 
@@ -58,27 +50,19 @@ async function startEnrollment() {
     return
   }
   newLabel.value = ''
-  enrollPassword.value = ''
   showLabelPrompt.value = true
 }
 
 async function confirmEnrollment() {
   if (!newLabel.value.trim()) return
-  if (requiresPassword.value && !enrollPassword.value) {
-    error.value = t('twoFactor.setup.passwordRequired')
-    return
-  }
   enrolling.value = true
   error.value = ''
   try {
+    // First enrolment answers the step-up prompt like everything else on this screen; the
+    // password field this form used to carry is gone with the backend rule that needed it.
     const begin = await webauthnRegisterBegin()
     const credentialJson = await createWebAuthnCredential(begin.optionsJson)
-    const result = await webauthnRegisterFinish(
-      begin.challengeToken,
-      credentialJson,
-      newLabel.value.trim(),
-      requiresPassword.value ? enrollPassword.value : undefined,
-    )
+    const result = await webauthnRegisterFinish(begin.challengeToken, credentialJson, newLabel.value.trim())
     showLabelPrompt.value = false
     emit('updated', result.recoveryCodes ?? [])
   } catch (e) {
@@ -86,8 +70,6 @@ async function confirmEnrollment() {
       error.value = t('twoFactor.webauthn.cancelled')
     } else if (errorMessage(e) === 'webauthn-unsupported') {
       error.value = t('twoFactor.webauthn.unsupported')
-    } else if (apiErrorStatus(e) === 401) {
-      error.value = t('twoFactor.setup.passwordWrong')
     } else {
       error.value = apiErrorMessage(e) || t('twoFactor.webauthn.failed')
     }
@@ -161,16 +143,12 @@ async function confirmRename() {
       <SubHeader>{{ t('twoFactor.webauthn.labelPrompt') }}</SubHeader>
       <MutedText tag="p" size="sm">{{ t('twoFactor.webauthn.labelHint') }}</MutedText>
       <TextInput v-model="newLabel" :placeholder="t('twoFactor.webauthn.labelPlaceholder')" :disabled="enrolling"/>
-      <template v-if="requiresPassword">
-        <MutedText tag="p" size="sm">{{ t('twoFactor.setup.passwordPrompt') }}</MutedText>
-        <PasswordInput v-model="enrollPassword" :placeholder="t('twoFactor.setup.passwordPlaceholder')" :disabled="enrolling"/>
-      </template>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
       <div class="flex justify-end gap-2">
         <SecondaryButton :disabled="enrolling" @click="showLabelPrompt = false">
           {{ t('common.cancel') }}
         </SecondaryButton>
-        <PrimaryButton :disabled="enrolling || !newLabel.trim() || (requiresPassword && !enrollPassword)" @click="confirmEnrollment">
+        <PrimaryButton :disabled="enrolling || !newLabel.trim()" @click="confirmEnrollment">
           {{ enrolling ? t('twoFactor.webauthn.waiting') : t('twoFactor.webauthn.continue') }}
         </PrimaryButton>
       </div>

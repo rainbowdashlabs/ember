@@ -275,7 +275,8 @@ public class OnboardingService {
 
     private boolean instanceTaskDone(OnboardingTask task, Account account) {
         return switch (task) {
-            case INSTANCE_OWN_ACCOUNT -> account.hasRealEmail() && twoFactorRepository.isEnrolled(account.id());
+            case INSTANCE_OWN_ACCOUNT ->
+                account.hasRealEmail() && twoFactorRepository.satisfiesTwoFactorMandate(account.id());
             case INSTANCE_LEGAL -> consentService.hasOwnLegalTexts();
             case INSTANCE_MAIL -> !mailChainService.forInstance().isEmpty();
             case INSTANCE_FIRST_STATION ->

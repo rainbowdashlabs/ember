@@ -11,8 +11,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import ColorBadge from '@/components/badge/ColorBadge.vue'
 import {events} from '@/api'
-import type {AwaitingAnswer} from '@/api/events'
+import type {AwaitingAnswer, EventCategory} from '@/api/events'
 
 /**
  * The events whose registration is running out and which nobody in the household has answered.
@@ -32,6 +33,12 @@ const {t} = useI18n()
 const router = useRouter()
 
 const awaiting = ref<AwaitingAnswer[]>([])
+const categories = ref<EventCategory[]>([])
+
+/** The category the event was put in, absent where it was put in none. */
+function categoryOf(entry: AwaitingAnswer): EventCategory | undefined {
+  return entry.categoryId != null ? categories.value.find(cat => cat.id === entry.categoryId) : undefined
+}
 
 /** Whole days until registration closes, floored, so "today" reads as zero rather than as one. */
 function daysLeft(entry: AwaitingAnswer): number {
@@ -43,7 +50,12 @@ const soonest = computed(() => awaiting.value.length > 0 ? daysLeft(awaiting.val
 
 async function loadData() {
   try {
-    awaiting.value = await events.listAwaitingAnswer()
+    const [entries, cats] = await Promise.all([
+      events.listAwaitingAnswer(),
+      events.listCategories().catch(() => []),
+    ])
+    awaiting.value = entries
+    categories.value = cats
   } catch { /* a dashboard panel that cannot load says nothing rather than breaking the page */ }
 }
 
@@ -66,8 +78,14 @@ onMounted(loadData)
           class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
           @click="router.push({name: 'event-detail', params: {id: entry.eventId}})"
       >
-        <div>
-          <p class="text-sm font-medium">{{ entry.name }}</p>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 min-w-0">
+            <p class="truncate text-sm font-medium">{{ entry.name }}</p>
+            <ColorBadge v-if="categoryOf(entry)" :color="categoryOf(entry)!.color"
+                        class="shrink-0" data-testid="dashboard-event-category">
+              {{ categoryOf(entry)!.name }}
+            </ColorBadge>
+          </div>
           <p class="text-xs text-(--text-muted)">
             {{ entry.members.map(m => m.name).join(', ') }}
           </p>

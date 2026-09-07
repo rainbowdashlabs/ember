@@ -28,6 +28,15 @@ import org.slf4j.LoggerFactory;
 public class DemoTwoFactorSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoTwoFactorSeeder.class);
 
+    /**
+     * A fixed, knowable secret rather than a random one. Step-up asks every account for a proof
+     * now, and an account whose only factor has a secret nobody knows cannot answer at all: the
+     * end-to-end stories acting as this member need to be able to compute a code. Demo and dev
+     * accounts all share the password "demo" anyway, so a knowable TOTP secret gives nothing
+     * away that the password has not already.
+     */
+    static final String KNOWABLE_SECRET = "JBSWY3DPEHPK3PXP";
+
     private final TwoFactorRepository twoFactorRepository;
     private final TotpService totpService;
 
@@ -55,7 +64,7 @@ public class DemoTwoFactorSeeder implements DemoPerStationSeeder {
         var config = totpService.config();
         twoFactorRepository.createTotp(
                 factor.id(),
-                totpService.encryptSecret(totpService.generateSecret()),
+                totpService.encryptSecret(KNOWABLE_SECRET),
                 (short) 1,
                 (short) config.digits(),
                 (short) config.periodSeconds(),

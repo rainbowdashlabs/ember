@@ -182,6 +182,29 @@ export async function webauthnStepUpFinish(
     return res.data
 }
 
+// -- The proofs beside the second factor: the password where nothing else exists, the passkey --
+
+export async function passwordStepUp(password: string): Promise<StepUpResponse> {
+    const res = await client.post<StepUpResponse>('/auth/stepup/password', {password})
+    return res.data
+}
+
+export async function passkeyStepUpBegin(): Promise<WebAuthnBeginResponse> {
+    const res = await client.post<WebAuthnBeginResponse>('/auth/stepup/passkey/begin')
+    return res.data
+}
+
+export async function passkeyStepUpFinish(
+    challengeToken: string,
+    credentialJson: string,
+): Promise<StepUpResponse> {
+    const res = await client.post<StepUpResponse>(
+        '/auth/stepup/passkey/finish',
+        {challengeToken, credentialJson},
+    )
+    return res.data
+}
+
 export async function removeFactor(factorId: number): Promise<void> {
     await client.post(`/account/2fa/factors/${factorId}/remove`)
 }

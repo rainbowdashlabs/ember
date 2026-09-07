@@ -14,7 +14,7 @@ declare module 'axios' {
 import {getItem, removeItem, setItem} from './storage'
 import {showToast} from '@/util/toast'
 import {reportApiError} from '@/util/devErrorReporter'
-import {requestStepUp, StepUpCancelledError, type StepUpCategory} from '@/util/stepUp'
+import {requestStepUp, StepUpCancelledError, StepUpProof, type StepUpCategory, type StepUpProofName} from '@/util/stepUp'
 import type {ApiErrorBody} from '@/util/apiError'
 import {getActingStation} from '@/util/actingStationState'
 import i18n from '@/i18n'
@@ -45,6 +45,13 @@ const STEP_UP_CATEGORIES: readonly StepUpCategory[] = [
 function stepUpCategoryOf(body: ApiErrorBody | undefined, header: unknown): StepUpCategory | null {
     const raw = body?.category ?? (typeof header === 'string' ? header : undefined)
     return STEP_UP_CATEGORIES.find((known) => known === raw) ?? null
+}
+
+/** The proofs the refusal named, filtered to the ones this client knows how to offer. */
+function stepUpProofsOf(body: ApiErrorBody | undefined): StepUpProofName[] | null {
+    if (!body?.proofs) return null
+    const known = Object.values(StepUpProof)
+    return body.proofs.filter((proof): proof is StepUpProofName => (known as string[]).includes(proof))
 }
 
 // -- Request history for problem reports --
@@ -169,7 +176,7 @@ client.interceptors.response.use(
                 }
                 config._stepUpAttempts = attempts + 1
                 const category = stepUpCategoryOf(body, error.response?.headers?.['x-stepup-required'])
-                return requestStepUp(category)
+                return requestStepUp(category, stepUpProofsOf(body))
                     .then(() => client.request(config))
                     .catch((stepUpErr) => Promise.reject(
                         stepUpErr instanceof StepUpCancelledError ? (error as AxiosError) : stepUpErr,

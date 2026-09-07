@@ -99,6 +99,15 @@ public class Auth {
 
     private TwoFactorSettings twoFactor = new TwoFactorSettings();
 
+    /**
+     * WebAuthn relying-party settings, shared by passkeys and second-factor security keys.
+     * Prefer {@link WebAuthnSettings#resolvedFrom(Auth)} over reading this directly: the old
+     * location under {@code auth.twoFactor.webauthn} is still honoured for one release.
+     */
+    private WebAuthnSettings webauthn = new WebAuthnSettings();
+
+    private PasskeySettings passkeys = new PasskeySettings();
+
     public int tokenBytes() {
         return tokenBytes;
     }
@@ -167,6 +176,14 @@ public class Auth {
 
     public TwoFactorSettings twoFactor() {
         return twoFactor;
+    }
+
+    public WebAuthnSettings webauthn() {
+        return webauthn;
+    }
+
+    public PasskeySettings passkeys() {
+        return passkeys;
     }
 
     @Override

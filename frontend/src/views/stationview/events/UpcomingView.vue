@@ -12,6 +12,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import UpcomingBody from './upcomingview/UpcomingBody.vue'
+import {registrationAudienceNote} from './upcomingview/registrationAudience'
 import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
 import {isRecurringEvent, RegistrationStatus, type StationEvent} from '@/api/events'
 import {useSession} from '@/composables/useSession'
@@ -29,7 +30,7 @@ const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
 const upcoming = useUpcomingEvents(currentMemberId, isGuardian)
 const {
   allEvents, eventBreaks, todayEvents, myRegistrations, eligibleMembers, managedMembers,
-  registrationCounts, overviewFields, categories,
+  registrationCounts, overviewFields, categories, restrictions, groups, tags,
   selectedCategoryId, searchQuery, showNeedsAction,
   loadingMore, hasMore, registering, filteredUpcoming, multiDayEndDate,
   loading, error,
@@ -71,6 +72,11 @@ function getEligibleMembers(eventId: number): AnswerablePerson[] {
       currentMemberId.value,
       managedMembers.value,
       t('eventsUpcoming.myself'))
+}
+
+/** Why somebody who sees the appointment may still be unable to answer it, or null. */
+function getRestrictionNote(eventId: number): string | null {
+  return registrationAudienceNote(restrictions.value, eventId, groups.value, tags.value, t)
 }
 
 function getRegistrationSummary(eventId: number, date: string) {
@@ -142,6 +148,7 @@ watch(loaded, (isLoaded) => {
           :multi-day-end-date="multiDayEndDate"
           :get-registration-summary="getRegistrationSummary"
           :get-eligible-members="getEligibleMembers"
+          :get-restriction-note="getRestrictionNote"
           :today-detail-route="todayDetailRoute"
           :event-detail-route="eventDetailRoute"
           :format-time="formatTime"

@@ -3,6 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {createHmac} from 'node:crypto'
+import {readFile} from 'node:fs/promises'
 import {MADE_BY_A_STORY} from './cluster'
 import {test as base, type APIRequestContext, type Browser, type Page} from '@playwright/test'
 
@@ -127,6 +129,161 @@ export function storageStatePath(role: string): string {
 }
 
 /**
+ * The identity a role was pinned to at global setup, read back from its stored session.
+ *
+ * Asked from the file rather than recomputed, because the discovery that picked it is not stable
+ * across a run: stories create stations, and one made by importing a transfer holds the very same
+ * accounts as the seeded one. A story that recomputed would drift to whichever station the
+ * response lists first at that moment. The dev instance issues the account's address as its
+ * session token, which is what makes the file carry the identity at all.
+ */
+export async function pinnedRole(role: 'manager' | 'member' | 'admin'): Promise<{email: string; stationId?: string}> {
+    const state = JSON.parse(await readFile(storageStatePath(role), 'utf-8')) as {
+        origins?: {localStorage?: {name: string; value: string}[]}[]
+    }
+    const entries = state.origins?.[0]?.localStorage ?? []
+    const value = (name: string) => entries.find(entry => entry.name === name)?.value
+    const email = value('session_token')
+    if (!email || !email.includes('@')) throw new Error(`The ${role} storage state holds no dev session token`)
+    return {email, stationId: value('station_id')}
+}
+
+/** The one password every seeded account shares. */
+export const DEMO_PASSWORD = 'demo'
+
+/** The knowable TOTP secret the demo seeder enrols, for the accounts whose proof is a code. */
+export const DEMO_TOTP_SECRET = 'JBSWY3DPEHPK3PXP'
+
+function base32Decode(encoded: string): Buffer {
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+    let bits = 0
+    let value = 0
+    const bytes: number[] = []
+    for (const char of encoded.replace(/=+$/, '')) {
+        value = (value << 5) | alphabet.indexOf(char)
+        bits += 5
+        if (bits >= 8) {
+            bytes.push((value >>> (bits - 8)) & 0xff)
+            bits -= 8
+        }
+    }
+    return Buffer.from(bytes)
+}
+
+/** The six digits an authenticator holding the seeded secret would show right now. */
+export function demoTotpCode(now = Date.now()): string {
+    const counter = Buffer.alloc(8)
+    counter.writeBigUInt64BE(BigInt(Math.floor(now / 1000 / 30)))
+    const digest = createHmac('sha1', base32Decode(DEMO_TOTP_SECRET)).update(counter).digest()
+    const offset = digest[digest.length - 1]! & 0xf
+    const code = (((digest[offset]! & 0x7f) << 24)
+        | (digest[offset + 1]! << 16)
+        | (digest[offset + 2]! << 8)
+        | digest[offset + 3]!) % 1_000_000
+    return code.toString().padStart(6, '0')
+}
+
+/**
+ * Answers the step-up prompt with whatever proof it asks for, wherever it appears: the seeded
+ * password where the account has no second factor, the code from the seeded knowable TOTP secret
+ * where it has one.
+ *
+ * Step-up asks every account for a fresh proof on the sensitive routes, and the stories meet it
+ * like a member would: the dialog opens, the proof goes in, the request is retried. Answered
+ * here rather than per story, because a dev session is one row per account replaced on every
+ * sign-in - a second worker signing in as the same person wipes the first one's freshness, and
+ * the five-minute window expires mid-run anyway, so the prompt can arrive in any story at any
+ * moment. Only the dev suite runs this rule at all; the public demo instance is exempt.
+ */
+export async function answerStepUpPrompts(page: Page): Promise<void> {
+    const dialog = page.getByRole('dialog').filter({hasText: 'Sicherheitsbestätigung erforderlich'})
+    await page.addLocatorHandler(dialog, async () => {
+        // A code answered right at a period boundary is stale by the time it arrives, and a code
+        // another story spent already counts as used; later rounds answer with the next period's
+        // code, which the drift window accepts.
+        for (let attempt = 0; attempt < 3; attempt++) {
+            const passwordField = dialog.getByPlaceholder('Dein Passwort')
+            if (await passwordField.count() > 0) {
+                await passwordField.fill(DEMO_PASSWORD)
+            } else {
+                await dialog.getByPlaceholder('000000').fill(demoTotpCode(Date.now() + (attempt % 2) * 30_000))
+            }
+            await dialog.getByRole('button', {name: 'Bestätigen', exact: true}).click()
+            try {
+                await dialog.waitFor({state: 'hidden', timeout: 5_000})
+                return
+            } catch { /* still open: answer it again */ }
+        }
+    }, {times: 20})
+}
+
+/**
+ * Stamps the page's session as freshly proved, for a story that asks a guarded endpoint straight
+ * over the API rather than through a screen: no dialog appears there, so the proof is given
+ * up front. Good for the freshness window, which outlives any single story.
+ */
+export async function freshStepUpProof(page: Page): Promise<void> {
+    const headers = await apiHeaders(page)
+    const response = await page.request.post('/api/v1/auth/stepup/password', {
+        headers,
+        data: {password: DEMO_PASSWORD},
+    })
+    if (response.ok()) return
+    // An account with a second factor is refused the password on purpose; it proves itself with
+    // the code from the seeded knowable secret instead. A code only counts once per period, and
+    // several stories can prove the same account inside one, so the refusal is answered with the
+    // next period's code, which the drift window accepts.
+    if (response.status() === 403) {
+        for (const ahead of [0, 30_000]) {
+            const totp = await page.request.post('/api/v1/auth/2fa/stepup', {
+                headers,
+                data: {factor: 'TOTP', proof: demoTotpCode(Date.now() + ahead)},
+            })
+            if (totp.ok()) return
+            // Throttled: the second code would only be refused the same way. The caller waits
+            // and asks again; often a sibling story's proof has covered it by then.
+            if (totp.status() === 429) break
+        }
+        throw new Error('The TOTP step-up refused both the current and the next code')
+    }
+    throw new Error(`The password step-up answered ${response.status()}`)
+}
+
+/**
+ * Takes the automatic answering off the page again, for the one story that is about the prompt
+ * itself: proving where it opens and that its field takes a click. With the handler on, the
+ * dialog is answered and gone before the story reaches it.
+ */
+export async function stopAnsweringStepUpPrompts(page: Page): Promise<void> {
+    await page.removeLocatorHandler(
+        page.getByRole('dialog').filter({hasText: 'Sicherheitsbestätigung erforderlich'}))
+}
+
+/**
+ * Stamps a bare API context's session as freshly proved, the way {@link freshStepUpProof} does
+ * for a page. Call it right before the guarded request rather than once at the start: a dev
+ * session is one row per account replaced on every sign-in, so any story signing in as the same
+ * person in the meantime takes the freshness with it.
+ */
+export async function proveFreshly(api: APIRequestContext): Promise<void> {
+    const password = await api.post('/api/v1/auth/stepup/password', {data: {password: DEMO_PASSWORD}})
+    if (password.ok()) return
+    // An account with a second factor is refused the password on purpose; it proves itself with
+    // the code from the seeded knowable secret instead, answering a stale period with the next.
+    if (password.status() === 403) {
+        for (const ahead of [0, 30_000]) {
+            const totp = await api.post('/api/v1/auth/2fa/stepup', {
+                data: {factor: 'TOTP', proof: demoTotpCode(Date.now() + ahead)},
+            })
+            if (totp.ok()) return
+            if (totp.status() === 429) break
+        }
+        throw new Error('The TOTP step-up refused both the current and the next code')
+    }
+    throw new Error(`The password step-up answered ${password.status()}`)
+}
+
+/**
  * The headers a story needs to ask the backend something as the person whose page it holds.
  *
  * The application sends them from what it keeps in the browser; a request made straight from the
@@ -159,7 +316,9 @@ export async function apiHeaders(page: Page): Promise<Record<string, string>> {
  */
 export async function pageAs(browser: Browser, role: 'manager' | 'member' | 'admin'): Promise<Page> {
     const context = await browser.newContext({storageState: storageStatePath(role)})
-    return context.newPage()
+    const page = await context.newPage()
+    await answerStepUpPrompts(page)
+    return page
 }
 
 /**
@@ -196,7 +355,9 @@ export async function pageAsThrowaway(
         if (stationId) window.localStorage.setItem('station_id', stationId)
         window.localStorage.setItem('storage_consent', 'accepted')
     }, [token, account.stationId ?? ''])
-    return context.newPage()
+    const page = await context.newPage()
+    await answerStepUpPrompts(page)
+    return page
 }
 
 /**
@@ -346,6 +507,7 @@ export async function clusterPage(
         window.localStorage.setItem('storage_consent', 'accepted')
     }, [token, account.stationId ?? ''])
     const page = await context.newPage()
+    await answerStepUpPrompts(page)
     await enterCluster(page)
     return page
 }

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, apiHeaders} from './fixtures/auth'
+import {test, expect, apiHeaders, freshStepUpProof} from './fixtures/auth'
 
 /**
  * The rainbow flag an instance can switch on all year round.
@@ -18,6 +18,9 @@ test.describe('Pride flag', () => {
     test('an instance that forces the flag shows it on a server-rendered page too',
         async ({adminPage}) => {
             const headers = await apiHeaders(adminPage)
+            // The settings are written straight over the API, where no dialog can ask: the fresh
+            // proof every session owes on the guarded routes is given up front.
+            await freshStepUpProof(adminPage)
             const before = await adminPage.request.get('/api/v1/admin/settings', {headers})
             const settings = await before.json()
 

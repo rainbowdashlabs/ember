@@ -108,12 +108,24 @@ public class TwoFactorSettings {
         }
     }
 
-    @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
+    /**
+     * The old home of the relying-party settings, kept so a config file written before the move
+     * still works for one release. {@link WebAuthnSettings#resolvedFrom(Auth)} is the only
+     * reader. {@code requireResidentKey} is gone entirely: the passkey ceremony always requires
+     * a resident key and the second-factor ceremony never does, so there was nothing left for a
+     * knob to decide.
+     *
+     * @deprecated moved to {@code auth.webauthn}; stops being read in the next release
+     */
+    @Deprecated(forRemoval = true)
+    @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal", "unused"})
     public static class WebAuthnConfig {
         private String rpId = "";
         private String rpName = "";
         private String attestation = "none";
         private int timeoutSeconds = 60;
+
+        /** Dead, but a config file written before the move may still carry it; it must parse. */
         private boolean requireResidentKey = false;
 
         public String rpId() {
@@ -130,10 +142,6 @@ public class TwoFactorSettings {
 
         public int timeoutSeconds() {
             return timeoutSeconds;
-        }
-
-        public boolean requireResidentKey() {
-            return requireResidentKey;
         }
     }
 }

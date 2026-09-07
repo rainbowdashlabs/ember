@@ -188,6 +188,53 @@ class AuthRateLimiterTest {
         assertTrue(retry.get() >= 1L, "Retry-After should report at least one second");
     }
 
+    @Test
+    void passkeySignInLimitsByIp() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+        for (int i = 0; i < 10; i++)
+            assertTrue(limiter.tryPasskeySignIn("1.2.3.4").isEmpty());
+        assertTrue(limiter.tryPasskeySignIn("1.2.3.4").isPresent());
+        assertTrue(limiter.tryPasskeySignIn("5.6.7.8").isEmpty(), "the anonymous bucket is per address");
+    }
+
+    @Test
+    void passwordStepUpLimitsByAccountAcrossAddresses() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+        for (int i = 0; i < 10; i++)
+            assertTrue(limiter.tryPasswordStepUp("10.0.0." + i, 42).isEmpty());
+        assertTrue(
+                limiter.tryPasswordStepUp("10.99.99.99", 42).isPresent(),
+                "the oracle is throttled per account, not per address");
+    }
+
+    @Test
+    void theDeviceHandshakeBucketsHoldTheirLines() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+
+        for (int i = 0; i < 5; i++)
+            assertTrue(limiter.tryDeviceRequest("1.2.3.4").isEmpty());
+        assertTrue(limiter.tryDeviceRequest("1.2.3.4").isPresent());
+
+        for (int i = 0; i < 40; i++) assertTrue(limiter.tryDevicePoll("1.2.3.4").isEmpty());
+        assertTrue(limiter.tryDevicePoll("1.2.3.4").isPresent());
+
+        for (int i = 0; i < 10; i++)
+            assertTrue(limiter.tryDeviceEnroll("1.2.3.4").isEmpty());
+        assertTrue(limiter.tryDeviceEnroll("1.2.3.4").isPresent());
+
+        // Three code entries a minute per session, and five approvals an hour per account.
+        for (int i = 0; i < 3; i++) assertTrue(limiter.tryDeviceCodeEntry(7, 42).isEmpty());
+        assertTrue(limiter.tryDeviceCodeEntry(7, 43).isPresent(), "the fourth entry on one session is refused");
+        assertTrue(limiter.tryDeviceCodeEntry(8, 42).isEmpty(), "a fresh session gets its own three");
+        assertTrue(limiter.tryDeviceCodeEntry(9, 42).isEmpty());
+        assertTrue(
+                limiter.tryDeviceCodeEntry(10, 42).isPresent(),
+                "the sixth approval for one account is refused whoever's session asks");
+    }
+
     private static final class ControllableClock extends Clock {
         private final AtomicReference<Instant> now;
 

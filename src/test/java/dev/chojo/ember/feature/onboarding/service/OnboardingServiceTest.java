@@ -390,7 +390,7 @@ class OnboardingServiceTest {
     @Test
     void anAdministratorWithAnAddressAndASecondFactorIsDoneWithTheirAccount() {
         var admin = account(1, "admin@example.org");
-        when(twoFactorRepository.isEnrolled(admin.id())).thenReturn(true);
+        when(twoFactorRepository.satisfiesTwoFactorMandate(admin.id())).thenReturn(true);
 
         assertEquals(OnboardingTaskState.DONE, stateOf(service.forInstance(admin), "instance.ownAccount"));
     }

@@ -103,7 +103,18 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         for (int i = 0; i < userHandle.length; i++) userHandle[i] = (byte) i;
         UUID aaguid = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
         twoFactorRepo.createWebAuthn(
-                factor.id(), credentialId, publicKey, 0, aaguid, List.of("usb", "nfc"), "packed", userHandle);
+                factor.id(),
+                credentialId,
+                publicKey,
+                0,
+                aaguid,
+                List.of("usb", "nfc"),
+                "packed",
+                userHandle,
+                false,
+                true,
+                null,
+                false);
 
         var stored = twoFactorRepo.findWebAuthnByCredentialId(credentialId).orElseThrow();
         assertArrayEquals(credentialId, stored.credentialId());

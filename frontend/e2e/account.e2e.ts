@@ -8,6 +8,7 @@ import {
     test,
     expect,
     accountWithout,
+    demoAccounts,
     demoStationGroups,
     pageAsThrowaway,
     stationPeers,
@@ -158,8 +159,17 @@ test.describe('Account & session', () => {
     })
 
     test('logging out ends the session', async ({browser, request}) => {
+        // A member of the second seeded station: the passkey stories own fixed members of the
+        // shared one, and logging one of those out mid-story would pull the ground from under
+        // it. The .nord suffix is what separates the two seeds' people.
         const {member} = await stationPeers(request)
-        const page = await pageAsThrowaway(browser, request, [member.email])
+        const accounts = await demoAccounts(request)
+        const loner = accounts.find(candidate =>
+            candidate.userType === 'MEMBER'
+            && !!candidate.email
+            && !!candidate.stationId
+            && candidate.email.endsWith('.nord.local'))
+        const page = await pageAsThrowaway(browser, request, [member.email], loner)
 
         await page.goto('/station/dashboard/overview')
         await expect(page.getByTestId('app-shell')).toBeVisible()

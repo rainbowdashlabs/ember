@@ -801,11 +801,12 @@ volumes:
                     totpDrift: 'Wie viele Perioden (jeweils periodSeconds) vor und nach dem aktuellen Code zusätzlich akzeptiert werden, um leichte Uhren-Abweichungen auszugleichen.',
                     totpIssuer: 'Anzeige-Name in der Authenticator-App. Erscheint zusammen mit der Konto-E-Mail beim Scannen des QR-Codes.',
                     backupCodesCount: 'Wie viele einmalig nutzbare Backup-Codes pro Konto bei der 2FA-Einrichtung erzeugt werden.',
-                    webauthnRpId: 'Domain, an die WebAuthn-Anmeldedaten gebunden sind. Sollte der Haupt-Hostname der Instanz sein (z.B. ember.deine-feuerwehr.de, ohne Schema oder Pfad).',
-                    webauthnRpName: 'Anzeigename, den der Browser beim Hardware-Schlüssel-Dialog zeigt.',
+                    webauthnRpId: 'Domain, an die WebAuthn-Anmeldedaten (Passkeys und Sicherheitsschlüssel) gebunden sind. Sollte der Haupt-Hostname der Instanz sein (z.B. ember.deine-feuerwehr.de, ohne Schema oder Pfad). Zog von auth.twoFactor.webauthn hierher um; der alte Ort wird noch ein Release lang gelesen.',
+                    webauthnRpName: 'Anzeigename, den der Browser beim Passkey- oder Sicherheitsschlüssel-Dialog zeigt.',
                     webauthnAttestation: 'WebAuthn-Attestation-Stufe. "none" ist Standard und für die meisten Deployments ausreichend.',
-                    webauthnTimeout: 'Wie lange (in Sekunden) der Browser auf den Hardware-Schlüssel wartet, bevor abgebrochen wird.',
-                    webauthnRequireResidentKey: 'Erzwingt, dass der Authenticator den privaten Schlüssel selbst speichert (für „Passwordless Login"). Setzt einen kompatiblen Hardware-Schlüssel voraus.',
+                    webauthnTimeout: 'Wie lange (in Sekunden) der Browser auf die Antwort des Authenticators wartet, bevor abgebrochen wird.',
+                    passkeysMode: 'Wie weit diese Instanz mit Passkeys geht: OFF, OPTIONAL, ENCOURAGED, PREFERRED oder PASSWORDLESS. Standard OPTIONAL.',
+                    passkeysPrintAdminLink: 'Rettung für einen ausgesperrten Administrator einer passwortlosen Instanz: Beim nächsten Start landet ein einmaliger Passkey-Einrichtungslink im Log (eine Stunde gültig, tötet den vorherigen). Danach wieder entfernen.',
                     authSessionMinutes: 'Wie lange eine Sitzung nach der letzten Aktivität gültig bleibt (in Minuten). Nach Ablauf muss sich der Nutzer erneut anmelden.',
                     authVerifyTokenHours: 'Wie viele Stunden ein E-Mail-Bestätigungslink gültig ist (z.B. bei der Registrierung).',
                     authPasswordTokenHours: 'Wie viele Stunden ein Passwort-Zurücksetzen-Link gültig ist.',
@@ -922,7 +923,7 @@ volumes:
             notificationsBadge: 'Oben in der Seitenleiste siehst du eine kleine rote Zahl - das ist die Anzahl deiner ungelesenen Benachrichtigungen.',
             notificationsAction: 'Klicke auf eine Benachrichtigung, um sie zu lesen. Mit „Alle gelesen" kannst du alle auf einmal als gelesen markieren.',
             upcomingEventsTitle: 'Kommende Termine',
-            upcomingEventsText: 'Hier siehst du die nächsten Termine der kommenden zwei Wochen. Klicke auf einen Termin, um die Details zu sehen.',
+            upcomingEventsText: 'Hier siehst du die nächsten Termine der kommenden zwei Wochen, jeweils mit der farbigen Kategorie des Termins als Badge. Klicke auf einen Termin, um die Details zu sehen.',
             upcomingEventsAnswerText: 'Hast du auf einen Termin schon geantwortet, steht deine Antwort daneben; erst wenn noch keine da ist, weist ein Badge darauf hin, dass eine Anmeldung nötig ist. Termine ohne Anmeldepflicht haben einen kleinen Abmelden-Knopf. Wer für andere antwortet, wählt vorher aus, für wen die Abmeldung gilt.',
             dummyEventName: 'Übungsabend',
             dummyEventDate: 'Mittwoch, 10.06.2026 · 18:00 – 20:00',
@@ -1077,7 +1078,11 @@ volumes:
             title: 'Sicherheit',
             subtitle: 'Passwort ändern und Zwei-Faktor-Authentifizierung verwalten.',
             whatIs: 'Was finde ich hier?',
-            whatIsText: 'Hier kannst du dein Passwort ändern und die Zwei-Faktor-Authentifizierung (2FA) einrichten. 2FA schützt dein Konto zusätzlich, falls dein Passwort einmal in falsche Hände gerät.',
+            whatIsText: 'Hier kannst du dein Passwort ändern, Passkeys verwalten und die Zwei-Faktor-Authentifizierung (2FA) einrichten. 2FA schützt dein Konto zusätzlich, falls dein Passwort einmal in falsche Hände gerät.',
+            passkeysTitle: 'Passkeys (Anmeldung ohne Passwort)',
+            passkeysText: 'Ein Passkey ist eine Anmeldung ohne Passwort: Dein Gerät fragt dich nach Fingerabdruck, Gesicht oder deiner Geräte-PIN, und das war es. Der Fingerabdruck bleibt dabei auf deinem Gerät und erreicht uns nie. Unter „Anmeldung" legst du Passkeys an, benennst sie um und löschst sie wieder; direkt nach dem Anlegen probierst du ihn einmal aus, damit du weißt, dass er funktioniert.',
+            passkeysPasswordText: 'Dein Passwort funktioniert weiter, solange du es nicht selbst abschaltest. Ehrlich gesagt heißt das: Dein Konto hat dann zwei Wege hinein, nicht weniger Angriffsfläche. Erst der Schalter „Anmeldung mit Passwort" schließt den Passwort-Weg, und „Passwort vergessen" öffnet ihn jederzeit wieder.',
+            passkeysLostText: 'Handy verloren? Melde dich mit deinem Passwort an und lösche den alten Passkey, oder nutze den Link zum Zurücksetzen des Passworts. Auf einem fremden oder neuen Gerät hilft dir außerdem der QR-Code deines Handys: Beim Anmelden „Passkey auf einem anderen Gerät?" wählen und den Anweisungen folgen. Bluetooth muss an sein und beide Geräte müssen im selben Raum liegen.',
             twoFactorTitle: 'Zwei-Faktor-Authentifizierung (Authenticator-App)',
             twoFactorText: 'Richte eine Authenticator-App (z. B. Google Authenticator, Authy, 1Password, Bitwarden) ein. Beim Login gibst du zusätzlich zum Passwort einen sechsstelligen Code aus der App ein.',
             totpSetup: 'Klick im Bereich „Authenticator-App" auf „Einrichten". Scanne den QR-Code mit deiner App und gib einmalig den angezeigten 6-stelligen Code ein, um die Einrichtung zu bestätigen.',
@@ -2067,7 +2072,7 @@ volumes:
             whatShown: 'Was zeigt diese Seite?',
             whatShownText: 'Hier siehst du alle kommenden Termine deiner Wache - Übungsabende, Veranstaltungen, Ausflüge und mehr. Ganz oben stehen die Termine für heute.',
             registrationTitle: 'Termine mit Anmeldung',
-            registrationText: 'Manche Termine erfordern eine Anmeldung. Das siehst du am Hinweis „Anmeldung erforderlich". Klicke auf Anmelden, um dich anzumelden.',
+            registrationText: 'Manche Termine erfordern eine Anmeldung. Das siehst du am Hinweis „Anmeldung erforderlich". Klicke auf Anmelden, um dich anzumelden. Richtet sich die Anmeldung nur an einen Teil der Wache, steht am Termin, für wen sie offen ist - fehlt dir der Anmelden-Knopf, gehörst du schlicht nicht zu dieser Zielgruppe, das ist kein Fehler.',
             statusPending: 'Ausstehend - Du hast dich angemeldet, die Anmeldung wird noch geprüft.',
             statusAccepted: 'Bestätigt - Deine Anmeldung wurde angenommen.',
             statusDenied: 'Abgelehnt - Deine Anmeldung wurde abgelehnt.',
@@ -5169,7 +5174,23 @@ volumes:
             backupCodes: 'Backup-Codes',
             backupCodesText: 'Backup-Codes sind einmal verwendbare Wiederherstellungscodes für den Fall, dass der primäre Faktor nicht verfügbar ist. Anzahl: wie viele Codes pro Einrichtung erzeugt werden (5–20, Standard 10). Mehr als 20 verleiten Nutzer dazu, sie unsicher zu speichern.',
             webauthn: 'WebAuthn / Passkeys',
-            webauthnText: 'WebAuthn ist der Standard hinter Hardware-Sicherheits­schlüsseln (YubiKey etc.) und Passkeys. Relying-Party-ID: Domäne der Anwendung - leer lassen für die automatische Ableitung aus der Basis-URL. Falsche Relying-Party-ID ist der häufigste Grund für „Schlüssel wird nicht akzeptiert". Relying-Party-Name: angezeigter Name im Browser-Dialog (leer = „Ember"). Attestation-Modus: „Keine" ist für die meisten Installationen richtig. Timeout: 10–300 Sekunden. Resident-Key: erzwingt einen lokal gespeicherten Schlüssel (Passkey).',
+            webauthnText: 'WebAuthn ist der Standard hinter Hardware-Sicherheits­schlüsseln (YubiKey etc.) und Passkeys; diese Einstellungen gelten für beide. Relying-Party-ID: Domäne der Anwendung - leer lassen für die automatische Ableitung aus der Basis-URL. Falsche Relying-Party-ID ist der häufigste Grund für „Schlüssel wird nicht akzeptiert". Relying-Party-Name: angezeigter Name im Browser-Dialog (leer = „Ember"). Attestation-Modus: „Keine" ist für die meisten Installationen richtig. Timeout: 10–300 Sekunden.',
+            passkeys: 'Passkeys',
+            passkeysText: 'Ein Passkey ist eine Anmeldung ohne Passwort: Das Gerät fragt nach Fingerabdruck, Gesicht oder der Geräte-PIN, '
+                + 'und das war es. Passkeys nutzen dieselben WebAuthn-Einstellungen wie Sicherheitsschlüssel, sind aber ein erster Faktor: '
+                + 'Sie starten eine Anmeldung, statt eine zu bestätigen. Das Passwort eines Kontos bleibt davon unberührt, bis das Mitglied '
+                + 'es selbst abschaltet.',
+            passkeysModesText: 'Die fünf Modi bauen aufeinander auf: „Aus" (keine Passkeys), „Optional" (funktionieren, werden aber niemandem '
+                + 'vorgeschlagen), „Angeboten" (die Anmeldeseite bietet den Weg an und Mitglieder werden einmalig gefragt), „Bevorzugt" '
+                + '(Konten mit erprobtem Passkey dürfen ihre Passwort-Anmeldung abschalten) und „Passwortlos" (neue Konten entstehen ganz '
+                + 'ohne Passwort). Einen Zwang gibt es bewusst nicht: Wer mehr will, kombiniert „Bevorzugt" mit der 2FA-Pflicht. '
+                + 'Für eine bestehende Instanz ist der Modus der letzte Schritt, nicht der erste: erst „Angeboten" eine Saison lang, dann '
+                + '„Bevorzugt", dann „Passwortlos".',
+            passkeysReadinessText: 'Der Bereitschaftsblock zeigt, woran Passkeys scheitern würden: eine auf localhost zurückgefallene Domäne '
+                + 'schaltet sie wirksam ab, der passwortlose Modus bleibt verweigert, bis nachweislich eine E-Mail hinausging, und unter '
+                + '„Angeboten" lässt sich der Modus nicht senken, solange Konten ohne Passkey nicht mehr hineinkommen. Der Bericht vor dem '
+                + 'Umstellen zählt, wer sein Passwort behielte, wer noch keinen Passkey hält, wer nur über den QR-Code im Raum erreichbar '
+                + 'ist und wer sich seit über einem Jahr nicht angemeldet hat.',
             tip: 'Wenn du 2FA in Produktion deaktivierst, bleiben die gespeicherten Faktoren erhalten - beim Wiederaktivieren funktionieren sie weiter.',
         },
         stationSecurity: {

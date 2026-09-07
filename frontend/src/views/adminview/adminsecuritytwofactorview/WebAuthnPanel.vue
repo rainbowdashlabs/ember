@@ -12,7 +12,6 @@ import MutedText from '@/components/typography/MutedText.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -30,7 +29,6 @@ const { config, loading, error, runWith } = useConfigPanel<WebAuthnConfig>({
     rpName: '',
     attestation: 'none',
     timeoutSeconds: 60,
-    requireResidentKey: false,
   },
   fetch: () => adminSettings.getWebAuthnConfig(),
 })
@@ -74,14 +72,6 @@ async function save() {
           <NumberInput v-model="config.timeoutSeconds"/>
           <MutedText tag="div" class="mt-1" size="sm">{{ t('adminSecurity.webauthn.timeoutSecondsHint') }}</MutedText>
         </div>
-      </div>
-
-      <div class="flex items-center justify-between">
-        <div>
-          <div class="font-medium">{{ t('adminSecurity.webauthn.requireResidentKey') }}</div>
-          <MutedText tag="div" size="sm">{{ t('adminSecurity.webauthn.requireResidentKeyHint') }}</MutedText>
-        </div>
-        <ToggleInput v-model="config.requireResidentKey"/>
       </div>
 
       <div class="flex justify-end">

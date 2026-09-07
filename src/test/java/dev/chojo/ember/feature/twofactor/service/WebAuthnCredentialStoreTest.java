@@ -43,7 +43,18 @@ class WebAuthnCredentialStoreTest extends RepositoryTestBase {
         byte[] userHandle = new byte[64];
         for (int i = 0; i < userHandle.length; i++) userHandle[i] = (byte) (i + 1);
         twoFactorRepo.createWebAuthn(
-                factor.id(), credentialId, new byte[] {1, 2, 3}, 0, null, List.of("usb"), "packed", userHandle);
+                factor.id(),
+                credentialId,
+                new byte[] {1, 2, 3},
+                0,
+                null,
+                List.of("usb"),
+                "packed",
+                userHandle,
+                false,
+                true,
+                null,
+                false);
 
         var descriptors = store.getCredentialIdsForUsername(String.valueOf(accountId));
         assertEquals(1, descriptors.size());

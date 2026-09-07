@@ -8,10 +8,11 @@ package dev.chojo.ember.feature.twofactor.service;
 import com.yubico.webauthn.RelyingParty;
 import com.yubico.webauthn.exception.AssertionFailedException;
 import com.yubico.webauthn.exception.RegistrationFailedException;
+import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.conf.file.elements.Auth;
-import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
-import dev.chojo.ember.feature.account.entity.TokenType;
+import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
+import dev.chojo.ember.feature.twofactor.entity.ChallengePurpose;
+import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -28,18 +29,19 @@ import static org.mockito.Mockito.spy;
 class WebAuthnServiceTest extends RepositoryTestBase {
 
     private static WebAuthnService service;
+    private static WebAuthnChallengeRepository challengeRepo;
 
     @BeforeAll
     static void setupService() throws Exception {
-        var settings = new TwoFactorSettings();
-        setField(settings, "enabled", true);
+        var settings = new WebAuthnSettings();
         var api = new Api();
         setField(api, "baseUrl", "https://ember.test");
-        var auth = new Auth();
         var store = new WebAuthnCredentialStore(twoFactorRepo);
-        var rp = WebAuthnRelyingPartyFactory.build(settings, api, store);
+        var secondFactorStore = new SecondFactorCredentialStore(twoFactorRepo, store);
+        var parties = WebAuthnRelyingPartyFactory.build(settings, api, store, secondFactorStore);
         var audit = new TwoFactorAuditService(twoFactorRepo);
-        service = new WebAuthnService(rp, twoFactorRepo, audit, accountRepo, settings);
+        challengeRepo = new WebAuthnChallengeRepository(TokenHasher.forTesting("repository-test-pepper"));
+        service = new WebAuthnService(parties, twoFactorRepo, audit, challengeRepo, settings);
     }
 
     private static void setField(Object target, String name, Object value) throws Exception {
@@ -62,9 +64,9 @@ class WebAuthnServiceTest extends RepositoryTestBase {
         assertNotNull(start.optionsJson());
         assertTrue(start.optionsJson().contains("\"challenge\""));
 
-        var token = accountRepo.findToken(start.challengeToken()).orElseThrow();
-        assertEquals(accountId, token.accountId());
-        assertEquals(TokenType.TWO_FACTOR_WEBAUTHN_REG, token.tokenType());
+        var challenge = challengeRepo.consume(start.challengeToken()).orElseThrow();
+        assertEquals(accountId, challenge.accountId());
+        assertEquals(ChallengePurpose.REGISTRATION, challenge.purpose());
     }
 
     @Test
@@ -74,9 +76,9 @@ class WebAuthnServiceTest extends RepositoryTestBase {
         assertNotNull(start.challengeToken());
         assertNotNull(start.optionsJson());
 
-        var token = accountRepo.findToken(start.challengeToken()).orElseThrow();
-        assertEquals(accountId, token.accountId());
-        assertEquals(TokenType.TWO_FACTOR_WEBAUTHN_ASSERT, token.tokenType());
+        var challenge = challengeRepo.consume(start.challengeToken()).orElseThrow();
+        assertEquals(accountId, challenge.accountId());
+        assertEquals(ChallengePurpose.SECOND_FACTOR_ASSERTION, challenge.purpose());
     }
 
     @Test
@@ -123,14 +125,14 @@ class WebAuthnServiceTest extends RepositoryTestBase {
         var start = service.startAssertion(accountId);
         // First failed finish consumes the token
         service.finishAssertion(accountId, start.challengeToken(), "{}");
-        assertTrue(accountRepo.findToken(start.challengeToken()).isEmpty());
+        assertTrue(challengeRepo.consume(start.challengeToken()).isEmpty());
 
-        // Manually plant an expired token to exercise the expiry branch
+        // Manually plant an expired challenge to exercise the expiry branch
         String expiredToken = "expired-" + UUID.randomUUID();
-        accountRepo.createToken(
-                accountId,
+        challengeRepo.create(
                 expiredToken,
-                TokenType.TWO_FACTOR_WEBAUTHN_ASSERT,
+                ChallengePurpose.SECOND_FACTOR_ASSERTION,
+                accountId,
                 "{}",
                 Instant.now().minusSeconds(60));
         assertFalse(service.finishAssertion(accountId, expiredToken, "{}"));
@@ -147,18 +149,19 @@ class WebAuthnServiceTest extends RepositoryTestBase {
     void finishRegistrationRejectsWhenVerificationThrows() throws Exception {
         // Build a service with a spied RelyingParty so the real start* path keeps writing
         // valid options JSON, but the finish* call surfaces the verification failure branch.
-        var settings = new TwoFactorSettings();
-        setField(settings, "enabled", true);
+        var settings = new WebAuthnSettings();
         var api = new Api();
         setField(api, "baseUrl", "https://ember.test");
         var store = new WebAuthnCredentialStore(twoFactorRepo);
-        RelyingParty realRp = WebAuthnRelyingPartyFactory.build(settings, api, store);
-        RelyingParty spiedRp = spy(realRp);
+        var secondFactorStore = new SecondFactorCredentialStore(twoFactorRepo, store);
+        RelyingParties real = WebAuthnRelyingPartyFactory.build(settings, api, store, secondFactorStore);
+        RelyingParty spiedRp = spy(real.passkey());
         doThrow(new RegistrationFailedException(new IllegalArgumentException("nope")))
                 .when(spiedRp)
                 .finishRegistration(any());
+        var parties = new RelyingParties(spiedRp, real.secondFactor(), false);
         var audit = new TwoFactorAuditService(twoFactorRepo);
-        var spiedService = new WebAuthnService(spiedRp, twoFactorRepo, audit, accountRepo, settings);
+        var spiedService = new WebAuthnService(parties, twoFactorRepo, audit, challengeRepo, settings);
 
         int accountId = newAccount();
         var start = spiedService.startRegistration(accountId, "rf@test.com", "RF");
@@ -174,17 +177,81 @@ class WebAuthnServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void finishAssertionRejectsWhenVerificationThrows() throws Exception {
-        var settings = new TwoFactorSettings();
-        setField(settings, "enabled", true);
+    void finishAssertionRefusesACredentialThatIsNotASecondFactor() throws Exception {
+        // For an account whose only credentials are passkeys the allow list is empty, and the
+        // library then accepts any credential the account owns. The flag on the verified result
+        // is the check that holds.
+        int accountId = newAccount();
+        var factor = twoFactorRepo.createFactor(
+                accountId, dev.chojo.ember.feature.twofactor.entity.TwoFactorKind.WEBAUTHN, "Passkey");
+        byte[] credentialId = ("wa-pk-" + factor.id()).getBytes();
+        byte[] userHandle = new byte[64];
+        userHandle[0] = 3;
+        userHandle[1] = (byte) factor.id();
+        twoFactorRepo.createWebAuthn(
+                factor.id(),
+                credentialId,
+                new byte[] {1},
+                0,
+                null,
+                java.util.List.of("internal"),
+                "none",
+                userHandle,
+                true,
+                false,
+                true,
+                true);
+
+        var settings = new WebAuthnSettings();
         var api = new Api();
         setField(api, "baseUrl", "https://ember.test");
         var store = new WebAuthnCredentialStore(twoFactorRepo);
-        RelyingParty realRp = WebAuthnRelyingPartyFactory.build(settings, api, store);
-        RelyingParty spiedRp = spy(realRp);
-        doThrow(new AssertionFailedException("nope")).when(spiedRp).finishAssertion(any());
+        var secondFactorStore = new SecondFactorCredentialStore(twoFactorRepo, store);
+        RelyingParties real = WebAuthnRelyingPartyFactory.build(settings, api, store, secondFactorStore);
+        RelyingParty spiedRp = spy(real.secondFactor());
+        var result = org.mockito.Mockito.mock(com.yubico.webauthn.AssertionResult.class);
+        org.mockito.Mockito.when(result.isSuccess()).thenReturn(true);
+        org.mockito.Mockito.when(result.getCredential())
+                .thenReturn(com.yubico.webauthn.RegisteredCredential.builder()
+                        .credentialId(new com.yubico.webauthn.data.ByteArray(credentialId))
+                        .userHandle(new com.yubico.webauthn.data.ByteArray(userHandle))
+                        .publicKeyCose(new com.yubico.webauthn.data.ByteArray(new byte[] {1}))
+                        .signatureCount(1)
+                        .build());
+        org.mockito.Mockito.doReturn(result).when(spiedRp).finishAssertion(any());
+        var parties = new RelyingParties(real.passkey(), spiedRp, false);
         var audit = new TwoFactorAuditService(twoFactorRepo);
-        var spiedService = new WebAuthnService(spiedRp, twoFactorRepo, audit, accountRepo, settings);
+        var spiedService = new WebAuthnService(parties, twoFactorRepo, audit, challengeRepo, settings);
+
+        var start = spiedService.startAssertion(accountId);
+        String credentialJson = "{\"id\":\"AA\",\"type\":\"public-key\",\"rawId\":\"AA\","
+                + "\"response\":{\"authenticatorData\":\""
+                + java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[37])
+                + "\",\"clientDataJSON\":\""
+                + java.util.Base64.getUrlEncoder()
+                        .withoutPadding()
+                        .encodeToString(
+                                "{\"type\":\"webauthn.get\",\"challenge\":\"AAAA\",\"origin\":\"https://ember.test\"}"
+                                        .getBytes())
+                + "\",\"signature\":\"AA\",\"userHandle\":null},\"clientExtensionResults\":{}}";
+        assertFalse(
+                spiedService.finishAssertion(accountId, start.challengeToken(), credentialJson),
+                "a passkey must not satisfy a second-factor assertion");
+    }
+
+    @Test
+    void finishAssertionRejectsWhenVerificationThrows() throws Exception {
+        var settings = new WebAuthnSettings();
+        var api = new Api();
+        setField(api, "baseUrl", "https://ember.test");
+        var store = new WebAuthnCredentialStore(twoFactorRepo);
+        var secondFactorStore = new SecondFactorCredentialStore(twoFactorRepo, store);
+        RelyingParties real = WebAuthnRelyingPartyFactory.build(settings, api, store, secondFactorStore);
+        RelyingParty spiedRp = spy(real.secondFactor());
+        doThrow(new AssertionFailedException("nope")).when(spiedRp).finishAssertion(any());
+        var parties = new RelyingParties(real.passkey(), spiedRp, false);
+        var audit = new TwoFactorAuditService(twoFactorRepo);
+        var spiedService = new WebAuthnService(parties, twoFactorRepo, audit, challengeRepo, settings);
 
         int accountId = newAccount();
         var start = spiedService.startAssertion(accountId);

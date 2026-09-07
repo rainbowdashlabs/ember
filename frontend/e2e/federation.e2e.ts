@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect} from './fixtures/auth'
+import {test, expect, stopAnsweringStepUpPrompts} from './fixtures/auth'
 
 /**
  * The station's own side of federation. Connecting two stations and reading a partner's content
@@ -70,11 +70,15 @@ test.describe('Federation', () => {
     })
 
     /**
-     * Making a code asks for the second factor, and that question is raised over the dialog the
+     * Making a code asks for a fresh proof, and that question is raised over the dialog the
      * reader is standing in. The click is what proves it: it only lands when nothing covers the
-     * field, which is exactly what used to be wrong.
+     * field, which is exactly what used to be wrong. The fixture's automatic answering is taken
+     * off first, because this story is about the prompt itself, and the field is whichever proof
+     * the dialog offers this account: the code where it holds a second factor, the password
+     * where it does not.
      */
     test('the security question opens in front of the dialog that raised it', async ({managerPage: page}) => {
+        await stopAnsweringStepUpPrompts(page)
         await page.goto('/station/federate')
         await page.getByRole('button', {name: /Partner hinzufügen/}).click()
 
@@ -83,6 +87,7 @@ test.describe('Federation', () => {
 
         const confirmation = page.getByRole('dialog').filter({hasText: 'Sicherheitsbestätigung'})
         const factor = confirmation.getByPlaceholder('000000')
+            .or(confirmation.getByPlaceholder('Dein Passwort'))
         await factor.click()
         await factor.fill('123456')
 

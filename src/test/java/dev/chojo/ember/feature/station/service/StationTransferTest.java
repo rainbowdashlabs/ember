@@ -109,8 +109,10 @@ class StationTransferTest extends RepositoryTestBase {
                 Set.of(
                         stationImporter,
                         new AccountTableImporter(accountRepo),
-                        new AccountCredentialTableImporter(accountRepo),
-                        new DisabledModuleTableImporter(stationRepo)));
+                        new AccountCredentialTableImporter(accountRepo, passkeyModeService),
+                        new DisabledModuleTableImporter(stationRepo)),
+                accountRepo,
+                org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class));
 
         // Create station with full settings
         var station = stationRepo.create("Jugendfeuerwehr Musterstadt");

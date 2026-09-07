@@ -7,7 +7,8 @@ package dev.chojo.ember.feature.twofactor.service;
 
 import com.yubico.webauthn.data.AttestationConveyancePreference;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
+import dev.chojo.ember.conf.file.elements.Auth;
+import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -29,85 +30,133 @@ class WebAuthnRelyingPartyFactoryTest {
         return api;
     }
 
-    private static TwoFactorSettings settings(String rpId, String rpName, String attestation) throws Exception {
-        var settings = new TwoFactorSettings();
-        var webauthn = settings.webauthn();
-        setField(webauthn, "rpId", rpId);
-        setField(webauthn, "rpName", rpName);
-        setField(webauthn, "attestation", attestation);
+    private static WebAuthnSettings settings(String rpId, String rpName, String attestation) throws Exception {
+        var settings = new WebAuthnSettings();
+        setField(settings, "rpId", rpId);
+        setField(settings, "rpName", rpName);
+        setField(settings, "attestation", attestation);
         return settings;
+    }
+
+    private static RelyingParties build(WebAuthnSettings settings, Api api) {
+        return WebAuthnRelyingPartyFactory.build(
+                settings,
+                api,
+                Mockito.mock(WebAuthnCredentialStore.class),
+                Mockito.mock(SecondFactorCredentialStore.class));
     }
 
     @Test
     void rpIdDefaultsToBaseUrlHost() throws Exception {
-        var rp = WebAuthnRelyingPartyFactory.build(
-                settings("", "", "none"),
-                apiWithBaseUrl("https://ember.example.org"),
-                Mockito.mock(WebAuthnCredentialStore.class));
-        assertEquals("ember.example.org", rp.getIdentity().getId());
-        assertEquals("Ember", rp.getIdentity().getName());
-        assertEquals(rp.getAttestationConveyancePreference().orElseThrow(), AttestationConveyancePreference.NONE);
+        var parties = build(settings("", "", "none"), apiWithBaseUrl("https://ember.example.org"));
+        assertEquals("ember.example.org", parties.passkey().getIdentity().getId());
+        assertEquals("Ember", parties.passkey().getIdentity().getName());
+        assertEquals(
+                parties.passkey().getAttestationConveyancePreference().orElseThrow(),
+                AttestationConveyancePreference.NONE);
+        assertFalse(parties.localhostFallback());
+    }
+
+    @Test
+    void bothViewsShareIdentityAndOrigins() throws Exception {
+        var parties = build(settings("custom.host", "My Instance", "none"), apiWithBaseUrl("https://api.example.com"));
+        assertEquals(parties.passkey().getIdentity(), parties.secondFactor().getIdentity());
+        assertEquals(parties.passkey().getOrigins(), parties.secondFactor().getOrigins());
     }
 
     @Test
     void explicitRpIdAndAttestationOverride() throws Exception {
-        var rp = WebAuthnRelyingPartyFactory.build(
-                settings("custom.host", "My Instance", "indirect"),
-                apiWithBaseUrl("https://api.example.com"),
-                Mockito.mock(WebAuthnCredentialStore.class));
-        assertEquals("custom.host", rp.getIdentity().getId());
-        assertEquals("My Instance", rp.getIdentity().getName());
+        var parties =
+                build(settings("custom.host", "My Instance", "indirect"), apiWithBaseUrl("https://api.example.com"));
+        assertEquals("custom.host", parties.passkey().getIdentity().getId());
+        assertEquals("My Instance", parties.passkey().getIdentity().getName());
         assertEquals(
                 AttestationConveyancePreference.INDIRECT,
-                rp.getAttestationConveyancePreference().orElseThrow());
+                parties.passkey().getAttestationConveyancePreference().orElseThrow());
     }
 
     @Test
     void directAttestation() throws Exception {
-        var rp = WebAuthnRelyingPartyFactory.build(
-                settings("", "", "direct"),
-                apiWithBaseUrl("https://x.test"),
-                Mockito.mock(WebAuthnCredentialStore.class));
+        var parties = build(settings("", "", "direct"), apiWithBaseUrl("https://x.test"));
         assertEquals(
                 AttestationConveyancePreference.DIRECT,
-                rp.getAttestationConveyancePreference().orElseThrow());
+                parties.passkey().getAttestationConveyancePreference().orElseThrow());
     }
 
     @Test
     void unknownAttestationFallsBackToNone() throws Exception {
-        var rp = WebAuthnRelyingPartyFactory.build(
-                settings("", "", "garbage"),
-                apiWithBaseUrl("https://x.test"),
-                Mockito.mock(WebAuthnCredentialStore.class));
+        var parties = build(settings("", "", "garbage"), apiWithBaseUrl("https://x.test"));
         assertEquals(
                 AttestationConveyancePreference.NONE,
-                rp.getAttestationConveyancePreference().orElseThrow());
+                parties.passkey().getAttestationConveyancePreference().orElseThrow());
     }
 
     @Test
     void nullAttestationFallsBackToNone() throws Exception {
-        var rp = WebAuthnRelyingPartyFactory.build(
-                settings("", "", null), apiWithBaseUrl("https://x.test"), Mockito.mock(WebAuthnCredentialStore.class));
+        var parties = build(settings("", "", null), apiWithBaseUrl("https://x.test"));
         assertEquals(
                 AttestationConveyancePreference.NONE,
-                rp.getAttestationConveyancePreference().orElseThrow());
+                parties.passkey().getAttestationConveyancePreference().orElseThrow());
     }
 
     @Test
     void rpIdFallsBackToLocalhostWhenBaseUrlBlank() throws Exception {
-        var rp = WebAuthnRelyingPartyFactory.build(
-                settings("", "", "none"), apiWithBaseUrl(""), Mockito.mock(WebAuthnCredentialStore.class));
-        assertEquals("localhost", rp.getIdentity().getId());
+        var parties = build(settings("", "", "none"), apiWithBaseUrl(""));
+        assertEquals("localhost", parties.passkey().getIdentity().getId());
+        assertTrue(parties.localhostFallback(), "the fallback must be carried so the passkey mode can be held at OFF");
     }
 
     @Test
     void rpIdFallsBackToLocalhostWhenBaseUrlInvalid() throws Exception {
         // Docker service names with underscores are RFC 3986 invalid as hosts. The factory
         // catches IllegalArgumentException from URI parsing and falls back to localhost.
-        var rp = WebAuthnRelyingPartyFactory.build(
-                settings("", "", "none"),
-                apiWithBaseUrl("http://ember_target_backend:8080"),
-                Mockito.mock(WebAuthnCredentialStore.class));
-        assertEquals("localhost", rp.getIdentity().getId());
+        var parties = build(settings("", "", "none"), apiWithBaseUrl("http://ember_target_backend:8080"));
+        assertEquals("localhost", parties.passkey().getIdentity().getId());
+        assertTrue(parties.localhostFallback());
+    }
+
+    @Test
+    void explicitRpIdIsNotAFallback() throws Exception {
+        var parties = build(settings("real.host", "", "none"), apiWithBaseUrl(""));
+        assertEquals("real.host", parties.passkey().getIdentity().getId());
+        assertFalse(parties.localhostFallback());
+    }
+
+    // -- The settings move from auth.twoFactor.webauthn to auth.webauthn --
+
+    @Test
+    void newLocationWinsWhenSet() throws Exception {
+        var auth = new Auth();
+        setField(auth.webauthn(), "rpId", "new.host");
+        setField(auth.twoFactor().webauthn(), "rpId", "old.host");
+
+        var resolved = WebAuthnSettings.resolvedFrom(auth);
+        assertEquals("new.host", resolved.rpId());
+    }
+
+    @Test
+    void legacyLocationIsAdoptedWhileNewOneIsUntouched() throws Exception {
+        var auth = new Auth();
+        setField(auth.twoFactor().webauthn(), "rpId", "old.host");
+        setField(auth.twoFactor().webauthn(), "rpName", "Old Name");
+        setField(auth.twoFactor().webauthn(), "attestation", "indirect");
+        setField(auth.twoFactor().webauthn(), "timeoutSeconds", 90);
+
+        var resolved = WebAuthnSettings.resolvedFrom(auth);
+        assertEquals("old.host", resolved.rpId());
+        assertEquals("Old Name", resolved.rpName());
+        assertEquals("indirect", resolved.attestation());
+        assertEquals(90, resolved.timeoutSeconds());
+        // The adoption mutates the new location, so the runtime and the admin screen agree.
+        assertEquals("old.host", auth.webauthn().rpId());
+    }
+
+    @Test
+    void defaultsStayDefaultsWhenNeitherLocationIsSet() {
+        var auth = new Auth();
+        var resolved = WebAuthnSettings.resolvedFrom(auth);
+        assertEquals("", resolved.rpId());
+        assertEquals("none", resolved.attestation());
+        assertEquals(60, resolved.timeoutSeconds());
     }
 }

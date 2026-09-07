@@ -11,6 +11,7 @@ import PoliciesPanel from '@/views/adminview/adminsecuritytwofactorview/Policies
 import TotpPanel from '@/views/adminview/adminsecuritytwofactorview/TotpPanel.vue'
 import BackupCodesPanel from '@/views/adminview/adminsecuritytwofactorview/BackupCodesPanel.vue'
 import WebAuthnPanel from '@/views/adminview/adminsecuritytwofactorview/WebAuthnPanel.vue'
+import PasskeysPanel from '@/views/adminview/adminsecuritytwofactorview/PasskeysPanel.vue'
 
 const {t} = useI18n()
 </script>
@@ -23,6 +24,7 @@ const {t} = useI18n()
       <TotpPanel/>
       <BackupCodesPanel/>
       <WebAuthnPanel/>
+      <PasskeysPanel/>
     </div>
   </ViewContent>
 </template>

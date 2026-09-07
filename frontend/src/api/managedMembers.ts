@@ -84,6 +84,24 @@ export async function setPassword(memberId: number, password: string): Promise<M
     return res.data
 }
 
+export interface PasskeyCode {
+    code: string
+    /** Base64 PNG of the QR that carries the enrolment grant. */
+    qrPng: string
+    expiresAt: string
+}
+
+/** The QR code held up in the room: lets the member create a passkey on their own device. */
+export async function issuePasskeyCode(memberId: number): Promise<PasskeyCode> {
+    const res = await client.post<PasskeyCode>(`/managed-members/${memberId}/passkey-code`)
+    return res.data
+}
+
+/** Kills the open code when the guardian leaves the screen. */
+export async function revokePasskeyCode(memberId: number): Promise<void> {
+    await client.delete(`/managed-members/${memberId}/passkey-code`)
+}
+
 export async function setLogin(memberId: number, enabled: boolean): Promise<ManagedAccess> {
     const res = await client.put<ManagedAccess>(`/managed-members/${memberId}/login`, {enabled})
     return res.data

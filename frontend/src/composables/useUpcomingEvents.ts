@@ -7,6 +7,7 @@ import { computed, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   isRecurringEvent,
+  type AllEventRestrictions,
   type EventBreak,
   type EventCategory,
   type EventField,
@@ -17,8 +18,8 @@ import {
   type StationEvent,
   type UpcomingEventOccurrence,
 } from '@/api/events'
-import type { StationMember } from '@/api/types'
-import { events, managedMembers as managedMembersApi } from '@/api'
+import type { MemberGroup, StationMember, UserTag } from '@/api/types'
+import { events, managedMembers as managedMembersApi, memberGroups, userTags } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useEventAnswer } from '@/composables/useEventAnswer'
 import { toIsoDate } from '@/util/format'
@@ -50,6 +51,9 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
   const registrationCounts = ref<RegistrationCount[]>([])
   const overviewFields = ref<Record<number, EventField[]>>({})
   const categories = ref<EventCategory[]>([])
+  const restrictions = ref<AllEventRestrictions>({})
+  const groups = ref<MemberGroup[]>([])
+  const tags = ref<UserTag[]>([])
 
   const selectedCategoryId = ref('')
   const searchQuery = ref('')
@@ -101,7 +105,7 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
   }
 
   const {loading, error, reload} = useAsyncLoader(async () => {
-    const [upcoming, today, regs, elig, counts, ovFields, cats, allEv, brs] = await Promise.all([
+    const [upcoming, today, regs, elig, counts, ovFields, cats, allEv, brs, restr, grps, tgs] = await Promise.all([
       events.listUpcomingOccurrences(buildUpcomingParams()),
       events.listTodayEvents(),
       events.listMyRegistrations(),
@@ -111,6 +115,9 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
       events.listCategories(),
       events.listEvents(),
       events.listBreaks().catch(() => []),
+      events.listAllRestrictions().catch(() => ({})),
+      memberGroups.listGroups().catch(() => []),
+      userTags.listTags().catch(() => []),
     ])
     upcomingOccurrences.value = upcoming
     hasMore.value = upcoming.length >= PAGE_SIZE
@@ -122,6 +129,9 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     categories.value = cats
     allEvents.value = allEv
     eventBreaks.value = brs
+    restrictions.value = restr
+    groups.value = grps
+    tags.value = tgs
 
     if (!isGuardian()) return
     managedMembers.value = (await managedMembersApi.listManaged()).map(m => ({
@@ -191,6 +201,9 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     registrationCounts,
     overviewFields,
     categories,
+    restrictions,
+    groups,
+    tags,
     selectedCategoryId,
     searchQuery,
     showNeedsAction,

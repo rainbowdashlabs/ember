@@ -9,7 +9,6 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.Multibinder;
-import com.yubico.webauthn.RelyingParty;
 import de.chojo.sadu.datasource.DataSourceCreator;
 import de.chojo.sadu.mapper.RowMapperRegistry;
 import de.chojo.sadu.postgresql.databases.PostgreSql;
@@ -31,9 +30,11 @@ import dev.chojo.ember.conf.file.elements.Logging;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
+import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.conf.file.elements.Updates;
+import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.handlers.AttendanceRecordedHandler;
 import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
@@ -85,6 +86,7 @@ import dev.chojo.ember.feature.account.route.AccountSessionRoutes;
 import dev.chojo.ember.feature.account.route.AuthRoutes;
 import dev.chojo.ember.feature.account.route.AvatarRoutes;
 import dev.chojo.ember.feature.account.route.SessionRoutes;
+import dev.chojo.ember.feature.account.service.AuthCleanupSweeper;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
 import dev.chojo.ember.feature.board.route.BoardRoutes;
 import dev.chojo.ember.feature.board.route.BoardTicketAttachmentRoutes;
@@ -187,6 +189,8 @@ import dev.chojo.ember.feature.notifications.route.NotificationRoutes;
 import dev.chojo.ember.feature.onboarding.route.OnboardingRoutes;
 import dev.chojo.ember.feature.page.route.PageRoutes;
 import dev.chojo.ember.feature.page.route.PublicPageRoutes;
+import dev.chojo.ember.feature.passkey.route.PasskeyAdminRoutes;
+import dev.chojo.ember.feature.passkey.route.PasskeyRoutes;
 import dev.chojo.ember.feature.procedure.route.ProcedureRoutes;
 import dev.chojo.ember.feature.protocol.route.FederatedTestProtocolRoutes;
 import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes;
@@ -260,8 +264,11 @@ import dev.chojo.ember.feature.system.service.DemoVideoSeeder;
 import dev.chojo.ember.feature.system.service.DemoWaitingListSeeder;
 import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes;
 import dev.chojo.ember.feature.traffic.route.StationTrafficRoutes;
+import dev.chojo.ember.feature.twofactor.route.StepUpRoutes;
 import dev.chojo.ember.feature.twofactor.route.TwoFactorAdminRoutes;
 import dev.chojo.ember.feature.twofactor.route.TwoFactorRoutes;
+import dev.chojo.ember.feature.twofactor.service.RelyingParties;
+import dev.chojo.ember.feature.twofactor.service.SecondFactorCredentialStore;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnCredentialStore;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnRelyingPartyFactory;
 import dev.chojo.ember.feature.waitinglist.route.WaitingListRoutes;
@@ -431,6 +438,9 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(StationTrafficRoutes.class);
         routesBinder.addBinding().to(StationInsightsRoutes.class);
         routesBinder.addBinding().to(TwoFactorRoutes.class);
+        routesBinder.addBinding().to(StepUpRoutes.class);
+        routesBinder.addBinding().to(PasskeyRoutes.class);
+        routesBinder.addBinding().to(PasskeyAdminRoutes.class);
         routesBinder.addBinding().to(TwoFactorAdminRoutes.class);
 
         Multibinder<TableImporter> tableImporterBinder = Multibinder.newSetBinder(binder(), TableImporter.class);
@@ -524,6 +534,7 @@ public class EmberModule extends AbstractModule {
         bind(EventReminderChecker.class).asEagerSingleton();
         bind(StorageReconciliationService.class).asEagerSingleton();
         bind(ManagedLoginNoticeSweeper.class).asEagerSingleton();
+        bind(AuthCleanupSweeper.class).asEagerSingleton();
         bind(KbTrashPurger.class).asEagerSingleton();
         bind(FederationVersionBroadcaster.class).asEagerSingleton();
         bind(FeedMetricsService.class).asEagerSingleton();
@@ -587,8 +598,24 @@ public class EmberModule extends AbstractModule {
 
     @Provides
     @Singleton
-    RelyingParty webAuthnRelyingParty(TwoFactorSettings twoFactor, Api api, WebAuthnCredentialStore store) {
-        return WebAuthnRelyingPartyFactory.build(twoFactor, api, store);
+    WebAuthnSettings webAuthnSettings(Auth auth) {
+        return WebAuthnSettings.resolvedFrom(auth);
+    }
+
+    @Provides
+    @Singleton
+    PasskeySettings passkeySettings(Auth auth) {
+        return auth.passkeys();
+    }
+
+    @Provides
+    @Singleton
+    RelyingParties webAuthnRelyingParties(
+            WebAuthnSettings settings,
+            Api api,
+            WebAuthnCredentialStore fullStore,
+            SecondFactorCredentialStore secondFactorStore) {
+        return WebAuthnRelyingPartyFactory.build(settings, api, fullStore, secondFactorStore);
     }
 
     @Provides

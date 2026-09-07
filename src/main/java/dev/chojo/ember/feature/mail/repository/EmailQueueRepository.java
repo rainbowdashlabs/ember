@@ -196,6 +196,20 @@ public class EmailQueueRepository {
     }
 
     /**
+     * When a mail last went out successfully, or empty when none ever has. This is the proof
+     * the passwordless mode demands before it can be chosen: for every member with an address,
+     * mail is the only way back in, and mail that worked in March is not mail that works in
+     * September.
+     */
+    public Optional<Instant> findLastSentAt() {
+        return query("SELECT MAX(sent_at) AS last_sent FROM email_queue WHERE status = 'SENT';")
+                .single(call())
+                .map(row -> row.get("last_sent", INSTANT_TIMESTAMP))
+                .first()
+                .filter(java.util.Objects::nonNull);
+    }
+
+    /**
      * How many mails one provider of a chain has sent on the given day.
      *
      * <p>Read from what actually left rather than from a counter of its own, so a mail written

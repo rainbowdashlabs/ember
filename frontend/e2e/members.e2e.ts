@@ -179,6 +179,9 @@ test.describe('Members', () => {
         // labels an input is tied to.
         await page.getByRole('textbox').nth(2).fill(address)
         await page.getByRole('button', {name: 'Speichern'}).first().click()
+        // Moving somebody's address takes a fresh proof, so the save is only done once the button
+        // says so; navigating before that would cancel the retried request mid-dialog.
+        await expect(page.getByRole('button', {name: 'Gespeichert'})).toBeVisible({timeout: 15_000})
 
         await page.goto(`/station/members/edit/${id}`)
         await expect(page.getByRole('textbox').nth(2), 'the new address is the one on the account')

@@ -10,7 +10,6 @@ import com.yubico.webauthn.AssertionResult;
 import com.yubico.webauthn.FinishAssertionOptions;
 import com.yubico.webauthn.FinishRegistrationOptions;
 import com.yubico.webauthn.RegistrationResult;
-import com.yubico.webauthn.RelyingParty;
 import com.yubico.webauthn.StartAssertionOptions;
 import com.yubico.webauthn.StartRegistrationOptions;
 import com.yubico.webauthn.data.AuthenticatorAssertionResponse;
@@ -27,15 +26,15 @@ import com.yubico.webauthn.data.UserIdentity;
 import com.yubico.webauthn.data.UserVerificationRequirement;
 import com.yubico.webauthn.exception.AssertionFailedException;
 import com.yubico.webauthn.exception.RegistrationFailedException;
-import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
-import dev.chojo.ember.feature.account.entity.AccountToken;
-import dev.chojo.ember.feature.account.entity.TokenType;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
+import dev.chojo.ember.feature.twofactor.entity.ChallengePurpose;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorFactor;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
+import dev.chojo.ember.feature.twofactor.entity.WebAuthnChallenge;
 import dev.chojo.ember.feature.twofactor.entity.WebAuthnCredential;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
+import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -52,7 +51,7 @@ import java.util.UUID;
 
 /**
  * Orchestrates WebAuthn registration and assertion ceremonies. Pending state (the server
- * challenge) is parked in {@code account_token} so the verifier is stateless and survives
+ * challenge) is parked in {@code webauthn_challenge} so the verifier is stateless and survives
  * the round trip to the browser.
  */
 @Singleton
@@ -61,23 +60,23 @@ public class WebAuthnService {
     private static final Duration CHALLENGE_TTL = Duration.ofMinutes(5);
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private final RelyingParty relyingParty;
+    private final RelyingParties relyingParties;
     private final TwoFactorRepository repository;
     private final TwoFactorAuditService auditService;
-    private final AccountRepository accountRepository;
-    private final TwoFactorSettings settings;
+    private final WebAuthnChallengeRepository challengeRepository;
+    private final WebAuthnSettings settings;
 
     @Inject
     public WebAuthnService(
-            RelyingParty relyingParty,
+            RelyingParties relyingParties,
             TwoFactorRepository repository,
             TwoFactorAuditService auditService,
-            AccountRepository accountRepository,
-            TwoFactorSettings settings) {
-        this.relyingParty = relyingParty;
+            WebAuthnChallengeRepository challengeRepository,
+            WebAuthnSettings settings) {
+        this.relyingParties = relyingParties;
         this.repository = repository;
         this.auditService = auditService;
-        this.accountRepository = accountRepository;
+        this.challengeRepository = challengeRepository;
         this.settings = settings;
     }
 
@@ -121,19 +120,20 @@ public class WebAuthnService {
                 .id(new ByteArray(userHandle))
                 .build();
 
+        // A second factor never needs to be discoverable: it is always named by an allow list.
+        // The passkey ceremony is the one that requires a resident key, and it has its own service.
         var selection = AuthenticatorSelectionCriteria.builder()
-                .residentKey(
-                        settings.webauthn().requireResidentKey()
-                                ? ResidentKeyRequirement.REQUIRED
-                                : ResidentKeyRequirement.DISCOURAGED)
+                .residentKey(ResidentKeyRequirement.DISCOURAGED)
                 .userVerification(UserVerificationRequirement.PREFERRED)
                 .build();
 
-        PublicKeyCredentialCreationOptions options = relyingParty.startRegistration(StartRegistrationOptions.builder()
-                .user(user)
-                .authenticatorSelection(selection)
-                .timeout(settings.webauthn().timeoutSeconds() * 1000L)
-                .build());
+        PublicKeyCredentialCreationOptions options = relyingParties
+                .passkey()
+                .startRegistration(StartRegistrationOptions.builder()
+                        .user(user)
+                        .authenticatorSelection(selection)
+                        .timeout(settings.timeoutSeconds() * 1000L)
+                        .build());
 
         String persistJson;
         try {
@@ -148,7 +148,7 @@ public class WebAuthnService {
             log.warn("WebAuthn registration options fell back to the stored shape for account {}", accountId, e);
             browserJson = persistJson;
         }
-        String token = persistChallenge(accountId, TokenType.TWO_FACTOR_WEBAUTHN_REG, persistJson);
+        String token = persistChallenge(accountId, ChallengePurpose.REGISTRATION, persistJson);
         return new RegistrationStart(token, browserJson);
     }
 
@@ -163,16 +163,17 @@ public class WebAuthnService {
             String label,
             String userAgent,
             String country) {
-        Optional<AccountToken> tokenOpt =
-                consumeChallenge(challengeToken, TokenType.TWO_FACTOR_WEBAUTHN_REG, accountId);
-        if (tokenOpt.isEmpty()) {
+        Optional<WebAuthnChallenge> challengeOpt =
+                consumeChallenge(challengeToken, ChallengePurpose.REGISTRATION, accountId);
+        if (challengeOpt.isEmpty()) {
             log.info("WebAuthn registration failed for account {}: challenge unknown or expired", accountId);
             return Optional.empty();
         }
 
         PublicKeyCredentialCreationOptions options;
         try {
-            options = PublicKeyCredentialCreationOptions.fromJson(tokenOpt.get().metadata());
+            options = PublicKeyCredentialCreationOptions.fromJson(
+                    challengeOpt.get().optionsJson());
         } catch (Exception e) {
             log.warn("Failed to parse stored WebAuthn options for account {}", accountId, e);
             return Optional.empty();
@@ -188,10 +189,12 @@ public class WebAuthnService {
 
         RegistrationResult result;
         try {
-            result = relyingParty.finishRegistration(FinishRegistrationOptions.builder()
-                    .request(options)
-                    .response(response)
-                    .build());
+            result = relyingParties
+                    .passkey()
+                    .finishRegistration(FinishRegistrationOptions.builder()
+                            .request(options)
+                            .response(response)
+                            .build());
         } catch (RegistrationFailedException e) {
             log.warn("WebAuthn registration verification failed for account {}", accountId, e);
             return Optional.empty();
@@ -212,7 +215,11 @@ public class WebAuthnService {
                 aaguid,
                 transports,
                 attestationFormat,
-                options.getUser().getId().getBytes());
+                options.getUser().getId().getBytes(),
+                false,
+                true,
+                result.isDiscoverable().orElse(null),
+                result.isUserVerified());
 
         auditService.record(accountId, null, TwoFactorEvent.ENROLLED, TwoFactorKind.WEBAUTHN, userAgent, country);
         log.info("WebAuthn credential enrolled for account {} (factor {})", accountId, factor.id());
@@ -220,11 +227,13 @@ public class WebAuthnService {
     }
 
     public AssertionStart startAssertion(int accountId) {
-        AssertionRequest request = relyingParty.startAssertion(StartAssertionOptions.builder()
-                .username(String.valueOf(accountId))
-                .userVerification(UserVerificationRequirement.PREFERRED)
-                .timeout(settings.webauthn().timeoutSeconds() * 1000L)
-                .build());
+        AssertionRequest request = relyingParties
+                .secondFactor()
+                .startAssertion(StartAssertionOptions.builder()
+                        .username(String.valueOf(accountId))
+                        .userVerification(UserVerificationRequirement.PREFERRED)
+                        .timeout(settings.timeoutSeconds() * 1000L)
+                        .build());
 
         String persistJson;
         try {
@@ -239,23 +248,23 @@ public class WebAuthnService {
             log.warn("WebAuthn assertion request fell back to the stored shape for account {}", accountId, e);
             browserJson = persistJson;
         }
-        String token = persistChallenge(accountId, TokenType.TWO_FACTOR_WEBAUTHN_ASSERT, persistJson);
+        String token = persistChallenge(accountId, ChallengePurpose.SECOND_FACTOR_ASSERTION, persistJson);
         return new AssertionStart(token, browserJson);
     }
 
     // -- Helpers --
 
     public boolean finishAssertion(int accountId, String challengeToken, String credentialJson) {
-        Optional<AccountToken> tokenOpt =
-                consumeChallenge(challengeToken, TokenType.TWO_FACTOR_WEBAUTHN_ASSERT, accountId);
-        if (tokenOpt.isEmpty()) {
+        Optional<WebAuthnChallenge> challengeOpt =
+                consumeChallenge(challengeToken, ChallengePurpose.SECOND_FACTOR_ASSERTION, accountId);
+        if (challengeOpt.isEmpty()) {
             log.info("WebAuthn assertion failed for account {}: challenge unknown or expired", accountId);
             return false;
         }
 
         AssertionRequest request;
         try {
-            request = AssertionRequest.fromJson(tokenOpt.get().metadata());
+            request = AssertionRequest.fromJson(challengeOpt.get().optionsJson());
         } catch (Exception e) {
             log.warn("Failed to parse stored WebAuthn assertion request for account {}", accountId, e);
             return false;
@@ -271,10 +280,12 @@ public class WebAuthnService {
 
         AssertionResult result;
         try {
-            result = relyingParty.finishAssertion(FinishAssertionOptions.builder()
-                    .request(request)
-                    .response(response)
-                    .build());
+            result = relyingParties
+                    .secondFactor()
+                    .finishAssertion(FinishAssertionOptions.builder()
+                            .request(request)
+                            .response(response)
+                            .build());
         } catch (AssertionFailedException e) {
             log.warn("WebAuthn assertion verification failed for account {}", accountId, e);
             return false;
@@ -285,10 +296,19 @@ public class WebAuthnService {
             return false;
         }
 
-        Optional<WebAuthnCredential> credential = repository.findWebAuthnByCredentialId(
+        Optional<WebAuthnCredential> credential = repository.findActiveWebAuthnByCredentialId(
                 result.getCredential().getCredentialId().getBytes());
         if (credential.isEmpty()) {
-            log.warn("WebAuthn assertion failed for account {}: the accepted credential is not on file", accountId);
+            log.warn(
+                    "WebAuthn assertion failed for account {}: the accepted credential is not on file or disabled",
+                    accountId);
+            return false;
+        }
+        // Splitting the allow list is not enough: for an account whose only credentials are
+        // passkeys, the second-factor allow list comes back empty, and the library then accepts
+        // any credential the account owns. So the flag is checked on the verified result.
+        if (!credential.get().secondFactor()) {
+            log.info("WebAuthn assertion refused for account {}: the credential is not a second factor", accountId);
             return false;
         }
         repository.updateWebAuthnSignatureCounter(credential.get().factorId(), result.getSignatureCount());
@@ -296,23 +316,20 @@ public class WebAuthnService {
         return true;
     }
 
-    private String persistChallenge(int accountId, TokenType type, String metadata) {
+    private String persistChallenge(int accountId, ChallengePurpose purpose, String optionsJson) {
         String token = newChallengeToken();
-        accountRepository.createToken(
-                accountId, token, type, metadata, Instant.now().plus(CHALLENGE_TTL));
+        challengeRepository.create(
+                token, purpose, accountId, optionsJson, Instant.now().plus(CHALLENGE_TTL));
         return token;
     }
 
-    private Optional<AccountToken> consumeChallenge(String token, TokenType type, int accountId) {
-        Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
-        if (tokenOpt.isEmpty()) return Optional.empty();
-        AccountToken stored = tokenOpt.get();
-        if (stored.isExpired() || stored.tokenType() != type || stored.accountId() != accountId) {
-            accountRepository.deleteToken(token);
-            return Optional.empty();
-        }
-        accountRepository.deleteToken(token);
-        return tokenOpt;
+    private Optional<WebAuthnChallenge> consumeChallenge(String token, ChallengePurpose purpose, int accountId) {
+        return challengeRepository
+                .consume(token)
+                .filter(stored -> !stored.isExpired()
+                        && stored.purpose() == purpose
+                        && stored.accountId() != null
+                        && stored.accountId() == accountId);
     }
 
     public record RegistrationStart(String challengeToken, String optionsJson) {}
