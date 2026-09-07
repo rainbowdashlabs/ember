@@ -19,6 +19,7 @@ defineProps<{
       :values="table.filterModalValues"
       :selected-values="table.filterModalSelected"
       :include-empty="table.filterModalIncludeEmpty"
+      :field-kind="table.filterModalKind"
       @apply="table.applyColumnFilter"
       @close="table.filterModalOpen = false"
   />
