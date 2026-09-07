@@ -55,9 +55,9 @@ public class PasskeyEnrollmentService {
     /** An hour for the console link and the re-onboarding mail: a person has to notice it. */
     public static final Duration LINK_TTL = Duration.ofHours(1);
 
-    /** Which stored tokens open the enrolment ceremony everywhere. */
-    private static final Set<TokenType> ENROLLMENT_DOORS =
-            EnumSet.of(TokenType.PASSKEY_ENROLLMENT, TokenType.SET_PASSWORD, TokenType.RESET_PASSWORD);
+    /** The mail-borne tokens that double as doors, and only on a passwordless instance. */
+    private static final Set<TokenType> PASSWORDLESS_DOORS =
+            EnumSet.of(TokenType.SET_PASSWORD, TokenType.RESET_PASSWORD, TokenType.VERIFY_EMAIL);
 
     private final AccountRepository accountRepository;
     private final PasskeyRepository passkeyRepository;
@@ -247,10 +247,11 @@ public class PasskeyEnrollmentService {
     }
 
     private boolean isDoor(TokenType type) {
-        if (ENROLLMENT_DOORS.contains(type)) return true;
-        // The verification mail's link is where the passkey is made on a passwordless instance
-        // (self-registration writes no credential row there); everywhere else it only verifies.
-        return type == TokenType.VERIFY_EMAIL && modeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS;
+        if (type == TokenType.PASSKEY_ENROLLMENT) return true;
+        // The setup, reset and verification mails hold exactly this power on a passwordless
+        // instance and only their own errand anywhere else: on a mixed instance a reset link
+        // must not mint a sign-in passkey past an enrolled second factor.
+        return PASSWORDLESS_DOORS.contains(type) && modeService.effectiveMode() == PasskeySettings.Mode.PASSWORDLESS;
     }
 
     private Optional<Door> findDoor(String rawToken) {

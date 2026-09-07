@@ -155,6 +155,39 @@ class PasskeyEnrollmentServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void aSetupOrResetTokenIsADoorOnlyOnAPasswordlessInstance() {
+        int accountId = newAccount();
+        accountRepo.createToken(
+                accountId,
+                "setup-door-" + accountId,
+                TokenType.SET_PASSWORD,
+                Instant.now().plus(Duration.ofHours(1)));
+        accountRepo.createToken(
+                accountId,
+                "reset-door-" + accountId,
+                TokenType.RESET_PASSWORD,
+                Instant.now().plus(Duration.ofHours(1)));
+
+        assertTrue(
+                service.lookup("setup-door-" + accountId).isEmpty(), "elsewhere the setup mail only sets a password");
+        assertTrue(
+                service.lookup("reset-door-" + accountId).isEmpty(),
+                "a reset link must not mint a sign-in passkey past an enrolled second factor");
+
+        when(modeService.effectiveMode()).thenReturn(PasskeySettings.Mode.PASSWORDLESS);
+        try {
+            assertEquals(
+                    accountId,
+                    service.lookup("setup-door-" + accountId).orElseThrow().id());
+            assertEquals(
+                    accountId,
+                    service.lookup("reset-door-" + accountId).orElseThrow().id());
+        } finally {
+            when(modeService.effectiveMode()).thenReturn(PasskeySettings.Mode.OPTIONAL);
+        }
+    }
+
+    @Test
     void theQrIssueTellsWhoeverMailAboutTheAccountReaches() {
         int accountId = newAccount();
         when(mailRecipientService.forAccount(accountId))
