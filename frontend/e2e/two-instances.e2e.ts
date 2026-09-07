@@ -10,8 +10,10 @@ import {
     instanceRequestAs,
     peerBaseUrl,
     peerInternalUrl,
+    stationManagerOf,
     test,
 } from './fixtures/peer'
+import {proveFreshly} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 import type {APIRequestContext} from '@playwright/test'
 
@@ -140,22 +142,27 @@ test.describe('Two instances', () => {
      * The inviting station is made for the story rather than taken from the seed. Both instances are
      * seeded from the same list and derive a station's identity from its name, so the seeded
      * stations of one are the seeded stations of the other by identity, and a station handed such a
-     * code is told it is being invited to federate with itself.
+     * code is told it is being invited to federate with itself. Its manager is a seeded account
+     * handed the fresh station, because the federation routes ask for a fresh proof and a manager
+     * made mid-story holds nothing to prove itself with: no password until its setup mail, no
+     * second factor ever.
      */
     test('a station takes up an invite code from the other instance', async ({peerAdminApi, homeManagerApi}) => {
         const name = unique('E2E-Gegenstelle')
-        const managerEmail = `${name.toLowerCase()}@e2e.ember`
-        const created = await peerAdminApi.post('/api/v1/stations', {data: {name, managerEmail}})
+        const manager = await stationManagerOf(peerBaseUrl())
+        const created = await peerAdminApi.post('/api/v1/stations', {data: {name, managerEmail: manager.email}})
         expect(created.status()).toBe(201)
         const {id: invitingStation} = await created.json()
 
-        const inviting = await instanceRequestAs(peerBaseUrl(), {email: managerEmail, stationId: invitingStation})
+        const inviting = await instanceRequestAs(peerBaseUrl(), {email: manager.email, stationId: invitingStation})
         try {
+            await proveFreshly(inviting)
             const invited = await inviting.post('/api/v1/federation/invite')
             expect(invited.ok()).toBe(true)
             const {inviteCode} = await invited.json()
             expect(inviteCode).toContain('ember-')
 
+            await proveFreshly(homeManagerApi)
             const accepted = await homeManagerApi.post('/api/v1/federation/accept', {data: {inviteCode}})
             expect(accepted.status(), await accepted.text()).toBe(201)
 

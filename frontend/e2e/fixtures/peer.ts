@@ -140,11 +140,12 @@ export async function adminOf(baseUrl: string): Promise<DemoAccount> {
 }
 
 /**
- * Somebody who runs a station of that instance and can act without a second factor.
+ * Somebody who runs a station of that instance and whose proof is the seeded password.
  *
- * The federation actions all ask for a fresh second factor, and the demo gives one person at each
- * station a real authenticator with a secret nobody holds: a story acting as that person is stopped
- * before it begins, and no amount of retrying produces the six digits. Asked by what the account is
+ * The federation actions all ask for a fresh proof, and the demo gives one person at each
+ * station a real authenticator with a secret nobody holds: a story acting as that person cannot
+ * answer the step-up, and no amount of retrying produces the six digits. A manager without a
+ * second factor proves itself with the seeded password instead. Asked by what the account is
  * rather than by name, because which of them the seeder picks is the seeder's business.
  */
 export async function stationManagerOf(baseUrl: string): Promise<DemoAccount> {

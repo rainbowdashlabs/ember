@@ -250,6 +250,40 @@ export async function freshStepUpProof(page: Page): Promise<void> {
 }
 
 /**
+ * Takes the automatic answering off the page again, for the one story that is about the prompt
+ * itself: proving where it opens and that its field takes a click. With the handler on, the
+ * dialog is answered and gone before the story reaches it.
+ */
+export async function stopAnsweringStepUpPrompts(page: Page): Promise<void> {
+    await page.removeLocatorHandler(
+        page.getByRole('dialog').filter({hasText: 'Sicherheitsbestätigung erforderlich'}))
+}
+
+/**
+ * Stamps a bare API context's session as freshly proved, the way {@link freshStepUpProof} does
+ * for a page. Call it right before the guarded request rather than once at the start: a dev
+ * session is one row per account replaced on every sign-in, so any story signing in as the same
+ * person in the meantime takes the freshness with it.
+ */
+export async function proveFreshly(api: APIRequestContext): Promise<void> {
+    const password = await api.post('/api/v1/auth/stepup/password', {data: {password: DEMO_PASSWORD}})
+    if (password.ok()) return
+    // An account with a second factor is refused the password on purpose; it proves itself with
+    // the code from the seeded knowable secret instead, answering a stale period with the next.
+    if (password.status() === 403) {
+        for (const ahead of [0, 30_000]) {
+            const totp = await api.post('/api/v1/auth/2fa/stepup', {
+                data: {factor: 'TOTP', proof: demoTotpCode(Date.now() + ahead)},
+            })
+            if (totp.ok()) return
+            if (totp.status() === 429) break
+        }
+        throw new Error('The TOTP step-up refused both the current and the next code')
+    }
+    throw new Error(`The password step-up answered ${password.status()}`)
+}
+
+/**
  * The headers a story needs to ask the backend something as the person whose page it holds.
  *
  * The application sends them from what it keeps in the browser; a request made straight from the
