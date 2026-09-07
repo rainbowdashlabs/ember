@@ -21,6 +21,8 @@
 
 ### Improvements
 
+- **Date columns filter by year, month and day.** Instead of one checkbox per single date, a date column's filter offers whole years and months, expandable down to the day, plus a range where "from" includes the chosen day and "before" excludes it. This holds for the member list and the inventory tables alike.
+- **A birth date shows the age and can filter by it.** Birth date columns carry the current age beside the date, and their filter can also bound the current age and the calendar age, the age on December 31 of the running year: "at least" includes the value, "below" excludes it.
 - **A quick check can step back to the piece before.** A wrong tap on the walk through somebody's equipment used to stand until the whole check was closed and reopened from the list behind it. One step back is now offered, which puts the walk on the piece it just left and takes off what was said about it.
 - **How long a setup link lasts is set in the browser.** The time somebody has to follow the link in their setup mail could only be changed in the file on the server. It now sits under Settings, Security, Tokens with the other lifetimes, between one and thirty days.
 - **Entering somebody and telling them about it can now happen on different days.** Writing a member down always sent the mail with the setup link at once, which is wrong for a whole year group written in before the term starts. Entering one member, entering a batch and reading a list out of a spreadsheet each now offer to hold that mail back, still sending it at once unless somebody says otherwise, and the button in the member list sends it when the station is ready, making a fresh link at that moment.
