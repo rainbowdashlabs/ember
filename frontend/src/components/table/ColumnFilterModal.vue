@@ -12,14 +12,21 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
+import DateFilterBody from './datefilter/DateFilterBody.vue'
 
 const { t } = useI18n()
 
 const props = defineProps<{
   columnLabel: string
+  /** The column's distinct values; a date column passes its raw ISO values. */
   values: string[]
   selectedValues: Set<string>
   includeEmpty: boolean
+  /**
+   * What the column holds: date and birthDate columns filter through the range, the year/month/day
+   * tree and (for a birth date) the age bounds instead of the flat checkbox list.
+   */
+  fieldKind?: 'text' | 'date' | 'birthDate'
 }>()
 
 const emit = defineEmits<{
@@ -71,31 +78,41 @@ function close() {
     <div class="space-y-4">
       <SubHeader>{{ t('tableFilter.by', { column: columnLabel }) }}</SubHeader>
 
-      <div class="flex gap-2 text-xs">
-        <SecondaryButton @click="selectAll">{{ t('tableFilter.selectAll') }}</SecondaryButton>
-        <SecondaryButton @click="selectNone">{{ t('tableFilter.selectNone') }}</SecondaryButton>
-      </div>
-
-      <div class="max-h-64 overflow-y-auto space-y-1 border rounded border-bg-light-accent dark:border-bg-dark-accent p-2">
-        <FieldLabel inline class="cursor-pointer dark:hover:bg-bg-dark-accent/50 hover:bg-bg-light-accent/50 px-2 py-1 rounded">
+      <template v-if="fieldKind === 'date' || fieldKind === 'birthDate'">
+        <FieldLabel inline class="cursor-pointer px-2 py-1 rounded hover:bg-bg-light-accent/50 dark:hover:bg-bg-dark-accent/50">
           <CheckboxInput v-model="localIncludeEmpty"/>
           <span class="italic text-(--text-muted)">{{ t('tableFilter.empty') }}</span>
         </FieldLabel>
+        <DateFilterBody v-model="localSelected" :values="values" :birth-date="fieldKind === 'birthDate'"/>
+      </template>
 
-        <FieldLabel
-            v-for="val in values"
-            :key="val"
-            inline
-            class="cursor-pointer px-2 py-1 rounded hover:bg-bg-light-accent/50 dark:hover:bg-bg-dark-accent/50 text-xs"
-        >
-          <CheckboxInput :model-value="localSelected.has(val)" @update:model-value="toggleValue(val)"/>
-          <span>{{ val }}</span>
-        </FieldLabel>
-
-        <div v-if="values.length === 0" class="text-center text-(--text-muted) text-xs py-2">
-          {{ t('tableFilter.noValues') }}
+      <template v-else>
+        <div class="flex gap-2 text-xs">
+          <SecondaryButton @click="selectAll">{{ t('tableFilter.selectAll') }}</SecondaryButton>
+          <SecondaryButton @click="selectNone">{{ t('tableFilter.selectNone') }}</SecondaryButton>
         </div>
-      </div>
+
+        <div class="max-h-64 overflow-y-auto space-y-1 border rounded border-bg-light-accent dark:border-bg-dark-accent p-2">
+          <FieldLabel inline class="cursor-pointer dark:hover:bg-bg-dark-accent/50 hover:bg-bg-light-accent/50 px-2 py-1 rounded">
+            <CheckboxInput v-model="localIncludeEmpty"/>
+            <span class="italic text-(--text-muted)">{{ t('tableFilter.empty') }}</span>
+          </FieldLabel>
+
+          <FieldLabel
+              v-for="val in values"
+              :key="val"
+              inline
+              class="cursor-pointer px-2 py-1 rounded hover:bg-bg-light-accent/50 dark:hover:bg-bg-dark-accent/50 text-xs"
+          >
+            <CheckboxInput :model-value="localSelected.has(val)" @update:model-value="toggleValue(val)"/>
+            <span>{{ val }}</span>
+          </FieldLabel>
+
+          <div v-if="values.length === 0" class="text-center text-(--text-muted) text-xs py-2">
+            {{ t('tableFilter.noValues') }}
+          </div>
+        </div>
+      </template>
 
       <div class="flex justify-end gap-2">
         <SecondaryButton @click="close">{{ t('common.cancel') }}</SecondaryButton>

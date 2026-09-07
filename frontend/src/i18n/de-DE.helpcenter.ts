@@ -1464,6 +1464,7 @@ volumes:
             exampleTitle: 'So sieht die Mitgliederliste aus',
             searchTitle: 'Suche & Filter',
             searchText: 'Oben gibt es ein Suchfeld - tippe einen Namen oder eine E-Mail ein, um Mitglieder zu finden. Du kannst auch nach bestimmten Spalten filtern.',
+            searchDates: 'Datumsspalten filtern über ganze Jahre und Monate, die sich bis auf den Tag aufklappen lassen, dazu ein Zeitraum „Ab" (einschließlich) und „Vor" (ausschließlich). Bei einem Geburtsdatum steht hinter dem Datum das aktuelle Alter, und der Filter grenzt zusätzlich nach aktuellem Alter und nach Kalenderalter ein, dem Alter am 31. Dezember: „Mindestens" schließt den Wert ein, „Unter" schließt ihn aus.',
             searchSave: 'Häufig genutzte Filter kannst du speichern und später mit einem Klick wieder laden.',
             columnsTitle: 'Spalten anpassen',
             columnsText: 'Klicke auf Spalten, um zusätzliche Profilfelder als Spalten in der Tabelle anzuzeigen.',

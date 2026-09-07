@@ -9,17 +9,7 @@ import type { StationMember, MemberGroup, UserTag, PermissionGrant } from '@/api
 import { profileFields, stationMembers } from '@/api'
 import type { RichMember } from '@/api/stationMembers'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-
-export function computeAge(dateStr: string, mode: string): string {
-  if (!dateStr) return ''
-  const birth = new Date(dateStr)
-  const now = new Date()
-  const target = mode === 'end_of_year' ? new Date(now.getFullYear(), 11, 31) : now
-  let age = target.getFullYear() - birth.getFullYear()
-  const m = target.getMonth() - birth.getMonth()
-  if (m < 0 || (m === 0 && target.getDate() < birth.getDate())) age--
-  return String(age)
-}
+import { computeAge } from '@/util/age'
 
 /**
  * What to call somebody in a list. Takes the little of a person this needs rather than a station

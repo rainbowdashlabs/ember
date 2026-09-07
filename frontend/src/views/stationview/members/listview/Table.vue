@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ColumnFilterModal from '@/components/table/ColumnFilterModal.vue'
 import MemberCardMobile from './MemberCardMobile.vue'
 import MemberDesktopTable from './MemberDesktopTable.vue'
-import type {ProfileField} from '@/api/profileFields'
+import {FieldTypes, type ProfileField} from '@/api/profileFields'
 import {StationUserType, type StationMember} from '@/api/types'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import {sortIconFor, type SortDirection} from '@/composables/useSortable'
@@ -61,6 +61,16 @@ const filterModalLabel = ref('')
 const filterModalValues = ref<string[]>([])
 const filterModalSelected = ref<Set<string>>(new Set())
 const filterModalIncludeEmpty = ref(false)
+const filterModalKind = ref<'text' | 'date' | 'birthDate'>('text')
+
+/** How a column filters: birth dates and dates get the tree and the bounds, the rest the list. */
+function fieldKindOf(key: 'name' | 'groups' | 'tags' | number): 'text' | 'date' | 'birthDate' {
+  if (typeof key !== 'number') return 'text'
+  const fieldType = props.visibleColumns.find(f => f.id === key)?.fieldType
+  if (fieldType === FieldTypes.BIRTH_DATE) return 'birthDate'
+  if (fieldType === FieldTypes.DATE) return 'date'
+  return 'text'
+}
 
 function sortIcon(column: MemberSortKey): string {
   return sortIconFor(props.sortKey === column, props.sortDirection)
@@ -75,6 +85,7 @@ function hasActiveFilter(key: 'name' | 'groups' | 'tags' | number): boolean {
 function openFilterModal(key: 'name' | 'groups' | 'tags' | number, label: string) {
   filterModalColumn.value = key
   filterModalLabel.value = label
+  filterModalKind.value = fieldKindOf(key)
   filterModalValues.value = getUniqueValuesForColumn(key)
   filterModalSelected.value = new Set(props.columnMultiFilters.get(key) ?? [])
   filterModalIncludeEmpty.value = props.columnEmptyFilters.has(key)
@@ -209,6 +220,7 @@ function onRowClick(member: StationMember) {
       :values="filterModalValues"
       :selected-values="filterModalSelected"
       :include-empty="filterModalIncludeEmpty"
+      :field-kind="filterModalKind"
       @apply="onFilterApply"
       @close="filterModalOpen = false"
   />

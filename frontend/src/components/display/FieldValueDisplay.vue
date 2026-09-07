@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import {FieldTypes} from '@/api/profileFields'
+import {computeAge} from '@/util/age'
 import {formatDate} from '@/util/format'
 
 const props = defineProps<{
@@ -23,13 +24,19 @@ const isDate = computed(() =>
  *
  * <p>A date is stored the way a database wants one and was shown that way too, so a birthday read
  * as 2019-11-03 rather than as the 03.11.2019 it is. A date nobody can parse is left as written,
- * because showing nothing at all would lose it.
+ * because showing nothing at all would lose it. A birth date carries the current age behind it,
+ * which is the number the reader is usually after.
  */
 const displayValue = computed(() => {
   if (props.value == null || props.value === '') return '–'
   const text = String(props.value)
   if (!isDate.value) return text
-  return formatDate(text) || text
+  const formatted = formatDate(text) || text
+  if (props.fieldType === FieldTypes.BIRTH_DATE) {
+    const age = computeAge(text, 'now')
+    if (age) return `${formatted} (${age})`
+  }
+  return formatted
 })
 </script>
 

@@ -11,6 +11,7 @@ import {ItemOwner, type InventoryItem} from '@/api/inventory'
 import type { ColumnPickerOption } from '@/components/table/columns'
 import { byValue, useSortable } from '@/composables/useSortable'
 import { formatDate } from '@/util/format'
+import { matchesDateFilter, splitDateTokens } from '@/util/dateFilter'
 import { parseItemMetadata, type ParsedItemMetadata } from '../detailview/itemMetadata'
 
 export interface ItemTableColumn {
@@ -46,6 +47,7 @@ export function useItemTable(options: ItemTableOptions) {
   const filterModalValues = ref<string[]>([])
   const filterModalSelected = ref<Set<string>>(new Set())
   const filterModalIncludeEmpty = ref(false)
+  const filterModalKind = ref<'text' | 'date'>('text')
 
   onMounted(async () => {
     try {
@@ -144,6 +146,20 @@ export function useItemTable(options: ItemTableOptions) {
     return tagNamesByItem.value.get(item.id) ?? []
   }
 
+  /** Whether a column holds dates, which filter by day rather than by display string. */
+  function isDateColumn(key: string): boolean {
+    if (!key.startsWith(FIELD_PREFIX)) return false
+    const def = fieldDefs.value.find(d => d.key === key.slice(FIELD_PREFIX.length))
+    return def?.config.kind === 'DATE'
+  }
+
+  /** The stored value, undressed: the date filter speaks ISO, not the formatted display. */
+  function rawFieldValue(item: InventoryItem, fieldKey: string): string {
+    const entry = metadataById.value.get(item.id)?.fields[fieldKey]
+    if (entry === undefined || entry.value === undefined || entry.value === null) return ''
+    return String(entry.value)
+  }
+
   function assignedStatuses(item: InventoryItem): string[] {
     return [
       item.assignedTo ? t('inventory.edit.filterAssigned') : t('inventory.edit.filterNotAssigned'),
@@ -154,7 +170,9 @@ export function useItemTable(options: ItemTableOptions) {
   function filterValues(item: InventoryItem, key: string): string[] {
     if (key === 'assigned') return assignedStatuses(item)
     if (key === 'tags') return itemTagNames(item)
-    const value = columnValue(item, key)
+    const value = isDateColumn(key)
+      ? rawFieldValue(item, key.slice(FIELD_PREFIX.length))
+      : columnValue(item, key)
     return value ? [value] : []
   }
 
@@ -188,9 +206,11 @@ export function useItemTable(options: ItemTableOptions) {
     for (const [key, selectedValues] of columnMultiFilters.value) {
       if (selectedValues.size === 0) continue
       const includeEmpty = columnEmptyFilters.value.has(key)
+      const dateTokens = isDateColumn(key) ? splitDateTokens(selectedValues) : null
       list = list.filter(item => {
         const values = filterValues(item, key)
         if (values.length === 0 || values.every(v => !v)) return includeEmpty
+        if (dateTokens) return values.some(v => matchesDateFilter(v, dateTokens))
         return values.some(v => selectedValues.has(v))
       })
     }
@@ -219,6 +239,7 @@ export function useItemTable(options: ItemTableOptions) {
   function openFilterModal(key: string, label: string) {
     filterModalColumn.value = key
     filterModalLabel.value = label
+    filterModalKind.value = isDateColumn(key) ? 'date' : 'text'
     filterModalValues.value = distinctValues(key)
     filterModalSelected.value = new Set(columnMultiFilters.value.get(key) ?? [])
     filterModalIncludeEmpty.value = columnEmptyFilters.value.has(key)
@@ -255,6 +276,7 @@ export function useItemTable(options: ItemTableOptions) {
     filterModalValues,
     filterModalSelected,
     filterModalIncludeEmpty,
+    filterModalKind,
   })
 }
 

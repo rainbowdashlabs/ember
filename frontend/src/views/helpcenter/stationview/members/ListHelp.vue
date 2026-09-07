@@ -87,6 +87,7 @@ const tabs = [
 
     <HelpSection :title="t('helpCenter.membersList.searchTitle')">
       <p>{{ t('helpCenter.membersList.searchText') }}</p>
+      <p>{{ t('helpCenter.membersList.searchDates') }}</p>
       <HelpPermissionGuard :permissions="[StationPermission.MEMBER_EDIT]" :label="t('helpCenter.permissionLabel.memberEdit')">
         <p>{{ t('helpCenter.membersList.searchSave') }}</p>
       </HelpPermissionGuard>
