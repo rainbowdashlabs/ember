@@ -16,6 +16,8 @@ import {useMemberListTabs} from './useMemberListTabs'
 import {useExport, type ExportColumn} from '@/composables/useExport'
 import {byValue, useSortable} from '@/composables/useSortable'
 import {useMemberFilter} from '@/composables/useMemberFilter'
+import {DATE_FIELD_TYPES} from '@/api/profileFields'
+import {matchesDateFilter, splitDateTokens} from '@/util/dateFilter'
 
 /**
  * Where a member list's people come from and what may be done with them.
@@ -94,9 +96,16 @@ export function useMemberListConfig(port: MemberListPort) {
         for (const [key, selectedValues] of columnMultiFilters.value) {
             if (selectedValues.size === 0) continue
             const includeEmpty = columnEmptyFilters.value.has(key)
+            const fieldType = typeof key === 'number'
+                ? fields.value.find(f => f.id === key)?.fieldType
+                : undefined
+            const dateTokens = fieldType && DATE_FIELD_TYPES.includes(fieldType)
+                ? splitDateTokens(selectedValues)
+                : null
             list = list.filter(m => {
                 const values = getColumnValues(m, key)
                 if (values.length === 0 || values.every(v => !v)) return includeEmpty
+                if (dateTokens) return values.some(v => matchesDateFilter(v, dateTokens))
                 return values.some(v => selectedValues.has(v))
             })
         }
