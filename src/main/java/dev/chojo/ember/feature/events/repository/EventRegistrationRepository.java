@@ -412,6 +412,7 @@ public class EventRegistrationRepository {
                     e.name,
                     e.start_time,
                     e.registration_deadline,
+                    e.category_id,
                     sm.id AS member_id
                 FROM station_member sm
                     JOIN station_event e ON e.station_id = sm.station_id
@@ -434,13 +435,19 @@ public class EventRegistrationRepository {
                         row.getString("name"),
                         row.get("start_time", INSTANT_TIMESTAMP),
                         row.get("registration_deadline", INSTANT_TIMESTAMP),
+                        row.getObject("category_id", Integer.class),
                         row.getInt("member_id")))
                 .all();
     }
 
     /** One event still waiting on one member's answer. */
     public record AwaitingAnswer(
-            int eventId, String name, Instant startTime, Instant registrationDeadline, int memberId) {}
+            int eventId,
+            String name,
+            Instant startTime,
+            Instant registrationDeadline,
+            Integer categoryId,
+            int memberId) {}
 
     /**
      * Counts the pending registrations across a station's events.

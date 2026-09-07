@@ -285,7 +285,12 @@ public class EventRegistrationRoutes implements Routes {
             var entry = byEvent.computeIfAbsent(
                     row.eventId(),
                     id -> new AwaitingAnswer(
-                            id, row.name(), row.startTime(), row.registrationDeadline(), new ArrayList<>()));
+                            id,
+                            row.name(),
+                            row.startTime(),
+                            row.registrationDeadline(),
+                            row.categoryId(),
+                            new ArrayList<>()));
             entry.members().add(new AwaitingMember(row.memberId(), memberNameResolver.resolveLocal(row.memberId())));
         }
         ctx.json(List.copyOf(byEvent.values()));
@@ -293,7 +298,12 @@ public class EventRegistrationRoutes implements Routes {
 
     /** An event still waiting on an answer, and everyone in the household who owes one. */
     public record AwaitingAnswer(
-            int eventId, String name, Instant startTime, Instant registrationDeadline, List<AwaitingMember> members) {}
+            int eventId,
+            String name,
+            Instant startTime,
+            Instant registrationDeadline,
+            Integer categoryId,
+            List<AwaitingMember> members) {}
 
     /** Somebody who still owes an answer, named so a guardian can tell their children apart. */
     public record AwaitingMember(int memberId, String name) {}

@@ -544,6 +544,7 @@ export interface AwaitingAnswer {
     name: string
     startTime: string
     registrationDeadline: string
+    categoryId?: number | null
     members: AwaitingMember[]
 }
 

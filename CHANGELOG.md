@@ -22,6 +22,7 @@
 
 ### Improvements
 
+- **The dashboard shows each appointment's category.** Every appointment tile on the dashboard, in the upcoming list, the registrations and the answers still owed, now carries the same coloured category badge the appointment pages show.
 - **A new device can be freed by one that is already signed in.** The login screen offers it for a device that holds no passkey yet: it shows a short code, and entering that code under Account → Security on a signed-in device lets the new one create its own passkey and sign in with it.
 - **The operator sees where passkeys stand.** Under Admin → Settings → Security three figures show who holds a working passkey, who still holds a password and who cannot move yet, and a report before the passwordless switch counts who it would leave behind.
 - **A page that walks you through putting your notifications on your phone.** Until now the help named a handful of reader apps to choose from; there is now one route told to the end, with Feeder on Android and NetNewsWire on iPhone. It also says plainly why it is worth doing: a notification left inside Ember waits until you next open Ember.

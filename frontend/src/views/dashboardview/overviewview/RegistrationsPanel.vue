@@ -14,8 +14,15 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import ColorBadge from '@/components/badge/ColorBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import {isRecurringEvent, RegistrationStatus, type EventRegistrationEntry, type StationEvent} from '@/api/events'
+import {
+  isRecurringEvent,
+  RegistrationStatus,
+  type EventCategory,
+  type EventRegistrationEntry,
+  type StationEvent,
+} from '@/api/events'
 import {events} from '@/api'
 import {useSession} from '@/composables/useSession'
 
@@ -25,6 +32,13 @@ const {isGuardian, sessionInfo} = useSession()
 
 const registrations = ref<EventRegistrationEntry[]>([])
 const allEvents = ref<StationEvent[]>([])
+const categories = ref<EventCategory[]>([])
+
+/** The category the registration's event was put in, absent where it was put in none. */
+function categoryOf(eventId: number): EventCategory | undefined {
+  const categoryId = allEvents.value.find(e => e.id === eventId)?.categoryId
+  return categoryId != null ? categories.value.find(cat => cat.id === categoryId) : undefined
+}
 
 const activeRegistrations = computed(() => registrations.value.filter(r => r.status !== RegistrationStatus.DECLINED))
 
@@ -59,12 +73,14 @@ function statusBadgeComponent(status: string) {
 
 async function loadData() {
   try {
-    const [reg, ev] = await Promise.all([
+    const [reg, ev, cats] = await Promise.all([
       events.listMyRegistrations(),
       events.listEvents(),
+      events.listCategories().catch(() => []),
     ])
     registrations.value = reg
     allEvents.value = ev
+    categories.value = cats
   } catch { /* ignore */ }
 }
 
@@ -86,7 +102,13 @@ onMounted(loadData)
           <div>
             <MemberName v-if="isOtherMember(reg.memberId)" :identity="reg.memberIdentity ?? null"
                         class="text-xs font-semibold text-primary"/>
-            <p class="text-sm font-medium">{{ eventName(reg.eventId) }}</p>
+            <div class="flex items-center gap-2 min-w-0">
+              <p class="truncate text-sm font-medium">{{ eventName(reg.eventId) }}</p>
+              <ColorBadge v-if="categoryOf(reg.eventId)" :color="categoryOf(reg.eventId)!.color"
+                          class="shrink-0" data-testid="dashboard-event-category">
+                {{ categoryOf(reg.eventId)!.name }}
+              </ColorBadge>
+            </div>
             <p class="text-xs text-(--text-muted)">{{ reg.eventDate }}</p>
           </div>
           <component :is="statusBadgeComponent(reg.status)">

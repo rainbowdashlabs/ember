@@ -894,7 +894,7 @@ volumes:
             notificationsBadge: 'Oben in der Seitenleiste siehst du eine kleine rote Zahl - das ist die Anzahl deiner ungelesenen Benachrichtigungen.',
             notificationsAction: 'Klicke auf eine Benachrichtigung, um sie zu lesen. Mit „Alle gelesen" kannst du alle auf einmal als gelesen markieren.',
             upcomingEventsTitle: 'Kommende Termine',
-            upcomingEventsText: 'Hier siehst du die nächsten Termine der kommenden zwei Wochen. Klicke auf einen Termin, um die Details zu sehen.',
+            upcomingEventsText: 'Hier siehst du die nächsten Termine der kommenden zwei Wochen, jeweils mit der farbigen Kategorie des Termins als Badge. Klicke auf einen Termin, um die Details zu sehen.',
             upcomingEventsAnswerText: 'Hast du auf einen Termin schon geantwortet, steht deine Antwort daneben; erst wenn noch keine da ist, weist ein Badge darauf hin, dass eine Anmeldung nötig ist. Termine ohne Anmeldepflicht haben einen kleinen Abmelden-Knopf. Wer für andere antwortet, wählt vorher aus, für wen die Abmeldung gilt.',
             dummyEventName: 'Übungsabend',
             dummyEventDate: 'Mittwoch, 10.06.2026 · 18:00 – 20:00',
