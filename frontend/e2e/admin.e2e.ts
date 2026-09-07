@@ -232,8 +232,16 @@ test.describe('Legal documents', () => {
         await expect(adminPage.getByText('{{ betreiber.name }}')).toBeVisible()
 
         await adminPage.getByRole('textbox', {name: 'betreiber.name'}).fill(operator)
+
+        // The document above this panel was saved a moment ago and its button still reads
+        // "Gespeichert", so waiting for that word says nothing about this save: the assertion is
+        // already true and the public page is then read before the value has been written.
+        const saved = adminPage.waitForResponse(
+            response => response.request().method() === 'PUT'
+                && response.url().includes('/admin/legal/placeholders'),
+        )
         await adminPage.getByRole('button', {name: 'Speichern', exact: true}).last().click()
-        await expect(adminPage.getByRole('button', {name: 'Gespeichert'})).toBeVisible()
+        expect((await saved).status()).toBe(200)
 
         await page.goto('/imprint')
         await expect(page.getByText(operator)).toBeVisible()

@@ -93,6 +93,12 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceSession.beforeJoiningText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.attendanceSession.notesTitle')">
+      <p>{{ t('helpCenter.attendanceSession.notesText') }}</p>
+      <p>{{ t('helpCenter.attendanceSession.notesActionsText') }}</p>
+      <p>{{ t('helpCenter.attendanceSession.notesRightsText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.attendanceSession.frozenTitle')">
       <p>{{ t('helpCenter.attendanceSession.frozenText') }}</p>
       <p>{{ t('helpCenter.attendanceSession.frozenManagerText') }}</p>

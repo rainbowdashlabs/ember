@@ -34,7 +34,7 @@ import {
     faSquare, faSquareCheck, faGraduationCap, faBrain, faFileLines, faFilePdf, faFileImport,
     faFlask, faPlay, faBookOpen, faFolder, faFolderOpen, faFile, faMagnifyingGlass, faCompass,
     faDiagramProject, faFileCsv, faReply, faShieldHalved, faAt, faPaste, faClone, faHourglassHalf, faArrowUp,
-    faSatelliteDish, faMapLocationDot, faUserClock, faFloppyDisk, faBoxArchive,
+    faSatelliteDish, faMapLocationDot, faUserClock, faFloppyDisk, faBoxArchive, faCakeCandles,
     faFilePowerpoint, faDisplay, faKey, faArrowsUpDown, faLightbulb, faBroom, faTowerBroadcast,
     faEllipsisVertical, faWarehouse, faBox, faSuitcase, faCube,
 } from '@fortawesome/free-solid-svg-icons'
@@ -73,7 +73,7 @@ library.add(
     faCheckCircle, faEyeSlash, faDesktop, faFlag, faPaperclip, faInbox, faExpand, faRocket,
     faArrowDownWideShort, faArrowUpWideShort, faFileCsv, faReply, faShieldHalved, faAt,
     faPaste, faClone, faHourglassHalf, faArrowUp, faSatelliteDish, faMapLocationDot,
-    faUserClock, faFloppyDisk, faBoxArchive, faFilePowerpoint, faDisplay, faKey,
+    faUserClock, faFloppyDisk, faBoxArchive, faCakeCandles, faFilePowerpoint, faDisplay, faKey,
     faArrowsUpDown, faLightbulb, faBroom, faTowerBroadcast, faEllipsisVertical,
     faWarehouse, faBox, faSuitcase, faCube, faShirt,
 )

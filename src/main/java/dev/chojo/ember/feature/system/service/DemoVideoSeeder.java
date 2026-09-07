@@ -131,7 +131,64 @@ public class DemoVideoSeeder implements DemoPerStationSeeder {
         seedInvitedMember(station);
         seedTodaysEvent(station.stationId());
         seedExchangeStages(station);
+        seedSwapWaitingToBeHandedOver(station, kid);
         grantAssignRight(station);
+    }
+
+    /**
+     * A swap of the first Anfänger's whose replacement is at the station, so somebody is owed a piece
+     * they can be handed on the spot.
+     *
+     * <p>Placed on that member on purpose: the lost and found already leaves them a claimed item, so
+     * one name on the attendance sheet carries both kinds of note and a story about the notes has one
+     * place to look. {@link #seedExchangeStages} also reaches this stage, but on whichever
+     * Fortgeschrittener happens to have a free piece, which is nothing a test can be pointed at.
+     */
+    private void seedSwapWaitingToBeHandedOver(DemoStationContext station, StationMember kid) {
+        if (station.members().betreuer().isEmpty()) return;
+        int actor = station.members().betreuer().getFirst().id();
+
+        var moving = inventoryRepository.findMovingItemsOfMember(kid.id());
+        var item = inventoryRepository.findItemsByMember(kid.id()).stream()
+                .filter(candidate -> candidate.ownerKind() != ItemOwner.CLUSTER)
+                .filter(candidate -> !moving.containsKey(candidate.id()))
+                .findFirst()
+                .orElse(null);
+        if (item == null) {
+            log.info("Demo: no free piece to build a waiting handover on, station {}", station.stationId());
+            return;
+        }
+
+        // Which piece the member gets has to be named, and naming it is what makes the swap one that
+        // can actually be handed over. Without it the swap stands at "the old piece is in" and the
+        // handover is refused, which is a different state and not the one this is here to show.
+        var spare = inventoryRepository.findItems(item.inventoryId()).stream()
+                .filter(candidate -> candidate.id() != item.id())
+                .filter(candidate -> candidate.assignedTo() == null)
+                .filter(candidate -> candidate.ownerKind() != ItemOwner.CLUSTER)
+                .findFirst()
+                .orElse(null);
+        if (spare == null) {
+            log.info("Demo: no spare piece to offer as a replacement, station {}", station.stationId());
+            return;
+        }
+
+        var exchange = exchangeService.create(
+                station.stationId(),
+                kid.id(),
+                "Demo User",
+                item.id(),
+                item.inventoryId(),
+                item.sizeId(),
+                item.sizeId(),
+                "Zu klein geworden",
+                null);
+        exchangeService.updateStatus(exchange.id(), ExchangeStatus.ARRIVED, actor, "Ersatz liegt bereit", spare.id());
+        log.info(
+                "Demo: swap {} for member {} waits to be handed over, station {}",
+                exchange.id(),
+                kid.id(),
+                station.stationId());
     }
 
     /**
