@@ -37,6 +37,7 @@ defineProps<{
   multiDayEndDate: (event: StationEvent, date: string) => string | null
   getRegistrationSummary: (eventId: number, date: string) => {accepted: number; pending: number; declined: number; total: number}
   getEligibleMembers: (eventId: number) => AnswerablePerson[]
+  getRestrictionNote: (eventId: number) => string | null
   todayDetailRoute: (event: StationEvent) => RouteLocationRaw
   eventDetailRoute: (event: StationEvent, date: string) => RouteLocationRaw
   formatTime: (iso: string | null | undefined) => string
@@ -108,6 +109,7 @@ defineEmits<{
         :multi-day-end-date="multiDayEndDate"
         :get-registration-summary="getRegistrationSummary"
         :get-eligible-members="getEligibleMembers"
+        :get-restriction-note="getRestrictionNote"
         :detail-route="eventDetailRoute"
         :format-time="formatTime"
         :format-deadline="formatDeadline"

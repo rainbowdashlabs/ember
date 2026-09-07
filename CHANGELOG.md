@@ -22,6 +22,7 @@
 
 ### Improvements
 
+- **An appointment now says who may answer it.** Where more people may see an appointment than may answer it, the upcoming list spells the answering audience out ("Registration only for: ..."), so the missing button reads as intended rather than as a bug.
 - **The dashboard shows each appointment's category.** Every appointment tile on the dashboard, in the upcoming list, the registrations and the answers still owed, now carries the same coloured category badge the appointment pages show.
 - **A new device can be freed by one that is already signed in.** The login screen offers it for a device that holds no passkey yet: it shows a short code, and entering that code under Account → Security on a signed-in device lets the new one create its own passkey and sign in with it.
 - **The operator sees where passkeys stand.** Under Admin → Settings → Security three figures show who holds a working passkey, who still holds a password and who cannot move yet, and a report before the passwordless switch counts who it would leave behind.

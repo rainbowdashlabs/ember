@@ -1910,7 +1910,7 @@ volumes:
             whatShown: 'Was zeigt diese Seite?',
             whatShownText: 'Hier siehst du alle kommenden Termine deiner Wache - Übungsabende, Veranstaltungen, Ausflüge und mehr. Ganz oben stehen die Termine für heute.',
             registrationTitle: 'Termine mit Anmeldung',
-            registrationText: 'Manche Termine erfordern eine Anmeldung. Das siehst du am Hinweis „Anmeldung erforderlich". Klicke auf Anmelden, um dich anzumelden.',
+            registrationText: 'Manche Termine erfordern eine Anmeldung. Das siehst du am Hinweis „Anmeldung erforderlich". Klicke auf Anmelden, um dich anzumelden. Richtet sich die Anmeldung nur an einen Teil der Wache, steht am Termin, für wen sie offen ist - fehlt dir der Anmelden-Knopf, gehörst du schlicht nicht zu dieser Zielgruppe, das ist kein Fehler.',
             statusPending: 'Ausstehend - Du hast dich angemeldet, die Anmeldung wird noch geprüft.',
             statusAccepted: 'Bestätigt - Deine Anmeldung wurde angenommen.',
             statusDenied: 'Abgelehnt - Deine Anmeldung wurde abgelehnt.',

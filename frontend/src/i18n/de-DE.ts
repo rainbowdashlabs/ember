@@ -299,8 +299,7 @@ export default {
         password: 'Passwort',
         submit: 'Anmelden',
         trustedDevice: 'Auf diesem Gerät angemeldet bleiben',
-        trustedDeviceHint: 'Nur auf Geräten, die dir gehören. Ohne Häkchen endet die Anmeldung '
-            + 'deutlich früher, was für geteilte oder geliehene Rechner das Richtige ist.',
+        trustedDeviceHint: 'Nur auf Geräten, die dir gehören.',
         forgotPassword: 'Passwort vergessen?',
         applyForStation: 'Neue Wache beantragen',
         storageDenied: 'Du musst der Speicherung zustimmen, um dich anzumelden.',
@@ -2248,6 +2247,11 @@ export default {
         calendarNext: 'Nächster Monat',
         calendarToday: 'Heute',
         multiDay: 'Mehrtägiger Termin',
+        registrationAudience: 'Teilnahme nur für: {audience}',
+        audienceMemberOne: 'ein einzeln ausgewähltes Mitglied',
+        audienceMemberMany: '{n} einzeln ausgewählte Mitglieder',
+        audienceAnd: ' und ',
+        audienceOr: ' oder ',
     },
     federatedEventDetail: {
         partnerEvent: 'Partnerwache',

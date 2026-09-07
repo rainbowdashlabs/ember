@@ -31,6 +31,7 @@ defineProps<{
   multiDayEndDate: (event: StationEvent, startDate: string) => string | null
   getRegistrationSummary: (eventId: number, date: string) => { accepted: number; pending: number; declined: number; total: number }
   getEligibleMembers: (eventId: number) => AnswerablePerson[]
+  getRestrictionNote: (eventId: number) => string | null
   detailRoute: (event: StationEvent, date: string) => RouteLocationRaw
   formatTime: (iso?: string) => string
   formatDeadline: (iso: string) => string
@@ -61,6 +62,7 @@ const {t} = useI18n()
           :registration-summary="getRegistrationSummary(item.event.id, item.date)"
           :detail-route="detailRoute(item.event, item.date)"
           :eligible-members="getEligibleMembers(item.event.id)"
+          :restriction-note="getRestrictionNote(item.event.id)"
           :registrations="myRegistrations.filter(r => r.eventId === item.event.id && r.eventDate === item.date)"
           :has-managed-members="managedMembersCount > 0"
           :registering="registering"
