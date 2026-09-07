@@ -709,7 +709,7 @@ public class EmailService {
      */
     public void sendWaitlistVerifyEmail(
             String email, String name, String stationName, String token, String locale, Integer stationId) {
-        String url = api.baseUrl() + "/public/waitlist/verify?token=" + token;
+        String url = api.baseUrl() + "/public/waitlist/verify/" + token;
         var vars = baseVars(name, stationId);
         vars.put("url", url);
         vars.put("stationName", stationName != null ? stationName : "");
