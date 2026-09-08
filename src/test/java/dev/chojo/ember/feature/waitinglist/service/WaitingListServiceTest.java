@@ -12,6 +12,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -26,6 +27,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -597,16 +599,16 @@ class WaitingListServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * The list shows a count against a threshold, and this is what feeds it. Nothing else happens
-     * when the threshold is reached: joining stays the deliberate act it is.
+     * The list shows a count against a threshold, and the sheets are what feed it. Nothing else
+     * happens when the threshold is reached: joining stays the deliberate act it is.
      */
     @Test
     void turningUpDuringTheTrialPeriodRaisesTheCount() {
         var entry = service.createEntry(listId, "Neu", "Probe", guardians("", "probe@test.com"), Map.of(), "");
         var testing = service.moveToTesting(invite(entry.id()).id());
 
-        service.recordTrialAttendance(testing.memberId());
-        service.recordTrialAttendance(testing.memberId());
+        markPresent(testing.memberId(), "Erster Abend");
+        markPresent(testing.memberId(), "Zweiter Abend");
 
         assertEquals(2, service.findEntryById(testing.id()).orElseThrow().attendanceCount());
     }
@@ -618,14 +620,14 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var joined = service.moveToJoined(
                 service.moveToTesting(invite(entry.id()).id()).id());
 
-        service.recordTrialAttendance(joined.memberId());
+        markPresent(joined.memberId(), "Abend danach");
 
         assertEquals(0, service.findEntryById(joined.id()).orElseThrow().attendanceCount());
     }
 
     /**
      * Somebody in a trial period at two stations has an entry at each, and only the one that saw
-     * them raises its count: a member belongs to one station.
+     * them counts the evening: a member belongs to one station.
      */
     @Test
     void aTrialAtTwoStationsCountsOnlyWhereTheEveningWas() {
@@ -641,10 +643,19 @@ class WaitingListServiceTest extends RepositoryTestBase {
                                 .id())
                         .id());
 
-        service.recordTrialAttendance(here.memberId());
+        markPresent(here.memberId(), "Abend hier");
 
         assertEquals(1, service.findEntryById(here.id()).orElseThrow().attendanceCount());
         assertEquals(0, service.findEntryById(there.id()).orElseThrow().attendanceCount());
+    }
+
+    /** An evening of the station's own sheet, with the member written down as having been there. */
+    private static void markPresent(int memberId, String title) {
+        var template = attendanceRepo.createTemplate(station.id(), title);
+        var session = attendanceRepo.createSession(
+                template.id(), Instant.now().plusSeconds(3600), Instant.now().plusSeconds(7200), null, title);
+        attendanceRepo.createEntry(
+                session.id(), memberId, AttendanceEntry.AttendanceStatus.PRESENT, AttendanceEntry.EntrySource.EXPECTED);
     }
 
     @Test
@@ -1082,19 +1093,73 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertThrows(IllegalStateException.class, () -> service.withdrawEntry(entry.id()));
     }
 
+    /**
+     * An answer the service would refuse today, written straight into the row. Such answers are the
+     * ones stored before anything checked them, and reading one still has to work.
+     */
+    private static void writePastTheService(int entryId, int fieldId, String value) {
+        waitingListRepo.upsertEntryValue(entryId, fieldId, StringNode.valueOf(value));
+    }
+
     @Test
     void scoreEvaluationWithInvalidDateField() {
-        // age() function with an invalid date string - should not throw, age = 0
         var dobField = service.createField(
                 listId, "BadDate", WaitingListFieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, false, true);
         var list = service.update(listId, "BadDateScored", "", "age([BadDate])", 180, null, null, 5, false, null, null)
                 .orElseThrow();
-        var entry = service.createEntry(
-                listId, "A", "", guardians("", "t@t.com"), Map.of(dobField.id(), StringNode.valueOf("not-a-date")), "");
+        var entry = service.createEntry(listId, "A", "", guardians("", "t@t.com"), Map.of(), "");
+        writePastTheService(entry.id(), dobField.id(), "not-a-date");
         var values = service.findEntryValues(entry.id());
         var fields = service.findFieldsByList(listId);
         double score = service.evaluateScore(entry, values, fields, list.scoringFormula());
         assertEquals(0.0, score);
+    }
+
+    /**
+     * A list holds what it asked for. A date field that took "irgendwann" carried it into the age it
+     * works out and into every export of the list, and nothing between the form and the row said a
+     * word about it.
+     */
+    @Test
+    void anAnswerTheQuestionDoesNotTakeIsRefused() {
+        var dateField = service.createField(
+                listId, "Geburtstag", WaitingListFieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, false, true);
+        var choiceField = service.createField(
+                listId,
+                "Gruppe",
+                WaitingListFieldType.ENUM,
+                WaitingListFieldConfig.parse("{\"options\":[\"A\",\"B\"]}"),
+                1,
+                false,
+                true);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.createEntry(
+                        listId,
+                        "Falsch",
+                        "",
+                        guardians("", "falsch@test.com"),
+                        Map.of(dateField.id(), StringNode.valueOf("irgendwann")),
+                        ""));
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.createEntry(
+                        listId,
+                        "Falsch",
+                        "",
+                        guardians("", "falsch@test.com"),
+                        Map.of(choiceField.id(), StringNode.valueOf("C")),
+                        ""));
+
+        var fine = service.createEntry(
+                listId,
+                "Richtig",
+                "",
+                guardians("", "richtig@test.com"),
+                Map.of(dateField.id(), StringNode.valueOf("2011-09-01"), choiceField.id(), StringNode.valueOf("B")),
+                "");
+        assertEquals(2, service.findEntryValues(fine.id()).size());
     }
 
     @Test

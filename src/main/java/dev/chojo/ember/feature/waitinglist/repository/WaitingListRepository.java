@@ -53,6 +53,36 @@ public class WaitingListRepository {
             reminder_sent_at, created_at, notes, member_id, invited_at, testing_at, joined_at, \
             withdrawn_at, attendance_count, invited_event_id, invited_event_date, invited_arrival_time, \
             invitation_answer, invitation_answered_at, invitation_answer_note""";
+
+    /**
+     * The evenings of the trial period, counted off the attendance sheets themselves.
+     *
+     * <p>A number kept beside the entry only ever went up, and only when somebody pressed the button
+     * on the sheet: a mark taken back left it standing, a sheet thrown away left it standing, and
+     * every other way of being written down as present, from an appointment or from a field that
+     * attends by itself, never reached it at all. Reading it off the sheets makes the count say what
+     * the sheets say.
+     *
+     * <p>The trial period is a stretch of time rather than a status: it begins when the entry moves
+     * to testing and ends when whoever it is about joins or withdraws. An evening outside that
+     * stretch belongs to no trial and is counted towards none.
+     */
+    private static final String TRIAL_ATTENDANCE_COUNT = """
+            (SELECT count(*)
+             FROM attendance_entry trial_entry
+             JOIN attendance_session trial_session ON trial_session.id = trial_entry.session_id
+             WHERE trial_entry.member_id = waiting_list_entry.member_id
+               AND trial_entry.status = 'PRESENT'
+               AND waiting_list_entry.testing_at IS NOT NULL
+               AND trial_session.start_time >= waiting_list_entry.testing_at
+               AND (waiting_list_entry.joined_at IS NULL OR trial_session.start_time < waiting_list_entry.joined_at)
+               AND (waiting_list_entry.withdrawn_at IS NULL
+                    OR trial_session.start_time < waiting_list_entry.withdrawn_at)) AS attendance_count""";
+
+    /** An entry as it is read, which is the only place the trial evenings are counted. */
+    private static final String WAITING_LIST_ENTRY_READ_COLUMNS =
+            WAITING_LIST_ENTRY_COLUMNS.replace("attendance_count", TRIAL_ATTENDANCE_COUNT);
+
     private static final String WAITING_LIST_ENTRY_VALUE_COLUMNS = "entry_id, field_id, value";
     private static final String WAITING_LIST_ENTRY_GUARDIAN_COLUMNS =
             "id, entry_id, firstname, lastname, email, phone, position";
@@ -301,7 +331,7 @@ public class WaitingListRepository {
     public List<WaitingListEntry> findEntriesByList(int listId) {
         return query(
                         "SELECT %s FROM waiting_list_entry WHERE list_id = :list_id ORDER BY created_at;",
-                        WAITING_LIST_ENTRY_COLUMNS)
+                        WAITING_LIST_ENTRY_READ_COLUMNS)
                 .single(call().bind("list_id", listId))
                 .map(WaitingListEntry.map())
                 .all();
@@ -310,18 +340,18 @@ public class WaitingListRepository {
     public List<WaitingListEntry> findEntriesByStatus(int listId, WaitingListEntryStatus status) {
         return query(
                         "SELECT %s FROM waiting_list_entry WHERE list_id = :list_id AND status = :status ORDER BY created_at;",
-                        WAITING_LIST_ENTRY_COLUMNS)
+                        WAITING_LIST_ENTRY_READ_COLUMNS)
                 .single(call().bind("list_id", listId).bind("status", status.name()))
                 .map(WaitingListEntry.map())
                 .all();
     }
 
     public Optional<WaitingListEntry> findEntryById(int id) {
-        return SqlSupport.findById("waiting_list_entry", WAITING_LIST_ENTRY_COLUMNS, id, WaitingListEntry.map());
+        return SqlSupport.findById("waiting_list_entry", WAITING_LIST_ENTRY_READ_COLUMNS, id, WaitingListEntry.map());
     }
 
     public Optional<WaitingListEntry> findEntryByToken(String token) {
-        return query("SELECT %s FROM waiting_list_entry WHERE access_token = :token;", WAITING_LIST_ENTRY_COLUMNS)
+        return query("SELECT %s FROM waiting_list_entry WHERE access_token = :token;", WAITING_LIST_ENTRY_READ_COLUMNS)
                 .single(call().bind("token", token))
                 .map(WaitingListEntry.map())
                 .first();
@@ -462,28 +492,6 @@ public class WaitingListRepository {
                 .update();
     }
 
-    /**
-     * The entries a member holds in one status, which is how a trial period is found from the
-     * person who turned up rather than from the list they are on.
-     */
-    public List<WaitingListEntry> findEntriesByMemberAndStatus(int memberId, WaitingListEntryStatus status) {
-        return query("""
-                        SELECT %s
-                        FROM
-                            waiting_list_entry
-                        WHERE member_id = :member_id
-                          AND status = :status;""", WAITING_LIST_ENTRY_COLUMNS)
-                .single(call().bind("member_id", memberId).bind("status", status.name()))
-                .map(WaitingListEntry.map())
-                .all();
-    }
-
-    public void incrementAttendanceCount(int entryId) {
-        query("UPDATE waiting_list_entry SET attendance_count = attendance_count + 1 WHERE id = :id;")
-                .single(call().bind("id", entryId))
-                .update();
-    }
-
     public void deleteEntry(int id) {
         deleteById("waiting_list_entry", id);
     }
@@ -496,7 +504,7 @@ public class WaitingListRepository {
                 WHERE list_id = :list_id
                   AND status = 'WAITING'
                   AND confirmed_at + make_interval(days => :interval_days) < now()
-                  AND reminder_sent_at IS NULL;""", WAITING_LIST_ENTRY_COLUMNS)
+                  AND reminder_sent_at IS NULL;""", WAITING_LIST_ENTRY_READ_COLUMNS)
                 .single(call().bind("list_id", listId).bind("interval_days", intervalDays))
                 .map(WaitingListEntry.map())
                 .all();
@@ -511,7 +519,7 @@ public class WaitingListRepository {
                   AND status = 'WAITING'
                   AND reminder_sent_at IS NOT NULL
                   AND reminder_sent_at + INTERVAL '16 days' < now()
-                  AND reminder_sent_at + INTERVAL '17 days' > now();""", WAITING_LIST_ENTRY_COLUMNS)
+                  AND reminder_sent_at + INTERVAL '17 days' > now();""", WAITING_LIST_ENTRY_READ_COLUMNS)
                 .single(call().bind("list_id", listId))
                 .map(WaitingListEntry.map())
                 .all();
@@ -525,7 +533,7 @@ public class WaitingListRepository {
                 WHERE list_id = :list_id
                   AND status = 'WAITING'
                   AND reminder_sent_at IS NOT NULL
-                  AND reminder_sent_at + INTERVAL '30 days' < now();""", WAITING_LIST_ENTRY_COLUMNS)
+                  AND reminder_sent_at + INTERVAL '30 days' < now();""", WAITING_LIST_ENTRY_READ_COLUMNS)
                 .single(call().bind("list_id", listId))
                 .map(WaitingListEntry.map())
                 .all();

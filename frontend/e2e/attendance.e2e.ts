@@ -126,6 +126,99 @@ test.describe('Attendance', () => {
     })
 
     /**
+     * A field that attends by itself names people who were there, and an appointment can answer it
+     * before the evening starts. Opening the sheet has to put them on it as present: they stood in
+     * the field with no row at all until somebody pressed the button that fills the sheet in from
+     * its appointment, which is not something anybody does before taking an attendance.
+     */
+    test('the people an appointment names in a self-attending field open the sheet as present', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+
+        const template = await page.request
+            .post('/api/v1/attendance/templates', {headers, data: {name: unique('Storybogen')}})
+            .then(response => response.json())
+        // Adding a field answers with the sheet's fields as they now stand, not with the one added.
+        const field = await page.request
+            .post(`/api/v1/attendance/templates/${template.id}/fields`, {
+                headers,
+                data: {
+                    name: 'Betreuung',
+                    fieldType: 'MEMBER_LIST',
+                    config: {required: false, autoAttend: true},
+                    position: 0,
+                },
+            })
+            .then(response => response.json())
+            .then((fields: {id: number; name: string}[]) => fields.find(entry => entry.name === 'Betreuung')!)
+
+        const start = new Date(Date.now() + 86400000)
+        const event = await page.request
+            .post('/api/v1/events', {
+                headers,
+                data: {
+                    name: unique('Storyabend'),
+                    description: 'Von der Story angelegt',
+                    eventType: 'ONE_TIME',
+                    startTime: start.toISOString(),
+                    endTime: new Date(start.getTime() + 3600000).toISOString(),
+                    templateId: template.id,
+                },
+            })
+            .then(response => response.json())
+
+        const own = await page.request
+            .get('/api/v1/session', {headers})
+            .then(response => response.json())
+            .then(session => session?.member?.id)
+
+        // The tie is what carries the answer onto the sheet, and it only survives on a question of
+        // the appointment the sheet is taken on, which is why the appointment names the template.
+        const tied = await page.request.put(`/api/v1/events/${event.id}/fields`, {
+            headers,
+            data: {
+                fields: [{
+                    name: 'Betreuung',
+                    fieldType: 'MEMBER_LIST',
+                    value: `[${own}]`,
+                    attendanceFieldId: field.id,
+                }],
+            },
+        })
+        expect(tied.ok(), `the question is tied to the sheet field (${await tied.text()})`).toBeTruthy()
+        const tiedFields = await tied.json()
+        expect(
+            tiedFields[0]?.attendanceFieldId,
+            'the tie survives, which is what carries the answer onto the sheet',
+        ).toBe(field.id)
+
+        const created = await page.request.post(`/api/v1/attendance/templates/${template.id}/sessions`, {
+            headers,
+            data: {eventId: event.id},
+        })
+        expect(created.status(), `the sheet is opened from the appointment (${await created.text()})`).toBe(201)
+        const sessionId = (await created.json()).id
+
+        const sheet = await page.request
+            .get(`/api/v1/attendance/sessions/${sessionId}`, {headers})
+            .then(response => response.json())
+        expect(
+            (sheet.entries ?? []).find((entry: {memberId: number}) => entry.memberId === own),
+            'the person the appointment named is on the sheet',
+        ).toMatchObject({status: 'PRESENT'})
+
+        await page.goto(`/station/attendance/session/${sessionId}`)
+        const row = page.getByTestId(`member-row-${own}`)
+        await expect(row, 'the person the appointment named stands on the sheet').toBeVisible()
+        await expect(
+            row.locator('button[aria-label="Anwesend"][disabled]'),
+            'and stands there as present, without anybody marking them',
+        ).toBeVisible()
+
+        await page.request.delete(`/api/v1/events/${event.id}`, {headers})
+        await page.request.delete(`/api/v1/attendance/templates/${template.id}`, {headers})
+    })
+
+    /**
      * A swap whose replacement is at the station is handed over from the sheet itself, which is the
      * point of being told about it there.
      *

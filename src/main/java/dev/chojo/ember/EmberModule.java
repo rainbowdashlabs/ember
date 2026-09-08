@@ -36,7 +36,6 @@ import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.conf.file.elements.Updates;
 import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
 import dev.chojo.ember.event.DomainEventHandler;
-import dev.chojo.ember.event.handlers.AttendanceRecordedHandler;
 import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
 import dev.chojo.ember.event.handlers.BulkMentionedInCommentHandler;
 import dev.chojo.ember.event.handlers.ClusterApplicationResolvedHandler;
@@ -526,7 +525,6 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(ProcedureItemCheckedHandler.class);
         eventBinder.addBinding().to(WaitlistPublicRegistrationHandler.class);
         eventBinder.addBinding().to(WaitlistInvitationAnsweredHandler.class);
-        eventBinder.addBinding().to(AttendanceRecordedHandler.class);
         eventBinder.addBinding().to(StorageWarningHandler.class);
 
         // Eager singletons - started on boot

@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
@@ -59,6 +60,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Singleton
 public class WaitingListService {
@@ -317,9 +319,7 @@ public class WaitingListService {
             insertGuardians(entry.id(), guardians);
         }
 
-        for (var e : fieldValues.entrySet()) {
-            repository.upsertEntryValue(entry.id(), e.getKey(), e.getValue());
-        }
+        writeAnswers(invite.listId(), entry.id(), fieldValues);
 
         String displayName = entry.fullName();
 
@@ -425,6 +425,41 @@ public class WaitingListService {
         return repository.findEntryById(id);
     }
 
+    /**
+     * Writes the answers a sign-up gives, measured against the questions the list asks.
+     *
+     * <p>The one path for all three ways an entry gains answers: an invite code, a form somebody at
+     * the station fills in, and an edit afterwards. Each used to write straight through, so a list
+     * could hold a date that is not a date and a choice nobody offered.
+     *
+     * <p>What is left blank is not refused here. A list decides for itself which of its questions
+     * have to be answered, and turning a family away mid-form over a question they were about to
+     * reach is not what the check is for.
+     *
+     * @throws BadRequestResponse naming the question and what is wrong with the answer
+     */
+    private void writeAnswers(int listId, int entryId, Map<Integer, JsonNode> fieldValues) {
+        if (fieldValues == null || fieldValues.isEmpty()) return;
+        var questions = repository.findFieldsByList(listId).stream()
+                .collect(Collectors.toMap(WaitingListField::id, WaitingListField::question));
+        for (var answer : fieldValues.entrySet()) {
+            var question = questions.get(answer.getKey());
+            if (question == null) continue;
+            QuestionCheck.answerIfGiven(question, asText(answer.getValue())).ifPresent(problem -> {
+                throw new BadRequestResponse(problem.message());
+            });
+        }
+        for (var answer : fieldValues.entrySet()) {
+            repository.upsertEntryValue(entryId, answer.getKey(), answer.getValue());
+        }
+    }
+
+    /** An answer as somebody typed it, which is what a stored JSON string wraps in quotes. */
+    private static String asText(JsonNode node) {
+        if (node == null || node.isNull()) return null;
+        return node.isString() ? node.asString() : node.toString();
+    }
+
     public WaitingListEntry createEntry(
             int listId,
             String firstname,
@@ -440,9 +475,7 @@ public class WaitingListService {
         if (guardians != null) {
             insertGuardians(entry.id(), guardians);
         }
-        for (var e : fieldValues.entrySet()) {
-            repository.upsertEntryValue(entry.id(), e.getKey(), e.getValue());
-        }
+        writeAnswers(listId, entry.id(), fieldValues);
         log.info("Created waiting-list entry {} on list {}", entry.id(), listId);
         return entry;
     }
@@ -462,9 +495,7 @@ public class WaitingListService {
             insertGuardians(entryId, guardians);
         }
         if (fieldValues != null) {
-            for (var e : fieldValues.entrySet()) {
-                repository.upsertEntryValue(entryId, e.getKey(), e.getValue());
-            }
+            repository.findEntryById(entryId).ifPresent(entry -> writeAnswers(entry.listId(), entryId, fieldValues));
         }
         log.info("Updated waiting-list entry {}", entryId);
     }
@@ -597,26 +628,6 @@ public class WaitingListService {
                         && current.date().equals(date);
         if (!matches) {
             throw new ConflictResponse("This answer is about a different appointment");
-        }
-    }
-
-    /**
-     * Counts one evening towards the trial period of whoever turned up.
-     *
-     * <p>The list carries a threshold and a counter, and this is what feeds the counter. Reaching
-     * the threshold changes nothing by itself: it is shown, and joining stays the deliberate act it
-     * is. A trial that ended automatically because somebody turned up five times would be a decision
-     * the station should make rather than the software.
-     *
-     * <p>A member belongs to one station, so an account in a trial period at two stations has an
-     * entry at each and only the one that saw them raises its count.
-     *
-     * @param memberId whoever was recorded as present
-     */
-    public void recordTrialAttendance(int memberId) {
-        for (var entry : repository.findEntriesByMemberAndStatus(memberId, WaitingListEntryStatus.TESTING)) {
-            repository.incrementAttendanceCount(entry.id());
-            log.info("Counted an evening towards the trial period of waiting-list entry {}", entry.id());
         }
     }
 
