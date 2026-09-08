@@ -244,13 +244,13 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
-    void findDeclinedMemberIds() {
+    void findNotAttendingMemberIds() {
         var created = event("Declined Event", Instant.parse("2026-11-01T09:00:00Z"));
         LocalDate date = LocalDate.of(2026, 11, 1);
         try {
             eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.DECLINED, null);
             assertTrue(eventRegistrationRepo
-                    .findDeclinedMemberIds(created.id(), date)
+                    .findNotAttendingMemberIds(created.id(), date)
                     .contains(member.id()));
         } finally {
             eventRepo.delete(created.id());
@@ -349,7 +349,7 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
         assertTrue(eventRegistrationRepo.findPendingByEvent(99999).isEmpty());
         assertTrue(eventRegistrationRepo.findByMember(99999).isEmpty());
         assertTrue(eventRegistrationRepo
-                .findDeclinedMemberIds(99999, LocalDate.now())
+                .findNotAttendingMemberIds(99999, LocalDate.now())
                 .isEmpty());
         assertTrue(eventRegistrationRepo.findRegisteredMemberIds(99999).isEmpty());
         assertEquals(0, eventRegistrationRepo.countAccepted(99999));

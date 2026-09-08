@@ -11,8 +11,10 @@ import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -33,17 +35,23 @@ public class EventRegistrationService {
     private static final Logger log = LoggerFactory.getLogger(EventRegistrationService.class);
 
     private final EventRegistrationRepository registrationRepository;
+    private final EventRegistrationFieldRepository fieldRepository;
     private final EventRepository eventRepository;
     private final DomainEventBus eventBus;
+    private final MemberNameResolver nameResolver;
 
     @Inject
     public EventRegistrationService(
             EventRegistrationRepository registrationRepository,
+            EventRegistrationFieldRepository fieldRepository,
             EventRepository eventRepository,
-            DomainEventBus eventBus) {
+            DomainEventBus eventBus,
+            MemberNameResolver nameResolver) {
         this.registrationRepository = registrationRepository;
+        this.fieldRepository = fieldRepository;
         this.eventRepository = eventRepository;
         this.eventBus = eventBus;
+        this.nameResolver = nameResolver;
     }
 
     /**
@@ -165,37 +173,107 @@ public class EventRegistrationService {
             return false;
         }
         log.info("Updated registration {} status to {}", id, status);
-        registrationRepository.findById(id).ifPresent(registration -> eventRepository
-                .findById(registration.eventId())
-                .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
-                        event.stationId(), event.id(), event.name(), registration.memberId(), status))));
+        registrationRepository
+                .findById(id)
+                .ifPresent(registration -> announce(registration.eventId(), registration.memberId(), status));
         return true;
     }
 
     /**
-     * Removes a registration, announcing the withdrawal if the member was already accepted.
+     * The state a "no" leaves a registration in.
+     *
+     * <p>Only a confirmed place can be taken back, and taking one back is what whoever runs the
+     * event has to react to. Everything else is somebody answering the question they were asked, so
+     * it declines. Both mean the member will not be there and every count treats them alike; they
+     * are kept apart so the list and the notification can say which of the two happened.
+     *
+     * @param current the status the registration holds now, or null where there is none yet
+     * @return the status to write
+     */
+    private static RegistrationStatus refusalFor(RegistrationStatus current) {
+        return current == RegistrationStatus.ACCEPTED ? RegistrationStatus.WITHDRAWN : RegistrationStatus.DECLINED;
+    }
+
+    /**
+     * Takes a registration back at the member's request.
+     *
+     * <p>A confirmed place is kept and marked, because a station that gave somebody a place needs to
+     * see that they gave it up. A registration still waiting on an answer is removed outright: nobody
+     * had confirmed anything, so there is nothing to record and a row saying so would only stand in
+     * the way of signing up again.
+     *
+     * <p>Either way what the member had answered goes, the same way it goes wherever else somebody
+     * says they are not coming.
      *
      * @param id the registration ID
-     * @return true if the registration was removed
+     * @return true if the registration was withdrawn or removed
      */
     public boolean withdraw(int id) {
         var registration = registrationRepository.findById(id).orElse(null);
-        if (!registrationRepository.delete(id)) {
+        if (registration == null) {
             log.warn("Cannot withdraw registration: registration {} not found", id);
             return false;
         }
-        log.info("Withdrew registration {}", id);
-        if (registration != null && registration.status() == RegistrationStatus.ACCEPTED) {
-            eventRepository
-                    .findById(registration.eventId())
-                    .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
-                            event.stationId(),
-                            event.id(),
-                            event.name(),
-                            registration.memberId(),
-                            RegistrationStatus.WITHDRAWN)));
+        if (registration.status() != RegistrationStatus.ACCEPTED) {
+            if (!registrationRepository.delete(id)) return false;
+            log.info("Removed unconfirmed registration {}", id);
+            return true;
         }
+        if (!registrationRepository.recordAnswer(id, RegistrationStatus.WITHDRAWN)) return false;
+        log.info("Withdrew registration {}", id);
+        recordRefusal(id, registration.eventId(), registration.memberId(), RegistrationStatus.WITHDRAWN);
         return true;
+    }
+
+    /**
+     * Records that the member behind a registration is not coming, keeping a confirmed place apart
+     * from an answer that was never a yes.
+     *
+     * @param id the registration ID
+     * @return true if the registration was updated
+     */
+    public boolean refuse(int id) {
+        var registration = registrationRepository.findById(id).orElse(null);
+        if (registration == null) {
+            log.warn("Cannot refuse registration: registration {} not found", id);
+            return false;
+        }
+        var status = refusalFor(registration.status());
+        if (!registrationRepository.recordAnswer(id, status)) return false;
+        log.info("Recorded {} for registration {}", status, id);
+        recordRefusal(id, registration.eventId(), registration.memberId(), status);
+        return true;
+    }
+
+    /**
+     * Everything a "no" brings with it, whichever of the two it is.
+     *
+     * <p>The answers go either way. They were given for a place the member is not taking, and
+     * nobody has any use for a list of allergies or clothing sizes belonging to somebody who is not
+     * coming. Only a place given back is announced, because only a confirmed place falling free is
+     * somebody else's to fill.
+     */
+    private void recordRefusal(int registrationId, int eventId, int memberId, RegistrationStatus status) {
+        fieldRepository.deleteValues(registrationId);
+        if (status == RegistrationStatus.WITHDRAWN) {
+            announce(eventId, memberId, status);
+        }
+    }
+
+    /**
+     * Tells whoever cares that a registration changed, naming the member so the message means
+     * something to somebody who is not that member.
+     */
+    private void announce(int eventId, int memberId, RegistrationStatus status) {
+        eventRepository
+                .findById(eventId)
+                .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
+                        event.stationId(),
+                        event.id(),
+                        event.name(),
+                        memberId,
+                        nameResolver.resolveLocal(memberId),
+                        status)));
     }
 
     /**
@@ -212,15 +290,10 @@ public class EventRegistrationService {
                 .filter(r -> r.memberId() == memberId)
                 .findFirst()
                 .orElse(null);
-        var result =
-                registrationRepository.create(eventId, memberId, eventDate, RegistrationStatus.DECLINED, createdBy);
-        log.info("Declined registration for member {} on event {} ({})", memberId, eventId, eventDate);
-        if (existing != null && existing.status() == RegistrationStatus.ACCEPTED) {
-            eventRepository
-                    .findById(eventId)
-                    .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
-                            event.stationId(), event.id(), event.name(), memberId, RegistrationStatus.DECLINED)));
-        }
+        var status = refusalFor(existing == null ? null : existing.status());
+        var result = registrationRepository.create(eventId, memberId, eventDate, status, createdBy);
+        log.info("Recorded {} for member {} on event {} ({})", status, memberId, eventId, eventDate);
+        recordRefusal(result.id(), eventId, memberId, status);
         return result;
     }
 
@@ -235,14 +308,15 @@ public class EventRegistrationService {
     }
 
     /**
-     * Returns the members who declined a specific event occurrence.
+     * Returns the members who will not be at a specific event occurrence, whether they declined
+     * outright or took back a place they had been given.
      *
      * @param eventId   the event ID
      * @param eventDate the event occurrence date
      * @return the declined member IDs
      */
-    public List<Integer> findDeclinedMemberIds(int eventId, LocalDate eventDate) {
-        return registrationRepository.findDeclinedMemberIds(eventId, eventDate);
+    public List<Integer> findNotAttendingMemberIds(int eventId, LocalDate eventDate) {
+        return registrationRepository.findNotAttendingMemberIds(eventId, eventDate);
     }
 
     /**

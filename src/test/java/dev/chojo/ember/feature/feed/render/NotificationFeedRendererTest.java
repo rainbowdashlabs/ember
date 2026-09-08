@@ -154,7 +154,7 @@ class NotificationFeedRendererTest {
         var n = notification(
                 101,
                 NotificationType.EVENT_REGISTRATION_STATUS,
-                new NotificationParams.EventRegistrationStatus("Probe", RegistrationStatus.ACCEPTED, ""));
+                new NotificationParams.EventRegistrationStatus("Tim Berger", "Probe", RegistrationStatus.ACCEPTED, ""));
         var entry = renderer.render(n, richCtx());
         var html = entry.getContents().getFirst().getValue();
         // The mock returns "✓ ACCEPTED" - make sure that lands in the body.
@@ -256,7 +256,8 @@ class NotificationFeedRendererTest {
         var n = notification(
                 8,
                 NotificationType.EVENT_REGISTRATION_STATUS,
-                new NotificationParams.EventRegistrationStatus("Probe", RegistrationStatus.ACCEPTED, "Konzert"));
+                new NotificationParams.EventRegistrationStatus(
+                        "Tim Berger", "Probe", RegistrationStatus.ACCEPTED, "Konzert"));
         var compact = new NotificationFeedRenderer.RenderContext(
                 "de", "https://ember.example.com", "TOKEN", false, true, null);
         var entry = renderer.render(n, compact);
@@ -270,7 +271,8 @@ class NotificationFeedRendererTest {
         var n = notification(
                 9,
                 NotificationType.EVENT_REGISTRATION_STATUS,
-                new NotificationParams.EventRegistrationStatus("Probe", RegistrationStatus.ACCEPTED, "Konzert"));
+                new NotificationParams.EventRegistrationStatus(
+                        "Tim Berger", "Probe", RegistrationStatus.ACCEPTED, "Konzert"));
         var entry = renderer.render(n, richCtx());
         var html = entry.getContents().getFirst().getValue();
         assertTrue(html.contains("✓ ACCEPTED"), "Description should contain check-mark + ACCEPTED");

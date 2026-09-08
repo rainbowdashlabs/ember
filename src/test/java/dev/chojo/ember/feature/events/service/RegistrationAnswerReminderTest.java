@@ -9,6 +9,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -165,7 +167,12 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
         verify(notifications, never()).notifyMembersIfAbsent(any(), any(), any(), anyInt());
     }
 
-    /** Somebody who gave their place up owes nothing, whatever the appointment asks afterwards. */
+    /**
+     * Somebody who gave their place up owes nothing, whatever the appointment asks afterwards.
+     *
+     * <p>The registration itself stays, marked, because a station that gave somebody a place needs
+     * to see that they gave it up. What they had answered does not stay with it.
+     */
     @Test
     void aWithdrawnRegistrationOwesNothing() {
         var registration = registrationService.register(
@@ -175,6 +182,8 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
         reminder.replaceQuestions(event.id(), List.of(required("Schwimmabzeichen")));
 
         verify(notifications, never()).notifyMembersIfAbsent(any(), any(), any(), anyInt());
-        assertTrue(fieldService.findValues(registration.id()).isEmpty());
+        assertEquals(
+                RegistrationStatus.WITHDRAWN,
+                registrationService.findById(registration.id()).orElseThrow().status());
     }
 }

@@ -1,5 +1,18 @@
 # Changelog
 
+## v26.14.3
+
+### Improvements
+
+- **A place given back is written down.** Somebody who takes back a place an appointment had confirmed is now recorded as having withdrawn, beside those who were turned down, instead of disappearing from the list as though they had never signed up. A registration still waiting on an answer is removed as before, since nothing had been given away.
+- **A confirmed place can only be taken back, not declined.** Once an appointment has confirmed somebody, answering no records a withdrawal rather than a declination, so the list keeps apart the people who never had a place and the people who gave one up.
+- **A registration says when it was made.** The date beside somebody on an appointment's registration list is now the moment they signed up or said no, not the day the appointment runs, which was the same for everybody on the list and told the reader nothing.
+- **A registration notice names the member.** The notice on the dashboard and in the feed says who signed up or gave their place back. Whoever runs an appointment was told only its name and the new answer, which for a station of forty people did not say whose answer it was.
+
+### Fixes
+
+- **A withdrawal showed as untranslated text on the dashboard.** The notice about somebody taking their place back had no German word for that state and printed an internal one instead.
+
 ## v26.14.2
 
 ### New Features

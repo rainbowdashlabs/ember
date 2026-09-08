@@ -88,7 +88,12 @@ const nonPendingRegistrations = computed<StatusGroup[]>(() => {
   for (const list of byStatus.values()) {
     list.sort((a, b) => a.memberName.localeCompare(b.memberName, 'de'))
   }
-  return [RegistrationStatus.ACCEPTED, RegistrationStatus.DECLINED, RegistrationStatus.DENIED]
+  return [
+    RegistrationStatus.ACCEPTED,
+    RegistrationStatus.DECLINED,
+    RegistrationStatus.DENIED,
+    RegistrationStatus.WITHDRAWN,
+  ]
       .filter(s => byStatus.has(s))
       .map(s => ({status: s, entries: byStatus.get(s)!}))
 })

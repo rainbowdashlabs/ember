@@ -700,9 +700,12 @@ public class EventRegistrationRoutes implements Routes {
             throw new BadRequestResponse("Registration has closed; ask whoever runs the event");
         }
 
-        var status = req.attending()
-                ? (event.requiresConfirmation() ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED)
-                : RegistrationStatus.DECLINED;
+        if (!req.attending()) {
+            if (!registrationService.refuse(id)) throw new NotFoundResponse();
+            ctx.status(HttpStatus.NO_CONTENT);
+            return;
+        }
+        var status = event.requiresConfirmation() ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED;
         if (!registrationService.updateStatus(id, status)) {
             throw new NotFoundResponse();
         }

@@ -51,15 +51,15 @@ const {t} = useI18n()
           :stats="stats"
       />
       <StatusSection
-          icon="user-slash"
-          :title="t('eventsRegistrations.groupDeclined')"
-          :registrations="byStatus.DECLINED"
-          :stats="stats"
-      />
-      <StatusSection
           icon="rotate-left"
           :title="t('eventsRegistrations.groupWithdrawn')"
           :registrations="byStatus.WITHDRAWN"
+          :stats="stats"
+      />
+      <StatusSection
+          icon="user-slash"
+          :title="t('eventsRegistrations.groupDeclined')"
+          :registrations="byStatus.DECLINED"
           :stats="stats"
       />
     </template>

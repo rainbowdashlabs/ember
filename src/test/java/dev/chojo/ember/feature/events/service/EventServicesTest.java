@@ -395,6 +395,10 @@ class EventServicesTest extends RepositoryTestBase {
         assertEquals(RegistrationStatus.ACCEPTED, found.status());
     }
 
+    /**
+     * A registration nobody had confirmed is removed outright. Nothing was given away, so there is
+     * nothing to record, and a row saying so would only stand in the way of signing up again.
+     */
     @Test
     @Order(61)
     void withdrawRegistration() {
@@ -871,7 +875,7 @@ class EventServicesTest extends RepositoryTestBase {
 
     @Test
     @Order(92)
-    void findDeclinedMemberIds() {
+    void findNotAttendingMemberIds() {
         var start = Instant.now().plus(41, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
         var event = crudService.create(
@@ -894,7 +898,7 @@ class EventServicesTest extends RepositoryTestBase {
 
         LocalDate date = LocalDate.of(2027, 2, 1);
         registrationService.decline(event.id(), member.id(), date, null);
-        var declined = registrationService.findDeclinedMemberIds(event.id(), date);
+        var declined = registrationService.findNotAttendingMemberIds(event.id(), date);
         assertTrue(declined.contains(member.id()));
     }
 
@@ -1262,8 +1266,10 @@ class EventServicesTest extends RepositoryTestBase {
         assertTrue(occurrences.stream().noneMatch(o -> o.event().id() == event.id()));
     }
 
-    // -- withdrawRegistration with ACCEPTED status (publishes event) --
-
+    /**
+     * A confirmed place given back is kept and marked, because a station that gave somebody a place
+     * needs to see that they gave it up.
+     */
     @Test
     @Order(130)
     void withdrawAcceptedRegistration() {
@@ -1287,13 +1293,13 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // Register and auto-accept
         var reg = registrationService.register(event.id(), member.id(), LocalDate.of(2027, 5, 1), true, null);
         assertEquals(RegistrationStatus.ACCEPTED, reg.status());
 
-        // Withdraw the ACCEPTED registration - should publish event
         assertTrue(registrationService.withdraw(reg.id()));
-        assertTrue(registrationService.findById(reg.id()).isEmpty());
+        assertEquals(
+                RegistrationStatus.WITHDRAWN,
+                registrationService.findById(reg.id()).orElseThrow().status());
     }
 
     @Test
@@ -1304,6 +1310,10 @@ class EventServicesTest extends RepositoryTestBase {
 
     // -- decline with existing ACCEPTED registration --
 
+    /**
+     * Saying no to a place that was already confirmed takes it back rather than declining it: only
+     * somebody who was never accepted has an invitation left to decline.
+     */
     @Test
     @Order(132)
     void declineWithExistingAcceptedRegistration() {
@@ -1327,14 +1337,12 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // Register and auto-accept
         LocalDate date = LocalDate.of(2027, 6, 1);
         registrationService.register(event.id(), member.id(), date, true, null);
 
-        // Now decline - should publish event because prior was ACCEPTED
         var result = registrationService.decline(event.id(), member.id(), date, null);
         assertNotNull(result);
-        assertEquals(RegistrationStatus.DECLINED, result.status());
+        assertEquals(RegistrationStatus.WITHDRAWN, result.status());
     }
 
     @Test

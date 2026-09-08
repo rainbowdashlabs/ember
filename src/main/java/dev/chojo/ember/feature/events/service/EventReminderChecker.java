@@ -209,7 +209,7 @@ public class EventReminderChecker {
             return registrationRepository.findRegisteredMemberIds(event.id());
         }
         var allMembers = stationMemberRepository.findByStation(event.stationId());
-        var declinedIds = new HashSet<>(registrationRepository.findDeclinedMemberIds(event.id(), eventDate));
+        var declinedIds = new HashSet<>(registrationRepository.findNotAttendingMemberIds(event.id(), eventDate));
         return allMembers.stream()
                 .map(StationMember::id)
                 .filter(id -> !declinedIds.contains(id))

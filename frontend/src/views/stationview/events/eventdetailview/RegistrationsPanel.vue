@@ -24,7 +24,7 @@ import MemberPicker, {type PickableMember} from '@/views/stationview/members/Mem
 import {RegistrationStatus, type EventRegistrationEntry, type EventRegistrationField, type MemberRegistrationStats, type StationEvent} from '@/api/events'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
-import {formatDate} from '@/util/format'
+import {formatDateTime} from '@/util/format'
 import {answerTotals} from '@/util/eventAnswers'
 
 interface StatusGroup { status: string; entries: EventRegistrationEntry[] }
@@ -73,6 +73,7 @@ const canRegisterOthers = computed(
 function decidable(registration: EventRegistrationEntry): boolean {
   return hasPermission(StationPermission.EVENT_REGISTRATION)
       && registration.status !== RegistrationStatus.DECLINED
+      && registration.status !== RegistrationStatus.WITHDRAWN
 }
 
 /** The kinds present among those not on the list yet, so choosing one never empties it by itself. */
@@ -115,7 +116,7 @@ const registrationSummary = computed(() => {
     if (r.status === RegistrationStatus.ACCEPTED) accepted++
     else if (r.status === RegistrationStatus.PENDING) pending++
     else if (r.status === RegistrationStatus.DENIED) denied++
-    else if (r.status === RegistrationStatus.DECLINED) declined++
+    else if (r.status === RegistrationStatus.DECLINED || r.status === RegistrationStatus.WITHDRAWN) declined++
   }
   return {accepted, pending, denied, declined}
 })
@@ -125,6 +126,7 @@ function statusLabel(status: string): string {
   if (status === RegistrationStatus.PENDING) return t('eventsUpcoming.statusPending')
   if (status === RegistrationStatus.DENIED) return t('eventsUpcoming.statusDenied')
   if (status === RegistrationStatus.DECLINED) return t('eventsUpcoming.statusDeclined')
+  if (status === RegistrationStatus.WITHDRAWN) return t('eventsUpcoming.statusWithdrawn')
   return status
 }
 
@@ -183,7 +185,7 @@ function statusLabel(status: string): string {
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div class="flex items-center gap-2">
               <MemberName :identity="reg.memberIdentity ?? null"/>
-              <span v-if="reg.eventDate" class="text-xs text-(--text-muted)">{{ formatDate(reg.eventDate) }}</span>
+              <span v-if="reg.createdAt" class="text-xs text-(--text-muted)">{{ formatDateTime(reg.createdAt) }}</span>
             </div>
             <InfoBadge>{{ statusLabel('PENDING') }}</InfoBadge>
           </div>
@@ -198,7 +200,7 @@ function statusLabel(status: string): string {
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div class="flex items-center gap-2 flex-wrap">
             <MemberName :identity="reg.memberIdentity ?? null"/>
-            <span v-if="reg.eventDate" class="text-xs text-(--text-muted)">{{ formatDate(reg.eventDate) }}</span>
+            <span v-if="reg.createdAt" class="text-xs text-(--text-muted)">{{ formatDateTime(reg.createdAt) }}</span>
             <ErrorBadge v-if="reg.answersMissing" :data-testid="`answer-missing-${reg.id}`">
               {{ t('eventDetail.answerMissing') }}
             </ErrorBadge>

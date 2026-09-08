@@ -233,7 +233,10 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
                 NotificationType.EVENT_REGISTRATION_STATUS,
                 NotificationData.of(
                         new NotificationParams.EventRegistrationStatus(
-                                "Offenes Training", RegistrationStatus.ACCEPTED, "Übung für alle Altersgruppen"),
+                                "Tim Berger",
+                                "Offenes Training",
+                                RegistrationStatus.ACCEPTED,
+                                "Übung für alle Altersgruppen"),
                         oneTimeLink));
 
         notificationRepository.create(

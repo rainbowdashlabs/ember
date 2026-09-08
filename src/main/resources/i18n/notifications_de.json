@@ -228,7 +228,7 @@
     "notification.newEvent": "Neuer Termin: {title}",
     "notification.newEventsBatch.one": "Ein neuer Termin wurde angelegt",
     "notification.newEventsBatch.other": "{count} neue Termine wurden angelegt",
-    "notification.eventRegistrationStatus": "{eventName}: {status}",
+    "notification.eventRegistrationStatus": "{memberName} - {eventName}: {status}",
     "notification.memberAddedToGroup": "Du wurdest zur Gruppe {groupName} hinzugefügt",
     "notification.profileFieldChanged": "{memberName} hat das Feld {fieldName} geändert",
     "notification.procurementRequested": "Beschaffung angefragt: {inventoryName}",
