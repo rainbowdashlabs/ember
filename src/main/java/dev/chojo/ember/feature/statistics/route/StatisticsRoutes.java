@@ -82,7 +82,7 @@ public class StatisticsRoutes implements Routes {
                 SELECT se.name,
                        count(er.id) FILTER (WHERE er.status = 'ACCEPTED') as accepted,
                        count(er.id) FILTER (WHERE er.status = 'PENDING') as pending,
-                       count(er.id) FILTER (WHERE er.status = 'DECLINED') as declined
+                       count(er.id) FILTER (WHERE er.status IN ('DECLINED', 'WITHDRAWN')) as declined
                 FROM station_event se
                 LEFT JOIN event_registration er ON er.event_id = se.id
                 WHERE se.station_id = :sid AND se.start_time >= now()

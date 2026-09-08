@@ -38,7 +38,8 @@ public class EventRegistrationStatusHandler implements DomainEventHandler<EventR
     @Override
     public void handle(EventRegistrationStatusChanged event) {
         var data = NotificationData.of(
-                new NotificationParams.EventRegistrationStatus(event.eventName(), event.newStatus(), null),
+                new NotificationParams.EventRegistrationStatus(
+                        event.memberName(), event.eventName(), event.newStatus(), null),
                 NotificationLinks.event(event.eventId()));
 
         notificationService.notify(event.memberId(), NotificationType.EVENT_REGISTRATION_STATUS, data);

@@ -222,6 +222,22 @@ public class EventRegistrationFieldRepository {
                 .insert();
     }
 
+    /**
+     * Drops every answer a registration carried.
+     *
+     * <p>A registration that is withdrawn keeps its row, so what the member had written no longer
+     * goes with it: the answers are theirs, given for a place they have given back, and a list of
+     * allergies or clothing sizes has no reason to outlive the registration it was asked for. This
+     * used to happen by cascade, when withdrawing deleted the registration outright.
+     *
+     * @param registrationId the registration to clear
+     */
+    public void deleteValues(int registrationId) {
+        query("DELETE FROM event_registration_field_value WHERE registration_id = :registration_id;")
+                .single(call().bind("registration_id", registrationId))
+                .delete();
+    }
+
     public void deleteValue(int registrationId, int fieldId) {
         query("""
                 DELETE FROM event_registration_field_value

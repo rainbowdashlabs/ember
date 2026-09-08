@@ -245,12 +245,17 @@ public class EventRegistrationRepository {
     }
 
     /**
-     * Find declined member IDs for a specific event and date.
+     * The members who will not be at a specific event occurrence.
+     *
+     * <p>Declining and taking a confirmed place back are different acts and are stored apart, but
+     * both end with somebody not being there, so anything that acts on who is coming reads them
+     * together: no reminder is sent, and the attendance sheet opens with them marked away.
      */
-    public List<Integer> findDeclinedMemberIds(int eventId, LocalDate eventDate) {
+    public List<Integer> findNotAttendingMemberIds(int eventId, LocalDate eventDate) {
         return query("""
                 SELECT member_id FROM event_registration
-                WHERE event_id = :event_id AND event_date = :event_date AND status = 'DECLINED';""")
+                WHERE event_id = :event_id AND event_date = :event_date
+                  AND status IN ('DECLINED', 'WITHDRAWN');""")
                 .single(call().bind("event_id", eventId).bind("event_date", eventDate))
                 .map(row -> row.getInt("member_id"))
                 .all();
@@ -268,7 +273,7 @@ public class EventRegistrationRepository {
                     count(*)                                               AS registered,
                     count(*) FILTER (WHERE er.status = 'ACCEPTED')         AS accepted,
                     count(*) FILTER (WHERE er.status = 'DENIED')           AS denied,
-                    count(*) FILTER (WHERE er.status = 'DECLINED')         AS declined,
+                    count(*) FILTER (WHERE er.status IN ('DECLINED', 'WITHDRAWN')) AS declined,
                     max(er.event_date) FILTER (WHERE er.status = 'DENIED') AS last_denied
                 FROM
                     event_registration er
@@ -303,6 +308,25 @@ public class EventRegistrationRepository {
      */
     public boolean updateStatus(int id, RegistrationStatus status) {
         return query("UPDATE event_registration SET status = :status WHERE id = :id;")
+                .single(call().bind("status", status).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Writes a status the member themselves chose, moving {@code created_at} with it.
+     *
+     * <p>The column carries when the member last spoke, which is what the registration lists show
+     * beside them, so an answer given now has to move it the way the upsert does. A manager
+     * accepting or denying goes through {@link #updateStatus(int, RegistrationStatus)} instead and
+     * leaves the member's own timestamp where it is.
+     *
+     * @param id     the registration ID
+     * @param status the status the member's answer leaves it in
+     * @return true if a row was updated
+     */
+    public boolean recordAnswer(int id, RegistrationStatus status) {
+        return query("UPDATE event_registration SET status = :status, created_at = now() WHERE id = :id;")
                 .single(call().bind("status", status).bind("id", id))
                 .update()
                 .changed();

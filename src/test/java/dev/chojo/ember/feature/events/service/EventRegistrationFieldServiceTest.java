@@ -358,6 +358,26 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         assertTrue(service.findValues(registration.id()).isEmpty());
     }
 
+    /**
+     * Saying no takes the answers with it, whether the place had been confirmed or not. They were
+     * given for an appointment the member is not going to, and which of the ways they said so is
+     * not something the answers should survive.
+     */
+    @Test
+    @Order(10)
+    void decliningARegistrationRemovesItsAnswersToo() {
+        LocalDate day = LocalDate.now().plusMonths(3).withDayOfMonth(11);
+        var registration = registrationService.register(event.id(), member.id(), day, true, null);
+        service.persistAnswers(
+                registration.id(), service.resolveAnswers(event.id(), Map.of(fieldId("Shirtgröße"), "M")));
+        assertTrue(!service.findValues(registration.id()).isEmpty());
+
+        var declined = registrationService.decline(event.id(), member.id(), day, null);
+
+        assertEquals(RegistrationStatus.WITHDRAWN, declined.status());
+        assertTrue(service.findValues(declined.id()).isEmpty());
+    }
+
     @Test
     @Order(10)
     void questionAddedLaterLeavesExistingRegistrationsValid() {

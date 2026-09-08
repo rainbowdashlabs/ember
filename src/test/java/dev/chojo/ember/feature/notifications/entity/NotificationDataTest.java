@@ -95,7 +95,7 @@ class NotificationDataTest {
     @Test
     void paramsAsMapConvertsToFlatMap() {
         var params = new NotificationParams.EventRegistrationStatus(
-                "Event Name", RegistrationStatus.ACCEPTED, "Description");
+                "Tim Berger", "Event Name", RegistrationStatus.ACCEPTED, "Description");
         var data = NotificationData.of(params);
 
         Map<String, String> map = data.paramsAsMap();
@@ -154,7 +154,7 @@ class NotificationDataTest {
                 NotificationType.NEWS_COMMENT, new NotificationParams.NewsComment("t", "a", "p"),
                 NotificationType.NEW_EVENT, new NotificationParams.NewEvent("t", "d"),
                 NotificationType.EVENT_REGISTRATION_STATUS,
-                        new NotificationParams.EventRegistrationStatus("e", RegistrationStatus.ACCEPTED, "d"),
+                        new NotificationParams.EventRegistrationStatus("m", "e", RegistrationStatus.ACCEPTED, "d"),
                 NotificationType.EXCHANGE_NEW_REQUEST, new NotificationParams.ExchangeNewRequest("m", "i", "r"),
                 NotificationType.EXCHANGE_STATUS_CHANGE,
                         new NotificationParams.ExchangeStatusChange("An den Träger geschickt", "i", StepActor.STATION),

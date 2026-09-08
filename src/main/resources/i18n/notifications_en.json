@@ -228,7 +228,7 @@
     "notification.newEvent": "New event: {title}",
     "notification.newEventsBatch.one": "1 new event was created",
     "notification.newEventsBatch.other": "{count} new events were created",
-    "notification.eventRegistrationStatus": "{eventName}: {status}",
+    "notification.eventRegistrationStatus": "{memberName} - {eventName}: {status}",
     "notification.memberAddedToGroup": "You were added to group {groupName}",
     "notification.profileFieldChanged": "{memberName} changed the field {fieldName}",
     "notification.procurementRequested": "Procurement requested: {inventoryName}",

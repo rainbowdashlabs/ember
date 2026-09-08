@@ -359,7 +359,7 @@ class DomainEventHandlerTest {
                 .thenReturn(List.of(member(20), member(21)));
 
         handler.handle(new EventRegistrationStatusChanged(
-                STATION_ID, 42, "Übungsabend", MEMBER_ID, RegistrationStatus.ACCEPTED));
+                STATION_ID, 42, "Übungsabend", MEMBER_ID, "Tim Berger", RegistrationStatus.ACCEPTED));
 
         verify(notificationService)
                 .notify(eq(MEMBER_ID), eq(NotificationType.EVENT_REGISTRATION_STATUS), any(NotificationData.class));

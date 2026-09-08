@@ -227,7 +227,7 @@ class EventReminderCheckerTest {
         when(reminderRepository.findDays(42)).thenReturn(List.of(3));
         when(reminderRepository.isSent(42, eventDate, 3)).thenReturn(false);
         when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10), member(11)));
-        when(registrationRepository.findDeclinedMemberIds(42, eventDate)).thenReturn(List.of());
+        when(registrationRepository.findNotAttendingMemberIds(42, eventDate)).thenReturn(List.of());
 
         createCheckerWithoutScheduler();
 
@@ -311,7 +311,7 @@ class EventReminderCheckerTest {
         when(reminderRepository.findDays(50)).thenReturn(List.of(0));
         when(reminderRepository.isSent(50, today, 0)).thenReturn(false);
         when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10)));
-        when(registrationRepository.findDeclinedMemberIds(50, today)).thenReturn(List.of());
+        when(registrationRepository.findNotAttendingMemberIds(50, today)).thenReturn(List.of());
 
         invokeCheck();
 
@@ -330,7 +330,7 @@ class EventReminderCheckerTest {
         when(reminderRepository.findDays(42)).thenReturn(List.of(1));
         when(reminderRepository.isSent(42, eventDate, 1)).thenReturn(false);
         when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10), member(11)));
-        when(registrationRepository.findDeclinedMemberIds(42, eventDate)).thenReturn(List.of(11));
+        when(registrationRepository.findNotAttendingMemberIds(42, eventDate)).thenReturn(List.of(11));
 
         invokeCheck();
 
@@ -454,7 +454,7 @@ class EventReminderCheckerTest {
             when(reminderRepository.findDays(60)).thenReturn(List.of(0));
             when(reminderRepository.isSent(60, today, 0)).thenReturn(false);
             when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10)));
-            when(registrationRepository.findDeclinedMemberIds(60, today)).thenReturn(List.of());
+            when(registrationRepository.findNotAttendingMemberIds(60, today)).thenReturn(List.of());
 
             invokeCheck();
 

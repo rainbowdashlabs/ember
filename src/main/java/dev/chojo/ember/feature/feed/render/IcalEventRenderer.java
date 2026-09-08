@@ -82,14 +82,23 @@ public class IcalEventRenderer {
     }
 
     /**
+     * Whether a status means the member will not be there: turned down, declined, or a confirmed
+     * place taken back again.
+     */
+    private static boolean notAttending(RegistrationStatus status) {
+        return status == RegistrationStatus.DECLINED
+                || status == RegistrationStatus.DENIED
+                || status == RegistrationStatus.WITHDRAWN;
+    }
+
+    /**
      * Whether this appointment belongs in the reader's own calendar.
      *
      * <ul>
-     *   <li>Non-guardian: hide if own status is {@code DECLINED}/{@code DENIED}.</li>
+     *   <li>Non-guardian: hide if their own answer means they are not going.</li>
      *   <li>Guardian with no own registration: hide only if every managed member with a
-     *       registration is {@code DECLINED}/{@code DENIED}.</li>
-     *   <li>Owner + guardian: hide only if both the owner and every managed member are
-     *       {@code DECLINED}/{@code DENIED}.</li>
+     *       registration is not going.</li>
+     *   <li>Owner + guardian: hide only if neither the owner nor any managed member is going.</li>
      *   <li>Where an appointment asks to be signed up for and the closing date has passed,
      *       only a place actually taken keeps it: an answer still outstanding at that point is
      *       an absence, and a calendar that keeps showing it sends somebody to a drill they are
@@ -102,12 +111,9 @@ public class IcalEventRenderer {
         var ownStatus = ctx.ownerStatusByEvent().get(event.id());
         var managed = ctx.managedStatusByEvent().getOrDefault(event.id(), List.of());
 
-        boolean ownDeclined = ownStatus == RegistrationStatus.DECLINED || ownStatus == RegistrationStatus.DENIED;
+        boolean ownDeclined = notAttending(ownStatus);
 
-        boolean allManagedRefused = !managed.isEmpty()
-                && managed.stream()
-                        .allMatch(r ->
-                                r.status() == RegistrationStatus.DECLINED || r.status() == RegistrationStatus.DENIED);
+        boolean allManagedRefused = !managed.isEmpty() && managed.stream().allMatch(r -> notAttending(r.status()));
 
         if (ownStatus != null && managed.isEmpty()) {
             if (ownDeclined) return false;

@@ -4,12 +4,17 @@
 
 ### Improvements
 
+- **A place given back is written down.** Somebody who takes back a place an appointment had confirmed is now recorded as having withdrawn, beside those who were turned down, instead of disappearing from the list as though they had never signed up. A registration still waiting on an answer is removed as before, since nothing had been given away.
+- **A confirmed place can only be taken back, not declined.** Once an appointment has confirmed somebody, answering no records a withdrawal rather than a declination, so the list keeps apart the people who never had a place and the people who gave one up.
+- **A registration says when it was made.** The date beside somebody on an appointment's registration list is now the moment they signed up or said no, not the day the appointment runs, which was the same for everybody on the list and told the reader nothing.
+- **A registration notice names the member.** The notice on the dashboard and in the feed says who signed up or gave their place back. Whoever runs an appointment was told only its name and the new answer, which for a station of forty people did not say whose answer it was.
 - **A ticket takes several attachments at once.** The attachment picker on a ticket accepts more than one file per go and adds all of them in one step. It used to take a single file each time it was opened.
 
 ### Fixes
 
 - **An address that does not exist showed a bare error page.** A mistyped or outdated link ended on a plain page carrying none of Ember's own navigation. Ember now answers a missing address, and any other error, with its own page, keeping the usual header and footer and offering a way back to the start.
 - **The file picker turned away a member who only works on boards.** Opening it to put a picture on a ticket answered with an error naming permissions for pages, news and the wiki, and the picker stayed empty even of the files that member had uploaded themselves. It now asks only for what the member may read, so it opens and their files are in it.
+- **A withdrawal showed as untranslated text on the dashboard.** The notice about somebody taking their place back had no German word for that state and printed an internal one instead.
 
 ## v26.14.2
 

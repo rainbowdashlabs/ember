@@ -429,9 +429,11 @@ public class NotificationFeedRenderer {
                 if (params
                         instanceof
                         NotificationParams.EventRegistrationStatus(
+                                String memberName,
                                 String eventName,
                                 RegistrationStatus status,
                                 String eventDescription)) {
+                    putIfPresent(details, label(ctx, "member", "Member"), memberName);
                     putIfPresent(
                             details,
                             label(ctx, "status", "Status"),

@@ -33,7 +33,8 @@ public sealed interface NotificationParams {
      */
     record NewEventsBatch(int count, String eventPreview, LocalDate firstEventDate) implements NotificationParams {}
 
-    record EventRegistrationStatus(String eventName, RegistrationStatus status, String eventDescription)
+    record EventRegistrationStatus(
+            String memberName, String eventName, RegistrationStatus status, String eventDescription)
             implements NotificationParams {}
 
     record ExchangeNewRequest(String memberName, String inventoryName, String reason) implements NotificationParams {}

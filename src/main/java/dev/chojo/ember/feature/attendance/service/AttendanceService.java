@@ -909,7 +909,7 @@ public class AttendanceService {
 
         LocalDate today = LocalDate.now();
         return eventRegistrationRepository
-                .findDeclinedMemberIds(session.get().eventId(), today)
+                .findNotAttendingMemberIds(session.get().eventId(), today)
                 .contains(memberId);
     }
 }

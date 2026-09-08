@@ -478,7 +478,8 @@ class NotificationServiceTest extends RepositoryTestBase {
         service.notify(member1.id(), NotificationType.PROCUREMENT_FULFILLED, procFulfilled);
 
         var evtReg = NotificationData.of(
-                new NotificationParams.EventRegistrationStatus("Marathon", RegistrationStatus.ACCEPTED, "Run 10km"),
+                new NotificationParams.EventRegistrationStatus(
+                        "Tim Berger", "Marathon", RegistrationStatus.ACCEPTED, "Run 10km"),
                 new NotificationData.NotificationLink("events-registrations"));
         service.notify(member1.id(), NotificationType.EVENT_REGISTRATION_STATUS, evtReg);
 
@@ -791,7 +792,8 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertEquals("Why", service.resolveDetail(enrNotif));
 
         var ers = NotificationData.of(
-                new NotificationParams.EventRegistrationStatus("Probe", RegistrationStatus.ACCEPTED, "Konzert"),
+                new NotificationParams.EventRegistrationStatus(
+                        "Tim Berger", "Probe", RegistrationStatus.ACCEPTED, "Konzert"),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var ersNotif = new Notification(
                 23, member1.id(), null, NotificationType.EVENT_REGISTRATION_STATUS, ers, Instant.now(), null);
@@ -823,7 +825,8 @@ class NotificationServiceTest extends RepositoryTestBase {
 
         // EVENT_REGISTRATION_STATUS - appends event description
         var ers = NotificationData.of(
-                new NotificationParams.EventRegistrationStatus("Probe", RegistrationStatus.ACCEPTED, "Konzertprobe"),
+                new NotificationParams.EventRegistrationStatus(
+                        "Tim Berger", "Probe", RegistrationStatus.ACCEPTED, "Konzertprobe"),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var ersNotif = new Notification(
                 32, member1.id(), null, NotificationType.EVENT_REGISTRATION_STATUS, ers, Instant.now(), null);
@@ -977,7 +980,8 @@ class NotificationServiceTest extends RepositoryTestBase {
         // Status-bearing types interpolate the {statusLabel} synthetic param.
         var reg = notificationWith(
                 NotificationType.EVENT_REGISTRATION_STATUS,
-                new NotificationParams.EventRegistrationStatus("Open Training", RegistrationStatus.ACCEPTED, "desc"),
+                new NotificationParams.EventRegistrationStatus(
+                        "Tim Berger", "Open Training", RegistrationStatus.ACCEPTED, "desc"),
                 203);
         var regTitle = service.resolveFeedTitle("en", reg);
         assertTrue(regTitle.contains("Accepted"), "Should contain localised status: " + regTitle);
