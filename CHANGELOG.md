@@ -2,9 +2,14 @@
 
 ## v26.14.3
 
+### Improvements
+
+- **A ticket takes several attachments at once.** The attachment picker on a ticket accepts more than one file per go and adds all of them in one step. It used to take a single file each time it was opened.
+
 ### Fixes
 
 - **An address that does not exist showed a bare error page.** A mistyped or outdated link ended on a plain page carrying none of Ember's own navigation. Ember now answers a missing address, and any other error, with its own page, keeping the usual header and footer and offering a way back to the start.
+- **The file picker turned away a member who only works on boards.** Opening it to put a picture on a ticket answered with an error naming permissions for pages, news and the wiki, and the picker stayed empty even of the files that member had uploaded themselves. It now asks only for what the member may read, so it opens and their files are in it.
 
 ## v26.14.2
 

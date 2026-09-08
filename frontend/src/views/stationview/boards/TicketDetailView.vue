@@ -191,11 +191,18 @@ async function toggleLabel(labelId: number) {
     } catch { void 0 }
 }
 
-async function handleFileUpload(file: File) {
-    try {
-        await api.uploadAttachment(file)
-        await loadDetails()
-    } catch { void 0 }
+/**
+ * Takes the picked files one after another, because the endpoint carries one file per request, and
+ * reloads once at the end rather than after each: a ticket given five attachments would otherwise
+ * fetch its own details five times.
+ */
+async function handleFileUpload(files: File[]) {
+    for (const file of files) {
+        try {
+            await api.uploadAttachment(file)
+        } catch { void 0 }
+    }
+    await loadDetails()
 }
 
 async function toggleWatch() {
@@ -261,7 +268,7 @@ watch(ticketNumber, reload)
                 @remove-all-checklist-items="removeAllChecklistItems"
                 @reorder-checklist="reorderChecklist"
                 @create-comment="createComment" @update-comment="updateComment"
-                @delete-comment="deleteCommentFn" @upload-file="handleFileUpload"
+                @delete-comment="deleteCommentFn" @upload-files="handleFileUpload"
                 @kb-search="onKbSearch" @add-kb-link="addKbLinkFn" @remove-kb-link="removeKbLinkFn"
                 @move-to="moveTo" @toggle-label="toggleLabel" @create-label="createAndAddLabel"
                 @save-field="saveFieldValue"
