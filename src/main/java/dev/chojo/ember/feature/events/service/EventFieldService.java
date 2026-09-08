@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.EventFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -15,6 +17,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.question.QuestionValues;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
@@ -102,6 +105,7 @@ public class EventFieldService {
      * value left behind when the sheet was changed, or a caller that is not the editor.
      */
     public void replaceFields(int eventId, List<EventFieldRepository.FieldEntry> fields) {
+        requireAnswerable(fields);
         var sheetFieldIds = sheetFieldIds(eventId);
         var kept = fields.stream()
                 .map(field -> field.attendanceFieldId() == null || sheetFieldIds.contains(field.attendanceFieldId())
@@ -110,6 +114,26 @@ public class EventFieldService {
                 .toList();
         repository.replaceFields(eventId, kept);
         log.info("Replaced {} fields for event {}", kept.size(), eventId);
+    }
+
+    /**
+     * Refuses what a field of the appointment does not take.
+     *
+     * <p>These are answers like any other: what stands in a choice has to be one of the choices, and
+     * a date has to be a date. Nothing measured them, so an appointment could carry a colour nobody
+     * offered and a day that is not one, and every list and export carried it onward.
+     *
+     * @throws BadRequestResponse naming the field and what is wrong with what stands in it
+     */
+    private void requireAnswerable(List<EventFieldRepository.FieldEntry> fields) {
+        for (var field : fields) {
+            var type = field.fieldType() != null ? field.fieldType() : EventFieldType.STRING;
+            var config = field.config() != null ? field.config() : EventFieldConfig.empty();
+            var question = config.settings().asQuestion(field.name(), type.kind());
+            QuestionCheck.answerIfGiven(question, field.value()).ifPresent(problem -> {
+                throw new BadRequestResponse(problem.message());
+            });
+        }
     }
 
     /** The fields of the sheet this appointment is taken on, empty where it is taken on none. */

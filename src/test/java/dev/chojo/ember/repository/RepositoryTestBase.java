@@ -674,7 +674,7 @@ public abstract class RepositoryTestBase {
                 new EventCategoryService(eventCategoryRepo),
                 breakService,
                 new EventRestrictionService(eventRepo, restrictionService),
-                new EventFieldDefaultService(eventFieldDefaultRepo, eventRepo),
+                new EventFieldDefaultService(eventFieldDefaultRepo, eventRepo, attendanceRepo),
                 new EventRegistrationService(eventRegistrationRepo, eventRepo, eventBus),
                 new EventReminderService(eventReminderRepo),
                 new EquipmentNeedService(

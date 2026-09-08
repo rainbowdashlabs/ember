@@ -4,11 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
+import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
 import type {AttendanceTemplateField} from '@/api/attendance'
 import {DEFAULT_SOURCES} from './fieldDefaults'
+import {QuestionKinds, questionKindOf} from '@/util/questions'
 
 /**
  * What one field of the attendance sheet is filled in with before anybody is there.
@@ -19,11 +21,20 @@ import {DEFAULT_SOURCES} from './fieldDefaults'
  */
 const {t} = useI18n()
 
-defineProps<{
+const props = defineProps<{
   field: AttendanceTemplateField
   source: string
   value: string
 }>()
+
+/**
+ * What kind of answer the sheet field takes, which decides the box the value is written in. A
+ * choice offers the choices that sheet field has, so nothing can be filled in that the sheet would
+ * then refuse.
+ */
+const kind = computed(() => questionKindOf(props.field.fieldType) ?? QuestionKinds.TEXT)
+
+const options = computed<string[]>(() => ((props.field.config?.options as string[]) ?? []))
 
 const emit = defineEmits<{
   updateSource: [source: string]
@@ -54,11 +65,13 @@ function typeLabel(fieldType?: string): string {
           {{ t(`events.defaultSources.${src}`) }}
         </option>
       </SelectInput>
-      <TextInput
+      <QuestionValueInput
           v-if="source === 'VALUE'"
+          :kind="kind"
           :model-value="value"
+          :options="options"
           :placeholder="t('events.defaultValuePlaceholder')"
-          @update:model-value="emit('updateValue', ($event as string) ?? '')"
+          @update:model-value="emit('updateValue', $event)"
       />
     </div>
   </div>

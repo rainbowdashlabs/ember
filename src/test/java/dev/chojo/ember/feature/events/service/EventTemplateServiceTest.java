@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -390,6 +391,30 @@ class EventTemplateServiceTest extends RepositoryTestBase {
                 null,
                 null);
         assertFalse(updated);
+    }
+
+    /**
+     * What a template starts a field off with is an answer to that field. One outside its own
+     * choices is a mistake made once here and carried into every appointment written from the
+     * template.
+     */
+    @Test
+    @Order(40)
+    void aStartingValueTheFieldWouldRefuseIsRefused() {
+        var choice = EventFieldConfig.parse("{\"options\":[\"rot\",\"blau\"]}");
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.replaceFields(
+                        templateId,
+                        List.of(new EventTemplateFieldData(
+                                "Farbe", EventFieldType.ENUM, choice, 0, true, false, null, "gelb"))));
+
+        service.replaceFields(
+                templateId,
+                List.of(new EventTemplateFieldData(
+                        "Farbe", EventFieldType.ENUM, choice, 0, true, false, null, "blau")));
+        assertEquals("blau", service.findFields(templateId).getFirst().defaultValue());
     }
 
     @Test
