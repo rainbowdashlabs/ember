@@ -68,7 +68,7 @@ const emit = defineEmits<{
     createComment: [parentId: number | null, content: string]
     updateComment: [commentId: number, content: string]
     deleteComment: [commentId: number]
-    uploadFile: [file: File]
+    uploadFiles: [files: File[]]
     kbSearch: []
     addKbLink: [id: number]
     removeKbLink: [id: number]
@@ -102,7 +102,7 @@ const emit = defineEmits<{
             @create-comment="(p, c) => emit('createComment', p, c)"
             @update-comment="(i, c) => emit('updateComment', i, c)"
             @delete-comment="emit('deleteComment', $event)"
-            @upload-file="emit('uploadFile', $event)"
+            @upload-files="emit('uploadFiles', $event)"
             @kb-search="emit('kbSearch')"
             @add-kb-link="emit('addKbLink', $event)"
             @remove-kb-link="emit('removeKbLink', $event)"
