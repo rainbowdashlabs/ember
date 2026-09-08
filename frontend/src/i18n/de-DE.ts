@@ -4585,6 +4585,10 @@ export default {
         home: 'Startseite',
         login: 'Anmelden',
     },
+    errorPage: {
+        title: 'Da ist etwas schiefgelaufen',
+        text: 'Die Seite konnte nicht geladen werden. Versuche es später noch einmal.',
+    },
     applicationLog: {
         disabled: 'Das Log wird derzeit nicht in der Datenbank gespeichert, hier steht deshalb '
             + 'nichts oder nur, was vor dem Abschalten anfiel. Einschalten lässt sich das unter '
