@@ -120,11 +120,25 @@ function getRegistrationForMember(memberId: number): EventRegistrationEntry | un
   return registrations.value.find(r => r.memberId === memberId)
 }
 
+/**
+ * The answer this member currently has standing, which is what their own side of the screen is
+ * about.
+ *
+ * <p>A place that was given back is kept for whoever runs the appointment, so the row outlives the
+ * place. To the member it is not an answer they are holding: they hold nothing, they owe one, and
+ * they may sign up again. Saying otherwise left them looking at a state they could not leave.
+ */
+function standingRegistrationFor(memberId: number): EventRegistrationEntry | undefined {
+  const registration = getRegistrationForMember(memberId)
+  return registration?.status === RegistrationStatus.WITHDRAWN ? undefined : registration
+}
+
 function statusLabel(status: string): string {
   if (status === RegistrationStatus.ACCEPTED) return t('eventsUpcoming.statusAccepted')
   if (status === RegistrationStatus.PENDING) return t('eventsUpcoming.statusPending')
   if (status === RegistrationStatus.DENIED) return t('eventsUpcoming.statusDenied')
   if (status === RegistrationStatus.DECLINED) return t('eventsUpcoming.statusDeclined')
+  if (status === RegistrationStatus.WITHDRAWN) return t('eventsUpcoming.statusWithdrawn')
   return status
 }
 
@@ -244,11 +258,11 @@ function answerForHousehold() {
 
 /** Everyone in the household who has a place, which is who there is something to give up for. */
 const withPlace = computed(() =>
-    household.value.filter(person => getRegistrationForMember(person.key) !== undefined))
+    household.value.filter(person => standingRegistrationFor(person.key) !== undefined))
 
 /** Everyone still to answer, which is who the sign-up button is for. */
 const withoutPlace = computed(() =>
-    household.value.filter(person => getRegistrationForMember(person.key) === undefined))
+    household.value.filter(person => standingRegistrationFor(person.key) === undefined))
 
 const answerLabel = computed(() =>
     withoutPlace.value.length > 1 ? t('events.answerForAll') : t('eventsUpcoming.register'))
@@ -357,10 +371,10 @@ onMounted(loadRegistrations)
       <div v-for="member in registrableMembers" :key="member.key" class="flex items-center gap-3 flex-wrap">
         <span v-if="hasManagedMembers" class="text-sm font-medium min-w-24">{{ member.name }}</span>
         <component
-            v-if="getRegistrationForMember(member.key)"
+            v-if="standingRegistrationFor(member.key)"
             :data-testid="`my-answer-${member.key}`"
-            :is="getRegistrationForMember(member.key)!.status === RegistrationStatus.ACCEPTED ? SuccessBadge : getRegistrationForMember(member.key)!.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge">
-          {{ statusLabel(getRegistrationForMember(member.key)!.status) }}
+            :is="standingRegistrationFor(member.key)!.status === RegistrationStatus.ACCEPTED ? SuccessBadge : standingRegistrationFor(member.key)!.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge">
+          {{ statusLabel(standingRegistrationFor(member.key)!.status) }}
         </component>
         <SecondaryBadge v-else :data-testid="`my-answer-${member.key}`">{{ t('eventDetail.noAnswerYet') }}</SecondaryBadge>
       </div>

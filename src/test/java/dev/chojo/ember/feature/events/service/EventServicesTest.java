@@ -1308,6 +1308,52 @@ class EventServicesTest extends RepositoryTestBase {
         assertFalse(registrationService.withdraw(999999));
     }
 
+    /**
+     * Answering no is the same choice wherever it is made: a confirmed place is taken back, and one
+     * that was never confirmed declines. The endpoint the member answers through used to make that
+     * choice itself and always wrote a declination.
+     */
+    @Test
+    @Order(131)
+    void refusingPicksWithdrawnOnlyForAConfirmedPlace() {
+        var start = Instant.now().plus(131, ChronoUnit.DAYS);
+        var event = crudService.create(
+                station.id(),
+                "Refuse Event",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                true,
+                null,
+                false,
+                categoryId,
+                null,
+                null,
+                null,
+                null);
+
+        var pending = registrationService.register(event.id(), member.id(), LocalDate.of(2027, 7, 1), false, null);
+        assertTrue(registrationService.refuse(pending.id()));
+        assertEquals(
+                RegistrationStatus.DECLINED,
+                registrationService.findById(pending.id()).orElseThrow().status());
+
+        var accepted = registrationService.register(event.id(), member.id(), LocalDate.of(2027, 7, 2), true, null);
+        assertTrue(registrationService.refuse(accepted.id()));
+        assertEquals(
+                RegistrationStatus.WITHDRAWN,
+                registrationService.findById(accepted.id()).orElseThrow().status());
+    }
+
+    @Test
+    @Order(131)
+    void refusingANonExistentRegistration() {
+        assertFalse(registrationService.refuse(999999));
+    }
+
     // -- decline with existing ACCEPTED registration --
 
     /**
