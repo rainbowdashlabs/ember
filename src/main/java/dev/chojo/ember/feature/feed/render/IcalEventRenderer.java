@@ -113,9 +113,7 @@ public class IcalEventRenderer {
 
         boolean ownDeclined = notAttending(ownStatus);
 
-        boolean allManagedRefused = !managed.isEmpty()
-                && managed.stream()
-                        .allMatch(r -> notAttending(r.status()));
+        boolean allManagedRefused = !managed.isEmpty() && managed.stream().allMatch(r -> notAttending(r.status()));
 
         if (ownStatus != null && managed.isEmpty()) {
             if (ownDeclined) return false;

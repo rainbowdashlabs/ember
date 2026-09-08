@@ -16,10 +16,5 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
  *                   identifier
  */
 public record EventRegistrationStatusChanged(
-        int stationId,
-        int eventId,
-        String eventName,
-        int memberId,
-        String memberName,
-        RegistrationStatus newStatus)
+        int stationId, int eventId, String eventName, int memberId, String memberName, RegistrationStatus newStatus)
         implements DomainEvent {}
