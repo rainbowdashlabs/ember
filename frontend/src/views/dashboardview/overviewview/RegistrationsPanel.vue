@@ -112,9 +112,14 @@ onMounted(loadData)
             </div>
             <p class="text-xs text-(--text-muted)">{{ formatDate(reg.eventDate) }}</p>
           </div>
-          <component :is="statusBadgeComponent(reg.status)">
-            {{ t(`dashboard.registrationStatus.${reg.status}`) }}
-          </component>
+          <div class="flex items-center gap-2 shrink-0">
+            <ErrorBadge v-if="reg.answersMissing" :data-testid="`answer-missing-${reg.id}`">
+              {{ t('eventDetail.answerMissing') }}
+            </ErrorBadge>
+            <component :is="statusBadgeComponent(reg.status)">
+              {{ t(`dashboard.registrationStatus.${reg.status}`) }}
+            </component>
+          </div>
         </NeutralContainer>
       </template>
     </div>

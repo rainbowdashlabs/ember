@@ -14,6 +14,9 @@ import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -75,22 +78,71 @@ public class EventRegistrationFieldRepository {
     /**
      * Replaces an event's questions with a new list, numbering them in the order given.
      *
-     * <p>Answers to questions that survive the replacement are lost, because a question is
-     * identified by its row: the delete cascades into the answers. That is the honest outcome -
-     * a rewritten question is not the question that was answered.
+     * <p>A question that comes back under the name it already had keeps its row, and with it every
+     * answer members have given: the order can be changed, an option added and a question marked
+     * required without throwing away what the list already holds. Deleting and writing the whole set
+     * again is what used to happen, and it silently emptied every answer of every registration each
+     * time somebody moved a question up.
+     *
+     * <p>A question whose name is gone from the list is gone, and its answers go with it. A renamed
+     * question therefore reads as a new one, which is the one case where the old answers really do
+     * belong to a question nobody is asking any more.
      */
     public void replaceFields(int eventId, List<FieldEntry> fields) {
-        deleteByEvent(eventId);
+        var byName = new LinkedHashMap<String, List<EventRegistrationField>>();
+        for (var existing : findByEvent(eventId)) {
+            byName.computeIfAbsent(existing.name(), name -> new ArrayList<>()).add(existing);
+        }
+
+        var kept = new HashSet<Integer>();
         for (int i = 0; i < fields.size(); i++) {
             var field = fields.get(i);
-            create(
-                    eventId,
-                    field.name(),
-                    field.fieldType() != null ? field.fieldType() : EventFieldType.STRING,
-                    field.config() != null ? field.config() : EventRegistrationFieldConfig.empty(),
-                    i,
-                    field.overview());
+            var type = field.fieldType() != null ? field.fieldType() : EventFieldType.STRING;
+            var config = field.config() != null ? field.config() : EventRegistrationFieldConfig.empty();
+            var matches = byName.getOrDefault(field.name(), List.of());
+            var match = matches.stream()
+                    .filter(candidate -> !kept.contains(candidate.id()))
+                    .findFirst()
+                    .orElse(null);
+            if (match == null) {
+                create(eventId, field.name(), type, config, i, field.overview());
+                continue;
+            }
+            kept.add(match.id());
+            update(match.id(), field.name(), type, config, i, field.overview());
         }
+
+        for (var existing : byName.values().stream().flatMap(List::stream).toList()) {
+            if (!kept.contains(existing.id())) deleteField(existing.id());
+        }
+    }
+
+    /** Writes what a question asks, leaving the answers already given against it where they are. */
+    public void update(
+            int fieldId,
+            String name,
+            EventFieldType fieldType,
+            EventRegistrationFieldConfig config,
+            int position,
+            boolean overview) {
+        query("""
+                UPDATE event_registration_field
+                SET name = :name, field_type = :field_type, config = :config::JSONB,
+                    position = :position, overview = :overview
+                WHERE id = :id;""")
+                .single(call().bind("id", fieldId)
+                        .bind("name", name)
+                        .bind("field_type", fieldType)
+                        .bind("config", config.toJson())
+                        .bind("position", position)
+                        .bind("overview", overview))
+                .update();
+    }
+
+    private void deleteField(int fieldId) {
+        query("DELETE FROM event_registration_field WHERE id = :id;")
+                .single(call().bind("id", fieldId))
+                .delete();
     }
 
     // -- Template questions --

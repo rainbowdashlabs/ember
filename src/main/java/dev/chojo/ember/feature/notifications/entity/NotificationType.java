@@ -38,6 +38,8 @@ public enum NotificationType {
     EVENT_CANCELLED(NotificationParams.EventCancelled.class, "notification.eventCancelled"),
     EVENT_REMINDER(NotificationParams.EventReminder.class, "notification.eventReminder"),
     REGISTRATION_CLOSING(NotificationParams.RegistrationClosing.class, "notification.registrationClosing"),
+    REGISTRATION_ANSWER_MISSING(
+            NotificationParams.RegistrationAnswerMissing.class, "notification.registrationAnswerMissing"),
     PROCEDURE_ASSIGNED(NotificationParams.ProcedureAssigned.class, "notification.procedureAssigned"),
     PROCEDURE_RESOLVED(NotificationParams.ProcedureResolvedParams.class, "notification.procedureResolved"),
     PROCEDURE_REOPENED(NotificationParams.ProcedureReopenedParams.class, "notification.procedureReopened"),

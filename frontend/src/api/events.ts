@@ -384,6 +384,8 @@ export interface EventRegistrationEntry {
     createdByName?: string | null
     memberIdentity?: MemberIdentity | null
     fields?: RegistrationFieldValue[]
+    /** Whether the appointment asks something this registration has not answered. */
+    answersMissing?: boolean
 }
 
 /**

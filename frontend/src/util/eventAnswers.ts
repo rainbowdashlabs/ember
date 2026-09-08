@@ -36,6 +36,10 @@ export interface GivenAnswer<K extends string | number = number, U = number> ext
     undo: U
     /** Who answered on this person's behalf, where somebody did. */
     createdByName?: string | null
+    /** Whether the answers behind this one can be opened and written again. */
+    canUpdate?: boolean
+    /** Whether the appointment asks something this answer has not answered. */
+    answersMissing?: boolean
 }
 
 /** One person's answer to the appointment's questions, ready to be sent. */
@@ -94,10 +98,14 @@ export function answerableMembers(
  *
  * <p>The station's own answers, mapped onto the shape the shared controls read. Taking one back
  * refers to the registration row itself, which is what the server deletes.
+ *
+ * @param asksQuestions whether the appointment asks anything, which is what makes an answer worth
+ *                      opening again
  */
 export function localAnswers(
     people: AnswerablePerson[],
     registrations: EventRegistrationEntry[],
+    asksQuestions = false,
 ): GivenAnswer[] {
     const answers: GivenAnswer[] = []
     for (const person of people) {
@@ -109,6 +117,8 @@ export function localAnswers(
             status: registration.status as RegistrationStatusName,
             undo: registration.id,
             createdByName: registration.createdByName,
+            canUpdate: asksQuestions,
+            answersMissing: registration.answersMissing === true,
         })
     }
     return answers

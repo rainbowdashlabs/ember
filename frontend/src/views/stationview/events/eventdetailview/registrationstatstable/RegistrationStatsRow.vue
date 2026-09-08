@@ -43,7 +43,12 @@ function scoreClass(): string {
 <template>
   <tr class="border-b border-(--border) last:border-0">
     <td class="p-2">
-      <MemberName :identity="registration.memberIdentity ?? null"/>
+      <div class="flex items-center gap-2 flex-wrap">
+        <MemberName :identity="registration.memberIdentity ?? null"/>
+        <ErrorBadge v-if="registration.answersMissing" :data-testid="`answer-missing-${registration.id}`">
+          {{ t('eventDetail.answerMissing') }}
+        </ErrorBadge>
+      </div>
       <div class="flex items-center gap-2 flex-wrap">
         <RegistrationFieldAnswers :fields="fields ?? []" :values="registration.fields" class="mt-1"/>
         <EditButton

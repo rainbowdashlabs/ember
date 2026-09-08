@@ -142,6 +142,7 @@
     "EVENT_REMINDER.other": "Reminder: {eventName} in {daysBefore} days",
     "REGISTRATION_CLOSING.one": "Registration closes tomorrow: {eventName} - {memberName} pending",
     "REGISTRATION_CLOSING.other": "Registration closes in {daysBefore} days: {eventName} - {memberName} pending",
+    "REGISTRATION_ANSWER_MISSING": "Answer missing: {eventName} - {memberName}",
     "PROCEDURE_ASSIGNED": "Procedure assigned: {procedureName}",
     "PROCEDURE_RESOLVED": "Resolved: {procedureName}",
     "PROCEDURE_REOPENED": "Reopened: {procedureName}",
@@ -192,6 +193,7 @@
     "EVENT_CANCELLED": "Event Cancelled",
     "EVENT_REMINDER": "Event Reminder",
     "REGISTRATION_CLOSING": "Registration Closing",
+    "REGISTRATION_ANSWER_MISSING": "Answer Wanted",
     "PROCEDURE_ASSIGNED": "Procedure Assigned",
     "PROCEDURE_RESOLVED": "Procedure Resolved",
     "PROCEDURE_REOPENED": "Procedure Reopened",
@@ -268,6 +270,7 @@
     "notification.clusterFieldValueChanged": "{clusterName} changed {fields} in your profile",
     "notification.registrationClosing.one": "{eventName}: registration closes tomorrow, {memberName} has not answered yet",
     "notification.registrationClosing.other": "{eventName}: registration closes in {daysBefore} days, {memberName} has not answered yet",
+    "notification.registrationAnswerMissing": "{eventName} on {eventDate}: a new question was added and {memberName} has not answered it yet",
     "notification.movementCancelled": "{inventoryName}: movement of {itemName} called off - {reason}"
   }
 }

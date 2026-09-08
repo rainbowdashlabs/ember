@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -113,7 +114,8 @@ class EventRegistrationStatsRouteTest {
                 mock(AccountRepository.class),
                 mock(AttendanceService.class),
                 mock(MemberIdentityFactory.class),
-                mock(EventRegistrationFieldService.class));
+                mock(EventRegistrationFieldService.class),
+                mock(RegistrationAnswerReminder.class));
     }
 
     @SuppressWarnings("unchecked")

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.question.Question;
 
 /**
  * A question an event asks of everyone registering for it. Unlike {@link EventField}, which
@@ -19,6 +20,16 @@ public record EventRegistrationField(
         EventRegistrationFieldConfig config,
         int position,
         boolean overview) {
+
+    /**
+     * This question as everything that checks one reads it.
+     *
+     * <p>The row stays what it is; what it means is said once, here, so the same rules measure an
+     * answer to it as measure an answer to a profile field or a waiting list.
+     */
+    public Question question() {
+        return config.settings().asQuestion(name, fieldType.kind());
+    }
 
     public static RowMapping<EventRegistrationField> map() {
         return row -> new EventRegistrationField(

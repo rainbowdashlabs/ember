@@ -6,6 +6,8 @@
 <script setup lang="ts" generic="K extends string | number, U">
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import RegistrationStatusBadge from '../RegistrationStatusBadge.vue'
 import {isRefusal, type GivenAnswer} from '@/util/eventAnswers'
 import type {RegistrationStatusName} from '@/api/events'
@@ -26,6 +28,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   undo: [reference: U]
+  update: [reference: U]
 }>()
 
 const {t} = useI18n()
@@ -63,6 +66,22 @@ function undoLabel(status: RegistrationStatusName): string {
     >
       {{ undoLabel(row.status) }}
     </SecondaryButton>
+
+    <PrimaryButton
+        v-if="row.canUpdate"
+        :disabled="registering"
+        :icon="['fas', 'pen']"
+        :data-testid="`update-answer-${row.key}`"
+        compact
+        class="text-sm"
+        @click.stop="emit('update', row.undo)"
+    >
+      {{ t('eventDetail.updateAnswer') }}
+    </PrimaryButton>
+
+    <ErrorBadge v-if="row.answersMissing" :data-testid="`answer-missing-${row.key}`">
+      {{ t('eventDetail.answerMissing') }}
+    </ErrorBadge>
 
     <span v-if="row.createdByName" class="text-xs text-(--text-muted) italic">
       {{ t('common.createdBy', {name: row.createdByName}) }}

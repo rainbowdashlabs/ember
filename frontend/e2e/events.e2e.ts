@@ -205,6 +205,92 @@ test.describe('Events', () => {
             await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})
         })
 
+    /**
+     * A question added to an appointment somebody has already signed up for. They are told, the
+     * sheet says beside their answer that one is wanted, and they give it from the appointment's own
+     * page after the deadline has passed: the question is younger than the deadline, so closing
+     * registration cannot be what stops them answering it.
+     */
+    test('a question added after somebody signed up is asked of them and answered afterwards',
+        async ({managerPage, memberPage}) => {
+            const managerHeaders = await apiHeaders(managerPage)
+            const memberHeaders = await apiHeaders(memberPage)
+            const name = `Nachfrage ${test.info().workerIndex}-${Date.now()}`
+            const question = 'Schwimmabzeichen'
+
+            const created = await managerPage.request.post('/api/v1/events', {
+                headers: managerHeaders,
+                data: {
+                    name,
+                    description: 'Frage kommt später',
+                    eventType: 'ONE_TIME',
+                    startTime: new Date(Date.now() + 21 * 86400000).toISOString(),
+                    endTime: new Date(Date.now() + 21 * 86400000 + 3600000).toISOString(),
+                    requiresRegistration: true,
+                    registrationDeadline: new Date(Date.now() + 10 * 86400000).toISOString(),
+                },
+            })
+            expect(created.ok(), `the organiser made an appointment (${await created.text()})`).toBeTruthy()
+            const eventId = (await created.json()).id
+
+            const signedUp = await memberPage.request.post(`/api/v1/events/${eventId}/register`,
+                {headers: memberHeaders, data: {}})
+            expect(signedUp.ok(), `the member signed up before the question existed (${await signedUp.text()})`)
+                .toBeTruthy()
+
+            const asked = await managerPage.request.put(`/api/v1/events/${eventId}/registration-fields`, {
+                headers: managerHeaders,
+                data: {fields: [{name: question, fieldType: 'STRING', config: {required: true}, overview: true}]},
+            })
+            expect(asked.ok(), `and the appointment gained a question afterwards (${await asked.text()})`).toBeTruthy()
+
+            const mine = await memberPage.request
+                .get('/api/v1/events/registrations/mine', {headers: memberHeaders})
+                .then(response => response.json())
+            expect(
+                mine.find((entry: {eventId: number}) => entry.eventId === eventId)?.answersMissing,
+                'the registration says an answer is wanted',
+            ).toBe(true)
+
+            const told = await memberPage.request
+                .get('/api/v1/notifications', {headers: memberHeaders})
+                .then(response => response.json())
+            expect(
+                told.some((entry: {type: string}) => entry.type === 'REGISTRATION_ANSWER_MISSING'),
+                'and the member was told once',
+            ).toBeTruthy()
+
+            // The deadline goes by before they answer, which is the whole point: the question is
+            // younger than the deadline, so it cannot be the deadline that stops them.
+            const closed = await managerPage.request.put(`/api/v1/events/${eventId}`, {
+                headers: managerHeaders,
+                data: {
+                    name,
+                    description: 'Frage kommt später',
+                    eventType: 'ONE_TIME',
+                    startTime: new Date(Date.now() + 21 * 86400000).toISOString(),
+                    endTime: new Date(Date.now() + 21 * 86400000 + 3600000).toISOString(),
+                    requiresRegistration: true,
+                    registrationDeadline: new Date(Date.now() - 86400000).toISOString(),
+                },
+            })
+            expect(closed.ok(), `registration closed (${await closed.text()})`).toBeTruthy()
+
+            await memberPage.goto(`/station/events/${eventId}`)
+            const block = memberPage.getByTestId('your-answer')
+            await expect(block, 'the block stands, because an answer of theirs is on it').toBeVisible()
+            await expect(block.getByText('Antwort erforderlich').first()).toBeVisible()
+
+            await block.getByRole('button', {name: 'Antworten aktualisieren'}).first().click()
+            await memberPage.getByRole('textbox').last().fill('Bronze')
+            await memberPage.getByRole('button', {name: 'Speichern'}).last().click()
+
+            await expect(block.getByText('Antwort erforderlich'), 'and nothing is wanted any more')
+                .toHaveCount(0)
+
+            await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})
+        })
+
     test('the registration overview lists across events', async ({managerPage: page}) => {
         await page.goto('/station/events/registrations')
 

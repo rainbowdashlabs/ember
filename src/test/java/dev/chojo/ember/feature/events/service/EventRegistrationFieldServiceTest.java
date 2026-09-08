@@ -9,6 +9,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
@@ -31,6 +32,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -268,7 +270,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(87)
-    void aManagerOnlyQuestionIsNeitherShownToNorRequiredOfAMember() {
+    void aQuestionKeptForOrganisersIsStillAskedOfWhoeverRegisters() {
         service.replaceFields(
                 event.id(),
                 List.of(
@@ -284,16 +286,62 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
                                 new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, true),
                                 true)));
 
-        assertEquals(1, service.findVisibleByEvent(event.id(), false).size());
-        assertEquals(2, service.findVisibleByEvent(event.id(), true).size());
-
-        var forMember = service.resolveAnswers(event.id(), Map.of(), false);
-        assertEquals(1, forMember.size(), "a question a member never saw must not be required of them");
+        assertEquals(2, service.findByEvent(event.id()).size(), "every question is asked of whoever registers");
 
         int startNumber = fieldId("Startnummer");
-        assertEquals(Set.of(startNumber), service.hiddenFieldIds(event.id(), false));
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.resolveAnswers(event.id(), Map.of()),
+                "a required question is required whoever may read its answer");
+        assertEquals(
+                2, service.resolveAnswers(event.id(), Map.of(startNumber, "17")).size());
+
+        assertEquals(
+                Set.of(startNumber),
+                service.hiddenFieldIds(event.id(), false),
+                "the answer is what is kept from everybody else");
         assertTrue(service.hiddenFieldIds(event.id(), true).isEmpty());
 
+        seedFields();
+    }
+
+    /**
+     * An answer nobody may read is not erased by the reader who cannot see it. Whoever runs the
+     * appointment writes it, the member corrects their own answers, and the one they were never
+     * shown survives their correction.
+     */
+    @Test
+    @Order(88)
+    void anAnswerKeptForOrganisersSurvivesACorrectionByTheMember() {
+        service.replaceFields(
+                event.id(),
+                List.of(
+                        new FieldEntry(
+                                "Shirtgröße",
+                                EventFieldType.ENUM,
+                                new EventRegistrationFieldConfig(
+                                        true, "M", List.of("S", "M", "L"), null, null, null, null, null, false),
+                                true),
+                        new FieldEntry(
+                                "Startnummer",
+                                EventFieldType.STRING,
+                                new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, true),
+                                true)));
+        int size = fieldId("Shirtgröße");
+        int startNumber = fieldId("Startnummer");
+        LocalDate day = LocalDate.now().plusMonths(4).withDayOfMonth(7);
+        var registration = registrationService.register(event.id(), member.id(), day, true, null);
+        service.persistAnswers(
+                registration.id(), service.resolveAnswers(event.id(), Map.of(size, "M", startNumber, "17")));
+
+        service.replaceAnswers(event.id(), registration.id(), Map.of(size, "L"), false);
+
+        var carried = service.findValues(registration.id()).stream()
+                .collect(Collectors.toMap(RegistrationFieldValue::fieldId, RegistrationFieldValue::value));
+        assertEquals("L", carried.get(size));
+        assertEquals("17", carried.get(startNumber), "an answer they were never shown is not theirs to erase");
+
+        registrationService.withdraw(registration.id());
         seedFields();
     }
 
@@ -331,6 +379,60 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
                 RegistrationStatus.ACCEPTED,
                 registrationService.findById(registration.id()).orElseThrow().status());
         assertTrue(service.findValues(registration.id()).size() <= before);
+        seedFields();
+    }
+
+    /**
+     * A question that comes back under the name it had keeps its answers, so putting the questions
+     * in a different order or adding one to the set costs nobody the answer they gave. A question
+     * that is gone from the set takes its answers with it.
+     */
+    @Test
+    @Order(10)
+    void answersOutliveAnEditOfTheQuestions() {
+        LocalDate day = LocalDate.now().plusMonths(5).withDayOfMonth(4);
+        var registration = registrationService.register(event.id(), member.id(), day, true, null);
+        int size = fieldId("Shirtgröße");
+        int guests = fieldId("Begleitpersonen");
+        service.persistAnswers(registration.id(), service.resolveAnswers(event.id(), Map.of(size, "L", guests, "2")));
+
+        service.replaceFields(
+                event.id(),
+                List.of(
+                        new FieldEntry(
+                                "Begleitpersonen",
+                                EventFieldType.NUMBER,
+                                new EventRegistrationFieldConfig(false, "0", null, 0, 9, null, null, null, false),
+                                true),
+                        new FieldEntry(
+                                "Shirtgröße",
+                                EventFieldType.ENUM,
+                                new EventRegistrationFieldConfig(
+                                        true, "M", List.of("S", "M", "L", "XL"), null, null, null, null, null, false),
+                                true),
+                        new FieldEntry(
+                                "Verpflegung",
+                                EventFieldType.STRING,
+                                new EventRegistrationFieldConfig(
+                                        false, null, null, null, null, null, null, null, false),
+                                true)));
+
+        var carried = service.findValues(registration.id()).stream()
+                .collect(Collectors.toMap(RegistrationFieldValue::fieldId, RegistrationFieldValue::value));
+        assertEquals("L", carried.get(size), "the same question by the same name still holds its answer");
+        assertEquals("2", carried.get(guests));
+        assertEquals(size, fieldId("Shirtgröße"), "and it is still the same question");
+
+        service.replaceFields(
+                event.id(),
+                List.of(new FieldEntry(
+                        "Verpflegung",
+                        EventFieldType.STRING,
+                        new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, false),
+                        true)));
+        assertTrue(service.findValues(registration.id()).isEmpty(), "a question that is gone takes its answers");
+
+        registrationService.withdraw(registration.id());
         seedFields();
     }
 
