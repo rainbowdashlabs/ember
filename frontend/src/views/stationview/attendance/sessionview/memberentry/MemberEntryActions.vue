@@ -12,6 +12,7 @@ defineProps<{
   entry: AttendanceEntry
   sessionStart?: string
   sessionEnd?: string
+  spansDays?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -31,6 +32,7 @@ const emit = defineEmits<{
         :check-out="entry.checkOut"
         :session-end="sessionEnd"
         :session-start="sessionStart"
+        :spans-days="spansDays"
         @check-in="emit('checkIn', $event)"
         @check-out="emit('checkOut', $event)"
         @reset-times="emit('resetTimes')"

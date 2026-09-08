@@ -61,6 +61,8 @@ export interface AttendanceSession {
     unlockedUntil?: string | null
     /** When somebody closed the sheet by hand, null where nobody did. */
     lockedAt?: string | null
+    /** What a whole presence counts as when hours are added up, null where the times decide. */
+    countedMinutes?: number | null
 }
 
 export interface SessionRequest {
@@ -68,6 +70,7 @@ export interface SessionRequest {
     endTime?: string
     eventId?: number | null
     title?: string
+    countedMinutes?: number | null
 }
 
 export interface AttendanceSessionField {
@@ -315,6 +318,7 @@ export interface SessionMemberEntry {
     memberId: number
     name: string
     status: string
+    /** When the member arrived, with its day, since a sheet may run over several. */
     checkIn: string
     checkOut: string
     hours: number
@@ -324,10 +328,14 @@ export interface SessionData {
     sessionId: number
     title: string
     date: string
+    /** The day the sheet ends on, which is the day it starts on for all but a camp. */
+    endDate?: string | null
     startTime: string
     endTime: string
     expectedCount: number
     presentCount: number
+    /** What a whole presence was worth, null where the sheet's times decided. */
+    countedHours?: number | null
     entries: SessionMemberEntry[]
 }
 

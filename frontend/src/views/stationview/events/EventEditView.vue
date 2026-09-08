@@ -92,6 +92,10 @@ async function loadData() {
 
 const {running: saving, error: saveError, run: submit} = useAsyncAction(async () => {
   error.value = ''
+  if (form.endsBeforeItStarts.value) {
+    error.value = t('events.endBeforeStart')
+    return
+  }
 
   let savedEventId: number
   if (isEdit.value) {

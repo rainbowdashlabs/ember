@@ -121,7 +121,7 @@ public class DemoAttendanceSeeder implements DemoPerStationSeeder {
                 Instant start = date.atTime(17, 30).toInstant(ZoneOffset.UTC);
                 Instant end = date.atTime(19, 0).toInstant(ZoneOffset.UTC);
                 var sess = attendanceRepository.createSession(
-                        templateUebung.id(), start, end, evUebung.id(), "Übung KW" + weekOfYear);
+                        templateUebung.id(), start, end, evUebung.id(), "Übung KW" + weekOfYear, null);
                 if (!isToday) {
                     for (var m : teilnehmer) {
                         var status = rng.nextInt(10) < 8
@@ -151,7 +151,8 @@ public class DemoAttendanceSeeder implements DemoPerStationSeeder {
                         evGesamt.id(),
                         "Gesamtübung "
                                 + date.getMonth().getDisplayName(TextStyle.FULL, Locale.GERMAN)
-                                + " " + date.getYear());
+                                + " " + date.getYear(),
+                        null);
                 if (!isToday) {
                     for (var m : teilnehmer) {
                         var status = rng.nextInt(10) < 7

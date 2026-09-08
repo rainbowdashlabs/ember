@@ -86,7 +86,7 @@ class GdprExportServiceTest extends RepositoryTestBase {
         // Create attendance session + entry
         var template = attendanceRepo.createTemplate(stationId, "Test Template");
         var session = attendanceRepo.createSession(
-                template.id(), Instant.now().minus(1, ChronoUnit.HOURS), Instant.now(), null, "Test Session");
+                template.id(), Instant.now().minus(1, ChronoUnit.HOURS), Instant.now(), null, "Test Session", null);
         attendanceRepo.createEntry(
                 session.id(),
                 member.id(),

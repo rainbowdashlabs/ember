@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceReportPreset;
+import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -24,9 +25,9 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -50,6 +51,8 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class AttendanceReportService {
     private static final Logger log = getLogger(AttendanceReportService.class);
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private static final DateTimeFormatter SHEET_DAY_FMT = DateTimeFormatter.ofPattern("dd.MM.");
+    private static final DateTimeFormatter SHEET_TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private final AttendanceRepository attendanceRepository;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
@@ -172,18 +175,14 @@ public class AttendanceReportService {
                 String name = resolveMemberName(entry.memberId(), memberNames);
                 Instant checkIn = entry.shownCheckIn(session.startTime());
                 Instant checkOut = entry.shownCheckOut(session.endTime());
-                double hours = computeHours(entry, checkIn, checkOut, rounding);
+                double hours = computeHours(entry, checkIn, checkOut, rounding, session);
 
-                LocalDate sessionDate = session.startTime() != null
-                        ? session.startTime().atZone(zone).toLocalDate()
-                        : null;
                 entryDataList.add(new SessionMemberEntry(
                         entry.memberId(),
                         name,
                         entry.status(),
-                        sessionDate,
-                        checkIn != null ? checkIn.atZone(zone).toLocalTime() : null,
-                        checkOut != null ? checkOut.atZone(zone).toLocalTime() : null,
+                        checkIn != null ? LocalDateTime.ofInstant(checkIn, zone) : null,
+                        checkOut != null ? LocalDateTime.ofInstant(checkOut, zone) : null,
                         hours));
 
                 memberTotalHours.merge(entry.memberId(), hours, Double::sum);
@@ -213,12 +212,14 @@ public class AttendanceReportService {
                     session.startTime() != null
                             ? session.startTime().atZone(zone).toLocalDate()
                             : null,
+                    session.endTime() != null ? session.endTime().atZone(zone).toLocalDate() : null,
                     session.startTime() != null
                             ? session.startTime().atZone(zone).toLocalTime()
                             : null,
                     session.endTime() != null ? session.endTime().atZone(zone).toLocalTime() : null,
                     expectedCount,
                     presentCount,
+                    session.countedMinutes() != null ? session.countedMinutes() / 60.0 : null,
                     entryDataList);
             sessionDataList.add(sessionData);
             if (ym != null) {
@@ -326,25 +327,44 @@ public class AttendanceReportService {
 
     // -- Presets --
 
-    private double computeHours(AttendanceEntry entry, Instant checkIn, Instant checkOut, String rounding) {
+    /**
+     * What one entry adds to the hours, rounded the way the report was asked for.
+     *
+     * <p>How long the presence is worth is the sheet's to say: a sheet with a number of its own
+     * counts a whole presence as that number and a part of one as its share, and a sheet without
+     * counts the clock. The rounding comes afterwards either way, so the printed number is the one
+     * that was added up.
+     */
+    private double computeHours(
+            AttendanceEntry entry, Instant checkIn, Instant checkOut, String rounding, AttendanceSession session) {
         if (entry.status() != AttendanceEntry.AttendanceStatus.PRESENT || checkIn == null || checkOut == null) return 0;
-        double hours = Duration.between(checkIn, checkOut).toMinutes() / 60.0;
-        if (hours < 0) return 0;
+        double hours = session.countedHours(checkIn, checkOut);
         return switch (rounding) {
             case "ceil" -> Math.ceil(hours);
-            case "round" -> Math.round(hours * 2) / 2.0; // round to nearest 0.5
-            default -> Math.round(hours * 100) / 100.0; // exact, 2 decimal places
+            case "round" -> Math.round(hours * 2) / 2.0;
+            default -> Math.round(hours * 100) / 100.0;
         };
     }
 
+    /**
+     * One sheet as the report template reads it.
+     *
+     * <p>A sheet that runs into another day says so: its own line carries the second date, and every
+     * arrival and departure under it carries the day it happened on, since a time on its own would
+     * be two different moments at once. A sheet counted by hand says that too, so that a reader
+     * adding the column up can see why it does not follow the times printed beside it.
+     */
     private Map<String, Object> sessionToMap(SessionData s) {
+        boolean spansDays = s.endDate() != null && !s.endDate().equals(s.date());
         var m = new LinkedHashMap<String, Object>();
         m.put("title", s.title());
         m.put("expectedCount", s.expectedCount());
         m.put("presentCount", s.presentCount());
         m.put("date", s.date());
+        m.put("endDate", spansDays ? s.endDate() : "");
         m.put("startTime", s.startTime());
         m.put("endTime", s.endTime());
+        m.put("countedHours", s.countedHours() != null ? String.format("%.1f", s.countedHours()) : "");
         m.put(
                 "entries",
                 s.entries().stream()
@@ -352,13 +372,24 @@ public class AttendanceReportService {
                             var em = new LinkedHashMap<String, Object>();
                             em.put("name", e.name());
                             em.put("status", e.status());
-                            em.put("checkIn", e.checkIn());
-                            em.put("checkOut", e.checkOut());
+                            em.put("checkIn", momentInSheet(e.checkIn(), spansDays));
+                            em.put("checkOut", momentInSheet(e.checkOut(), spansDays));
                             em.put("hours", String.format("%.1f", e.hours()));
                             return em;
                         })
                         .toList());
         return m;
+    }
+
+    /**
+     * A moment as it is printed inside a sheet: a time, with the day in front of it where the sheet
+     * runs over more than one.
+     */
+    private String momentInSheet(LocalDateTime moment, boolean spansDays) {
+        if (moment == null) return "";
+        return spansDays
+                ? SHEET_DAY_FMT.format(moment) + " " + SHEET_TIME_FMT.format(moment)
+                : SHEET_TIME_FMT.format(moment);
     }
 
     private Map<String, Object> memberToMap(MemberSummary m) {
@@ -418,27 +449,35 @@ public class AttendanceReportService {
 
     /**
      * Data for a single attendance session including per-member entries.
+     *
+     * @param date         the day it starts on
+     * @param endDate      the day it ends on, which is the same day for all but a camp
+     * @param countedHours what a whole presence there was worth, null where its times decided
      */
     public record SessionData(
             int sessionId,
             String title,
             LocalDate date,
+            LocalDate endDate,
             LocalTime startTime,
             LocalTime endTime,
             int expectedCount,
             int presentCount,
+            Double countedHours,
             List<SessionMemberEntry> entries) {}
 
     /**
      * A member's attendance entry within a specific session.
+     *
+     * <p>The two moments carry their day, because a sheet that runs over a weekend cannot say when
+     * somebody arrived with a time alone.
      */
     public record SessionMemberEntry(
             int memberId,
             String name,
             AttendanceEntry.AttendanceStatus status,
-            LocalDate date,
-            LocalTime checkIn,
-            LocalTime checkOut,
+            LocalDateTime checkIn,
+            LocalDateTime checkOut,
             double hours) {}
 
     /**

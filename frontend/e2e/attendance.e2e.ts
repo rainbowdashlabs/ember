@@ -59,6 +59,25 @@ async function raiseSwapAwaitingHandover(page: Page, headers: Record<string, str
     throw new Error('no piece was free to raise a swap on')
 }
 
+/** A moment as a date and time field holds it, on the clock the browser is reading. */
+function asLocalInput(moment: Date): string {
+    const pad = (value: number) => String(value).padStart(2, '0')
+    return `${moment.getFullYear()}-${pad(moment.getMonth() + 1)}-${pad(moment.getDate())}`
+        + `T${pad(moment.getHours())}:${pad(moment.getMinutes())}`
+}
+
+/**
+ * Opens a sheet from the first template offered, answering the step that asks when it runs.
+ *
+ * <p>The step is prefilled with the current time and the length the template last ran for, so the
+ * ordinary evening is one further click and nothing has to be typed here.
+ */
+async function openSheetFromTemplate(page: Page) {
+    await page.getByRole('button', {name: 'Erstellen'}).first().click()
+    await page.getByTestId('new-session-create').click()
+    await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+}
+
 test.describe('Attendance', () => {
     /**
      * Recording who was there is the whole of attendance. The story opens a past session, marks
@@ -99,8 +118,7 @@ test.describe('Attendance', () => {
      */
     test('the sheet says what is outstanding for its members', async ({managerPage: page}) => {
         await page.goto('/station/attendance/new')
-        await page.getByRole('button', {name: 'Erstellen'}).first().click()
-        await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+        await openSheetFromTemplate(page)
         const sessionId = Number(page.url().match(/\/session\/(\d+)/)![1])
 
         const response = await page.request.get(`/api/v1/attendance/sessions/${sessionId}/member-notes`, {
@@ -229,8 +247,7 @@ test.describe('Attendance', () => {
         const headers = await apiHeaders(page)
 
         await page.goto('/station/attendance/new')
-        await page.getByRole('button', {name: 'Erstellen'}).first().click()
-        await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+        await openSheetFromTemplate(page)
         const sessionId = Number(page.url().match(/\/session\/(\d+)/)![1])
 
         // Whose swap it is has to be somebody the sheet lists, or the note is perfectly correct and
@@ -242,22 +259,22 @@ test.describe('Attendance', () => {
         const waiting = await raiseSwapAwaitingHandover(page, headers, onTheSheet)
         await page.reload()
 
-        // Scoped to the row of the member this swap was raised on. Reaching for the first handover
-        // button on the sheet would just as happily finish somebody else's swap, which is data
-        // another story is standing on.
+        // Scoped to the note of this very swap. The same member may be waiting on several, ours
+        // among them, and reaching for the first handover button would just as happily finish
+        // somebody else's, which is data another story is standing on.
         const handOver = page
             .getByTestId(`member-row-${waiting.memberId}`)
+            .locator(`[data-testid="note-swap"][data-swap="${waiting.id}"]`)
             .getByTestId('note-swap-hand-over')
-        await expect(handOver.first(), 'a swap of ours is waiting to be handed over').toBeVisible()
-        const before = await handOver.count()
+        await expect(handOver, 'our swap is waiting to be handed over').toBeVisible()
 
         const handed = page.waitForResponse(
             response => response.request().method() === 'PUT' && response.url().includes('/exchanges/'),
         )
-        await handOver.first().click()
+        await handOver.click()
         expect((await handed).status()).toBe(200)
 
-        await expect(handOver).toHaveCount(before - 1)
+        await expect(handOver).toHaveCount(0)
 
         const after = await page.request
             .get(`/api/v1/exchanges/${waiting.id}`, {headers})
@@ -290,8 +307,7 @@ test.describe('Attendance', () => {
         expect(claimed.ok(), `the member claims it for themselves (${await claimed.text()})`).toBeTruthy()
 
         await page.goto('/station/attendance/new')
-        await page.getByRole('button', {name: 'Erstellen'}).first().click()
-        await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+        await openSheetFromTemplate(page)
 
         // Scoped to the note naming the find this story reported. The demo leaves a claimed find of
         // its own that another spec is standing on, and signing that one over would take it away.
@@ -319,8 +335,7 @@ test.describe('Attendance', () => {
         const headers = await apiHeaders(page)
 
         await page.goto('/station/attendance/new')
-        await page.getByRole('button', {name: 'Erstellen'}).first().click()
-        await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+        await openSheetFromTemplate(page)
         const sessionId = Number(page.url().match(/\/session\/(\d+)/)![1])
 
         // Its own swap rather than the one the demo leaves: the story beside this one hands a swap
@@ -351,8 +366,7 @@ test.describe('Attendance', () => {
      */
     test('a closed attendance sheet refuses marking until it is opened again', async ({managerPage: page}) => {
         await page.goto('/station/attendance/new')
-        await page.getByRole('button', {name: 'Erstellen'}).first().click()
-        await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+        await openSheetFromTemplate(page)
         await expect(page.locator('button[aria-label="Anwesend"]').first()).toBeVisible()
 
         await page.getByTestId('session-actions-trigger').click()
@@ -376,8 +390,7 @@ test.describe('Attendance', () => {
     test('a session is opened from a template and lists its members', async ({managerPage: page}) => {
         await page.goto('/station/attendance/new')
 
-        await page.getByRole('button', {name: 'Erstellen'}).first().click()
-        await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+        await openSheetFromTemplate(page)
 
         await expect(page.locator('button[aria-label="Anwesend"]').first()).toBeVisible()
     })
@@ -389,8 +402,7 @@ test.describe('Attendance', () => {
     test('a session that was opened is found again among the past ones', async ({managerPage: page}) => {
         await page.goto('/station/attendance/new')
 
-        await page.getByRole('button', {name: 'Erstellen'}).first().click()
-        await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+        await openSheetFromTemplate(page)
         const sessionUrl = page.url()
         const id = sessionUrl.match(/\/session\/(\d+)/)?.[1]
 
@@ -403,6 +415,68 @@ test.describe('Attendance', () => {
 
         await entry.click()
         await expect(page).toHaveURL(sessionUrl)
+    })
+
+    /**
+     * A camp runs from a Friday evening to a Sunday afternoon and has no appointment behind it, and
+     * until the sheet was asked when it runs there was no way to write one down at all: a sheet made
+     * from a template began and ended at the moment it was made.
+     */
+    test('a sheet is opened over several days without an appointment', async ({managerPage: page}) => {
+        // Tomorrow rather than a fixed date: a sheet closes itself a week after its end, and a
+        // closed one shows no times to write.
+        const start = new Date(Date.now() + 86400000)
+        start.setHours(18, 0, 0, 0)
+        const end = new Date(start.getTime() + 44 * 3600000)
+
+        await page.goto('/station/attendance/new')
+        await page.getByRole('button', {name: 'Erstellen'}).first().click()
+
+        await page.getByTestId('new-session-title').fill(unique('Zeltlager'))
+        await page.getByTestId('new-session-start').fill(asLocalInput(start))
+        await page.getByTestId('new-session-end').fill(asLocalInput(end))
+        await page.getByTestId('new-session-create').click()
+        await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+
+        const sessionId = Number(page.url().match(/\/session\/(\d+)/)![1])
+        const sheet = await page.request
+            .get(`/api/v1/attendance/sessions/${sessionId}`, {headers: await apiHeaders(page)})
+            .then(r => r.json())
+
+        const spanHours =
+            (new Date(sheet.session.endTime).getTime() - new Date(sheet.session.startTime).getTime()) / 3_600_000
+        expect(spanHours).toBe(44)
+
+        // A sheet over several days writes a member's times with their day, since a time alone
+        // would name two moments and the one that was picked decides the hours.
+        await page.locator('button[aria-label="Anwesend"]:not([disabled])').first().click()
+        const memberMoments = page.locator('[data-testid^="member-row-"] input[type="datetime-local"]')
+        await expect(memberMoments.first()).toBeVisible()
+        expect(await memberMoments.first().inputValue()).toBe(asLocalInput(start))
+    })
+
+    /**
+     * The hours the report adds up are what a station pays against, and the clock is not always the
+     * number that is owed. The sheet keeps its times and says what a presence at it is worth.
+     */
+    test('what a sheet counts as is kept and reaches the report', async ({managerPage: page}) => {
+        await page.goto('/station/attendance/new')
+        await openSheetFromTemplate(page)
+        const sessionId = Number(page.url().match(/\/session\/(\d+)/)![1])
+
+        const counted = page.getByTestId('session-counted-hours')
+        await counted.fill('3')
+        await counted.blur()
+
+        await expect.poll(async () => {
+            const sheet = await page.request
+                .get(`/api/v1/attendance/sessions/${sessionId}`, {headers: await apiHeaders(page)})
+                .then(r => r.json())
+            return sheet.session.countedMinutes
+        }).toBe(180)
+
+        await page.reload()
+        await expect(page.getByTestId('session-counted-hours')).toHaveValue('3')
     })
 
     test('past sessions are listed', async ({managerPage: page}) => {

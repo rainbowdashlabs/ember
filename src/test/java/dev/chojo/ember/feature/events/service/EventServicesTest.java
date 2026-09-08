@@ -122,6 +122,57 @@ class EventServicesTest extends RepositoryTestBase {
         eventId = event.id();
     }
 
+    /**
+     * An appointment may run past midnight and over several days, so only the one order that cannot
+     * happen is refused. It reaches further than the appointment: a sheet takes its times from here.
+     */
+    @Test
+    @Order(10)
+    void anAppointmentThatEndsBeforeItStartsIsRefused() {
+        var start = Instant.now().plus(1, ChronoUnit.DAYS);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> crudService.create(
+                        station.id(),
+                        "Rückwärts",
+                        null,
+                        StationEvent.EventType.ONE_TIME,
+                        null,
+                        start,
+                        start.minus(1, ChronoUnit.HOURS),
+                        null,
+                        false,
+                        null,
+                        false,
+                        categoryId,
+                        null,
+                        null,
+                        null,
+                        null));
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> crudService.update(
+                        eventId,
+                        "Rückwärts",
+                        null,
+                        StationEvent.EventType.ONE_TIME,
+                        null,
+                        start,
+                        start.minus(1, ChronoUnit.HOURS),
+                        null,
+                        false,
+                        null,
+                        false,
+                        categoryId,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null));
+    }
+
     @Test
     @Order(11)
     void findById() {

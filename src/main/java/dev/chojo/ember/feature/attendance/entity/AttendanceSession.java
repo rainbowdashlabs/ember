@@ -9,6 +9,7 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
@@ -20,10 +21,12 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param startTime  scheduled start time of the session
  * @param endTime    scheduled end time of the session
  * @param createdAt  timestamp when the session was created
- * @param eventId       optional linked event identifier
- * @param title         display title of the session
- * @param unlockedUntil when a manager's reopening runs out, null where nobody reopened this sheet
- * @param lockedAt      when somebody closed this sheet by hand, null where nobody did
+ * @param eventId        optional linked event identifier
+ * @param title          display title of the session
+ * @param unlockedUntil  when a manager's reopening runs out, null where nobody reopened this sheet
+ * @param lockedAt       when somebody closed this sheet by hand, null where nobody did
+ * @param countedMinutes what a whole presence here is worth when hours are added up, null where the
+ *     sheet's own times decide
  */
 public record AttendanceSession(
         int id,
@@ -34,7 +37,8 @@ public record AttendanceSession(
         Integer eventId,
         String title,
         Instant unlockedUntil,
-        Instant lockedAt) {
+        Instant lockedAt,
+        Integer countedMinutes) {
 
     /**
      * Whether the sheet may still be written to at the given moment.
@@ -54,6 +58,41 @@ public record AttendanceSession(
     }
 
     /**
+     * What one member's presence from one moment to another is worth in hours.
+     *
+     * <p>The clock decides where the sheet says nothing else. Where it carries a number of its own,
+     * that number is what a whole presence is worth and a shorter one counts its share of it, so an
+     * evening of four hours counted as three gives three to whoever stayed and one and a half to
+     * whoever left halfway. Nobody counts more than the sheet is worth, which is what stops an
+     * arrival written before the sheet began from buying extra.
+     *
+     * @param from when the member arrived
+     * @param to   when the member left
+     * @return the hours this presence counts as, never negative
+     */
+    public double countedHours(Instant from, Instant to) {
+        double hours = Duration.between(from, to).toMinutes() / 60.0;
+        if (hours <= 0) return 0;
+        if (countedMinutes == null) return hours;
+        double span = Duration.between(startTime, endTime).toMinutes() / 60.0;
+        double share = span > 0 ? Math.min(1.0, hours / span) : 1.0;
+        return countedMinutes / 60.0 * share;
+    }
+
+    /**
+     * Whether this sheet runs into a second calendar day.
+     *
+     * <p>Where it does, a time on its own cannot be read: Friday 20:00 and Saturday 20:00 are the
+     * same four characters, and everything that shows or takes a time has to show its date as well.
+     *
+     * @param zone the station's timezone, which is where its days begin and end
+     * @return true where the sheet ends on a later day than it starts
+     */
+    public boolean spansDays(ZoneId zone) {
+        return !startTime.atZone(zone).toLocalDate().equals(endTime.atZone(zone).toLocalDate());
+    }
+
+    /**
      * Creates a row mapping for database result set conversion.
      */
     public static RowMapping<AttendanceSession> map() {
@@ -66,6 +105,7 @@ public record AttendanceSession(
                 row.getObject("event_id", Integer.class),
                 row.getString("title"),
                 row.get("unlocked_until", INSTANT_TIMESTAMP),
-                row.get("locked_at", INSTANT_TIMESTAMP));
+                row.get("locked_at", INSTANT_TIMESTAMP),
+                row.getObject("counted_minutes", Integer.class));
     }
 }

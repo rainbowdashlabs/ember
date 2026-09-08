@@ -551,7 +551,12 @@ public class AttendanceRoutes implements Routes {
         var request = ctx.bodyAsClass(SessionRequest.class);
         ctx.status(HttpStatus.CREATED)
                 .json(attendanceService.createSession(
-                        templateId, request.startTime(), request.endTime(), request.eventId(), request.title()));
+                        templateId,
+                        request.startTime(),
+                        request.endTime(),
+                        request.eventId(),
+                        request.title(),
+                        request.countedMinutes()));
     }
 
     @OpenApi(
@@ -654,7 +659,7 @@ public class AttendanceRoutes implements Routes {
         verifySessionOwnership(id, UserSession.from(ctx));
         var request = ctx.bodyAsClass(SessionRequest.class);
         attendanceService
-                .updateSession(id, request.startTime(), request.endTime(), request.title())
+                .updateSession(id, request.startTime(), request.endTime(), request.title(), request.countedMinutes())
                 .ifPresentOrElse(ctx::json, () -> {
                     throw new NotFoundResponse();
                 });
@@ -1296,8 +1301,12 @@ public class AttendanceRoutes implements Routes {
 
     /**
      * Request body for creating or updating an attendance session.
+     *
+     * @param countedMinutes what a whole presence at the sheet counts as when hours are added up,
+     *     null where the sheet's own times decide
      */
-    public record SessionRequest(Instant startTime, Instant endTime, Integer eventId, String title) {}
+    public record SessionRequest(
+            Instant startTime, Instant endTime, Integer eventId, String title, Integer countedMinutes) {}
 
     /**
      * Detailed session response including fields and attendance entries.

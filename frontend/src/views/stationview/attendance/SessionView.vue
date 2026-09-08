@@ -17,7 +17,7 @@ import type {
   TemplateGroupEntry,
 } from '@/api/attendance'
 import {StationPermission, type MemberGroup, type StationMember} from '@/api/types'
-import {attendance, exchanges, lostAndFound, memberGroups, stationMembers} from '@/api'
+import {attendance, events, exchanges, lostAndFound, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSessionMeta} from './sessionview/useSessionMeta'
 import {useCheckMode, type CheckRow} from './sessionview/useCheckMode'
@@ -25,6 +25,7 @@ import {useSessionFields} from './sessionview/useSessionFields'
 import SessionContent from './sessionview/SessionContent.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {saveBlob} from '@/util/downloadAuthed'
+import {localInputToInstant, timeOnDayOf} from '@/util/format'
 import {reportCaughtError} from '@/util/devErrorReporter'
 
 const {t} = useI18n()
@@ -66,7 +67,24 @@ const error = ref('')
 
 const selectedMemberId = ref('')
 
-const {setSessionStartTime, setSessionEndTime, setSessionTitle} = useSessionMeta(sessionId, session, error)
+const eventStartTime = ref<string | null>(null)
+const eventEndTime = ref<string | null>(null)
+
+/** Whether the sheet runs into another day, which is when every time it shows needs its date. */
+const spansDays = computed(() => {
+  const start = session.value?.startTime
+  const end = session.value?.endTime
+  if (!start || !end) return false
+  return new Date(start).toDateString() !== new Date(end).toDateString()
+})
+
+const {
+  setSessionStartTime,
+  setSessionEndTime,
+  setSessionTitle,
+  setCountedHours,
+  takeEventTimes,
+} = useSessionMeta(sessionId, session, error)
 /**
  * Every name on the sheet that is still open, in the order the sheet reads.
  *
@@ -163,6 +181,25 @@ async function loadTemplateContext(templateId: number) {
   groupMembers.value = await loadGroupMembers(tplFields)
 }
 
+/**
+ * When the appointment behind the sheet runs, so the sheet can offer its times back.
+ *
+ * <p>Only for the offer: the sheet's own times are what count from the moment it was made, and an
+ * appointment that moves afterwards leaves the sheet where it is.
+ */
+async function loadEventTimes(eventId: number | null) {
+  eventStartTime.value = null
+  eventEndTime.value = null
+  if (!eventId) return
+  try {
+    const event = await events.getEvent(eventId)
+    eventStartTime.value = event.startTime ?? null
+    eventEndTime.value = event.endTime ?? null
+  } catch (e) {
+    reportCaughtError(e, 'attendance sheet appointment times')
+  }
+}
+
 async function loadData() {
   loading.value = true
   error.value = ''
@@ -182,6 +219,7 @@ async function loadData() {
 
     if (session.value) {
       await loadTemplateContext(session.value.templateId)
+      await loadEventTimes(session.value.eventId ?? null)
     }
 
     initFieldValues(sessionFields.value)
@@ -235,15 +273,24 @@ async function setStatus(entryId: number, status: AttendanceStatus) {
   }
 }
 
+/**
+ * The moment a member's field stands for.
+ *
+ * <p>A sheet over several days is written whole, day and time together. A sheet over one day is
+ * written as a time alone, and that time belongs to the day the sheet runs on: reading it onto today
+ * is what once moved an arrival written on an older sheet forward by however long ago it was, and
+ * every hour counted from it with it.
+ */
+function momentOnSheet(value: string): string {
+  if (!value) return ''
+  return value.includes('T') ? localInputToInstant(value) : timeOnDayOf(session.value?.startTime, value)
+}
+
 async function setCheckIn(entryId: number, time: string) {
   error.value = ''
   try {
-    if (time) {
-      const [h, m] = time.split(':')
-      const d = new Date()
-      d.setHours(Number(h), Number(m), 0, 0)
-      await attendance.checkIn(entryId, {time: d.toISOString()})
-    }
+    const moment = momentOnSheet(time)
+    if (moment) await attendance.checkIn(entryId, {time: moment})
     const detail = await attendance.getSession(sessionId.value)
     entries.value = detail.entries ?? []
   } catch {
@@ -254,12 +301,8 @@ async function setCheckIn(entryId: number, time: string) {
 async function setCheckOut(entryId: number, time: string) {
   error.value = ''
   try {
-    if (time) {
-      const [h, m] = time.split(':')
-      const d = new Date()
-      d.setHours(Number(h), Number(m), 0, 0)
-      await attendance.checkOut(entryId, {time: d.toISOString()})
-    }
+    const moment = momentOnSheet(time)
+    if (moment) await attendance.checkOut(entryId, {time: moment})
     const detail = await attendance.getSession(sessionId.value)
     entries.value = detail.entries ?? []
   } catch {
@@ -417,6 +460,9 @@ watch(loaded, (isLoaded) => {
         :all-members="allMembers"
         :entries="entries"
         :member-sections="memberSections"
+        :event-start-time="eventStartTime"
+        :event-end-time="eventEndTime"
+        :spans-days="spansDays"
         @back="goBack"
         @export="exportPdf"
         @sync="syncFromEvent"
@@ -425,6 +471,8 @@ watch(loaded, (isLoaded) => {
         @update-title="setSessionTitle"
         @update-start-time="setSessionStartTime"
         @update-end-time="setSessionEndTime"
+        @update-counted-hours="setCountedHours"
+        @take-event-times="takeEventTimes"
         @check-set-status="checkSetStatus"
         @skip-check="skipCheck"
         @end-check-mode="checkMode = false"

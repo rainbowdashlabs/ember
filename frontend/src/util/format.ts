@@ -203,6 +203,36 @@ export function instantToLocalInput(iso?: string | null): string {
 }
 
 /**
+ * The moment a `datetime-local` field holds, as a stored instant. Returns an empty string when the
+ * field holds nothing or something no clock could read.
+ *
+ * <p>The inverse of {@link instantToLocalInput}: what stands in the field is the reader's own clock,
+ * so it is read as local time and only then turned into the moment that is stored.
+ */
+export function localInputToInstant(value?: string | null): string {
+    if (!value) return ''
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return ''
+    return parsed.toISOString()
+}
+
+/**
+ * A time of day, `HH:mm`, placed on the day another moment falls on, as a stored instant.
+ *
+ * <p>This is how a time typed beside a member reaches the sheet it belongs to. Reading it onto
+ * today instead is what once moved an arrival written on last week's sheet a week forward, and made
+ * every hour counted from it wrong.
+ */
+export function timeOnDayOf(day: string | null | undefined, time: string): string {
+    if (!time) return ''
+    const base = day ? new Date(day) : new Date()
+    if (Number.isNaN(base.getTime())) return ''
+    const moment = new Date(`${toIsoDate(base)}T${time}`)
+    if (Number.isNaN(moment.getTime())) return ''
+    return moment.toISOString()
+}
+
+/**
  * Formats a byte count as a compact human-readable size (`B`, `KB`, `MB`), using one decimal
  * place for the kilobyte and megabyte ranges.
  */

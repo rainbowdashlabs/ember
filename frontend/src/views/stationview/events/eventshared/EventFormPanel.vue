@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -14,6 +15,7 @@ import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import type {RestrictionSelection} from '@/components/input/restriction'
 import EventFieldList from './EventFieldList.vue'
@@ -60,6 +62,16 @@ const registrationCloseDays = defineModel<number>('registrationCloseDays')
 
 const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
 const viewRestriction = defineModel<RestrictionSelection>('viewRestriction', {required: true})
+
+/**
+ * Whether the appointment finishes before it begins.
+ *
+ * <p>An appointment may run past midnight and over several days, so only the one order that cannot
+ * happen is called out. It reaches further than the appointment itself: an attendance sheet takes
+ * its times from here.
+ */
+const endsBeforeItStarts = computed(() =>
+    !!startTime.value && !!endTime.value && new Date(endTime.value) < new Date(startTime.value))
 
 const {t} = useI18n()
 </script>
@@ -143,7 +155,10 @@ const {t} = useI18n()
         </div>
         <div class="space-y-1">
           <FieldLabel>{{ t('events.endTime') }}</FieldLabel>
-          <DateTimeInput v-model="endTime"/>
+          <DateTimeInput v-model="endTime" :min="startTime"/>
+          <FieldHint v-if="endsBeforeItStarts" data-testid="event-end-before-start" class="text-error">
+            {{ t('events.endBeforeStart') }}
+          </FieldHint>
         </div>
       </div>
     </template>

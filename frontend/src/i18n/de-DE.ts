@@ -2495,6 +2495,7 @@ export default {
         repeatCountLabel: 'Läuft {count} Mal',
         startTime: 'Beginn',
         endTime: 'Ende',
+        endBeforeStart: 'Das Ende darf nicht vor dem Beginn liegen.',
         template: 'Anwesenheitsvorlage',
         noTemplate: 'Keine Vorlage',
         templateHint: 'Verknüpft diesen Termin mit einer Anwesenheitsvorlage für schnellen Zugriff.',
@@ -2605,6 +2606,11 @@ export default {
         title: 'Titel',
         startTime: 'Beginn',
         endTime: 'Ende',
+        countedHours: 'Gewertete Stunden',
+        countedHoursPlaceholder: 'Nach Zeiten',
+        countedHoursHint: 'Leer lassen, damit Beginn und Ende die Stunden bestimmen.',
+        eventTimes: 'Der Termin läuft von {start} bis {end}.',
+        takeEventTimes: 'Zeiten des Termins übernehmen',
         fields: 'Felder',
         otherMembers: 'Weitere Mitglieder',
         noEntry: 'Kein Eintrag',
@@ -2641,6 +2647,7 @@ export default {
         hours: 'Stunden',
         from: 'Von',
         to: 'Bis',
+        countedAs: 'Gewertet als {hours} Std.',
     },
     attendanceNew: {
         todayEvents: 'Heutige Termine',
@@ -2649,6 +2656,9 @@ export default {
         template: 'Vorlage',
         create: 'Erstellen',
         creating: 'Anwesenheit wird erstellt...',
+        modalTitle: 'Zeitraum der Erfassung',
+        modalHint: 'Beginn und Ende bestimmen die Stunden, die gezählt werden. '
+            + 'Ein Zeltlager darf über mehrere Tage laufen.',
     },
     membersConfig: {
         tabMember: 'Mitglieder',

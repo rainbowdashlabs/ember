@@ -1,5 +1,29 @@
 # Changelog
 
+## v26.14.2
+
+### New Features
+
+- **An attendance sheet can say what being there is worth.** Where hours stand in for something that is paid, the clock is not always the number that is owed, so a sheet takes a figure of its own: a weekend that runs from Friday evening to Sunday afternoon counts as sixteen hours rather than forty-six. The times on the sheet stay what they were, and somebody who was there for part of it counts their share.
+- **A sheet can be recorded over several days.** Choosing a template now asks when the sheet runs, with both ends carrying their date and prefilled from the current time and the length that template last ran for. A camp or a weekend duty can be written down without an appointment behind it, which was not possible before.
+
+### Improvements
+
+- **The times of a sheet belong to the sheet.** Beginning and end can be corrected on any sheet, including one an appointment opened, and where they no longer match the appointment its own times are shown beside them and can be taken back with one click. Until now a sheet made from an appointment could not be moved by so much as a minute.
+- **A sheet over several days shows the day beside every time.** Arrival and departure, in the sheet, in its exported document and in the report, carry the day they happened on, and the report names both days of the sheet.
+- **An appointment cannot end before it begins.** The editor says so beside the end, and an appointment sent that way is refused. Running past midnight or over several days is still allowed, because that is what a camp is.
+
+### Changes
+
+- **An instance asks about a new release once an hour.** It used to ask every six hours, so a release could sit unnoticed for most of a day. One request an hour is far below what the interface allows an instance that identifies itself to nobody, and `updates.checkIntervalHours` still sets any span between an hour and a week.
+
+### Fixes
+
+- **An arrival written on an older sheet landed on today.** Typing when somebody came or went on a sheet from an earlier day put that moment on the current date, so the hours counted from it came out as nothing at all or as several days. The time now belongs to the day its sheet runs on.
+- **Correcting the beginning or end of an older sheet moved the sheet itself.** The corrected time was placed on the current day, which carried the whole sheet with it and could move it into another month of the report. Both ends are now written with their date and stay where they are.
+- **A sheet opened from a repeating appointment carried the wrong date.** It took the appointment's stored date, which is the day somebody first set the series up, so the sheet was opened for an evening long past and counted in that month of the report. A sheet now runs on the day it is opened for, keeping the appointment's time of day and its length.
+- **A sheet opened from a template had no length.** It began and ended at the moment it was opened, so everybody on it counted zero hours unless each of their times was written down by hand. The sheet is now asked when it runs.
+
 ## v26.14.1
 
 ### New Features

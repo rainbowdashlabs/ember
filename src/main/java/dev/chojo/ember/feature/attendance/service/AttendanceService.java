@@ -43,6 +43,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -61,6 +62,12 @@ public class AttendanceService {
     private static final ObjectMapper JSON = JsonMapper.builder().build();
     /** Reads a value only when it is JSON all the way to its end, so a date is not read as a number. */
     private static final ObjectReader STRICT_JSON = JSON.reader().with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
+    /** How long a sheet runs where nothing and nobody says otherwise. */
+    private static final Duration DEFAULT_SESSION_LENGTH = Duration.ofHours(2);
+    /** The longest span a sheet may cover, which is longer than any camp and shorter than a typo. */
+    private static final Duration MAX_SESSION_LENGTH = Duration.ofDays(31);
+    /** The most a sheet may count as, read the same way as the longest span it may cover. */
+    private static final int MAX_COUNTED_MINUTES = (int) MAX_SESSION_LENGTH.toMinutes();
 
     private final AttendanceRepository attendanceRepository;
     private final EventRepository eventRepository;
@@ -231,9 +238,27 @@ public class AttendanceService {
         return attendanceRepository.findEntryById(id);
     }
 
+    /**
+     * Opens a sheet, or hands back the one an appointment already has.
+     *
+     * <p>What the caller sends decides the time frame. Where it sends none, an appointment's own
+     * times stand in, and where there is no appointment either the sheet begins now and runs for
+     * {@link #DEFAULT_SESSION_LENGTH}. A sheet of no length was the older answer, and it counted
+     * everybody who was there for nothing.
+     *
+     * @param templateId     the sheet's template
+     * @param startTime      when it begins, null to let the appointment or the clock decide
+     * @param endTime        when it ends, null for the same reason
+     * @param eventId        the appointment behind it, null where it stands on its own
+     * @param title          what it is called, null to take the appointment's or the template's name
+     * @param countedMinutes what a whole presence counts as, null to let the times decide
+     * @return the sheet
+     * @throws BadRequestResponse where the span or the counted minutes cannot be used
+     */
     public AttendanceSession createSession(
-            int templateId, Instant startTime, Instant endTime, Integer eventId, String title) {
-        // Reuse existing session for this event
+            int templateId, Instant startTime, Instant endTime, Integer eventId, String title, Integer countedMinutes) {
+        requireUsableSpan(startTime, endTime);
+        requireUsableCountedMinutes(countedMinutes);
         if (eventId != null) {
             var existing = attendanceRepository.findSessionByEventId(eventId);
             if (existing.isPresent()) {
@@ -251,11 +276,12 @@ public class AttendanceService {
                 if (resolvedTitle == null || resolvedTitle.isBlank()) {
                     resolvedTitle = event.name();
                 }
-                if (resolvedStart == null && event.startTime() != null) {
-                    resolvedStart = event.startTime();
-                }
-                if (resolvedEnd == null && event.endTime() != null) {
-                    resolvedEnd = event.endTime();
+                if (resolvedStart == null || resolvedEnd == null) {
+                    var span = event.occurrenceOn(LocalDate.now(ZoneOffset.UTC));
+                    if (span.isPresent()) {
+                        if (resolvedStart == null) resolvedStart = span.get().start();
+                        if (resolvedEnd == null) resolvedEnd = span.get().end();
+                    }
                 }
             }
         }
@@ -264,12 +290,13 @@ public class AttendanceService {
             if (template.isPresent()) resolvedTitle = template.get().name();
         }
 
-        // Fall back to current time when no times could be resolved
         if (resolvedStart == null) resolvedStart = Instant.now();
-        if (resolvedEnd == null) resolvedEnd = Instant.now();
+        if (resolvedEnd == null || !resolvedEnd.isAfter(resolvedStart)) {
+            resolvedEnd = resolvedStart.plus(DEFAULT_SESSION_LENGTH);
+        }
 
-        var session =
-                attendanceRepository.createSession(templateId, resolvedStart, resolvedEnd, eventId, resolvedTitle);
+        var session = attendanceRepository.createSession(
+                templateId, resolvedStart, resolvedEnd, eventId, resolvedTitle, countedMinutes);
         log.info("Created attendance session {} for template {} (event {})", session.id(), templateId, eventId);
         // Auto-populate field defaults from template field config
         var templateFields = attendanceRepository.findTemplateFields(templateId);
@@ -421,13 +448,68 @@ public class AttendanceService {
         }
     }
 
-    public Optional<AttendanceSession> updateSession(int id, Instant startTime, Instant endTime, String title) {
-        if (attendanceRepository.updateSession(id, startTime, endTime, title)) {
+    /**
+     * Writes a sheet's own time frame, its title and what it counts as.
+     *
+     * <p>The times are the sheet's own from the moment it is made: an appointment hands its times
+     * down once, and correcting them afterwards is nobody's business but the sheet's.
+     *
+     * @param id             the sheet
+     * @param startTime      when it begins
+     * @param endTime        when it ends, which may be on another day
+     * @param title          what it is called
+     * @param countedMinutes what a whole presence counts as, null to let the times decide
+     * @return the sheet as it now stands, empty where there is none
+     * @throws BadRequestResponse where the span or the counted minutes cannot be used
+     */
+    public Optional<AttendanceSession> updateSession(
+            int id, Instant startTime, Instant endTime, String title, Integer countedMinutes) {
+        requireUsableSpan(startTime, endTime);
+        requireUsableCountedMinutes(countedMinutes);
+        if (attendanceRepository.updateSession(id, startTime, endTime, title, countedMinutes)) {
             log.info("Updated attendance session {}", id);
             return attendanceRepository.findSessionById(id);
         }
         log.warn("Cannot update attendance session: session {} not found", id);
         return Optional.empty();
+    }
+
+    /**
+     * Refuses a time frame nothing could have happened in.
+     *
+     * <p>A sheet may run over several days, which is what a camp is, so only the two ends that make
+     * no sense are refused: one that finishes before it starts, and one so long that it is a typed
+     * year rather than an occasion.
+     *
+     * @param startTime when the sheet begins, null where the caller left it to us
+     * @param endTime   when it ends, read the same way
+     * @throws BadRequestResponse naming what is wrong with the span
+     */
+    private void requireUsableSpan(Instant startTime, Instant endTime) {
+        if (startTime == null || endTime == null) return;
+        if (!endTime.isAfter(startTime)) {
+            throw new BadRequestResponse("The sheet has to end after it starts");
+        }
+        if (Duration.between(startTime, endTime).compareTo(MAX_SESSION_LENGTH) > 0) {
+            throw new BadRequestResponse("The sheet may not run longer than " + MAX_SESSION_LENGTH.toDays() + " days");
+        }
+    }
+
+    /**
+     * Refuses a number of counted minutes that could not be worth anybody's presence.
+     *
+     * @param countedMinutes what a whole presence counts as, null where the times decide
+     * @throws BadRequestResponse naming what is wrong with the number
+     */
+    private void requireUsableCountedMinutes(Integer countedMinutes) {
+        if (countedMinutes == null) return;
+        if (countedMinutes < 0) {
+            throw new BadRequestResponse("The hours a sheet counts as cannot be negative");
+        }
+        if (countedMinutes > MAX_COUNTED_MINUTES) {
+            throw new BadRequestResponse(
+                    "The hours a sheet counts as may not exceed " + MAX_COUNTED_MINUTES / 60 + " hours");
+        }
     }
 
     public boolean deleteSession(int id) {

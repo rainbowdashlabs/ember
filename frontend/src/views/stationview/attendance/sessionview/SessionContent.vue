@@ -54,6 +54,11 @@ defineProps<{
   allMembers: StationMember[]
   entries: AttendanceEntry[]
   memberSections: MemberSection[]
+  /** When the appointment behind the sheet runs, absent where the sheet stands on its own. */
+  eventStartTime: string | null
+  eventEndTime: string | null
+  /** Whether the sheet runs into another day, which is when a time needs its date beside it. */
+  spansDays: boolean
 }>()
 
 const emit = defineEmits<{
@@ -65,6 +70,8 @@ const emit = defineEmits<{
   updateTitle: [value: string]
   updateStartTime: [value: string]
   updateEndTime: [value: string]
+  updateCountedHours: [hours: number | null]
+  takeEventTimes: [startTime: string, endTime: string]
   checkSetStatus: [status: AttendanceStatus]
   skipCheck: []
   endCheckMode: []
@@ -110,9 +117,13 @@ const emit = defineEmits<{
       <SessionHeader
           :session="session"
           :readonly="!canEdit"
+          :event-start-time="eventStartTime"
+          :event-end-time="eventEndTime"
           @update-title="emit('updateTitle', $event)"
           @update-start-time="emit('updateStartTime', $event)"
           @update-end-time="emit('updateEndTime', $event)"
+          @update-counted-hours="emit('updateCountedHours', $event)"
+          @take-event-times="(start, end) => emit('takeEventTimes', start, end)"
       />
 
       <CheckModePanel
@@ -153,6 +164,7 @@ const emit = defineEmits<{
             :readonly="!canEdit"
             :session-end="session.endTime"
             :session-start="session.startTime"
+            :spans-days="spansDays"
             :member-notes="memberNotes"
             :can-move-swap="canMoveSwap"
             :can-sign-off-found="canSignOffFound"

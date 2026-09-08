@@ -373,7 +373,8 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 Instant.now().minus(7, ChronoUnit.DAYS),
                 Instant.now().minus(7, ChronoUnit.DAYS),
                 null,
-                "Davor");
+                "Davor",
+                null);
         attendanceRepo.createEntry(
                 before.id(),
                 member.id(),
@@ -387,7 +388,12 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 "an evening before the trial belongs to no trial");
 
         var evening = attendanceRepo.createSession(
-                template.id(), Instant.now().plusSeconds(3600), Instant.now().plusSeconds(7200), null, "Probeabend");
+                template.id(),
+                Instant.now().plusSeconds(3600),
+                Instant.now().plusSeconds(7200),
+                null,
+                "Probeabend",
+                null);
         attendanceRepo.createEntry(
                 evening.id(),
                 member.id(),

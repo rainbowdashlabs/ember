@@ -42,6 +42,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceReport.presetsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.attendanceReport.countedTitle')">
+      <p>{{ t('helpCenter.attendanceReport.countedText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.attendanceReport.previewTitle')">
       <p>{{ t('helpCenter.attendanceReport.previewText') }}</p>
       <p>{{ t('helpCenter.attendanceReport.previewSave') }}</p>

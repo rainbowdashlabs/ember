@@ -49,6 +49,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class AttendanceExportService {
     private static final Logger log = getLogger(AttendanceExportService.class);
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter DAY_FMT = DateTimeFormatter.ofPattern("dd.MM.");
     private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private final AttendanceRepository attendanceRepository;
     private final AccountRepository accountRepository;
@@ -118,6 +119,9 @@ public class AttendanceExportService {
         data.put("title", session.title() != null ? session.title() : "Anwesenheit");
         data.put("startTime", formatDateTime(session.startTime(), zone));
         data.put("endTime", formatDateTime(session.endTime(), zone));
+        data.put(
+                "countedHours",
+                session.countedMinutes() != null ? String.format("%.1f", session.countedMinutes() / 60.0) : "");
 
         // Build field name→value map (skip member/attendance fields)
         var fieldMap = new LinkedHashMap<Integer, String>();
@@ -189,14 +193,21 @@ public class AttendanceExportService {
         return data;
     }
 
+    /**
+     * One member's line on the exported sheet.
+     *
+     * <p>A sheet that runs over more than one day prints the day beside each moment, since a time
+     * alone would name two of them.
+     */
     private Map<String, String> buildEntryMap(AttendanceEntry entry, AttendanceSession session, ZoneId zone) {
         var map = new LinkedHashMap<String, String>();
         map.put("name", resolveMemberName(entry.memberId()));
         map.put("status", entry.status().name());
         Instant checkIn = entry.shownCheckIn(session.startTime());
         Instant checkOut = entry.shownCheckOut(session.endTime());
-        map.put("checkIn", checkIn != null ? formatTime(checkIn, zone) : "");
-        map.put("checkOut", checkOut != null ? formatTime(checkOut, zone) : "");
+        boolean spansDays = session.spansDays(zone);
+        map.put("checkIn", checkIn != null ? formatMoment(checkIn, zone, spansDays) : "");
+        map.put("checkOut", checkOut != null ? formatMoment(checkOut, zone, spansDays) : "");
         return map;
     }
 
@@ -232,8 +243,9 @@ public class AttendanceExportService {
         return val;
     }
 
-    private String formatTime(Instant instant, ZoneId zone) {
-        return TIME_FMT.format(instant.atZone(zone));
+    private String formatMoment(Instant instant, ZoneId zone, boolean withDay) {
+        var moment = instant.atZone(zone);
+        return withDay ? DAY_FMT.format(moment) + " " + TIME_FMT.format(moment) : TIME_FMT.format(moment);
     }
 
     private String formatDateTime(Instant instant, ZoneId zone) {
