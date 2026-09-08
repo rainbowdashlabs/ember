@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlocker;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.question.QuestionCheck;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
@@ -708,6 +709,7 @@ public class InventoryService {
             return Optional.empty();
         }
         requireArtOfInventory(before.inventoryId(), artId);
+        requireAnswerable(asItWillBe(before, artId, metadata), metadata);
         InventoryItemMetadata kept = keepUndescribedValues(before, artId, metadata);
         if (inventoryRepository.updateItem(id, internalId, name, sizeId, artId, kept)) {
             log.info(
@@ -732,20 +734,40 @@ public class InventoryService {
      * the change is therefore kept exactly as it was, and what arrives from the form wins for every
      * key that is described.
      */
-    private InventoryItemMetadata keepUndescribedValues(
-            InventoryItem before, Integer artId, InventoryItemMetadata incoming) {
-        InventoryItemMetadata arriving = incoming != null ? incoming : InventoryItemMetadata.empty();
-        Map<String, ItemFieldValues.FieldValue> existing =
-                before.metadata().fields().values();
-        if (existing.isEmpty()) return arriving;
-        InventoryItem after = new InventoryItem(
+    /**
+     * Refuses a value the field describing it does not take.
+     *
+     * <p>What a piece holds has been typed all along, so a date here was always a date. What nothing
+     * measured is whether a choice is one of the ones written down and whether a measurement sits
+     * between the bounds printed beside it, and both were saved happily.
+     *
+     * @throws BadRequestResponse naming the field and what is wrong with the value
+     */
+    private void requireAnswerable(InventoryItem item, InventoryItemMetadata metadata) {
+        if (metadata == null || metadata.fields().values().isEmpty()) return;
+        var described = fieldService.resolveForItem(item).stream()
+                .collect(Collectors.toMap(InventoryFieldDefinition::key, definition -> definition));
+        for (var written : metadata.fields().values().entrySet()) {
+            var definition = described.get(written.getKey());
+            if (definition == null) continue;
+            QuestionCheck.answerIfGiven(
+                            definition.question(), written.getValue().asText())
+                    .ifPresent(problem -> {
+                        throw new BadRequestResponse(problem.message());
+                    });
+        }
+    }
+
+    /** The piece as it will be described once this change lands, which is what its fields follow. */
+    private InventoryItem asItWillBe(InventoryItem before, Integer artId, InventoryItemMetadata metadata) {
+        return new InventoryItem(
                 before.id(),
                 before.inventoryId(),
                 before.internalId(),
                 before.name(),
                 before.sizeId(),
                 artId,
-                arriving,
+                metadata != null ? metadata : InventoryItemMetadata.empty(),
                 before.assignedTo(),
                 before.lostAt(),
                 before.lostNote(),
@@ -759,6 +781,15 @@ public class InventoryService {
                 before.custodyPartnerStationId(),
                 before.custodyMovementId(),
                 before.containerId());
+    }
+
+    private InventoryItemMetadata keepUndescribedValues(
+            InventoryItem before, Integer artId, InventoryItemMetadata incoming) {
+        InventoryItemMetadata arriving = incoming != null ? incoming : InventoryItemMetadata.empty();
+        Map<String, ItemFieldValues.FieldValue> existing =
+                before.metadata().fields().values();
+        if (existing.isEmpty()) return arriving;
+        InventoryItem after = asItWillBe(before, artId, arriving);
         Set<String> described = fieldService.resolveForItem(after).stream()
                 .map(InventoryFieldDefinition::key)
                 .collect(Collectors.toSet());

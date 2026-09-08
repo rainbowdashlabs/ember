@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
@@ -215,6 +216,7 @@ public class ProfileFieldService {
             int position,
             ProfileFieldScope scope) {
         requireSingleBirthDate(stationId, fieldType, scope, 0);
+        requireUsableDefault(name, fieldType, config);
         var field = profileFieldRepository.create(stationId, name, fieldType, config, position, scope);
         log.info(
                 "Profile field created: id={}, station={}, name='{}', type={}, scope={}",
@@ -238,6 +240,7 @@ public class ProfileFieldService {
             log.warn("Profile field update affected no rows: id={}", id);
             return Optional.empty();
         }
+        requireUsableDefault(name, fieldType, config);
         requireSingleBirthDate(
                 existing.get().stationId(), fieldType, existing.get().scope(), id);
         if (profileFieldRepository.update(id, name, fieldType, config, position, keepOnArchive)) {
@@ -421,12 +424,12 @@ public class ProfileFieldService {
             }
 
             String oldValue = oldStation.getOrDefault(entry.fieldId(), "null");
-            profileFieldRepository.setValue(memberId, entry.fieldId(), Json.document(entry.value()));
+            if (Objects.equals(oldValue, newValue)) continue;
 
-            if (!Objects.equals(oldValue, newValue)) {
-                recordChange(entry.fieldId(), memberId, oldValue, newValue, changedBy);
-                profileFieldRepository.findById(entry.fieldId()).ifPresent(f -> changedFieldNames.add(f.name()));
-            }
+            requireAnswerable(entry.fieldId(), entry.value());
+            profileFieldRepository.setValue(memberId, entry.fieldId(), Json.document(entry.value()));
+            recordChange(entry.fieldId(), memberId, oldValue, newValue, changedBy);
+            profileFieldRepository.findById(entry.fieldId()).ifPresent(f -> changedFieldNames.add(f.name()));
         }
 
         if (!changedFieldNames.isEmpty()) {
@@ -439,6 +442,40 @@ public class ProfileFieldService {
         }
 
         return findValues(memberId);
+    }
+
+    /**
+     * Refuses a field set up to start from a value it would then refuse as an answer.
+     *
+     * @throws BadRequestResponse naming the field and what is wrong with its starting value
+     */
+    private void requireUsableDefault(String name, ProfileFieldType fieldType, ProfileFieldConfig config) {
+        new ProfileField(0, 0, name, fieldType, config, 0, ProfileFieldScope.MEMBER, false)
+                .question()
+                .flatMap(QuestionCheck::defaultValue)
+                .ifPresent(problem -> {
+                    throw new BadRequestResponse(problem.message());
+                });
+    }
+
+    /**
+     * Refuses an answer the field does not take.
+     *
+     * <p>Only what a save actually changes is measured. An answer stored before anything checked
+     * these is left where it is: a member correcting their address must not be turned away over a
+     * date somebody typed wrongly into another field years ago, and rewriting it for them would be
+     * inventing an answer nobody gave.
+     *
+     * @throws BadRequestResponse naming the field and what is wrong with the answer
+     */
+    private void requireAnswerable(int fieldId, String value) {
+        profileFieldRepository
+                .findById(fieldId)
+                .flatMap(ProfileField::question)
+                .flatMap(question -> QuestionCheck.answerIfGiven(question, value))
+                .ifPresent(problem -> {
+                    throw new BadRequestResponse(problem.message());
+                });
     }
 
     /**

@@ -5,14 +5,16 @@
  */
 <script setup lang="ts">
 import {computed} from 'vue'
-import {useI18n} from 'vue-i18n'
-import TextInput from '@/components/input/text/TextInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
-import DateInput from '@/components/input/datetime/DateInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
+import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
 import type {WaitingListField} from '@/api/waitingList'
+import {QuestionKinds, questionKindOf} from '@/util/questions'
 
+/**
+ * One question of a waiting list, on the page a family fills in without signing in.
+ *
+ * <p>The box is the one every other screen uses. This carries the label and hands the answer back,
+ * because the public page keeps its own form state.
+ */
 const props = defineProps<{
   field: WaitingListField
   value: string
@@ -22,21 +24,18 @@ const emit = defineEmits<{
   (e: 'update', value: string): void
 }>()
 
-const {t} = useI18n()
-
-const enumOptions = computed<string[]>(() => props.field.config?.options ?? [])
+const kind = computed(() => questionKindOf(props.field.fieldType) ?? QuestionKinds.TEXT)
 </script>
 
 <template>
   <div class="space-y-1">
     <FormLabel>{{ field.name }}{{ field.required ? ' *' : '' }}</FormLabel>
-    <TextInput v-if="field.fieldType === 'TEXT'" :model-value="value" @update:model-value="emit('update', $event ?? '')"/>
-    <NumberInput v-else-if="field.fieldType === 'NUMBER'" :model-value="Number(value) || 0" @update:model-value="emit('update', String($event))"/>
-    <DateInput v-else-if="field.fieldType === 'DATE'" :model-value="value" @update:model-value="emit('update', $event ?? '')"/>
-    <ToggleInput v-else-if="field.fieldType === 'BOOLEAN'" :model-value="value === 'true'" @update:model-value="emit('update', String($event))"/>
-    <SelectInput v-else-if="field.fieldType === 'ENUM'" :model-value="value" @update:model-value="emit('update', String($event ?? ''))">
-      <option value="">{{ t('waitingList.selectOption') }}</option>
-      <option v-for="opt in enumOptions" :key="opt" :value="opt">{{ opt }}</option>
-    </SelectInput>
+    <QuestionValueInput
+        :kind="kind"
+        :model-value="value"
+        :options="field.config?.options ?? []"
+        :required="field.required"
+        @update:model-value="emit('update', $event)"
+    />
   </div>
 </template>

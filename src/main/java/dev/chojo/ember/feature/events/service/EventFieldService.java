@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.EventField;
-import dev.chojo.ember.feature.events.entity.MemberFieldValue;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -16,6 +15,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.question.QuestionValues;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
 import io.javalin.http.ForbiddenResponse;
@@ -77,7 +77,7 @@ public class EventFieldService {
     public String displayValue(EventField field) {
         if (field == null || field.value() == null) return "";
         if (!field.fieldType().isMemberField()) return field.value().trim();
-        var ids = MemberFieldValue.parseIds(field.value());
+        var ids = QuestionValues.memberIds(field.value());
         if (ids.isEmpty()) return "";
         var names = memberRepository.findDisplayNames(ids);
         return ids.stream().map(id -> names.getOrDefault(id, "#" + id)).collect(Collectors.joining(", "));
@@ -173,17 +173,17 @@ public class EventFieldService {
 
         String newValue;
         if (field.fieldType().isMemberListField()) {
-            var ids = MemberFieldValue.parseIds(field.value());
+            var ids = QuestionValues.memberIds(field.value());
             if (ids.contains(memberId)) {
                 ids.removeIf(id -> id == memberId);
             } else {
                 ids.add(memberId);
             }
-            newValue = MemberFieldValue.formatList(ids);
+            newValue = QuestionValues.formatMembers(ids);
         } else {
-            var ids = MemberFieldValue.parseIds(field.value());
+            var ids = QuestionValues.memberIds(field.value());
             if (ids.isEmpty()) {
-                newValue = MemberFieldValue.formatSingle(memberId);
+                newValue = QuestionValues.formatMember(memberId);
             } else if (ids.getFirst() == memberId) {
                 newValue = "";
             } else {

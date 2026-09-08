@@ -9,7 +9,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import OptionList from './OptionList.vue'
+import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
 import type { QuestionDraft } from './types'
 
 const props = defineProps<{
@@ -64,6 +64,6 @@ function updateOptions(items: string[]) {
     <NumberInput v-if="q.config.multiLimitType !== 'NONE'" v-model="(q.config.multiLimit as number)"
                  :placeholder="t('forms.choice.limitValue')" class="w-24" />
   </div>
-  <OptionList :items="(q.config.options as string[])" :label="t('forms.choice.options')"
-              :add-label="t('forms.choice.addOption')" @update:items="updateOptions" />
+  <QuestionOptionsEditor :add-label="t('forms.choice.addOption')" :label="t('forms.choice.options')"
+                         :model-value="(q.config.options as string[])" @update:model-value="updateOptions"/>
 </template>

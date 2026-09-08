@@ -23,7 +23,8 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
  */
 defineProps<{
   fieldType: string
-  enumOptions: string
+  /** The answers a choice offers, as the shared editor holds them. */
+  enumOptions: string[]
   toggleLabel: string
   placeholder: string
   dateHint: string
@@ -57,9 +58,7 @@ const defaultNumber = defineModel<number>('defaultNumber', {required: true})
       <template v-else-if="fieldType === 'ENUM'">
         <SelectInput v-model="defaultValue">
           <option value="">{{ placeholder }}</option>
-          <option v-for="opt in enumOptions.split('\n').map(o => o.trim()).filter(o => o)" :key="opt"
-                  :value="opt">{{ opt }}
-          </option>
+          <option v-for="opt in enumOptions" :key="opt" :value="opt">{{ opt }}</option>
         </SelectInput>
       </template>
       <template v-else>

@@ -77,6 +77,39 @@ test.describe('Quiz', () => {
     })
 
     /**
+     * A question offering answers to pick from, written one answer to a row of its own, with the
+     * right one marked beside it. The rows are the list every choice question in Ember is written
+     * in; what is the quiz's own is the mark, and it has to survive being saved.
+     */
+    test('a multiple choice question keeps its answers and which of them is right', async ({managerPage: page}) => {
+        const question = unique('Frage')
+
+        await openCatalogue(page, await createCatalogue(page))
+
+        await page.getByRole('button', {name: 'Neue Frage'}).click()
+        await page.getByPlaceholder('Fragetext').fill(question)
+
+        // One answer to a row of its own, which is the list every choice question is written in.
+        // A comma is a character in an answer here, not a separator between two of them.
+        await page.getByTestId('question-option-0').fill('Wasser, Schaum')
+        await page.getByTestId('question-option-add').click()
+        await page.getByTestId('question-option-1').fill('Sand')
+
+        // The mark for the right answer sits beside the answer rather than in a box of its own,
+        // which is what the row per answer is for.
+        await page.getByRole('button', {name: 'Richtige Antwort'}).first().click()
+        await page.getByRole('button', {name: 'Speichern'}).last().click()
+
+        await expect(page.getByText(question).first()).toBeVisible()
+
+        await page.reload()
+        await page.getByText(question).first().click()
+        await expect(page.getByTestId('question-option-0'), 'the comma stayed inside the answer')
+            .toHaveValue('Wasser, Schaum')
+        await expect(page.getByTestId('question-option-1')).toHaveValue('Sand')
+    })
+
+    /**
      * A test sheet is assembled rather than written: it says how many questions to draw from which
      * catalogue, and the questions are picked when somebody sits it. The story builds one section
      * over the catalogue it just filled and finds the sheet again in the list afterwards.

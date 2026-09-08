@@ -6,6 +6,9 @@
 package dev.chojo.ember.feature.members.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.question.Question;
+
+import java.util.Optional;
 
 /**
  * Defines a custom profile field for a station.
@@ -28,6 +31,14 @@ public record ProfileField(
         int position,
         ProfileFieldScope scope,
         boolean keepOnArchive) {
+    /**
+     * This field as everything that checks a question reads it, or nothing where it is a heading and
+     * asks nobody anything.
+     */
+    public Optional<Question> question() {
+        return fieldType.kind().map(kind -> config.settings().asQuestion(name, kind));
+    }
+
     /**
      * Creates a row mapping for database result set conversion.
      */

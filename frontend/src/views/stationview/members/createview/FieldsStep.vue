@@ -8,7 +8,8 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
+import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
+import {questionKindOf} from '@/util/questions'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -47,8 +48,8 @@ function getValue(fieldId: number): string {
       <SubHeader class="text-sm font-semibold uppercase text-(--text-muted)">{{ t('membersCreate.requiredFields') }}</SubHeader>
       <div v-for="field in requiredFields" :key="field.id" class="space-y-1">
         <FieldLabel>{{ field.name }} <span class="text-error">*</span></FieldLabel>
-        <ProfileFieldInput
-            :field-type="field.fieldType ?? 'TEXT'"
+        <QuestionValueInput
+            :kind="questionKindOf(field.fieldType) ?? 'TEXT'"
             :model-value="getValue(field.id)"
             :options="(parseFieldConfig(field.config).options as string[]) ?? []"
             @update:model-value="emit('setValue', field.id, $event)"
@@ -60,8 +61,8 @@ function getValue(fieldId: number): string {
       <SubHeader class="text-sm font-semibold uppercase text-(--text-muted) pt-2">{{ t('membersCreate.optionalFields') }}</SubHeader>
       <div v-for="field in optionalFields" :key="field.id" class="space-y-1">
         <FieldLabel>{{ field.name }}</FieldLabel>
-        <ProfileFieldInput
-            :field-type="field.fieldType ?? 'TEXT'"
+        <QuestionValueInput
+            :kind="questionKindOf(field.fieldType) ?? 'TEXT'"
             :model-value="getValue(field.id)"
             :options="(parseFieldConfig(field.config).options as string[]) ?? []"
             @update:model-value="emit('setValue', field.id, $event)"

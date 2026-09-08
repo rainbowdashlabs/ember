@@ -7,13 +7,10 @@ package dev.chojo.ember.feature.events.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.util.Json;
-import org.slf4j.Logger;
-import tools.jackson.databind.ObjectMapper;
+import dev.chojo.ember.feature.question.QuestionConfigs;
+import dev.chojo.ember.feature.question.QuestionSettings;
 
 import java.util.List;
-
-import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Configuration for an event custom field, stored as JSONB.
@@ -35,8 +32,6 @@ public record EventFieldConfig(
         Integer tagId,
         boolean selfRegistration,
         String width) {
-    private static final Logger log = getLogger(EventFieldConfig.class);
-    private static final ObjectMapper MAPPER = Json.EMPTY_TOLERANT_CONFIG_MAPPER;
     private static final EventFieldConfig EMPTY = new EventFieldConfig(null, null, null, null, false, null);
 
     public static EventFieldConfig empty() {
@@ -44,20 +39,15 @@ public record EventFieldConfig(
     }
 
     public static EventFieldConfig parse(String json) {
-        if (json == null || json.isBlank() || "{}".equals(json)) return EMPTY;
-        try {
-            return MAPPER.readValue(json, EventFieldConfig.class);
-        } catch (Exception e) {
-            log.error("Failed to parse event field config: {}", json, e);
-            return EMPTY;
-        }
+        return QuestionConfigs.parse(json, EventFieldConfig.class, EMPTY);
     }
 
     public String toJson() {
-        try {
-            return MAPPER.writeValueAsString(this);
-        } catch (Exception e) {
-            return "{}";
-        }
+        return QuestionConfigs.toJson(this);
+    }
+
+    /** What this field says about the question it asks, as everything that measures one reads it. */
+    public QuestionSettings settings() {
+        return QuestionSettings.none().withOptions(options);
     }
 }

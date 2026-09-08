@@ -9,7 +9,8 @@ import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
+import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
+import {questionKindOf} from '@/util/questions'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -133,8 +134,8 @@ async function saveProfile() {
               <MutedText class="ml-1" v-if="isReadonly(field)">({{ t('profile.readonlyHint') }})</MutedText>
             </FieldLabel>
 
-            <ProfileFieldInput
-              :field-type="field.fieldType ?? 'TEXT'"
+            <QuestionValueInput
+              :kind="questionKindOf(field.fieldType) ?? 'TEXT'"
               :model-value="getValue(field.id)"
               :options="(parseFieldConfig(field.config).options as string[]) ?? []"
               :disabled="isReadonly(field)"

@@ -5,14 +5,11 @@
  */
 package dev.chojo.ember.feature.attendance.entity;
 
-import dev.chojo.ember.util.Json;
-import org.slf4j.Logger;
-import tools.jackson.databind.ObjectMapper;
+import dev.chojo.ember.feature.question.QuestionConfigs;
+import dev.chojo.ember.feature.question.QuestionSettings;
 
 import java.time.LocalDate;
 import java.util.List;
-
-import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Configuration for an attendance template field, parsed from JSONB storage.
@@ -32,8 +29,6 @@ public record AttendanceFieldConfig(
         List<String> options,
         Object defaultValue,
         String width) {
-    private static final Logger log = getLogger(AttendanceFieldConfig.class);
-    private static final ObjectMapper MAPPER = Json.CONFIG_MAPPER;
     private static final AttendanceFieldConfig EMPTY = new AttendanceFieldConfig(false, null, false, null, null, null);
 
     /**
@@ -43,21 +38,16 @@ public record AttendanceFieldConfig(
      * @return the parsed config or an empty default
      */
     public static AttendanceFieldConfig parse(String json) {
-        if (json == null || json.isBlank()) return EMPTY;
-        try {
-            return MAPPER.readValue(json, AttendanceFieldConfig.class);
-        } catch (Exception e) {
-            log.error("Failed to parse attendance field config: {}", json, e);
-            return EMPTY;
-        }
+        return QuestionConfigs.parse(json, AttendanceFieldConfig.class, EMPTY);
     }
 
     public String toJson() {
-        try {
-            return MAPPER.writeValueAsString(this);
-        } catch (Exception e) {
-            return "{}";
-        }
+        return QuestionConfigs.toJson(this);
+    }
+
+    /** What this field says about the question it asks, as everything that measures one reads it. */
+    public QuestionSettings settings() {
+        return QuestionSettings.required(required).withDefault(defaultValue).withOptions(options);
     }
 
     /**
@@ -80,11 +70,6 @@ public record AttendanceFieldConfig(
                 return "\"" + LocalDate.now() + "\"";
             }
         }
-        // Use Jackson to ensure valid JSON output for any type
-        try {
-            return MAPPER.writeValueAsString(defaultValue);
-        } catch (Exception e) {
-            return null;
-        }
+        return QuestionConfigs.toJson(defaultValue);
     }
 }

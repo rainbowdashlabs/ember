@@ -7,13 +7,10 @@ package dev.chojo.ember.feature.events.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.util.Json;
-import org.slf4j.Logger;
-import tools.jackson.databind.ObjectMapper;
+import dev.chojo.ember.feature.question.QuestionConfigs;
+import dev.chojo.ember.feature.question.QuestionSettings;
 
 import java.util.List;
-
-import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Configuration for a registration question, stored as JSONB.
@@ -44,8 +41,6 @@ public record EventRegistrationFieldConfig(
         StationUserType userType,
         Integer tagId,
         boolean managersOnly) {
-    private static final Logger log = getLogger(EventRegistrationFieldConfig.class);
-    private static final ObjectMapper MAPPER = Json.EMPTY_TOLERANT_CONFIG_MAPPER;
     private static final EventRegistrationFieldConfig EMPTY =
             new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, false);
 
@@ -54,20 +49,18 @@ public record EventRegistrationFieldConfig(
     }
 
     public static EventRegistrationFieldConfig parse(String json) {
-        if (json == null || json.isBlank() || "{}".equals(json)) return EMPTY;
-        try {
-            return MAPPER.readValue(json, EventRegistrationFieldConfig.class);
-        } catch (Exception e) {
-            log.error("Failed to parse event registration field config: {}", json, e);
-            return EMPTY;
-        }
+        return QuestionConfigs.parse(json, EventRegistrationFieldConfig.class, EMPTY);
     }
 
     public String toJson() {
-        try {
-            return MAPPER.writeValueAsString(this);
-        } catch (Exception e) {
-            return "{}";
-        }
+        return QuestionConfigs.toJson(this);
+    }
+
+    /** What this question says about itself, as everything that measures an answer reads it. */
+    public QuestionSettings settings() {
+        return QuestionSettings.required(required)
+                .withDefault(defaultValue)
+                .withOptions(options)
+                .withBounds(min, max);
     }
 }

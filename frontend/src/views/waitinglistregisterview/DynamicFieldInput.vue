@@ -4,13 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
-import TextInput from '@/components/input/text/TextInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
-import DateInput from '@/components/input/datetime/DateInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import {computed} from 'vue'
+import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import {QuestionKinds, questionKindOf} from '@/util/questions'
 import type { WaitingListField } from '@/api/waitingList'
 
 const props = defineProps<{
@@ -19,15 +16,7 @@ const props = defineProps<{
 
 const value = defineModel<string>('value', {required: true})
 
-const { t } = useI18n()
-
-function asNumber(): number {
-  return value.value ? Number(value.value) : 0
-}
-
-function asBoolean(): boolean {
-  return value.value === 'true'
-}
+const kind = computed(() => questionKindOf(props.field.fieldType) ?? QuestionKinds.TEXT)
 </script>
 
 <template>
@@ -37,36 +26,12 @@ function asBoolean(): boolean {
       <span v-if="props.field.required" class="text-error">*</span>
     </FieldLabel>
 
-    <TextInput
-      v-if="props.field.fieldType === 'TEXT'"
+    <QuestionValueInput
       v-model="value"
+      :kind="kind"
+      :options="props.field.config?.options ?? []"
+      :required="props.field.required"
     />
-    <NumberInput
-      v-else-if="props.field.fieldType === 'NUMBER'"
-      :model-value="asNumber()"
-      @update:model-value="value = String($event ?? 0)"
-    />
-    <DateInput
-      v-else-if="props.field.fieldType === 'DATE' || props.field.fieldType === 'BIRTH_DATE'"
-      v-model="value"
-    />
-    <div v-else-if="props.field.fieldType === 'BOOLEAN'" class="flex items-center gap-2 pt-1">
-      <ToggleInput
-        :model-value="asBoolean()"
-        @update:model-value="value = String($event)"
-      />
-    </div>
-    <SelectInput
-      v-else-if="props.field.fieldType === 'ENUM'"
-      class="w-full"
-      v-model="value"
-    >
-      <option value="" disabled>{{ t('waitingList.selectOption') }}</option>
-      <option
-        v-for="opt in (props.field.config?.options ?? [])"
-        :key="opt"
-        :value="opt"
-      >{{ opt }}</option>
-    </SelectInput>
+
   </div>
 </template>

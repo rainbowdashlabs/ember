@@ -240,6 +240,43 @@ test.describe('Members', () => {
     })
 
     /**
+     * A question that offers a set of answers is written one choice to a row of its own. Every
+     * feature used to pull one box of text apart afterwards, and one of them asked for commas while
+     * splitting on line breaks, so a station could only ever have a single choice.
+     */
+    test('a choice field is given two choices and offers both', async ({managerPage: page}) => {
+        const field = unique('Auswahlfeld')
+        const created = await createMember(page)
+
+        await page.goto('/station/members/config')
+        await page.getByRole('button', {name: 'Feld hinzufügen'}).first().click()
+        const dialog = page.locator('[role="dialog"]').first()
+        await dialog.getByPlaceholder('Name des Feldes').fill(field)
+        await dialog.getByRole('combobox').first().selectOption('ENUM')
+
+        // A row per choice: the second one is added rather than typed after a separator nobody
+        // agrees on. A comma inside a choice stays inside it.
+        await dialog.getByTestId('question-option-add').click()
+        await dialog.getByTestId('question-option-0').fill('Ja, mit Begleitung')
+        await dialog.getByTestId('question-option-add').click()
+        await dialog.getByTestId('question-option-1').fill('Nein')
+        await dialog.getByRole('button', {name: 'Speichern'}).click()
+
+        await expect(page.getByText(field).first()).toBeVisible()
+
+        await page.goto('/station/members/list')
+        await page.getByPlaceholder(/Suche/).first().fill(created)
+        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.waitForURL(/\/station\/members\/detail\/(\d+)/)
+        const id = page.url().match(/detail\/(\d+)/)?.[1]
+
+        await page.goto(`/station/members/edit/${id}`)
+        const choice = page.locator('select').filter({hasText: 'Ja, mit Begleitung'}).first()
+        await expect(choice, 'both choices reached the member').toBeVisible()
+        await expect(choice.locator('option', {hasText: 'Nein'}).first()).toHaveCount(1)
+    })
+
+    /**
      * A heading is not a field: it is asked of nobody and holds no answer. It earns its place by
      * appearing among the fields where the station put it, which is what turns a long list into
      * something that reads.

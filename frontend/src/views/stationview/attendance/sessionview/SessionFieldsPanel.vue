@@ -9,11 +9,10 @@ import {configOf, spanForWidth} from '@/components/profilefields/fieldLayout'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import MultiSelectInput from '@/components/input/select/MultiSelectInput.vue'
-import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
+import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
 import type {AttendanceTemplateField} from '@/api/attendance'
 import type {StationMember} from '@/api/types'
+import {QuestionKinds, memberIdsOf, questionKindOf, type QuestionKindName} from '@/util/questions'
 
 const {t} = useI18n()
 
@@ -34,12 +33,14 @@ function parseFieldConfig(config?: Record<string, unknown>): { options?: string[
   return (config ?? {}) as { options?: string[]; groupId?: number; autoAttend?: boolean }
 }
 
-function isMemberField(fieldType: string): boolean {
-  return ['MEMBER', 'MEMBER_LIST', 'MEMBER_OF_GROUP', 'MEMBER_LIST_OF_GROUP'].includes(fieldType)
+/** What kind of answer a field takes, which is what decides the box it is answered in. */
+function kindOf(field: AttendanceTemplateField): QuestionKindName {
+  return questionKindOf(field.fieldType) ?? QuestionKinds.TEXT
 }
 
-function isListField(fieldType: string): boolean {
-  return ['MEMBER_LIST', 'MEMBER_LIST_OF_GROUP'].includes(fieldType)
+function isMemberField(fieldType: string): boolean {
+  const kind = questionKindOf(fieldType)
+  return kind === QuestionKinds.MEMBER || kind === QuestionKinds.MEMBER_LIST
 }
 
 function isImmediateField(fieldType: string): boolean {
@@ -51,15 +52,22 @@ function getFieldValue(fieldId: number): string {
 }
 
 function getFieldMemberIds(fieldId: number): string[] {
-  const raw = getFieldValue(fieldId)
-  if (!raw) return []
-  try {
-    const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed)) return parsed.map(String)
-    if (parsed) return [String(parsed)]
-  } catch { /* ignore */ }
-  if (raw) return [raw]
-  return []
+  return memberIdsOf(getFieldValue(fieldId))
+}
+
+/**
+ * Writes what was answered.
+ *
+ * <p>A field naming members goes the other way about it, because naming somebody on a sheet also
+ * puts them on it where the field attends by itself: the ids are what that needs, and they are read
+ * back out of the answer.
+ */
+function writeField(field: AttendanceTemplateField, value: string) {
+  if (isMemberField(field.fieldType ?? '')) {
+    emit('fieldMemberIds', field.id, memberIdsOf(value))
+    return
+  }
+  emit('fieldUpdate', field.id, value, isImmediateField(field.fieldType ?? ''))
 }
 
 function getMemberOptions(field: AttendanceTemplateField): { value: string; label: string }[] {
@@ -82,36 +90,14 @@ function getMemberOptions(field: AttendanceTemplateField): { value: string; labe
       <div v-for="field in templateFields" :key="field.id" :class="['space-y-1', spanForWidth(configOf(field.config).width)]">
         <FieldLabel>{{ field.name }}</FieldLabel>
         <template v-if="!readonly">
-          <!-- Member list fields -->
-          <template v-if="isMemberField(field.fieldType ?? '')">
-            <MultiSelectInput
-                v-if="isListField(field.fieldType ?? '')"
-                :model-value="getFieldMemberIds(field.id)"
-                :options="getMemberOptions(field)"
-                :placeholder="t('attendanceSession.addMember')"
-                @update:model-value="emit('fieldMemberIds', field.id, $event)"
-            />
-            <SelectInput
-                v-else
-                class="w-full"
-                :model-value="getFieldValue(field.id)"
-                @update:model-value="emit('fieldMemberIds', field.id, $event ? [String($event)] : [])"
-            >
-              <option value="">-</option>
-              <option v-for="opt in getMemberOptions(field)" :key="opt.value" :value="opt.value">
-                {{ opt.label }}
-              </option>
-            </SelectInput>
-          </template>
-          <!-- Regular fields -->
-          <template v-else>
-            <ProfileFieldInput
-                :field-type="field.fieldType ?? 'TEXT'"
-                :model-value="getFieldValue(field.id)"
-                :options="(parseFieldConfig(field.config).options as string[]) ?? []"
-                @update:model-value="emit('fieldUpdate', field.id, $event, isImmediateField(field.fieldType ?? ''))"
-            />
-          </template>
+          <QuestionValueInput
+              :kind="kindOf(field)"
+              :members="getMemberOptions(field)"
+              :model-value="getFieldValue(field.id)"
+              :options="(parseFieldConfig(field.config).options as string[]) ?? []"
+              :placeholder="isMemberField(field.fieldType ?? '') ? t('attendanceSession.addMember') : undefined"
+              @update:model-value="writeField(field, $event)"
+          />
         </template>
         <!-- Read-only display -->
         <template v-else>
