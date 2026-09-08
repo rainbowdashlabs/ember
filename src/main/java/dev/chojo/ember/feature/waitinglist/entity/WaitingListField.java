@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.waitinglist.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.question.Question;
 
 public record WaitingListField(
         int id,
@@ -16,6 +17,15 @@ public record WaitingListField(
         int position,
         boolean required,
         boolean isPublic) {
+
+    /**
+     * This field as everything that checks a question reads it.
+     *
+     * <p>A waiting list has no starting value to give, so the question it asks has none either.
+     */
+    public Question question() {
+        return config.settings().withRequired(required).asQuestion(name, fieldType.kind());
+    }
 
     public static RowMapping<WaitingListField> map() {
         return row -> new WaitingListField(

@@ -46,6 +46,7 @@ const emit = defineEmits<{
   register: [people: AnswerablePerson<K>[]]
   decline: [people: AnswerablePerson<K>[]]
   withdraw: [reference: U]
+  update: [reference: U]
 }>()
 
 const {t} = useI18n()
@@ -152,7 +153,7 @@ function onUndo(reference: U) {
   <div data-onboarding="events.item.pending" class="space-y-1">
     <AnsweredAnswers
         :rows="answers" :show-names="hasManagedMembers" :requires-registration="requiresRegistration"
-        :registering="registering" @undo="onUndo"/>
+        :registering="registering" @undo="onUndo" @update="reference => emit('update', reference)"/>
 
     <MutedText v-if="notOpenLabel" class="text-sm">{{ notOpenLabel }}</MutedText>
 

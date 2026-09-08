@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import BasicFields from './fieldmodal/BasicFields.vue'
-import EnumOptionsField from './fieldmodal/EnumOptionsField.vue'
+import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
 import AgeFields from './fieldmodal/AgeFields.vue'
 import FieldDefaultValueSection from '@/components/input/FieldDefaultValueSection.vue'
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
@@ -57,7 +57,7 @@ const fieldRequired = ref(false)
 const fieldReadonly = ref(false)
 const fieldNotifyOnChange = ref(false)
 const fieldOverview = ref(false)
-const fieldEnumOptions = ref('')
+const fieldEnumOptions = ref<string[]>([])
 const fieldAgeSource = ref('')
 const fieldAgeMode = ref('now')
 const fieldHasDefault = ref(false)
@@ -82,7 +82,7 @@ watch(modelValue, (open) => {
     fieldReadonly.value = !!cfg.readonly
     fieldNotifyOnChange.value = !!cfg.notifyOnChange
     fieldOverview.value = !!cfg.overview
-    fieldEnumOptions.value = ((cfg.options as string[]) ?? []).join('\n')
+    fieldEnumOptions.value = [...((cfg.options as string[]) ?? [])]
     fieldAgeSource.value = (cfg.sourceField as string) ?? ''
     fieldAgeMode.value = (cfg.ageMode as string) ?? 'now'
     fieldHasDefault.value = cfg.defaultValue !== undefined
@@ -106,7 +106,7 @@ watch(modelValue, (open) => {
     fieldReadonly.value = false
     fieldNotifyOnChange.value = false
     fieldOverview.value = false
-    fieldEnumOptions.value = ''
+    fieldEnumOptions.value = []
     fieldAgeSource.value = ''
     fieldAgeMode.value = 'now'
     fieldHasDefault.value = false
@@ -127,8 +127,8 @@ function buildConfig(): ProfileFieldConfig {
   if (fieldReadonly.value) cfg.readonly = true
   if (fieldNotifyOnChange.value) cfg.notifyOnChange = true
   if (fieldOverview.value) cfg.overview = true
-  if (fieldType.value === FieldTypes.ENUM && fieldEnumOptions.value.trim()) {
-    cfg.options = fieldEnumOptions.value.split('\n').map(o => o.trim()).filter(o => o.length > 0)
+  if (fieldType.value === FieldTypes.ENUM && fieldEnumOptions.value.length > 0) {
+    cfg.options = [...fieldEnumOptions.value]
   }
   if (fieldType.value === FieldTypes.AGE) {
     if (fieldAgeSource.value) cfg.sourceField = fieldAgeSource.value
@@ -174,7 +174,11 @@ function submit() {
                    v-model:description="fieldDescription" :scope="scope"
                    :birth-date-available="birthDateAvailable"/>
       <template v-if="holdsValue">
-        <EnumOptionsField v-if="fieldType === 'ENUM'" v-model="fieldEnumOptions"/>
+        <QuestionOptionsEditor
+            v-if="fieldType === 'ENUM'"
+            v-model="fieldEnumOptions"
+            :label="t('membersConfig.fieldEnumOptions')"
+        />
         <AgeFields v-if="fieldType === 'AGE'" v-model:source="fieldAgeSource" v-model:mode="fieldAgeMode"
                    :date-fields="dateFields"/>
         <FieldDefaultValueSection

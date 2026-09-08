@@ -1,5 +1,36 @@
 # Changelog
 
+## v26.14.1
+
+### New Features
+
+- **An appointment asks for an answer that is still missing.** A question added to an appointment after somebody has signed up leaves their registration short of an answer: they and whoever answers for them are told once, the registration is marked on the dashboard and in the organiser's list, and the appointment's page says beside their answer that one is wanted. It can be given there even after registration has closed, because the question is younger than the deadline.
+
+### Improvements
+
+- **Every question is answered in the same box.** A date opens a calendar, a time offers a clock, a long answer gets room for several lines and a question naming members offers a searchable picker, on the member profile, the attendance sheet, an appointment, the waiting list and the equipment fields alike. Until now each of those screens drew its own box, and some of them were missing the control the question called for.
+- **The choices of a question are written one to a line of their own.** Everywhere a question offers a set of answers, they are now typed into a list that can be added to, reordered and thinned out, instead of one box of text pulled apart afterwards. It is the same list on an appointment, on an attendance sheet, in the member settings, on a survey question, on a quiz question and on an equipment field, each keeping what it carries beside an answer.
+- **Answers to an appointment's questions can be corrected from the appointment itself.** Beside the answer already given stands a button that opens the questions again, for the member and for whoever answers for them. Until now a wrong answer could only be put right by whoever runs the appointment.
+- **A member's page says whom they look after.** For somebody who looks after other members, the tab that asked after guardians reads Managed Members and lists them, each opening their own page. It used to ask a question that had no answer for them, and said nothing about the people they actually manage.
+
+### Changes
+
+- **Answers are measured against the question they answer, everywhere.** A date field takes a date, a choice takes one of the choices written down, and a number stays inside the range printed beside it, on the member profile, the attendance sheet, the waiting list, the equipment fields and the appointment questions alike. Only what a save actually changes is measured, so an answer stored before this is left exactly where it is.
+- **A question whose answer only organisers may read is now asked of whoever registers.** The setting says who may read the answer, and it used to keep the question out of the sign-up form as well, so the one person who could answer it never saw it. The answers stay unreadable to everybody but the organisers and the household they are about.
+
+### Fixes
+
+- **An attendance field could only ever offer one choice.** Its settings asked for a comma-separated list and the field took a single line, while what was saved was split on line breaks, so "A, B, C" became one choice called "A, B, C" and a second one could not be typed at all. The choices are written one per line of their own now, and an existing field keeps the choices it has.
+- **A starting value the question would refuse could be set on it.** A choice could be given a starting value that is not one of its choices and a number one outside its range, and the refusal came later, at somebody else's screen, in words about an answer they had not given. Such a value is now picked from the choices themselves and refused where it is set, on an appointment's questions, its own fields, the templates behind both, and what an appointment fills an attendance sheet with.
+- **An appointment could carry an answer its own field does not offer.** A field of an appointment offering red or blue took yellow, and a date field took a word that is not a date, and both travelled on into every list and export. What stands in a field of an appointment is measured against that field.
+- **Saving the questions of an appointment threw away every answer already given.** Moving a question, adding one or correcting a spelling rewrote the whole set, and every registration lost what it had answered. A question that comes back under the name it had now keeps its answers.
+- **An appointment showed an empty answer box.** Where nobody in the household had answered and registration had closed, the block for the answer stood there with nothing in it and nothing to press. It is left out where there is neither an answer to show nor one that can still be given.
+- **An attendance check named swaps the member could do nothing about.** Beside a name stood every swap that member had running, including the ones whose piece is on the station's shelf or in the post, which nobody standing in the hall can settle. Only a swap the member is holding the piece of, or one whose next step puts a piece into their hands, is named now.
+- **A sheet opened from an appointment left out the people its answers named.** Where an appointment answered a question tied to a field that adds the people it names to the attendance automatically, they reached the sheet only once somebody pressed the button that fills it in from the appointment. They are written down as present the moment the sheet is opened.
+- **The trial evenings on a waiting list were counted short.** The number went up only when somebody pressed present on a sheet by hand, so an evening recorded any other way never counted, and taking a mark back left the number standing. It is now read off the attendance sheets themselves, and says what they say.
+- **A row of tabs was unusable on a narrow screen.** On a phone the tabs of a page were squeezed together until their labels ran into each other and the ones at the end could not be reached at all. The row now scrolls sideways instead.
+- **The storage overview named several kinds of file by a code.** The media library, member documents, inventory receipts and station logos were listed under an internal code and drawn in the same grey as each other, so the breakdown could not be read. They are named and given a colour of their own now, and the quota for the media library is labelled for what it actually limits rather than for pages.
+
 ## v26.14.0
 
 ### New Features

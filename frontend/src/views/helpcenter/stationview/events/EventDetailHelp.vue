@@ -43,6 +43,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.eventDetail.changingText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventDetail.laterQuestionTitle')">
+      <p>{{ t('helpCenter.eventDetail.laterQuestionText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.eventDetail.reminderTitle')">
       <p>{{ t('helpCenter.eventDetail.reminderText') }}</p>
     </HelpSection>

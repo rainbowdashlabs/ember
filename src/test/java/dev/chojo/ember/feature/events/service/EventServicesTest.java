@@ -699,6 +699,54 @@ class EventServicesTest extends RepositoryTestBase {
         assertTrue(fieldDefaultService.findByEvent(event.id()).isEmpty());
     }
 
+    /**
+     * What an appointment fills a field of its attendance sheet with lands there as the answer, so
+     * it is measured against that field: a choice has to be one the sheet offers.
+     */
+    @Test
+    @Order(81)
+    void aPrefilledValueTheSheetWouldRefuseIsRefused() {
+        var sheet = attendanceRepo.createTemplate(station.id(), "Bogen mit Auswahl");
+        attendanceRepo.createTemplateField(
+                sheet.id(),
+                "Wetter",
+                AttendanceFieldType.ENUM,
+                AttendanceFieldConfig.parse("{\"options\":[\"trocken\",\"nass\"]}"),
+                0);
+        int fieldId = attendanceRepo.findTemplateFields(sheet.id()).getFirst().id();
+
+        var start = Instant.now().plus(31, ChronoUnit.DAYS);
+        var event = crudService.create(
+                station.id(),
+                "Bogen-Termin",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                sheet.id(),
+                false,
+                null,
+                false,
+                categoryId,
+                null,
+                null,
+                null,
+                null);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> fieldDefaultService.setForEvent(
+                        event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "VALUE", "Schnee"))));
+
+        fieldDefaultService.setForEvent(
+                event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "VALUE", "nass")));
+        assertEquals(
+                "nass", fieldDefaultService.findByEvent(event.id()).getFirst().value());
+
+        attendanceRepo.deleteTemplate(sheet.id());
+    }
+
     @Test
     @Order(81)
     void resolveFieldDefaultsEmptyWhenNoDefaults() {

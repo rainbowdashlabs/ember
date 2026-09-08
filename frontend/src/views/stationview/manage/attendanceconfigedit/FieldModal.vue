@@ -10,7 +10,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import BasicFields from './fieldmodal/BasicFields.vue'
 import GroupSelector from './fieldmodal/GroupSelector.vue'
-import EnumOptionsField from './fieldmodal/EnumOptionsField.vue'
+import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
 import FieldDefaultValueSection from '@/components/input/FieldDefaultValueSection.vue'
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import PositionField from './fieldmodal/PositionField.vue'
@@ -41,7 +41,7 @@ const fieldType = ref('STRING')
 const fieldConfigGroupId = ref('')
 const fieldConfigRequired = ref(false)
 const fieldConfigAutoAttend = ref(false)
-const fieldEnumOptions = ref('')
+const fieldEnumOptions = ref<string[]>([])
 const fieldHasDefault = ref(false)
 const fieldDefaultValue = ref('')
 const fieldDefaultBool = ref(false)
@@ -78,8 +78,8 @@ function buildConfig(): Record<string, unknown> {
   if (fieldTypeCanAutoAttend(fieldType.value) && fieldConfigAutoAttend.value) {
     cfg.autoAttend = true
   }
-  if (fieldType.value === 'ENUM' && fieldEnumOptions.value.trim()) {
-    cfg.options = fieldEnumOptions.value.split('\n').map(o => o.trim()).filter(o => o.length > 0)
+  if (fieldType.value === 'ENUM' && fieldEnumOptions.value.length > 0) {
+    cfg.options = [...fieldEnumOptions.value]
   }
   if (fieldHasDefault.value && fieldTypeCanHaveDefault(fieldType.value)) {
     if (fieldType.value === 'BOOLEAN') {
@@ -105,7 +105,7 @@ watch([open, () => props.field], () => {
     fieldWidth.value = cfg.width ? String(cfg.width) : FieldWidths.FULL
     fieldConfigRequired.value = !!cfg.required
     fieldConfigAutoAttend.value = !!cfg.autoAttend
-    fieldEnumOptions.value = ((cfg.options as string[]) ?? []).join('\n')
+    fieldEnumOptions.value = [...((cfg.options as string[]) ?? [])]
     fieldHasDefault.value = cfg.defaultValue !== undefined
     if (props.field.fieldType === 'BOOLEAN') {
       fieldDefaultBool.value = cfg.defaultValue === true
@@ -123,7 +123,7 @@ watch([open, () => props.field], () => {
     fieldConfigGroupId.value = ''
     fieldConfigRequired.value = false
     fieldConfigAutoAttend.value = false
-    fieldEnumOptions.value = ''
+    fieldEnumOptions.value = []
     fieldHasDefault.value = false
     fieldDefaultValue.value = ''
     fieldDefaultBool.value = false
@@ -150,7 +150,11 @@ function handleSave() {
       <BasicFields v-model:name="fieldName" v-model:field-type="fieldType"/>
       <GroupSelector v-if="fieldTypeNeedsGroup(fieldType)" v-model="fieldConfigGroupId"
                      :available-groups="availableGroups"/>
-      <EnumOptionsField v-if="fieldType === 'ENUM'" v-model="fieldEnumOptions"/>
+      <QuestionOptionsEditor
+          v-if="fieldType === 'ENUM'"
+          v-model="fieldEnumOptions"
+          :label="t('attendanceConfig.fieldEnumOptions')"
+      />
       <FieldDefaultValueSection
         v-if="fieldTypeCanHaveDefault(fieldType)"
         v-model:has-default="fieldHasDefault"

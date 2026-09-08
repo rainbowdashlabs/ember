@@ -5,13 +5,10 @@
  */
 package dev.chojo.ember.feature.members.entity;
 
-import dev.chojo.ember.util.Json;
-import org.slf4j.Logger;
-import tools.jackson.databind.ObjectMapper;
+import dev.chojo.ember.feature.question.QuestionConfigs;
+import dev.chojo.ember.feature.question.QuestionSettings;
 
 import java.util.List;
-
-import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Configuration options for a profile field, parsed from JSON.
@@ -50,8 +47,6 @@ public record ProfileFieldConfig(
         String ageMode,
         Integer groupId,
         String width) {
-    private static final Logger log = getLogger(ProfileFieldConfig.class);
-    private static final ObjectMapper MAPPER = Json.CONFIG_MAPPER;
     private static final ProfileFieldConfig EMPTY =
             new ProfileFieldConfig(false, null, false, false, false, null, null, false, null, null, null, null);
 
@@ -69,20 +64,15 @@ public record ProfileFieldConfig(
      * @return the parsed config or a default empty config
      */
     public static ProfileFieldConfig parse(String json) {
-        if (json == null || json.isBlank()) return EMPTY;
-        try {
-            return MAPPER.readValue(json, ProfileFieldConfig.class);
-        } catch (Exception e) {
-            log.error("Failed to parse profile field config: {}", json, e);
-            return EMPTY;
-        }
+        return QuestionConfigs.parse(json, ProfileFieldConfig.class, EMPTY);
     }
 
     public String toJson() {
-        try {
-            return MAPPER.writeValueAsString(this);
-        } catch (Exception e) {
-            return "{}";
-        }
+        return QuestionConfigs.toJson(this);
+    }
+
+    /** What this field says about the question it asks, as everything that measures one reads it. */
+    public QuestionSettings settings() {
+        return QuestionSettings.required(required).withDefault(defaultValue).withOptions(options);
     }
 }

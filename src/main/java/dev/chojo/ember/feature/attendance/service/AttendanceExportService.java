@@ -16,9 +16,9 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
-import dev.chojo.ember.feature.events.entity.MemberFieldValue;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
@@ -218,7 +218,7 @@ public class AttendanceExportService {
     }
 
     private String resolveMemberFieldValue(String rawValue) {
-        var ids = MemberFieldValue.parseIds(rawValue);
+        var ids = QuestionValues.memberIds(rawValue);
         if (ids.isEmpty()) return "";
         return ids.stream().map(this::resolveMemberName).collect(Collectors.joining(", "));
     }

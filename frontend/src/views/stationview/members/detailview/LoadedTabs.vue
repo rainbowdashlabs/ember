@@ -12,7 +12,7 @@ import NoteEditor from '@/components/comment/NoteEditor.vue'
 import AbsencesTab from './AbsencesTab.vue'
 import ProfileTab from './ProfileTab.vue'
 import PermissionsTab from './PermissionsTab.vue'
-import GuardiansTab from './GuardiansTab.vue'
+import RelationsTab from './RelationsTab.vue'
 import InventoryTab from './InventoryTab.vue'
 import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vue'
 import type { ProfileFieldChange } from '@/api/profileFieldChanges'
@@ -36,6 +36,7 @@ defineProps<{
   memberTagList: UserTag[]
   showManagerSection: boolean
   managers: StationMember[]
+  managedMembers: StationMember[]
   availableManagers: StationMember[]
   allMembers: StationMember[]
   managerValues: Map<number, Map<number, string>>
@@ -88,9 +89,10 @@ const activeTab = ref('profile')
     :member-group-list="memberGroupList" :member-tag-list="memberTagList"
   />
 
-  <GuardiansTab
-    v-if="activeTab === 'guardians'"
+  <RelationsTab
+    v-if="activeTab === 'relations'"
     :show-manager-section="showManagerSection" :managers="managers"
+    :managed-members="managedMembers"
     :available-managers="availableManagers" :manager-values="managerValues"
     :manager-user-types-as-role-map="managerUserTypesAsRoleMap" :fields="fields"
     :can-edit="canEdit" :member-display-name="memberDisplayName"

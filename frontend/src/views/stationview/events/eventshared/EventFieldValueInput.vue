@@ -4,13 +4,20 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
-import SingleSelectDropdown from '@/components/input/select/SingleSelectDropdown.vue'
-import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
-import TimeShortInput from '@/components/input/datetime/TimeShortInput.vue'
+import {computed} from 'vue'
+import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
 import type {StationMember} from '@/api/types'
 import {EventFieldTypes} from '@/api/events'
+import {QuestionKinds, questionKindOf, type QuestionKindName} from '@/util/questions'
 
+/**
+ * Answering a question an appointment asks.
+ *
+ * <p>The box itself is the one every feature uses. What stays here is the half that is the
+ * appointment's own: which members a question may name. An appointment can narrow that to a group,
+ * to a kind of member or to a tag, and nothing else in Ember does, so the shared box is handed the
+ * people rather than taught the rules.
+ */
 const modelValue = defineModel<string>({required: true})
 
 const props = defineProps<{
@@ -29,113 +36,44 @@ type FieldConfig = {
   tagId?: number
 }
 
-const MEMBER_FIELDS: string[] = [
-  EventFieldTypes.MEMBER,
-  EventFieldTypes.MEMBER_LIST,
-  EventFieldTypes.MEMBER_OF_GROUP,
-  EventFieldTypes.MEMBER_LIST_OF_GROUP,
-  EventFieldTypes.MEMBER_OF_TYPE,
-  EventFieldTypes.MEMBER_LIST_OF_TYPE,
-  EventFieldTypes.MEMBER_OF_TAG,
-  EventFieldTypes.MEMBER_LIST_OF_TAG,
-]
+const config = computed<FieldConfig>(() => (props.config ?? {}) as FieldConfig)
 
-const LIST_FIELDS: string[] = [
-  EventFieldTypes.MEMBER_LIST,
-  EventFieldTypes.MEMBER_LIST_OF_GROUP,
-  EventFieldTypes.MEMBER_LIST_OF_TYPE,
-  EventFieldTypes.MEMBER_LIST_OF_TAG,
-]
+const kind = computed<QuestionKindName>(() => questionKindOf(props.fieldType, true) ?? QuestionKinds.TEXT)
 
-function parseConfig(): FieldConfig {
-  return (props.config ?? {}) as FieldConfig
-}
+/** Who the question may name, narrowed the way the appointment narrowed it. */
+const memberOptions = computed(() => {
+  const narrowed = narrowedMembers()
+  return narrowed.map(member => ({
+    value: String(member.id),
+    label: member.name ?? member.email ?? `#${member.id}`,
+  }))
+})
 
-function isMemberField(): boolean {
-  return MEMBER_FIELDS.includes(props.fieldType)
-}
-
-function isListField(): boolean {
-  return LIST_FIELDS.includes(props.fieldType)
-}
-
-function getMemberOptions(): { value: string; label: string }[] {
-  const cfg = parseConfig()
-  let members: StationMember[]
+function narrowedMembers(): StationMember[] {
+  const all = props.allMembers ?? []
+  const {groupId, userType, tagId} = config.value
   switch (props.fieldType) {
     case EventFieldTypes.MEMBER_OF_GROUP:
     case EventFieldTypes.MEMBER_LIST_OF_GROUP:
-      members = cfg.groupId && props.groupMembers?.has(cfg.groupId)
-          ? props.groupMembers.get(cfg.groupId)!
-          : (props.allMembers ?? [])
-      break
+      return groupId && props.groupMembers?.has(groupId) ? props.groupMembers.get(groupId)! : all
     case EventFieldTypes.MEMBER_OF_TYPE:
     case EventFieldTypes.MEMBER_LIST_OF_TYPE:
-      members = cfg.userType
-          ? (props.allMembers ?? []).filter(m => m.userType === cfg.userType)
-          : (props.allMembers ?? [])
-      break
+      return userType ? all.filter(member => member.userType === userType) : all
     case EventFieldTypes.MEMBER_OF_TAG:
     case EventFieldTypes.MEMBER_LIST_OF_TAG:
-      members = cfg.tagId && props.tagMembers?.has(cfg.tagId)
-          ? props.tagMembers.get(cfg.tagId)!
-          : (props.allMembers ?? [])
-      break
+      return tagId && props.tagMembers?.has(tagId) ? props.tagMembers.get(tagId)! : all
     default:
-      members = props.allMembers ?? []
+      return all
   }
-  return members.map(m => ({value: String(m.id), label: m.name ?? m.email ?? `#${m.id}`}))
-}
-
-function getMemberIds(): string[] {
-  if (!modelValue.value) return []
-  try {
-    const parsed = JSON.parse(modelValue.value)
-    if (Array.isArray(parsed)) return parsed.map(String)
-    if (parsed) return [String(parsed)]
-  } catch { /* ignore */ }
-  if (modelValue.value) return [modelValue.value]
-  return []
-}
-
-function setMemberIds(ids: string[]) {
-  modelValue.value = JSON.stringify(ids.map(Number))
-}
-
-function setSingleMember(id: string) {
-  modelValue.value = id || ''
 }
 </script>
 
 <template>
-  <template v-if="fieldType === 'TIME'">
-    <TimeShortInput :disabled="disabled" :model-value="modelValue"
-                    @update:model-value="modelValue = $event ?? ''"/>
-  </template>
-
-  <template v-else-if="isMemberField() && allMembers">
-    <MultiSelectDropdown
-        v-if="isListField()"
-        :model-value="getMemberIds()"
-        :options="getMemberOptions()"
-        :searchable="true"
-        placeholder="Mitglied wählen"
-        @update:model-value="setMemberIds($event)"
-    />
-    <SingleSelectDropdown
-        v-else
-        :disabled="disabled"
-        :model-value="modelValue"
-        :options="getMemberOptions()"
-        :searchable="true"
-        :clearable="true"
-        placeholder="Mitglied wählen"
-        @update:model-value="setSingleMember($event)"
-    />
-  </template>
-
-  <template v-else>
-    <ProfileFieldInput v-model="modelValue" :disabled="disabled" :field-type="fieldType"
-                       :options="parseConfig().options ?? []"/>
-  </template>
+  <QuestionValueInput
+      v-model="modelValue"
+      :disabled="disabled"
+      :kind="kind"
+      :members="memberOptions"
+      :options="config.options ?? []"
+  />
 </template>

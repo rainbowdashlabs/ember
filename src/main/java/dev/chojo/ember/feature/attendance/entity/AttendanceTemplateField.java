@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.attendance.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.question.Question;
 
 /**
  * A field definition within an attendance template, describing what data to collect per session.
@@ -24,6 +25,16 @@ public record AttendanceTemplateField(
         AttendanceFieldType fieldType,
         AttendanceFieldConfig config,
         int position) {
+    /**
+     * This field as everything that checks a question reads it.
+     *
+     * <p>The row stays what it is; what it means is said once, here, so the same rules measure an
+     * answer written on a sheet as measure one given to an appointment.
+     */
+    public Question question() {
+        return config.settings().asQuestion(name, fieldType.kind());
+    }
+
     /**
      * Creates a row mapping for database result set conversion.
      */

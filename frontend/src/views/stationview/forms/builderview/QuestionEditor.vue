@@ -15,7 +15,7 @@ import QuestionHeader from './QuestionHeader.vue'
 import ChoiceConfigEditor from './ChoiceConfigEditor.vue'
 import RatingConfigEditor from './RatingConfigEditor.vue'
 import LikertConfigEditor from './LikertConfigEditor.vue'
-import OptionList from './OptionList.vue'
+import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
 
 const props = defineProps<{
   question: QuestionDraft
@@ -67,9 +67,10 @@ function updateRankingOptions(items: string[]) {
 
       <RatingConfigEditor v-if="q.questionType === QuestionTypes.RATING" :question="q" />
 
-      <OptionList v-if="q.questionType === QuestionTypes.RANKING" :items="(q.config.options as string[])"
-                  :label="t('forms.ranking.options')" :add-label="t('forms.ranking.addOption')"
-                  @update:items="updateRankingOptions" />
+      <QuestionOptionsEditor v-if="q.questionType === QuestionTypes.RANKING"
+                             :add-label="t('forms.ranking.addOption')" :label="t('forms.ranking.options')"
+                             :model-value="(q.config.options as string[])"
+                             @update:model-value="updateRankingOptions"/>
 
       <LikertConfigEditor v-if="q.questionType === QuestionTypes.LIKERT" :question="q" />
     </div>

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -280,5 +281,42 @@ class EventFieldServiceTest extends RepositoryTestBase {
     void findOverviewFieldsByEventsEmptyList() {
         var map = service.findOverviewFieldsByEvents(List.of());
         assertTrue(map.isEmpty());
+    }
+
+    /**
+     * What stands in a field of an appointment is an answer like any other. A colour nobody offered
+     * used to be written happily and then carried into every list and export the appointment
+     * reaches.
+     */
+    @Test
+    @Order(7)
+    void aValueTheFieldDoesNotOfferIsRefused() {
+        var choice = EventFieldConfig.parse("{\"options\":[\"rot\",\"blau\"]}");
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.replaceFields(
+                        eventId,
+                        List.of(new EventFieldRepository.FieldEntry(
+                                "Farbe", EventFieldType.ENUM, choice, "gelb", true, null, false))));
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.replaceFields(
+                        eventId,
+                        List.of(new EventFieldRepository.FieldEntry(
+                                "Tag",
+                                EventFieldType.DATE,
+                                EventFieldConfig.parse("{}"),
+                                "irgendwann",
+                                true,
+                                null,
+                                false))));
+
+        service.replaceFields(
+                eventId,
+                List.of(new EventFieldRepository.FieldEntry(
+                        "Farbe", EventFieldType.ENUM, choice, "blau", true, null, false)));
+        assertEquals("blau", service.findByEvent(eventId).getFirst().value());
     }
 }

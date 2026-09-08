@@ -8,7 +8,8 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
+import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
+import {questionKindOf} from '@/util/questions'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
 import type {FieldOrigin} from '@/util/profileFields'
@@ -81,8 +82,8 @@ function descriptionOf(field: LaidOutField): string {
           <MutedText v-if="locked(field)" class="ml-1">({{ t('profile.readonlyHint') }})</MutedText>
         </FieldLabel>
         <MutedText v-if="descriptionOf(field)" class="block text-xs">{{ descriptionOf(field) }}</MutedText>
-        <ProfileFieldInput
-            :field-type="field.fieldType ?? 'TEXT'"
+        <QuestionValueInput
+            :kind="questionKindOf(field.fieldType) ?? 'TEXT'"
             :model-value="props.getValue(field)"
             :options="(parseFieldConfig(field.config).options as string[]) ?? []"
             :disabled="locked(field)"

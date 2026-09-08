@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import dev.chojo.ember.feature.question.QuestionKind;
+
 /**
  * Supported data types for event custom fields.
  */
@@ -31,6 +33,27 @@ public enum EventFieldType {
     MEMBER_LIST_OF_TYPE,
     MEMBER_OF_TAG,
     MEMBER_LIST_OF_TAG;
+
+    /**
+     * The shared kind this type is, which is what the one check measures an answer against.
+     *
+     * <p>Seven ways of naming members read as two kinds: one member or several. Which members may be
+     * named is the appointment's own business and stays here, in the constraint beside the type.
+     */
+    public QuestionKind kind() {
+        if (isMemberListField()) return QuestionKind.MEMBER_LIST;
+        if (isMemberField()) return QuestionKind.MEMBER;
+        return switch (this) {
+            case NUMBER -> QuestionKind.NUMBER;
+            case DATE -> QuestionKind.DATE;
+            case TIME -> QuestionKind.TIME;
+            case BOOLEAN -> QuestionKind.BOOLEAN;
+            case ENUM -> QuestionKind.CHOICE;
+            case URL -> QuestionKind.URL;
+            case TEXTAREA -> QuestionKind.LONG_TEXT;
+            default -> QuestionKind.TEXT;
+        };
+    }
 
     public boolean isMemberField() {
         return this == MEMBER

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.waitinglist.repository;
 
+import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
@@ -21,6 +22,7 @@ import tools.jackson.databind.node.StringNode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -351,45 +353,58 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
         assertNull(waitingListRepo.findEntryById(entry.id()).orElseThrow().answer());
     }
 
-    /** A trial period is found from the person who turned up rather than from the list. */
+    /**
+     * The evenings of a trial period are counted off the attendance sheets themselves, so a mark
+     * taken back lowers the count again and an evening before the trial began counts for nothing.
+     */
     @Test
-    void findEntriesByMemberAndStatus() {
+    void attendanceCountIsReadOffTheSheets() {
         var account = accountRepo.create(null, "Probe", "Kind", stationId);
         var member = stationMemberRepo.create(stationId, account.id());
-        var list = waitingListRepo.create(stationId, "Trial List", "", null, 180, null, null, 5, false, null, null);
-        var entry = waitingListRepo.createEntry(
-                list.id(),
-                "Probe",
-                "Kind",
-                "",
-                "trial@test.com",
-                UUID.randomUUID().toString(),
-                "",
-                null);
-        waitingListRepo.linkMember(entry.id(), member.id());
-
-        assertTrue(waitingListRepo
-                .findEntriesByMemberAndStatus(member.id(), WaitingListEntryStatus.TESTING)
-                .isEmpty());
-
-        waitingListRepo.updateEntryStatus(entry.id(), WaitingListEntryStatus.TESTING);
-        var found = waitingListRepo.findEntriesByMemberAndStatus(member.id(), WaitingListEntryStatus.TESTING);
-        assertEquals(1, found.size());
-        assertEquals(entry.id(), found.getFirst().id());
-
-        stationMemberRepo.delete(member.id());
-        accountRepo.delete(account.id());
-    }
-
-    @Test
-    void incrementAttendanceCount() {
         var list =
                 waitingListRepo.create(stationId, "Attendance List", "", null, 180, null, null, 5, false, null, null);
         var entry = waitingListRepo.createEntry(
-                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
-        waitingListRepo.incrementAttendanceCount(entry.id());
-        var found = waitingListRepo.findEntryById(entry.id()).orElseThrow();
-        assertEquals(1, found.attendanceCount());
+                list.id(), "Max", "", "", "trial@test.com", UUID.randomUUID().toString(), "", null);
+        waitingListRepo.linkMember(entry.id(), member.id());
+
+        var template = attendanceRepo.createTemplate(stationId, "Probeabend");
+        var before = attendanceRepo.createSession(
+                template.id(),
+                Instant.now().minus(7, ChronoUnit.DAYS),
+                Instant.now().minus(7, ChronoUnit.DAYS),
+                null,
+                "Davor");
+        attendanceRepo.createEntry(
+                before.id(),
+                member.id(),
+                AttendanceEntry.AttendanceStatus.PRESENT,
+                AttendanceEntry.EntrySource.EXPECTED);
+
+        waitingListRepo.updateEntryStatusWithTimestamp(entry.id(), WaitingListEntryStatus.TESTING, "testing_at");
+        assertEquals(
+                0,
+                waitingListRepo.findEntryById(entry.id()).orElseThrow().attendanceCount(),
+                "an evening before the trial belongs to no trial");
+
+        var evening = attendanceRepo.createSession(
+                template.id(), Instant.now().plusSeconds(3600), Instant.now().plusSeconds(7200), null, "Probeabend");
+        attendanceRepo.createEntry(
+                evening.id(),
+                member.id(),
+                AttendanceEntry.AttendanceStatus.PRESENT,
+                AttendanceEntry.EntrySource.EXPECTED);
+        assertEquals(1, waitingListRepo.findEntryById(entry.id()).orElseThrow().attendanceCount());
+
+        var mark = attendanceRepo.findEntry(evening.id(), member.id()).orElseThrow();
+        attendanceRepo.updateEntryStatus(mark.id(), AttendanceEntry.AttendanceStatus.ABSENT);
+        assertEquals(
+                0,
+                waitingListRepo.findEntryById(entry.id()).orElseThrow().attendanceCount(),
+                "a mark taken back is no evening");
+
+        attendanceRepo.deleteTemplate(template.id());
+        stationMemberRepo.delete(member.id());
+        accountRepo.delete(account.id());
     }
 
     @Test

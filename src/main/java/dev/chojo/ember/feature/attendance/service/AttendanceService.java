@@ -6,8 +6,6 @@
 package dev.chojo.ember.feature.attendance.service;
 
 import dev.chojo.ember.conf.file.elements.Attendance;
-import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.events.AttendanceRecorded;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
@@ -27,6 +25,9 @@ import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.question.Question;
+import dev.chojo.ember.feature.question.QuestionCheck;
+import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
@@ -42,10 +43,10 @@ import tools.jackson.databind.json.JsonMapper;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -68,7 +69,6 @@ public class AttendanceService {
     private final EventRegistrationRepository eventRegistrationRepository;
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
-    private final DomainEventBus eventBus;
     private final Attendance attendanceConfig;
     private final StationRepository stationRepository;
 
@@ -81,7 +81,6 @@ public class AttendanceService {
             EventRegistrationRepository eventRegistrationRepository,
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
-            DomainEventBus eventBus,
             Attendance attendanceConfig,
             StationRepository stationRepository) {
         this.attendanceRepository = attendanceRepository;
@@ -91,7 +90,6 @@ public class AttendanceService {
         this.eventRegistrationRepository = eventRegistrationRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
-        this.eventBus = eventBus;
         this.attendanceConfig = attendanceConfig;
         this.stationRepository = stationRepository;
     }
@@ -164,6 +162,7 @@ public class AttendanceService {
 
     public List<AttendanceTemplateField> createTemplateField(
             int templateId, String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {
+        requireUsableDefault(name, fieldType, config);
         attendanceRepository.createTemplateField(templateId, name, fieldType, config, position);
         log.info("Created attendance template field for template {} (type {})", templateId, fieldType);
         return attendanceRepository.findTemplateFields(templateId);
@@ -176,12 +175,25 @@ public class AttendanceService {
             AttendanceFieldType fieldType,
             AttendanceFieldConfig config,
             int position) {
+        requireUsableDefault(name, fieldType, config);
         if (attendanceRepository.updateTemplateField(fieldId, name, fieldType, config, position)) {
             log.info("Updated attendance template field {} for template {}", fieldId, templateId);
             return Optional.of(attendanceRepository.findTemplateFields(templateId));
         }
         log.warn("Cannot update attendance template field: field {} not found", fieldId);
         return Optional.empty();
+    }
+
+    /**
+     * Refuses a field set up to start from a value it would then refuse as an answer.
+     *
+     * @throws BadRequestResponse naming the field and what is wrong with its starting value
+     */
+    private void requireUsableDefault(String name, AttendanceFieldType fieldType, AttendanceFieldConfig config) {
+        var field = new AttendanceTemplateField(0, 0, name, fieldType, config, 0);
+        QuestionCheck.defaultValue(field.question()).ifPresent(problem -> {
+            throw new BadRequestResponse(problem.message());
+        });
     }
 
     public Optional<List<AttendanceTemplateField>> deleteTemplateField(int templateId, int fieldId) {
@@ -297,6 +309,7 @@ public class AttendanceService {
         if (eventId != null) takeEventFieldValues(session.id(), eventId, false);
 
         enterExpectedMembers(session.id(), expectedMembers(templateId), new HashSet<>());
+        enterMembersNamedInAutoAttendFields(session.id(), templateId);
 
         return session;
     }
@@ -428,13 +441,40 @@ public class AttendanceService {
 
     // -- Session Fields (batch) --
 
+    /**
+     * Writes what a sheet says in its own fields.
+     *
+     * <p>What is written is measured against the question it answers, and what is left blank is not:
+     * a sheet is filled in through the evening and saved as it goes, so demanding every required
+     * answer at every save would refuse the sheet itself.
+     *
+     * @throws BadRequestResponse naming the field and what is wrong with the answer
+     */
     public List<AttendanceSessionField> setSessionFields(int sessionId, List<AttendanceFieldValueEntry> fields) {
         requireSessionOpen(sessionId);
+        var questions = questionsOfSession(sessionId);
+        for (var field : fields) {
+            var question = questions.get(field.fieldId());
+            if (question != null) {
+                QuestionCheck.answerIfGiven(question, field.value()).ifPresent(problem -> {
+                    throw new BadRequestResponse(problem.message());
+                });
+            }
+        }
         for (var field : fields) {
             attendanceRepository.setSessionField(sessionId, field.fieldId(), field.value());
         }
         log.info("Set {} session field values for attendance session {}", fields.size(), sessionId);
         return attendanceRepository.findSessionFields(sessionId);
+    }
+
+    /** The questions a sheet's own fields ask, by field. */
+    private Map<Integer, Question> questionsOfSession(int sessionId) {
+        return attendanceRepository
+                .findSessionById(sessionId)
+                .map(session -> attendanceRepository.findTemplateFields(session.templateId()).stream()
+                        .collect(Collectors.toMap(AttendanceTemplateField::id, AttendanceTemplateField::question)))
+                .orElse(Map.of());
     }
 
     // -- Entries --
@@ -569,34 +609,15 @@ public class AttendanceService {
         return attendanceRepository.findEntries(sessionId);
     }
 
-    /**
-     * Sets what an entry says about somebody, and announces the ones that say they were there.
-     *
-     * <p>Announced only on the change to present, so re-saving a sheet that already said so does
-     * not count the same evening twice.
-     */
+    /** Sets what an entry says about somebody. */
     public boolean updateEntryStatus(int entryId, AttendanceEntry.AttendanceStatus status) {
         requireSessionOpenForEntry(entryId);
-        var before = attendanceRepository.findEntryById(entryId).orElse(null);
         if (attendanceRepository.updateEntryStatus(entryId, status)) {
             log.info("Updated attendance entry {} status to {}", entryId, status);
-            if (status == AttendanceEntry.AttendanceStatus.PRESENT
-                    && before != null
-                    && before.status() != AttendanceEntry.AttendanceStatus.PRESENT) {
-                announcePresence(before);
-            }
             return true;
         }
         log.warn("Cannot update attendance entry status: entry {} not found", entryId);
         return false;
-    }
-
-    /** Tells whoever cares that somebody was there, which is what feeds a trial period's count. */
-    private void announcePresence(AttendanceEntry entry) {
-        stationMemberRepository
-                .findById(entry.memberId())
-                .ifPresent(member -> eventBus.publish(
-                        new AttendanceRecorded(member.stationId(), entry.memberId(), entry.sessionId())));
     }
 
     public boolean resetTimes(int entryId) {
@@ -680,27 +701,42 @@ public class AttendanceService {
             }
         }
 
-        // Add members from autoAttend fields
-        int templateId = session.get().templateId();
-        var templateFieldsList = attendanceRepository.findTemplateFields(templateId);
-        var sessionFieldValues = attendanceRepository.findSessionFields(sessionId);
-        var fieldValueMap = sessionFieldValues.stream()
-                .collect(Collectors.toMap(AttendanceSessionField::fieldId, f -> f.value() != null ? f.value() : ""));
+        enterMembersNamedInAutoAttendFields(sessionId, session.get().templateId());
 
-        // Refresh existing member IDs
-        existingMemberIds = attendanceRepository.findEntries(sessionId).stream()
+        log.info("Synced attendance entries from event for session {}", sessionId);
+        return attendanceRepository.findEntries(sessionId);
+    }
+
+    /**
+     * Marks everybody named in a field that attends by itself as present.
+     *
+     * <p>A field marked that way says that whoever stands in it was there: the leader of the
+     * evening, the people on the equipment, whoever the sheet names in that way. Somebody already on
+     * the sheet is moved to present rather than entered a second time.
+     *
+     * <p>Run when the sheet is opened as well as when it is filled in from its appointment, because
+     * an appointment's answer is carried into such a field the moment the sheet is made. Only
+     * filling it in later did the naming, and until somebody pressed that the people named stood in
+     * the field with no row on the sheet at all.
+     *
+     * @param sessionId  the sheet being written
+     * @param templateId the template it was made from
+     */
+    private void enterMembersNamedInAutoAttendFields(int sessionId, int templateId) {
+        var values = attendanceRepository.findSessionFields(sessionId).stream()
+                .collect(Collectors.toMap(
+                        AttendanceSessionField::fieldId, field -> field.value() != null ? field.value() : ""));
+        var entered = attendanceRepository.findEntries(sessionId).stream()
                 .map(AttendanceEntry::memberId)
                 .collect(Collectors.toCollection(HashSet::new));
 
-        for (var field : templateFieldsList) {
+        for (var field : attendanceRepository.findTemplateFields(templateId)) {
             if (!field.config().autoAttend()) continue;
-            String value = fieldValueMap.getOrDefault(field.id(), "");
+            String value = values.getOrDefault(field.id(), "");
             if (value.isBlank()) continue;
 
-            var memberIds = parseMemberIdsFromFieldValue(value);
-            for (int memberId : memberIds) {
-                if (existingMemberIds.contains(memberId)) {
-                    // If already exists but not PRESENT, upgrade to PRESENT
+            for (int memberId : QuestionValues.memberIds(value)) {
+                if (entered.contains(memberId)) {
                     attendanceRepository.findEntry(sessionId, memberId).ifPresent(entry -> {
                         if (entry.status() != AttendanceEntry.AttendanceStatus.PRESENT) {
                             attendanceRepository.updateEntryStatus(
@@ -714,12 +750,9 @@ public class AttendanceService {
                         memberId,
                         AttendanceEntry.AttendanceStatus.PRESENT,
                         AttendanceEntry.EntrySource.EXTRA);
-                existingMemberIds.add(memberId);
+                entered.add(memberId);
             }
         }
-
-        log.info("Synced attendance entries from event for session {}", sessionId);
-        return attendanceRepository.findEntries(sessionId);
     }
 
     public boolean checkIn(int entryId, Instant time) {
@@ -796,25 +829,5 @@ public class AttendanceService {
         return eventRegistrationRepository
                 .findDeclinedMemberIds(session.get().eventId(), today)
                 .contains(memberId);
-    }
-
-    private List<Integer> parseMemberIdsFromFieldValue(String value) {
-        var ids = new ArrayList<Integer>();
-        try {
-            // Try as JSON array: [1,2,3] or ["1","2"]
-            if (value.startsWith("[")) {
-                var cleaned = value.replaceAll("[\\[\\]\"\\s]", "");
-                for (String part : cleaned.split(",")) {
-                    if (!part.isBlank()) ids.add(Integer.parseInt(part.trim()));
-                }
-            } else {
-                // Try as single number or quoted number
-                var cleaned = value.replace("\"", "").trim();
-                if (!cleaned.isBlank()) ids.add(Integer.parseInt(cleaned));
-            }
-        } catch (NumberFormatException e) {
-            // ignore unparseable
-        }
-        return ids;
     }
 }

@@ -252,6 +252,7 @@ function onFieldUpdated(field: EventField) {
         :my-registrations="myRegistrations"
         :registering="answer.registering.value !== null"
         @cancelled="onEventCancelled"
+        @answers-updated="reloadMyRegistrations"
         @field-updated="onFieldUpdated"
         @register="onRegister"
         @decline="onDecline"

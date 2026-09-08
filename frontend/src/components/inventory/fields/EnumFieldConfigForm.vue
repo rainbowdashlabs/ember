@@ -6,48 +6,57 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
+import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
 import type {EnumFieldConfig, EnumOption} from '@/api/inventoryFields'
 import {harmonizeKey} from './harmonize'
 
+/**
+ * The answers a field of a piece of equipment offers.
+ *
+ * <p>The list is the one every choice question is written in. What is this feature's own is the
+ * second half of an option: what is stored is not what is read, so that renaming "Jacke" to "Einsatz-
+ * jacke" leaves the pieces already carrying it where they are. The stored half follows the label
+ * while nobody has typed one of their own, and stops following the moment somebody does.
+ */
 const props = defineProps<{
     config: EnumFieldConfig
 }>()
 
 const {t} = useI18n()
 
-function onLabelInput(opt: EnumOption, label: string) {
-    const follows = opt.value === '' || opt.value === harmonizeKey(opt.label)
-    opt.label = label
-    if (follows) {
-        opt.value = harmonizeKey(label)
-    }
+function setOptions(options: EnumOption[]) {
+    props.config.options.splice(0, props.config.options.length, ...options)
 }
 
-function removeOption(idx: number) {
-    props.config.options.splice(idx, 1)
+/** The label as somebody typed it, with the stored value following along while it still may. */
+function relabel(option: EnumOption, label: string): EnumOption {
+    const follows = option.value === '' || option.value === harmonizeKey(option.label)
+    return {label, value: follows ? harmonizeKey(label) : option.value}
 }
 
-function addOption() {
-    props.config.options.push({value: '', label: ''})
+function setValue(option: EnumOption, value: string) {
+    setOptions(props.config.options.map(candidate => (candidate === option ? {...candidate, value} : candidate)))
 }
 </script>
 
 <template>
-    <div class="mt-3">
-        <SubHeader class="mb-2">{{ t('inventory.fields.enum.options') }}</SubHeader>
-        <ul class="flex flex-col gap-2">
-            <li v-for="(opt, idx) in props.config.options" :key="idx" class="flex items-center gap-2">
-                <TextInput :model-value="opt.label" :placeholder="t('inventory.fields.enum.label')" class="flex-1" @update:model-value="onLabelInput(opt, $event ?? '')" />
-                <TextInput v-model="opt.value" :placeholder="t('inventory.fields.enum.value')" class="flex-1" />
-                <IconButton :icon="['fas', 'trash']" :label="t('common.delete')" @click="removeOption(idx)" />
-            </li>
-        </ul>
-        <SecondaryButton compact class="mt-2" @click="addOption">
-            <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
-            {{ t('inventory.fields.enum.add') }}
-        </SecondaryButton>
-    </div>
+    <QuestionOptionsEditor
+        :add-label="t('inventory.fields.enum.add')"
+        :blank="() => ({value: '', label: ''})"
+        :label="t('inventory.fields.enum.options')"
+        :model-value="props.config.options"
+        :text-of="(option: EnumOption) => option.label"
+        :with-text="relabel"
+        class="mt-3"
+        @update:model-value="setOptions"
+    >
+        <template #after="{option}">
+            <TextInput
+                :model-value="option.value"
+                :placeholder="t('inventory.fields.enum.value')"
+                class="flex-1"
+                @update:model-value="setValue(option, $event ?? '')"
+            />
+        </template>
+    </QuestionOptionsEditor>
 </template>

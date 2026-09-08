@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -16,9 +16,12 @@ import EventDetailHeader from './EventDetailHeader.vue'
 import EventInfoTab from './EventInfoTab.vue'
 import EventEquipmentTab from './EventEquipmentTab.vue'
 import EventRegistrationActions from '../eventshared/EventRegistrationActions.vue'
+import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import {isRecurringEvent, type AbsentMember, type EventField, type EventRegistrationEntry, type StationEvent} from '@/api/events'
+import {isRecurringEvent, type AbsentMember, type EventField, type EventRegistrationEntry, type EventRegistrationField, type RegistrationFieldValue, type StationEvent} from '@/api/events'
+import {events} from '@/api'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {StationModules, StationPermission, type StationMember} from '@/api/types'
 import {formatDateTime} from '@/util/format'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
@@ -50,13 +53,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'cancelled'): void
+  (e: 'answers-updated'): void
   (e: 'field-updated', field: EventField): void
   (e: 'register', people: AnswerablePerson[]): void
   (e: 'decline', people: AnswerablePerson[]): void
   (e: 'withdraw', registrationId: number): void
 }>()
-
-const answers = computed(() => localAnswers(props.registrableMembers, props.myRegistrations))
 
 /**
  * Who the station has today. Read from the same list the info tab names people from, which holds
@@ -66,6 +68,68 @@ const currentMemberIds = computed(() => props.allMembers.map(member => member.id
 
 const {t} = useI18n()
 const {isModuleEnabled} = useSession()
+
+/**
+ * The questions the appointment asks of whoever registers, which is what makes an answer worth
+ * opening again. Read here rather than in the sign-up list, because this block offers to correct an
+ * answer long after it was given.
+ */
+const registrationFields = ref<EventRegistrationField[]>([])
+
+onMounted(async () => {
+  if (!props.event.requiresRegistration) return
+  registrationFields.value = await events.listRegistrationFields(props.eventId).catch(() => [])
+})
+
+const answers = computed(() =>
+    localAnswers(props.registrableMembers, props.myRegistrations, registrationFields.value.length > 0))
+
+/**
+ * Whether an answer can still be given at all, which is the same rule the buttons follow: an
+ * appointment that has to be signed up for stops taking answers at its deadline.
+ */
+const stillTakingAnswers = computed(() => {
+  if (!props.event.requiresRegistration) return true
+  if (!props.event.registrationDeadline) return true
+  return new Date(props.event.registrationDeadline).getTime() > Date.now()
+})
+
+/**
+ * Whether the block is worth drawing at all.
+ *
+ * <p>An answer to show, or one that can still be given. Where the appointment is open to nobody in
+ * the household it stays, because the block is then the one place saying why: an empty box is what
+ * this used to be on a date whose deadline had passed with nobody having answered.
+ */
+const showAnswerBlock = computed(() => {
+  if (!props.effectiveDate) return false
+  if (answers.value.length > 0) return true
+  if (props.registrableMembers.length === 0) return true
+  return stillTakingAnswers.value
+})
+
+const updatingRegistration = ref<EventRegistrationEntry | null>(null)
+const showUpdateAnswers = ref(false)
+
+/** Opens the answers of one registration, prefilled with what was given. */
+function updateAnswers(registrationId: number) {
+  const registration = props.myRegistrations.find(entry => entry.id === registrationId)
+  if (!registration) return
+  updatingRegistration.value = registration
+  showUpdateAnswers.value = true
+}
+
+const {running: savingAnswers, error: answersError, run: saveAnswers} = useAsyncAction(
+    async (values: RegistrationFieldValue[]) => {
+      const registration = updatingRegistration.value
+      if (!registration) return
+      await events.updateRegistrationFieldValues(registration.id, values)
+      showUpdateAnswers.value = false
+      updatingRegistration.value = null
+      emit('answers-updated')
+    },
+    {formatError: () => t('common.error')},
+)
 
 const activeTab = ref<'info' | 'registrations' | 'equipment'>('info')
 
@@ -131,7 +195,7 @@ function onCancelled() {
       <span v-if="event.thresholdDate" class="text-(--text-muted)">{{ t('events.thresholdDate') }}: {{ formatDateTime(event.thresholdDate) }}</span>
     </div>
 
-    <NeutralContainer v-if="effectiveDate" class="space-y-2">
+    <NeutralContainer v-if="showAnswerBlock" class="space-y-2" data-testid="your-answer">
       <SubHeader>{{ t('eventDetail.yourAnswer') }}</SubHeader>
       <EventRegistrationActions
           :people="registrableMembers"
@@ -143,8 +207,20 @@ function onCancelled() {
           @register="people => emit('register', people)"
           @decline="people => emit('decline', people)"
           @withdraw="registrationId => emit('withdraw', registrationId)"
+          @update="registrationId => updateAnswers(registrationId)"
       />
     </NeutralContainer>
+
+    <RegistrationFieldsModal
+        v-model="showUpdateAnswers"
+        :fields="registrationFields"
+        :values="updatingRegistration?.fields"
+        :title="t('eventDetail.updateAnswer')"
+        :confirm-label="t('common.save')"
+        :busy="savingAnswers"
+        :error="answersError"
+        @confirm="saveAnswers"
+    />
 
     <div v-if="reminders.length > 0" class="flex flex-wrap gap-2 text-sm">
       <span class="text-(--text-muted)">{{ t('eventEdit.reminders') }}:</span>

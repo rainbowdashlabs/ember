@@ -7,10 +7,13 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventTemplateRegistrationField;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
+import dev.chojo.ember.feature.question.QuestionCheck;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -45,6 +48,7 @@ public class EventRegistrationFieldService {
     }
 
     public void replaceFields(int eventId, List<FieldEntry> fields) {
+        requireUsableDefaults(fields);
         repository.replaceFields(eventId, fields);
         log.info("Event {} now asks {} question(s)", eventId, fields.size());
     }
@@ -54,6 +58,7 @@ public class EventRegistrationFieldService {
     }
 
     public void replaceTemplateFields(int templateId, List<FieldEntry> fields) {
+        requireUsableDefaults(fields);
         repository.replaceTemplateFields(templateId, fields);
         log.info("Event template {} now asks {} question(s)", templateId, fields.size());
     }
@@ -100,6 +105,10 @@ public class EventRegistrationFieldService {
      * checked the same way for a member answering their own registration and for a manager filling
      * one in on their behalf.
      *
+     * <p>Every question the appointment asks takes part, the ones whose answers are kept for
+     * organisers included. Those are answered by whoever registers like any other; only the answer
+     * is theirs to keep from the rest of the station.
+     *
      * @param eventId the event being registered for
      * @param answers the answers keyed by question id, as submitted
      * @return the value to store per question id
@@ -110,43 +119,79 @@ public class EventRegistrationFieldService {
     }
 
     /**
-     * Resolves answers for a caller who may not be allowed to see every question.
+     * Resolves the answers of somebody correcting a registration, leaving the questions whose
+     * answers they may not read out of it.
      *
-     * <p>A manager-only question is skipped entirely for such a caller: they were never shown it,
-     * so it must not be required of them, and an answer they somehow sent is not theirs to give.
+     * <p>Only editing needs this. What such a caller cannot read they cannot have been shown, so
+     * requiring them to send it back would refuse every correction they make, and the answer they
+     * did not send stays where it is rather than being wiped by their edit.
      *
-     * @param manages whether the caller holds the event edit right
+     * @param readsHiddenAnswers whether this caller may read the answers kept for organisers
      */
-    public Map<Integer, String> resolveAnswers(int eventId, Map<Integer, String> answers, boolean manages) {
+    private Map<Integer, String> resolveAnswers(int eventId, Map<Integer, String> answers, boolean readsHiddenAnswers) {
         var fields = repository.findByEvent(eventId).stream()
-                .filter(field -> manages || !field.config().managersOnly())
+                .filter(field -> readsHiddenAnswers || !field.config().managersOnly())
                 .toList();
         if (fields.isEmpty()) return Map.of();
         return validate(fields, answers);
     }
 
     /**
-     * The questions a caller may see. A manager-only question is invisible to everyone without the
-     * event edit right, which is what stops it leaking through the registration form.
-     *
-     * @param manages whether the caller holds the event edit right
-     */
-    public List<EventRegistrationField> findVisibleByEvent(int eventId, boolean manages) {
-        return repository.findByEvent(eventId).stream()
-                .filter(field -> manages || !field.config().managersOnly())
-                .toList();
-    }
-
-    /**
-     * The ids of the questions a caller may not see, so their answers can be stripped from a
+     * The ids of the questions whose answers are kept for organisers, so they can be stripped from a
      * response.
+     *
+     * <p>The setting says who may read the answer, not who gives it: whoever registers is asked the
+     * question like any other, and it is the answer that is kept from everybody but the organisers
+     * and the household it belongs to.
+     *
+     * @param readsHiddenAnswers whether this reader may read them, which is true for whoever runs
+     *                           the appointment and for whoever the answers are about
      */
-    public Set<Integer> hiddenFieldIds(int eventId, boolean manages) {
-        if (manages) return Set.of();
+    public Set<Integer> hiddenFieldIds(int eventId, boolean readsHiddenAnswers) {
+        if (readsHiddenAnswers) return Set.of();
         return repository.findByEvent(eventId).stream()
                 .filter(field -> field.config().managersOnly())
                 .map(EventRegistrationField::id)
                 .collect(Collectors.toSet());
+    }
+
+    /**
+     * The questions of an appointment that have to be answered, by id.
+     *
+     * @param eventId the appointment
+     * @return the ids of its required questions, empty where it requires none
+     */
+    public Set<Integer> requiredFieldIds(int eventId) {
+        return repository.findByEvent(eventId).stream()
+                .filter(field -> field.config().required())
+                .map(EventRegistrationField::id)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Whether a registration is short of an answer somebody still has to give.
+     *
+     * <p>A required question always got an answer when it was answered at all, because registering
+     * refuses to go through without one. A required question with nothing stored against it can
+     * therefore only be one that came after the registration, which is the whole of what this says.
+     *
+     * <p>Only a registration that still stands owes anything. Somebody who declined, withdrew or was
+     * turned away holds no place, and a question added afterwards is not theirs to answer.
+     *
+     * @param status   where the registration stands
+     * @param required the ids of the appointment's required questions
+     * @param answers  what the registration carries, the answers kept for organisers included
+     * @return true where an answer is still owed
+     */
+    public static boolean owesAnswer(
+            RegistrationStatus status, Set<Integer> required, List<RegistrationFieldValue> answers) {
+        if (required.isEmpty()) return false;
+        if (status != RegistrationStatus.PENDING && status != RegistrationStatus.ACCEPTED) return false;
+        var answered = answers.stream()
+                .filter(value -> !isBlank(value.value()))
+                .map(RegistrationFieldValue::fieldId)
+                .collect(Collectors.toSet());
+        return !answered.containsAll(required);
     }
 
     /**
@@ -165,18 +210,19 @@ public class EventRegistrationFieldService {
     /**
      * Replaces the answers of an existing registration, dropping any that the new set leaves out.
      *
-     * <p>Only the questions the caller can see take part. A manager-only answer is not theirs to
-     * give and not theirs to erase, so it survives an edit by the member who registered.
+     * <p>Only the questions whose answers the caller may read take part. An answer they were never
+     * shown is not theirs to erase, so it survives their edit untouched.
      *
-     * @param eventId        the event the registration belongs to
-     * @param registrationId the registration being updated
-     * @param answers        the answers keyed by question id, as submitted
-     * @param manages        whether the caller may see the questions reserved for organisers
+     * @param eventId            the event the registration belongs to
+     * @param registrationId     the registration being updated
+     * @param answers            the answers keyed by question id, as submitted
+     * @param readsHiddenAnswers whether the caller may read the answers kept for organisers
      * @throws BadRequestResponse when a question is unanswered, unknown, or answered out of range
      */
-    public void replaceAnswers(int eventId, int registrationId, Map<Integer, String> answers, boolean manages) {
-        var resolved = resolveAnswers(eventId, answers, manages);
-        var hidden = hiddenFieldIds(eventId, manages);
+    public void replaceAnswers(
+            int eventId, int registrationId, Map<Integer, String> answers, boolean readsHiddenAnswers) {
+        var resolved = resolveAnswers(eventId, answers, readsHiddenAnswers);
+        var hidden = hiddenFieldIds(eventId, readsHiddenAnswers);
 
         for (var value : repository.findValues(registrationId)) {
             if (hidden.contains(value.fieldId())) continue;
@@ -212,39 +258,33 @@ public class EventRegistrationFieldService {
         for (var field : fields) {
             String value = answers.get(field.id());
             if (isBlank(value)) value = field.config().defaultValue();
-            if (isBlank(value)) {
-                if (field.config().required()) {
-                    throw new BadRequestResponse("Field '" + field.name() + "' is required");
-                }
-                continue;
-            }
-            validateValue(field, value);
+            QuestionCheck.answer(field.question(), value).ifPresent(problem -> {
+                throw new BadRequestResponse(problem.message());
+            });
+            if (isBlank(value)) continue;
             resolved.put(field.id(), value);
         }
         return resolved;
     }
 
-    private void validateValue(EventRegistrationField field, String value) {
-        var config = field.config();
-        if (field.fieldType() == EventFieldType.ENUM) {
-            var options = config.options();
-            if (options != null && !options.isEmpty() && !options.contains(value)) {
-                throw new BadRequestResponse("Field '" + field.name() + "' does not allow the value '" + value + "'");
-            }
-        }
-        if (field.fieldType() == EventFieldType.NUMBER) {
-            long number;
-            try {
-                number = Long.parseLong(value.trim());
-            } catch (NumberFormatException e) {
-                throw new BadRequestResponse("Field '" + field.name() + "' expects a number");
-            }
-            if (config.min() != null && number < config.min()) {
-                throw new BadRequestResponse("Field '" + field.name() + "' is below its minimum of " + config.min());
-            }
-            if (config.max() != null && number > config.max()) {
-                throw new BadRequestResponse("Field '" + field.name() + "' is above its maximum of " + config.max());
-            }
+    /**
+     * Refuses a question configured to start from a value it would then refuse as an answer.
+     *
+     * <p>A choice whose default is not among its options, a number whose default lies outside its
+     * bounds: both were written happily and only ever failed later, at somebody else's screen, in
+     * words about an answer they had not given.
+     *
+     * @param fields the questions as they are being written
+     * @throws BadRequestResponse naming the question and what is wrong with its default
+     */
+    private void requireUsableDefaults(List<FieldEntry> fields) {
+        for (var field : fields) {
+            var type = field.fieldType() != null ? field.fieldType() : EventFieldType.STRING;
+            var config = field.config() != null ? field.config() : EventRegistrationFieldConfig.empty();
+            var question = new EventRegistrationField(0, 0, field.name(), type, config, 0, field.overview()).question();
+            QuestionCheck.defaultValue(question).ifPresent(problem -> {
+                throw new BadRequestResponse(problem.message());
+            });
         }
     }
 

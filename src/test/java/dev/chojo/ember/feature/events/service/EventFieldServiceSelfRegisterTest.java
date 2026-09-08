@@ -9,9 +9,9 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.MemberFieldValue;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
@@ -116,11 +116,11 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
         service.toggleSelfRegistration(eventId, field.id(), memberA);
         service.toggleSelfRegistration(eventId, field.id(), memberB);
         var afterBoth = eventFieldRepo.findById(field.id()).orElseThrow();
-        assertEquals(List.of(memberA, memberB), MemberFieldValue.parseIds(afterBoth.value()));
+        assertEquals(List.of(memberA, memberB), QuestionValues.memberIds(afterBoth.value()));
 
         service.toggleSelfRegistration(eventId, field.id(), memberA);
         var afterAGone = eventFieldRepo.findById(field.id()).orElseThrow();
-        assertEquals(List.of(memberB), MemberFieldValue.parseIds(afterAGone.value()));
+        assertEquals(List.of(memberB), QuestionValues.memberIds(afterAGone.value()));
     }
 
     @Test
@@ -182,7 +182,7 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
         service.toggleSelfRegistration(eventId, listOfGroup.id(), memberA);
         assertEquals(
                 List.of(memberA),
-                MemberFieldValue.parseIds(
+                QuestionValues.memberIds(
                         eventFieldRepo.findById(listOfGroup.id()).orElseThrow().value()));
 
         var listOfType = createField(
@@ -191,7 +191,7 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
         service.toggleSelfRegistration(eventId, listOfType.id(), memberA);
         assertEquals(
                 List.of(memberA),
-                MemberFieldValue.parseIds(
+                QuestionValues.memberIds(
                         eventFieldRepo.findById(listOfType.id()).orElseThrow().value()));
 
         var listOfTag = createField(
@@ -199,7 +199,7 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
         service.toggleSelfRegistration(eventId, listOfTag.id(), memberA);
         assertEquals(
                 List.of(memberA),
-                MemberFieldValue.parseIds(
+                QuestionValues.memberIds(
                         eventFieldRepo.findById(listOfTag.id()).orElseThrow().value()));
     }
 
@@ -235,13 +235,13 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
 
     @Test
     void memberFieldIsShownByName() {
-        var field = valuedField(EventFieldType.MEMBER, MemberFieldValue.formatSingle(memberA));
+        var field = valuedField(EventFieldType.MEMBER, QuestionValues.formatMember(memberA));
         assertEquals("Alice Anders", service.displayValue(field));
     }
 
     @Test
     void memberListFieldNamesEveryoneInOrder() {
-        var field = valuedField(EventFieldType.MEMBER_LIST, MemberFieldValue.formatList(List.of(memberB, memberA)));
+        var field = valuedField(EventFieldType.MEMBER_LIST, QuestionValues.formatMembers(List.of(memberB, memberA)));
         assertEquals("Bob Brown, Alice Anders", service.displayValue(field));
     }
 

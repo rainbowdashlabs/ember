@@ -196,9 +196,12 @@ function statusLabel(status: string): string {
       <SubHeader>{{ statusLabel(group.status) }}</SubHeader>
       <NeutralContainer v-for="reg in group.entries" :key="reg.id">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <MemberName :identity="reg.memberIdentity ?? null"/>
             <span v-if="reg.eventDate" class="text-xs text-(--text-muted)">{{ formatDate(reg.eventDate) }}</span>
+            <ErrorBadge v-if="reg.answersMissing" :data-testid="`answer-missing-${reg.id}`">
+              {{ t('eventDetail.answerMissing') }}
+            </ErrorBadge>
           </div>
           <div v-if="decidable(reg) || canEditAnswers" class="flex items-center gap-2">
             <template v-if="decidable(reg)">

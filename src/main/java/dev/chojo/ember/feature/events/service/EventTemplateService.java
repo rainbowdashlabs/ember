@@ -6,12 +6,16 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.events.entity.EventFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -103,6 +107,7 @@ public class EventTemplateService {
      * the sheet was changed and a caller that is not the editor.
      */
     public void replaceFields(int templateId, List<EventTemplateFieldData> fields) {
+        requireUsableDefaults(fields);
         var kept = fields.stream()
                 .map(field -> reachable(templateId, field.attendanceFieldId())
                         ? field
@@ -118,6 +123,26 @@ public class EventTemplateService {
                 .toList();
         repository.replaceFields(templateId, kept);
         log.info("Replaced fields for event template {} ({} fields)", templateId, kept.size());
+    }
+
+    /**
+     * Refuses a field set up to start from a value it would not take as an answer.
+     *
+     * <p>What an appointment made from this template starts the field off with is an answer to that
+     * field, so it is measured as one: a choice starting outside its own choices is a mistake made
+     * once here and carried into every appointment written from the template.
+     *
+     * @throws BadRequestResponse naming the field and what is wrong with its starting value
+     */
+    private void requireUsableDefaults(List<EventTemplateFieldData> fields) {
+        for (var field : fields) {
+            var type = field.fieldType() != null ? field.fieldType() : EventFieldType.STRING;
+            var config = field.config() != null ? field.config() : EventFieldConfig.empty();
+            var question = config.settings().withDefault(field.defaultValue()).asQuestion(field.name(), type.kind());
+            QuestionCheck.defaultValue(question).ifPresent(problem -> {
+                throw new BadRequestResponse(problem.message());
+            });
+        }
     }
 
     /** Whether this attendance field belongs to the sheet the template writes into. */

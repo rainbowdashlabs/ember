@@ -6,6 +6,11 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.question.Question;
+import dev.chojo.ember.feature.question.QuestionSettings;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Custom field schema entry. Items carry one JSONB sub-object keyed by {@code key} inside
@@ -41,6 +46,31 @@ public record InventoryFieldDefinition(
         boolean required,
         int sortOrder,
         FieldConfig config) {
+
+    /**
+     * This field as everything that checks a question reads it.
+     *
+     * <p>What it holds is typed already, which is why a date here has always been a date. What
+     * nothing measured is whether a choice is one of the ones written down and whether a measurement
+     * sits between its bounds.
+     */
+    public Question question() {
+        return settings().withRequired(required).asQuestion(label, fieldType.kind());
+    }
+
+    /** What this field says about the question it asks, out of the settings typed per kind. */
+    private QuestionSettings settings() {
+        if (config instanceof FieldConfig.EnumConfig(List<FieldConfig.EnumConfig.EnumOption> options)) {
+            return QuestionSettings.none()
+                    .withOptions(options.stream()
+                            .map(FieldConfig.EnumConfig.EnumOption::value)
+                            .toList());
+        }
+        if (config instanceof FieldConfig.NumberConfig(BigDecimal min, BigDecimal max, BigDecimal step, String unit)) {
+            return QuestionSettings.none().withBounds(min, max);
+        }
+        return QuestionSettings.none();
+    }
 
     /**
      * Creates a row mapping for database result set conversion.

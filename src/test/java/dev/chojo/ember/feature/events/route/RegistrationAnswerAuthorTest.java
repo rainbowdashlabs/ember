@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -92,7 +93,8 @@ class RegistrationAnswerAuthorTest {
                 mock(AccountRepository.class),
                 mock(AttendanceService.class),
                 mock(MemberIdentityFactory.class),
-                mock(EventRegistrationFieldService.class));
+                mock(EventRegistrationFieldService.class),
+                mock(RegistrationAnswerReminder.class));
     }
 
     /** Runs the check the way the route does, unwrapping what reflection wraps a refusal in. */

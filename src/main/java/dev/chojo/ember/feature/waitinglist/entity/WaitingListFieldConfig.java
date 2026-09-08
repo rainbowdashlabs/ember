@@ -6,13 +6,10 @@
 package dev.chojo.ember.feature.waitinglist.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import dev.chojo.ember.util.Json;
-import org.slf4j.Logger;
-import tools.jackson.databind.ObjectMapper;
+import dev.chojo.ember.feature.question.QuestionConfigs;
+import dev.chojo.ember.feature.question.QuestionSettings;
 
 import java.util.List;
-
-import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Configuration for a waiting list field, stored as JSONB.
@@ -23,24 +20,20 @@ import static org.slf4j.LoggerFactory.getLogger;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record WaitingListFieldConfig(List<String> options, String placeholder) {
     public static final WaitingListFieldConfig EMPTY = new WaitingListFieldConfig(null, null);
-    private static final Logger log = getLogger(WaitingListFieldConfig.class);
-    private static final ObjectMapper MAPPER = Json.EMPTY_TOLERANT_CONFIG_MAPPER;
 
     public static WaitingListFieldConfig parse(String json) {
-        if (json == null || json.isBlank() || "{}".equals(json)) return EMPTY;
-        try {
-            return MAPPER.readValue(json, WaitingListFieldConfig.class);
-        } catch (Exception e) {
-            log.error("Failed to parse waiting list field config: {}", json, e);
-            return EMPTY;
-        }
+        return QuestionConfigs.parse(json, WaitingListFieldConfig.class, EMPTY);
     }
 
     public String toJson() {
-        try {
-            return MAPPER.writeValueAsString(this);
-        } catch (Exception e) {
-            return "{}";
-        }
+        return QuestionConfigs.toJson(this);
+    }
+
+    /**
+     * What this field says about the question it asks. Whether it has to be answered is a column of
+     * its own on a waiting list rather than a setting, so the field itself adds that.
+     */
+    public QuestionSettings settings() {
+        return QuestionSettings.none().withOptions(options);
     }
 }

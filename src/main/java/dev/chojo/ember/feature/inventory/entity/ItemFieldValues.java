@@ -66,6 +66,20 @@ public record ItemFieldValues(@JsonValue Map<String, FieldValue> values) {
          * Returns the {@link FieldType} this value variant carries.
          */
         FieldType fieldType();
+
+        /**
+         * The value as plain text, which is what measuring it against the field describing it asks
+         * for.
+         */
+        default String asText() {
+            return switch (this) {
+                case DateValue(var date) -> date == null ? "" : date.toString();
+                case EnumValue(var picked) -> picked == null ? "" : picked;
+                case TextValue(var text) -> text == null ? "" : text;
+                case NumberValue(var number) -> number == null ? "" : number.toPlainString();
+                case BooleanValue(var yes) -> String.valueOf(yes);
+            };
+        }
     }
 
     /**

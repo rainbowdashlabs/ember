@@ -108,6 +108,25 @@ public class ExchangeService {
                 .toList();
     }
 
+    /**
+     * The movements of a station that stand at the member they are for: the piece is on that member
+     * now, or the step the chain is on is the one that hands them a piece.
+     *
+     * <p>Every other step happens where the member is not. A piece on the station's shelf or in the
+     * post moves without them, so naming those to whoever has the member in front of them names work
+     * that nobody in the room can do.
+     *
+     * @param stationId the station
+     * @return the movements waiting on their member, as the pages read them
+     */
+    public List<ExchangeRequest> findAtMemberByStation(int stationId) {
+        return movementService.findByStation(stationId).stream()
+                .filter(movement -> movement.memberId() != null && movement.state() == MovementState.OPEN)
+                .filter(movement -> movementService.stillHeldBy(movement) || movementService.handsOverNext(movement))
+                .map(this::toRequest)
+                .toList();
+    }
+
     public List<ExchangeRequest> findByMember(int memberId) {
         return movementService.findByMember(memberId).stream()
                 .map(this::toRequest)

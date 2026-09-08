@@ -4,16 +4,19 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
+import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import {EventFieldTypes, type EventFieldTypeName, type EventRegistrationFieldDefinition} from '@/api/events'
+import {QuestionKinds, questionKindOf} from '@/util/questions'
 
 const field = defineModel<EventRegistrationFieldDefinition>({required: true})
 
@@ -27,16 +30,19 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
+/**
+ * What kind of answer this question takes, which decides the box its starting value is written in.
+ * A choice offers its own choices there rather than a line to type into: a value spelled by hand is
+ * a value the question then refuses.
+ */
+const kind = computed(() => questionKindOf(field.value.fieldType, true) ?? QuestionKinds.TEXT)
+
 function update(patch: Partial<EventRegistrationFieldDefinition>) {
   field.value = {...field.value, ...patch}
 }
 
 function updateConfig(patch: Record<string, unknown>) {
   field.value = {...field.value, config: {...field.value.config, ...patch}}
-}
-
-function setOptions(text: string) {
-  updateConfig({options: text.split('\n').map(o => o.trim()).filter(o => o !== '')})
 }
 
 function numberOrNull(value: unknown): number | null {
@@ -80,7 +86,9 @@ function numberOrNull(value: unknown): number | null {
         <ToggleInput :model-value="field.overview" @update:model-value="v => update({overview: v})"/>
       </div>
       <div>
-        <FieldLabel class="mb-1">{{ t('events.registrationFields.managersOnly') }}</FieldLabel>
+        <FieldLabel class="mb-1" :title="t('events.registrationFields.managersOnlyHint')">
+          {{ t('events.registrationFields.managersOnly') }}
+        </FieldLabel>
         <ToggleInput
             :model-value="field.config.managersOnly ?? false"
             @update:model-value="v => updateConfig({managersOnly: v})"
@@ -88,9 +96,11 @@ function numberOrNull(value: unknown): number | null {
       </div>
       <div class="flex-1 min-w-40">
         <FieldLabel class="mb-1">{{ t('events.registrationFields.defaultValue') }}</FieldLabel>
-        <TextInput
+        <QuestionValueInput
+            :kind="kind"
             :model-value="field.config.defaultValue ?? ''"
-            @update:model-value="v => updateConfig({defaultValue: String(v)})"
+            :options="field.config.options ?? []"
+            @update:model-value="value => updateConfig({defaultValue: value})"
         />
         <FieldHint>{{ t('events.registrationFields.defaultValueHint') }}</FieldHint>
       </div>
@@ -113,14 +123,11 @@ function numberOrNull(value: unknown): number | null {
       </div>
     </div>
 
-    <div v-if="field.fieldType === EventFieldTypes.ENUM">
-      <FieldLabel class="mb-1">{{ t('events.registrationFields.options') }}</FieldLabel>
-      <TextAreaInput
-          :model-value="(field.config.options ?? []).join('\n')"
-          class="font-mono text-sm"
-          @update:model-value="v => setOptions(String(v))"
-      />
-      <FieldHint>{{ t('events.registrationFields.optionsHint') }}</FieldHint>
-    </div>
+    <QuestionOptionsEditor
+        v-if="field.fieldType === EventFieldTypes.ENUM"
+        :label="t('events.registrationFields.options')"
+        :model-value="field.config.options ?? []"
+        @update:model-value="options => updateConfig({options})"
+    />
   </div>
 </template>

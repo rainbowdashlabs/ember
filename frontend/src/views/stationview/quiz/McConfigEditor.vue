@@ -4,12 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
+import QuestionOptionsEditor from '@/components/input/QuestionOptionsEditor.vue'
 import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -32,32 +31,19 @@ function updateConfig(patch: Record<string, unknown>) {
   config.value = {...config.value, ...patch}
 }
 
-function addMcOption() {
-  const opts = [...((config.value.options as { text: string; correct: boolean }[]) || [])]
-  opts.push({text: '', correct: false})
-  updateConfig({options: opts})
+/** One answer somebody may pick, and whether picking it is right. */
+interface McOption {
+  text: string
+  correct: boolean
 }
 
-function removeMcOption(idx: number) {
-  const opts = [...((config.value.options as { text: string; correct: boolean }[]) || [])]
-  opts.splice(idx, 1)
-  updateConfig({options: opts})
-}
+const mcOptions = computed<McOption[]>(() => (config.value.options as McOption[]) ?? [])
 
-function updateMcOptionText(idx: number, value: string) {
-  const opts = [...((config.value.options as { text: string; correct: boolean }[]) || [])]
-  const option = opts[idx]
-  if (!option) return
-  opts[idx] = {...option, text: value}
-  updateConfig({options: opts})
-}
-
-function toggleMcOptionCorrect(idx: number) {
-  const opts = [...((config.value.options as { text: string; correct: boolean }[]) || [])]
-  const option = opts[idx]
-  if (!option) return
-  opts[idx] = {...option, correct: !option.correct}
-  updateConfig({options: opts})
+function toggleMcOptionCorrect(option: McOption) {
+  updateConfig({
+    options: mcOptions.value.map(candidate =>
+        candidate === option ? {...candidate, correct: !candidate.correct} : candidate),
+  })
 }
 
 const aiCountMode = ref<'add' | 'fillTo'>('add')
@@ -99,31 +85,34 @@ const {running: aiGenerating, error: aiError, run: generateWrongAnswers} = useAs
   </div>
   <p class="text-xs text-(--text-muted)">{{ t('quiz.questions.config.mcScoringHint') }}</p>
   <div class="space-y-2">
-    <div v-for="(opt, idx) in (config.options as { text: string; correct: boolean }[])" :key="idx"
-         class="flex items-center gap-2">
-      <IconButton
-          :icon="['fas', opt.correct ? 'square-check' : 'square']"
-          :label="t('quiz.questions.config.correctAnswer')"
-          :class="opt.correct ? 'text-success' : 'text-(--text-muted)'"
-          @click="toggleMcOptionCorrect(idx)"
-      />
-      <TextInput :model-value="opt.text" class="flex-1"
-                 @update:model-value="(v: string | undefined) => updateMcOptionText(idx, v ?? '')"/>
-      <DeleteButton @click="removeMcOption(idx)"/>
-    </div>
-    <div class="flex items-center gap-2 flex-wrap">
-      <SecondaryButton @click="addMcOption">
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
-        {{ t('quiz.questions.config.addOption') }}
-      </SecondaryButton>
-      <SecondaryButton :disabled="aiGenerating" @click="generateWrongAnswers">
-        <Spinner v-if="aiGenerating" size="sm" class="mr-1"/>
-        <font-awesome-icon v-else :icon="['fas', 'brain']" class="mr-1"/>
-        {{ t('quiz.ai.generate') }}
-      </SecondaryButton>
-      <ToggleSwitch v-model="aiCountMode" option-a="add" option-b="fillTo" :label-a="t('quiz.ai.modeAdd')" :label-b="t('quiz.ai.modeFillTo')"/>
-      <NumberInput v-model="aiCount" class="w-14"/>
-    </div>
+    <QuestionOptionsEditor
+        :add-label="t('quiz.questions.config.addOption')"
+        :blank="() => ({text: '', correct: false})"
+        :model-value="mcOptions"
+        :text-of="(option: McOption) => option.text"
+        :with-text="(option: McOption, text: string) => ({...option, text})"
+        @update:model-value="options => updateConfig({options})"
+    >
+      <template #before="{option}">
+        <IconButton
+            :class="option.correct ? 'text-success' : 'text-(--text-muted)'"
+            :icon="['fas', option.correct ? 'square-check' : 'square']"
+            :label="t('quiz.questions.config.correctAnswer')"
+            @click="toggleMcOptionCorrect(option)"
+        />
+      </template>
+
+      <template #actions>
+        <SecondaryButton :disabled="aiGenerating" @click="generateWrongAnswers">
+          <Spinner v-if="aiGenerating" size="sm" class="mr-1"/>
+          <font-awesome-icon v-else :icon="['fas', 'brain']" class="mr-1"/>
+          {{ t('quiz.ai.generate') }}
+        </SecondaryButton>
+        <ToggleSwitch v-model="aiCountMode" :label-a="t('quiz.ai.modeAdd')" :label-b="t('quiz.ai.modeFillTo')"
+                      option-a="add" option-b="fillTo"/>
+        <NumberInput v-model="aiCount" class="w-14"/>
+      </template>
+    </QuestionOptionsEditor>
     <div v-if="aiError" class="text-xs text-error">{{ aiError }}</div>
   </div>
 </template>

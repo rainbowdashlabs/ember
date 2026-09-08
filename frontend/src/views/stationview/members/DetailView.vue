@@ -42,6 +42,7 @@ const memberUserType = ref<string>('')
 const allMembers = ref<StationMember[]>([])
 const changes = ref<ProfileFieldChange[]>([])
 const memberPermissions = ref<PermissionGrant[]>([])
+const managedMembers = ref<StationMember[]>([])
 const memberGroupList = ref<MemberGroup[]>([])
 const memberTagList = ref<UserTag[]>([])
 
@@ -95,7 +96,7 @@ const tabs = computed(() => {
   const t_ = [
     { key: 'profile', label: t('memberDetail.tabProfile') },
     { key: 'permissions', label: t('memberDetail.tabPermissions') },
-    { key: 'guardians', label: t('memberDetail.tabGuardians') },
+    { key: 'relations', label: relationsTabLabel.value },
     { key: 'documents', label: t('memberDetail.tabDocuments') },
   ]
   if (canEdit.value) {
@@ -114,17 +115,30 @@ const showManagerSection = computed(() =>
   memberUserType.value === StationUserType.MEMBER || memberUserType.value === StationUserType.TRIAL
 )
 
+/**
+ * Whether this member looks after somebody else, which is what the tab is about for a guardian:
+ * asking who their own guardians are says nothing, and the answer was always the same empty line.
+ */
+const managesMembers = computed(() =>
+  managedMembers.value.length > 0 || memberUserType.value === StationUserType.GUARDIAN
+)
+
+const relationsTabLabel = computed(() =>
+  managesMembers.value ? t('memberDetail.tabManagedMembers') : t('memberDetail.tabGuardians')
+)
+
 async function loadChanges() {
   try { changes.value = await profileFieldChanges.getChanges(memberId.value) } catch { void 0 }
 }
 
 async function loadDetail() {
-  const [allFields, allMems, memberData, profileValues, mgrs, perms, mGroups, mTags] = await Promise.all([
+  const [allFields, allMems, memberData, profileValues, mgrs, managed, perms, mGroups, mTags] = await Promise.all([
     profileFields.listFields(),
     stationMembers.listMembers(),
     stationMembers.getMember(memberId.value),
     profileFields.getValues(memberId.value),
     stationMembers.getManagers(memberId.value),
+    stationMembers.getManaged(memberId.value),
     stationMembers.getPermissions(memberId.value),
     memberGroups.getMemberGroups(memberId.value),
     userTags.getMemberTags(memberId.value),
@@ -134,6 +148,7 @@ async function loadDetail() {
   member.value = allMems.find(m => m.id === memberId.value) ?? null
   memberUserType.value = memberData.userType ?? ''
   managers.value = mgrs
+  managedMembers.value = managed
   memberPermissions.value = perms
   memberGroupList.value = mGroups
   memberTagList.value = mTags
@@ -162,6 +177,7 @@ const loadedTabsProps = computed(() => ({
   memberTagList: memberTagList.value,
   showManagerSection: showManagerSection.value,
   managers: managers.value,
+  managedMembers: managedMembers.value,
   availableManagers: availableManagers.value,
   allMembers: allMembers.value,
   managerValues: managerValues.value,

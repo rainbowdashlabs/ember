@@ -142,6 +142,7 @@
     "EVENT_REMINDER.other": "Erinnerung: {eventName} in {daysBefore} Tagen",
     "REGISTRATION_CLOSING.one": "Anmeldung schließt morgen: {eventName} - {memberName} offen",
     "REGISTRATION_CLOSING.other": "Anmeldung schließt in {daysBefore} Tagen: {eventName} - {memberName} offen",
+    "REGISTRATION_ANSWER_MISSING": "Antwort fehlt: {eventName} - {memberName}",
     "PROCEDURE_ASSIGNED": "Prozedur zugewiesen: {procedureName}",
     "PROCEDURE_RESOLVED": "Abgeschlossen: {procedureName}",
     "PROCEDURE_REOPENED": "Wieder geöffnet: {procedureName}",
@@ -192,6 +193,7 @@
     "EVENT_CANCELLED": "Termin abgesagt",
     "EVENT_REMINDER": "Termin-Erinnerung",
     "REGISTRATION_CLOSING": "Anmeldefrist endet",
+    "REGISTRATION_ANSWER_MISSING": "Antwort nachgefragt",
     "PROCEDURE_ASSIGNED": "Prozedur zugewiesen",
     "PROCEDURE_RESOLVED": "Prozedur abgeschlossen",
     "PROCEDURE_REOPENED": "Prozedur wieder geöffnet",
@@ -268,6 +270,7 @@
     "notification.clusterFieldValueChanged": "{clusterName} hat in deinem Profil {fields} geändert",
     "notification.registrationClosing.one": "{eventName}: Anmeldung schließt morgen, {memberName} hat noch nicht geantwortet",
     "notification.registrationClosing.other": "{eventName}: Anmeldung schließt in {daysBefore} Tagen, {memberName} hat noch nicht geantwortet",
+    "notification.registrationAnswerMissing": "{eventName} am {eventDate}: es gibt eine neue Frage, {memberName} hat sie noch nicht beantwortet",
     "notification.movementCancelled": "{inventoryName}: Bewegung von {itemName} abgebrochen - {reason}"
   }
 }

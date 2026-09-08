@@ -130,6 +130,18 @@ public sealed interface NotificationParams {
      */
     record RegistrationClosing(String eventName, int daysBefore, String memberName) implements NotificationParams {}
 
+    /**
+     * An appointment gained a question after somebody had already registered, so their registration
+     * is short of an answer.
+     *
+     * @param eventName  the appointment that wants the answer
+     * @param eventDate  the evening the registration is for, which is what the link opens
+     * @param memberName whose answer is missing, which is the reader themselves or somebody they
+     *                   look after; a guardian needs to know which of their children it is about
+     */
+    record RegistrationAnswerMissing(String eventName, LocalDate eventDate, String memberName)
+            implements NotificationParams {}
+
     record ProcedureAssigned(String procedureName, String assignedByName) implements NotificationParams {}
 
     record ProcedureResolvedParams(String procedureName) implements NotificationParams {}

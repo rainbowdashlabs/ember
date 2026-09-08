@@ -470,6 +470,21 @@ public class NotificationFeedRenderer {
                     enrichWithEventContext(details, notification, ctx);
                 }
             }
+            case REGISTRATION_ANSWER_MISSING -> {
+                if (params
+                        instanceof
+                        NotificationParams.RegistrationAnswerMissing(
+                                String eventName,
+                                LocalDate eventDate,
+                                String memberName)) {
+                    putIfPresent(details, label(ctx, "event", "Event"), eventName);
+                    putIfPresent(details, label(ctx, "member", "Member"), memberName);
+                    if (eventDate != null) {
+                        details.put(label(ctx, "eventDate"), formatLocalDate(eventDate, ctx.locale()));
+                    }
+                    enrichWithEventContext(details, notification, ctx);
+                }
+            }
             case EXCHANGE_NEW_REQUEST -> {
                 if (params
                         instanceof

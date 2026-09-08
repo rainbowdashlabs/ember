@@ -6,20 +6,22 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import NumberInput from '@/components/input/number/NumberInput.vue'
-import DecimalInput from '@/components/input/number/DecimalInput.vue'
-import DateInput from '@/components/input/datetime/DateInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
 import {FieldType, numberFieldViolation, type EnumFieldConfig, type InventoryFieldDefinition, type NumberFieldConfig, type TextFieldConfig} from '@/api/inventoryFields'
+import {QuestionKinds, questionKindOf, type QuestionKindName} from '@/util/questions'
 
+/**
+ * Answering one of the fields a piece of equipment carries.
+ *
+ * <p>The box is the one every question is answered in. What stays here is this feature's own: its
+ * values are typed rather than text, which is the shape the rest of Ember is being brought to, so
+ * this turns them into text on the way in and back into a number, a date or a yes on the way out.
+ */
 const props = defineProps<{
   field: InventoryFieldDefinition
 }>()
 
-const value = defineModel<any>({required: true})
+const value = defineModel<unknown>({required: true})
 
 const {t} = useI18n()
 
@@ -34,28 +36,44 @@ const numberError = computed(() => {
 const textConfig = computed(() => props.field.config as TextFieldConfig)
 const numberConfig = computed(() => props.field.config as NumberFieldConfig)
 const enumConfig = computed(() => props.field.config as EnumFieldConfig)
+
+/** A long answer is a text field the station marked as one, which no other feature says separately. */
+const kind = computed<QuestionKindName>(() => {
+  if (props.field.fieldType === FieldType.TEXT && textConfig.value.multiline) return QuestionKinds.LONG_TEXT
+  return questionKindOf(props.field.fieldType) ?? QuestionKinds.TEXT
+})
+
+const asText = computed(() => (value.value == null ? '' : String(value.value)))
+
+/** Back into the shape a piece of equipment stores: a number, a yes or a no, or nothing at all. */
+function write(next: string) {
+  if (next === '') {
+    value.value = props.field.fieldType === FieldType.BOOLEAN ? false : null
+    return
+  }
+  if (props.field.fieldType === FieldType.NUMBER) {
+    const parsed = Number(next)
+    value.value = Number.isNaN(parsed) ? null : parsed
+    return
+  }
+  if (props.field.fieldType === FieldType.BOOLEAN) {
+    value.value = next === 'true'
+    return
+  }
+  value.value = next
+}
 </script>
 
 <template>
-  <template v-if="field.fieldType === FieldType.TEXT">
-    <TextAreaInput v-if="textConfig.multiline" v-model="value" :maxlength="textConfig.maxLength || undefined" :rows="3" />
-    <TextInput v-else v-model="value" :maxlength="textConfig.maxLength || undefined" />
-  </template>
-  <template v-else-if="field.fieldType === FieldType.NUMBER">
-    <DecimalInput v-if="(numberConfig.step ?? 1) < 1" v-model="value" :min="numberConfig.min ?? undefined" :max="numberConfig.max ?? undefined" />
-    <NumberInput v-else v-model="value" :min="numberConfig.min ?? undefined" :max="numberConfig.max ?? undefined" />
-    <p v-if="numberError" class="text-xs text-error mt-1">{{ numberError }}</p>
-  </template>
-  <template v-else-if="field.fieldType === FieldType.DATE">
-    <DateInput v-model="value" />
-  </template>
-  <template v-else-if="field.fieldType === FieldType.ENUM">
-    <SelectInput v-model="value">
-      <option :value="null">-</option>
-      <option v-for="opt in enumConfig.options" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-    </SelectInput>
-  </template>
-  <template v-else-if="field.fieldType === FieldType.BOOLEAN">
-    <ToggleInput v-model="value" />
-  </template>
+  <QuestionValueInput
+      :kind="kind"
+      :max="numberConfig.max ?? undefined"
+      :max-length="textConfig.maxLength || undefined"
+      :min="numberConfig.min ?? undefined"
+      :model-value="asText"
+      :options="enumConfig.options ?? []"
+      :step="numberConfig.step ?? 1"
+      @update:model-value="write($event)"
+  />
+  <p v-if="numberError" class="text-xs text-error mt-1">{{ numberError }}</p>
 </template>
