@@ -114,15 +114,19 @@ public class MemberCheckNotesService {
     }
 
     /**
-     * Swaps that have not finished, by member.
+     * Swaps standing at the member, by member.
+     *
+     * <p>Only a swap the member has the piece of, or one whose next step hands them a piece, is
+     * anything to say to somebody standing in front of you. A swap whose piece is on the shelf or in
+     * the post is between the station and the owner until it comes back, and saying it here reads as
+     * work for a member who has nothing to do with it.
      *
      * <p>Read for the station in one go rather than a member at a time, because working out where a
      * swap stands means reading where both its pieces are.
      */
     private Map<Integer, List<SwapNote>> openSwaps(int stationId) {
         var byMember = new HashMap<Integer, List<SwapNote>>();
-        for (var request : exchangeService.findByStation(stationId)) {
-            if (!request.status().walkable() || request.status() == ExchangeStatus.DONE) continue;
+        for (var request : exchangeService.findAtMemberByStation(stationId)) {
             var inventory = inventoryService.findById(request.inventoryId());
             var next = nextStatus(
                     request.status(), inventory.map(Inventory::inventoryType).orElse(InventoryType.EXTERNAL));

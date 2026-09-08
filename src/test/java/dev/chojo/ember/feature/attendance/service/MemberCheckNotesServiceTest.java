@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
@@ -126,6 +127,41 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
         assertFalse(forTicker.containsKey(member.id()), "a reader without the inventory is told nothing");
 
         itemMovementService.abandon(exchange.id(), "Test vorbei");
+    }
+
+    /**
+     * A swap of the association's gear leaves the sheet the moment the old piece is in. The two
+     * postal steps run between the station and the association, so naming them beside a name is work
+     * for somebody who has nothing to do with it. It is named again once the replacement is here and
+     * the next move is putting it into their hands.
+     */
+    @Test
+    void aSwapPassingThroughThePostIsNamedOnlyAtItsTwoEnds() {
+        var inventory = inventoryService.create(station.id(), "Handschuhe", InventoryType.MIXED, false, true);
+        var item = inventoryRepo.createItem(inventory.id(), "HS-1", "Handschuhe", null, null, ItemOwner.CLUSTER, null);
+        itemCustodyService.assignToMember(item.id(), member.id(), "");
+        var replacement =
+                inventoryRepo.createItem(inventory.id(), "HS-2", "Handschuhe", null, null, ItemOwner.CLUSTER, null);
+        var exchange = exchangeService.create(
+                station.id(), member.id(), "Check Notes", item.id(), inventory.id(), null, null, "Kaputt", null);
+
+        assertTrue(namesSwap(exchange.id()), "the member is still wearing the old piece");
+
+        exchangeService.updateStatus(exchange.id(), ExchangeStatus.SHIPPED, member.id(), "Auf dem Weg");
+        assertFalse(namesSwap(exchange.id()), "the piece is between the station and the association");
+
+        exchangeService.updateStatus(exchange.id(), ExchangeStatus.ARRIVED, member.id(), "Ersatz da", replacement.id());
+        assertTrue(namesSwap(exchange.id()), "the next move hands the replacement over");
+
+        itemMovementService.abandon(exchange.id(), "Test vorbei");
+        inventoryRepo.delete(inventory.id());
+    }
+
+    /** Whether the sheet names this swap beside the member, read as somebody who may see swaps. */
+    private boolean namesSwap(int exchangeId) {
+        var notes = service.findForStation(station.id(), Set.of(StationPermission.INVENTORY_READ))
+                .get(member.id());
+        return notes != null && notes.swaps().stream().anyMatch(swap -> swap.exchangeId() == exchangeId);
     }
 
     /**

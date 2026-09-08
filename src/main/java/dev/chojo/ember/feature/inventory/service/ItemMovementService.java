@@ -695,6 +695,21 @@ public class ItemMovementService {
     }
 
     /**
+     * Whether the step a movement stands on is the one that puts its piece into the member's hands.
+     *
+     * <p>Which is what says the member is about to hold it, as opposed to a piece moving between a
+     * shelf and the post with nothing for them to do.
+     *
+     * @param movement the movement
+     * @return true when acknowledging the step it stands on leaves the piece with the member
+     */
+    public boolean handsOverNext(ItemMovement movement) {
+        if (movement.memberId() == null) return false;
+        MovementFlowStep step = currentStep(movement);
+        return step != null && step.custodyAfter() == ItemCustody.WITH_MEMBER;
+    }
+
+    /**
      * Whether the member calling this off is the one the movement is for and still has the piece.
      *
      * <p>Read off the item rather than off the step: the member walked their own step when they asked
