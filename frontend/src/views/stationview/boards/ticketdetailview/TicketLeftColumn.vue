@@ -66,7 +66,7 @@ const emit = defineEmits<{
     createComment: [parentId: number | null, content: string]
     updateComment: [commentId: number, content: string]
     deleteComment: [commentId: number]
-    uploadFile: [file: File]
+    uploadFiles: [files: File[]]
     kbSearch: []
     addKbLink: [id: number]
     removeKbLink: [id: number]
@@ -80,8 +80,8 @@ function triggerFilePicker() {
     fileInputRef.value?.inputRef?.click()
 }
 
-function onFileSelect(file: File) {
-    emit('uploadFile', file)
+function onFilesSelect(files: File[]) {
+    emit('uploadFiles', files)
 }
 </script>
 
@@ -102,7 +102,7 @@ function onFileSelect(file: File) {
             @add-attachment="triggerFilePicker"
             @add-kb-link="showKbSearch = true"
         />
-        <div v-if="canEdit" class="hidden"><FileUploadButton ref="fileInputRef" @select="onFileSelect" /></div>
+        <div v-if="canEdit" class="hidden"><FileUploadButton ref="fileInputRef" multiple @select-many="onFilesSelect" /></div>
         <TicketDescriptionEditor
             v-model:description="description"
             v-model:editing="editingDescription"

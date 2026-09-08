@@ -42,16 +42,13 @@ const emit = defineEmits<{
 const {t} = useI18n()
 const {hasPermission} = useSession()
 const instance = computed(() => props.stationUid === INSTANCE_MEDIA_SCOPE)
-const {entries, folders, tags, loading, load} = useMediaLibrary(props.stationUid === INSTANCE_MEDIA_SCOPE)
-
 /**
  * A member who authors none of the station's content sees only their own uploads, and organising
- * station media is not theirs to do. Same component either way: the backend decides which set
- * comes back, and these two flags decide which controls come with it.
+ * station media is not theirs to do. Same component either way: the library decides which set
+ * comes back and whether it may be organised, and these two flags decide which controls come with
+ * it.
  */
-const organises = computed(() => !instance.value && (hasPermission(StationPermission.PAGE_EDIT)
-    || hasPermission(StationPermission.NEWS_EDIT)
-    || hasPermission(StationPermission.KNOWLEDGE_EDIT)))
+const {entries, folders, tags, loading, organises, load} = useMediaLibrary(props.stationUid === INSTANCE_MEDIA_SCOPE)
 const mayPrune = computed(() => !instance.value && hasPermission(StationPermission.PAGE_MANAGER))
 
 const uploadError = ref<string | null>(null)
