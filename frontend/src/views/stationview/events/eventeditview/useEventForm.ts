@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {reactive, watch} from 'vue'
+import {computed, reactive, watch} from 'vue'
 import {events} from '@/api'
 import {EventTypes, needsDayOfWeek, type EventField, type EventFieldEntry, type EventTemplateDetail, type StationEvent} from '@/api/events'
 import {toRestriction} from '@/components/input/restriction'
@@ -25,6 +25,16 @@ export function useEventForm() {
       state.endTime = val
     }
   })
+
+  /**
+   * Whether the appointment finishes before it begins.
+   *
+   * <p>An appointment may run past midnight and over several days, so only the one order that
+   * cannot happen is refused. It reaches further than the appointment itself: an attendance sheet
+   * takes its times from here, and a sheet running backwards counts everybody on it for nothing.
+   */
+  const endsBeforeItStarts = computed(() =>
+      !!state.startTime && !!state.endTime && new Date(state.endTime) < new Date(state.startTime))
 
   /**
    * Fills the form from an event template.
@@ -149,5 +159,5 @@ export function useEventForm() {
     return state.fields.filter(f => f.name.trim())
   }
 
-  return {state, props, handlers, applyTemplate, loadEvent, buildPayload, namedFields}
+  return {state, props, handlers, applyTemplate, loadEvent, buildPayload, namedFields, endsBeforeItStarts}
 }

@@ -63,6 +63,10 @@ const {t} = useI18n()
       </NeutralContainer>
     </div>
 
+    <HelpSection :title="t('helpCenter.attendanceNew.timesTitle')">
+      <p>{{ t('helpCenter.attendanceNew.timesText') }}</p>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.attendanceNew.tip') }}</HelpTip>
   </HelpArticle>
 </template>

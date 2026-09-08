@@ -24,6 +24,7 @@ const props = defineProps<{
   readonly?: boolean
   sessionStart?: string
   sessionEnd?: string
+  spansDays?: boolean
   notes?: MemberNotes
   canMoveSwap?: boolean
   canSignOffFound?: boolean
@@ -71,6 +72,7 @@ const hadJoined = computed(() => {
           :entry="entry"
           :session-end="sessionEnd"
           :session-start="sessionStart"
+          :spans-days="spansDays"
           @set-status="emit('setStatus', entry.id, $event)"
           @check-in="emit('checkIn', entry.id, $event)"
           @check-out="emit('checkOut', entry.id, $event)"
@@ -81,6 +83,7 @@ const hadJoined = computed(() => {
           :entry="entry"
           :session-end="sessionEnd"
           :session-start="sessionStart"
+          :spans-days="spansDays"
       />
       <MemberEntryStatusButtons
           v-else-if="!readonly && hadJoined"

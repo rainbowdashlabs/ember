@@ -98,7 +98,7 @@
     #v(0.5em)
     #text(size: 9pt, weight: "bold")[#session.title]
     #h(0.5em)
-    #text(size: 8pt, fill: luma(100))[#session.date · #session.startTime – #session.endTime]
+    #text(size: 8pt, fill: luma(100))[#if session.endDate == "" [#session.date · #session.startTime – #session.endTime] else [#session.date #session.startTime – #session.endDate #session.endTime]#if session.countedHours != "" [ · counted as #session.countedHours h]]
     #v(0.1em)
     #text(size: 8pt)[Participants: #session.presentCount]
     #v(0.2em)

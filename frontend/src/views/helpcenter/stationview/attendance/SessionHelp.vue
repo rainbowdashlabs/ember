@@ -55,6 +55,11 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.attendanceSession.headerText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.attendanceSession.countedHoursTitle')">
+      <p>{{ t('helpCenter.attendanceSession.countedHoursText') }}</p>
+      <p>{{ t('helpCenter.attendanceSession.countedHoursShareText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.attendanceSession.howTo')">
       <p>{{ t('helpCenter.attendanceSession.howToText') }}</p>
       <p>{{ t('helpCenter.attendanceSession.statusPresent') }}</p>

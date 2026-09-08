@@ -1989,6 +1989,11 @@ volumes:
             fromEventText: 'Wenn es heute Termine gibt, werden sie oben angezeigt. Klicke auf den Termin, um direkt eine Anwesenheit für diesen Termin zu starten.',
             fromTemplateTitle: 'Aus Vorlage erstellen',
             fromTemplateText: 'Du kannst auch eine Anwesenheitsvorlage wählen (z.B. „Übungsabend"). Die Vorlage bestimmt, welche Gruppen erwartet werden und welche Felder erfasst werden.',
+            timesTitle: 'Zeitraum festlegen',
+            timesText: 'Nach der Auswahl der Vorlage fragt Ember, wann die Erfassung läuft. Beginn und Ende sind mit '
+                + 'der aktuellen Zeit und der Dauer der letzten Erfassung dieser Vorlage vorbelegt, du kannst beide '
+                + 'aber frei setzen. Da beide Felder ein Datum tragen, lässt sich auch ein Zeltlager über mehrere '
+                + 'Tage erfassen, ganz ohne Termin.',
             tip: 'Vorlagen erstellst du unter „Wache verwalten" → „Anwesenheits-Konfiguration".',
         },
         attendancePast: {
@@ -2040,7 +2045,19 @@ volumes:
             export: 'PDF Export - Erstellt ein PDF der Anwesenheitsliste. Solange noch etwas zu prüfen ist, steht der Punkt im Menü mit den drei Punkten, danach als Button daneben.',
             toolbarTitle: 'Werkzeugleiste',
             toolbarText: 'Oben stehen der Weg zurück und die eine Aktion, für die du gekommen bist. Alles Weitere - Export, Synchronisieren und das Löschen der Erfassung - liegt im Menü mit den drei Punkten daneben.',
-            headerTitle: 'Sitzungskopf bearbeiten', headerText: 'Du kannst Titel, Startzeit und Endzeit direkt ändern.',
+            headerTitle: 'Sitzungskopf bearbeiten',
+            headerText: 'Titel, Beginn und Ende änderst du direkt im Kopf des Bogens, auch dann, wenn der Bogen zu '
+                + 'einem Termin gehört. Beide Zeiten tragen ihr Datum, ein Bogen darf also über mehrere Tage laufen. '
+                + 'Weicht er vom Termin ab, wird dessen Zeitraum daneben angezeigt und lässt sich mit einem Klick '
+                + 'wieder übernehmen.',
+            countedHoursTitle: 'Gewertete Stunden',
+            countedHoursText: 'Zählen die Stunden für eine Vergütung, ist die reine Uhrzeit nicht immer die Zahl, die '
+                + 'zählt: Ein Zeltlager von Freitagabend bis Sonntagnachmittag sind keine 46 Arbeitsstunden. Im Feld '
+                + '„Gewertete Stunden" legst du fest, was eine volle Anwesenheit auf diesem Bogen wert ist. Der '
+                + 'Zeitraum bleibt unverändert, nur die Summe im Bericht ändert sich.',
+            countedHoursShareText: 'Wer nur einen Teil der Zeit da war, bekommt seinen Anteil: Bei vier Stunden, die '
+                + 'als drei gewertet werden, erhält eine halbe Anwesenheit anderthalb Stunden. Bleibt das Feld leer, '
+                + 'entscheiden wie bisher Beginn und Ende.',
             summaryTitle: 'Statusübersicht', memberEntryTitle: 'Mitglieder und Zeiten',
             memberEntryText: 'Bei anwesenden Mitgliedern erscheinen Felder für Kommen und Gehen. Blass '
                 + 'dargestellt stehen dort die Zeiten der Sitzung: so lange niemand etwas anderes einträgt, '
@@ -2061,6 +2078,11 @@ volumes:
             tableTitle: 'Ergebnistabelle',
             filterPeriod: 'Zeitraum - Jahr, Monat oder Kalenderwoche.',
             filterRounding: 'Rundung - Wie Stunden gerundet werden.',
+            countedTitle: 'Bögen mit gewerteten Stunden',
+            countedText: 'Trägt ein Bogen gewertete Stunden, steht das neben seinem Zeitraum, und die Stunden in '
+                + 'seiner Tabelle folgen dieser Zahl statt der Uhrzeit. Läuft ein Bogen über mehrere Tage, stehen '
+                + 'beide Daten am Bogen und jede Kommen- und Gehen-Zeit trägt ihren Tag. Ein Bogen zählt in dem '
+                + 'Monat, in dem er beginnt, auch wenn er in den nächsten hineinläuft.',
             previewTitle: 'Vorschau & PDF',
             previewText: 'Klicke auf Vorschau, um den Bericht anzuzeigen. Mit PDF exportieren erstellst du eine druckfertige Version.',
             previewSave: 'Du kannst häufig genutzte Filtereinstellungen als Vorlage speichern und später wiederverwenden.',

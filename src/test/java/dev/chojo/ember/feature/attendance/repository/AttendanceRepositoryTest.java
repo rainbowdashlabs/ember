@@ -123,7 +123,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     void createSession() {
         Instant start = Instant.now();
         Instant end = start.plus(2, ChronoUnit.HOURS);
-        AttendanceSession s = attendanceRepo.createSession(templateId, start, end, null, "Test Session");
+        AttendanceSession s = attendanceRepo.createSession(templateId, start, end, null, "Test Session", null);
         assertNotNull(s);
         assertEquals(templateId, s.templateId());
         sessionId = s.id();
@@ -146,7 +146,10 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     void updateSession() {
         Instant newStart = Instant.now().plus(1, ChronoUnit.DAYS);
         Instant newEnd = newStart.plus(3, ChronoUnit.HOURS);
-        assertTrue(attendanceRepo.updateSession(sessionId, newStart, newEnd, "Updated"));
+        assertTrue(attendanceRepo.updateSession(sessionId, newStart, newEnd, "Updated", 90));
+        assertEquals(90, attendanceRepo.findSessionById(sessionId).orElseThrow().countedMinutes());
+        assertTrue(attendanceRepo.updateSession(sessionId, newStart, newEnd, "Updated", null));
+        assertNull(attendanceRepo.findSessionById(sessionId).orElseThrow().countedMinutes());
     }
 
     @Test

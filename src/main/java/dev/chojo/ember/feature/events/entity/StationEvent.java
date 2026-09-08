@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -107,6 +108,35 @@ public record StationEvent(
     public boolean isRecurring() {
         return eventType != EventType.ONE_TIME;
     }
+
+    /**
+     * When this appointment runs on a given day.
+     *
+     * <p>A one-off appointment carries its own dates and keeps them, which is what lets one run over
+     * a weekend. A repeating one carries only the time of day and the length of the occasion: the
+     * date beside them is the day somebody first configured it and says nothing about the occurrence
+     * being recorded, so those are placed on the day asked for. Taking that date as it stood is what
+     * once opened a sheet for a Tuesday two years ago.
+     *
+     * @param date the day the occurrence falls on
+     * @return the two moments it runs between, empty where the appointment has no times at all
+     */
+    public Optional<Span> occurrenceOn(LocalDate date) {
+        if (startTime == null) return Optional.empty();
+        Instant end = endTime != null && endTime.isAfter(startTime) ? endTime : startTime;
+        if (eventType == EventType.ONE_TIME) return Optional.of(new Span(startTime, end));
+        Instant start =
+                date.atTime(startTime.atZone(ZoneOffset.UTC).toLocalTime()).toInstant(ZoneOffset.UTC);
+        return Optional.of(new Span(start, start.plus(Duration.between(startTime, end))));
+    }
+
+    /**
+     * The two moments an occasion runs between.
+     *
+     * @param start when it begins
+     * @param end   when it ends, which may be on a later day
+     */
+    public record Span(Instant start, Instant end) {}
 
     /**
      * Returns whether this recurring event falls on the given date, matching the configured

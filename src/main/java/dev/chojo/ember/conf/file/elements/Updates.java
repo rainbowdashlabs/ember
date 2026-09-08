@@ -32,11 +32,12 @@ public class Updates {
     /**
      * How many hours pass between two checks.
      *
-     * <p>Releases arrive weeks apart, so asking often buys nothing and only spends the anonymous
-     * rate limit. Read as at least an hour and at most a week.
+     * <p>One an hour. That is a single unauthenticated request against a limit of sixty an hour, so
+     * it costs nothing worth counting, and it means an instance knows about a release within the
+     * hour rather than a quarter of a day later. Read as at least an hour and at most a week.
      */
     @Overwrite(env = @Env)
-    private int checkIntervalHours = 6;
+    private int checkIntervalHours = 1;
 
     /**
      * The GitHub repository the releases are read from, as {@code owner/name}.

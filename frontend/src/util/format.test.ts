@@ -15,6 +15,8 @@ import {
     formatWeekdayDate,
     instantToDate,
     instantToLocalInput,
+    localInputToInstant,
+    timeOnDayOf,
     todayIsoDate,
     toIsoDate,
 } from './format'
@@ -156,6 +158,33 @@ describe('an appointment late in the evening', () => {
     it('survives the round trip an editable field makes of it', () => {
         const backOut = new Date(instantToLocalInput(lateInTheEvening)).toISOString()
         expect(backOut).toBe('2026-10-12T22:30:00.000Z')
+    })
+})
+
+/**
+ * A time typed beside a member belongs to the day its sheet runs on. Read onto today instead, an
+ * arrival written on an older sheet moved forward by however long ago that sheet was, and every hour
+ * counted from it came out wrong.
+ */
+describe('a moment on the day a sheet runs on', () => {
+    it('reads what a datetime field holds as the reader\'s own clock', () => {
+        expect(localInputToInstant('2026-10-13T00:30')).toBe('2026-10-12T22:30:00.000Z')
+        expect(localInputToInstant('')).toBe('')
+        expect(localInputToInstant(null)).toBe('')
+        expect(localInputToInstant('irgendwann')).toBe('')
+    })
+
+    it('puts a time of day on the day another moment falls on', () => {
+        expect(timeOnDayOf('2026-03-17T17:00:00.000Z', '20:15')).toBe('2026-03-17T19:15:00.000Z')
+    })
+
+    it('takes the day from the reader\'s clock and not from the stored one', () => {
+        expect(timeOnDayOf('2026-10-12T22:30:00.000Z', '09:00')).toBe('2026-10-13T07:00:00.000Z')
+    })
+
+    it('has nothing to say without a time', () => {
+        expect(timeOnDayOf('2026-03-17T17:00:00.000Z', '')).toBe('')
+        expect(timeOnDayOf('irgendwann', '20:15')).toBe('')
     })
 })
 

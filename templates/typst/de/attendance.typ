@@ -47,6 +47,14 @@
   ]
 ]
 
+#if data.countedHours != "" [
+  #align(center)[
+    #text(size: 9pt, fill: luma(100))[
+      Wird als #data.countedHours Stunden gewertet
+    ]
+  ]
+]
+
 #v(1em)
 
 // Session fields

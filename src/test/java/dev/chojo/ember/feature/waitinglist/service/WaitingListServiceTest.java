@@ -653,7 +653,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     private static void markPresent(int memberId, String title) {
         var template = attendanceRepo.createTemplate(station.id(), title);
         var session = attendanceRepo.createSession(
-                template.id(), Instant.now().plusSeconds(3600), Instant.now().plusSeconds(7200), null, title);
+                template.id(), Instant.now().plusSeconds(3600), Instant.now().plusSeconds(7200), null, title, null);
         attendanceRepo.createEntry(
                 session.id(), memberId, AttendanceEntry.AttendanceStatus.PRESENT, AttendanceEntry.EntrySource.EXPECTED);
     }

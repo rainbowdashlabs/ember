@@ -35,7 +35,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class AttendanceRepository {
     private static final String ATTENDANCE_TEMPLATE_COLUMNS = "id, station_id, name";
     private static final String ATTENDANCE_SESSION_COLUMNS =
-            "id, template_id, start_time, end_time, created_at, event_id, title, unlocked_until, locked_at";
+            "id, template_id, start_time, end_time, created_at, event_id, title, unlocked_until, locked_at, counted_minutes";
     private static final String ATTENDANCE_ENTRY_COLUMNS =
             "id, session_id, member_id, status, check_in, check_out, source";
     private static final String ATTENDANCE_REPORT_PRESET_COLUMNS =
@@ -304,39 +304,48 @@ public class AttendanceRepository {
      * @param endTime    session end time
      * @param eventId    optional linked event ID
      * @param title      session title
+     * @param countedMinutes what a whole presence counts as, null where the times decide
      * @return the created session
      */
     public AttendanceSession createSession(
-            int templateId, Instant startTime, Instant endTime, Integer eventId, String title) {
+            int templateId, Instant startTime, Instant endTime, Integer eventId, String title, Integer countedMinutes) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO attendance_session(template_id, start_time, end_time, event_id, title)
-                VALUES(:template_id, :start_time, :end_time, :event_id, :title)
+                INSERT INTO attendance_session(template_id, start_time, end_time, event_id, title, counted_minutes)
+                VALUES(:template_id, :start_time, :end_time, :event_id, :title, :counted_minutes)
                 RETURNING %s;""",
                 call().bind("template_id", templateId)
                         .bind("start_time", startTime, INSTANT_TIMESTAMP)
                         .bind("end_time", endTime, INSTANT_TIMESTAMP)
                         .bind("event_id", eventId)
-                        .bind("title", title),
+                        .bind("title", title)
+                        .bind("counted_minutes", countedMinutes),
                 AttendanceSession.map(),
                 ATTENDANCE_SESSION_COLUMNS);
     }
 
     /**
-     * Updates an attendance session's times and title.
+     * Updates an attendance session's times, title and what it counts as.
      *
-     * @param id        the session ID
-     * @param startTime new start time
-     * @param endTime   new end time
-     * @param title     new title
+     * @param id             the session ID
+     * @param startTime      new start time
+     * @param endTime        new end time
+     * @param title          new title
+     * @param countedMinutes what a whole presence counts as, null to let the times decide again
      * @return {@code true} if the session was updated
      */
-    public boolean updateSession(int id, Instant startTime, Instant endTime, String title) {
-        return query(
-                        "UPDATE attendance_session SET start_time = :start_time, end_time = :end_time, title = :title WHERE id = :id;")
+    public boolean updateSession(int id, Instant startTime, Instant endTime, String title, Integer countedMinutes) {
+        return query("""
+                        UPDATE attendance_session
+                        SET start_time = :start_time,
+                            end_time = :end_time,
+                            title = :title,
+                            counted_minutes = :counted_minutes
+                        WHERE id = :id;""")
                 .single(call().bind("start_time", startTime, INSTANT_TIMESTAMP)
                         .bind("end_time", endTime, INSTANT_TIMESTAMP)
                         .bind("title", title)
+                        .bind("counted_minutes", countedMinutes)
                         .bind("id", id))
                 .update()
                 .changed();

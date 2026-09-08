@@ -58,6 +58,7 @@ const birthdayText = computed(() => {
     <div
         v-for="swap in notes?.swaps ?? []"
         :key="swap.exchangeId"
+        :data-swap="swap.exchangeId"
         class="flex flex-wrap items-center gap-2 text-sm"
         data-testid="note-swap"
     >

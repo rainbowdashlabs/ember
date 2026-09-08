@@ -221,6 +221,7 @@ public class EventCrudService {
             Integer minRegistrations,
             Instant thresholdDate,
             Integer registrationCloseDays) {
+        requireUsableSpan(startTime, endTime);
         var event = eventRepository.create(
                 stationId,
                 name,
@@ -277,6 +278,7 @@ public class EventCrudService {
             Integer minRegistrations,
             Instant thresholdDate,
             Integer registrationCloseDays) {
+        requireUsableSpan(startTime, endTime);
         var before = eventRepository.findById(id).orElse(null);
         if (eventRepository.update(
                 id,
@@ -304,6 +306,25 @@ public class EventCrudService {
         }
         log.warn("Cannot update event: event {} not found", id);
         return Optional.empty();
+    }
+
+    /**
+     * Refuses an appointment that finishes before it begins.
+     *
+     * <p>An appointment may run past midnight and over several days, which is what a camp is, so the
+     * length is not measured here. Only the one order that cannot happen is refused, and it reached
+     * further than the appointment itself: an attendance sheet takes its times from the appointment,
+     * and a sheet running backwards counts everybody on it for nothing.
+     *
+     * @param startTime when it begins, null where none was given
+     * @param endTime   when it ends, read the same way
+     * @throws BadRequestResponse where the end lies before the start
+     */
+    private void requireUsableSpan(Instant startTime, Instant endTime) {
+        if (startTime == null || endTime == null) return;
+        if (endTime.isBefore(startTime)) {
+            throw new BadRequestResponse("An appointment cannot end before it starts");
+        }
     }
 
     /**

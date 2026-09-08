@@ -23,6 +23,7 @@ const props = defineProps<{
   readonly?: boolean
   sessionStart?: string
   sessionEnd?: string
+  spansDays?: boolean
   /** Absent where the screen has no notes to show, as the pitch does not. */
   memberNotes?: Map<number, MemberNotes>
   canMoveSwap?: boolean
@@ -93,6 +94,7 @@ function getEntry(memberId: number): AttendanceEntry | undefined {
           :readonly="readonly"
           :session-end="sessionEnd"
           :session-start="sessionStart"
+          :spans-days="spansDays"
           :notes="memberNotes?.get(member.id)"
           :can-move-swap="canMoveSwap"
           :can-sign-off-found="canSignOffFound"

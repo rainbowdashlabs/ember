@@ -73,4 +73,34 @@ test.describe('The time of an appointment', () => {
 
             await page.request.delete(`/api/v1/events/${eventId}`, {headers})
         })
+
+    /**
+     * An appointment may run past midnight and over several days, so only the one order that cannot
+     * happen is refused. It reaches further than the appointment: an attendance sheet takes its
+     * times from here, and a sheet running backwards counts everybody on it for nothing.
+     */
+    test('cannot end before it begins', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const start = new Date(Date.now() + 9 * 86400000)
+        start.setHours(19, 30, 0, 0)
+
+        const refused = await page.request.post('/api/v1/events', {
+            headers,
+            data: {
+                name: `Rückwärtsprobe ${test.info().workerIndex}-${Date.now()}`,
+                eventType: 'ONE_TIME',
+                startTime: start.toISOString(),
+                endTime: new Date(start.getTime() - 3600000).toISOString(),
+            },
+        })
+        expect(refused.status(), await refused.text()).toBe(400)
+
+        // And the editor says so before anything is sent at all.
+        await page.goto('/station/events/new')
+        const times = page.locator('input[type="datetime-local"]')
+        await times.first().fill('2026-06-05T18:00')
+        await times.nth(1).fill('2026-06-05T16:00')
+
+        await expect(page.getByTestId('event-end-before-start')).toBeVisible()
+    })
 })

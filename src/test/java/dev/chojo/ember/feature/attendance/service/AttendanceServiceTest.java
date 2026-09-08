@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
+import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
@@ -24,6 +25,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -31,8 +33,10 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -181,12 +185,17 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
     // -- Sessions --
 
+    /** A sheet whose hours are whatever its times say, which is every sheet but the counted ones. */
+    private AttendanceSession openSheet(int templateId, Instant start, Instant end, Integer eventId, String title) {
+        return service.createSession(templateId, start, end, eventId, title, null);
+    }
+
     @Test
     @Order(20)
     void createSession() {
         Instant start = Instant.now();
         Instant end = start.plus(2, ChronoUnit.HOURS);
-        var session = service.createSession(templateId, start, end, null, "Test Session");
+        var session = openSheet(templateId, start, end, null, "Test Session");
         assertNotNull(session);
         assertEquals(templateId, session.templateId());
         sessionId = session.id();
@@ -219,7 +228,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     void updateSession() {
         Instant newStart = Instant.now().plus(1, ChronoUnit.DAYS);
         Instant newEnd = newStart.plus(3, ChronoUnit.HOURS);
-        var updated = service.updateSession(sessionId, newStart, newEnd, "Updated Session");
+        var updated = service.updateSession(sessionId, newStart, newEnd, "Updated Session", null);
         assertTrue(updated.isPresent());
         assertEquals("Updated Session", updated.get().title());
     }
@@ -227,8 +236,9 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(25)
     void updateSessionNonExistent() {
-        assertTrue(
-                service.updateSession(99999, Instant.now(), Instant.now(), "X").isEmpty());
+        Instant start = Instant.now();
+        assertTrue(service.updateSession(99999, start, start.plus(1, ChronoUnit.HOURS), "X", null)
+                .isEmpty());
     }
 
     // -- Session Fields --
@@ -419,7 +429,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null);
 
         // Create session linked to event - should inherit event name and times
-        var session = service.createSession(templateId, null, null, event.id(), null);
+        var session = openSheet(templateId, null, null, event.id(), null);
         assertNotNull(session);
         assertEquals("Attend Event", session.title());
         assertNotNull(session.startTime());
@@ -427,19 +437,122 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertEquals(event.id(), session.eventId());
 
         // Creating again with same eventId should return existing session
-        var existing = service.createSession(templateId, null, null, event.id(), null);
+        var existing = openSheet(templateId, null, null, event.id(), null);
         assertEquals(session.id(), existing.id());
 
         service.deleteSession(session.id());
         eventRepo.delete(event.id());
     }
 
+    /**
+     * A repeating appointment carries the date somebody first configured it on, and taking that
+     * date as it stood opened a sheet for an evening years past.
+     */
+    @Test
+    @Order(50)
+    void aSheetFromARepeatingAppointmentRunsOnTheDayItIsOpened() {
+        Instant configuredLongAgo = Instant.parse("2024-09-04T18:00:00Z");
+        var weekly = eventRepo.create(
+                station.id(),
+                "Wöchentliche Übung",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                3,
+                configuredLongAgo,
+                configuredLongAgo.plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        var session = openSheet(templateId, null, null, weekly.id(), null);
+
+        assertEquals(
+                LocalDate.now(ZoneOffset.UTC),
+                session.startTime().atZone(ZoneOffset.UTC).toLocalDate());
+        assertEquals(18, session.startTime().atZone(ZoneOffset.UTC).getHour());
+        assertEquals(Duration.ofHours(2), Duration.between(session.startTime(), session.endTime()));
+
+        service.deleteSession(session.id());
+        eventRepo.delete(weekly.id());
+    }
+
+    /** A sheet of no length counted everybody who was there for nothing, so it is no longer made. */
+    @Test
+    @Order(50)
+    void aSheetWithNoTimesRunsForTwoHours() {
+        var session = openSheet(templateId, null, null, null, "Ohne Zeiten");
+
+        assertEquals(Duration.ofHours(2), Duration.between(session.startTime(), session.endTime()));
+        service.deleteSession(session.id());
+    }
+
+    @Test
+    @Order(50)
+    void aSheetMayRunOverSeveralDays() {
+        Instant friday = Instant.parse("2026-09-04T16:00:00Z");
+        var camp = openSheet(templateId, friday, friday.plus(2, ChronoUnit.DAYS), null, "Zeltlager");
+
+        assertEquals(Duration.ofDays(2), Duration.between(camp.startTime(), camp.endTime()));
+        service.deleteSession(camp.id());
+    }
+
+    @Test
+    @Order(50)
+    void aSheetThatEndsBeforeItStartsIsRefused() {
+        Instant start = Instant.now();
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> openSheet(templateId, start, start.minus(1, ChronoUnit.HOURS), null, "Rückwärts"));
+    }
+
+    @Test
+    @Order(50)
+    void aSheetLongerThanAMonthIsRefused() {
+        Instant start = Instant.now();
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> openSheet(templateId, start, start.plus(40, ChronoUnit.DAYS), null, "Zu lang"));
+    }
+
+    @Test
+    @Order(50)
+    void whatASheetCountsAsIsKeptAndCanBeTakenBack() {
+        Instant start = Instant.now();
+        var session = service.createSession(templateId, start, start.plus(4, ChronoUnit.HOURS), null, "Gewertet", 180);
+        assertEquals(180, session.countedMinutes());
+
+        var cleared = service.updateSession(session.id(), start, start.plus(4, ChronoUnit.HOURS), "Gewertet", null);
+        assertTrue(cleared.isPresent());
+        assertNull(cleared.get().countedMinutes());
+        service.deleteSession(session.id());
+    }
+
+    @Test
+    @Order(50)
+    void anImpossibleNumberOfCountedHoursIsRefused() {
+        Instant start = Instant.now();
+        Instant end = start.plus(4, ChronoUnit.HOURS);
+
+        assertThrows(
+                BadRequestResponse.class, () -> service.createSession(templateId, start, end, null, "Negativ", -1));
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.createSession(templateId, start, end, null, "Zu viel", 60 * 24 * 40));
+    }
+
     @Test
     @Order(51)
     void createSessionWithNoTitleFallsBack() {
         // No event, no title - should fall back to template name
-        var session =
-                service.createSession(templateId, Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, null);
+        var session = openSheet(templateId, Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, null);
         assertNotNull(session);
         // Title should be template name since no title provided
         assertNotNull(session.title());
@@ -449,8 +562,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(52)
     void createSessionWithExplicitTitle() {
-        var session = service.createSession(
-                templateId, Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "Custom Title");
+        var session =
+                openSheet(templateId, Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "Custom Title");
         assertEquals("Custom Title", session.title());
         service.deleteSession(session.id());
     }
@@ -495,7 +608,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 event.id(),
                 new RestrictionSelection(List.of(), List.of(invitedGroup.id()), List.of(), List.of(), null));
 
-        var session = service.createSession(expectingTemplate.id(), null, null, event.id(), null);
+        var session = openSheet(expectingTemplate.id(), null, null, event.id(), null);
         service.syncFromEvent(session.id());
 
         var entries = service.findEntries(session.id());
@@ -545,7 +658,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var session = service.createSession(sheet.id(), null, null, event.id(), null);
+        var session = openSheet(sheet.id(), null, null, event.id(), null);
         assertTrue(service.findSessionFields(session.id()).stream()
                 .noneMatch(field -> field.fieldId() == sheetFieldId
                         && field.value() != null
@@ -618,7 +731,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         sheetFieldId,
                         false)));
 
-        var session = service.createSession(sheet.id(), null, null, event.id(), null);
+        var session = openSheet(sheet.id(), null, null, event.id(), null);
 
         assertTrue(
                 service.findSessionFields(session.id()).stream()
@@ -645,7 +758,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var lateTemplate = service.createTemplate(station.id(), "Nachzügler Vorlage");
         service.setTemplateGroups(lateTemplate.id(), List.of(new TemplateGroup(lateGroup.id(), 0)));
 
-        var session = service.createSession(lateTemplate.id(), Instant.now(), Instant.now(), null, "Nachzügler");
+        var session = openSheet(lateTemplate.id(), Instant.now(), Instant.now(), null, "Nachzügler");
         assertTrue(service.findEntries(session.id()).isEmpty());
 
         memberGroupRepo.addMember(lateGroup.id(), member.id());
@@ -672,8 +785,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Order(54)
     void createEntryNotAbsentNotDeclined() {
         // No absence, no declined event - should be UNCONFIRMED
-        var newSession = service.createSession(
-                templateId, Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "Fresh");
+        var newSession = openSheet(templateId, Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "Fresh");
         var entries = service.createEntry(newSession.id(), member.id(), AttendanceEntry.EntrySource.EXPECTED);
         assertFalse(entries.isEmpty());
         assertEquals(
@@ -712,7 +824,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         eventRegistrationRepo.create(event.id(), member2.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
 
-        var session = service.createSession(template.id(), null, null, event.id(), null);
+        var session = openSheet(template.id(), null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
         assertNotNull(entries);
         assertTrue(entries.stream()
@@ -754,7 +866,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var stranger = stationMemberRepo.create(station.id(), strangerAccount.id());
         eventRegistrationRepo.create(event.id(), stranger.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
 
-        var session = service.createSession(templateId, null, null, event.id(), null);
+        var session = openSheet(templateId, null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
         assertTrue(entries.stream().noneMatch(e -> e.memberId() == stranger.id()));
 
@@ -795,7 +907,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         eventRegistrationRepo.create(event.id(), member3.id(), LocalDate.now(), RegistrationStatus.DECLINED, null);
 
-        var session = service.createSession(template.id(), null, null, event.id(), null);
+        var session = openSheet(template.id(), null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
         assertTrue(entries.stream()
                 .anyMatch(
@@ -840,7 +952,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         eventRegistrationRepo.create(event.id(), member.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
 
-        var session = service.createSession(template.id(), null, null, event.id(), null);
+        var session = openSheet(template.id(), null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
         // Away for the day, so the sheet settles them rather than counting on the sign-up
         assertTrue(entries.stream()
@@ -890,7 +1002,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var fields = service.findTemplateFields(autoAttendTemplate.id());
         int fieldId = fields.getFirst().id();
 
-        var session = service.createSession(autoAttendTemplate.id(), null, null, event.id(), "Upgrade Session");
+        var session = openSheet(autoAttendTemplate.id(), null, null, event.id(), "Upgrade Session");
 
         // Pre-add member4 with UNCONFIRMED status
         service.createEntry(session.id(), member4.id(), AttendanceEntry.EntrySource.EXPECTED);
@@ -936,7 +1048,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var session = service.createSession(templateId, null, null, event.id(), null);
+        var session = openSheet(templateId, null, null, event.id(), null);
 
         // Create entry as PRESENT
         service.createEntry(session.id(), member5.id(), AttendanceEntry.EntrySource.EXPECTED);
@@ -1006,7 +1118,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 false);
 
         // Create session - should auto-populate from event field
-        var session = service.createSession(fieldTemplate.id(), null, null, event.id(), null);
+        var session = openSheet(fieldTemplate.id(), null, null, event.id(), null);
         assertNotNull(session);
 
         var sessionFields = service.findSessionFields(session.id());
@@ -1049,7 +1161,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         eventRegistrationRepo.create(event.id(), member7.id(), LocalDate.now(), RegistrationStatus.DECLINED, null);
 
-        var session = service.createSession(templateId, null, null, event.id(), null);
+        var session = openSheet(templateId, null, null, event.id(), null);
 
         // Create entry - should be DECLINED because member7 declined the event
         var entries = service.createEntry(session.id(), member7.id(), AttendanceEntry.EntrySource.EXPECTED);
@@ -1081,7 +1193,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var account8 = accountRepo.create("attend-svc8@test.com", "Attend8", "User");
         var member8 = stationMemberRepo.create(station.id(), account8.id());
 
-        var session = service.createSession(
+        var session = openSheet(
                 autoAttendTemplate2.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "ParseTest");
 
         // Single number format (quoted string)
@@ -1093,7 +1205,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         service.deleteSession(session.id());
 
         // Test with JSON array format with quoted numbers
-        var session2 = service.createSession(
+        var session2 = openSheet(
                 autoAttendTemplate2.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "ParseTest2");
 
         service.setSessionFields(
@@ -1117,7 +1229,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 defaultTemplate.id(), "Room", AttendanceFieldType.STRING, AttendanceFieldConfig.parse(fieldJson), 1);
         var templateFields = service.findTemplateFields(defaultTemplate.id());
 
-        var session = service.createSession(
+        var session = openSheet(
                 defaultTemplate.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "Defaults Session");
         assertNotNull(session);
 
@@ -1185,7 +1297,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                         new EventFieldDefault(event.id(), startFieldId, "EVENT_START_TIME", null),
                         new EventFieldDefault(event.id(), endFieldId, "EVENT_END_TIME", null)));
 
-        var session = service.createSession(fieldTemplate.id(), null, null, event.id(), null);
+        var session = openSheet(fieldTemplate.id(), null, null, event.id(), null);
         assertNotNull(session);
 
         var sessionFields = service.findSessionFields(session.id());
@@ -1216,7 +1328,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var autoTemplate = service.createTemplate(station.id(), "Group Auto Template");
         service.setTemplateGroups(autoTemplate.id(), List.of(new AttendanceRepository.TemplateGroup(group.id(), 1)));
 
-        var session = service.createSession(
+        var session = openSheet(
                 autoTemplate.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "Group Session");
         var entries = service.findEntries(session.id());
         assertTrue(entries.stream().anyMatch(e -> e.memberId() == member.id()));
@@ -1255,7 +1367,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         eventRegistrationRepo.create(event.id(), member9.id(), LocalDate.now(), RegistrationStatus.PENDING, null);
 
-        var session = service.createSession(templateId, null, null, event.id(), null);
+        var session = openSheet(templateId, null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
         // PENDING status should NOT create an entry (only ACCEPTED or DECLINED do)
         assertFalse(entries.stream().anyMatch(e -> e.memberId() == member9.id()));
@@ -1280,7 +1392,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var fields = service.findTemplateFields(autoTemplate.id());
         int fieldId = fields.getFirst().id();
 
-        var session = service.createSession(
+        var session = openSheet(
                 autoTemplate.id(), Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "AutoNew Session");
 
         // Set field value with member10's ID
@@ -1302,7 +1414,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Order(66)
     void createSessionNoTimeFallsBackToNow() {
         // No event, no title, no time provided - should use now()
-        var session = service.createSession(templateId, null, null, null, "No Time Session");
+        var session = openSheet(templateId, null, null, null, "No Time Session");
         assertNotNull(session);
         assertNotNull(session.startTime());
         assertNotNull(session.endTime());
