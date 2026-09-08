@@ -4,11 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import {getItem} from '@/api/storage'
-import {useSession} from '@/composables/useSession'
+import {useSignedIn} from '@/composables/useSignedIn'
 import {useStations} from '@/composables/useStations'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
 import SmartStationButton from '@/components/layout/SmartStationButton.vue'
@@ -21,35 +20,16 @@ import {usePublicConfig} from '@/composables/usePublicConfig'
 import { emberLogo } from '@/composables/useEmberLogo'
 
 const {t} = useI18n()
-const {sessionInfo, loaded, load} = useSession()
+const {signedIn, anonymous, carriesSession} = useSignedIn()
 const {loaded: stationsLoaded, load: loadStations} = useStations()
 const {prideActive, prideVariant} = usePride()
 const logo = emberLogo()
 
 const {isDemo} = await usePublicConfig()
 
-/**
- * Whether this browser is carrying a session, which only the browser can answer.
- *
- * The server renders this header without any storage to read, so it knows neither that somebody is signed
- * in nor that nobody is. Rendering the login call to action on that ignorance put it in front of people
- * who were already signed in, and it stayed there until the session call came back. Undecided is its own
- * state and shows neither.
- */
-const carriesSession = ref<boolean | null>(null)
-
-const signedIn = computed(() => loaded.value && !!sessionInfo.value?.account)
-const anonymous = computed(() =>
-    carriesSession.value === false || (carriesSession.value === true && loaded.value && !sessionInfo.value?.account))
-
-onMounted(() => {
-  const token = getItem('session_token')
-  carriesSession.value = !!token
-  if (token) {
-    if (!loaded.value) load()
-    if (!stationsLoaded.value) loadStations()
-  }
-})
+watch(carriesSession, carries => {
+  if (carries && !stationsLoaded.value) loadStations()
+}, {immediate: true})
 </script>
 
 <template>

@@ -1,5 +1,11 @@
 # Changelog
 
+## v26.14.3
+
+### Fixes
+
+- **An address that does not exist showed a bare error page.** A mistyped or outdated link ended on a plain page carrying none of Ember's own navigation. Ember now answers a missing address, and any other error, with its own page, keeping the usual header and footer and offering a way back to the start.
+
 ## v26.14.2
 
 ### New Features
