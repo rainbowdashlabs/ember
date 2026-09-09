@@ -1,5 +1,16 @@
 # Changelog
 
+## v26.14.4
+
+### Improvements
+
+- **A guardian can be given members to look after from their own page.** Their page used to list them and offer nothing, so the link could only be made from each member in turn. It is the same link either way round, and naming a guardian on a member's page still works as before.
+- **Two more ready-made sets of member fields.** The member settings offer a first aid course, with the date it was taken and the hours it ran to, and the portable pump operator qualification with its date, beside the sets that were already there.
+
+### Changes
+
+- **Both member pages ask about guardians the same way.** The tab for it while editing a member carried its own layout and its own name; it now looks and reads like the one on the member's own page, which names the people rather than the pairing.
+
 ## v26.14.3
 
 ### Improvements

@@ -4,23 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import { computed, ref, toRef } from 'vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import InlineDetail from '@/components/typography/InlineDetail.vue'
-import {StationUserType, type StationMember} from '@/api/types'
-import { stationMembers } from '@/api'
+import MemberRelationsPanel from '../relations/MemberRelationsPanel.vue'
+import { useMemberManagers } from '../relations/useMemberManagers'
+import { useManagedMembers } from '../relations/useManagedMembers'
+import { useMemberProfileFields } from '../detailview/useMemberProfileFields'
+import { memberDisplayName } from '../listview/useMemberData'
+import { StationUserType, type StationMember } from '@/api/types'
+import { profileFields, stationMembers } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-import { useAsyncAction } from '@/composables/useAsyncAction'
-import { useFlashMessage } from '@/composables/useFlashMessage'
 
 const props = defineProps<{
   memberId: number
@@ -28,152 +22,70 @@ const props = defineProps<{
   allMembers: StationMember[]
 }>()
 
-const { t } = useI18n()
+const memberId = toRef(props, 'memberId')
+const allMembers = ref<StationMember[]>([...props.allMembers])
+const error = ref('')
 
-const managers = ref<StationMember[]>([])
-const managed = ref<StationMember[]>([])
-const { message: success, flash } = useFlashMessage(3000)
-const selectedAddId = ref('')
+const userType = toRef(props, 'userType')
+const { fields, fieldsForUserType, setValues } = useMemberProfileFields(userType)
 
-const isGuardian = computed(() => props.userType === StationUserType.GUARDIAN)
-const canHaveGuardian = computed(() =>
-    props.userType === StationUserType.MEMBER || props.userType === StationUserType.TRIAL,
-)
+const {
+  managers,
+  availableManagers,
+  getManagerFields,
+  getManagerFieldValue,
+  loadDetails: loadManagerDetails,
+  linkManager,
+  removeManager,
+  createManager,
+} = useMemberManagers(memberId, allMembers, fieldsForUserType, error)
 
-const availableToAdd = computed(() => {
-  const linkedIds = new Set(isGuardian.value ? managed.value.map(m => m.id) : managers.value.map(m => m.id))
-  linkedIds.add(props.memberId)
-  return props.allMembers.filter(m => {
-    if (linkedIds.has(m.id)) return false
-    if (m.formerAt) return false
-    if (isGuardian.value) {
-      return m.userType === StationUserType.MEMBER || m.userType === StationUserType.TRIAL
-    }
-    return m.userType === StationUserType.GUARDIAN
-  })
-})
+const {managedMembers, availableManaged, linkManaged, removeManaged} =
+    useManagedMembers(memberId, allMembers, error)
 
-function displayName(m: StationMember): string {
-  return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
-}
+const showGuardians = computed(() =>
+    props.userType === StationUserType.MEMBER || props.userType === StationUserType.TRIAL)
 
-const {loading, error} = useAsyncLoader(async () => {
-  const [mgrs, mgd] = await Promise.all([
-    stationMembers.getManagers(props.memberId),
-    stationMembers.getManaged(props.memberId),
+const showManaged = computed(() => props.userType === StationUserType.GUARDIAN)
+
+const { loading } = useAsyncLoader(async () => {
+  const [allFields, mgrs, managed, values] = await Promise.all([
+    profileFields.getMemberFields(memberId.value),
+    stationMembers.getManagers(memberId.value),
+    stationMembers.getManaged(memberId.value),
+    profileFields.getMergedValues(memberId.value),
   ])
+  fields.value = allFields
   managers.value = mgrs
-  managed.value = mgd
+  managedMembers.value = managed
+  setValues(values)
+  await loadManagerDetails(mgrs)
 })
-
-const { running: saving, error: saveError, run: runSave } = useAsyncAction(
-    async (work: () => Promise<void>) => {
-      error.value = ''
-      await work()
-      flash(t('memberEdit.relations.saved'))
-    },
-    { formatError: () => t('common.error') },
-)
-
-function addRelation() {
-  const id = Number(selectedAddId.value)
-  if (!id) return
-  runSave(async () => {
-    if (isGuardian.value) {
-      const ids = [...managed.value.map(m => m.id), id]
-      managed.value = await stationMembers.setManaged(props.memberId, ids)
-    } else {
-      const ids = [...managers.value.map(m => m.id), id]
-      managers.value = await stationMembers.setManagers(props.memberId, { managerIds: ids })
-    }
-    selectedAddId.value = ''
-  })
-}
-
-function removeRelation(targetId: number) {
-  runSave(async () => {
-    if (isGuardian.value) {
-      const ids = managed.value.filter(m => m.id !== targetId).map(m => m.id)
-      managed.value = await stationMembers.setManaged(props.memberId, ids)
-    } else {
-      const ids = managers.value.filter(m => m.id !== targetId).map(m => m.id)
-      managers.value = await stationMembers.setManagers(props.memberId, { managerIds: ids })
-    }
-  })
-}
-
 </script>
 
 <template>
   <div class="space-y-6">
-    <Spinner v-if="loading" size="md" />
-    <Alert v-if="error || saveError" variant="error">{{ error || saveError }}</Alert>
-    <Alert v-if="success" variant="success">{{ success }}</Alert>
+    <Spinner v-if="loading" size="md"/>
+    <Alert v-if="error" variant="error">{{ error }}</Alert>
 
-    <template v-if="!loading">
-      <NeutralContainer v-if="canHaveGuardian" class="space-y-4">
-        <SubHeader>{{ t('memberEdit.relations.guardians') }}</SubHeader>
-        <EmptyState v-if="managers.length === 0" compact>{{ t('memberEdit.relations.noGuardians') }}</EmptyState>
-        <div v-for="mgr in managers" :key="mgr.id" data-testid="guardian-row" class="flex items-center justify-between rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40">
-          <div>
-            <span class="font-medium">{{ displayName(mgr) }}</span>
-            <InlineDetail v-if="mgr.email">{{ mgr.email }}</InlineDetail>
-          </div>
-          <DeleteButton @click="removeRelation(mgr.id)" />
-        </div>
-        <div class="flex items-end gap-2">
-          <div class="flex-1 space-y-1">
-            <FieldLabel>{{ t('memberEdit.relations.addGuardian') }}</FieldLabel>
-            <SelectInput v-model="selectedAddId">
-              <option value="">{{ t('memberEdit.relations.selectMember') }}</option>
-              <option v-for="m in availableToAdd" :key="m.id" :value="String(m.id)">{{ displayName(m) }}</option>
-            </SelectInput>
-          </div>
-          <PrimaryButton :icon="['fas', 'plus']" :disabled="!selectedAddId || saving" @click="addRelation">
-            {{ t('common.add') }}
-          </PrimaryButton>
-        </div>
-      </NeutralContainer>
-
-      <NeutralContainer v-if="isGuardian" class="space-y-4">
-        <SubHeader>{{ t('memberEdit.relations.managedMembers') }}</SubHeader>
-        <EmptyState v-if="managed.length === 0" compact>{{ t('memberEdit.relations.noManagedMembers') }}</EmptyState>
-        <div v-for="m in managed" :key="m.id" class="flex items-center justify-between rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40">
-          <div>
-            <span class="font-medium">{{ displayName(m) }}</span>
-            <InlineDetail v-if="m.email">{{ m.email }}</InlineDetail>
-          </div>
-          <DeleteButton @click="removeRelation(m.id)" />
-        </div>
-        <div class="flex items-end gap-2">
-          <div class="flex-1 space-y-1">
-            <FieldLabel>{{ t('memberEdit.relations.addManagedMember') }}</FieldLabel>
-            <SelectInput v-model="selectedAddId">
-              <option value="">{{ t('memberEdit.relations.selectMember') }}</option>
-              <option v-for="m in availableToAdd" :key="m.id" :value="String(m.id)">{{ displayName(m) }}</option>
-            </SelectInput>
-          </div>
-          <PrimaryButton :icon="['fas', 'plus']" :disabled="!selectedAddId || saving" @click="addRelation">
-            {{ t('common.add') }}
-          </PrimaryButton>
-        </div>
-      </NeutralContainer>
-
-      <NeutralContainer v-if="isGuardian && managers.length > 0" class="space-y-4">
-        <SubHeader>{{ t('memberEdit.relations.guardians') }}</SubHeader>
-        <div v-for="mgr in managers" :key="mgr.id" class="flex items-center rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40">
-          <span class="font-medium">{{ displayName(mgr) }}</span>
-          <InlineDetail v-if="mgr.email">{{ mgr.email }}</InlineDetail>
-        </div>
-      </NeutralContainer>
-
-      <NeutralContainer v-if="!isGuardian && managed.length > 0" class="space-y-4">
-        <SubHeader>{{ t('memberEdit.relations.managedMembers') }}</SubHeader>
-        <div v-for="m in managed" :key="m.id" class="flex items-center rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40">
-          <span class="font-medium">{{ displayName(m) }}</span>
-          <InlineDetail v-if="m.email">{{ m.email }}</InlineDetail>
-        </div>
-      </NeutralContainer>
-    </template>
+    <MemberRelationsPanel
+        v-if="!loading"
+        :show-guardians="showGuardians"
+        :show-managed="showManaged"
+        :managers="managers"
+        :managed-members="managedMembers"
+        :available-managers="availableManagers"
+        :available-managed="availableManaged"
+        :fields="fields"
+        :can-edit="true"
+        :member-display-name="memberDisplayName"
+        :get-manager-fields="getManagerFields"
+        :get-manager-field-value="getManagerFieldValue"
+        @link-manager="linkManager"
+        @remove-manager="removeManager"
+        @create-manager="createManager"
+        @link-managed="linkManaged"
+        @remove-managed="removeManaged"
+    />
   </div>
 </template>

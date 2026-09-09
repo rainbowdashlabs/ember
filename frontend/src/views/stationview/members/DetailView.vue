@@ -14,7 +14,8 @@ import DetailModals from './detailview/DetailModals.vue'
 import DetailHeader from './detailview/DetailHeader.vue'
 import LoadedTabs from './detailview/LoadedTabs.vue'
 import { useMemberProfileFields } from './detailview/useMemberProfileFields'
-import { useMemberManagers } from './detailview/useMemberManagers'
+import { useMemberManagers } from './relations/useMemberManagers'
+import { useManagedMembers } from './relations/useManagedMembers'
 import { useMemberInventory } from './detailview/useMemberInventory'
 import { useMemberLifecycle } from './detailview/useMemberLifecycle'
 import { memberDisplayName } from './listview/useMemberData'
@@ -42,7 +43,6 @@ const memberUserType = ref<string>('')
 const allMembers = ref<StationMember[]>([])
 const changes = ref<ProfileFieldChange[]>([])
 const memberPermissions = ref<PermissionGrant[]>([])
-const managedMembers = ref<StationMember[]>([])
 const memberGroupList = ref<MemberGroup[]>([])
 const memberTagList = ref<UserTag[]>([])
 
@@ -54,8 +54,6 @@ const { fields, applicableFields, fieldsForUserType, getFieldValue, setValues } 
 
 const {
   managers,
-  managerValues,
-  managerUserTypesAsRoleMap,
   availableManagers,
   getManagerFields,
   getManagerFieldValue,
@@ -64,6 +62,9 @@ const {
   removeManager,
   createManager,
 } = useMemberManagers(memberId, allMembers, fieldsForUserType, error)
+
+const {managedMembers, availableManaged, linkManaged, removeManaged} =
+    useManagedMembers(memberId, allMembers, error)
 
 const {
   items: memberInventory,
@@ -111,7 +112,7 @@ const tabs = computed(() => {
   return t_
 })
 
-const showManagerSection = computed(() =>
+const showGuardians = computed(() =>
   memberUserType.value === StationUserType.MEMBER || memberUserType.value === StationUserType.TRIAL
 )
 
@@ -175,13 +176,13 @@ const loadedTabsProps = computed(() => ({
   memberPermissions: memberPermissions.value,
   memberGroupList: memberGroupList.value,
   memberTagList: memberTagList.value,
-  showManagerSection: showManagerSection.value,
+  showGuardians: showGuardians.value,
+  showManaged: managesMembers.value,
   managers: managers.value,
   managedMembers: managedMembers.value,
   availableManagers: availableManagers.value,
+  availableManaged: availableManaged.value,
   allMembers: allMembers.value,
-  managerValues: managerValues.value,
-  managerUserTypesAsRoleMap: managerUserTypesAsRoleMap.value,
   fields: fields.value,
   canEdit: canEdit.value,
   memberDisplayName,
@@ -231,6 +232,8 @@ const detailModalsProps = computed(() => ({
         @link-manager="linkManager"
         @remove-manager="removeManager"
         @create-manager="createManager"
+        @link-managed="linkManaged"
+        @remove-managed="removeManaged"
         @assign-item="modalsRef?.openAssignModal()"
         @hand-out="assignItem"
         @hand-out-new="handOutNewItem"
