@@ -9,9 +9,6 @@ import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
 
 /**
@@ -71,16 +68,15 @@ public class BeaconMetricsIdentity {
     /**
      * The slot a given identifier maps to, split out so it can be tested without a database.
      *
+     * <p>{@link String#hashCode()} rather than a digest, because its result is specified rather than
+     * left to the implementation, so an instance keeps the same slot across restarts and across Java
+     * versions. Spreading a fleet is all this has to do, and it is not a secret: the identifier it is
+     * drawn from is the secret.
+     *
      * @param metricsUid the secret identifier the slot is drawn from
      * @return a minute of the day, from 0 to 1439
      */
     public static int slotFor(String metricsUid) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(metricsUid.getBytes(StandardCharsets.UTF_8));
-            int value = ((digest[0] & 0xFF) << 8) | (digest[1] & 0xFF);
-            return value % MINUTES_PER_DAY;
-        } catch (NoSuchAlgorithmException e) {
-            throw new AssertionError("SHA-256 not available", e);
-        }
+        return Math.floorMod(metricsUid.hashCode(), MINUTES_PER_DAY);
     }
 }

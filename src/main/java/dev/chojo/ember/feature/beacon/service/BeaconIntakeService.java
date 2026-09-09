@@ -111,14 +111,15 @@ public class BeaconIntakeService {
         if (payload.fingerprint() == null || payload.fingerprint().isBlank()) {
             throw new BadRequestResponse("A fault needs a fingerprint");
         }
+        String version = validVersion(payload.version());
         repository.touchInstance(
                 instanceId,
                 publicKey,
                 clamp(payload.contactName(), MAX_FIELD),
                 validMail(payload.contactMail()),
-                validVersion(payload.version()));
+                version);
         int problemId = repository.upsertProblem(payload);
-        repository.upsertProblemInstance(problemId, instanceId, payload);
+        repository.upsertProblemInstance(problemId, instanceId, version, payload);
     }
 
     /** Stores somebody's own words. */

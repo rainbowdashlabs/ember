@@ -64,7 +64,7 @@ public class BeaconMetricsScheduler {
         var today = LocalDate.ofInstant(now, ZoneOffset.UTC);
         var slot = slotOn(today);
         if (now.isBefore(slot)) return false;
-        var last = lastSent();
+        var last = lastSent(now);
         return last == null || last.isBefore(slot);
     }
 
@@ -93,13 +93,29 @@ public class BeaconMetricsScheduler {
      *
      * <p>A clock that jumped backwards leaves a mark in the future, which would hold the instance
      * silent until real time caught up. A mark later than now is not believed.
+     *
+     * @return when the last report went, or null if none has
      */
     public Instant lastSent() {
+        return lastSent(Instant.now());
+    }
+
+    /**
+     * The same, judged against a given moment.
+     *
+     * <p>A mark later than the moment being judged is not believed, and that moment is a parameter
+     * rather than the wall clock so it agrees with {@link #due(Instant)}. Clamping against real time
+     * while judging against another would have the two disagree, and the report would go twice.
+     *
+     * @param now the moment the mark is read against
+     * @return when the last report went, or null if none has
+     */
+    public Instant lastSent(Instant now) {
         return settings.get(LAST_SENT_KEY)
                 .map(value -> {
                     try {
                         var parsed = Instant.parse(value);
-                        return parsed.isAfter(Instant.now()) ? Instant.now() : parsed;
+                        return parsed.isAfter(now) ? now : parsed;
                     } catch (Exception e) {
                         log.warn("Unreadable beacon report mark, treating it as never sent: {}", value);
                         return null;

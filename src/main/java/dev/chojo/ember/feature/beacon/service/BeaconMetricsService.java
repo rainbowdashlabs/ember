@@ -81,17 +81,26 @@ public class BeaconMetricsService {
             return thread;
         });
         executor.scheduleWithFixedDelay(
-                () -> {
-                    try {
-                        sendIfDue(version);
-                    } catch (Exception e) {
-                        log.warn("The daily beacon report could not be sent", e);
-                    }
-                },
-                CHECK_INTERVAL_MINUTES,
-                CHECK_INTERVAL_MINUTES,
-                TimeUnit.MINUTES);
+                () -> tick(version), CHECK_INTERVAL_MINUTES, CHECK_INTERVAL_MINUTES, TimeUnit.MINUTES);
         log.info("Beacon metrics, when switched on, go at minute {} of the UTC day", identity.dailySlotMinute());
+    }
+
+    /**
+     * One turn of the watch.
+     *
+     * <p>Whatever goes wrong here goes wrong on a daemon thread that nobody is watching, so it is
+     * written down rather than thrown: an exception escaping a scheduled task stops the task for
+     * good, and a beacon that quietly stopped reporting a month ago is worse than one that logged a
+     * failure every ten minutes.
+     *
+     * @param version this instance's version
+     */
+    void tick(String version) {
+        try {
+            sendIfDue(version);
+        } catch (Exception e) {
+            log.warn("The daily beacon report could not be sent", e);
+        }
     }
 
     /**
@@ -112,8 +121,21 @@ public class BeaconMetricsService {
      * @return whether anything was sent
      */
     public boolean sendIfDue(String version) {
+        return sendIfDue(version, Instant.now());
+    }
+
+    /**
+     * The same, judged against a given moment.
+     *
+     * <p>The moment is a parameter because whether a report is due depends on the time of day, and a
+     * test that cannot say what time it is can only assert the case the clock happens to be in.
+     *
+     * @param version this instance's version
+     * @param now     the moment to judge against
+     * @return whether anything was sent
+     */
+    public boolean sendIfDue(String version, Instant now) {
         if (!config.metricsEnabled()) return false;
-        var now = Instant.now();
         if (!scheduler.due(now)) return false;
         if (httpClient.signedPost(config.url(), "/api/v1/beacon/metrics", batch(version, now))) {
             scheduler.markSent(now);

@@ -94,8 +94,13 @@ public class BeaconIntakeRepository {
      *
      * <p>The occurrence count is replaced rather than added to, because the sender's payload carries
      * its own total. A report that arrives twice therefore corrects this row.
+     *
+     * <p>The version is handed in already checked rather than read from the payload. It is rendered
+     * on a screen beside the fault, so anything a sender writes there has to have passed the same
+     * check the instance's own version passed.
      */
-    public void upsertProblemInstance(int problemId, String instanceId, BeaconPayloads.ProblemPayload payload) {
+    public void upsertProblemInstance(
+            int problemId, String instanceId, String version, BeaconPayloads.ProblemPayload payload) {
         query("""
                         INSERT INTO beacon_problem_instance (problem_id, instance_id, version, occurrences, first_seen, last_seen)
                         VALUES (:problem, :instance, :version, :count, :first, :last)
@@ -105,7 +110,7 @@ public class BeaconIntakeRepository {
                                           last_seen   = EXCLUDED.last_seen;""")
                 .single(call().bind("problem", problemId)
                         .bind("instance", instanceId)
-                        .bind("version", payload.version())
+                        .bind("version", version)
                         .bind("count", payload.occurrences())
                         .bind("first", payload.firstOccurrence(), INSTANT_TIMESTAMP)
                         .bind("last", payload.lastOccurrence(), INSTANT_TIMESTAMP))
