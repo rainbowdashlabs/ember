@@ -12,9 +12,9 @@ import ProfileTab from './ProfileTab.vue'
 import RelationsTab from './RelationsTab.vue'
 import NotesTab from './NotesTab.vue'
 import type {MemberEditData} from './types'
-import type {StationMember} from '@/api/types'
+import {StationUserType, type StationMember} from '@/api/types'
 
-defineProps<{
+const props = defineProps<{
   member: StationMember
   memberId: number
   data: MemberEditData
@@ -29,10 +29,19 @@ const {t} = useI18n()
 
 const activeTab = ref('profile')
 
+/**
+ * The same name the member's own page gives this tab. Somebody who looks after others is asked who
+ * those are; everybody else is asked who looks after them, and one word for both said neither.
+ */
+const relationsTabLabel = computed(() =>
+    props.data.userType === StationUserType.GUARDIAN
+        ? t('memberDetail.tabManagedMembers')
+        : t('memberDetail.tabGuardians'))
+
 const tabs = computed(() => [
   {key: 'profile', label: t('memberEdit.tabProfile')},
   {key: 'permissions', label: t('memberEdit.tabPermissions')},
-  {key: 'relations', label: t('memberEdit.tabRelations')},
+  {key: 'relations', label: relationsTabLabel.value},
   {key: 'notes', label: t('memberEdit.tabNotes')},
 ])
 </script>

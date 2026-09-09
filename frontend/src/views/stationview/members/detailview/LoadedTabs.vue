@@ -12,7 +12,7 @@ import NoteEditor from '@/components/comment/NoteEditor.vue'
 import AbsencesTab from './AbsencesTab.vue'
 import ProfileTab from './ProfileTab.vue'
 import PermissionsTab from './PermissionsTab.vue'
-import RelationsTab from './RelationsTab.vue'
+import MemberRelationsPanel from '../relations/MemberRelationsPanel.vue'
 import InventoryTab from './InventoryTab.vue'
 import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vue'
 import type { ProfileFieldChange } from '@/api/profileFieldChanges'
@@ -34,13 +34,13 @@ defineProps<{
   memberPermissions: PermissionGrant[]
   memberGroupList: MemberGroup[]
   memberTagList: UserTag[]
-  showManagerSection: boolean
+  showGuardians: boolean
+  showManaged: boolean
   managers: StationMember[]
   managedMembers: StationMember[]
   availableManagers: StationMember[]
+  availableManaged: StationMember[]
   allMembers: StationMember[]
-  managerValues: Map<number, Map<number, string>>
-  managerUserTypesAsRoleMap: Map<number, string[]>
   fields: ProfileField[]
   canEdit: boolean
   memberDisplayName: (m: StationMember) => string
@@ -58,6 +58,8 @@ defineEmits<{
   (e: 'link-manager', id: number): void
   (e: 'remove-manager', id: number): void
   (e: 'create-manager', data: { firstName: string; lastName: string; email: string }): void
+  (e: 'link-managed', id: number): void
+  (e: 'remove-managed', id: number): void
   (e: 'assign-item'): void
   (e: 'hand-out', itemId: number): void
   (e: 'hand-out-new', inventoryId: number, sizeId: number | null): void
@@ -89,17 +91,19 @@ const activeTab = ref('profile')
     :member-group-list="memberGroupList" :member-tag-list="memberTagList"
   />
 
-  <RelationsTab
+  <MemberRelationsPanel
     v-if="activeTab === 'relations'"
-    :show-manager-section="showManagerSection" :managers="managers"
-    :managed-members="managedMembers"
-    :available-managers="availableManagers" :manager-values="managerValues"
-    :manager-user-types-as-role-map="managerUserTypesAsRoleMap" :fields="fields"
+    :show-guardians="showGuardians" :show-managed="showManaged"
+    :managers="managers" :managed-members="managedMembers"
+    :available-managers="availableManagers" :available-managed="availableManaged"
+    :fields="fields"
     :can-edit="canEdit" :member-display-name="memberDisplayName"
     :get-manager-fields="getManagerFields" :get-manager-field-value="getManagerFieldValue"
     @link-manager="$emit('link-manager', $event)"
     @remove-manager="$emit('remove-manager', $event)"
     @create-manager="$emit('create-manager', $event)"
+    @link-managed="$emit('link-managed', $event)"
+    @remove-managed="$emit('remove-managed', $event)"
   />
 
   <AbsencesTab v-if="activeTab === 'absences'" :member-id="memberId" />

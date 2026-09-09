@@ -87,4 +87,15 @@ export const fieldTemplates: FieldTemplate[] = [
       {name: 'Leistungsspange Datum', fieldType: 'DATE', config: {readonly: true}},
     ],
   },
+  {
+    name: 'Erste Hilfe Kurs', icon: 'heart', fields: [
+      {name: 'Erste Hilfe Kurs Datum', fieldType: 'DATE', config: {readonly: true}},
+      {name: 'Erste Hilfe Kurs Stunden', fieldType: 'NUMBER', config: {readonly: true}},
+    ],
+  },
+  {
+    name: 'TS Maschinist', icon: 'gears', fields: [
+      {name: 'TS Maschinist Datum', fieldType: 'DATE', config: {readonly: true}},
+    ],
+  },
 ]
