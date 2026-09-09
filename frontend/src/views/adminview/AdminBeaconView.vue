@@ -13,6 +13,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import BeaconSettingsPanel from './adminbeaconview/BeaconSettingsPanel.vue'
 import BeaconFaultCard from './adminbeaconview/BeaconFaultCard.vue'
 import BeaconReportCard from './adminbeaconview/BeaconReportCard.vue'
 import BeaconMetricsTable from './adminbeaconview/BeaconMetricsTable.vue'
@@ -76,6 +77,12 @@ async function acknowledgeReport(id: number) {
   await beacon.acknowledgeBeaconReport(id)
   await load()
 }
+
+/** Switching this instance into a beacon has to fill the lists it just gained. */
+function onSaved(stored: BeaconStatus) {
+  status.value = stored
+  load()
+}
 </script>
 
 <template>
@@ -83,11 +90,14 @@ async function acknowledgeReport(id: number) {
     <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
     <Spinner v-if="loading"/>
 
-    <NeutralContainer v-else-if="!isBeacon">
-      <MutedText tag="div" size="sm">{{ t('beacon.notABeacon') }}</MutedText>
-    </NeutralContainer>
-
     <template v-else>
+      <BeaconSettingsPanel v-if="status" :status="status" class="mb-6" @saved="onSaved"/>
+
+      <NeutralContainer v-if="!isBeacon">
+        <MutedText tag="div" size="sm">{{ t('beacon.notABeacon') }}</MutedText>
+      </NeutralContainer>
+
+      <template v-else>
       <div class="flex items-center justify-between mb-4">
         <TabBar v-model="activeTab" :tabs="tabs"/>
         <SelectionToggleButton :selected="showAcknowledged" @toggle="showAcknowledged = !showAcknowledged; load()">
@@ -114,7 +124,8 @@ async function acknowledgeReport(id: number) {
         />
       </div>
 
-      <BeaconMetricsTable v-else :rows="metrics"/>
+        <BeaconMetricsTable v-else :rows="metrics"/>
+      </template>
     </template>
   </ViewContent>
 </template>

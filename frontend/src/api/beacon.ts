@@ -6,11 +6,10 @@
 import client from './client'
 
 /**
- * What this instance is set up to send, and whether it is itself a beacon.
+ * What this instance sends to a beacon, and whether it is one.
  *
- * <p>Read only. Every one of these is a configuration setting rather than a stored one, so a screen
- * says what an operator has chosen and points at the file rather than offering a switch that would
- * not survive a restart.
+ * <p>Stored settings, so changing one takes effect on the next entry rather than on the next
+ * restart. Everything that reads them asks at the moment it matters.
  */
 export interface BeaconStatus {
     enabled: boolean
@@ -19,7 +18,8 @@ export interface BeaconStatus {
     forwardReports: boolean
     metricsEnabled: boolean
     receiving: boolean
-    hasContact: boolean
+    contactName: string
+    contactMail: string
 }
 
 /** What one fault would travel as, shown before anything leaves the instance. */
@@ -97,6 +97,11 @@ export interface BeaconMetricsRow {
 
 export async function getStatus(): Promise<BeaconStatus> {
     return (await client.get<BeaconStatus>('/admin/beacon')).data
+}
+
+/** Writes the switches and the contact, and gives back what is now stored. */
+export async function updateSettings(settings: BeaconStatus): Promise<BeaconStatus> {
+    return (await client.put<BeaconStatus>('/admin/beacon', settings)).data
 }
 
 /** The exact payload a problem would travel as. Nothing is sent by asking. */

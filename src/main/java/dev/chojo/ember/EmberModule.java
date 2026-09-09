@@ -22,7 +22,6 @@ import dev.chojo.ember.conf.file.File;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.conf.file.elements.Auth;
-import dev.chojo.ember.conf.file.elements.Beacon;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
@@ -655,12 +654,6 @@ public class EmberModule extends AbstractModule {
     @Singleton
     Updates updates(File config) {
         return config.updates();
-    }
-
-    @Provides
-    @Singleton
-    Beacon beacon(File config) {
-        return config.beacon();
     }
 
     @Provides

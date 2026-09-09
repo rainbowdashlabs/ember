@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.beacon.service;
 
-import dev.chojo.ember.conf.file.elements.Beacon;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.discovery.service.DiscoveryHttpClient;
 import dev.chojo.ember.feature.system.service.ProblemLogAppender;
@@ -41,12 +40,12 @@ public class BeaconReportService {
     private static final int QUEUE_CAPACITY = 200;
     private static final long BACKOFF_SECONDS = 30;
 
-    private final Beacon config;
+    private final BeaconSettings config;
     private final DiscoveryHttpClient httpClient;
     private final BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
 
     @Inject
-    public BeaconReportService(Beacon config, DiscoveryHttpClient httpClient) {
+    public BeaconReportService(BeaconSettings config, DiscoveryHttpClient httpClient) {
         this.config = config;
         this.httpClient = httpClient;
         startWorker();
@@ -87,14 +86,18 @@ public class BeaconReportService {
      * than put one on the queue. Entries the beacon itself logged never arrive: the appender leaves
      * them out, which is what stops a failing beacon from feeding itself.
      *
+     * <p>The listener is always registered and asks the setting each time. Deciding once at boot
+     * would mean an operator switching forwarding on had to restart before anything went, which is
+     * the whole reason these settings are stored rather than configured.
+     *
      * @param version this instance's version
      */
     public void startForwarding(String version) {
-        if (!config.forwardProblems()) return;
         var appender = ProblemLogAppender.instance();
         if (appender == null) return;
-        appender.onNewProblem(entry -> send(entry.snapshot(), version));
-        log.info("Every new problem will be offered to the beacon at {}", config.url());
+        appender.onNewProblem(entry -> {
+            if (config.forwardProblems()) send(entry.snapshot(), version);
+        });
     }
 
     /**

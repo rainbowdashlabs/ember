@@ -6,10 +6,10 @@
 package dev.chojo.ember.feature.beacon.route;
 
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.conf.file.elements.Beacon;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.beacon.service.BeaconIntakeService;
+import dev.chojo.ember.feature.beacon.service.BeaconSettings;
 import dev.chojo.ember.feature.discovery.service.DiscoverySigningService;
 import dev.chojo.ember.util.ClientIp;
 import dev.chojo.ember.util.LeakyBucket;
@@ -51,7 +51,7 @@ public class BeaconIntakeRoutes implements Routes {
     private static final int BURST = 30;
     private static final int PER_MINUTE = 10;
 
-    private final Beacon config;
+    private final BeaconSettings config;
     private final Network network;
     private final BeaconIntakeService intake;
     private final DiscoverySigningService signing;
@@ -59,7 +59,7 @@ public class BeaconIntakeRoutes implements Routes {
 
     @Inject
     public BeaconIntakeRoutes(
-            Beacon config, Network network, BeaconIntakeService intake, DiscoverySigningService signing) {
+            BeaconSettings config, Network network, BeaconIntakeService intake, DiscoverySigningService signing) {
         this.config = config;
         this.network = network;
         this.intake = intake;

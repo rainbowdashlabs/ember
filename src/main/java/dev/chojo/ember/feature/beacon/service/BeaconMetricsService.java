@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.beacon.service;
 
-import dev.chojo.ember.conf.file.elements.Beacon;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.beacon.repository.BeaconMetricsSourceRepository;
@@ -39,7 +38,7 @@ public class BeaconMetricsService {
     private static final Logger log = LoggerFactory.getLogger(BeaconMetricsService.class);
     private static final long CHECK_INTERVAL_MINUTES = 10;
 
-    private final Beacon config;
+    private final BeaconSettings config;
     private final Demo demo;
     private final BeaconMetricsSourceRepository source;
     private final BeaconMetricsIdentity identity;
@@ -48,7 +47,7 @@ public class BeaconMetricsService {
 
     @Inject
     public BeaconMetricsService(
-            Beacon config,
+            BeaconSettings config,
             Demo demo,
             BeaconMetricsSourceRepository source,
             BeaconMetricsIdentity identity,
@@ -69,10 +68,13 @@ public class BeaconMetricsService {
      * its slot notice as soon as it is back, without the tick itself deciding anything: the slot and
      * the written mark decide, so a restart is never a reason to report.
      *
+     * <p>The watch runs whether or not reporting is switched on, and each tick asks. An operator who
+     * switches it on should not have to restart to be heard.
+     *
      * @param version this instance's version
      */
     public void start(String version) {
-        if (!config.metricsEnabled() || suppressed()) return;
+        if (suppressed()) return;
         var executor = Executors.newSingleThreadScheduledExecutor(runnable -> {
             var thread = new Thread(runnable, "beacon-metrics");
             thread.setDaemon(true);
@@ -89,7 +91,7 @@ public class BeaconMetricsService {
                 CHECK_INTERVAL_MINUTES,
                 CHECK_INTERVAL_MINUTES,
                 TimeUnit.MINUTES);
-        log.info("Beacon metrics will be reported at minute {} of the UTC day", identity.dailySlotMinute());
+        log.info("Beacon metrics, when switched on, go at minute {} of the UTC day", identity.dailySlotMinute());
     }
 
     /**
@@ -110,6 +112,7 @@ public class BeaconMetricsService {
      * @return whether anything was sent
      */
     public boolean sendIfDue(String version) {
+        if (!config.metricsEnabled()) return false;
         var now = Instant.now();
         if (!scheduler.due(now)) return false;
         if (httpClient.signedPost(config.url(), "/api/v1/beacon/metrics", batch(version, now))) {

@@ -306,32 +306,32 @@ Permissions can also be assigned to entire user types (Trial, Member, Guardian, 
 
 ## Beacon
 
-A beacon is an Ember instance that other instances report to. Nothing here is on by default: with
-`beacon.enabled` unset, no beacon endpoint is called and nothing leaves the instance.
+A beacon is an Ember instance that other instances report to. Nothing here is on by default, and all
+of it is set under **Administration → Beacon** rather than in the config file, so a change takes
+effect on the next entry rather than after a restart.
 
-| Key | Default | What it does |
-|-----|---------|--------------|
-| `beacon.enabled` | `false` | Whether this instance reports at all. Every other sending switch does nothing while this is off. |
-| `beacon.url` | `https://ember-panel.de` | The beacon reported to. |
-| `beacon.forwardProblems` | `false` | Forward each new error log entry as it appears. |
-| `beacon.forwardReports` | `false` | Forward each problem report a person writes. |
-| `beacon.metricsEnabled` | `false` | Send the daily count of how much this instance holds. |
-| `beacon.receiving` | `false` | Accept reports from other instances, which is what makes this instance a beacon. |
-| `beacon.contactName` | empty | A name a beacon may answer on. Optional. |
-| `beacon.contactMail` | empty | An address a beacon may answer on. Optional. |
+| Setting | Default | What it does |
+|---------|---------|--------------|
+| Report to a beacon | off | Whether this instance reports at all. The three below do nothing while it is off. |
+| Beacon address | `https://ember-panel.de` | The beacon reported to. |
+| Forward new errors | off | Forward each new error log entry as it appears. |
+| Forward problem reports | off | Forward each problem report a person writes. |
+| Daily figures | off | Send the daily count of how much this instance holds. |
+| Accept reports | off | Take in what other instances report, which is what makes this instance a beacon. |
+| Contact name and address | empty | How a beacon may answer you. Optional. |
 
 ### What travels
 
 A forwarded error carries the exception, the stack frame names without line numbers, how often it
 happened, and the version. A forwarded problem report carries what the person wrote, the page they
 were on without its query string, and the version. **Neither carries a member's name, a member id or
-a station.** The contact you configure is your own, and exists so a beacon can write to you rather
-than to anybody in your station.
+a station.** The contact you give is your own, and exists so a beacon can write to you rather than to
+anybody in your station.
 
 Error messages quote what failed, and what failed is sometimes an address or a name. The send button
-shows the exact contents first, and it is worth reading before switching `forwardProblems` on.
+shows the exact contents first, and it is worth reading before switching automatic forwarding on.
 
-### The daily numbers
+### The daily figures
 
 Counts travel as ranges (`<10`, `10-50`, `50-200`, `200+`) rather than exact numbers, because an
 exact figure reported day after day can be matched against publicly listed stations. Each station and
@@ -342,14 +342,14 @@ The time of day an instance reports is derived from that identifier, so a fleet 
 not all report at the same second. A restart does not trigger a report and does not move the slot, and
 a missed day is not made up later.
 
-Metrics are sent unsigned, since they carry no identity to sign with. Anybody who learns a metrics
+The figures are sent unsigned, since they carry no identity to sign with. Anybody who learns a metrics
 identifier could submit figures for it; the last report for a day wins, so an honest one corrects it.
 
 ### What a beacon can and cannot tell
 
-The identifiers keep the numbers from being tied to an instance **in the stored data**. Whoever runs a
+The identifiers keep the figures from being tied to an instance **in the stored data**. Whoever runs a
 beacon still sees which address is talking to them and when, so they can line up a signed error report
-and an unsigned metrics submission that arrive minutes apart. Send to a beacon you are willing to
+and an unsigned figures submission that arrive minutes apart. Report to a beacon you are willing to
 trust with that.
 
 ### Copies and test instances

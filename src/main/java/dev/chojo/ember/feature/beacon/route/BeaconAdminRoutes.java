@@ -7,10 +7,10 @@ package dev.chojo.ember.feature.beacon.route;
 
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
-import dev.chojo.ember.conf.file.elements.Beacon;
 import dev.chojo.ember.feature.beacon.repository.BeaconReadRepository;
 import dev.chojo.ember.feature.beacon.service.BeaconMetricsService;
 import dev.chojo.ember.feature.beacon.service.BeaconReportService;
+import dev.chojo.ember.feature.beacon.service.BeaconSettings;
 import dev.chojo.ember.feature.system.service.ProblemLogAppender;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import io.javalin.http.BadRequestResponse;
@@ -33,7 +33,7 @@ import java.util.List;
 @Singleton
 public class BeaconAdminRoutes implements Routes {
 
-    private final Beacon config;
+    private final BeaconSettings config;
     private final BeaconReportService reports;
     private final BeaconMetricsService metrics;
     private final UpdateCheckService updates;
@@ -41,7 +41,7 @@ public class BeaconAdminRoutes implements Routes {
 
     @Inject
     public BeaconAdminRoutes(
-            Beacon config,
+            BeaconSettings config,
             BeaconReportService reports,
             BeaconMetricsService metrics,
             UpdateCheckService updates,
@@ -57,6 +57,7 @@ public class BeaconAdminRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         String base = prefix + "/admin/beacon";
         routes.get(base, this::status, InstancePermission.ADMINISTRATOR);
+        routes.put(base, this::updateSettings, InstancePermission.ADMINISTRATOR);
         routes.get(base + "/problems/{id}/preview", this::previewProblem, InstancePermission.ADMINISTRATOR);
         routes.post(base + "/problems/{id}/send", this::sendProblem, InstancePermission.ADMINISTRATOR);
         routes.post(base + "/problems/send", this::sendProblems, InstancePermission.ADMINISTRATOR);
@@ -126,8 +127,8 @@ public class BeaconAdminRoutes implements Routes {
      *
      * @param enabled       whether anything is sent at all
      * @param url           the beacon being reported to
-     * @param hasContact    whether an operator gave a way to answer them
      * @param receiving     whether this instance is itself a beacon
+     * @param contactName   a name a beacon may answer on, empty where none was given
      */
     public record BeaconStatus(
             boolean enabled,
@@ -136,7 +137,8 @@ public class BeaconAdminRoutes implements Routes {
             boolean forwardReports,
             boolean metricsEnabled,
             boolean receiving,
-            boolean hasContact) {}
+            String contactName,
+            String contactMail) {}
 
     private void status(Context ctx) {
         ctx.json(new BeaconStatus(
@@ -146,8 +148,40 @@ public class BeaconAdminRoutes implements Routes {
                 config.forwardReports(),
                 config.metricsEnabled(),
                 config.receiving(),
-                !config.contactMail().isBlank() || !config.contactName().isBlank()));
+                config.contactName(),
+                config.contactMail()));
     }
+
+    /**
+     * What an operator chose, written down.
+     *
+     * <p>Stored rather than configured, so a change takes effect on the next entry rather than on the
+     * next restart. Everything that reads these asks at the moment it matters.
+     */
+    private void updateSettings(Context ctx) {
+        var request = ctx.bodyAsClass(SettingsRequest.class);
+        config.update(
+                request.enabled(),
+                request.url(),
+                request.forwardProblems(),
+                request.forwardReports(),
+                request.metricsEnabled(),
+                request.receiving(),
+                request.contactName(),
+                request.contactMail());
+        status(ctx);
+    }
+
+    /** The switches and the contact, as the screen sends them back. */
+    public record SettingsRequest(
+            boolean enabled,
+            String url,
+            boolean forwardProblems,
+            boolean forwardReports,
+            boolean metricsEnabled,
+            boolean receiving,
+            String contactName,
+            String contactMail) {}
 
     private ProblemLogAppender.Snapshot entry(Context ctx) {
         long id;

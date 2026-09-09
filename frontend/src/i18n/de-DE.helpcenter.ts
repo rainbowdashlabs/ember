@@ -5050,7 +5050,7 @@ volumes:
             whatIs: 'Was ein Beacon ist',
             whatIsText: 'Ein Beacon ist eine Ember-Instanz, an die andere Instanzen melden, was bei ihnen schiefgegangen ist. Wer denselben Fehler in dreißig Installationen sieht, weiß etwas, das eine einzelne Instanz nicht wissen kann. Standardmäßig ist alles davon abgeschaltet: ohne ausdrückliche Einstellung verlässt nichts die Instanz.',
             sending: 'Fehler weitergeben',
-            sendingText: 'Im Fehlerprotokoll steht neben jedem Eintrag eine Schaltfläche, und mehrere lassen sich ankreuzen und zusammen senden. Wer möchte, kann jeden neuen Eintrag automatisch weitergeben lassen; für die von Hand geschriebenen Problemmeldungen gibt es einen eigenen Schalter, weil das etwas anderes ist.',
+            sendingText: 'Im Fehlerprotokoll steht neben jedem Eintrag eine Schaltfläche, und mehrere lassen sich ankreuzen und zusammen senden. Wer möchte, kann jeden neuen Eintrag automatisch weitergeben lassen; für die von Hand geschriebenen Problemmeldungen gibt es einen eigenen Schalter, weil das etwas anderes ist. Alle Schalter stehen unter Administration → Beacon.',
             sendingPreview: 'Vor dem Senden wird gezeigt, was genau übertragen wird. Fehlermeldungen zitieren, was schiefging, und das ist manchmal eine Adresse oder ein Name. Weitergeleitete Meldungen enthalten keinen Namen, keine Mitglieds- und keine Standortkennung, und die Seitenadresse wird ohne Parameter übertragen.',
             numbers: 'Zahlen',
             numbersText: 'Einmal am Tag kann die Instanz melden, wie viel sie hält. Die Zahlen werden vorher in Bereiche eingeteilt, etwa "10-50" statt einer genauen Zahl, denn eine genaue Zahl über Wochen hinweg ist ein Erkennungsmerkmal. Jeder Standort und die Instanz selbst tragen dafür eine eigene Kennung, die für nichts anderes benutzt wird.',
@@ -5059,7 +5059,7 @@ volumes:
             receivingText: 'Wer Meldungen entgegennehmen will, schaltet das eigens frei. Gleiche Fehler aus verschiedenen Instanzen werden zusammengefasst, damit daneben steht, wie viele Installationen betroffen sind.',
             copies: 'Kopien und Testinstanzen',
             copiesText: 'Eine aus einem Backup wiederhergestellte Instanz trägt die Kennungen des Originals und meldet unter dessen Namen weiter. Auf Demo- und Entwicklungsinstanzen wird deshalb gar nicht gemeldet; bei einer echten Kopie sollte der Schlüssel im Datenverzeichnis gelöscht werden.',
-            tip: 'Alle Schalter stehen in der Konfigurationsdatei und nicht in der Oberfläche, damit eine Einstellung einen Neustart übersteht.',
+            tip: 'Alle Schalter stehen unter Administration → Beacon. Eine Änderung gilt sofort, ein Neustart ist nicht nötig.',
         },
         adminProblemReports: {
             title: 'Problemmeldungen',
