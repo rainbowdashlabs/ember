@@ -18,6 +18,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-admin-data-tracking', path: '/helpcenter/admin/dev/data-tracking', i18nPrefix: 'helpCenter.adminDataTracking'},
     {route: 'help-admin-api-status', path: '/helpcenter/admin/monitoring/api-status', i18nPrefix: 'helpCenter.adminApiStatus'},
     {route: 'help-admin-api-status-detail', path: '/helpcenter/admin/monitoring/api-status/detail', i18nPrefix: 'helpCenter.adminApiStatusDetail'},
+    {route: 'help-admin-beacon', path: '/helpcenter/admin/monitoring/beacon', i18nPrefix: 'helpCenter.adminBeacon'},
     {route: 'help-admin-discovery', path: '/helpcenter/admin/monitoring/discovery', i18nPrefix: 'helpCenter.adminDiscovery'},
     {route: 'help-admin-feed-metrics', path: '/helpcenter/admin/monitoring/feed-metrics', i18nPrefix: 'helpCenter.adminFeedMetrics'},
     {route: 'help-admin-log', path: '/helpcenter/admin/monitoring/log', i18nPrefix: 'helpCenter.adminLog'},

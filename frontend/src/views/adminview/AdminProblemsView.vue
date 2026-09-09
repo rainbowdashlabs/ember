@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, computed} from 'vue'
+import {ref, computed, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -15,7 +15,10 @@ import InfoContainer from '@/components/container/InfoContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import ProblemEntryCard from './adminproblemsview/ProblemEntryCard.vue'
-import {problems} from '@/api'
+import {beacon, problems} from '@/api'
+import BeaconPreviewModal from './adminproblemsview/BeaconPreviewModal.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
+import type {BeaconStatus} from '@/api/beacon'
 import type {ProblemEntry} from '@/api/problems'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
@@ -62,6 +65,45 @@ async function ackAll() {
 function toggleExpand(id: number) {
     expandedId.value = expandedId.value === id ? null : id
 }
+
+/**
+ * The beacon half of this screen, which only appears where an instance actually reports to one.
+ *
+ * <p>Whether it does is configuration rather than a stored setting, so this asks and shows; it never
+ * offers a switch that would not survive a restart.
+ */
+const beaconStatus = ref<BeaconStatus | null>(null)
+const selected = ref<Set<number>>(new Set())
+const previewId = ref<number | null>(null)
+const showPreview = ref(false)
+const sendResult = ref('')
+
+onMounted(async () => {
+    try {
+        beaconStatus.value = await beacon.getStatus()
+    } catch {
+        beaconStatus.value = null
+    }
+})
+
+function toggleSelected(id: number) {
+    const next = new Set(selected.value)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    selected.value = next
+}
+
+function openPreview(id: number) {
+    previewId.value = id
+    showPreview.value = true
+}
+
+async function sendSelected() {
+    if (selected.value.size === 0) return
+    const queued = await beacon.sendProblems([...selected.value])
+    sendResult.value = t('beacon.queued', {count: queued})
+    selected.value = new Set()
+}
 </script>
 
 <template>
@@ -80,10 +122,19 @@ function toggleExpand(id: number) {
                 <SecondaryButton :icon="['fas', 'check-double']" v-if="entries.some(e => !e.acknowledged)" @click="ackAll">
                     {{ t('adminProblems.acknowledgeAll') }}
                 </SecondaryButton>
+                <SecondaryButton
+                    v-if="beaconStatus?.enabled && selected.size > 0"
+                    :icon="['fas', 'tower-broadcast']"
+                    data-testid="beacon-send-selected"
+                    @click="sendSelected"
+                >
+                    {{ t('beacon.sendSelected', {count: selected.size}) }}
+                </SecondaryButton>
             </div>
         </div>
 
         <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+        <Alert v-if="sendResult" variant="success" class="mb-4">{{ sendResult }}</Alert>
 
         <div class="flex gap-3 mb-4">
             <ErrorContainer v-if="errorCount > 0" class="flex items-center gap-2 !py-2 !px-3">
@@ -103,14 +154,26 @@ function toggleExpand(id: number) {
         <Spinner v-if="loading"/>
 
         <div v-else class="space-y-2">
-            <ProblemEntryCard
-                v-for="entry in visibleEntries"
-                :key="entry.id"
-                :entry="entry"
-                :expanded="expandedId === entry.id"
-                @toggle="toggleExpand"
-                @ack="ack"
-            />
+            <div v-for="entry in visibleEntries" :key="entry.id" class="flex items-start gap-2">
+                <CheckboxInput
+                    v-if="beaconStatus?.enabled"
+                    :model-value="selected.has(entry.id)"
+                    class="mt-4"
+                    :data-testid="`beacon-pick-${entry.id}`"
+                    @update:model-value="toggleSelected(entry.id)"
+                />
+                <ProblemEntryCard
+                    class="flex-1"
+                    :entry="entry"
+                    :expanded="expandedId === entry.id"
+                    :can-send="beaconStatus?.enabled === true"
+                    @toggle="toggleExpand"
+                    @ack="ack"
+                    @send="openPreview"
+                />
+            </div>
         </div>
+
+        <BeaconPreviewModal v-model:open="showPreview" :problem-id="previewId" @sent="sendResult = t('beacon.queued', {count: 1})"/>
     </ViewContent>
 </template>

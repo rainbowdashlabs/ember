@@ -117,6 +117,9 @@ onMounted(() => {
         <SidebarLink :icon="['fas', 'bug']" name="admin-problems" to="/admin/monitoring/problems" @navigate="close">
           {{ t('sidebar.problemLog') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'tower-broadcast']" name="admin-beacon" to="/admin/monitoring/beacon" @navigate="close">
+          {{ t('sidebar.beacon') }}
+        </SidebarLink>
         <SidebarLink :icon="['fas', 'flag']" name="admin-problem-reports" to="/admin/monitoring/problem-reports" @navigate="close">
           {{ t('sidebar.problemReports') }}
         </SidebarLink>

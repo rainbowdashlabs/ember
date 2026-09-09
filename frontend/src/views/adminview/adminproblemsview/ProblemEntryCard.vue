@@ -14,11 +14,14 @@ import type {ProblemEntry} from '@/api/problems'
 const props = defineProps<{
   entry: ProblemEntry
   expanded: boolean
+  /** Whether this instance reports to a beacon, which is the only case the send button belongs in. */
+  canSend?: boolean
 }>()
 
 const emit = defineEmits<{
   toggle: [id: number]
   ack: [id: number]
+  send: [id: number]
 }>()
 
 const containerComponent = computed(() => props.entry.level === 'ERROR' ? ErrorContainer : InfoContainer)
@@ -31,7 +34,13 @@ const containerComponent = computed(() => props.entry.level === 'ERROR' ? ErrorC
     :class="{'opacity-50': entry.acknowledged}"
     @click="emit('toggle', entry.id)"
   >
-    <ProblemEntryHeader :entry="entry" :expanded="expanded" @ack="emit('ack', $event)"/>
+    <ProblemEntryHeader
+      :entry="entry"
+      :expanded="expanded"
+      :can-send="canSend"
+      @ack="emit('ack', $event)"
+      @send="emit('send', $event)"
+    />
     <ProblemEntryDetails v-if="expanded" :entry="entry"/>
   </component>
 </template>

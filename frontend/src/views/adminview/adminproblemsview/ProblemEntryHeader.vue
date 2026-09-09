@@ -13,10 +13,13 @@ import {formatDateTime} from '@/util/format'
 const props = defineProps<{
   entry: ProblemEntry
   expanded: boolean
+  /** Whether this instance reports to a beacon, which is the only case the send button belongs in. */
+  canSend?: boolean
 }>()
 
 const emit = defineEmits<{
   ack: [id: number]
+  send: [id: number]
 }>()
 
 const {t} = useI18n()
@@ -52,6 +55,13 @@ function shortLogger(logger: string): string {
       </p>
     </div>
     <div class="flex items-center gap-1 shrink-0">
+      <IconButton
+        v-if="canSend"
+        :icon="['fas', 'tower-broadcast']"
+        :label="t('beacon.sendOne')"
+        :data-testid="`beacon-send-${entry.id}`"
+        @click.stop="emit('send', entry.id)"
+      />
       <IconButton
         v-if="!entry.acknowledged"
         :icon="['fas', 'check']"
