@@ -80,6 +80,7 @@ dependencies {
     testImplementation(libs.bundles.junit)
     testImplementation(libs.mockito)
     testImplementation(libs.archunit)
+    testImplementation(libs.greenmail)
 }
 
 /**

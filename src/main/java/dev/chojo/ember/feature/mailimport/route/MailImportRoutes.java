@@ -193,14 +193,14 @@ public class MailImportRoutes implements Routes {
 
     private void createRule(Context ctx) {
         var mailbox = requireOwned(ctx);
-        requireMayFile(ctx);
+        requireMayFile(UserSession.from(ctx));
         var request = ctx.bodyValidator(RuleRequest.class).get();
         ctx.status(HttpStatus.CREATED).json(toResponse(mailboxService.createRule(mailbox, request)));
     }
 
     private void updateRule(Context ctx) {
         var rule = requireOwnedRule(ctx);
-        requireMayFile(ctx);
+        requireMayFile(UserSession.from(ctx));
         var request = ctx.bodyValidator(RuleRequest.class).get();
         mailboxService.updateRule(rule.id(), request);
         ctx.json(toResponse(mailboxService.requireRule(rule.id())));
@@ -208,14 +208,14 @@ public class MailImportRoutes implements Routes {
 
     private void deleteRule(Context ctx) {
         var rule = requireOwnedRule(ctx);
-        requireMayFile(ctx);
+        requireMayFile(UserSession.from(ctx));
         mailboxService.deleteRule(rule.id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private void acknowledgeLostMember(Context ctx) {
         var rule = requireOwnedRule(ctx);
-        requireMayFile(ctx);
+        requireMayFile(UserSession.from(ctx));
         mailboxService.acknowledgeLostMember(rule.id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -240,8 +240,8 @@ public class MailImportRoutes implements Routes {
      * A rule files documents, so writing one takes the right to file documents and not only the right to
      * connect a mailbox.
      */
-    private void requireMayFile(Context ctx) {
-        if (!UserSession.from(ctx).hasPermission(StationPermission.DOCUMENT_EDIT)) {
+    private void requireMayFile(UserSession session) {
+        if (!session.hasPermission(StationPermission.DOCUMENT_EDIT)) {
             throw new ForbiddenResponse();
         }
     }
