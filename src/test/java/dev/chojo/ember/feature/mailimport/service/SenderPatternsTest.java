@@ -53,7 +53,8 @@ class SenderPatternsTest {
 
     @Test
     void caseIsNotWhatTellsTwoSendersApart() {
-        assertTrue(SenderPatterns.accepts(List.of("Archive@Feuerwehr-Musterstadt.DE"), "archive@feuerwehr-musterstadt.de"));
+        assertTrue(SenderPatterns.accepts(
+                List.of("Archive@Feuerwehr-Musterstadt.DE"), "archive@feuerwehr-musterstadt.de"));
         assertTrue(SenderPatterns.accepts(List.of("*@feuerwehr-musterstadt.de"), "ARCHIVE@FEUERWEHR-MUSTERSTADT.DE"));
     }
 

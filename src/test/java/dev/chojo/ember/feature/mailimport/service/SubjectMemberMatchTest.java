@@ -28,12 +28,16 @@ class SubjectMemberMatchTest {
 
     @Test
     void theOrderTheNameIsWrittenInDoesNotMatter() {
-        assertEquals(1, SubjectMemberMatch.soleMatch("Weber, Anna: Attest", List.of(ANNA, CLARA))
-                .orElseThrow()
-                .memberId());
-        assertEquals(3, SubjectMemberMatch.soleMatch("SCHMIDT CLARA untersuchung", List.of(ANNA, CLARA))
-                .orElseThrow()
-                .memberId());
+        assertEquals(
+                1,
+                SubjectMemberMatch.soleMatch("Weber, Anna: Attest", List.of(ANNA, CLARA))
+                        .orElseThrow()
+                        .memberId());
+        assertEquals(
+                3,
+                SubjectMemberMatch.soleMatch("SCHMIDT CLARA untersuchung", List.of(ANNA, CLARA))
+                        .orElseThrow()
+                        .memberId());
     }
 
     /**
@@ -42,7 +46,8 @@ class SubjectMemberMatchTest {
      */
     @Test
     void twoMembersSharingASurnameBindNobody() {
-        assertTrue(SubjectMemberMatch.soleMatch("Bescheinigung Weber", List.of(ANNA, BERND)).isEmpty());
+        assertTrue(SubjectMemberMatch.soleMatch("Bescheinigung Weber", List.of(ANNA, BERND))
+                .isEmpty());
     }
 
     @Test
@@ -53,7 +58,8 @@ class SubjectMemberMatchTest {
 
     @Test
     void aSubjectNamingNobodyBindsNobody() {
-        assertTrue(SubjectMemberMatch.soleMatch("Rechnung 2026-04", List.of(ANNA, CLARA)).isEmpty());
+        assertTrue(SubjectMemberMatch.soleMatch("Rechnung 2026-04", List.of(ANNA, CLARA))
+                .isEmpty());
         assertTrue(SubjectMemberMatch.soleMatch("", List.of(ANNA)).isEmpty());
         assertTrue(SubjectMemberMatch.soleMatch(null, List.of(ANNA)).isEmpty());
         assertTrue(SubjectMemberMatch.soleMatch("Anna Weber", List.of()).isEmpty());
@@ -87,6 +93,7 @@ class SubjectMemberMatchTest {
     void aMemberWithNoNameToSpeakOfIsNeverGuessedAt() {
         var nameless = new Candidate(6, "   ");
 
-        assertTrue(SubjectMemberMatch.soleMatch("Bescheinigung", List.of(nameless)).isEmpty());
+        assertTrue(
+                SubjectMemberMatch.soleMatch("Bescheinigung", List.of(nameless)).isEmpty());
     }
 }

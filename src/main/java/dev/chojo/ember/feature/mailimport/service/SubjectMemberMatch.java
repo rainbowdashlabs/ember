@@ -74,7 +74,8 @@ public final class SubjectMemberMatch {
                 .max((left, right) -> Integer.compare(length(left), length(right)))
                 .orElseThrow();
         boolean tied = named.stream()
-                .anyMatch(candidate -> candidate.memberId() != longest.memberId() && length(candidate) == length(longest));
+                .anyMatch(candidate ->
+                        candidate.memberId() != longest.memberId() && length(candidate) == length(longest));
         if (tied) return Optional.empty();
         boolean allInside = named.stream()
                 .allMatch(candidate -> candidate.memberId() == longest.memberId()
