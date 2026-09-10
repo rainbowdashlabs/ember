@@ -10,7 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import AnalyticsHeader from '@/views/stationview/forms/analyticsview/AnalyticsHeader.vue'
@@ -233,7 +233,7 @@ const { loading, error } = useAsyncLoader(async () => {
   >
     <div class="space-y-6 max-w-4xl">
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading && form && analytics">
         <AnalyticsHeader

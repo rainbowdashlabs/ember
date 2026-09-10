@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {
   AttendanceEntry,
@@ -111,7 +112,7 @@ const emit = defineEmits<{
     <Alert v-if="locked" variant="info">
       {{ canManage ? t('attendanceSession.frozenForManager') : t('attendanceSession.frozen') }}
     </Alert>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
 
     <template v-if="!loading && session">
       <SessionHeader

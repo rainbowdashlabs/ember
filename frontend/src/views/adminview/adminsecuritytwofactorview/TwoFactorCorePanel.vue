@@ -7,6 +7,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -57,7 +58,7 @@ async function generateKey() {
 <template>
   <div class="space-y-6">
     <Spinner v-if="loading" size="md"/>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
 
     <template v-if="!loading">
       <NeutralContainer class="space-y-4">

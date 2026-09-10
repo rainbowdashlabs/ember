@@ -7,7 +7,7 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
@@ -109,7 +109,7 @@ async function clear() {
       <SubHeader>{{ t('lendingShare.title') }}</SubHeader>
       <MutedText tag="p">{{ targetName }}</MutedText>
 
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <MutedText v-if="loading" tag="p">{{ t('lendingShare.loading') }}</MutedText>
 
       <template v-else>

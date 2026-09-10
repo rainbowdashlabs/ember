@@ -8,11 +8,11 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import { auth } from '@/api'
 import TwoFactorSection from '@/views/stationview/profile/settingsview/TwoFactorSection.vue'
 import PasskeySection from '@/views/accountview/accountsecurityview/PasskeySection.vue'
@@ -48,7 +48,7 @@ async function changePassword() {
 <template>
   <ViewContent :title="t('pages.account-security.title')" :subtitle="t('pages.account-security.subtitle')">
     <div class="max-w-2xl mx-auto space-y-8 p-4">
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <NeutralContainer class="space-y-4">
         <SectionHeader>{{ t('profile.passwordTitle') }}</SectionHeader>

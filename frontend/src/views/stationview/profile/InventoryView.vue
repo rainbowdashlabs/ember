@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import MovementsPanel from '@/components/inventory/MovementsPanel.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {inventory, managedMembers, exchanges} from '@/api'
 import {stillMoving, type ExchangeRequestEntry} from '@/api/exchanges'
@@ -283,7 +284,7 @@ const {
       <MovementsPanel @changed="loadOwnInventory"/>
 
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <InventoryGroupList
           v-if="!loading"

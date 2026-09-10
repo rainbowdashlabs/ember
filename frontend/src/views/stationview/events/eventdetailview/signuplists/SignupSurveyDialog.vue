@@ -7,6 +7,7 @@
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -66,7 +67,7 @@ function submit() {
       <SignupSetNotes :member-set="memberSet" :date-label="dateLabel"/>
 
       <Alert variant="info">{{ t('signupLists.surveyDraft') }}</Alert>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <div class="flex justify-end gap-2 pt-2">
         <SecondaryButton @click="visible = false">{{ t('common.cancel') }}</SecondaryButton>

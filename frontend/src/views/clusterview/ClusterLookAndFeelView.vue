@@ -8,6 +8,7 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -45,7 +46,7 @@ async function save() {
 <template>
   <ViewContent :subtitle="t('pages.cluster-look-and-feel.subtitle')" :title="t('pages.cluster-look-and-feel.title')">
     <div class="space-y-4">
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <Alert v-if="saved" variant="success">{{ t('clusterLookAndFeel.saved') }}</Alert>
 
       <Spinner v-if="loading" size="lg"/>

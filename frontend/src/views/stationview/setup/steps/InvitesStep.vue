@@ -9,13 +9,13 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import SetupMailChoice from '@/components/input/toggle/SetupMailChoice.vue'
 import {memberGroups, stationMemberInvites} from '@/api'
 import type {MemberGroup} from '@/api/types'
@@ -96,7 +96,7 @@ const expandedBulk = computed(() => {
     }))
 })
 
-const {running: saving, error, run: runSave, clearError} = useAsyncAction(async (payload: InviteEntry[]) => {
+const {running: saving, error, failure, run: runSave, clearError} = useAsyncAction(async (payload: InviteEntry[]) => {
     const result = await stationMemberInvites.createInvites({
         invites: payload,
         sendSetupMail: sendSetupMail.value,
@@ -122,7 +122,7 @@ function save() {
 
 <template>
   <SetupLayout step-id="invites" skippable :saving="saving" @save="save">
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :failure="failure"/>
     <div class="flex gap-2 text-sm">
       <SelectionToggleButton :selected="tab === 'rich'" @toggle="tab = 'rich'">
         {{ t('setup.steps.invites.tabRich') }}

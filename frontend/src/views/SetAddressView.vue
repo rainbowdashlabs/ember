@@ -8,8 +8,8 @@ import {computed, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import {auth} from '@/api'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
@@ -74,7 +74,7 @@ const error = computed(() => submitError.value)
       </div>
 
       <form class="space-y-4" @submit.prevent="submit">
-        <Alert v-if="error" variant="error">{{ error }}</Alert>
+        <FailureAlert :message="error"/>
 
         <div class="space-y-1">
           <FieldLabel>{{ t('setAddress.email') }}</FieldLabel>

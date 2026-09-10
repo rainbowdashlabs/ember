@@ -7,6 +7,7 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -180,7 +181,7 @@ function onCancel() {
             autocomplete="one-time-code"
             inputmode="numeric"
         />
-        <Alert v-if="error" variant="error">{{ error }}</Alert>
+        <FailureAlert :message="error"/>
         <div class="flex justify-between gap-2">
           <SecondaryButton type="button" :disabled="loading" @click="onCancel">
             {{ t('twoFactor.stepUp.cancel') }}
@@ -191,7 +192,7 @@ function onCancel() {
         </div>
       </form>
       <template v-else>
-        <Alert v-if="error" variant="error">{{ error }}</Alert>
+        <FailureAlert :message="error"/>
         <Alert v-if="offersNothing" variant="info">{{ t('twoFactor.stepUp.noProofs') }}</Alert>
         <div class="flex justify-between gap-2">
           <SecondaryButton type="button" :disabled="loading" @click="onCancel">

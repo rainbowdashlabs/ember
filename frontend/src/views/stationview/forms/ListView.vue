@@ -11,7 +11,7 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {FormStatus, type Form, type FormListEntry, type FormPurposeName} from '@/api/forms'
 import { StationPermission } from '@/api/types'
 import { forms } from '@/api'
@@ -158,7 +158,7 @@ watch(loaded, (isLoaded) => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading">
         <ManagedFormsSection

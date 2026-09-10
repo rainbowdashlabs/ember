@@ -8,8 +8,8 @@ import {computed, onMounted, reactive, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -101,7 +101,7 @@ const {running: saving, run: proceed} = useAsyncAction(async () => {
 
 <template>
   <SetupLayout step-id="member-types" :saving="saving" @save="proceed">
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <Spinner v-if="loading" size="lg"/>
 
     <div v-else class="grid gap-6 lg:grid-cols-2">

@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {stationManage} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSetupStatus} from '@/composables/useSetupStatus'
@@ -57,7 +57,7 @@ function toggle(key: string) {
   disabled.value = next
 }
 
-const {running: saving, error, run: save} = useAsyncAction(async () => {
+const {running: saving, error, failure, run: save} = useAsyncAction(async () => {
   await stationManage.setDisabledModules([...disabled.value])
   await reloadSession()
   await reload()
@@ -67,7 +67,7 @@ const {running: saving, error, run: save} = useAsyncAction(async () => {
 
 <template>
   <SetupLayout step-id="modules" :saving="saving" @save="save">
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :failure="failure"/>
     <p v-if="loading" class="text-sm text-(--text-muted)">{{ t('common.loading') }}</p>
     <div v-else class="space-y-3">
       <div v-for="mod in allModules" :key="mod.key" class="flex items-center gap-3">

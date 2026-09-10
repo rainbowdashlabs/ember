@@ -8,6 +8,7 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
@@ -92,7 +93,7 @@ async function save() {
 <template>
   <ViewContent :subtitle="t('pages.cluster-modules.subtitle')" :title="t('pages.cluster-modules.title')">
     <div class="space-y-4">
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <Alert v-if="saved" variant="success">{{ t('clusterModules.saved') }}</Alert>
 
       <Spinner v-if="loading" size="lg"/>

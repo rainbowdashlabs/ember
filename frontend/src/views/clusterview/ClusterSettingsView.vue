@@ -8,6 +8,7 @@ import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FormLabel from '@/components/input/FormLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -70,7 +71,7 @@ async function save() {
     <Spinner v-if="loading"/>
 
     <div v-else class="space-y-4">
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <Alert v-if="saved" variant="success">{{ t('clusterSettings.saved') }}</Alert>
 
       <NeutralContainer class="space-y-4">

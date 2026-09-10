@@ -9,10 +9,10 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import MailProviderCredentialFields from '@/components/mail/MailProviderCredentialFields.vue'
 import {emptyMailProvider, getStationProviders, updateStationProviders, type MailProvider} from '@/api/mailProviders'
@@ -52,7 +52,7 @@ onMounted(async () => {
     loading.value = false
 })
 
-const {running: saving, error, run: save} = useAsyncAction(async () => {
+const {running: saving, error, failure, run: save} = useAsyncAction(async () => {
     await updateStationProviders(cfg.value.provider === 'NONE' ? [] : [cfg.value])
     await reload()
     goToNextStep(router, 'mail')
@@ -61,7 +61,7 @@ const {running: saving, error, run: save} = useAsyncAction(async () => {
 
 <template>
   <SetupLayout step-id="mail" skippable :saving="saving" @save="save">
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :failure="failure"/>
     <InfoContainer class="space-y-1">
       <p class="font-medium text-sm">{{ t('setup.steps.mail.worksWithoutTitle') }}</p>
       <p class="text-sm">{{ t('setup.steps.mail.worksWithoutBody') }}</p>

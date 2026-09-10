@@ -6,8 +6,8 @@
 <script lang="ts" setup>
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
-import Alert from '@/components/feedback/Alert.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import RadioInput from '@/components/input/toggle/RadioInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -110,6 +110,6 @@ function submit() {
         :following="kind === 'FOLLOWING'"
     />
 
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
   </ChecklistFormModal>
 </template>

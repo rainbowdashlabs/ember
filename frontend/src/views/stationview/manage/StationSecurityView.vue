@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -117,7 +118,7 @@ onMounted(load)
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="md"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading">
         <PoliciesPanel

@@ -8,7 +8,7 @@ import {ref, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import WaitlistSuccessPanel from './publicwaitlistview/WaitlistSuccessPanel.vue'
@@ -126,7 +126,7 @@ const error = computed(() => loadError.value || submitError.value)
   <ViewContent :title="t('pages.public-waitlist.title')" :subtitle="t('pages.public-waitlist.subtitle')">
     <div class="max-w-2xl mx-auto space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <WaitlistSuccessPanel v-if="submitted"/>
 

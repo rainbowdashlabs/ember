@@ -199,8 +199,9 @@ client.interceptors.response.use(
             }
         }
         if (error.response?.status === 403) {
-            const message = error.response?.data?.message ?? 'Kein Zugriff auf diesen Inhalt.'
-            showToast(message, 'error')
+            // Rights are the station's to give, so the toast points there rather than at a bug report.
+            const said = error.response?.data?.message
+            showToast(said?.trim() ? said : i18n.global.t('failure.DENIED.message'), 'error')
         }
         return Promise.reject(error)
     },

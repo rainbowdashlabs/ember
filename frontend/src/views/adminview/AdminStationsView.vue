@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import type {Station} from '@/api/stations'
 import {stations, transfer} from '@/api'
 import StationsGrid from './adminstationsview/StationsGrid.vue'
@@ -64,7 +64,7 @@ const error = computed(() => panelError.value || importError.value)
   <ViewContent :title="t('pages.admin-stations.title')" :subtitle="t('pages.admin-stations.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <StationsGrid
           v-if="!loading"

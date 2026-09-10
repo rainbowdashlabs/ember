@@ -7,13 +7,13 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import type {InventoryItem} from '@/api/inventory'
 import {MovementPurpose} from '@/api/movements'
 import {movements} from '@/api'
@@ -39,7 +39,7 @@ const {t} = useI18n()
 const asking = ref<'RETURN' | 'EXCHANGE' | null>(null)
 const reason = ref('')
 
-const {running, error, run: start} = useAsyncAction(async () => {
+const {running, error, failure, run: start} = useAsyncAction(async () => {
   if (!asking.value) return
   await movements.createMovement({
     purpose: asking.value === 'RETURN' ? MovementPurpose.RETURN : MovementPurpose.EXCHANGE,
@@ -71,7 +71,7 @@ const {running, error, run: start} = useAsyncAction(async () => {
         <SectionHeader>
           {{ asking === 'RETURN' ? t('itemDetail.handBack') : t('itemDetail.askExchange') }}
         </SectionHeader>
-        <Alert v-if="error" variant="error">{{ error }}</Alert>
+        <FailureAlert :failure="failure"/>
 
         <div class="space-y-1">
           <FieldLabel>{{ t('itemDetail.movementReason') }}</FieldLabel>

@@ -7,7 +7,7 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -54,7 +54,7 @@ onMounted(async () => {
     </div>
 
     <Spinner v-if="loading" size="lg" />
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
 
     <p v-if="!loading && releases.length === 0 && !error" class="text-[var(--text-muted)] text-center py-8">
       {{ t('patchNotes.noReleases') }}

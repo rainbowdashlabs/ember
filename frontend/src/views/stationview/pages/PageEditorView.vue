@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PageEditorHeader from './pageeditorview/PageEditorHeader.vue'
 import MetadataPanel from './pageeditorview/MetadataPanel.vue'
 import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
@@ -144,7 +144,7 @@ async function save() {
                     @toggle-preview="togglePreview"
                 />
 
-                <Alert v-if="error" variant="error">{{ error }}</Alert>
+                <FailureAlert :message="error"/>
 
                 <MetadataPanel
                     v-if="!preview"

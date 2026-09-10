@@ -13,8 +13,8 @@ import {useConsentGuard} from '@/composables/useConsentGuard'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import type {ConsentChangesResponse} from '@/api/session'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PolicyChangeSection from '@/views/reconsentview/PolicyChangeSection.vue'
@@ -67,7 +67,7 @@ const error = computed(() => loadError.value || submitError.value)
       <p class="text-sm text-(--text-muted)">{{ t('reconsent.description') }}</p>
 
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="changes && !loading">
         <PolicyChangeSection v-if="changes.privacyChanged"

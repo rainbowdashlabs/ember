@@ -7,11 +7,11 @@
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -112,7 +112,7 @@ async function download(document: ManagedMemberDocument) {
 
     <MutedText size="sm">{{ t('clusterMemberDetail.documents.hint') }}</MutedText>
 
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <Spinner v-if="loading" size="md"/>
     <EmptyHint v-else-if="documents.length === 0">{{ t('clusterMemberDetail.documents.none') }}</EmptyHint>
     <ul v-else class="space-y-2">

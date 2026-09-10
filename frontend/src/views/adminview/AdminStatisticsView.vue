@@ -12,7 +12,7 @@ import {BarChart, LineChart, PieChart} from 'echarts/charts'
 import {GridComponent, LegendComponent, TitleComponent, TooltipComponent} from 'echarts/components'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import client from '@/api/client'
 import {cartesianGrid, chartTitle, DONUT_CENTER, DONUT_RADIUS} from '@/util/chartLayout'
 import EmailStatsSection from './adminstatisticsview/EmailStatsSection.vue'
@@ -228,7 +228,7 @@ const emailStatusOption = computed(() => {
   <ViewContent :title="t('pages.admin-statistics.title')" :subtitle="t('pages.admin-statistics.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading && stats">
         <EmailStatsSection

@@ -8,6 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -99,7 +100,7 @@ reload()
 <template>
   <ViewContent :title="t('pages.station-mail-import.title')" :subtitle="t('pages.station-mail-import.subtitle')">
     <div class="space-y-6">
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <Alert v-if="switchedOff" variant="info">{{ t('mailImport.switchedOffForInstance') }}</Alert>
       <Alert v-else-if="cannotStorePasswords" variant="error">{{ t('mailImport.noEncryptionKey') }}</Alert>

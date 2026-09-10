@@ -8,7 +8,7 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
 import { profileFields } from '@/api'
 import { decodeProfileValues, getFieldValue, setFieldValue } from '@/util/profileFields'
@@ -109,7 +109,7 @@ watch(memberId, (newId) => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading && memberId">
         <AccountCard

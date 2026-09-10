@@ -7,6 +7,7 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -115,7 +116,7 @@ async function replace() {
     <MutedText tag="p" size="sm">{{ t('mailWebhook.intro') }}</MutedText>
     <MutedText tag="p" size="sm">{{ t('mailWebhook.purpose') }}</MutedText>
 
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <Alert v-if="copied" variant="success">{{ t('mailWebhook.copied') }}</Alert>
 
     <code data-testid="mail-webhook-url"

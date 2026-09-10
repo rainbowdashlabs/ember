@@ -7,6 +7,7 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import InfoContainer from '@/components/container/InfoContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -68,7 +69,7 @@ function reachability(entry: ResidueEntry): string {
         {{ t('adminSecurity.passkeys.retireAll') }}
       </SecondaryButton>
     </div>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <Alert v-if="bulkResult" variant="info">
       {{ t('adminSecurity.passkeys.retireAllResult', {retired: bulkResult.retired, passedOver: bulkResult.passedOver}) }}
     </Alert>

@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -176,7 +177,7 @@ const sortedPeers = computed(() =>
 
 <template>
   <Spinner v-if="loading" size="lg"/>
-  <Alert v-if="error" variant="error">{{ error }}</Alert>
+  <FailureAlert :message="error"/>
   <Alert v-if="flash" variant="success">{{ flash }}</Alert>
 
   <template v-if="!loading && identity">

@@ -7,9 +7,9 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import { federatedBoards, memberGroups, userTags } from '@/api'
@@ -107,7 +107,7 @@ onMounted(loadData)
                 />
             </div>
 
-            <Alert v-if="error" variant="error">{{ error }}</Alert>
+            <FailureAlert :message="error"/>
 
             <div class="flex justify-end">
                 <SaveButton :action="save"/>

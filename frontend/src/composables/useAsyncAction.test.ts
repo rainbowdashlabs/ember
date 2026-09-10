@@ -88,11 +88,49 @@ describe('useAsyncAction', () => {
 
     it('reports a failure and stops running', async () => {
         const fn = vi.fn(() => Promise.reject(new Error('boom')))
-        const {run, error, running} = useAsyncAction(fn)
+        const {run, error, failure, running} = useAsyncAction(fn)
 
         expect(await run()).toBeUndefined()
-        expect(error.value).toBe('common.error')
+        expect(error.value).toBe('failure.UNKNOWN.message')
         expect(running.value).toBe(false)
+        expect(failure.value?.kind).toBe('UNKNOWN')
+    })
+
+    /**
+     * A failure comes back described as well as spelled out, so a screen can say what to do about it and
+     * offer a report only where it looks like ours to fix.
+     */
+    it('describes the failure beside the message', async () => {
+        const denied = vi.fn(() => Promise.reject({response: {status: 403, data: {message: 'Kein Zugriff'}}}))
+        const {run, failure} = useAsyncAction(denied)
+
+        await run()
+
+        expect(failure.value?.kind).toBe('DENIED')
+        expect(failure.value?.reportable).toBe(false)
+        expect(failure.value?.guidance).toBe('failure.DENIED.guidance')
+    })
+
+    it('offers a report where the server broke', async () => {
+        const broke = vi.fn(() => Promise.reject({response: {status: 500, data: {message: 'NullPointerException'}}}))
+        const {run, failure, error} = useAsyncAction(broke)
+
+        await run()
+
+        expect(failure.value?.reportable).toBe(true)
+        expect(error.value).toBe('failure.SERVER_FAULT.message')
+        expect(failure.value?.technical).toBe('NullPointerException')
+    })
+
+    it('forgets the failure when the error is cleared', async () => {
+        const fn = vi.fn(() => Promise.reject(new Error('boom')))
+        const {run, error, failure, clearError} = useAsyncAction(fn)
+
+        await run()
+        clearError()
+
+        expect(error.value).toBe('')
+        expect(failure.value).toBeNull()
     })
 
     it('prefers the message the backend sent', async () => {

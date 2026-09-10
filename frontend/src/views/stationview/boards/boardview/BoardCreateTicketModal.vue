@@ -8,7 +8,7 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import Modal from '@/components/feedback/Modal.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -103,7 +103,7 @@ function openFullEditor() {
                 :lane-options="laneOptions"
                 :assignable-members="assignableMembers"
             />
-            <Alert v-if="error" variant="error">{{ error }}</Alert>
+            <FailureAlert :message="error"/>
             <div class="flex items-center justify-between">
                 <SecondaryButton @click="openFullEditor">
                     <font-awesome-icon :icon="['fas', 'expand']" class="mr-1" />

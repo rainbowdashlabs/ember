@@ -7,6 +7,7 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {movements} from '@/api'
 import {apiErrorMessage} from '@/util/apiError'
@@ -48,7 +49,7 @@ async function returnEverything() {
 
 <template>
   <div class="space-y-2">
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <Alert v-if="success" variant="success">{{ success }}</Alert>
     <SecondaryButton :disabled="busy" data-testid="return-everything" @click="returnEverything">
       {{ t('inventory.member.returnEverything') }}

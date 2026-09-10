@@ -7,6 +7,7 @@
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -114,7 +115,7 @@ async function toggleAskWithPassword(enabled: boolean) {
     <SectionHeader>{{ t('passkeys.section.title') }}</SectionHeader>
     <MutedText tag="p" size="sm">{{ t('passkeys.explainer') }}</MutedText>
 
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <Alert v-if="notice" variant="info">{{ notice }}</Alert>
 
     <PasskeyList v-if="status.passkeys.length" :passkeys="status.passkeys"

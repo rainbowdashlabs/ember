@@ -7,6 +7,7 @@
 import {ref, watchEffect} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
@@ -14,7 +15,6 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {checklists} from '@/api'
 import type {ChecklistColumnDto} from '@/api/checklists'
@@ -97,7 +97,7 @@ const {running: deleting, run: applyDelete} = useAsyncAction(async () => {
   <Modal :model-value="true" size="md" @update:model-value="emit('close')">
     <div class="space-y-3">
       <div class="font-semibold">{{ column ? t('checklist.editColumn') : t('checklist.addColumn') }}</div>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <div>
         <FieldLabel>{{ t('checklist.columnLabel') }}</FieldLabel>
         <TextInput v-model="label" :placeholder="t('checklist.columnLabelPlaceholder')"/>

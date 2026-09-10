@@ -8,6 +8,7 @@ import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import GeneralPanel from '@/views/adminview/adminsettingsview/GeneralPanel.vue'
 import ThemePanel from '@/views/adminview/adminsettingsview/ThemePanel.vue'
@@ -98,7 +99,7 @@ async function saveInstanceTheme() {
   <ViewContent :title="t('pages.admin-settings.title')" :subtitle="t('pages.admin-settings.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading">

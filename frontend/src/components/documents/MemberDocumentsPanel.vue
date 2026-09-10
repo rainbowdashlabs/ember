@@ -7,10 +7,10 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import DocumentGrid from './DocumentGrid.vue'
 import DocumentModal from './DocumentModal.vue'
@@ -126,7 +126,7 @@ async function act(action: Promise<unknown>) {
       </div>
     </div>
 
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <Spinner v-if="loading" size="md"/>
     <DocumentGrid v-else :documents="shown" @open="open"/>
 

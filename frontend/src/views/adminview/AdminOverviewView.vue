@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import OnboardingTaskCard from '@/components/onboarding/OnboardingTaskCard.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import client from '@/api/client'
 import {useConfigPanel} from '@/composables/useConfigPanel'
@@ -54,7 +54,7 @@ const totalAttention = computed(() => {
     <div class="space-y-6">
       <OnboardingTaskCard level="INSTANCE"/>
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading && overview">
         <SuccessContainer v-if="totalAttention === 0" class="text-center">

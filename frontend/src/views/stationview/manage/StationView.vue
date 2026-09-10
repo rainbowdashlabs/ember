@@ -22,6 +22,7 @@ watch(loaded, (isLoaded) => {
   }
 }, {immediate: true})
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {stationManage} from '@/api'
 import OwnerSection from './stationview/OwnerSection.vue'
@@ -137,7 +138,7 @@ function handleSuccess(msg: string) {
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
 
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <GeneralSection

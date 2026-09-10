@@ -8,7 +8,7 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {stillMoving, type ExchangeRequestEntry} from '@/api/exchanges'
 import type { Inventory, InventorySize } from '@/api/inventory'
 import type { ProcurementEntry } from '@/api/procurement'
@@ -110,7 +110,7 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading">
         <RequestFromOwnerPanel :owner-name="ownerAbove" :inventories="inventoryList" @requested="reload" />

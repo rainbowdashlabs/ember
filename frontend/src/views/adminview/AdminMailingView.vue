@@ -8,6 +8,7 @@ import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import InstanceMailPanel from './adminmailingview/InstanceMailPanel.vue'
 import ClearProvidersModal from '@/components/mail/ClearProvidersModal.vue'
@@ -116,7 +117,7 @@ const error = computed(() => panelError.value || testMailError.value || clearErr
   <ViewContent :title="t('pages.admin-mailing.title')" :subtitle="t('pages.admin-mailing.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading">
         <Alert v-if="loadError" variant="error">{{ loadError }}</Alert>

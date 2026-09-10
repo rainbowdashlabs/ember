@@ -8,6 +8,7 @@ import {onMounted, ref} from 'vue'
 import {useRoute} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import PageHeader from '@/components/typography/PageHeader.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -100,7 +101,7 @@ async function signIn() {
 
       <template v-if="phase === 'code'">
         <p>{{ t('passkeys.enroll.codePrompt') }}</p>
-        <Alert v-if="error" variant="error">{{ error }}</Alert>
+        <FailureAlert :message="error"/>
         <TextInput v-model="code" placeholder="K7RM-2WQD" class="font-mono tracking-widest"/>
         <PrimaryButton class="w-full" :disabled="!code.trim()" @click="lookup">
           {{ t('common.continue') }}

@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import type {AttendanceTemplate} from '@/api/attendance'
 import {isRecurringEvent, type AbsentMember, type EventCategory, type EventField, type EventRegistrationEntry, type StationEvent} from '@/api/events'
 import type {StationMember} from '@/api/types'
@@ -228,7 +228,7 @@ function onFieldUpdated(field: EventField) {
       :subtitle="t('pages.event-detail.subtitle')"
   >
     <Spinner v-if="loading" size="lg"/>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <EventDetailBody
         v-if="!loading && event"
         :event="event"

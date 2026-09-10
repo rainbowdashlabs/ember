@@ -10,9 +10,9 @@ import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
 import type { PartnerResponse } from '@/api/federation'
 import { news, memberGroups, userTags, federation, events, stationMembers } from '@/api'
@@ -317,7 +317,7 @@ watch(loaded, (isLoaded) => {
       </SecondaryButton>
 
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading">
         <AnnouncementNotice v-if="announcement" :draft="announcement" :public-blog="publicBlog"

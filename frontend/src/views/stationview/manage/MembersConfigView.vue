@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import ProfileFieldModal from './membersconfig/FieldModal.vue'
@@ -58,7 +58,7 @@ const tabs = computed(() => [
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <div v-if="!loading" class="space-y-6">
         <TabBar v-model="activeTab" :tabs="tabs"/>

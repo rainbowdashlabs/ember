@@ -27,13 +27,25 @@ export interface ReportSessionContext {
     permissions?: readonly string[]
 }
 
+/**
+ * What a report is about where it was opened from something that failed.
+ *
+ * <p>Carried inside the message rather than in fields of its own: an operator reading a report wants the
+ * reader's account and the server's answer together, and one text is where they read them.
+ */
+export interface ReportAbout {
+    summary: string
+    technical?: string
+}
+
 export async function submitReport(
-    message: string,
+    description: string,
     sessionInfo: ReportSessionContext | null | undefined,
+    about?: ReportAbout,
 ): Promise<ProblemReport> {
     const roles = [sessionInfo?.userType, ...(sessionInfo?.permissions ?? [])].filter(Boolean).join(', ')
     const res = await client.post<ProblemReport>('/problem-reports', {
-        message,
+        message: composeMessage(description, about),
         pageUrl: window.location.href,
         userRoles: roles,
         recentRequests: JSON.stringify(getRequestHistory()),
@@ -41,6 +53,17 @@ export async function submitReport(
         screenSize: `${window.innerWidth}x${window.innerHeight}`,
     })
     return res.data
+}
+
+/**
+ * The reader's own words first, because that is what an operator reads to understand the report, and
+ * what the screen and the server said underneath it.
+ */
+function composeMessage(description: string, about?: ReportAbout): string {
+    if (!about) return description
+    const lines = [description, '', `Was schiefging: ${about.summary}`]
+    if (about.technical) lines.push(`Serverantwort: ${about.technical}`)
+    return lines.join('\n')
 }
 
 const reports = createCrudResource<ProblemReport>('/admin/problem-reports')

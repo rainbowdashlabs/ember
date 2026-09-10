@@ -7,6 +7,7 @@
 import {computed, ref, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {stationApplications, adminSettings} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -77,7 +78,7 @@ function submit() {
 
       <template v-else-if="!submitted">
         <p class="text-sm text-(--text-muted)">{{ t('apply.hint') }}</p>
-        <Alert v-if="error" variant="error">{{ error }}</Alert>
+        <FailureAlert :message="error"/>
         <ApplyForm v-model:first-name="firstName" v-model:last-name="lastName" v-model:email="email"
                    v-model:station-name="stationName" v-model:introduction="introduction"
                    :submitting="submitting" @submit="submit"/>

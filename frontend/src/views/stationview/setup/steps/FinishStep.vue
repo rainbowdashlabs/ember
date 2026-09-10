@@ -8,6 +8,7 @@ import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -75,7 +76,7 @@ const mailIncomplete = computed(
 <template>
   <SetupLayout step-id="finish" hide-actions @save="goDashboard">
     <div class="space-y-6 text-center">
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <Spinner v-if="finishing" size="lg"/>
       <template v-else>
         <p>{{ t('setup.steps.finish.body') }}</p>

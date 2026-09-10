@@ -7,9 +7,9 @@
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TableHeaderCell from '@/components/typography/TableHeaderCell.vue'
 import AccountSearchPicker from '@/components/input/search/AccountSearchPicker.vue'
@@ -73,7 +73,7 @@ onMounted(() => loadAudit(true))
 <template>
   <NeutralContainer class="space-y-3">
     <SubHeader>{{ t('twoFactor.admin.audit.title') }}</SubHeader>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <div class="flex items-end gap-2">
       <div class="flex-1">
         <MutedText tag="label" size="sm">{{ t('twoFactor.admin.audit.filterAccount') }}</MutedText>

@@ -7,6 +7,7 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -15,7 +16,6 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {feedToken} from '@/api'
 import {buildFeedUrl, type FeedPreset, type FeedTokenResponse} from '@/api/feedToken'
@@ -78,7 +78,7 @@ async function copyUrl(url: string) {
     <SubHeader>{{ t('userSettings.feedTitle') }}</SubHeader>
     <p class="text-sm text-(--text-muted)">{{ t('userSettings.feedHint') }}</p>
 
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
 
     <template v-if="!loading">
       <template v-if="token">

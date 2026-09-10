@@ -8,7 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import {stationApplications} from '@/api'
 import {ApplicationStatus, type StationApplication} from '@/api/stationApplications'
@@ -67,7 +67,7 @@ async function submitDeny() {
   <ViewContent :title="t('pages.admin-station-applications.title')" :subtitle="t('pages.admin-station-applications.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading">
         <ApplicationsTabs v-model="activeTab"/>

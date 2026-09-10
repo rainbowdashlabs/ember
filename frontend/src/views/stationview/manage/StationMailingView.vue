@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import MailProviderChain from '@/components/mail/MailProviderChain.vue'
 import MailDashboard from '@/components/mail/MailDashboard.vue'
 import ClearProvidersModal from '@/components/mail/ClearProvidersModal.vue'
@@ -126,7 +127,7 @@ async function test(position: number, recipient: string) {
       :subtitle="t('pages.station-mailing.subtitle')"
   >
     <div class="space-y-6">
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
       <MailProviderChain
           v-model:providers="providers"

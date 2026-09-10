@@ -9,9 +9,9 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import {stationManage} from '@/api'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -39,7 +39,7 @@ onMounted(async () => {
     loading.value = false
 })
 
-const {running: saving, error, run: save} = useAsyncAction(async () => {
+const {running: saving, error, failure, run: save} = useAsyncAction(async () => {
     await stationManage.updateStationName({
         name: stationName.value,
         discoveryVisibility: visibility.value,
@@ -53,7 +53,7 @@ const {running: saving, error, run: save} = useAsyncAction(async () => {
 
 <template>
   <SetupLayout step-id="federation" skippable :saving="saving" @save="save">
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :failure="failure"/>
     <p class="text-sm text-(--text-muted)">{{ t('setup.steps.federation.consequence') }}</p>
     <div v-if="!loading" class="space-y-3">
       <label class="block text-sm">

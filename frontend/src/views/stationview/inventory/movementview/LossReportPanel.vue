@@ -7,10 +7,10 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import DownloadButton from '@/components/button/DownloadButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import {movements} from '@/api'
 import type {LossReport} from '@/api/movements'
@@ -62,7 +62,7 @@ async function download() {
       <MemberName v-if="props.report.memberNoteBy" :identity="props.report.memberNoteBy" class="text-xs"/>
     </div>
 
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
 
     <div v-if="props.report.documentName" class="flex items-center gap-2 text-sm">
       <span data-testid="loss-report-document">{{ props.report.documentName }}</span>

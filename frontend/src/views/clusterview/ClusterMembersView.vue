@@ -8,7 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FormLabel from '@/components/input/FormLabel.vue'
@@ -89,7 +89,7 @@ async function changeUserType(memberId: number, userType: string) {
 <template>
   <ViewContent :subtitle="t('pages.cluster-members.subtitle')" :title="t('pages.cluster-members.title')">
     <div class="space-y-6">
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <Spinner v-if="loading" size="lg"/>
 
       <div v-else class="grid gap-6 lg:grid-cols-2">
