@@ -23,7 +23,17 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.documents.rightsRead') }}</p>
       <p>{{ t('helpCenter.documents.rightsSelf') }}</p>
       <p>{{ t('helpCenter.documents.rightsOthers') }}</p>
+      <p>{{ t('helpCenter.documents.rightsOwn') }}</p>
+      <p>{{ t('helpCenter.documents.rightsBound') }}</p>
       <p>{{ t('helpCenter.documents.rightsHidden') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.documents.unboundTitle')">
+      <p>{{ t('helpCenter.documents.unboundText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.documents.moduleTitle')">
+      <p>{{ t('helpCenter.documents.moduleText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.documents.previewTitle')">

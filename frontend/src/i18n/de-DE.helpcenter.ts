@@ -1512,6 +1512,23 @@ volumes:
             rightsSelf: 'Zum Hochladen im eigenen Profil braucht es das Recht „Eigene Dokumente hochladen".',
             rightsOthers: 'Wer Mitglieder bearbeiten darf, kann für andere hochladen, Dokumente '
                 + 'zuordnen, verschlagworten und löschen.',
+            rightsOwn: 'Die Ablage hat eigene Rechte: „Dokumente einsehen" und „Dokumente '
+                + 'verwalten". Damit lässt sich etwa dem Gerätewart die Ablage öffnen, ohne ihm '
+                + 'gleich die Mitgliederliste zu geben. Wer Mitglieder einsehen oder bearbeiten '
+                + 'darf, hat sie automatisch mit, damit niemand verliert, was er heute schon sieht.',
+            rightsBound: 'Das Recht folgt dem einzelnen Dokument, nicht der Ablage: Ein Dokument, '
+                + 'das einem Mitglied zugeordnet ist, sieht nur, wer dieses Mitglied einsehen darf. '
+                + 'Ein Dokument ohne Zuordnung ist die Ablage der Wache und braucht nur „Dokumente '
+                + 'einsehen".',
+            moduleTitle: 'Wenn die Wache keine Ablage braucht',
+            moduleText: 'Die Ablage ist ein Modul. Unter Verwaltung → Module lässt sie sich '
+                + 'abschalten, dann verschwindet die Seite aus der Navigation. Der Datenexport '
+                + 'eines Mitglieds enthält seine Dokumente trotzdem: eine abgeschaltete Seite ist '
+                + 'kein Grund, jemandem seine eigenen Daten vorzuenthalten.',
+            unboundTitle: 'Die Ablage der Wache finden',
+            unboundText: 'Auf der Seite gibt es den Schalter „Nur ohne Mitglied". Er zeigt genau '
+                + 'die Dokumente, die zu niemandem gehören, also Verträge, Prüfberichte und was '
+                + 'die Wache über sich selbst aufbewahrt.',
             rightsHidden: 'Ein verborgenes Dokument sieht nur, wer fremde Profile lesen darf. Das '
                 + 'Mitglied selbst sieht es nicht.',
             previewTitle: 'Vorschau',
