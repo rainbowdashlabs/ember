@@ -102,8 +102,7 @@ class MailImportScheduleTest {
         var manyFailures = mailbox(true, false, 15, NOW, 20);
         var fiveFailures = mailbox(true, false, 15, NOW, 5);
 
-        assertEquals(
-                MailImportSchedule.waitFor(fiveFailures, 15), MailImportSchedule.waitFor(manyFailures, 15));
+        assertEquals(MailImportSchedule.waitFor(fiveFailures, 15), MailImportSchedule.waitFor(manyFailures, 15));
     }
 
     @Test
