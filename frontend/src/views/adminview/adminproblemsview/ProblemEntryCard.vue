@@ -9,7 +9,7 @@ import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import ProblemEntryHeader from './ProblemEntryHeader.vue'
 import ProblemEntryDetails from './ProblemEntryDetails.vue'
-import type {ProblemEntry} from '@/api/problems'
+import {hasDetails, type ProblemEntry} from '@/api/problems'
 
 const props = defineProps<{
   entry: ProblemEntry
@@ -25,14 +25,21 @@ const emit = defineEmits<{
 }>()
 
 const containerComponent = computed(() => props.entry.level === 'ERROR' ? ErrorContainer : InfoContainer)
+
+const expandable = computed(() => hasDetails(props.entry))
+
+/** An entry with nothing behind it does not open, so the card does not invite the click either. */
+function toggle() {
+  if (expandable.value) emit('toggle', props.entry.id)
+}
 </script>
 
 <template>
   <component
     :is="containerComponent"
-    class="cursor-pointer transition-all"
-    :class="{'opacity-50': entry.acknowledged}"
-    @click="emit('toggle', entry.id)"
+    class="transition-all"
+    :class="{'opacity-50': entry.acknowledged, 'cursor-pointer': expandable}"
+    @click="toggle"
   >
     <ProblemEntryHeader
       :entry="entry"
@@ -41,6 +48,6 @@ const containerComponent = computed(() => props.entry.level === 'ERROR' ? ErrorC
       @ack="emit('ack', $event)"
       @send="emit('send', $event)"
     />
-    <ProblemEntryDetails v-if="expanded" :entry="entry"/>
+    <ProblemEntryDetails v-if="expanded && expandable" :entry="entry"/>
   </component>
 </template>

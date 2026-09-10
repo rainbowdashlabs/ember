@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
-import type {ProblemEntry} from '@/api/problems'
+import {hasDetails, type ProblemEntry} from '@/api/problems'
 import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{
@@ -23,6 +23,8 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+const expandable = computed(() => hasDetails(props.entry))
 
 const levelClass = computed(() => props.entry.level === 'ERROR'
   ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
@@ -46,7 +48,7 @@ function shortLogger(logger: string): string {
           {{ entry.count }}x
         </span>
       </div>
-      <p class="text-sm font-medium truncate max-w-full">
+      <p class="text-sm font-medium max-w-full break-words line-clamp-3 sm:line-clamp-none sm:truncate">
         {{ entry.exceptionClass ? `${entry.exceptionClass}: ${entry.exceptionMessage}` : entry.distinctMessages[0] }}
       </p>
       <p class="text-xs text-[var(--text-muted)]">
@@ -69,6 +71,7 @@ function shortLogger(logger: string): string {
         @click.stop="emit('ack', entry.id)"
       />
       <font-awesome-icon
+        v-if="expandable"
         :icon="['fas', expanded ? 'chevron-up' : 'chevron-down']"
         class="text-xs text-[var(--text-muted)]"
       />

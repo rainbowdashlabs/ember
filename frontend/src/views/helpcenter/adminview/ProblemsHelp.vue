@@ -31,6 +31,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.adminProblems.groupingText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.adminProblems.noiseTitle')">
+      <p>{{ t('helpCenter.adminProblems.noiseText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.adminProblems.exampleTitle')">
       <ProblemsExample/>
     </HelpSection>
