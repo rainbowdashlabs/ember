@@ -11,6 +11,7 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -76,7 +77,7 @@ public class MailImportLogRepository {
         return findById(id).orElseThrow();
     }
 
-    public java.util.Optional<MailImportEntry> findById(int id) {
+    public Optional<MailImportEntry> findById(int id) {
         return query("SELECT %s %s WHERE e.id = :id;", COLUMNS, FROM)
                 .single(call().bind("id", id))
                 .map(MailImportEntry.map())
