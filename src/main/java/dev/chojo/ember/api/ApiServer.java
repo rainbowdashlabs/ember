@@ -904,6 +904,26 @@ public class ApiServer {
     }
 
     /**
+     * Records that nothing was found at an address, quietly where the address is one scanners try
+     * everywhere.
+     *
+     * <p>A 404 is worth an operator's attention when a client asks for something that ought to be
+     * there, and worth none when it is the hundredth guess at a credentials file. Since the address is
+     * part of what the fault log writes down, every spelling of a probe arrived as a fault of its own
+     * and the ones worth reading were lost among them.
+     *
+     * @param ctx     the request that found nothing
+     * @param message what the response said, which for an address no route claims is Javalin's own wording
+     */
+    private void logNotFound(Context ctx, String message) {
+        if (ScannerProbes.looksLikeAProbe(ctx.path())) {
+            log.debug("404 on {} {}: {}", ctx.method(), ctx.path(), message);
+            return;
+        }
+        log.warn("404 on {} {}: {}", ctx.method(), ctx.path(), message);
+    }
+
+    /**
      * Registers exception handlers that convert exceptions into standardized JSON error responses.
      */
     private void setupExceptionHandlers(RoutesConfig routes) {
@@ -927,7 +947,7 @@ public class ApiServer {
                 log.error("API error {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage(), err);
                 if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
             } else if (code == 404) {
-                log.warn("API 404 on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+                logNotFound(ctx, err.getMessage());
                 if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
             } else if (code >= 400 && code != 401) {
                 log.warn("API error {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage());
@@ -942,7 +962,7 @@ public class ApiServer {
                 log.error("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage(), err);
                 if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
             } else if (code == 404) {
-                log.warn("HTTP 404 on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+                logNotFound(ctx, err.getMessage());
                 if (devErrors) DevErrorWriter.write(err, ctx.method() + " " + ctx.path());
             } else if (code >= 400 && code != 401) {
                 log.warn("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), err.getMessage());

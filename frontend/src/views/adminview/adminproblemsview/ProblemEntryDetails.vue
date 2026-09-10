@@ -42,7 +42,7 @@ async function copyStacktrace(text: string) {
       </SectionHeader>
       <ul class="text-xs space-y-1">
         <li v-for="(msg, idx) in entry.distinctMessages" :key="idx"
-            class="font-mono bg-[var(--bg)] rounded px-2 py-1 truncate" :title="msg">
+            class="font-mono bg-[var(--bg)] rounded px-2 py-1 break-words whitespace-pre-wrap">
           {{ msg }}
         </li>
       </ul>

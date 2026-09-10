@@ -11,6 +11,9 @@
 
 ### Fixes
 
+- **The error log was unreadable on a phone.** Each entry cut its message off at the width of the screen, which on a phone left barely a word of it, and the full messages behind an entry were cut the same way with only a hover to reveal them, which a phone does not have. Messages now wrap where there is no room for them on one line.
+- **The error log filled up with strangers rattling the doors.** Any instance reachable from the internet is asked for credentials files and administration pages belonging to software it is not, and each of those refusals arrived as a fault of its own, burying the ones worth reading. Those addresses are now answered as before but no longer written down as faults.
+- **An error log entry offered to open when it had nothing inside.** Entries with no stacktrace and a single message still showed the arrow and answered a click with an empty panel. They no longer invite one.
 - **A mistyped address sent visitors to the login screen.** Somebody not signed in who followed a broken link, or typed an address wrong, was taken to the sign-in page with the bad address carried along instead of being told the page does not exist. The page that explains it now stays.
 - **An exchange could refuse every attempt to move it on.** Where the step asking which piece arrived comes before the last one, the screen offered no field to name that piece, so pressing on answered with an error about naming it and the exchange sat where it was. The screen now asks for the piece whenever the exchange is standing on the step that wants it, wherever in the chain that falls.
 

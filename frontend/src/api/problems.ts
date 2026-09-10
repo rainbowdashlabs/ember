@@ -19,6 +19,14 @@ export interface ProblemEntry {
     distinctMessages: string[]
 }
 
+/**
+ * Whether an entry holds anything beyond the line already on the card: a stacktrace, or more messages
+ * than the one shown. With neither, expanding it opens an empty box, so the card does not offer it.
+ */
+export function hasDetails(entry: ProblemEntry): boolean {
+    return !!entry.stacktrace || entry.distinctMessages.length > 1
+}
+
 export async function listProblems(includeAcknowledged = false): Promise<ProblemEntry[]> {
     const res = await client.get<ProblemEntry[]>('/admin/problems', {
         params: includeAcknowledged ? {includeAcknowledged: 'true'} : {},
