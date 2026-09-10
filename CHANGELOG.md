@@ -9,6 +9,10 @@
 - **A daily count of how much an instance holds.** Switched on, an instance reports once a day how many accounts, stations, members and pieces of equipment it has. The counts travel as ranges such as `10-50` rather than exact numbers, and each station and instance carries an identifier used for this and nothing else, so the figures say how much without saying whose.
 - **An instance can be a beacon itself.** Switched on, it accepts what others report and gathers it under Administration, where a fault names how many installations met it and in which versions, forwarded reports can be answered by writing to the operator who sent them, and the daily figures build a picture over time.
 
+### Fixes
+
+- **A mistyped address sent visitors to the login screen.** Somebody not signed in who followed a broken link, or typed an address wrong, was taken to the sign-in page with the bad address carried along instead of being told the page does not exist. The page that explains it now stays.
+
 ### Security
 
 - **Nothing leaves an instance unasked.** Every beacon switch is off until an operator sets it under Administration, forwarded reports carry no name, no member and no station and their page addresses travel without query strings, and the contact that travels with a report is the operator's own so that a beacon can write back without anybody's members being named.
