@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
+import dev.chojo.ember.feature.mailimport.repository.MailRuleRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -41,6 +42,7 @@ public class FormerMemberService {
     private final AttendanceRepository attendanceRepository;
     private final ProfileFieldRepository profileFieldRepository;
     private final DocumentService documentService;
+    private final MailRuleRepository mailRuleRepository;
     private final SelfCheckService selfCheckService;
 
     @Inject
@@ -54,6 +56,7 @@ public class FormerMemberService {
             AttendanceRepository attendanceRepository,
             ProfileFieldRepository profileFieldRepository,
             DocumentService documentService,
+            MailRuleRepository mailRuleRepository,
             SelfCheckService selfCheckService) {
         this.selfCheckService = selfCheckService;
         this.memberRepository = memberRepository;
@@ -65,6 +68,7 @@ public class FormerMemberService {
         this.attendanceRepository = attendanceRepository;
         this.profileFieldRepository = profileFieldRepository;
         this.documentService = documentService;
+        this.mailRuleRepository = mailRuleRepository;
     }
 
     /**
@@ -148,6 +152,7 @@ public class FormerMemberService {
         profileFieldRepository.deleteNonArchivedValues(memberId);
 
         documentService.releaseMember(memberId);
+        mailRuleRepository.releaseMember(memberId);
 
         // Save display name from account and decouple
         var member = memberRepository.findById(memberId).orElseThrow();

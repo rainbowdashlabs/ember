@@ -116,6 +116,7 @@ import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
+import dev.chojo.ember.feature.mailimport.repository.MailRuleRepository;
 import dev.chojo.ember.feature.media.repository.MediaFileRepository;
 import dev.chojo.ember.feature.media.repository.MediaMetaRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -257,6 +258,7 @@ public abstract class RepositoryTestBase {
     protected static MemberGroupRepository memberGroupRepo;
     protected static ProfileFieldRepository profileFieldRepo;
     protected static DocumentRepository memberDocumentRepo;
+    protected static MailRuleRepository mailRuleRepo;
     protected static RegistrationCodeRepository registrationCodeRepo;
     protected static EventRepository eventRepo;
     protected static EventBreakRepository eventBreakRepo;
@@ -433,6 +435,7 @@ public abstract class RepositoryTestBase {
         memberGroupRepo = new MemberGroupRepository();
         profileFieldRepo = new ProfileFieldRepository();
         memberDocumentRepo = new DocumentRepository();
+        mailRuleRepo = new MailRuleRepository();
         registrationCodeRepo = new RegistrationCodeRepository();
         eventRepo = new EventRepository();
         eventBreakRepo = new EventBreakRepository();
@@ -650,7 +653,13 @@ public abstract class RepositoryTestBase {
     protected static StationMemberService newStationMemberService(
             AccountRepository accountRepository, AuthService authService, DocumentService documentService) {
         return new StationMemberService(
-                stationMemberRepo, stationRepo, accountRepository, authService, memberLookupService, documentService);
+                stationMemberRepo,
+                stationRepo,
+                accountRepository,
+                authService,
+                memberLookupService,
+                documentService,
+                mailRuleRepo);
     }
 
     /**
