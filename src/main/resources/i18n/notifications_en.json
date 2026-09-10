@@ -163,7 +163,9 @@
     "CLUSTER_MEMBER_ROLE_CHANGED": "Your rights at {clusterName}",
     "CLUSTER_FIELD_VALUE_CHANGED": "Profile changed by the cluster: {fields}",
     "CLUSTER_ITEM_ISSUED": "On its way from {clusterName}: {itemName}",
-    "CLUSTER_ITEM_LOST": "Reported missing at {stationName}: {itemName}"
+    "CLUSTER_ITEM_LOST": "Reported missing at {stationName}: {itemName}",
+    "MAILBOX_SUSPENDED": "Mailbox suspended: {mailbox}",
+    "MAIL_IMPORT_UNBOUND": "Documents waiting to be sorted"
   },
   "digest": {
     "subject.one": "{stationName}: 1 new notification",
@@ -217,7 +219,9 @@
     "CLUSTER_MEMBER_ROLE_CHANGED": "Rights changed",
     "CLUSTER_FIELD_VALUE_CHANGED": "Profile changed by the cluster",
     "CLUSTER_ITEM_ISSUED": "Item on its way",
-    "CLUSTER_ITEM_LOST": "Item reported missing"
+    "CLUSTER_ITEM_LOST": "Item reported missing",
+    "MAILBOX_SUSPENDED": "Mailbox",
+    "MAIL_IMPORT_UNBOUND": "Documents"
   },
   "message": {
     "notification.newNews": "{title} - by {author}",
@@ -271,6 +275,8 @@
     "notification.registrationClosing.one": "{eventName}: registration closes tomorrow, {memberName} has not answered yet",
     "notification.registrationClosing.other": "{eventName}: registration closes in {daysBefore} days, {memberName} has not answered yet",
     "notification.registrationAnswerMissing": "{eventName} on {eventDate}: a new question was added and {memberName} has not answered it yet",
-    "notification.movementCancelled": "{inventoryName}: movement of {itemName} called off - {reason}"
+    "notification.movementCancelled": "{inventoryName}: movement of {itemName} called off - {reason}",
+    "notification.mailboxSuspended": "Mailbox \"{mailbox}\" is no longer being checked: {reason}",
+    "notification.mailImportUnbound": "{count} documents that arrived by mail are not on a member yet"
   }
 }

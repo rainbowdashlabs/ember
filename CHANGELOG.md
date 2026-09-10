@@ -10,6 +10,9 @@
 - **An instance can be a beacon itself.** Switched on, it accepts what others report and gathers it under Administration, where a fault names how many installations met it and in which versions, forwarded reports can be answered by writing to the operator who sent them, and the daily figures build a picture over time.
 - **The document store has rights of its own.** Reading and editing documents can now be granted apart from the member list, so whoever keeps the station's test certificates can be given the store without being given sight of the people in it. A document that names a member stays behind the member rights, so nothing that was private becomes readable by granting the new ones.
 - **The document store is a module.** It can be switched off for a station that does not use it, which hides the page and closes the addresses behind it, the way the other modules already work.
+- **Paperwork that arrives by mail files itself.** Under `Manage → Mail import` a station connects a mailbox once, says which senders it trusts and which kinds of file it wants, and every attachment that passes becomes a document by itself. The text of a message is never read, never stored and never searched: what is kept of a message is who sent it, what it was called, and the files that hung off it.
+- **A log that says what became of every attachment.** Each one that was looked at is listed with its answer: filed, already there, sender not allowed, no rule matched, wrong kind of file, too large, too small, no attachment, no room left. A rule that quietly files nothing is the likeliest thing to go wrong, and this is what answers it.
+- **A document says where it came from.** One that arrived by mail shows the address it came from and the day it arrived, in place of the uploader it never had.
 
 ### Improvements
 
@@ -27,6 +30,8 @@
 ### Security
 
 - **Nothing leaves an instance unasked.** Every beacon switch is off until an operator sets it under Administration, forwarded reports carry no name, no member and no station and their page addresses travel without query strings, and the contact that travels with a report is the operator's own so that a beacon can write back without anybody's members being named.
+- **A mailbox password is never kept in the clear, and only trusted senders may file anything.** Mail import needs `storage.credentialEncryptionKey` set: without it the page refuses to save a mailbox rather than storing the password anyway. A rule accepts one address, or every address at one domain, and nothing wider can be written, so no rule can be made to take files from anybody who asks. A rule naming no sender accepts nothing.
+- **What a file is, is read from the file.** The kind of an attachment is decided by its first bytes and not by its name or by what the mail claims, and one whose name contradicts its contents is refused. Operators can bound the whole feature with `mailImport.enabled`, `mailImport.minimumIntervalMinutes`, `mailImport.maxAttachmentsPerCycle`, `mailImport.timeoutSeconds` and `mailImport.logRetentionDays`.
 
 ## v26.14.4
 

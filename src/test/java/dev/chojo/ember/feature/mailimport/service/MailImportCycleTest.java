@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.mailimport.service;
 
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetup;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.MailImport;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
@@ -22,6 +23,8 @@ import dev.chojo.ember.feature.mailimport.repository.MailMailboxRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailOriginRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailRuleRepository;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -56,6 +59,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * A whole visit to a mailbox, against a mail server that really speaks IMAP.
@@ -78,6 +86,7 @@ class MailImportCycleTest extends RepositoryTestBase {
     private static MailRuleRepository ruleRepository;
     private static MailImportLogRepository logRepository;
     private static CredentialCipher cipher;
+    private static NotificationService notifications;
     private static Station station;
     private static Account account;
     private static MailMailbox mailbox;
@@ -100,6 +109,7 @@ class MailImportCycleTest extends RepositoryTestBase {
         logRepository = new MailImportLogRepository();
         var originRepository = new MailOriginRepository();
         cipher = new CredentialCipher(KEY);
+        notifications = mock(NotificationService.class);
 
         station = stationRepo.create("Cycle Station");
         account = accountRepo.create("cycle@test.com", "Anna", "Weber");
@@ -119,7 +129,8 @@ class MailImportCycleTest extends RepositoryTestBase {
                 filingService,
                 quotaService,
                 cipher,
-                new MailImport());
+                new MailImport(),
+                notifications);
     }
 
     @AfterAll
@@ -545,5 +556,76 @@ class MailImportCycleTest extends RepositoryTestBase {
                 "mx.example.com; dmarc=pass header.from=musterstadt.de");
 
         assertEquals(1, importService.run(mailbox, Instant.now()).imported());
+    }
+
+    /**
+     * Somebody has to be told. The error is on the mailbox either way, but nobody goes looking at a page
+     * for an import that silently stopped a month ago.
+     */
+    @Test
+    void aMailboxThatKeepsFailingIsSuspendedAndSomebodyIsTold() {
+        var unreachable = mailboxRepository.create(
+                station.id(),
+                "Hoffnungslos",
+                "127.0.0.1",
+                1,
+                MailSecurity.NONE,
+                USER,
+                cipher.encrypt(PASSWORD.getBytes(StandardCharsets.UTF_8)),
+                "INBOX",
+                15,
+                Instant.now().minusSeconds(3600));
+        ruleRepository.create(
+                unreachable.id(),
+                "Egal",
+                0,
+                null,
+                null,
+                List.of("application/pdf"),
+                0L,
+                false,
+                MailTitleSource.SUBJECT,
+                false,
+                false,
+                false,
+                MailRuleAction.NOTHING,
+                null,
+                List.of("*@musterstadt.de"),
+                List.of(),
+                List.of());
+        for (int i = 0; i < MailImportSchedule.FAILURES_BEFORE_SUSPENSION - 1; i++) {
+            mailboxRepository.recordFailure(unreachable.id(), Instant.now(), "still refused");
+        }
+
+        importService.run(mailboxRepository.findById(unreachable.id()).orElseThrow(), Instant.now());
+
+        assertTrue(
+                mailboxRepository.findById(unreachable.id()).orElseThrow().suspended(),
+                "enough failures in a row take it out of the rotation");
+        verify(notifications, atLeastOnce())
+                .notifyMembersWithRole(
+                        eq(station.id()),
+                        eq(StationPermission.STATION_MAIL.name()),
+                        eq(NotificationType.MAILBOX_SUSPENDED),
+                        any());
+    }
+
+    /**
+     * Filing under nobody is the ordinary outcome, so this is not a failure report: what nobody notices is
+     * the store quietly filling with paperwork waiting to be sorted.
+     */
+    @Test
+    void whatArrivedWithNobodyOnItIsReported() throws Exception {
+        rule(List.of("*@musterstadt.de"), List.of("application/pdf"), 0L, false, MailRuleAction.NOTHING);
+        deliver("post@musterstadt.de", "Unsortiert", "unsortiert.pdf", pdf("unbound-digest"), false);
+
+        assertEquals(1, importService.run(mailbox, Instant.now()).imported());
+
+        verify(notifications, atLeastOnce())
+                .notifyMembersWithRole(
+                        eq(station.id()),
+                        eq(StationPermission.DOCUMENT_READ.name()),
+                        eq(NotificationType.MAIL_IMPORT_UNBOUND),
+                        any());
     }
 }

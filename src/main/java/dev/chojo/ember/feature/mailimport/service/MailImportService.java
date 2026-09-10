@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.mailimport.service;
 
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.MailImport;
 import dev.chojo.ember.feature.mailimport.entity.MailImportOutcome;
 import dev.chojo.ember.feature.mailimport.entity.MailMailbox;
@@ -13,6 +14,10 @@ import dev.chojo.ember.feature.mailimport.entity.MailRuleAction;
 import dev.chojo.ember.feature.mailimport.repository.MailImportLogRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailMailboxRepository;
 import dev.chojo.ember.feature.mailimport.repository.MailRuleRepository;
+import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import jakarta.inject.Inject;
@@ -22,10 +27,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * One visit to one mailbox.
@@ -48,6 +55,7 @@ public class MailImportService {
     private final StorageQuotaService quotaService;
     private final CredentialCipher cipher;
     private final MailImport settings;
+    private final NotificationService notificationService;
 
     @Inject
     public MailImportService(
@@ -57,7 +65,8 @@ public class MailImportService {
             MailFilingService filingService,
             StorageQuotaService quotaService,
             CredentialCipher cipher,
-            MailImport settings) {
+            MailImport settings,
+            NotificationService notificationService) {
         this.mailboxRepository = mailboxRepository;
         this.ruleRepository = ruleRepository;
         this.logRepository = logRepository;
@@ -65,6 +74,7 @@ public class MailImportService {
         this.quotaService = quotaService;
         this.cipher = cipher;
         this.settings = settings;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -118,15 +128,60 @@ public class MailImportService {
                 budget -= Math.max(outcome.imported() + outcome.refused(), 1);
             }
             mailboxRepository.recordSuccess(mailbox.id(), now);
+            tellAboutUnbound(mailbox, imported, now);
         } catch (Exception e) {
             log.warn("Could not read mailbox {} of station {}", mailbox.id(), mailbox.stationId(), e);
             mailboxRepository.recordFailure(mailbox.id(), now, shortReason(e));
             if (MailImportSchedule.shouldSuspend(mailbox.failureCount() + 1)) {
                 mailboxRepository.suspend(mailbox.id());
                 log.warn("Mailbox {} suspended after repeated failure", mailbox.id());
+                tellAboutSuspension(mailbox, shortReason(e));
             }
         }
         return new Cycle(looked, imported, refused);
+    }
+
+    /**
+     * Tells whoever looks after the station's mail that a mailbox has stopped being tried.
+     *
+     * <p>The error is on the mailbox either way, but nobody goes looking at a page for an import that
+     * silently stopped a month ago, so this is pushed rather than waited for.
+     */
+    private void tellAboutSuspension(MailMailbox mailbox, String reason) {
+        try {
+            notificationService.notifyMembersWithRole(
+                    mailbox.stationId(),
+                    StationPermission.STATION_MAIL.name(),
+                    NotificationType.MAILBOX_SUSPENDED,
+                    NotificationData.of(
+                            new NotificationParams.MailboxSuspended(mailbox.name(), reason),
+                            new NotificationData.NotificationLink("station-mail-import", Map.of())));
+        } catch (Exception e) {
+            log.warn("Could not say that mailbox {} was suspended", mailbox.id(), e);
+        }
+    }
+
+    /**
+     * Tells whoever may read documents that paperwork is waiting to be sorted.
+     *
+     * <p>Filing under nobody is the ordinary outcome, so this is not a failure report. What nobody
+     * notices is the store quietly filling up, and one line per cycle is what answers that.
+     */
+    private void tellAboutUnbound(MailMailbox mailbox, int imported, Instant now) {
+        if (imported == 0) return;
+        try {
+            int unbound = logRepository.countUnboundSince(mailbox.stationId(), now.minus(Duration.ofDays(1)));
+            if (unbound == 0) return;
+            notificationService.notifyMembersWithRole(
+                    mailbox.stationId(),
+                    StationPermission.DOCUMENT_READ.name(),
+                    NotificationType.MAIL_IMPORT_UNBOUND,
+                    NotificationData.of(
+                            new NotificationParams.MailImportUnbound(unbound),
+                            new NotificationData.NotificationLink("station-members-documents", Map.of())));
+        } catch (Exception e) {
+            log.warn("Could not say what arrived unbound for station {}", mailbox.stationId(), e);
+        }
     }
 
     private record Handled(int imported, int refused) {}

@@ -163,7 +163,9 @@
     "CLUSTER_MEMBER_ROLE_CHANGED": "Deine Rechte im Verband {clusterName}",
     "CLUSTER_FIELD_VALUE_CHANGED": "Profil vom Verband geändert: {fields}",
     "CLUSTER_ITEM_ISSUED": "Unterwegs von {clusterName}: {itemName}",
-    "CLUSTER_ITEM_LOST": "Vermisst bei {stationName}: {itemName}"
+    "CLUSTER_ITEM_LOST": "Vermisst bei {stationName}: {itemName}",
+    "MAILBOX_SUSPENDED": "Postfach ausgesetzt: {mailbox}",
+    "MAIL_IMPORT_UNBOUND": "Dokumente warten auf Zuordnung"
   },
   "digest": {
     "subject.one": "{stationName}: 1 neue Benachrichtigung",
@@ -217,7 +219,9 @@
     "CLUSTER_MEMBER_ROLE_CHANGED": "Rechte geändert",
     "CLUSTER_FIELD_VALUE_CHANGED": "Profil vom Verband geändert",
     "CLUSTER_ITEM_ISSUED": "Gegenstand unterwegs",
-    "CLUSTER_ITEM_LOST": "Gegenstand vermisst"
+    "CLUSTER_ITEM_LOST": "Gegenstand vermisst",
+    "MAILBOX_SUSPENDED": "Postfach",
+    "MAIL_IMPORT_UNBOUND": "Dokumente"
   },
   "message": {
     "notification.newNews": "{title} - von {author}",
@@ -271,6 +275,8 @@
     "notification.registrationClosing.one": "{eventName}: Anmeldung schließt morgen, {memberName} hat noch nicht geantwortet",
     "notification.registrationClosing.other": "{eventName}: Anmeldung schließt in {daysBefore} Tagen, {memberName} hat noch nicht geantwortet",
     "notification.registrationAnswerMissing": "{eventName} am {eventDate}: es gibt eine neue Frage, {memberName} hat sie noch nicht beantwortet",
-    "notification.movementCancelled": "{inventoryName}: Bewegung von {itemName} abgebrochen - {reason}"
+    "notification.movementCancelled": "{inventoryName}: Bewegung von {itemName} abgebrochen - {reason}",
+    "notification.mailboxSuspended": "Postfach „{mailbox}\" wird nicht mehr abgerufen: {reason}",
+    "notification.mailImportUnbound": "{count} per Mail eingegangene Dokumente sind noch keinem Mitglied zugeordnet"
   }
 }
