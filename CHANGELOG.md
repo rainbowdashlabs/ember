@@ -12,6 +12,7 @@
 ### Fixes
 
 - **A mistyped address sent visitors to the login screen.** Somebody not signed in who followed a broken link, or typed an address wrong, was taken to the sign-in page with the bad address carried along instead of being told the page does not exist. The page that explains it now stays.
+- **An exchange could refuse every attempt to move it on.** Where the step asking which piece arrived comes before the last one, the screen offered no field to name that piece, so pressing on answered with an error about naming it and the exchange sat where it was. The screen now asks for the piece whenever the exchange is standing on the step that wants it, wherever in the chain that falls.
 
 ### Security
 

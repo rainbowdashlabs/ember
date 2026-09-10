@@ -109,6 +109,16 @@ class ExchangeServiceTest extends RepositoryTestBase {
         assertTrue(list.stream().anyMatch(e -> e.id() == exchangeId));
     }
 
+    /**
+     * The screens ask for the arriving piece off this, so an exchange that has only just been announced
+     * must not claim to want one: the field would stand there with nothing to put in it.
+     */
+    @Test
+    @Order(5)
+    void anExchangeJustAnnouncedDoesNotAskWhichPieceArrived() {
+        assertFalse(service.findById(exchangeId).orElseThrow().namesArrivingItem());
+    }
+
     @Test
     @Order(10)
     void updateStatusWalksAsFarAsTheFlowGoes() {
@@ -124,6 +134,17 @@ class ExchangeServiceTest extends RepositoryTestBase {
     void findLogs() {
         var logs = service.findLogs(exchangeId);
         assertFalse(logs.isEmpty());
+    }
+
+    /**
+     * The exchange itself says when the piece has to be named, which is the only thing that can: the
+     * step that asks sits at a different place in every chain, and a screen reading it off the status
+     * being set refused whole chains for want of a piece it never offered a field for.
+     */
+    @Test
+    @Order(12)
+    void anExchangeWaitingOnTheHandoverAsksWhichPieceArrived() {
+        assertTrue(service.findById(exchangeId).orElseThrow().namesArrivingItem());
     }
 
     @Test

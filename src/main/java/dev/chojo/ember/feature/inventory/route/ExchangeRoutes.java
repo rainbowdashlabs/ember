@@ -380,6 +380,7 @@ public class ExchangeRoutes implements Routes {
                 item.map(InventoryItem::name).orElse(null),
                 exchange.purpose(),
                 exchange.status(),
+                exchange.namesArrivingItem(),
                 exchange.reason(),
                 exchange.createdAt(),
                 exchange.updatedAt(),
@@ -421,6 +422,12 @@ public class ExchangeRoutes implements Routes {
             /** Whether this is an issue, a return or an exchange. */
             MovementPurpose purpose,
             ExchangeStatus status,
+            /**
+             * Whether the step this exchange stands on is the one that says which piece arrived. The
+             * screens ask for that piece off this, rather than guessing from the status being set, which
+             * left the chains that ask anywhere but at the end unable to move at all.
+             */
+            boolean namesArrivingItem,
             String reason,
             Instant createdAt,
             Instant updatedAt,

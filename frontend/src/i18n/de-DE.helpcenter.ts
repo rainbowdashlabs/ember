@@ -1685,7 +1685,7 @@ volumes:
             asManager: 'Als Verwalter',
             asManagerText: 'Du siehst alle Tausch-Anfragen der Wache. Du kannst:',
             managerStatusChange: 'Den Status ändern (z.B. von „Angekündigt" auf „Empfangen").',
-            managerAssignItem: 'Einen Gegenstand zuweisen, wenn der Tausch abgeschlossen ist.',
+            managerAssignItem: 'Das neue Stück benennen, sobald der Tausch an dem Schritt steht, der danach fragt. Wo dieser Schritt liegt, hängt vom Weg ab: bei eigener Ausrüstung ist es die Übergabe, bei Ausrüstung des Verbands der Versand. Ohne benanntes Stück geht der Tausch dort nicht weiter.',
             managerCreateProcurement: 'Eine Beschaffung erstellen, wenn ein neuer Gegenstand bestellt werden muss.',
             managerExport: 'Anfragen als PDF exportieren.',
             tip: 'Tausch-Anfragen halten den Überblick darüber, wer welche Ausrüstung wann bekommt hat.',

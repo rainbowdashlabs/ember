@@ -19,6 +19,7 @@ function row(id: number, name: string, inventoryId: number, status: ExchangeStat
         inventoryName: inventoryId === 1 ? 'Helme' : 'Jacken',
         inventoryType: 'INTERNAL',
         status,
+        namesArrivingItem: false,
         reason: '',
         createdAt,
         updatedAt: createdAt,

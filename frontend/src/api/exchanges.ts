@@ -56,6 +56,12 @@ export interface ExchangeRequestEntry {
     /** Whether this is an issue, a return or an exchange. */
     purpose?: MovementPurposeName | null
     status: ExchangeStatusName
+    /**
+     * Whether the step the exchange stands on is the one that says which piece arrived. Which step asks
+     * depends on the chain, so the answer comes from the exchange rather than being guessed from the
+     * status being set.
+     */
+    namesArrivingItem: boolean
     reason: string
     createdAt: string
     updatedAt: string
