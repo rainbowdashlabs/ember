@@ -80,7 +80,7 @@ async function switchAccount(email: string): Promise<void> {
 export default defineNuxtRouteMiddleware(async (to) => {
     if (!import.meta.client) return
 
-    if (to.matched.length === 0) return
+    if (to.matched && to.matched.length === 0) return
 
     const becomes = typeof to.query.as === 'string' ? to.query.as.trim() : null
     if (becomes) {

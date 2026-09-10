@@ -112,7 +112,13 @@ function route(path: string, query: Record<string, string> = {}): RouteLocationN
         fullPath: search ? `${path}?${search}` : path,
         query,
         meta: {},
+        matched: [{}],
     } as unknown as RouteLocationNormalized
+}
+
+/** An address no page answers to, which is what the router hands the error page. */
+function unmatched(path: string): RouteLocationNormalized {
+    return {...route(path), matched: []} as unknown as RouteLocationNormalized
 }
 
 function run(to: RouteLocationNormalized) {
@@ -127,6 +133,18 @@ function idleForAnHour() {
 }
 
 describe('auth route guard', () => {
+    /**
+     * An address that matches no page is nobody's to protect.
+     *
+     * <p>Every gate below reads an unknown address as a page somebody may not see, so an anonymous
+     * visitor mistyping one was sent to the login screen carrying the bad address as their redirect.
+     * The page that exists to explain a wrong address never got to say anything.
+     */
+    it('lets an address that matches no page reach the page that explains it', async () => {
+        state.store.clear()
+        expect(await run(unmatched('/there-is-no-page-here'))).toBeUndefined()
+    })
+
     beforeEach(() => {
         state.store.clear()
         state.store.set('session_token', 'token')
