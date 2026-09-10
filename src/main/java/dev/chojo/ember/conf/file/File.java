@@ -13,6 +13,7 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.KnowledgeBase;
 import dev.chojo.ember.conf.file.elements.Logging;
+import dev.chojo.ember.conf.file.elements.MailImport;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
@@ -41,6 +42,11 @@ public class File {
     private KnowledgeBase knowledgeBase = new KnowledgeBase();
     private Attendance attendance = new Attendance();
     private Updates updates = new Updates();
+    private MailImport mailImport = new MailImport();
+
+    public MailImport mailImport() {
+        return mailImport;
+    }
 
     public Attendance attendance() {
         return attendance;

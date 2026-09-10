@@ -27,6 +27,7 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.KnowledgeBase;
 import dev.chojo.ember.conf.file.elements.Logging;
+import dev.chojo.ember.conf.file.elements.MailImport;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
@@ -648,6 +649,12 @@ public class EmberModule extends AbstractModule {
     @Singleton
     Attendance attendance(File config) {
         return config.attendance();
+    }
+
+    @Provides
+    @Singleton
+    MailImport mailImport(File config) {
+        return config.mailImport();
     }
 
     @Provides
