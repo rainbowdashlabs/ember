@@ -672,9 +672,8 @@ test.describe('Members', () => {
 
         await page.goto('/station/members/list')
         await page.getByPlaceholder(/Suche/).first().fill(surname)
-        const row = page.getByTestId('member-row').first()
+        const row = page.getByTestId('member-row').filter({hasText: surname}).first()
         await expect(row).toBeVisible()
-        await expect(row.getByText(surname)).toBeVisible()
 
         // The address column reads as empty rather than carrying something ending in .local.
         await expect(row).not.toContainText('.local')

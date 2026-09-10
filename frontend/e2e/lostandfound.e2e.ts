@@ -496,8 +496,7 @@ test.describe('Lost and found', () => {
                 expect(claimNotice, 'whoever runs the station hears about the claim').toBeTruthy()
                 expect(claimNotice.link.route, 'that notice names a page too').toBe('lost-and-found')
 
-                expect(await notices(memberPage, 'LOST_AND_FOUND_NEW', claimedId),
-                    'the announcement is withdrawn once the thing is spoken for').toBeUndefined()
+                await noticeWithdrawn(memberPage, 'LOST_AND_FOUND_NEW', claimedId)
                 expect(await notices(memberPage, 'LOST_AND_FOUND_NEW', untouchedId),
                     'and only that one, not every other find along with it').toBeTruthy()
             } finally {
@@ -521,8 +520,7 @@ test.describe('Lost and found', () => {
             const headers = await apiHeaders(managerPage)
             await managerPage.request.delete(`/api/v1/lost-and-found/${id}`, {headers})
 
-            expect(await notices(memberPage, 'LOST_AND_FOUND_NEW', id),
-                'nothing is left pointing at an entry that is gone').toBeUndefined()
+            await noticeWithdrawn(memberPage, 'LOST_AND_FOUND_NEW', id)
         } finally {
             await memberPage.context().close()
         }
@@ -553,13 +551,42 @@ test.describe('Lost and found', () => {
 })
 
 /** The unread notice of a kind that points at one particular find, or nothing where there is none. */
-async function notices(page: Page, type: string, itemId: number) {
+/** The notice of a given kind about a given item as it stands right now, without waiting. */
+async function noticeNow(page: Page, type: string, itemId: number) {
     const response = await page.request.get('/api/v1/notifications/unacknowledged', {
         headers: await apiHeaders(page),
     })
     expect(response.ok(), 'the notices can be read').toBeTruthy()
     return (await response.json()).find((entry: {type: string; link?: {routeParams?: {id?: number}}}) =>
         entry.type === type && String(entry.link?.routeParams?.id) === String(itemId))
+}
+
+/**
+ * Waits for a notice to arrive and answers with it.
+ *
+ * <p>A notification is written after the action that caused it has already answered, so asking the
+ * moment a call returns is asking too early. Reading once made this a race the suite lost every so
+ * often, and a notice that is merely late is not the failure any of these stories is about.
+ */
+async function notices(page: Page, type: string, itemId: number) {
+    let found: unknown
+    await expect(async () => {
+        found = await noticeNow(page, type, itemId)
+        expect(found, 'the notice has arrived').toBeTruthy()
+    }).toPass({timeout: 15000})
+    return found
+}
+
+/**
+ * Waits for a notice to be gone, which is its own claim rather than the absence of the one above.
+ *
+ * <p>Withdrawing a notice happens after the call that caused it, exactly as writing one does, so
+ * asking once is as wrong here as it was there.
+ */
+async function noticeWithdrawn(page: Page, type: string, itemId: number) {
+    await expect(async () => {
+        expect(await noticeNow(page, type, itemId), 'the notice is gone').toBeUndefined()
+    }).toPass({timeout: 15000})
 }
 
 /** Flips the lost and found for the station whose page this is, waiting for the switch to settle. */
