@@ -650,6 +650,22 @@ test.describe('Members', () => {
      * because there is nowhere for that mail to go until a guardian with an address is attached.
      */
     /**
+     * Types a name into the list's search box until the list answers with it.
+     *
+     * <p>The list is rendered by the server, so the box is on screen and focused before Vue is
+     * listening to it: a name typed at that moment sits in the field and the list never asks again.
+     * Retyping is what the help centre stories already do about the same race.
+     */
+    async function searchForMember(page: Page, surname: string) {
+        const row = page.getByTestId('member-row').filter({hasText: surname}).first()
+        await expect(async () => {
+            await page.getByPlaceholder(/Suche/).first().fill(surname)
+            await expect(row).toBeVisible({timeout: 5000})
+        }).toPass({timeout: 30000})
+        return row
+    }
+
+    /**
      * Clicks on until the wizard says the account was made.
      *
      * <p>Counting clicks was the trouble: four instant visibility checks ended the walk while a step
@@ -687,9 +703,7 @@ test.describe('Members', () => {
         await finishTheWizard(page)
 
         await page.goto('/station/members/list')
-        await page.getByPlaceholder(/Suche/).first().fill(surname)
-        const row = page.getByTestId('member-row').filter({hasText: surname}).first()
-        await expect(row).toBeVisible()
+        const row = await searchForMember(page, surname)
 
         // The address column reads as empty rather than carrying something ending in .local.
         await expect(row).not.toContainText('.local')
