@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
-import {StationPermission} from '@/api/types'
+import {StationModules, StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 
 defineProps<{
@@ -22,7 +22,14 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const {hasPermission} = useSession()
+const {hasPermission, isModuleEnabled} = useSession()
+
+/**
+ * Reading mail for documents rides on the documents module and on the mail permission, because it is a
+ * mail setting that files documents. Module off, no page.
+ */
+const mailImport = computed(() =>
+    hasPermission(StationPermission.STATION_MAIL) && isModuleEnabled(StationModules.DOCUMENTS))
 
 const manageDefaultRoute = computed(() => {
   if (hasPermission(StationPermission.STATION_GENERAL)) return '/station/manage'
@@ -45,6 +52,9 @@ function close() {
     </SidebarLink>
     <SidebarLink v-if="hasPermission(StationPermission.STATION_MAIL)" data-onboarding="nav.manage.mailing" :icon="['fas', 'envelope']" name="station-mailing" to="/station/manage/mailing" @navigate="close">
       {{ t('sidebar.stationMailing') }}
+    </SidebarLink>
+    <SidebarLink v-if="mailImport" :icon="['fas', 'envelope-open-text']" name="station-mail-import" to="/station/manage/mail-import" @navigate="close">
+      {{ t('sidebar.stationMailImport') }}
     </SidebarLink>
     <SidebarLink v-if="hasPermission(StationPermission.STATION_MODULES)" :icon="['fas', 'puzzle-piece']" name="station-modules" to="/station/manage/modules" @navigate="close">
       {{ t('sidebar.stationModules') }}
