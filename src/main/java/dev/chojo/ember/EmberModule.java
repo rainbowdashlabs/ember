@@ -27,6 +27,7 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.KnowledgeBase;
 import dev.chojo.ember.conf.file.elements.Logging;
+import dev.chojo.ember.conf.file.elements.MailImport;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
@@ -164,6 +165,9 @@ import dev.chojo.ember.feature.knowledgebase.service.KbTrashPurger;
 import dev.chojo.ember.feature.legal.route.ConsentRoutes;
 import dev.chojo.ember.feature.lostandfound.route.LostAndFoundRoutes;
 import dev.chojo.ember.feature.mail.route.MailWebhookRoutes;
+import dev.chojo.ember.feature.mailimport.route.MailImportRoutes;
+import dev.chojo.ember.feature.mailimport.service.MailFilingService;
+import dev.chojo.ember.feature.mailimport.service.StationMemberNaming;
 import dev.chojo.ember.feature.maps.route.AdminMapsRoutes;
 import dev.chojo.ember.feature.maps.route.PublicMapsRoutes;
 import dev.chojo.ember.feature.media.route.MediaRoutes;
@@ -317,6 +321,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(InventoryRoutes.class);
         routesBinder.addBinding().to(ProfileFieldRoutes.class);
         routesBinder.addBinding().to(DocumentRoutes.class);
+        routesBinder.addBinding().to(MailImportRoutes.class);
+        bind(MailFilingService.MemberNaming.class).to(StationMemberNaming.class);
         routesBinder.addBinding().to(ProfileFieldChangeRoutes.class);
         routesBinder.addBinding().to(MemberGroupRoutes.class);
         routesBinder.addBinding().to(RegistrationCodeRoutes.class);
@@ -648,6 +654,12 @@ public class EmberModule extends AbstractModule {
     @Singleton
     Attendance attendance(File config) {
         return config.attendance();
+    }
+
+    @Provides
+    @Singleton
+    MailImport mailImport(File config) {
+        return config.mailImport();
     }
 
     @Provides

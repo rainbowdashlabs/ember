@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.beacon.service.BeaconReportService;
 import dev.chojo.ember.feature.board.service.DueDateReminderChecker;
 import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
 import dev.chojo.ember.feature.legal.service.ConsentService;
+import dev.chojo.ember.feature.mailimport.service.MailImportPoller;
 import dev.chojo.ember.feature.media.service.MediaPrefixMigrationService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
@@ -206,6 +207,8 @@ public class Bootstrapper {
 
         injector.getInstance(BeaconMetricsService.class).start(updateCheck.currentVersion());
         injector.getInstance(BeaconReportService.class).startForwarding(updateCheck.currentVersion());
+
+        injector.getInstance(MailImportPoller.class).start();
 
         // Media moved from the page-files prefix onto media/. The move is per station and
         // resumable, so it runs off the boot path and picks up where it left off after a crash.

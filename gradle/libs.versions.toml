@@ -49,6 +49,7 @@ junit-params = { group = "org.junit.jupiter", name = "junit-jupiter-params", ver
 junit-platform = { group = "org.junit.platform", name = "junit-platform-launcher", version.ref = "junit" }
 mockito = { group = "org.mockito", name = "mockito-core", version = "5.+" }
 archunit = { group = "com.tngtech.archunit", name = "archunit-junit5", version = "1.4.2" }
+greenmail = { group = "com.icegreen", name = "greenmail", version = "2.1.9" }
 
 # Database testing
 testcontainers-postgres = { group = "org.testcontainers", name = "testcontainers-postgresql", version.ref = "testcontainers" }

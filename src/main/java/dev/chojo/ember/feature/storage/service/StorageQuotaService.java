@@ -116,6 +116,21 @@ public class StorageQuotaService {
     }
 
     /**
+     * The largest single file this station may store.
+     *
+     * <p>{@link #checkFileSize(int, long)} answers the same rule for a file already in hand. This answers
+     * it for one that is not, which is what a caller needs when the file is at the other end of a network
+     * connection and the point is not to fetch it: a background import that only learned the limit by
+     * offering the bytes would have to transfer every refusal first.
+     *
+     * @param stationId the station
+     * @return the per-file limit in bytes
+     */
+    public long perFileLimitBytes(int stationId) {
+        return resolveQuotas(stationId).perFile().bytes();
+    }
+
+    /**
      * Checks whether a single image exceeds the per-image size limit.
      *
      * @throws StorageQuotaExceededException if the image exceeds the limit

@@ -192,6 +192,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-manage-module-overview', path: '/helpcenter/station/manage', i18nPrefix: 'helpCenter.manageOverview'},
     {route: 'help-station-manage-cluster', path: '/helpcenter/station/manage/cluster', i18nPrefix: 'helpCenter.stationCluster'},
     {route: 'help-station-import', path: '/helpcenter/station/manage/import', i18nPrefix: 'helpCenter.import'},
+    {route: 'help-station-mail-import', path: '/helpcenter/station/manage/mail-import', i18nPrefix: 'helpCenter.mailImport'},
     {route: 'help-station-mailing', path: '/helpcenter/station/manage/mailing', i18nPrefix: 'helpCenter.mailConfig'},
     {route: 'help-station-mailing-vendor', path: '/helpcenter/station/manage/mailing/0', i18nPrefix: 'helpCenter.mailVendor'},
     {route: 'help-station-modules', path: '/helpcenter/station/manage/modules', i18nPrefix: 'helpCenter.modules'},

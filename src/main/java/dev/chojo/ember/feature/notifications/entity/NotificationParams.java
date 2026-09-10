@@ -183,4 +183,20 @@ public sealed interface NotificationParams {
     record WaitlistInvitationAnswered(String childName, String listName, String answer) implements NotificationParams {}
 
     record StorageWarning(int usedPercent, String usedFormatted, String quotaFormatted) implements NotificationParams {}
+
+    /**
+     * A mailbox that has failed often enough to be taken out of the rotation.
+     *
+     * <p>Worth telling somebody about rather than leaving on the page: an import that stopped a month ago
+     * is not something anybody goes looking for.
+     */
+    record MailboxSuspended(String mailbox, String reason) implements NotificationParams {}
+
+    /**
+     * Documents that arrived by mail and belong to nobody in particular yet.
+     *
+     * <p>Not an error: filing under nobody is the ordinary outcome. What nobody notices is a store quietly
+     * filling with paperwork waiting to be sorted, which is what this counts.
+     */
+    record MailImportUnbound(int count) implements NotificationParams {}
 }

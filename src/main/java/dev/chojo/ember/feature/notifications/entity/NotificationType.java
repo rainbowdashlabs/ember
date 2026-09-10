@@ -52,6 +52,8 @@ public enum NotificationType {
     WAITLIST_INVITATION_ANSWERED(
             NotificationParams.WaitlistInvitationAnswered.class, "notification.waitlistInvitationAnswered"),
     STORAGE_WARNING(NotificationParams.StorageWarning.class, "notification.storageWarning"),
+    MAILBOX_SUSPENDED(NotificationParams.MailboxSuspended.class, "notification.mailboxSuspended"),
+    MAIL_IMPORT_UNBOUND(NotificationParams.MailImportUnbound.class, "notification.mailImportUnbound"),
     CLUSTER_APPLICATION_SUBMITTED(
             NotificationParams.ClusterApplicationSubmitted.class, "notification.clusterApplicationSubmitted"),
     CLUSTER_APPLICATION_APPROVED(

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:5c53a5362dbdfd8f8a7ddfcc4f88c038e3468b09ee408a0867e0787a0f54acda",
-  "generatedAt": "2026-09-09T18:49:42Z",
+  "schemaHash": "sha256:2c073de19663218c42e04952137fe4ff9af67a3f091db813a8a0f192e84b0f7d",
+  "generatedAt": "2026-09-10T16:19:05Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -1648,6 +1648,8 @@
       "description": "Groups whose members are expected to attend sessions using this template."
     },
     "beacon_instance": {
+      "feature": "beacon",
+      "scope": "INSTANCE",
       "tableHash": "sha256:93771a65d049671310a61e8dde1ba71620e5e6ce17f62184009cb60412ae77db",
       "columns": [
         {
@@ -1655,49 +1657,44 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Fingerprint of the reporting instance's public key, computed by this beacon and never taken from the payload."
+          "description": "Computed from the presented public key, never read from the payload."
         },
         {
           "name": "public_key",
           "type": "text",
           "nullable": false,
-          "verified": true,
-          "description": "The Ed25519 key that instance signs its reports with."
+          "verified": true
         },
         {
           "name": "contact_name",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "A name the reporting operator chose to be reachable by. Theirs, never a member's."
+          "verified": true
         },
         {
           "name": "contact_mail",
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "An address the reporting operator chose to be reachable by. Theirs, never a member's."
+          "description": "Where to write about this instance's reports. The operator's own address, never a member's."
         },
         {
           "name": "last_version",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "The Ember version that instance last reported running."
+          "verified": true
         },
         {
           "name": "first_seen",
           "type": "timestamp",
           "nullable": false,
-          "verified": true,
-          "description": "When this beacon first heard from that instance."
+          "verified": true
         },
         {
           "name": "last_seen",
           "type": "timestamp",
           "nullable": false,
-          "verified": true,
-          "description": "When this beacon last heard from that instance."
+          "verified": true
         }
       ],
       "foreignKeys": [],
@@ -1713,68 +1710,62 @@
         "status": "IGNORED",
         "reason": "Holds the reporting operator's own contact, which is their personal data rather than a member's. Exported and deleted on their request to the beacon, not through a station export here."
       },
-      "description": "Another instance that reports to this beacon.",
-      "feature": "beacon",
-      "scope": "INSTANCE"
+      "description": "An instance that has reported to this beacon, identified by the fingerprint of the key it signs with."
     },
     "beacon_metrics": {
+      "feature": "beacon",
+      "scope": "INSTANCE",
       "tableHash": "sha256:e56e198f6f9b1c067414dc33027239fb8c03ca7c030bc27dde033b48cf7a245e",
       "columns": [
         {
           "name": "metrics_uid",
           "type": "uuid",
           "nullable": false,
-          "verified": true,
-          "description": "The identifier a station or instance goes by in the numbers and nowhere else."
+          "verified": true
         },
         {
           "name": "subject",
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "STATION or INSTANCE, which decides which counts are filled."
+          "description": "STATION or INSTANCE, which decides which of the counts are filled."
         },
         {
           "name": "day",
           "type": "date",
           "nullable": false,
-          "verified": true,
-          "description": "The UTC day these counts describe."
+          "verified": true
         },
         {
           "name": "members",
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "A bucket such as <10, never an exact number."
+          "description": "A bucket such as <10 or 10-50, never an exact number: an exact trajectory identifies a station within weeks."
         },
         {
           "name": "accounts",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "A bucket, filled only for an instance."
+          "verified": true
         },
         {
           "name": "stations",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "A bucket, filled only for an instance."
+          "verified": true
         },
         {
           "name": "inventory",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "A bucket of how much gear is held."
+          "verified": true
         },
         {
           "name": "version",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "The version the reporting instance ran."
+          "verified": true
         }
       ],
       "foreignKeys": [],
@@ -1790,33 +1781,30 @@
         "status": "IGNORED",
         "reason": "Deliberately carries no key to the instance that sent it, so nothing here identifies anybody."
       },
-      "description": "Bucketed counts for one subject and day.",
-      "feature": "beacon",
-      "scope": "INSTANCE"
+      "description": "One subject's bucketed counts for one day. Carries no key to the instance that sent it, by design."
     },
     "beacon_nonce": {
+      "feature": "beacon",
+      "scope": "INSTANCE",
       "tableHash": "sha256:c6204e73690cb2a238801468415a6aac38b6a59fe01d12bc808979639d0df3ea",
       "columns": [
         {
           "name": "instance_id",
           "type": "text",
           "nullable": false,
-          "verified": true,
-          "description": "The instance whose delivery this was."
+          "verified": true
         },
         {
           "name": "nonce",
           "type": "text",
           "nullable": false,
-          "verified": true,
-          "description": "The value that delivery carried, so the same one cannot arrive twice."
+          "verified": true
         },
         {
           "name": "issued_at",
           "type": "timestamp",
           "nullable": false,
-          "verified": true,
-          "description": "When the delivery said it was issued, used to sweep rows too old to replay."
+          "verified": true
         }
       ],
       "foreignKeys": [],
@@ -1832,82 +1820,74 @@
         "status": "IGNORED",
         "reason": "Replay protection only, no personal data."
       },
-      "description": "Deliveries already accepted, so none arrives twice.",
-      "feature": "beacon",
-      "scope": "INSTANCE"
+      "description": "One row per accepted delivery, so the same signed payload cannot be replayed."
     },
     "beacon_problem": {
+      "feature": "beacon",
+      "scope": "INSTANCE",
       "tableHash": "sha256:82b23580c40211e1940d363434d92066400364d46e496192b1826f54bb6a5c49",
       "columns": [
         {
           "name": "id",
           "type": "int4",
           "nullable": false,
-          "verified": true,
-          "description": "Auto-generated primary key."
+          "verified": true
         },
         {
           "name": "fingerprint",
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Exception chain and frame names without line numbers, so one fault stays one row across releases."
+          "description": "Exception chain plus frame class and method names, without line numbers, so the same fault stays one row across releases."
         },
         {
           "name": "level",
           "type": "text",
           "nullable": false,
-          "verified": true,
-          "description": "ERROR or WARN, as the reporting instance logged it."
+          "verified": true
         },
         {
           "name": "logger",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "The logger that reported the fault."
+          "verified": true
         },
         {
           "name": "exception_class",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "The exception thrown, where there was one."
+          "verified": true
         },
         {
           "name": "frames",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "The stack frame class and method names, without line numbers or arguments."
+          "verified": true
         },
         {
           "name": "first_seen",
           "type": "timestamp",
           "nullable": false,
-          "verified": true,
-          "description": "When any instance first reported this fault."
+          "verified": true
         },
         {
           "name": "last_seen",
           "type": "timestamp",
           "nullable": false,
-          "verified": true,
-          "description": "When any instance last reported this fault."
+          "verified": true
         },
         {
           "name": "acknowledged",
           "type": "bool",
           "nullable": false,
-          "verified": true,
-          "description": "Whether somebody on this beacon has marked the fault as seen."
+          "verified": true
         },
         {
           "name": "resolved_in",
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "The version the fault was fixed in, where somebody has said so."
+          "description": "The version this was fixed in, where somebody has said so. NULL while it still stands."
         }
       ],
       "foreignKeys": [],
@@ -1923,54 +1903,49 @@
         "status": "IGNORED",
         "reason": "Stacktraces and frame names, no personal data."
       },
-      "description": "A fault gathered from every instance that reported it.",
-      "feature": "beacon",
-      "scope": "INSTANCE"
+      "description": "A fault as the beacon knows it, gathered from every instance that reported it."
     },
     "beacon_problem_instance": {
+      "feature": "beacon",
+      "scope": "INSTANCE",
       "tableHash": "sha256:b79775d3cbd761e272e2b60add43764ae743f03eadbadabba5a4157fffe5be93",
       "columns": [
         {
           "name": "problem_id",
           "type": "int4",
           "nullable": false,
-          "verified": true,
-          "description": "The fault this row is about."
+          "verified": true
         },
         {
           "name": "instance_id",
           "type": "text",
           "nullable": false,
-          "verified": true,
-          "description": "The instance that met it."
+          "verified": true
         },
         {
           "name": "version",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "The version that instance ran when it met the fault."
+          "verified": true
         },
         {
           "name": "occurrences",
           "type": "int4",
           "nullable": false,
           "verified": true,
-          "description": "What the sender last said its own count was, not a total kept here."
+          "description": "What the sender last said its own count was, not a running total kept here."
         },
         {
           "name": "first_seen",
           "type": "timestamp",
           "nullable": false,
-          "verified": true,
-          "description": "When that instance first met the fault."
+          "verified": true
         },
         {
           "name": "last_seen",
           "type": "timestamp",
           "nullable": false,
-          "verified": true,
-          "description": "When that instance last met the fault."
+          "verified": true
         }
       ],
       "foreignKeys": [
@@ -1999,68 +1974,60 @@
         "status": "IGNORED",
         "reason": "Counts and versions, no personal data."
       },
-      "description": "How one instance met one fault.",
-      "feature": "beacon",
-      "scope": "INSTANCE"
+      "description": "How one instance has met one fault: the version it ran, how often, and when."
     },
     "beacon_report": {
+      "feature": "beacon",
+      "scope": "INSTANCE",
       "tableHash": "sha256:cb4de93954fceb8a7eda10341b52af912f13e80d0ebe0016f83f3160fdb4ce11",
       "columns": [
         {
           "name": "id",
           "type": "int4",
           "nullable": false,
-          "verified": true,
-          "description": "Auto-generated primary key."
+          "verified": true
         },
         {
           "name": "instance_id",
           "type": "text",
           "nullable": false,
-          "verified": true,
-          "description": "The instance that forwarded the report."
+          "verified": true
         },
         {
           "name": "message",
           "type": "text",
           "nullable": false,
-          "verified": true,
-          "description": "What the person wrote. Forwarded without their name, but their own words."
+          "verified": true
         },
         {
           "name": "page",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "The page they were on, with any query string removed before it left their instance."
+          "verified": true
         },
         {
           "name": "version",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "The version their instance ran."
+          "verified": true
         },
         {
           "name": "reported_at",
           "type": "timestamp",
           "nullable": false,
-          "verified": true,
-          "description": "When they wrote it."
+          "verified": true
         },
         {
           "name": "received_at",
           "type": "timestamp",
           "nullable": false,
-          "verified": true,
-          "description": "When this beacon took it."
+          "verified": true
         },
         {
           "name": "acknowledged",
           "type": "bool",
           "nullable": false,
-          "verified": true,
-          "description": "Whether somebody on this beacon has marked it as seen."
+          "verified": true
         }
       ],
       "foreignKeys": [
@@ -2083,9 +2050,7 @@
         "status": "IGNORED",
         "reason": "The words are somebody's own but arrive with no name, member or station: nobody here can be matched to them. Removal goes through the operator who forwarded it."
       },
-      "description": "A problem report forwarded from another instance.",
-      "feature": "beacon",
-      "scope": "INSTANCE"
+      "description": "A problem report written by a person, forwarded without naming them."
     },
     "board": {
       "feature": "boards",
@@ -14150,6 +14115,358 @@
       },
       "description": "Lost items found at the station, waiting to be claimed."
     },
+    "mail_handled_message": {
+      "tableHash": "sha256:8d17c1f832b2f93f183a4149a57ff0409db32f196c774107a0378fb99eabd130",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "mailbox_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The mailbox that dealt with the message."
+        },
+        {
+          "name": "message_id",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The message's own identifier, or one made from its envelope where it carried none."
+        },
+        {
+          "name": "derived",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the identifier was made from the envelope because the message carried none of its own."
+        },
+        {
+          "name": "handled_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When it was dealt with."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "mailbox_id",
+          "refTable": "mail_mailbox",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Belongs to a mailbox, which is not transferred."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "An identifier saying a message was handled, carrying nothing of what was in it."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "An identifier saying a message was handled, carrying nothing of what was in it."
+      },
+      "description": "Messages this mailbox has already dealt with. Kept for as long as the documents they produced, which is longer than the readable log."
+    },
+    "mail_import_entry": {
+      "tableHash": "sha256:7ee992d37127b4b33ae2b9458690bad087c3cbe370a953ab84e137e55a11432d",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "mailbox_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The mailbox the attachment arrived in."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station the attachment was filed for, which is what the duplicate check is scoped to."
+        },
+        {
+          "name": "rule_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Which rule took the message, which is the question anybody debugging an import actually asks. Null where no rule matched."
+        },
+        {
+          "name": "message_id",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The message the attachment hung off."
+        },
+        {
+          "name": "sender",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Who sent it, as the envelope gave it."
+        },
+        {
+          "name": "subject",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the message was called, kept because it is what a reader recognises an entry by."
+        },
+        {
+          "name": "attachment_name",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the file was called in the mail."
+        },
+        {
+          "name": "content_hash",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The hash of the attachment bytes. A key rather than a detail: the same bytes again in this station are a duplicate however they arrived, which is what catches a forward. Survives the pruning."
+        },
+        {
+          "name": "outcome",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "IMPORTED, DUPLICATE, SENDER_NOT_ALLOWED, NO_RULE_MATCHED, TYPE_NOT_ALLOWED, TOO_LARGE, TOO_SMALL, NO_ATTACHMENT, QUOTA_EXCEEDED, AUTHENTICATION_FAILED or FAILED."
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The readable half of why, which is pruned after a year while the keys stay."
+        },
+        {
+          "name": "document_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The document that resulted, where one did."
+        },
+        {
+          "name": "pruned",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the readable fields have been cleared by the pruning, leaving the row as a key only."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When the attachment was looked at."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "document_id",
+          "refTable": "member_document",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "mailbox_id",
+          "refTable": "mail_mailbox",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "rule_id",
+          "refTable": "mail_rule",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Belongs to a mailbox, which is not transferred."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Names the correspondent who sent a file and the subject they gave it, which is the station's record of its own post rather than a member's. No member is named, and the readable half is pruned after a year."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Names the correspondent who sent a file and the subject they gave it, which is the station's record of its own post rather than a member's. No member is named, and the readable half is pruned after a year."
+      },
+      "description": "What happened to every attachment that was looked at. A rule that quietly imports nothing is the likeliest complaint, and this is the only thing that answers it."
+    },
+    "mail_mailbox": {
+      "tableHash": "sha256:62ade1b0b9253234d0468237d89e65c515b14ee19a635ca2c75bc800fafdd771",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station whose mailbox this is."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the station calls this mailbox, so a page listing several can tell them apart."
+        },
+        {
+          "name": "host",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The mail server this connects to."
+        },
+        {
+          "name": "port",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The port on that server."
+        },
+        {
+          "name": "security",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How the connection is secured: SSL, STARTTLS or NONE."
+        },
+        {
+          "name": "username",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The account the connection signs in as."
+        },
+        {
+          "name": "password_iv",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The random initialisation vector of this password's encryption. Never reused for a second encryption under the same key."
+        },
+        {
+          "name": "password_ciphertext",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The mailbox password, encrypted with the instance credential key. Plaintext never leaves the method that opens the connection."
+        },
+        {
+          "name": "folder",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Which folder is watched, which is the inbox unless the station says otherwise."
+        },
+        {
+          "name": "enabled",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the poller visits this mailbox. Off until a connection test has answered, and off again after a station transfer, whose password cannot be decrypted on the new instance."
+        },
+        {
+          "name": "interval_minutes",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How often this mailbox is checked. Fifteen minutes is the default and the floor, so nobody points a one minute poll at a provider that will lock the account for it."
+        },
+        {
+          "name": "import_from",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "Mail older than this is ignored, which is what stops the first cycle of a ten year old archive address importing a decade of attachments. Defaults to the moment the mailbox was added."
+        },
+        {
+          "name": "last_check_at",
+          "type": "timestamp",
+          "nullable": true,
+          "verified": true,
+          "description": "When the poller last visited, which is how the page says whether anything is happening."
+        },
+        {
+          "name": "last_error",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What went wrong last, kept on the mailbox so it is answerable from the page rather than only from a log file."
+        },
+        {
+          "name": "failure_count",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Consecutive failures, which drive the backoff and the suspension. Reset by a cycle that succeeds."
+        },
+        {
+          "name": "suspended",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether repeated failure has taken this mailbox out of the rotation. Whoever holds the station mail permission is told when it happens."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When the mailbox was added."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "The mailbox password is encrypted with this instance's key, which the destination does not have, so a mailbox is set up again after a transfer rather than arriving unusable. Same answer as the remote storage credentials, which this follows on purpose."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Holds the station's own mail setup, with no member in it."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Holds the station's own mail setup, with no member in it."
+      },
+      "description": "A mailbox a station watches for paperwork. Read only as far as the envelope goes; message bodies are never stored."
+    },
     "mail_provider_block": {
       "feature": "mail",
       "scope": "STATION",
@@ -14233,6 +14550,300 @@
         "reason": "Holds a receiving domain, never a person or an address; entries lapse on their own"
       },
       "description": "Which mail provider a receiving domain has refused outright, so it is not tried there again."
+    },
+    "mail_rule": {
+      "tableHash": "sha256:490acc739719df52b765edd9409fa334675a6e69b951589bed5e0dd6b36892bd",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "mailbox_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The mailbox this rule belongs to."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the station calls this rule, so the log can name the one that took a message."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where this rule stands in the order. The first match wins, so the order is part of what the rule means."
+        },
+        {
+          "name": "enabled",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the rule takes part. A rule switched off is skipped without taking the message from the ones after it."
+        },
+        {
+          "name": "subject_filter",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Text the subject must contain, or null for any subject. Part of whether the rule takes the message."
+        },
+        {
+          "name": "attachment_name_filter",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Text an attachment name must contain, which is how a station separates one sender's PDFs from their photographs."
+        },
+        {
+          "name": "accepted_types",
+          "type": "_text",
+          "nullable": false,
+          "verified": true,
+          "description": "The content types this rule files. Decided by sniffing the bytes, never by the file name or by what the mail claims the part is."
+        },
+        {
+          "name": "min_size_bytes",
+          "type": "int8",
+          "nullable": false,
+          "verified": true,
+          "description": "How big a file has to be to count as a document, which is what keeps the store from filling with signature logos."
+        },
+        {
+          "name": "include_inline",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether embedded pictures count as files. Off by default, because every mail with a signature embeds a crest."
+        },
+        {
+          "name": "title_source",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the document title comes from: SUBJECT or FILE_NAME."
+        },
+        {
+          "name": "hidden",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether documents this rule files are kept from the members they are bound to."
+        },
+        {
+          "name": "keep_on_archive",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether documents this rule files survive their members being marked former."
+        },
+        {
+          "name": "read_subject_for_member",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether a name typed into the subject binds the document to that member. A guess about a line a human wrote, so it is off unless a rule asks for it, and an ambiguous subject binds nobody."
+        },
+        {
+          "name": "action",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What happens to the message once its attachments are dealt with: NOTHING, MARK_SEEN, FLAG or MOVE. Deleting is not offered, because moving does the same thing and can be undone by whoever finds out."
+        },
+        {
+          "name": "move_to_folder",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Where MOVE puts the message. Null for every other action."
+        },
+        {
+          "name": "lost_member",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether this rule dropped a member it could no longer file under. Said on the page, because a rule that silently stops working is worse than one that says what happened to it."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When the rule was written."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "mailbox_id",
+          "refTable": "mail_mailbox",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Belongs to a mailbox, which is not transferred."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Holds the station's own mail setup, with no member in it."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Holds the station's own mail setup, with no member in it."
+      },
+      "description": "What a mailbox does with the mail it finds. Ordered, and the first rule that matches a message takes it."
+    },
+    "mail_rule_member": {
+      "tableHash": "sha256:b07b8e6f2f1905cd7cfce55e93b6e427498a9624d3227b08645882371736cf02",
+      "columns": [
+        {
+          "name": "rule_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The rule filing under this member."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The member every document of this rule is bound to."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "rule_id",
+          "refTable": "mail_rule",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Belongs to a rule, whose mailbox is not transferred."
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on member/account delete, which drops the member from the rule and leaves the rule working for the rest"
+          }
+        ]
+      },
+      "description": "Members every document this rule files is bound to. Optional, and the usual answer is none."
+    },
+    "mail_rule_sender": {
+      "tableHash": "sha256:9d56a28e5a18b227f7ae706960242009821c97ceab4db8c1f1da8fed1f349ae3",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "rule_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The rule this pattern belongs to."
+        },
+        {
+          "name": "pattern",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "One address, or every address at a domain written as '*@domain'. Compared in lower case and never as a regular expression."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "rule_id",
+          "refTable": "mail_rule",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Belongs to a rule, whose mailbox is not transferred."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "An address a station chose to trust, which is a setting rather than somebody's record."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "An address a station chose to trust, which is a setting rather than somebody's record."
+      },
+      "description": "Which senders a rule accepts. An address, or every address at a domain. This is the boundary that actually holds, so it is kept narrow on purpose."
+    },
+    "mail_rule_tag": {
+      "tableHash": "sha256:509e41dd92bcc832cfea4095f38b59fc986e57e993975ddf63feeef55cd83c97",
+      "columns": [
+        {
+          "name": "rule_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The rule these tags belong to."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The tag as it is written onto the document."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "rule_id",
+          "refTable": "mail_rule",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Belongs to a rule, whose mailbox is not transferred."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Joins a rule to a label, with nobody in it."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Joins a rule to a label, with nobody in it."
+      },
+      "description": "Tags every document this rule files is given. Names rather than references, resolved against the station's tags as the document is written."
     },
     "managed_login_notice": {
       "feature": "members",
@@ -14494,6 +15105,78 @@
         ]
       },
       "description": "A file kept for one or more members of a station."
+    },
+    "member_document_mail_origin": {
+      "tableHash": "sha256:56d333f8ebdac4a45c17fa002972a1a41216736665384115512fd7e00a561f76",
+      "columns": [
+        {
+          "name": "document_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The document that arrived by mail."
+        },
+        {
+          "name": "mailbox_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Which mailbox brought it, kept as a reference that may be cleared: a document does not stop having arrived by mail because the mailbox was later removed."
+        },
+        {
+          "name": "sender",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The address it came from, which is what the detail shows in place of an uploader."
+        },
+        {
+          "name": "subject",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the message was called."
+        },
+        {
+          "name": "received_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When the mail arrived, which is the date a reader means by asking when the document came in."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "document_id",
+          "refTable": "member_document",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "mailbox_id",
+          "refTable": "mail_mailbox",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Derived from the document, which is exported itself."
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "document_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE with the document"
+          }
+        ]
+      },
+      "description": "Where a document came from where it arrived by mail. Lives and dies with the document, so its history outlasts the import log."
     },
     "member_document_member": {
       "feature": "members",
@@ -19048,7 +19731,7 @@
           "type": "uuid",
           "nullable": false,
           "verified": true,
-          "description": "The name this station goes by in beacon metrics and nowhere else, so counts cannot be tied back to it. Not transferred: a moved station is a different station in the numbers."
+          "description": "The name this station goes by in beacon metrics and nowhere else, so counts cannot be tied back to it. Never sent beside the name, the address or the federation uid."
         }
       ],
       "foreignKeys": [
