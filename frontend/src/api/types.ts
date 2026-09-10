@@ -53,6 +53,8 @@ export const StationPermission = {
     EVENT_REGISTRATION: 'EVENT_REGISTRATION',
     EVENTS_FEDERATE: 'EVENTS_FEDERATE',
     EVENT_MANAGER: 'EVENT_MANAGER',
+    DOCUMENT_READ: 'DOCUMENT_READ',
+    DOCUMENT_EDIT: 'DOCUMENT_EDIT',
     MEMBER_READ: 'MEMBER_READ',
     MEMBER_NOTES: 'MEMBER_NOTES',
     MEMBER_GUARDIAN: 'MEMBER_GUARDIAN',
@@ -228,6 +230,7 @@ export const StationModules = {
     TEST_PROTOCOL: 'TEST_PROTOCOL',
     BOARDS: 'BOARDS',
     PROCEDURES: 'PROCEDURES',
+    DOCUMENTS: 'DOCUMENTS',
 } as const
 
 export type StationModuleName = (typeof StationModules)[keyof typeof StationModules]

@@ -17,6 +17,7 @@ defineEmits<{
 <template>
   <button
     type="button"
+    :aria-pressed="selected"
     :class="[
       'rounded-theme font-medium border transition-all cursor-pointer',
       size === 'md' ? 'px-3 py-1.5 text-sm' : 'px-3 py-1.5 text-xs',

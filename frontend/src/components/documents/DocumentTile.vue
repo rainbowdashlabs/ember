@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {formatDate} from '@/util/format'
-import type {MemberDocument} from '@/api/memberDocuments'
+import type {StationDocument} from '@/api/documents'
 import {formatSize, iconFor} from './documentIcon'
 
 /**
@@ -17,13 +17,13 @@ import {formatSize, iconFor} from './documentIcon'
  * words it was filed under.
  */
 const props = defineProps<{
-  document: MemberDocument
+  document: StationDocument
   /** The picture of it, already fetched, or null while there is none. */
   thumbnail?: string | null
 }>()
 
 const emit = defineEmits<{
-  open: [document: MemberDocument]
+  open: [document: StationDocument]
 }>()
 
 const {t} = useI18n()

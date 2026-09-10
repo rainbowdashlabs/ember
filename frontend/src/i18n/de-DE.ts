@@ -2081,6 +2081,7 @@ export default {
         title: 'Dokumente',
         none: 'Noch keine Dokumente abgelegt.',
         upload: 'Hochladen',
+        onlyUnbound: 'Nur ohne Mitglied',
         uploadTitle: 'Dokument hochladen',
         file: 'Datei',
         titlePlaceholder: 'Wie das Dokument heißen soll',
@@ -2903,6 +2904,14 @@ export default {
         MEMBER_MANAGER: {
             label: 'Mitglieder',
             desc: 'Vollzugriff auf alle Mitgliederfunktionen.',
+        },
+        DOCUMENT_READ: {
+            label: 'Dokumente einsehen',
+            desc: 'Kann die Dokumente der Wache einsehen. Dokumente, die einem Mitglied zugeordnet sind, bleiben denen vorbehalten, die dieses Mitglied einsehen dürfen.',
+        },
+        DOCUMENT_EDIT: {
+            label: 'Dokumente verwalten',
+            desc: 'Kann Dokumente ablegen, ihnen Mitglieder und Schlagwörter zuordnen und sie wieder entfernen.',
         },
         MEMBER_READ: {
             label: 'Mitglieder einsehen',
@@ -4100,6 +4109,7 @@ export default {
         moduleKnowledgeBase: 'Wiki',
         moduleBoards: 'Boards',
         moduleProcedures: 'Abläufe',
+        moduleDocuments: 'Dokumente',
         ownerBadge: 'Eigentümer',
         transferOwnershipTitle: 'Eigentümer übertragen',
         transferOwnershipHint: 'Übertrage die Eigentümerschaft dieser Wache an ein anderes Mitglied mit der Manager-Rolle.',
@@ -5579,7 +5589,7 @@ export default {
             mediaFiles: 'Mediathek-Dateien',
             mediaImages: 'Mediathek-Bilder',
             instanceMediaFiles: 'Mediathek-Dateien (Instanz)',
-            memberDocuments: 'Mitglieder-Dokumente',
+            documents: 'Mitglieder-Dokumente',
             movementDocuments: 'Inventar-Belege',
             stationLogo: 'Wachen-Logos',
             images: 'Bilder (gesamt)',

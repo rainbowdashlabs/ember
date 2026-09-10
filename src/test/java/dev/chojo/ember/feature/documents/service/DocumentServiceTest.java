@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.members.service;
+package dev.chojo.ember.feature.documents.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
@@ -39,12 +39,12 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @Tag("database")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class MemberDocumentServiceTest extends RepositoryTestBase {
+class DocumentServiceTest extends RepositoryTestBase {
 
     @TempDir
     static Path storageRoot;
 
-    private static MemberDocumentService service;
+    private static DocumentService service;
     private static Station station;
     private static Account account;
     private static int memberId;
@@ -53,7 +53,7 @@ class MemberDocumentServiceTest extends RepositoryTestBase {
     static void setup() {
         var backend = new LocalStorageBackend(storageRoot);
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
-        service = new MemberDocumentService(memberDocumentRepo, storage, new ImageVariantService(storage), stationRepo);
+        service = new DocumentService(memberDocumentRepo, storage, new ImageVariantService(storage), stationRepo);
         station = stationRepo.create("Document Service Station");
         account = accountRepo.create("doc-service@test.com", "Doc", "Service");
         memberId = stationMemberRepo.create(station.id(), account.id()).id();
@@ -129,7 +129,7 @@ class MemberDocumentServiceTest extends RepositoryTestBase {
                 List.of());
 
         var found = memberDocumentRepo.findByStation(
-                station.id(), List.of(), "Loeschzug", true, service.searchConfigOf(station.id()), 50, 0);
+                station.id(), List.of(), "Loeschzug", true, false, service.searchConfigOf(station.id()), 50, 0);
 
         assertTrue(found.stream().anyMatch(document -> "Protokoll".equals(document.title())));
     }
@@ -232,5 +232,54 @@ class MemberDocumentServiceTest extends RepositoryTestBase {
         assertTrue(memberDocumentRepo.isBoundTo(kept.id(), memberId));
         assertTrue(memberDocumentRepo.findById(released.id()).isEmpty(), "the rest goes with them");
         assertTrue(service.read(released).isEmpty(), "and so do its bytes");
+    }
+
+    /**
+     * The whole of the permission split, and the reason documents could not simply be given a
+     * permission and left at that: the store permission on its own must never reach a document that
+     * names a member, or it hands its holder every certificate in the station without ever granting
+     * them sight of the people.
+     */
+    @Test
+    @Order(7)
+    void aDocumentNamingAMemberIsReadOnTheMemberPermissionAndNotTheStoreOne() {
+        var onAMember = service.store(
+                station.id(),
+                List.of(memberId),
+                "Attest",
+                "attest.txt",
+                "text/plain",
+                "Bescheinigung".getBytes(StandardCharsets.UTF_8),
+                false,
+                false,
+                memberId,
+                List.of());
+
+        assertTrue(service.mayRead(onAMember.id(), true, false), "whoever may read the member may read it");
+        assertTrue(service.mayRead(onAMember.id(), true, true), "and still may with both");
+        assertFalse(service.mayRead(onAMember.id(), false, true), "the store permission alone must not reach it");
+        assertFalse(service.mayRead(onAMember.id(), false, false), "and neither does holding nothing");
+    }
+
+    /** The station's own paperwork, which is what the store permission is for. */
+    @Test
+    @Order(8)
+    void aDocumentNamingNobodyIsReadOnTheStorePermission() {
+        var unbound = service.store(
+                station.id(),
+                List.of(),
+                "Pruefbescheinigung",
+                "pruefung.txt",
+                "text/plain",
+                "Leiterpruefung".getBytes(StandardCharsets.UTF_8),
+                false,
+                false,
+                memberId,
+                List.of());
+
+        assertTrue(service.mayRead(unbound.id(), false, true), "the store permission is enough on its own");
+        assertTrue(service.mayRead(unbound.id(), true, true), "and so is holding both");
+        assertFalse(service.mayRead(unbound.id(), true, false), "reading members says nothing about the store");
+        assertFalse(service.mayRead(unbound.id(), false, false), "and neither does holding nothing");
     }
 }

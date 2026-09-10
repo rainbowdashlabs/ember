@@ -11,6 +11,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -37,6 +38,7 @@ public class StationMemberService {
     private final AccountRepository accountRepository;
     private final AuthService authService;
     private final MemberLookupService lookupService;
+    private final DocumentService documentService;
 
     @Inject
     public StationMemberService(
@@ -44,12 +46,14 @@ public class StationMemberService {
             StationRepository stationRepository,
             AccountRepository accountRepository,
             AuthService authService,
-            MemberLookupService lookupService) {
+            MemberLookupService lookupService,
+            DocumentService documentService) {
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
         this.accountRepository = accountRepository;
         this.authService = authService;
         this.lookupService = lookupService;
+        this.documentService = documentService;
     }
 
     public List<StationMember> findByStation(int stationId) {
@@ -115,7 +119,20 @@ public class StationMemberService {
         return member;
     }
 
+    /**
+     * Deletes a member, taking their documents with them the way archiving does.
+     *
+     * <p>The link rows cascade on their own, so without this a deleted member's documents were left
+     * standing with nobody named on them, and a document that names nobody is the station's own: a
+     * medical certificate would quietly have become a station document, readable by a wider audience
+     * than the one it was filed for. That is the one outcome this area must not produce.
+     *
+     * <p>So deletion follows the same rule as marking somebody former. Documents bound only to the
+     * departing member go, unless they are marked to be kept for the record. Documents that never had
+     * a member are untouched, because they were never about anybody.
+     */
     public boolean delete(int id) {
+        documentService.releaseMember(id);
         log.info("Member deleted: member={}", id);
         return memberRepository.delete(id);
     }

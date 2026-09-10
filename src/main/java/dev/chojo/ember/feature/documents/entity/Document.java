@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.members.entity;
+package dev.chojo.ember.feature.documents.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
@@ -28,7 +28,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param uploadedBy    the member who put it there, or null once they are gone
  * @param createdAt     when it was put there
  */
-public record MemberDocument(
+public record Document(
         int id,
         int stationId,
         String title,
@@ -41,8 +41,8 @@ public record MemberDocument(
         Integer uploadedBy,
         Instant createdAt) {
 
-    public static RowMapping<MemberDocument> map() {
-        return row -> new MemberDocument(
+    public static RowMapping<Document> map() {
+        return row -> new Document(
                 row.getInt("id"),
                 row.getInt("station_id"),
                 row.getString("title"),

@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
@@ -17,7 +18,6 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.MemberDocumentService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
@@ -65,10 +65,10 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
     }
 
     /** A document store backed by a local folder, which is all these stories need of one. */
-    private static MemberDocumentService documentService() {
+    private static DocumentService documentService() {
         var backend = new LocalStorageBackend();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
-        return new MemberDocumentService(memberDocumentRepo, storage, new ImageVariantService(storage), stationRepo);
+        return new DocumentService(memberDocumentRepo, storage, new ImageVariantService(storage), stationRepo);
     }
 
     private int freshCluster() {

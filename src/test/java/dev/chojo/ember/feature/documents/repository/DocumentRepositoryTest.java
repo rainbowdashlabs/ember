@@ -3,11 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.members.repository;
+package dev.chojo.ember.feature.documents.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.members.entity.MemberDocument;
-import dev.chojo.ember.feature.members.entity.MemberDocumentTag;
+import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.entity.DocumentTag;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -22,7 +22,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class MemberDocumentRepositoryTest extends RepositoryTestBase {
+class DocumentRepositoryTest extends RepositoryTestBase {
     private static Station station;
     private static Account account;
     private static Account otherAccount;
@@ -47,7 +47,7 @@ class MemberDocumentRepositoryTest extends RepositoryTestBase {
         accountRepo.delete(otherAccount.id());
     }
 
-    private static MemberDocument write(String title, boolean hidden, boolean keep, List<Integer> members) {
+    private static Document write(String title, boolean hidden, boolean keep, List<Integer> members) {
         return memberDocumentRepo.create(
                 station.id(), title, title + ".pdf", "application/pdf", 12, hidden, keep, memberId, members);
     }
@@ -95,7 +95,7 @@ class MemberDocumentRepositoryTest extends RepositoryTestBase {
         assertEquals(
                 List.of("Vertrag", "Wichtig"),
                 memberDocumentRepo.findTags(documentId).stream()
-                        .map(MemberDocumentTag::name)
+                        .map(DocumentTag::name)
                         .toList());
         assertTrue(memberDocumentRepo.findTagsByStation(station.id()).size() >= 2);
     }
@@ -108,7 +108,7 @@ class MemberDocumentRepositoryTest extends RepositoryTestBase {
         assertEquals(
                 List.of("Wichtig"),
                 memberDocumentRepo.findTags(documentId).stream()
-                        .map(MemberDocumentTag::name)
+                        .map(DocumentTag::name)
                         .toList());
     }
 
@@ -123,18 +123,20 @@ class MemberDocumentRepositoryTest extends RepositoryTestBase {
         assertTrue(byStation("Kommandowagen").isEmpty());
     }
 
-    private static List<MemberDocument> byStation(String search) {
-        return memberDocumentRepo.findByStation(station.id(), List.of(), search, true, "simple", 50, 0);
+    private static List<Document> byStation(String search) {
+        return memberDocumentRepo.findByStation(station.id(), List.of(), search, true, false, "simple", 50, 0);
     }
 
     @Test
     @Order(7)
     void theStoreIsNarrowedToOneMember() {
-        var mine = memberDocumentRepo.findByStation(station.id(), List.of(memberId), null, true, "simple", 50, 0);
+        var mine =
+                memberDocumentRepo.findByStation(station.id(), List.of(memberId), null, true, false, "simple", 50, 0);
 
         assertTrue(mine.stream().allMatch(document -> memberDocumentRepo.isBoundTo(document.id(), memberId)));
         assertEquals(
-                mine.size(), memberDocumentRepo.countByStation(station.id(), List.of(memberId), null, true, "simple"));
+                mine.size(),
+                memberDocumentRepo.countByStation(station.id(), List.of(memberId), null, true, false, "simple"));
     }
 
     /**

@@ -17,7 +17,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FileInput from '@/components/input/FileInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import type {DocumentUpload} from '@/api/memberDocuments'
+import type {DocumentUpload} from '@/api/documents'
 import type {StationMember} from '@/api/types'
 
 /**

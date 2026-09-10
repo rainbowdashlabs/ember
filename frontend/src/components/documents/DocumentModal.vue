@@ -19,7 +19,7 @@ import DocumentPreview from './DocumentPreview.vue'
 import {formatSize} from './documentIcon'
 import {formatDate} from '@/util/format'
 import {downloadAuthed} from '@/util/downloadAuthed'
-import {contentUrl, type MemberDocument} from '@/api/memberDocuments'
+import {contentUrl, type StationDocument} from '@/api/documents'
 import type {StationMember} from '@/api/types'
 
 /**
@@ -32,7 +32,7 @@ import type {StationMember} from '@/api/types'
 const modelValue = defineModel<boolean>({required: true})
 
 const props = defineProps<{
-  document: MemberDocument | null
+  document: StationDocument | null
   /** Every member of the station, to name and to choose the ones a document is bound to. */
   allMembers?: StationMember[]
   /** Every label written so far, offered while typing. */
@@ -43,7 +43,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   members: [documentId: number, memberIds: number[]]
   tags: [documentId: number, tags: string[]]
-  remove: [document: MemberDocument]
+  remove: [document: StationDocument]
 }>()
 
 const {t} = useI18n()

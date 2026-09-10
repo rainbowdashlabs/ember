@@ -50,7 +50,8 @@ function close() {
                  @navigate="close">
       {{ t('sidebar.tags') }}
     </SidebarLink>
-    <SidebarLink v-if="hasPermission(StationPermission.MEMBER_READ)" :icon="['fas', 'file']" name="member-documents" to="/station/members/documents"
+    <SidebarLink v-if="isModuleEnabled(StationModules.DOCUMENTS) && hasPermission(StationPermission.DOCUMENT_READ)"
+                 :icon="['fas', 'file']" name="member-documents" to="/station/members/documents"
                  @navigate="close">
       {{ t('sidebar.documents') }}
     </SidebarLink>

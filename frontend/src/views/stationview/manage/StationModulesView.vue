@@ -46,6 +46,7 @@ const allModules = [
   {key: 'KNOWLEDGE_BASE', label: 'moduleKnowledgeBase'},
   {key: 'BOARDS', label: 'moduleBoards'},
   {key: 'PROCEDURES', label: 'moduleProcedures'},
+  {key: 'DOCUMENTS', label: 'moduleDocuments'},
 ]
 
 function isModuleEnabled(key: string): boolean {

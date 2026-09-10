@@ -3,19 +3,21 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.members.route;
+package dev.chojo.ember.feature.documents.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.members.entity.MemberDocument;
-import dev.chojo.ember.feature.members.entity.MemberDocumentTag;
+import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.entity.DocumentTag;
+import dev.chojo.ember.feature.documents.repository.DocumentRepository;
+import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.MemberDocumentRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.service.MemberDocumentService;
+import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.BadRequestResponse;
@@ -47,7 +49,7 @@ import java.util.List;
  * everything else needs the right to read other members.
  */
 @Singleton
-public class MemberDocumentRoutes implements Routes {
+public class DocumentRoutes implements Routes {
 
     /** As much as a document may weigh. The same bound the knowledge base uses. */
     private static final long MAX_UPLOAD_SIZE = 50L * 1024 * 1024;
@@ -55,32 +57,49 @@ public class MemberDocumentRoutes implements Routes {
     /** How many documents a page of the store holds. */
     private static final int PAGE_SIZE = 24;
 
-    private final MemberDocumentService documentService;
-    private final MemberDocumentRepository documentRepository;
+    private final DocumentService documentService;
+    private final DocumentRepository documentRepository;
     private final StationMemberRepository memberRepository;
+    private final StationService stationService;
 
     @Inject
-    public MemberDocumentRoutes(
-            MemberDocumentService documentService,
-            MemberDocumentRepository documentRepository,
-            StationMemberRepository memberRepository) {
+    public DocumentRoutes(
+            DocumentService documentService,
+            DocumentRepository documentRepository,
+            StationMemberRepository memberRepository,
+            StationService stationService) {
         this.documentService = documentService;
         this.documentRepository = documentRepository;
         this.memberRepository = memberRepository;
+        this.stationService = stationService;
+    }
+
+    /**
+     * Refuses everything where the station keeps no documents.
+     *
+     * <p>A station that switched the store off should not have a page for it, and a route that
+     * answered anyway would be the way back in. The personal data export is deliberately not gated
+     * this way: a switched-off page is not a reason to withhold somebody's own data from them.
+     */
+    private void requireModule(int stationId) {
+        if (stationService.findDisabledModules(stationId).contains(StationModule.DOCUMENTS)) {
+            throw new NotFoundResponse();
+        }
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/member-documents", this::listStation, StationPermission.MEMBER_READ);
-        routes.post(prefix + "/member-documents", this::uploadForStation, StationPermission.MEMBER_EDIT);
-        routes.get(prefix + "/member-documents/tags", this::listTags, StationPermission.MEMBER_READ);
-        routes.put(prefix + "/member-documents/{id}/tags", this::setTags, StationPermission.MEMBER_EDIT);
+        routes.get(prefix + "/documents", this::listStation, StationPermission.DOCUMENT_READ);
+        routes.post(prefix + "/documents", this::uploadForStation, StationPermission.DOCUMENT_EDIT);
+        routes.get(prefix + "/documents/tags", this::listTags, StationPermission.DOCUMENT_READ);
+        routes.put(prefix + "/documents/{id}/tags", this::setTags, StationPermission.DOCUMENT_EDIT);
+        routes.get(prefix + "/documents/{id}/content", this::content, StationPermission.LOGIN);
+        routes.get(prefix + "/documents/{id}/thumbnail", this::thumbnail, StationPermission.LOGIN);
+        routes.put(prefix + "/documents/{id}/members", this::setMembers, StationPermission.DOCUMENT_EDIT);
+        routes.delete(prefix + "/documents/{id}", this::delete, StationPermission.LOGIN);
+
         routes.get(prefix + "/station-members/{memberId}/documents", this::list, StationPermission.LOGIN);
         routes.post(prefix + "/station-members/{memberId}/documents", this::upload, StationPermission.LOGIN);
-        routes.get(prefix + "/member-documents/{id}/content", this::content, StationPermission.LOGIN);
-        routes.get(prefix + "/member-documents/{id}/thumbnail", this::thumbnail, StationPermission.LOGIN);
-        routes.put(prefix + "/member-documents/{id}/members", this::setMembers, StationPermission.MEMBER_EDIT);
-        routes.delete(prefix + "/member-documents/{id}", this::delete, StationPermission.LOGIN);
     }
 
     /**
@@ -159,8 +178,7 @@ public class MemberDocumentRoutes implements Routes {
      *
      * <p>Shared by the two ways in: onto a member, and into the store without anybody attached.
      */
-    private MemberDocument take(Context ctx, int stationId, List<Integer> memberIds, UserSession session)
-            throws IOException {
+    private Document take(Context ctx, int stationId, List<Integer> memberIds, UserSession session) throws IOException {
         UploadedFile file = ctx.uploadedFile("file");
         if (file == null) throw new BadRequestResponse("file is required");
         if (file.size() > MAX_UPLOAD_SIZE) throw new BadRequestResponse("File too large (max 50MB)");
@@ -227,6 +245,10 @@ public class MemberDocumentRoutes implements Routes {
             queryParams = {
                 @OpenApiParam(name = "memberIds", description = "Only what is bound to one of them, comma separated"),
                 @OpenApiParam(name = "search", description = "Words in the title or in the documents themselves"),
+                @OpenApiParam(
+                        name = "unbound",
+                        type = Boolean.class,
+                        description = "Only the documents that name nobody, which are the station's own paperwork"),
                 @OpenApiParam(name = "page", type = Integer.class),
                 @OpenApiParam(name = "size", type = Integer.class)
             },
@@ -234,18 +256,22 @@ public class MemberDocumentRoutes implements Routes {
     private void listStation(Context ctx) {
         var session = UserSession.from(ctx);
         int stationId = requireStation(session);
+        requireModule(stationId);
         List<Integer> memberIds = requestedMembers(ctx);
         String search = ctx.queryParam("search");
         if (search != null && search.isBlank()) search = null;
         int size = Math.clamp(ctx.queryParamAsClass("size", Integer.class).getOrDefault(PAGE_SIZE), 1, 100);
         int page = Math.max(ctx.queryParamAsClass("page", Integer.class).getOrDefault(0), 0);
         String config = documentService.searchConfigOf(stationId);
+        boolean unboundOnly = ctx.queryParamAsClass("unbound", Boolean.class).getOrDefault(false);
 
         var documents =
-                documentRepository.findByStation(stationId, memberIds, search, true, config, size, page * size).stream()
+                documentRepository
+                        .findByStation(stationId, memberIds, search, true, unboundOnly, config, size, page * size)
+                        .stream()
                         .map(this::toResponse)
                         .toList();
-        int total = documentRepository.countByStation(stationId, memberIds, search, true, config);
+        int total = documentRepository.countByStation(stationId, memberIds, search, true, unboundOnly, config);
         ctx.json(new DocumentPage(documents, total));
     }
 
@@ -258,6 +284,7 @@ public class MemberDocumentRoutes implements Routes {
     private void uploadForStation(Context ctx) throws IOException {
         var session = UserSession.from(ctx);
         int stationId = requireStation(session);
+        requireModule(stationId);
         ctx.status(HttpStatus.CREATED).json(toResponse(take(ctx, stationId, formMembers(ctx), session)));
     }
 
@@ -288,7 +315,7 @@ public class MemberDocumentRoutes implements Routes {
     private void listTags(Context ctx) {
         int stationId = requireStation(UserSession.from(ctx));
         ctx.json(documentRepository.findTagsByStation(stationId).stream()
-                .map(MemberDocumentTag::name)
+                .map(DocumentTag::name)
                 .toList());
     }
 
@@ -385,17 +412,33 @@ public class MemberDocumentRoutes implements Routes {
      * readable without any permission; a hidden one never is, because hiding it means hiding it
      * from the member it belongs to.
      */
-    private MemberDocument requireReadable(Context ctx) {
+    private Document requireReadable(Context ctx) {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var document = requireOwnedDocument(ctx, id);
-        if (session.hasPermission(StationPermission.MEMBER_READ)) return document;
+        if (mayRead(session, id)) return document;
         if (document.hidden()) throw new NotFoundResponse();
         if (session.member() == null
                 || !documentRepository.isBoundTo(id, session.member().id())) {
             throw new ForbiddenResponse();
         }
         return document;
+    }
+
+    /**
+     * Whether this reader may see a document, which follows the document rather than the store. The
+     * rule itself, and why it is that way round, is
+     * {@link DocumentService#mayRead(int, boolean, boolean)}.
+     *
+     * @param session the reader
+     * @param id      the document being read
+     * @return whether the reader may see it
+     */
+    private boolean mayRead(UserSession session, int id) {
+        return documentService.mayRead(
+                id,
+                session.hasPermission(StationPermission.MEMBER_READ),
+                session.hasPermission(StationPermission.DOCUMENT_READ));
     }
 
     private void requireMayUpload(UserSession session, int memberId) {
@@ -416,11 +459,11 @@ public class MemberDocumentRoutes implements Routes {
     }
 
     /** The document behind the path, when it belongs to the reader's own station. */
-    private MemberDocument requireOwnedDocument(Context ctx, int id) {
-        return RouteSupport.requireOwnedOrNotFound(ctx, id, documentRepository::findById, MemberDocument::stationId);
+    private Document requireOwnedDocument(Context ctx, int id) {
+        return RouteSupport.requireOwnedOrNotFound(ctx, id, documentRepository::findById, Document::stationId);
     }
 
-    private DocumentResponse toResponse(MemberDocument document) {
+    private DocumentResponse toResponse(Document document) {
         return new DocumentResponse(
                 document.id(),
                 document.title(),
@@ -434,7 +477,7 @@ public class MemberDocumentRoutes implements Routes {
                 document.createdAt(),
                 documentRepository.membersOf(document.id()),
                 documentRepository.findTags(document.id()).stream()
-                        .map(MemberDocumentTag::name)
+                        .map(DocumentTag::name)
                         .toList());
     }
 

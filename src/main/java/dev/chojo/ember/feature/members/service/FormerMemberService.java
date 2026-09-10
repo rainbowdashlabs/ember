@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
@@ -39,7 +40,7 @@ public class FormerMemberService {
     private final UserTagRepository tagRepository;
     private final AttendanceRepository attendanceRepository;
     private final ProfileFieldRepository profileFieldRepository;
-    private final MemberDocumentService documentService;
+    private final DocumentService documentService;
     private final SelfCheckService selfCheckService;
 
     @Inject
@@ -52,7 +53,7 @@ public class FormerMemberService {
             UserTagRepository tagRepository,
             AttendanceRepository attendanceRepository,
             ProfileFieldRepository profileFieldRepository,
-            MemberDocumentService documentService,
+            DocumentService documentService,
             SelfCheckService selfCheckService) {
         this.selfCheckService = selfCheckService;
         this.memberRepository = memberRepository;

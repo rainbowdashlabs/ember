@@ -3,12 +3,12 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.members.repository;
+package dev.chojo.ember.feature.documents.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.call.Call;
-import dev.chojo.ember.feature.members.entity.MemberDocument;
-import dev.chojo.ember.feature.members.entity.MemberDocumentTag;
+import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.entity.DocumentTag;
 import dev.chojo.ember.util.sql.FullTextSearch;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
@@ -24,7 +24,7 @@ import static dev.chojo.ember.util.sql.SqlSupport.count;
  * The documents of a station's members, and which members each one is bound to.
  */
 @Singleton
-public class MemberDocumentRepository {
+public class DocumentRepository {
 
     private static final String COLUMNS =
             "id, station_id, title, file_name, mime_type, size_bytes, hidden, keep_on_archive, has_thumbnail, uploaded_by, created_at";
@@ -39,7 +39,7 @@ public class MemberDocumentRepository {
      * @param memberIds the members it belongs to, at least one
      * @return the document as it was written
      */
-    public MemberDocument create(
+    public Document create(
             int stationId,
             String title,
             String fileName,
@@ -63,7 +63,7 @@ public class MemberDocumentRepository {
                         .bind("hidden", hidden)
                         .bind("keep_on_archive", keepOnArchive)
                         .bind("uploaded_by", uploadedBy))
-                .map(MemberDocument.map())
+                .map(Document.map())
                 .first()
                 .orElseThrow();
         bind(document.id(), memberIds);
@@ -106,10 +106,10 @@ public class MemberDocumentRepository {
                 .update();
     }
 
-    public Optional<MemberDocument> findById(int documentId) {
+    public Optional<Document> findById(int documentId) {
         return query("SELECT %s FROM member_document WHERE id = :id;", COLUMNS)
                 .single(call().bind("id", documentId))
-                .map(MemberDocument.map())
+                .map(Document.map())
                 .first();
     }
 
@@ -118,7 +118,7 @@ public class MemberDocumentRepository {
      *
      * @param includeHidden whether the ones kept from the member themselves are listed too
      */
-    public List<MemberDocument> findByMember(int memberId, boolean includeHidden) {
+    public List<Document> findByMember(int memberId, boolean includeHidden) {
         return query("""
                         SELECT %s
                         FROM member_document d
@@ -127,7 +127,7 @@ public class MemberDocumentRepository {
                           AND (:include_hidden OR NOT d.hidden)
                         ORDER BY d.created_at DESC;""", JOINED_COLUMNS)
                 .single(call().bind("member_id", memberId).bind("include_hidden", includeHidden))
-                .map(MemberDocument.map())
+                .map(Document.map())
                 .all();
     }
 
@@ -150,16 +150,20 @@ public class MemberDocumentRepository {
      * @param search        words to look for in the title and in what the documents say, or null
      * @param includeHidden whether the ones kept from their own members are listed too
      */
-    public List<MemberDocument> findByStation(
+    public List<Document> findByStation(
             int stationId,
             List<Integer> memberIds,
             String search,
             boolean includeHidden,
+            boolean unboundOnly,
             String tsConfig,
             int limit,
             int offset) {
         var where = WhereBuilder.create()
                 .addIf(!includeHidden, "AND NOT d.hidden")
+                .addIf(
+                        unboundOnly,
+                        "AND NOT EXISTS (SELECT 1 FROM member_document_member m2" + " WHERE m2.document_id = d.id)")
                 .addIf(
                         !memberIds.isEmpty(),
                         "AND EXISTS (SELECT 1 FROM member_document_member m"
@@ -180,15 +184,23 @@ public class MemberDocumentRepository {
                 .single(bindFilters(call().bind("station_id", stationId), memberIds, search)
                         .bind("limit", limit)
                         .bind("offset", offset))
-                .map(MemberDocument.map())
+                .map(Document.map())
                 .all();
     }
 
     /** How many documents the same filters match, so the pages can be counted. */
     public int countByStation(
-            int stationId, List<Integer> memberIds, String search, boolean includeHidden, String tsConfig) {
+            int stationId,
+            List<Integer> memberIds,
+            String search,
+            boolean includeHidden,
+            boolean unboundOnly,
+            String tsConfig) {
         var where = WhereBuilder.create()
                 .addIf(!includeHidden, "AND NOT d.hidden")
+                .addIf(
+                        unboundOnly,
+                        "AND NOT EXISTS (SELECT 1 FROM member_document_member m2" + " WHERE m2.document_id = d.id)")
                 .addIf(
                         !memberIds.isEmpty(),
                         "AND EXISTS (SELECT 1 FROM member_document_member m"
@@ -248,7 +260,7 @@ public class MemberDocumentRepository {
     }
 
     /** The tags a document carries. */
-    public List<MemberDocumentTag> findTags(int documentId) {
+    public List<DocumentTag> findTags(int documentId) {
         return query("""
                 SELECT t.id, t.station_id, t.name
                 FROM member_document_tag t
@@ -256,17 +268,17 @@ public class MemberDocumentRepository {
                 WHERE e.document_id = :document_id
                 ORDER BY t.name;""")
                 .single(call().bind("document_id", documentId))
-                .map(MemberDocumentTag.map())
+                .map(DocumentTag.map())
                 .all();
     }
 
     /** Every tag the station has written so far, so a reader can be offered them. */
-    public List<MemberDocumentTag> findTagsByStation(int stationId) {
+    public List<DocumentTag> findTagsByStation(int stationId) {
         return query("""
                 SELECT id, station_id, name FROM member_document_tag
                 WHERE station_id = :station_id ORDER BY name;""")
                 .single(call().bind("station_id", stationId))
-                .map(MemberDocumentTag.map())
+                .map(DocumentTag.map())
                 .all();
     }
 
@@ -323,7 +335,7 @@ public class MemberDocumentRepository {
      * Whether nobody is bound to the document any more. Asked only of documents a member was just
      * taken off: one that never had a member is the station's own and belongs to nobody by design.
      */
-    private boolean hasNoMembers(int documentId) {
+    public boolean hasNoMembers(int documentId) {
         return query("SELECT 1 FROM member_document_member WHERE document_id = :document_id;")
                 .single(call().bind("document_id", documentId))
                 .map(row -> 1)

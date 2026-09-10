@@ -135,7 +135,7 @@ export function buildStorageCategoryLabeler(t: StorageLabelTranslator): (cat: st
         MEDIA_FILES: t('storageMonitoring.categories.mediaFiles'),
         MEDIA_IMAGES: t('storageMonitoring.categories.mediaImages'),
         INSTANCE_MEDIA_FILES: t('storageMonitoring.categories.instanceMediaFiles'),
-        MEMBER_DOCUMENTS: t('storageMonitoring.categories.memberDocuments'),
+        MEMBER_DOCUMENTS: t('storageMonitoring.categories.documents'),
         MOVEMENT_DOCUMENTS: t('storageMonitoring.categories.movementDocuments'),
         IMAGE_STATION_LOGO: t('storageMonitoring.categories.stationLogo'),
         IMAGE_AVATAR: t('storageMonitoring.categories.avatars'),

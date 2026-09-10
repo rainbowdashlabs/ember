@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
@@ -14,7 +15,6 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.MemberDocumentService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -47,7 +47,7 @@ class GdprExportServiceTest extends RepositoryTestBase {
                 memberLookupService,
                 mock(KbFileStorageService.class),
                 memberDocumentRepo,
-                mock(MemberDocumentService.class));
+                mock(DocumentService.class));
 
         // Create account
         account = accountRepo.create("gdpr-test@example.com", "Max", "Mustermann", true);

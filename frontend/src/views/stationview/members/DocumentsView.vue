@@ -17,8 +17,8 @@ import DocumentModal from '@/components/documents/DocumentModal.vue'
 import DocumentUploadModal from '@/components/documents/DocumentUploadModal.vue'
 import {usePermissions} from '@/composables/usePermissions'
 import {StationPermission} from '@/api/types'
-import {memberDocuments, stationMembers} from '@/api'
-import type {DocumentUpload, MemberDocument} from '@/api/memberDocuments'
+import {documents as documentsApi, stationMembers} from '@/api'
+import type {DocumentUpload, StationDocument} from '@/api/documents'
 import type {StationMember} from '@/api/types'
 
 /**
@@ -30,11 +30,12 @@ const {hasPermission} = usePermissions()
 
 const canEdit = computed(() => hasPermission(StationPermission.MEMBER_EDIT))
 
-const documents = ref<MemberDocument[]>([])
+const documents = ref<StationDocument[]>([])
 const total = ref(0)
 const page = ref(0)
 const search = ref('')
 const memberFilter = ref<string[]>([])
+const unboundOnly = ref(false)
 const allTags = ref<string[]>([])
 const members = ref<StationMember[]>([])
 const loading = ref(false)
@@ -42,7 +43,7 @@ const error = ref('')
 
 const showUpload = ref(false)
 const showDocument = ref(false)
-const opened = ref<MemberDocument | null>(null)
+const opened = ref<StationDocument | null>(null)
 
 /** How many documents a page holds, which the store answers with rather than being told. */
 const pageSize = 24
@@ -62,10 +63,11 @@ async function reload() {
   loading.value = documents.value.length === 0
   error.value = ''
   try {
-    const result = await memberDocuments.listStation({
+    const result = await documentsApi.listStation({
       page: page.value,
       memberIds: memberFilter.value.map(Number),
       search: search.value.trim() || undefined,
+      unbound: unboundOnly.value || undefined,
     })
     documents.value = result.documents
     total.value = result.total
@@ -88,7 +90,7 @@ function onSearch() {
 
 async function loadTags() {
   try {
-    allTags.value = await memberDocuments.listTags()
+    allTags.value = await documentsApi.listTags()
   } catch {
     allTags.value = []
   }
@@ -108,6 +110,11 @@ watch(memberFilter, () => {
   reload()
 }, {deep: true})
 
+watch(unboundOnly, () => {
+  page.value = 0
+  reload()
+})
+
 loadMembers()
 loadTags()
 reload()
@@ -115,7 +122,7 @@ reload()
 async function upload(upload: DocumentUpload) {
   error.value = ''
   try {
-    await memberDocuments.uploadForStation(upload)
+    await documentsApi.uploadForStation(upload)
     showUpload.value = false
     await reload()
   } catch {
@@ -123,7 +130,7 @@ async function upload(upload: DocumentUpload) {
   }
 }
 
-function open(document: MemberDocument) {
+function open(document: StationDocument) {
   opened.value = document
   showDocument.value = true
 }
@@ -151,6 +158,7 @@ async function act(action: Promise<unknown>) {
       <DocumentFilterBar
           v-model:search="search"
           v-model:members="memberFilter"
+          v-model:unbound="unboundOnly"
           :member-options="memberOptions"
           :can-upload="canEdit"
           @search-input="onSearch"
@@ -179,9 +187,9 @@ async function act(action: Promise<unknown>) {
           :all-members="members"
           :all-tags="allTags"
           :can-edit="canEdit"
-          @members="(id, ids) => act(memberDocuments.setMembers(id, ids))"
-          @tags="(id, tags) => act(memberDocuments.setTags(id, tags))"
-          @remove="document => act(memberDocuments.remove(document.id))"
+          @members="(id, ids) => act(documentsApi.setMembers(id, ids))"
+          @tags="(id, tags) => act(documentsApi.setTags(id, tags))"
+          @remove="document => act(documentsApi.remove(document.id))"
       />
     </div>
   </ViewContent>

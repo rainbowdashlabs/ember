@@ -3,11 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.members.service;
+package dev.chojo.ember.feature.documents.service;
 
+import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
-import dev.chojo.ember.feature.members.entity.MemberDocument;
-import dev.chojo.ember.feature.members.repository.MemberDocumentRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
@@ -36,8 +36,8 @@ import javax.imageio.ImageIO;
  * becomes of them when a member leaves.
  */
 @Singleton
-public class MemberDocumentService {
-    private static final Logger log = LoggerFactory.getLogger(MemberDocumentService.class);
+public class DocumentService {
+    private static final Logger log = LoggerFactory.getLogger(DocumentService.class);
 
     /** The bytes as they were uploaded. */
     private static final Variant CONTENT = new Variant("content");
@@ -45,14 +45,14 @@ public class MemberDocumentService {
     /** How wide the picture of a page is rendered before it is scaled down for the tiles. */
     private static final int THUMBNAIL_DPI = 72;
 
-    private final MemberDocumentRepository repository;
+    private final DocumentRepository repository;
     private final StorageService storage;
     private final ImageVariantService images;
     private final StationRepository stationRepository;
 
     @Inject
-    public MemberDocumentService(
-            MemberDocumentRepository repository,
+    public DocumentService(
+            DocumentRepository repository,
             StorageService storage,
             ImageVariantService images,
             StationRepository stationRepository) {
@@ -67,7 +67,7 @@ public class MemberDocumentService {
      *
      * @param memberIds the members it concerns, at least one
      */
-    public MemberDocument store(
+    public Document store(
             int stationId,
             List<Integer> memberIds,
             String title,
@@ -94,7 +94,7 @@ public class MemberDocumentService {
     /**
      * The bytes of a document, as they were uploaded.
      */
-    public Optional<byte[]> read(MemberDocument document) {
+    public Optional<byte[]> read(Document document) {
         return storage.readAllBytes(
                 scope(document.stationId()), StorageCategory.MEMBER_DOCUMENTS, contentKey(document.id()), CONTENT);
     }
@@ -102,7 +102,7 @@ public class MemberDocumentService {
     /**
      * The picture of a document at the requested size, when one was made of it.
      */
-    public Optional<ImageVariantService.ImageData> thumbnail(MemberDocument document, int size) {
+    public Optional<ImageVariantService.ImageData> thumbnail(Document document, int size) {
         if (!document.hasThumbnail()) return Optional.empty();
         return images.read(
                 scope(document.stationId()), StorageCategory.MEMBER_DOCUMENTS, thumbnailKey(document.id()), size);
@@ -111,7 +111,7 @@ public class MemberDocumentService {
     /**
      * Removes a document and everything kept for it.
      */
-    public void delete(MemberDocument document) {
+    public void delete(Document document) {
         storage.deletePrefix(scope(document.stationId()), StorageCategory.MEMBER_DOCUMENTS, contentKey(document.id()));
         storage.deletePrefix(
                 scope(document.stationId()), StorageCategory.MEMBER_DOCUMENTS, thumbnailKey(document.id()));
@@ -143,6 +143,27 @@ public class MemberDocumentService {
                 .findById(stationId)
                 .map(station -> FullTextSearch.forLocale(station.locale()))
                 .orElse(FullTextSearch.DEFAULT_CONFIG);
+    }
+
+    /**
+     * Whether a reader holding these permissions may see this document.
+     *
+     * <p>This is the trap in giving documents a permission of their own. A permission to read
+     * documents, standing alone, would hand its holder every medical certificate in the station
+     * without ever granting them sight of a member.
+     *
+     * <p>So a document that names members is readable by whoever may read those members, exactly as it
+     * was before documents had a permission at all. A document that names nobody is the station's own
+     * paperwork and needs only the permission to read documents, which is what lets the equipment
+     * officer at the test certificates without handing them the member list.
+     *
+     * @param documentId     the document being read
+     * @param mayReadMembers whether the reader may see the station's members
+     * @param mayReadStore   whether the reader may see the document store
+     * @return whether the reader may see it
+     */
+    public boolean mayRead(int documentId, boolean mayReadMembers, boolean mayReadStore) {
+        return repository.hasNoMembers(documentId) ? mayReadStore : mayReadMembers;
     }
 
     /**
