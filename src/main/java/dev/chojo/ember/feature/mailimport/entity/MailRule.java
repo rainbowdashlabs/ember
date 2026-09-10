@@ -83,7 +83,7 @@ public record MailRule(
                 row.getBoolean("enabled"),
                 row.getString("subject_filter"),
                 row.getString("attachment_name_filter"),
-                List.of((String[]) row.getObject("accepted_types", String[].class)),
+                List.of((String[]) row.getArray("accepted_types").getArray()),
                 row.getLong("min_size_bytes"),
                 row.getBoolean("include_inline"),
                 MailTitleSource.valueOf(row.getString("title_source")),
