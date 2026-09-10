@@ -294,10 +294,22 @@ public class ExchangeService {
      * goes: the old five statuses had a shipping leg that gear the station owns never had.
      */
     private boolean canWalkPast(ItemMovement movement, Integer exchangedItemId) {
-        if (exchangedItemId != null) return true;
+        return exchangedItemId != null || !namesArrivingItem(movement);
+    }
+
+    /**
+     * Whether the step this movement stands on is the one that says which piece arrived.
+     *
+     * <p>Which step asks depends on the chain: for the station's own gear it is the one that hands the
+     * replacement over, and for the body above it the one where that body sends it. The screens used to
+     * guess from the status being asked for and got it wrong for chains that ask anywhere else, so the
+     * answer travels with the exchange instead.
+     */
+    private boolean namesArrivingItem(ItemMovement movement) {
+        if (movement.state() != MovementState.OPEN || movement.currentStepId() == null) return false;
         return movementService.stepsOf(movement).stream()
                 .filter(step -> step.id() == movement.currentStepId())
-                .noneMatch(ItemMovementService::namesIncomingItem);
+                .anyMatch(ItemMovementService::namesIncomingItem);
     }
 
     /**
@@ -400,6 +412,7 @@ public class ExchangeService {
                 movement.newSizeId(),
                 movement.incomingItemId(),
                 deriveStatus(movement),
+                namesArrivingItem(movement),
                 movement.reason(),
                 movement.createdAt(),
                 movement.closedAt() != null ? movement.closedAt() : movement.createdAt(),

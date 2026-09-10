@@ -10,7 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import {ExchangeStatus, type ExchangeRequestEntry, type ExchangeStatusName} from '@/api/exchanges'
+import {type ExchangeRequestEntry, type ExchangeStatusName} from '@/api/exchanges'
 import {InventoryTypes, ItemOwner, type InventoryItem, type InventorySize} from '@/api/inventory'
 import { exchanges, inventory, procurement } from '@/api'
 import { useAsyncAction } from '@/composables/useAsyncAction'
@@ -61,14 +61,15 @@ function statusLabel(status: ExchangeStatusName): string {
 }
 
 /**
- * Whether getting to the chosen status walks past the step that says which piece arrived.
+ * Whether moving this exchange on means saying which piece arrived.
  *
- * <p>Both of them do. Which step asks depends on the chain: for the station's own gear it is the one
- * that hands the replacement over, and for the body above it the one where that body sends it. Asking
- * only at the last status left the walk to stop halfway with nothing said, and the row looked stuck.
+ * <p>Which step asks depends on the chain: for the station's own gear it is the one that hands the
+ * replacement over, and for the body above it the one where that body sends it. Reading it off the
+ * chosen status could only ever name some of them, and a chain that asked anywhere else was refused
+ * for want of a piece the screen never offered, so the exchange itself says whether it is standing
+ * on that step.
  */
-const namesTheArrival = computed(() =>
-    updateTargetStatus.value === ExchangeStatus.DONE || updateTargetStatus.value === ExchangeStatus.ARRIVED)
+const namesTheArrival = computed(() => !!updateTargetStatus.value && props.request.namesArrivingItem)
 
 const {running: updateSaving, run: runStatusUpdate} = useAsyncAction(async () => {
   let exchangedItemId: number | undefined = updateExchangedItemId.value ? Number(updateExchangedItemId.value) : undefined

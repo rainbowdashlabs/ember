@@ -35,6 +35,7 @@ function row(spec: RowSpec): ExchangeRequestEntry {
         inventoryName: spec.inventoryName,
         inventoryType: 'INTERNAL',
         status: spec.status,
+        namesArrivingItem: false,
         reason: '',
         createdAt: spec.createdAt,
         updatedAt: spec.createdAt,
