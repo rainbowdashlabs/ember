@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.members.service;
+package dev.chojo.ember.feature.documents.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
@@ -39,12 +39,12 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @Tag("database")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class MemberDocumentServiceTest extends RepositoryTestBase {
+class DocumentServiceTest extends RepositoryTestBase {
 
     @TempDir
     static Path storageRoot;
 
-    private static MemberDocumentService service;
+    private static DocumentService service;
     private static Station station;
     private static Account account;
     private static int memberId;
@@ -53,7 +53,7 @@ class MemberDocumentServiceTest extends RepositoryTestBase {
     static void setup() {
         var backend = new LocalStorageBackend(storageRoot);
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
-        service = new MemberDocumentService(memberDocumentRepo, storage, new ImageVariantService(storage), stationRepo);
+        service = new DocumentService(memberDocumentRepo, storage, new ImageVariantService(storage), stationRepo);
         station = stationRepo.create("Document Service Station");
         account = accountRepo.create("doc-service@test.com", "Doc", "Service");
         memberId = stationMemberRepo.create(station.id(), account.id()).id();
@@ -129,7 +129,7 @@ class MemberDocumentServiceTest extends RepositoryTestBase {
                 List.of());
 
         var found = memberDocumentRepo.findByStation(
-                station.id(), List.of(), "Loeschzug", true, service.searchConfigOf(station.id()), 50, 0);
+                station.id(), List.of(), "Loeschzug", true, false, service.searchConfigOf(station.id()), 50, 0);
 
         assertTrue(found.stream().anyMatch(document -> "Protokoll".equals(document.title())));
     }

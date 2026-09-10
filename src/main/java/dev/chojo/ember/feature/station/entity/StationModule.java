@@ -20,5 +20,12 @@ public enum StationModule {
     KNOWLEDGE_BASE,
     TEST_PROTOCOL,
     BOARDS,
-    PROCEDURES
+    PROCEDURES,
+    /**
+     * The station's document store.
+     *
+     * <p>Modules are held as the set a station has switched <em>off</em>, so adding one here leaves
+     * every station that already keeps documents keeping them, and no migration writes anything.
+     */
+    DOCUMENTS
 }

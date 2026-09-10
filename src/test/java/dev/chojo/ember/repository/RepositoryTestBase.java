@@ -48,6 +48,8 @@ import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryStationCacheRepository;
+import dev.chojo.ember.feature.documents.repository.DocumentRepository;
+import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
@@ -116,7 +118,6 @@ import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.media.repository.MediaFileRepository;
 import dev.chojo.ember.feature.media.repository.MediaMetaRepository;
-import dev.chojo.ember.feature.members.repository.MemberDocumentRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
@@ -177,6 +178,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sql.DataSource;
+
+import static org.mockito.Mockito.mock;
 
 @Tag("database")
 public abstract class RepositoryTestBase {
@@ -253,7 +256,7 @@ public abstract class RepositoryTestBase {
     protected static ExchangeService exchangeService;
     protected static MemberGroupRepository memberGroupRepo;
     protected static ProfileFieldRepository profileFieldRepo;
-    protected static MemberDocumentRepository memberDocumentRepo;
+    protected static DocumentRepository memberDocumentRepo;
     protected static RegistrationCodeRepository registrationCodeRepo;
     protected static EventRepository eventRepo;
     protected static EventBreakRepository eventBreakRepo;
@@ -429,7 +432,7 @@ public abstract class RepositoryTestBase {
         exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         memberGroupRepo = new MemberGroupRepository();
         profileFieldRepo = new ProfileFieldRepository();
-        memberDocumentRepo = new MemberDocumentRepository();
+        memberDocumentRepo = new DocumentRepository();
         registrationCodeRepo = new RegistrationCodeRepository();
         eventRepo = new EventRepository();
         eventBreakRepo = new EventBreakRepository();
@@ -635,8 +638,19 @@ public abstract class RepositoryTestBase {
      */
     protected static StationMemberService newStationMemberService(
             AccountRepository accountRepository, AuthService authService) {
+        return newStationMemberService(accountRepository, authService, mock(DocumentService.class));
+    }
+
+    /**
+     * The same, with a document service that can be watched.
+     *
+     * <p>Deleting a member takes their documents with them, so a test about deletion needs to see
+     * that happen rather than mock it away by accident.
+     */
+    protected static StationMemberService newStationMemberService(
+            AccountRepository accountRepository, AuthService authService, DocumentService documentService) {
         return new StationMemberService(
-                stationMemberRepo, stationRepo, accountRepository, authService, memberLookupService);
+                stationMemberRepo, stationRepo, accountRepository, authService, memberLookupService, documentService);
     }
 
     /**

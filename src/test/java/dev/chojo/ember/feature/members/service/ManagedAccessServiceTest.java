@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.account.service.AccountEmailService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.AuthService.SetPasswordOutcome;
 import dev.chojo.ember.feature.account.service.LoginNameService;
+import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
@@ -62,7 +63,12 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var memberService = new StationMemberService(
-                stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class), mock(MemberLookupService.class));
+                stationMemberRepo,
+                stationRepo,
+                accountRepo,
+                mock(AuthService.class),
+                mock(MemberLookupService.class),
+                mock(DocumentService.class));
         noticeRepo = new ManagedLoginNoticeRepository();
         authService = mock(AuthService.class);
         service = new ManagedAccessService(

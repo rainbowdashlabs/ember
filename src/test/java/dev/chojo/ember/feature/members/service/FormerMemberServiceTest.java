@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -40,7 +41,7 @@ class FormerMemberServiceTest extends RepositoryTestBase {
                 userTagRepo,
                 attendanceRepo,
                 profileFieldRepo,
-                mock(MemberDocumentService.class),
+                mock(DocumentService.class),
                 selfCheckService);
         station = stationRepo.create("FormerStation");
         account = accountRepo.create("former@test.com", "Former", "Member");

@@ -163,9 +163,29 @@ public enum StationPermission implements RouteRole {
     EVENT_MANAGER(EVENTS_FEDERATE, EVENT_REGISTRATION, EVENT_MANAGE_TEMPLATE, EVENT_MANAGE_CATEGORY),
 
     /**
-     * Allows reading all member data.
+     * Allows reading the station's document store.
+     *
+     * <p>Standing alone this reaches only the documents that name nobody: a contract, a test
+     * certificate, the paperwork a station keeps about itself. A document that names members is
+     * readable by whoever may read those members, which is what stops a permission to read documents
+     * from handing out every medical certificate in the station without ever granting sight of a
+     * member.
      */
-    MEMBER_READ,
+    DOCUMENT_READ,
+
+    /**
+     * Allows filing documents into the store and editing what is there.
+     */
+    DOCUMENT_EDIT(DOCUMENT_READ),
+
+    /**
+     * Allows reading all member data.
+     *
+     * <p>Implies {@link #DOCUMENT_READ}, because reading the store is what this permission bought
+     * before documents had one of their own, and taking that away from a role that holds only this
+     * would be a regression nobody asked for.
+     */
+    MEMBER_READ(DOCUMENT_READ),
 
     /**
      * Allows creating and editing member notes.
@@ -202,7 +222,7 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows editing and create members.
      */
-    MEMBER_EDIT(MEMBER_READ, MEMBER_SELF_UPLOAD),
+    MEMBER_EDIT(MEMBER_READ, MEMBER_SELF_UPLOAD, DOCUMENT_EDIT),
 
     /**
      * Allows configuring the member fields config.

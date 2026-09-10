@@ -6,12 +6,12 @@
 package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.documents.entity.DocumentTag;
+import dev.chojo.ember.feature.documents.repository.DocumentRepository;
+import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
-import dev.chojo.ember.feature.members.entity.MemberDocumentTag;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.MemberDocumentRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.service.MemberDocumentService;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
@@ -59,8 +59,8 @@ public class GdprExportService {
     private final StationMemberRepository stationMemberRepository;
     private final MemberLookupService memberLookupService;
     private final KbFileStorageService kbFileStorageService;
-    private final MemberDocumentRepository documentRepository;
-    private final MemberDocumentService documentService;
+    private final DocumentRepository documentRepository;
+    private final DocumentService documentService;
     private final GenericGdprExporter engine;
 
     @Inject
@@ -69,8 +69,8 @@ public class GdprExportService {
             StationMemberRepository stationMemberRepository,
             MemberLookupService memberLookupService,
             KbFileStorageService kbFileStorageService,
-            MemberDocumentRepository documentRepository,
-            MemberDocumentService documentService) {
+            DocumentRepository documentRepository,
+            DocumentService documentService) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
@@ -236,7 +236,7 @@ public class GdprExportService {
                     entry.put(
                             "tags",
                             documentRepository.findTags(document.id()).stream()
-                                    .map(MemberDocumentTag::name)
+                                    .map(DocumentTag::name)
                                     .toList());
                     return (Map<String, Object>) entry;
                 })

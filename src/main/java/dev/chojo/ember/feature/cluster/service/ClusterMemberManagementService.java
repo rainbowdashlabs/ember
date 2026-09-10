@@ -8,12 +8,12 @@ package dev.chojo.ember.feature.cluster.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.service.SetupMail;
+import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.repository.DocumentRepository;
+import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
-import dev.chojo.ember.feature.members.entity.MemberDocument;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.MemberDocumentRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.service.MemberDocumentService;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -56,8 +56,8 @@ public class ClusterMemberManagementService {
     private final StationRepository stationRepository;
     private final ProfileFieldService profileFieldService;
     private final StationMemberInviteService inviteService;
-    private final MemberDocumentRepository documentRepository;
-    private final MemberDocumentService documentService;
+    private final DocumentRepository documentRepository;
+    private final DocumentService documentService;
 
     @Inject
     public ClusterMemberManagementService(
@@ -65,8 +65,8 @@ public class ClusterMemberManagementService {
             StationRepository stationRepository,
             ProfileFieldService profileFieldService,
             StationMemberInviteService inviteService,
-            MemberDocumentRepository documentRepository,
-            MemberDocumentService documentService) {
+            DocumentRepository documentRepository,
+            DocumentService documentService) {
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
         this.profileFieldService = profileFieldService;
@@ -120,7 +120,7 @@ public class ClusterMemberManagementService {
      * @param memberId  the member
      * @return what is filed about them
      */
-    public List<MemberDocument> documentsOf(int clusterId, int memberId) {
+    public List<Document> documentsOf(int clusterId, int memberId) {
         requireMemberOfCluster(clusterId, memberId);
         return documentRepository.findByMember(memberId, true);
     }
@@ -140,7 +140,7 @@ public class ClusterMemberManagementService {
      * @param uploadedBy the cluster member filing it, or {@code null}
      * @return the document as filed
      */
-    public MemberDocument fileDocument(
+    public Document fileDocument(
             int clusterId,
             int memberId,
             String title,
@@ -169,8 +169,8 @@ public class ClusterMemberManagementService {
      * @param documentId the document
      * @return it, when the cluster has any business with it
      */
-    public MemberDocument requireDocumentOfCluster(int clusterId, int documentId) {
-        MemberDocument document =
+    public Document requireDocumentOfCluster(int clusterId, int documentId) {
+        Document document =
                 documentRepository.findById(documentId).orElseThrow(() -> new NotFoundResponse("No such document"));
         boolean reachable = documentRepository.membersOf(documentId).stream().anyMatch(memberId -> {
             try {
@@ -187,7 +187,7 @@ public class ClusterMemberManagementService {
     /**
      * The bytes of a document the cluster may read.
      */
-    public byte[] readDocument(MemberDocument document) {
+    public byte[] readDocument(Document document) {
         return documentService.read(document).orElseThrow(() -> new NotFoundResponse("No such document"));
     }
 
