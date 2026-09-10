@@ -13,33 +13,33 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <HelpArticle :title="t('helpCenter.memberDocuments.title')" :subtitle="t('helpCenter.memberDocuments.subtitle')">
-    <HelpSection :title="t('helpCenter.memberDocuments.whatIs')">
-      <p>{{ t('helpCenter.memberDocuments.whatIsText') }}</p>
-      <p>{{ t('helpCenter.memberDocuments.whatIsText2') }}</p>
+  <HelpArticle :title="t('helpCenter.documents.title')" :subtitle="t('helpCenter.documents.subtitle')">
+    <HelpSection :title="t('helpCenter.documents.whatIs')">
+      <p>{{ t('helpCenter.documents.whatIsText') }}</p>
+      <p>{{ t('helpCenter.documents.whatIsText2') }}</p>
     </HelpSection>
 
-    <HelpSection :title="t('helpCenter.memberDocuments.rightsTitle')">
-      <p>{{ t('helpCenter.memberDocuments.rightsRead') }}</p>
-      <p>{{ t('helpCenter.memberDocuments.rightsSelf') }}</p>
-      <p>{{ t('helpCenter.memberDocuments.rightsOthers') }}</p>
-      <p>{{ t('helpCenter.memberDocuments.rightsHidden') }}</p>
+    <HelpSection :title="t('helpCenter.documents.rightsTitle')">
+      <p>{{ t('helpCenter.documents.rightsRead') }}</p>
+      <p>{{ t('helpCenter.documents.rightsSelf') }}</p>
+      <p>{{ t('helpCenter.documents.rightsOthers') }}</p>
+      <p>{{ t('helpCenter.documents.rightsHidden') }}</p>
     </HelpSection>
 
-    <HelpSection :title="t('helpCenter.memberDocuments.previewTitle')">
-      <p>{{ t('helpCenter.memberDocuments.previewText') }}</p>
+    <HelpSection :title="t('helpCenter.documents.previewTitle')">
+      <p>{{ t('helpCenter.documents.previewText') }}</p>
     </HelpSection>
 
-    <HelpSection :title="t('helpCenter.memberDocuments.searchTitle')">
-      <p>{{ t('helpCenter.memberDocuments.searchText') }}</p>
-      <p>{{ t('helpCenter.memberDocuments.tagsText') }}</p>
+    <HelpSection :title="t('helpCenter.documents.searchTitle')">
+      <p>{{ t('helpCenter.documents.searchText') }}</p>
+      <p>{{ t('helpCenter.documents.tagsText') }}</p>
     </HelpSection>
 
-    <HelpSection :title="t('helpCenter.memberDocuments.keepTitle')">
-      <p>{{ t('helpCenter.memberDocuments.keepText') }}</p>
-      <p>{{ t('helpCenter.memberDocuments.exportText') }}</p>
+    <HelpSection :title="t('helpCenter.documents.keepTitle')">
+      <p>{{ t('helpCenter.documents.keepText') }}</p>
+      <p>{{ t('helpCenter.documents.exportText') }}</p>
     </HelpSection>
 
-    <HelpTip>{{ t('helpCenter.memberDocuments.tip') }}</HelpTip>
+    <HelpTip>{{ t('helpCenter.documents.tip') }}</HelpTip>
   </HelpArticle>
 </template>

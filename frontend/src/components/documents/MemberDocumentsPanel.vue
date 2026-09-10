@@ -15,8 +15,8 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import DocumentGrid from './DocumentGrid.vue'
 import DocumentModal from './DocumentModal.vue'
 import DocumentUploadModal from './DocumentUploadModal.vue'
-import {memberDocuments} from '@/api'
-import type {DocumentUpload, MemberDocument} from '@/api/memberDocuments'
+import {documents as documentsApi} from '@/api'
+import type {DocumentUpload, StationDocument} from '@/api/documents'
 import type {StationMember} from '@/api/types'
 
 /**
@@ -36,20 +36,20 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
-const documents = ref<MemberDocument[]>([])
+const documents = ref<StationDocument[]>([])
 const search = ref('')
 const allTags = ref<string[]>([])
 const loading = ref(false)
 const error = ref('')
 const showUpload = ref(false)
 const showDocument = ref(false)
-const opened = ref<MemberDocument | null>(null)
+const opened = ref<StationDocument | null>(null)
 
 async function reload() {
   loading.value = true
   error.value = ''
   try {
-    documents.value = await memberDocuments.listForMember(props.memberId)
+    documents.value = await documentsApi.listForMember(props.memberId)
   } catch {
     error.value = t('common.error')
   }
@@ -60,7 +60,7 @@ watch(() => props.memberId, reload, {immediate: true})
 
 /** Only somebody who may edit gets to write labels, so only they need what has been written. */
 if (props.canEdit) {
-  memberDocuments.listTags().then(tags => {
+  documentsApi.listTags().then(tags => {
     allTags.value = tags
   }).catch(() => {
     allTags.value = []
@@ -82,7 +82,7 @@ const shown = computed(() => {
 async function upload(upload: DocumentUpload) {
   error.value = ''
   try {
-    await memberDocuments.uploadForMember(props.memberId, upload)
+    await documentsApi.uploadForMember(props.memberId, upload)
     showUpload.value = false
     await reload()
   } catch {
@@ -90,7 +90,7 @@ async function upload(upload: DocumentUpload) {
   }
 }
 
-function open(document: MemberDocument) {
+function open(document: StationDocument) {
   opened.value = document
   showDocument.value = true
 }
@@ -137,9 +137,9 @@ async function act(action: Promise<unknown>) {
         :all-members="props.allMembers"
         :all-tags="allTags"
         :can-edit="props.canEdit"
-        @members="(id, members) => act(memberDocuments.setMembers(id, members))"
-        @tags="(id, tags) => act(memberDocuments.setTags(id, tags))"
-        @remove="document => act(memberDocuments.remove(document.id))"
+        @members="(id, members) => act(documentsApi.setMembers(id, members))"
+        @tags="(id, tags) => act(documentsApi.setTags(id, tags))"
+        @remove="document => act(documentsApi.remove(document.id))"
     />
   </NeutralContainer>
 </template>

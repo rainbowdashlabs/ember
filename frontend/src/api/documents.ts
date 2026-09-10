@@ -7,7 +7,7 @@ import client from './client'
 import {uploadFile} from './upload'
 
 /** A file kept for the members it concerns. */
-export interface MemberDocument {
+export interface StationDocument {
     id: number
     title: string
     fileName: string
@@ -25,8 +25,8 @@ export interface MemberDocument {
 }
 
 /** A page of the store, with the number of documents the filters match in all. */
-export interface MemberDocumentPage {
-    documents: MemberDocument[]
+export interface DocumentPage {
+    documents: StationDocument[]
     total: number
 }
 
@@ -53,42 +53,44 @@ function fieldsOf(upload: DocumentUpload): Record<string, string | File | undefi
     }
 }
 
-export async function listForMember(memberId: number): Promise<MemberDocument[]> {
-    const res = await client.get<MemberDocument[]>(`/station-members/${memberId}/documents`)
+export async function listForMember(memberId: number): Promise<StationDocument[]> {
+    const res = await client.get<StationDocument[]>(`/station-members/${memberId}/documents`)
     return res.data
 }
 
-export async function uploadForMember(memberId: number, upload: DocumentUpload): Promise<MemberDocument> {
-    return uploadFile<MemberDocument>(`/station-members/${memberId}/documents`, fieldsOf(upload))
+export async function uploadForMember(memberId: number, upload: DocumentUpload): Promise<StationDocument> {
+    return uploadFile<StationDocument>(`/station-members/${memberId}/documents`, fieldsOf(upload))
 }
 
 /** What the store holds, a page at a time, narrowed by member or by words. */
 export async function listStation(params: {
     memberIds?: number[]
     search?: string
+    /** Only the documents that name nobody, which are the station's own paperwork. */
+    unbound?: boolean
     page?: number
     size?: number
-} = {}): Promise<MemberDocumentPage> {
+} = {}): Promise<DocumentPage> {
     const {memberIds, ...rest} = params
-    const res = await client.get<MemberDocumentPage>('/member-documents', {
+    const res = await client.get<DocumentPage>('/documents', {
         params: {...rest, memberIds: memberIds?.length ? memberIds.join(',') : undefined},
     })
     return res.data
 }
 
 /** Puts a document in the store without binding it to anybody. */
-export async function uploadForStation(upload: DocumentUpload): Promise<MemberDocument> {
-    return uploadFile<MemberDocument>('/member-documents', fieldsOf(upload))
+export async function uploadForStation(upload: DocumentUpload): Promise<StationDocument> {
+    return uploadFile<StationDocument>('/documents', fieldsOf(upload))
 }
 
 /** Gives a document exactly these members, letting go of the ones left out. */
-export async function setMembers(documentId: number, memberIds: number[]): Promise<MemberDocument> {
-    const res = await client.put<MemberDocument>(`/member-documents/${documentId}/members`, {memberIds})
+export async function setMembers(documentId: number, memberIds: number[]): Promise<StationDocument> {
+    const res = await client.put<StationDocument>(`/documents/${documentId}/members`, {memberIds})
     return res.data
 }
 
-export async function setTags(documentId: number, tags: string[]): Promise<MemberDocument> {
-    const res = await client.put<MemberDocument>(`/member-documents/${documentId}/tags`, {tags})
+export async function setTags(documentId: number, tags: string[]): Promise<StationDocument> {
+    const res = await client.put<StationDocument>(`/documents/${documentId}/tags`, {tags})
     return res.data
 }
 
@@ -98,17 +100,17 @@ export async function listTags(): Promise<string[]> {
 }
 
 export async function remove(documentId: number): Promise<void> {
-    await client.delete(`/member-documents/${documentId}`)
+    await client.delete(`/documents/${documentId}`)
 }
 
 /** Where the document itself is served from, for a download or an inline view. */
 export function contentUrl(documentId: number): string {
-    return `/member-documents/${documentId}/content`
+    return `/documents/${documentId}/content`
 }
 
 /** Where the picture of a document is served from, for the tile to show. */
 export function thumbnailUrl(documentId: number, size = 256): string {
-    return `/member-documents/${documentId}/thumbnail?size=${size}`
+    return `/documents/${documentId}/thumbnail?size=${size}`
 }
 
 /** Whether the application can show the file itself rather than only offer it. */

@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import client from '@/api/client'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
-import {contentUrl, isPreviewable, type MemberDocument} from '@/api/memberDocuments'
+import {contentUrl, isPreviewable, type StationDocument} from '@/api/documents'
 
 /**
  * The document itself, shown rather than only offered.
@@ -18,7 +18,7 @@ import {contentUrl, isPreviewable, type MemberDocument} from '@/api/memberDocume
  * knowledge base does for the same reason: the bytes come from an endpoint that wants a token, so
  * they cannot simply be pointed at.
  */
-const props = defineProps<{ document: MemberDocument }>()
+const props = defineProps<{ document: StationDocument }>()
 
 const {t} = useI18n()
 

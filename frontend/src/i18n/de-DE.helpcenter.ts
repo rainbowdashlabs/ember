@@ -1497,7 +1497,7 @@ volumes:
             convertText: 'Wenn du eine Gruppe nicht mehr als Gruppe brauchst, kannst du sie in einen Tag umwandeln. Die Mitglieder bleiben erhalten, aber die Berechtigungen gehen verloren.',
             tip: 'Gruppen werden auch für Anwesenheitsvorlagen, Sichtbarkeitseinschränkungen bei Neuigkeiten und Terminen sowie für gruppenspezifische Profilfelder verwendet.',
         },
-        memberDocuments: {
+        documents: {
             title: 'Dokumente',
             subtitle: 'Die Ablage der Wache und die Dokumente einzelner Mitglieder',
             whatIs: 'Wofür die Ablage da ist',
