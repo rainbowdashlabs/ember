@@ -87,6 +87,8 @@ import dev.chojo.ember.feature.account.route.AvatarRoutes;
 import dev.chojo.ember.feature.account.route.SessionRoutes;
 import dev.chojo.ember.feature.account.service.AuthCleanupSweeper;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
+import dev.chojo.ember.feature.beacon.route.BeaconAdminRoutes;
+import dev.chojo.ember.feature.beacon.route.BeaconIntakeRoutes;
 import dev.chojo.ember.feature.board.route.BoardRoutes;
 import dev.chojo.ember.feature.board.route.BoardTicketAttachmentRoutes;
 import dev.chojo.ember.feature.board.route.BoardTicketDetailRoutes;
@@ -370,6 +372,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(InstallRoutes.class);
         routesBinder.addBinding().to(DataTrackingRoutes.class);
         routesBinder.addBinding().to(ProblemRoutes.class);
+        routesBinder.addBinding().to(BeaconIntakeRoutes.class);
+        routesBinder.addBinding().to(BeaconAdminRoutes.class);
         routesBinder.addBinding().to(ProblemReportRoutes.class);
         routesBinder.addBinding().to(ApiStatusRoutes.class);
         routesBinder.addBinding().to(UpdateRoutes.class);

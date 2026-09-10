@@ -16,6 +16,8 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.beacon.service.BeaconMetricsService;
+import dev.chojo.ember.feature.beacon.service.BeaconReportService;
 import dev.chojo.ember.feature.board.service.DueDateReminderChecker;
 import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
 import dev.chojo.ember.feature.legal.service.ConsentService;
@@ -199,7 +201,11 @@ public class Bootstrapper {
 
         injector.getInstance(CloudflareRangesService.class).refreshAsync();
 
-        injector.getInstance(UpdateCheckService.class).start();
+        var updateCheck = injector.getInstance(UpdateCheckService.class);
+        updateCheck.start();
+
+        injector.getInstance(BeaconMetricsService.class).start(updateCheck.currentVersion());
+        injector.getInstance(BeaconReportService.class).startForwarding(updateCheck.currentVersion());
 
         // Media moved from the page-files prefix onto media/. The move is per station and
         // resumable, so it runs off the boot path and picks up where it left off after a crash.

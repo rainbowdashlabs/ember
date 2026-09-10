@@ -123,6 +123,7 @@ test.describe('Inventory', () => {
         // The options of the picker are buttons, which is what separates them from the text a
         // search leaves behind in the field.
         const option = page.getByRole('button').filter({hasText: /H-0\d\d/}).first()
+        await expect(option).toBeVisible()
         const code = (await option.innerText()).match(/H-0\d\d/)?.[0] ?? ''
         await option.click()
 
@@ -135,7 +136,9 @@ test.describe('Inventory', () => {
         await page.getByText(`${member.firstName} ${member.lastName}`).first().click()
 
         await page.getByPlaceholder('Item suchen oder Code scannen…').fill(code)
-        await page.getByRole('button').filter({hasText: code}).first().click()
+        const handBack = page.getByRole('button').filter({hasText: code}).first()
+        await expect(handBack).toBeVisible()
+        await handBack.click()
 
         await expect(page.getByText(/zurückgenommen/).first()).toBeVisible()
     })

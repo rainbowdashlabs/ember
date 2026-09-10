@@ -110,7 +110,8 @@ test.describe('Members', () => {
 
         await page.goto('/station/members/list')
         await page.getByPlaceholder(/Suche/).first().fill(surname)
-        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.getByTestId('member-row').filter({hasText: surname}).first()
+            .getByRole('button', {name: 'Details'}).click()
         await page.waitForURL(/\/station\/members\/detail\/\d+/)
 
         await page.getByRole('button', {name: 'Als ehemalig markieren'}).first().click()
@@ -648,6 +649,41 @@ test.describe('Members', () => {
      * like one. The list has to say so plainly: an empty address, and no offer to write to them,
      * because there is nowhere for that mail to go until a guardian with an address is attached.
      */
+    /**
+     * Types a name into the list's search box until the list answers with it.
+     *
+     * <p>The list is rendered by the server, so the box is on screen and focused before Vue is
+     * listening to it: a name typed at that moment sits in the field and the list never asks again.
+     * Retyping is what the help centre stories already do about the same race.
+     */
+    async function searchForMember(page: Page, surname: string) {
+        const row = page.getByTestId('member-row').filter({hasText: surname}).first()
+        await expect(async () => {
+            await page.getByPlaceholder(/Suche/).first().fill(surname)
+            await expect(row).toBeVisible({timeout: 5000})
+        }).toPass({timeout: 30000})
+        return row
+    }
+
+    /**
+     * Clicks on until the wizard says the account was made.
+     *
+     * <p>Counting clicks was the trouble: four instant visibility checks ended the walk while a step
+     * was still rendering, and the story then looked for a member nobody had created and blamed the
+     * list. The wizard says when it is finished, so that is what to wait for, and the click stops
+     * the moment it does.
+     */
+    async function finishTheWizard(page: Page) {
+        const done = page.getByText('Konto erstellt')
+        for (let step = 0; step < 6; step += 1) {
+            if (await done.isVisible().catch(() => false)) return
+            const next = page.getByRole('button', {name: /Weiter|Konto erstellen|Erstellen/}).first()
+            if (!await next.isVisible().catch(() => false)) break
+            await next.click()
+        }
+        await expect(done, 'the wizard says the account was made').toBeVisible()
+    }
+
     test('a member entered without a login carries no address', async ({managerPage: page}) => {
         const surname = unique('Ohnezugang')
 
@@ -664,17 +700,10 @@ test.describe('Members', () => {
         await expect(page.getByPlaceholder('E-Mail-Adresse')).toHaveCount(0)
 
         await page.getByRole('button', {name: 'Weiter'}).first().click()
-        for (let step = 0; step < 4; step += 1) {
-            const next = page.getByRole('button', {name: /Weiter|Konto erstellen|Erstellen/}).first()
-            if (!await next.isVisible().catch(() => false)) break
-            await next.click()
-        }
+        await finishTheWizard(page)
 
         await page.goto('/station/members/list')
-        await page.getByPlaceholder(/Suche/).first().fill(surname)
-        const row = page.getByTestId('member-row').first()
-        await expect(row).toBeVisible()
-        await expect(row.getByText(surname)).toBeVisible()
+        const row = await searchForMember(page, surname)
 
         // The address column reads as empty rather than carrying something ending in .local.
         await expect(row).not.toContainText('.local')

@@ -186,6 +186,18 @@ public class UpdateCheckService {
         return cut < 0 ? stripped : stripped.substring(0, cut);
     }
 
+    /**
+     * The version this instance runs, as the release names it.
+     *
+     * <p>Read once from the packaged resource. Anything that has to say which release it is speaking
+     * for asks here rather than reading the file a second time.
+     *
+     * @return the version string
+     */
+    public String currentVersion() {
+        return currentVersion;
+    }
+
     private String readCurrentVersion() {
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("version")) {
             if (is != null) {

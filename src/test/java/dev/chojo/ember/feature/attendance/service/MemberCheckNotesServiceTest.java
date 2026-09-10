@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -78,6 +79,20 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
      * A birthday is answered from the station's own birth date field, and only where that field is
      * one the reader may see. A station that keeps it to managers tells nobody else.
      */
+    /**
+     * Two days ago as the station reckons it, which is not the same as two days ago here.
+     *
+     * <p>A station keeps its own timezone and defaults to Europe/Berlin, so between 22:00 and
+     * midnight UTC the station is already on the next day. A test that wrote the date in the JVM's
+     * own zone therefore failed every night on a runner set to UTC, and it was the test that was
+     * wrong rather than the service.
+     */
+    private static LocalDate twoDaysAgoAtTheStation() {
+        return LocalDate.now(StationFormat.timezoneOf(
+                        stationRepo.findById(station.id()).orElseThrow()))
+                .minusDays(2);
+    }
+
     @Test
     void aBirthdayFollowsTheScopeOfTheFieldItLivesIn() {
         var field = profileFieldRepo.create(
@@ -90,7 +105,7 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
         profileFieldRepo.setValue(
                 member.id(),
                 field.id(),
-                StringNode.valueOf(LocalDate.now().minusDays(2).toString()));
+                StringNode.valueOf(twoDaysAgoAtTheStation().toString()));
 
         var forManager = service.findForStation(station.id(), Set.of(StationPermission.STATION_ADMINISTRATOR));
         assertEquals(2, forManager.get(member.id()).birthdayDaysAgo());
