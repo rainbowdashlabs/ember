@@ -71,8 +71,10 @@ class MessageIdentityTest {
     void theSameBytesHashTheSameWayAndDifferentBytesDoNot() {
         byte[] scan = "Bescheinigung".getBytes(StandardCharsets.UTF_8);
 
-        assertEquals(MessageIdentity.hashOf(scan), MessageIdentity.hashOf("Bescheinigung".getBytes(StandardCharsets.UTF_8)));
-        assertNotEquals(MessageIdentity.hashOf(scan), MessageIdentity.hashOf("Rechnung".getBytes(StandardCharsets.UTF_8)));
+        assertEquals(
+                MessageIdentity.hashOf(scan), MessageIdentity.hashOf("Bescheinigung".getBytes(StandardCharsets.UTF_8)));
+        assertNotEquals(
+                MessageIdentity.hashOf(scan), MessageIdentity.hashOf("Rechnung".getBytes(StandardCharsets.UTF_8)));
         assertEquals(64, MessageIdentity.hashOf(scan).length());
     }
 }
