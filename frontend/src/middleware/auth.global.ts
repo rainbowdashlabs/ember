@@ -66,6 +66,12 @@ async function switchAccount(email: string): Promise<void> {
  * through: a stamp written ahead of a redirect would consume the idle window without the
  * requirements ever being seen.
  *
+ * An address that matches no page at all is let through untouched. Nothing below can judge it:
+ * there is no page, so there is nothing to protect, and every gate here would read it as a
+ * protected page nobody may see. An anonymous visitor mistyping an address was sent to the login
+ * screen with the bad address as their redirect, which is a strange answer to a typo and hid the
+ * page that exists to explain it.
+ *
  * The administration area is closed to anyone who is not an instance administrator. The server
  * refuses every administration endpoint on its own - this only stops the panel from opening and
  * then failing on each call. It is deliberately closed rather than open when the session cannot be
@@ -73,6 +79,8 @@ async function switchAccount(email: string): Promise<void> {
  */
 export default defineNuxtRouteMiddleware(async (to) => {
     if (!import.meta.client) return
+
+    if (to.matched.length === 0) return
 
     const becomes = typeof to.query.as === 'string' ? to.query.as.trim() : null
     if (becomes) {
