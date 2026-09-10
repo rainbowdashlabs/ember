@@ -102,11 +102,16 @@ test.describe('Members', () => {
         await page.getByPlaceholder('Nachname').fill(surname)
         await page.getByPlaceholder('E-Mail-Adresse').fill(`${surname.toLowerCase()}@example.test`)
         await page.getByRole('button', {name: 'Weiter'}).first().click()
-        await walkTheWizardToTheEnd(page)
+        for (let step = 0; step < 4; step += 1) {
+            const next = page.getByRole('button', {name: /Weiter|Konto erstellen|Erstellen/}).first()
+            if (!await next.isVisible().catch(() => false)) break
+            await next.click()
+        }
 
         await page.goto('/station/members/list')
         await page.getByPlaceholder(/Suche/).first().fill(surname)
-        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.getByTestId('member-row').filter({hasText: surname}).first()
+            .getByRole('button', {name: 'Details'}).click()
         await page.waitForURL(/\/station\/members\/detail\/\d+/)
 
         await page.getByRole('button', {name: 'Als ehemalig markieren'}).first().click()
@@ -645,23 +650,22 @@ test.describe('Members', () => {
      * because there is nowhere for that mail to go until a guardian with an address is attached.
      */
     /**
-     * Clicks through what is left of the creation wizard.
+     * Clicks on until the wizard says the account was made.
      *
-     * <p>Each step is given a moment to appear. Asking whether the button is visible the instant the
-     * last click returned answers no while the next step is still rendering, which ended the walk
-     * early and left no member created at all: the story then failed a page later, looking for
-     * somebody who was never made, and said nothing about why.
+     * <p>Counting clicks was the trouble: four instant visibility checks ended the walk while a step
+     * was still rendering, and the story then looked for a member nobody had created and blamed the
+     * list. The wizard says when it is finished, so that is what to wait for, and the click stops
+     * the moment it does.
      */
-    async function walkTheWizardToTheEnd(page: Page) {
+    async function finishTheWizard(page: Page) {
+        const done = page.getByText('Konto erstellt')
         for (let step = 0; step < 6; step += 1) {
+            if (await done.isVisible().catch(() => false)) return
             const next = page.getByRole('button', {name: /Weiter|Konto erstellen|Erstellen/}).first()
-            try {
-                await expect(next).toBeVisible({timeout: 3000})
-            } catch {
-                return
-            }
+            if (!await next.isVisible().catch(() => false)) break
             await next.click()
         }
+        await expect(done, 'the wizard says the account was made').toBeVisible()
     }
 
     test('a member entered without a login carries no address', async ({managerPage: page}) => {
@@ -680,11 +684,7 @@ test.describe('Members', () => {
         await expect(page.getByPlaceholder('E-Mail-Adresse')).toHaveCount(0)
 
         await page.getByRole('button', {name: 'Weiter'}).first().click()
-        for (let step = 0; step < 4; step += 1) {
-            const next = page.getByRole('button', {name: /Weiter|Konto erstellen|Erstellen/}).first()
-            if (!await next.isVisible().catch(() => false)) break
-            await next.click()
-        }
+        await finishTheWizard(page)
 
         await page.goto('/station/members/list')
         await page.getByPlaceholder(/Suche/).first().fill(surname)
