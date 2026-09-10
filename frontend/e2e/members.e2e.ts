@@ -102,11 +102,7 @@ test.describe('Members', () => {
         await page.getByPlaceholder('Nachname').fill(surname)
         await page.getByPlaceholder('E-Mail-Adresse').fill(`${surname.toLowerCase()}@example.test`)
         await page.getByRole('button', {name: 'Weiter'}).first().click()
-        for (let step = 0; step < 4; step += 1) {
-            const next = page.getByRole('button', {name: /Weiter|Konto erstellen|Erstellen/}).first()
-            if (!await next.isVisible().catch(() => false)) break
-            await next.click()
-        }
+        await walkTheWizardToTheEnd(page)
 
         await page.goto('/station/members/list')
         await page.getByPlaceholder(/Suche/).first().fill(surname)
@@ -648,6 +644,26 @@ test.describe('Members', () => {
      * like one. The list has to say so plainly: an empty address, and no offer to write to them,
      * because there is nowhere for that mail to go until a guardian with an address is attached.
      */
+    /**
+     * Clicks through what is left of the creation wizard.
+     *
+     * <p>Each step is given a moment to appear. Asking whether the button is visible the instant the
+     * last click returned answers no while the next step is still rendering, which ended the walk
+     * early and left no member created at all: the story then failed a page later, looking for
+     * somebody who was never made, and said nothing about why.
+     */
+    async function walkTheWizardToTheEnd(page: Page) {
+        for (let step = 0; step < 6; step += 1) {
+            const next = page.getByRole('button', {name: /Weiter|Konto erstellen|Erstellen/}).first()
+            try {
+                await expect(next).toBeVisible({timeout: 3000})
+            } catch {
+                return
+            }
+            await next.click()
+        }
+    }
+
     test('a member entered without a login carries no address', async ({managerPage: page}) => {
         const surname = unique('Ohnezugang')
 
