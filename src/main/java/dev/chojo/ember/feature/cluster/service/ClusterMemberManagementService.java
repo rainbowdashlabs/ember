@@ -18,6 +18,8 @@ import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.entity.StationModule;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
@@ -121,8 +123,22 @@ public class ClusterMemberManagementService {
      * @return what is filed about them
      */
     public List<Document> documentsOf(int clusterId, int memberId) {
-        requireMemberOfCluster(clusterId, memberId);
+        var member = requireMemberOfCluster(clusterId, memberId);
+        requireDocuments(member.stationId());
         return documentRepository.findByMember(memberId, true);
+    }
+
+    /**
+     * Refuses where the station keeps no documents.
+     *
+     * <p>The store belongs to the station, not to the cluster, so a station that has switched it off
+     * has switched it off for the cluster too. A cluster manager reaching past that would be filing
+     * into a store the station said it did not want.
+     */
+    private void requireDocuments(int stationId) {
+        if (stationRepository.findDisabledModules(stationId).contains(StationModule.DOCUMENTS)) {
+            throw new BadRequestResponse("This station keeps no documents");
+        }
     }
 
     /**
@@ -149,6 +165,7 @@ public class ClusterMemberManagementService {
             byte[] data,
             Integer uploadedBy) {
         StationMember member = requireMemberOfCluster(clusterId, memberId);
+        requireDocuments(member.stationId());
         return documentService.store(
                 member.stationId(),
                 List.of(memberId),
