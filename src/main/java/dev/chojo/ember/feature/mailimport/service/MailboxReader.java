@@ -6,15 +6,12 @@
 package dev.chojo.ember.feature.mailimport.service;
 
 import dev.chojo.ember.feature.mailimport.entity.MailSecurity;
-import jakarta.mail.Authenticator;
 import jakarta.mail.Flags;
 import jakarta.mail.Folder;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Multipart;
-import jakarta.mail.NoSuchProviderException;
 import jakarta.mail.Part;
-import jakarta.mail.PasswordAuthentication;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
 import jakarta.mail.internet.InternetAddress;
@@ -113,19 +110,9 @@ public class MailboxReader implements AutoCloseable {
             props.put("mail.imap.starttls.enable", "true");
             props.put("mail.imap.starttls.required", "true");
         }
-        Session session = Session.getInstance(props, new Authenticator() {
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(username, password);
-            }
-        });
-        Store store = store(session);
+        Store store = Session.getInstance(props).getStore("imap");
         store.connect(host, port, username, password);
         return store;
-    }
-
-    private static Store store(Session session) throws NoSuchProviderException {
-        return session.getStore("imap");
     }
 
     /**

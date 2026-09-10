@@ -210,6 +210,34 @@ class MailImportCycleTest extends RepositoryTestBase {
                 .store(message);
     }
 
+    /** The same delivery, with a header the receiving server would have written. */
+    private void deliverWithHeader(
+            String from, String subject, String fileName, byte[] data, String header, String value) throws Exception {
+        var message = new MimeMessage(Session.getInstance(new Properties()));
+        message.setFrom(new InternetAddress(from));
+        message.setRecipients(Message.RecipientType.TO, USER);
+        message.setSubject(subject);
+        message.setHeader(header, value);
+
+        var body = new MimeBodyPart();
+        body.setText("Anbei die Unterlagen.");
+        var part = new MimeBodyPart();
+        part.setDataHandler(
+                new jakarta.activation.DataHandler(new ByteArrayDataSource(data, "application/octet-stream")));
+        part.setFileName(fileName);
+        part.setDisposition(MimeBodyPart.ATTACHMENT);
+
+        var multipart = new MimeMultipart();
+        multipart.addBodyPart(body);
+        multipart.addBodyPart(part);
+        message.setContent(multipart);
+        greenMail
+                .getManagers()
+                .getImapHostManager()
+                .getInbox(greenMail.getUserManager().getUser(USER))
+                .store(message);
+    }
+
     @Test
     void anAttachmentFromATrustedSenderBecomesADocument() throws Exception {
         rule(List.of("*@musterstadt.de"), List.of("application/pdf"), 0L, false, MailRuleAction.MARK_SEEN);
@@ -403,5 +431,119 @@ class MailImportCycleTest extends RepositoryTestBase {
         var cycle = importService.run(mailboxRepository.findById(mailbox.id()).orElseThrow(), Instant.now());
 
         assertEquals(0, cycle.looked(), "nothing arrived after the moment the mailbox starts from");
+    }
+
+    /**
+     * Moving is offered where deleting is not: it does everything deleting does and whoever finds out can
+     * undo it.
+     */
+    @Test
+    void aRuleThatMovesTheMessagePutsItInTheOtherFolder() throws Exception {
+        ruleRepository.create(
+                mailbox.id(),
+                "Verschieben",
+                0,
+                null,
+                null,
+                List.of("application/pdf"),
+                0L,
+                false,
+                MailTitleSource.SUBJECT,
+                false,
+                false,
+                false,
+                MailRuleAction.MOVE,
+                "Erledigt",
+                List.of("*@musterstadt.de"),
+                List.of(),
+                List.of());
+        deliver("post@musterstadt.de", "Verschoben", "verschoben.pdf", pdf("moved"), false);
+
+        assertEquals(1, importService.run(mailbox, Instant.now()).imported());
+
+        var moved = greenMail
+                .getManagers()
+                .getImapHostManager()
+                .getFolder(greenMail.getUserManager().getUser(USER), "Erledigt");
+        assertNotNull(moved, "the folder was made and the message put in it");
+        assertEquals(1, moved.getMessageCount());
+    }
+
+    @Test
+    void aRuleThatFlagsTheMessageFlagsIt() throws Exception {
+        rule(List.of("*@musterstadt.de"), List.of("application/pdf"), 0L, false, MailRuleAction.FLAG);
+        deliver("post@musterstadt.de", "Markiert", "markiert.pdf", pdf("flagged"), false);
+
+        assertEquals(1, importService.run(mailbox, Instant.now()).imported());
+    }
+
+    /**
+     * A rule separates one sender's PDFs from their photographs by attachment name, which is why the name
+     * filter is part of whether the rule takes the message at all.
+     */
+    @Test
+    void anAttachmentNameFilterDecidesWhetherTheRuleTakesTheMessage() throws Exception {
+        ruleRepository.create(
+                mailbox.id(),
+                "Nur Scans",
+                0,
+                null,
+                "scan",
+                List.of("application/pdf"),
+                0L,
+                false,
+                MailTitleSource.SUBJECT,
+                false,
+                false,
+                false,
+                MailRuleAction.NOTHING,
+                null,
+                List.of("*@musterstadt.de"),
+                List.of(),
+                List.of());
+        deliver("post@musterstadt.de", "Kein Scan", "rechnung.pdf", pdf("notascan"), false);
+
+        var cycle = importService.run(mailbox, Instant.now());
+
+        assertEquals(0, cycle.imported());
+        assertTrue(logRepository.findByStation(station.id(), 50, 0).stream()
+                .anyMatch(entry -> entry.outcome() == MailImportOutcome.NO_RULE_MATCHED));
+    }
+
+    /**
+     * A guard against carelessness rather than a security boundary: the header can be forged as easily as
+     * the address, which is why a rule cannot be set to require it.
+     */
+    @Test
+    void mailTheReceivingServerSaidFailedItsOwnChecksIsRefused() throws Exception {
+        rule(List.of("*@musterstadt.de"), List.of("application/pdf"), 0L, false, MailRuleAction.NOTHING);
+        deliverWithHeader(
+                "post@musterstadt.de",
+                "Gefaelscht",
+                "gefaelscht.pdf",
+                pdf("spoofed"),
+                "Authentication-Results",
+                "mx.example.com; dmarc=fail header.from=musterstadt.de");
+
+        var cycle = importService.run(mailbox, Instant.now());
+
+        assertEquals(0, cycle.imported());
+        assertTrue(logRepository.findByStation(station.id(), 50, 0).stream()
+                .anyMatch(entry -> entry.outcome() == MailImportOutcome.AUTHENTICATION_FAILED));
+    }
+
+    /** Where the header is absent nothing can be concluded, so the mail is judged on its address alone. */
+    @Test
+    void mailWhoseDomainPassedItsOwnChecksIsTakenAsNormal() throws Exception {
+        rule(List.of("*@musterstadt.de"), List.of("application/pdf"), 0L, false, MailRuleAction.NOTHING);
+        deliverWithHeader(
+                "post@musterstadt.de",
+                "Echt",
+                "echt.pdf",
+                pdf("passed"),
+                "Authentication-Results",
+                "mx.example.com; dmarc=pass header.from=musterstadt.de");
+
+        assertEquals(1, importService.run(mailbox, Instant.now()).imported());
     }
 }
