@@ -426,26 +426,19 @@ public class DocumentRoutes implements Routes {
     }
 
     /**
-     * Whether this reader may see a document, which follows the document rather than the store.
-     *
-     * <p>This is the trap in giving documents a permission of their own. A permission to read
-     * documents, standing alone, would hand its holder every medical certificate in the station
-     * without ever granting them sight of a member.
-     *
-     * <p>So a document that names members is readable by whoever may read those members, exactly as
-     * it was before documents had a permission at all. A document that names nobody is the station's
-     * own paperwork and needs only {@link StationPermission#DOCUMENT_READ}, which is what lets the
-     * equipment officer at the test certificates without handing them the member list.
+     * Whether this reader may see a document, which follows the document rather than the store. The
+     * rule itself, and why it is that way round, is
+     * {@link DocumentService#mayRead(int, boolean, boolean)}.
      *
      * @param session the reader
      * @param id      the document being read
      * @return whether the reader may see it
      */
     private boolean mayRead(UserSession session, int id) {
-        if (documentRepository.hasNoMembers(id)) {
-            return session.hasPermission(StationPermission.DOCUMENT_READ);
-        }
-        return session.hasPermission(StationPermission.MEMBER_READ);
+        return documentService.mayRead(
+                id,
+                session.hasPermission(StationPermission.MEMBER_READ),
+                session.hasPermission(StationPermission.DOCUMENT_READ));
     }
 
     private void requireMayUpload(UserSession session, int memberId) {

@@ -8,12 +8,19 @@
 - **Errors are forwarded by hand or on their own.** In the error log each entry has a send button, several can be ticked and sent together, and one switch forwards each new one as it appears. Before anything is sent the exact contents are shown, because an error message quotes what failed and that is sometimes an address or a name.
 - **A daily count of how much an instance holds.** Switched on, an instance reports once a day how many accounts, stations, members and pieces of equipment it has. The counts travel as ranges such as `10-50` rather than exact numbers, and each station and instance carries an identifier used for this and nothing else, so the figures say how much without saying whose.
 - **An instance can be a beacon itself.** Switched on, it accepts what others report and gathers it under Administration, where a fault names how many installations met it and in which versions, forwarded reports can be answered by writing to the operator who sent them, and the daily figures build a picture over time.
+- **The document store has rights of its own.** Reading and editing documents can now be granted apart from the member list, so whoever keeps the station's test certificates can be given the store without being given sight of the people in it. A document that names a member stays behind the member rights, so nothing that was private becomes readable by granting the new ones.
+- **The document store is a module.** It can be switched off for a station that does not use it, which hides the page and closes the addresses behind it, the way the other modules already work.
+
+### Improvements
+
+- **The document page can show the station's own paperwork on its own.** A switch on the page narrows the list to the documents that belong to nobody in particular, which is what a test certificate or a service agreement is. Without it the station's own papers were mixed in among the documents of every member.
 
 ### Fixes
 
 - **The error log was unreadable on a phone.** Each entry cut its message off at the width of the screen, which on a phone left barely a word of it, and the full messages behind an entry were cut the same way with only a hover to reveal them, which a phone does not have. Messages now wrap where there is no room for them on one line.
 - **The error log filled up with strangers rattling the doors.** Any instance reachable from the internet is asked for credentials files and administration pages belonging to software it is not, and each of those refusals arrived as a fault of its own, burying the ones worth reading. Those addresses are now answered as before but no longer written down as faults.
 - **An error log entry offered to open when it had nothing inside.** Entries with no stacktrace and a single message still showed the arrow and answered a click with an empty panel. They no longer invite one.
+- **Deleting a member left their documents in the store.** They stayed bound to somebody who no longer existed, so nothing could reach them and nothing tidied them away; deletion now follows the same rule as marking a member former, keeping what was marked to keep and removing the rest.
 - **A mistyped address sent visitors to the login screen.** Somebody not signed in who followed a broken link, or typed an address wrong, was taken to the sign-in page with the bad address carried along instead of being told the page does not exist. The page that explains it now stays.
 - **An exchange could refuse every attempt to move it on.** Where the step asking which piece arrived comes before the last one, the screen offered no field to name that piece, so pressing on answered with an error about naming it and the exchange sat where it was. The screen now asks for the piece whenever the exchange is standing on the step that wants it, wherever in the chain that falls.
 

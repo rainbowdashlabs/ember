@@ -146,6 +146,27 @@ public class DocumentService {
     }
 
     /**
+     * Whether a reader holding these permissions may see this document.
+     *
+     * <p>This is the trap in giving documents a permission of their own. A permission to read
+     * documents, standing alone, would hand its holder every medical certificate in the station
+     * without ever granting them sight of a member.
+     *
+     * <p>So a document that names members is readable by whoever may read those members, exactly as it
+     * was before documents had a permission at all. A document that names nobody is the station's own
+     * paperwork and needs only the permission to read documents, which is what lets the equipment
+     * officer at the test certificates without handing them the member list.
+     *
+     * @param documentId     the document being read
+     * @param mayReadMembers whether the reader may see the station's members
+     * @param mayReadStore   whether the reader may see the document store
+     * @return whether the reader may see it
+     */
+    public boolean mayRead(int documentId, boolean mayReadMembers, boolean mayReadStore) {
+        return repository.hasNoMembers(documentId) ? mayReadStore : mayReadMembers;
+    }
+
+    /**
      * Takes a member off their documents when they are marked former. What was marked as kept
      * stays with them for the record; the rest goes, and a document nobody is bound to any more
      * goes with it.
