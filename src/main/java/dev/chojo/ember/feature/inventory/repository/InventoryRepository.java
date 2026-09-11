@@ -239,6 +239,33 @@ public class InventoryRepository {
     }
 
     /**
+     * Rewrites who owns every item of an inventory, for the switch to holding one owner's gear.
+     *
+     * <p>Borrowed gear is left alone: a partner's radio stays the partner's whatever the shelf it
+     * sits on is called. The owning body is written and cleared together with the kind, because
+     * only cluster-owned rows may name one.
+     *
+     * @param inventoryId    the inventory whose items are re-said
+     * @param ownerKind      the owner the inventory holds gear of from now on
+     * @param ownerClusterId the owning body when it runs on this instance, only ever set for CLUSTER
+     * @return how many items now say something new
+     */
+    public int restampOwners(int inventoryId, ItemOwner ownerKind, Integer ownerClusterId) {
+        return query("""
+                UPDATE inventory_item
+                SET owner_kind       = :owner_kind,
+                    owner_cluster_id = :owner_cluster_id
+                WHERE inventory_id = :inventory_id
+                  AND owner_kind <> 'PARTNER_STATION'
+                  AND (owner_kind <> :owner_kind OR owner_cluster_id IS DISTINCT FROM :owner_cluster_id);""")
+                .single(call().bind("owner_kind", ownerKind)
+                        .bind("owner_cluster_id", ownerClusterId)
+                        .bind("inventory_id", inventoryId))
+                .update()
+                .rows();
+    }
+
+    /**
      * The requirements pointing at an inventory, named well enough to go and deal with.
      *
      * <p>A requirement has no status: it is a standing profile rather than an event, so every one of

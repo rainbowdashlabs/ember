@@ -168,6 +168,9 @@ public class InventoryService {
         }
         boolean sizes = hasSizes && homogeneous;
         if (inventoryRepository.update(id, name, inventoryType, sizes, homogeneous)) {
+            if (before != null && before.inventoryType() != inventoryType) {
+                restampOwners(id, inventoryType);
+            }
             log.info(
                     "Updated inventory {} (name='{}', type={}, hasSizes={}, homogeneous={})",
                     id,
@@ -179,6 +182,29 @@ public class InventoryService {
         }
         log.warn("Update of inventory {} did not change any row", id);
         return Optional.empty();
+    }
+
+    /**
+     * Makes every item say what the inventory's new type says about its owner.
+     *
+     * <p>The type used to judge only new arrivals, so switching an inventory left the items inside
+     * saying the old owner, and the next exchange replacement was refused by the very inventory it
+     * was coming home to. Switching is an operator saying whose gear this is, so it is now said on
+     * the items as well: internal writes the station onto them, external writes the body above it,
+     * and mixed holds both kinds and rewrites nothing. Borrowed gear keeps its owner throughout,
+     * because a loan is not the station's to re-declare.
+     */
+    private void restampOwners(int inventoryId, InventoryType type) {
+        int changed =
+                switch (type) {
+                    case MIXED -> 0;
+                    case INTERNAL -> inventoryRepository.restampOwners(inventoryId, ItemOwner.STATION, null);
+                    case EXTERNAL ->
+                        inventoryRepository.restampOwners(inventoryId, ItemOwner.CLUSTER, clusterAbove(inventoryId));
+                };
+        if (changed > 0) {
+            log.info("Inventory {} switched to {}, {} item(s) now carry its owner", inventoryId, type, changed);
+        }
     }
 
     /**

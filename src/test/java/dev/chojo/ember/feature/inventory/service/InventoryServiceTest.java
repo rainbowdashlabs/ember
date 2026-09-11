@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -434,6 +436,57 @@ class InventoryServiceTest extends RepositoryTestBase {
         service.delete(theirs.id());
         clusterRepo.delete(cluster.id());
         stationRepo.delete(home.id());
+    }
+
+    /**
+     * Switching an inventory between internal and external re-says the owner on every item it
+     * holds, so the pieces and the inventory never contradict each other. Mixed holds both kinds
+     * and rewrites nothing, and borrowed gear is nobody's to re-declare.
+     */
+    @Test
+    @Order(74)
+    void switchingTheTypeRestampsTheItemsOwners() {
+        var home = stationRepo.create("Träger Umstellung");
+        var cluster = clusterRepo.create("Kreisverband Umstellung", null, home.id());
+        stationRepo.setCluster(station.id(), cluster.id());
+
+        var inv = service.create(station.id(), "Umsteller", InventoryType.INTERNAL, false, true);
+        int piece = service.createItem(inv.id(), "U-1", "Gurt", null, null).id();
+        // A borrowed row carries the loan it came in on, so one is written the way the lending flow does
+        var partner = stationRepo.create("Partner Umstellung");
+        var lendingRepo = new LendingRepository();
+        var request = lendingRepo.createRequest(
+                station.uid(), partner.uid(), LocalDate.now(), LocalDate.now(), member.id(), null, null, "Umstellung");
+        var line = lendingRepo.addRequestItem(request.id(), null, null, null, 1, null);
+        int borrowed = inventoryRepo
+                .createBorrowedItem(inv.id(), "U-2", "Funke", InventoryItemMetadata.empty(), partner.id(), line.id())
+                .id();
+
+        service.update(inv.id(), "Umsteller", InventoryType.EXTERNAL, false, true);
+        var external = inventoryRepo.findItemById(piece).orElseThrow();
+        assertEquals(ItemOwner.CLUSTER, external.ownerKind(), "external means the body above the station owns it");
+        assertEquals(cluster.id(), external.ownerClusterId(), "named, because the body runs on this instance");
+        assertEquals(
+                ItemOwner.PARTNER_STATION,
+                inventoryRepo.findItemById(borrowed).orElseThrow().ownerKind(),
+                "a loan is not the station's to re-declare");
+
+        service.update(inv.id(), "Umsteller", InventoryType.MIXED, false, true);
+        assertEquals(
+                ItemOwner.CLUSTER,
+                inventoryRepo.findItemById(piece).orElseThrow().ownerKind(),
+                "mixed holds both kinds and rewrites nothing");
+
+        service.update(inv.id(), "Umsteller", InventoryType.INTERNAL, false, true);
+        var internal = inventoryRepo.findItemById(piece).orElseThrow();
+        assertEquals(ItemOwner.STATION, internal.ownerKind());
+        assertNull(internal.ownerClusterId());
+
+        stationRepo.setCluster(station.id(), null);
+        service.delete(inv.id());
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(home.id());
+        stationRepo.delete(partner.id());
     }
 
     /** A station under nobody reads only its own, and there is no name to put on them. */

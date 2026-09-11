@@ -84,6 +84,7 @@ async function saveSettings() {
           <option :value="InventoryTypes.EXTERNAL">{{ t('inventory.manage.type.EXTERNAL') }}</option>
           <option :value="InventoryTypes.MIXED">{{ t('inventory.manage.type.MIXED') }}</option>
         </SelectInput>
+        <p class="text-xs text-(--text-muted)">{{ t('inventory.edit.typeSwitchHint') }}</p>
       </div>
     </div>
 

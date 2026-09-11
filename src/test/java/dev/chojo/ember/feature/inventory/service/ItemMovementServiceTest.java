@@ -181,6 +181,47 @@ class ItemMovementServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * A replacement is owned by whoever the inventory says it holds gear of, whatever the piece
+     * that left had written on it. A piece still saying STATION inside an external inventory is the
+     * state an inventory switched after its items were created used to leave behind, and the
+     * replacement must not inherit it: the inventory would refuse its own replacement. Only a mixed
+     * inventory leaves the answer to the piece that left.
+     */
+    @Test
+    void aReplacementBelongsToWhoeverTheInventorySaysItHoldsGearOf() {
+        int externalInventory = inventoryRepo
+                .create(station.id(), "Verbandsgurte", InventoryType.EXTERNAL, false)
+                .id();
+        int stale = inventoryRepo
+                .createItem(
+                        externalInventory, "S-" + CODES.incrementAndGet(), "Gurt", null, null, ItemOwner.STATION, null)
+                .id();
+        itemCustodyService.assignToMember(stale, member.id(), "Move Ment");
+        ItemMovement movement = itemMovementService.create(
+                station.id(),
+                MovementPurpose.EXCHANGE,
+                member.id(),
+                "Move Ment",
+                stale,
+                externalInventory,
+                null,
+                null,
+                "Ausgeleiert",
+                team,
+                null);
+        assertEquals(
+                ItemOwner.CLUSTER,
+                itemMovementService.ownerOf(movement),
+                "an external inventory holds the body's gear, whatever the stale row says");
+
+        ItemMovement mixed = announceExchange(itemWithMember(ItemOwner.CLUSTER));
+        assertEquals(
+                ItemOwner.CLUSTER,
+                itemMovementService.ownerOf(mixed),
+                "a mixed inventory leaves the answer to the piece that left");
+    }
+
+    /**
      * The chain names the owner's steps, and a station with nobody above it on Ember walks them in its
      * place. What it saw itself reads as confirmed, what it walked for somebody else as asserted, and
      * the difference survives being read later.

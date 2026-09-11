@@ -224,8 +224,8 @@ public class MovementRoutes implements Routes {
      * would give one thing two records. Where the owner is outside Ember there is nothing to pick
      * from, and this is the only way the chain gets past the step that asks which piece came.
      *
-     * <p>It lands in the inventory the movement is about and keeps the owner of the piece that left,
-     * because a replacement belongs to whoever owned what it replaces.
+     * <p>It lands in the inventory the movement is about and is owned by whoever that inventory
+     * says it holds gear of; only a mixed inventory leaves the answer to the piece that left.
      */
     private InventoryItem recordArrival(ItemMovement movement, NewItemRequest request) {
         if (movement.inventoryId() == null) {
