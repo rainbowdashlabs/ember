@@ -397,7 +397,7 @@ case "$cmd" in
     be-report)     cd "$ROOT"; run ./gradlew jacocoFullReport "$@" ;;
     be-javadoc)    cd "$ROOT"; run ./gradlew javadoc "$@" ;;
     be-federation-version) cd "$ROOT"; run ./gradlew generateFederationVersion "$@" ;;
-    be-data-tracking)      cd "$ROOT"; run ./gradlew refreshDataTracking "$@" ;;
+    be-data-tracking)      cd "$ROOT"; run ./gradlew refreshDataTracking spotlessJsonApply "$@" ;;
 
     docker-frontend) cd "$ROOT"; run docker build . -f docker/frontend.Dockerfile "$@" ;;
     docker-backend)  cd "$ROOT"; run docker build . -f docker/backend.Dockerfile "$@" ;;

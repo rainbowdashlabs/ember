@@ -2106,6 +2106,7 @@ export default {
         cycleSummary: '{looked} Nachrichten angesehen, {imported} Dokumente abgelegt, {refused} abgelehnt.',
         lastChecked: 'Zuletzt geprüft: {when}',
         neverChecked: 'Noch nie geprüft',
+        dkimChecked: 'Absendersignatur wird geprüft',
         state: {
             on: 'Aktiv',
             off: 'Aus',
@@ -2150,6 +2151,8 @@ export default {
             passwordUnchanged: 'Unverändert lassen',
             folder: 'Ordner',
             enabled: 'Postfach regelmäßig abrufen',
+            verifyDkim: 'Absendersignatur prüfen (DKIM)',
+            verifyDkimHint: 'Das geht nur, wenn deine Absender ihre Mail signieren. Ist die Prüfung an, wird eine Nachricht ohne gültige Signatur der Domain, aus der sie zu kommen behauptet, abgelehnt statt abgelegt.',
             interval: 'Abrufen alle (Minuten)',
             intervalHint: 'Mindestens {minutes} Minuten.',
             importFrom: 'Nachrichten ab',
@@ -2169,8 +2172,6 @@ export default {
             titleSource: 'Titel des Dokuments aus',
             action: 'Danach mit der Nachricht',
             moveToFolder: 'Zielordner',
-            members: 'Immer diesen Mitgliedern zuordnen',
-            membersHint: 'Meist leer: Post aus dem Büro sagt nichts darüber, wen sie betrifft. Zuordnen kann man später auf der Dokumentenseite.',
             tags: 'Schlagwörter',
             readSubjectForMember: 'Namen im Betreff auswerten',
             readSubjectHint: 'Wer scannt, tippt einen Namen in den Betreff. Passt der Betreff auf mehrere Personen, wird das Dokument keinem zugeordnet: ein Dokument bei der falschen Person ist schlimmer als eines bei keiner.',
@@ -2184,9 +2185,6 @@ export default {
             takes: 'Nimmt: {types}',
             named: 'Dateiname enthält „{name}"',
             subject: 'Betreff enthält „{subject}"',
-            filesUnder: 'Ordnet zu: {members}',
-            lostMember: 'Ein Mitglied ist weggefallen',
-            acknowledge: 'Zur Kenntnis genommen',
         },
     },
 
@@ -2205,7 +2203,7 @@ export default {
         keepOnArchiveHint: 'Bleibt erhalten, wenn das Mitglied als ehemalig markiert wird. Für rechtlich bindende Dokumente.',
         kept: 'Wird behalten',
         hide: 'Vor dem Mitglied verbergen',
-        hideHint: 'Nur wer fremde Profile lesen darf, sieht das Dokument dann noch.',
+        hideHint: 'Nur wer Mitgliederdokumente einsehen darf, sieht das Dokument dann noch.',
         hidden: 'Verborgen',
         noPreview: 'Für diesen Dateityp gibt es keine Vorschau. Lade sie herunter, um sie anzusehen.',
         boundMembers: 'Gehört zu',
@@ -3018,13 +3016,25 @@ export default {
             label: 'Mitglieder',
             desc: 'Vollzugriff auf alle Mitgliederfunktionen.',
         },
+        DOCUMENT_MANAGER: {
+            label: 'Dokumente',
+            desc: 'Vollzugriff auf die gesamte Ablage.',
+        },
         DOCUMENT_READ: {
             label: 'Dokumente einsehen',
-            desc: 'Kann die Dokumente der Wache einsehen. Dokumente, die einem Mitglied zugeordnet sind, bleiben denen vorbehalten, die dieses Mitglied einsehen dürfen.',
+            desc: 'Kann die Ablage der Wache einsehen, also die Dokumente, die keinem Mitglied zugeordnet sind.',
+        },
+        DOCUMENT_READ_MEMBER: {
+            label: 'Mitgliederdokumente einsehen',
+            desc: 'Kann die Dokumente einsehen, die einem Mitglied zugeordnet sind.',
         },
         DOCUMENT_EDIT: {
             label: 'Dokumente verwalten',
-            desc: 'Kann Dokumente ablegen, ihnen Mitglieder und Schlagwörter zuordnen und sie wieder entfernen.',
+            desc: 'Kann Dokumente der Wache ablegen, verschlagworten und wieder entfernen.',
+        },
+        DOCUMENT_EDIT_MEMBER: {
+            label: 'Mitgliederdokumente verwalten',
+            desc: 'Kann festlegen, welche Mitglieder ein Dokument betrifft, und deren Dokumente ablegen und entfernen.',
         },
         MEMBER_READ: {
             label: 'Mitglieder einsehen',
@@ -6139,7 +6149,26 @@ export default {
     flows: {
         title: 'Abläufe',
         intro: 'Ein Ablauf ist eine Kette von Schritten. Jeder Schritt sagt, wer ihn bestätigt, um welches Teil es geht und wo das Teil danach ist.',
-        bindingHint: 'Welcher Ablauf gilt, richtet sich nach dem Eigentümer des Teils und dem Zweck der Bewegung.',
+        serves: {
+            owner: 'Eigentümer',
+            purpose: 'Zweck',
+            party: 'Gegenseite',
+        },
+        restore: 'Auf Vorgabe zurücksetzen',
+        restoreTitle: 'Kette zurücksetzen',
+        restoreConfirm: 'Diese Kette wird durch die vorbereitete Kette für ihre Kombination ersetzt. '
+            + 'Eigene Schritte gehen dabei verloren.',
+        restoreMovementsHint: 'Auf dieser Kette sind noch Bewegungen unterwegs. Jeder Schritt, auf dem welche '
+            + 'stehen, braucht einen Schritt der neuen Kette, auf dem sie weitergehen.',
+        restoreCurrentStep: 'Bisheriger Schritt',
+        restoreTargetStep: 'Geht weiter auf',
+        restoreAffects: 'Betroffene Bewegungen: {count}',
+        restoreStepGone: 'Ohne Schritt',
+        restoreChooseStep: 'Schritt wählen',
+        restoreUncertain: 'Bitte prüfen',
+        restoreUncertainHint: 'Für die markierten Schritte ließ sich kein Schritt der neuen Kette sicher '
+            + 'zuordnen. Wähle selbst, wo es weitergeht.',
+        restoreAction: 'Zurücksetzen',
         newFlow: 'Neuer Ablauf',
         newFlowPlaceholder: 'z. B. Tausch, kurz',
         purpose: 'Zweck',
@@ -6163,10 +6192,9 @@ export default {
         actor: 'Bestätigt von',
         subject: 'Betrifft',
         custodyAfter: 'Danach',
-        bindingIntro: 'Jede Kette beginnt mit einer Anforderung und endet damit, dass der Empfänger den Erhalt bestätigt.',
         party: {
-            STORE: 'Ins Lager',
-            MEMBER: 'An ein Mitglied',
+            STORE: 'Lager',
+            MEMBER: 'Mitglied',
         },
         problem: {
             TOO_SHORT: 'Eine Kette braucht mindestens zwei Schritte: einen, der das Teil anfordert, und einen, der den Erhalt bestätigt.',
@@ -6220,6 +6248,22 @@ export default {
         callOffReason: 'Vom Mitglied zurückgenommen',
         waitingFor: 'Wartet auf: {party}',
         openDetail: 'Ablauf ansehen',
+        rechain: {
+            action: 'Ablauf wechseln',
+            title: 'Auf den richtigen Ablauf umstellen',
+            hint: 'Diese Bewegung läuft auf einem Ablauf, der nicht zu dem Teil gehört. Beim Umstellen '
+                + 'läuft sie auf dem richtigen Ablauf weiter, ohne dass jemand Schritte erzwingen oder '
+                + 'die Bewegung abbrechen muss.',
+            currentFlow: 'Läuft jetzt auf',
+            standingOn: 'Steht auf Schritt',
+            targetFlow: 'Gehört auf',
+            targetStep: 'Steht danach auf',
+            chooseStep: 'Schritt wählen',
+            noFlow: 'Ohne Ablauf',
+            noStep: 'Ohne Schritt',
+            alreadyRight: 'Diese Bewegung läuft bereits auf dem richtigen Ablauf. Hier ist nichts zu tun.',
+            confirm: 'Umstellen',
+        },
         purpose: {
             ISSUE: 'Ausgabe',
             RETURN: 'Rückgabe',

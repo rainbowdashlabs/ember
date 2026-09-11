@@ -1510,16 +1510,20 @@ volumes:
             rightsTitle: 'Wer was darf',
             rightsRead: 'Die eigenen Dokumente darf jeder lesen, dafür braucht es kein Recht.',
             rightsSelf: 'Zum Hochladen im eigenen Profil braucht es das Recht „Eigene Dokumente hochladen".',
-            rightsOthers: 'Wer Mitglieder bearbeiten darf, kann für andere hochladen, Dokumente '
-                + 'zuordnen, verschlagworten und löschen.',
-            rightsOwn: 'Die Ablage hat eigene Rechte: „Dokumente einsehen" und „Dokumente '
-                + 'verwalten". Damit lässt sich etwa dem Gerätewart die Ablage öffnen, ohne ihm '
-                + 'gleich die Mitgliederliste zu geben. Wer Mitglieder einsehen oder bearbeiten '
-                + 'darf, hat sie automatisch mit, damit niemand verliert, was er heute schon sieht.',
+            rightsOthers: 'Für andere hochladen, Dokumente Mitgliedern zuordnen, verschlagworten '
+                + 'und löschen darf, wer „Mitgliederdokumente verwalten" hat. Wer Mitglieder '
+                + 'bearbeiten darf, hat dieses Recht ohnehin.',
+            rightsOwn: 'Die Ablage hat eigene Rechte, und sie trennen die Papiere der Wache von '
+                + 'denen der Mitglieder: „Dokumente einsehen" und „Dokumente verwalten" gelten für '
+                + 'die Ablage der Wache, „Mitgliederdokumente einsehen" und „Mitgliederdokumente '
+                + 'verwalten" für alles, was einer Person zugeordnet ist. „Dokumente" fasst die '
+                + 'vier zusammen. So lässt sich etwa dem Gerätewart die Ablage öffnen, ohne ihm '
+                + 'die Papiere der Mitglieder zu geben; wer Mitglieder einsehen oder bearbeiten '
+                + 'darf, behält, was er heute schon sieht.',
             rightsBound: 'Das Recht folgt dem einzelnen Dokument, nicht der Ablage: Ein Dokument, '
-                + 'das einem Mitglied zugeordnet ist, sieht nur, wer dieses Mitglied einsehen darf. '
-                + 'Ein Dokument ohne Zuordnung ist die Ablage der Wache und braucht nur „Dokumente '
-                + 'einsehen".',
+                + 'das einem Mitglied zugeordnet ist, sieht nur, wer „Mitgliederdokumente '
+                + 'einsehen" hat. Ein Dokument ohne Zuordnung ist die Ablage der Wache und braucht '
+                + 'nur „Dokumente einsehen".',
             moduleTitle: 'Wenn die Wache keine Ablage braucht',
             moduleText: 'Die Ablage ist ein Modul. Unter Verwaltung → Module lässt sie sich '
                 + 'abschalten, dann verschwindet die Seite aus der Navigation. Der Datenexport '
@@ -1529,8 +1533,8 @@ volumes:
             unboundText: 'Auf der Seite gibt es den Schalter „Nur ohne Mitglied". Er zeigt genau '
                 + 'die Dokumente, die zu niemandem gehören, also Verträge, Prüfberichte und was '
                 + 'die Wache über sich selbst aufbewahrt.',
-            rightsHidden: 'Ein verborgenes Dokument sieht nur, wer fremde Profile lesen darf. Das '
-                + 'Mitglied selbst sieht es nicht.',
+            rightsHidden: 'Ein verborgenes Dokument sieht nur, wer „Mitgliederdokumente einsehen" '
+                + 'hat. Das Mitglied selbst sieht es nicht.',
             previewTitle: 'Vorschau',
             previewText: 'Bilder, Textdateien und PDFs zeigt Ember direkt an. Von Bildern und PDFs '
                 + 'entsteht außerdem ein Vorschaubild für die Kachel, bei PDFs aus der ersten '
@@ -1671,11 +1675,16 @@ volumes:
             whatIsText: 'Ein Ablauf ist die Kette von Schritten, die ein Vorgang geht. Jeder Schritt sagt, wer ihn bestätigt, um welches Teil es geht und wo das Teil danach liegt.',
             shapeText: 'Jede Kette beginnt mit einer Anforderung und endet damit, dass die Stelle, bei der das Teil landet, den Erhalt bestätigt. Kürzer als zwei Schritte geht es deshalb nicht, und eine Kette, die unterwegs endet oder nicht sagt, welches Teil angekommen ist, wird beim Speichern abgelehnt.',
             whichApplies: 'Welcher Ablauf gilt',
-            whichAppliesText: 'Drei Dinge entscheiden das: wofür die Bewegung läuft, wem das Teil gehört, und ob am anderen Ende das Lager der Wache oder ein Mitglied steht. Für jede dieser Kombinationen gibt es eine Kette, und die Wache kann sie je Inventar unterschiedlich binden.',
+            groupedText: 'Die Ketten stehen nach Zweck gruppiert untereinander. Zugeklappt sagt jede Karte nur, aus wie vielen Schritten die Kette besteht; der Pfeil klappt die Zeichnung und die Schritte auf.',
+            whichAppliesText: 'Drei Dinge entscheiden das: wofür die Bewegung läuft, wem das Teil gehört, und ob am anderen Ende das Lager der Wache oder ein Mitglied steht. Für jede dieser Kombinationen gibt es genau eine Kette, und welche Kombination eine Kette bedient, steht oben auf ihrer Karte.',
             ownerText: 'Gehört das Teil dem Träger und führt der Träger sein Lager hier, gelten seine Ketten. Führt er es nicht hier, geht die Wache seine Schritte an seiner Stelle, und im Verlauf steht, dass sie behauptet und nicht bestätigt wurden.',
             editing: 'Schritte ändern',
             editingText: 'Ein Schritt lässt sich umbenennen und in allen Angaben ändern, solange gerade keine Bewegung auf dieser Kette unterwegs ist. Ein Schritt, der nicht mehr gebraucht wird, wird stillgelegt statt gelöscht, damit abgeschlossene Vorgänge weiter so lesbar bleiben, wie sie gegangen wurden.',
             orderText: 'Die Reihenfolge lässt sich mit den Pfeilen ändern. Ein vergessener Schritt muss also nicht ans Ende, sondern kann dorthin, wo er hingehört.',
+            restoreTitle: 'Eine Kette zurücksetzen',
+            restoreText: 'Zu jeder Kombination gehört eine vorbereitete Kette. Der Pfeil auf der Karte setzt die Kette darauf zurück, nachdem du die Rückfrage bestätigt hast: die Schritte werden ersetzt, die Kombination bleibt.',
+            restoreMovingText: 'Sind auf der Kette noch Bewegungen unterwegs, nennt die Rückfrage jede einzeln: den Schritt, auf dem sie jetzt steht, und den Schritt der neuen Kette, auf dem sie weitergeht. Wo sich der nicht sicher zuordnen ließ, ist die Bewegung markiert und du wählst den Schritt selbst. Zurückgesetzt wird erst, wenn für jede Bewegung einer feststeht.',
+            restoreOwnerText: 'Eine Kette, die der Träger vorgibt, lässt sich hier nicht zurücksetzen: sie gehört ihm und nicht der Wache. Eine Kette, die die Wache selbst geschrieben hat, steht für keine Kombination und hat deshalb auch keine Vorgabe, auf die sie zurückgehen könnte.',
             problemsTitle: 'Wenn eine Kette nicht stimmt',
             problemsText: 'Was einer Kette fehlt, steht an der Kette selbst, und eine abgelehnte Änderung wird an derselben Stelle erklärt. Gespeichert wird immer nur die eine Kette, an der du gerade arbeitest; die übrigen bleiben so, wie du sie aufgeklappt hast.',
             tip: 'Beim ersten Öffnen liegen fertige Ketten bereit, eine je Kombination. Wer eine davon ersetzt, behält sie: ergänzt wird nur, wofür noch keine steht.',
@@ -4549,6 +4558,8 @@ volumes:
             acksText: 'Bestätigt heißt: die Partei, der der Schritt gehört, hat selbst bestätigt. Von der Wache vermerkt heißt: die Wache hat für einen Träger eingetragen, der Ember nicht nutzt und deshalb nicht antworten kann. Erzwungen heißt: jemand hat einen Schritt über eine Partei hinweg eingetragen, die hätte antworten können. Das steht dauerhaft im Verlauf.',
             endings: 'Ablehnen und Abbrechen',
             endingsText: 'Wer an der Reihe ist, kann mit einer Begründung ablehnen. Die Bewegung endet dann, und das abgehende Teil geht dorthin zurück, wo es vorher war. Abbrechen geht, solange die Bewegung noch auf der eigenen Seite steht.',
+            rechain: 'Ablauf wechseln',
+            rechainText: 'Manchmal ist eine Bewegung auf einem Ablauf gestartet, der nicht zu dem Teil gehört. Dann stehen dort Schritte, die für die Ausrüstung von jemand anderem geschrieben wurden, und über den Knopf neben der Überschrift des Ablaufs stellst du die Bewegung auf den richtigen Ablauf um. Dabei legst du fest, auf welchem Schritt sie danach steht. Das geht nur bei offenen Bewegungen und nur mit dem Recht zur Inventarverwaltung.',
             lossReport: 'Verlustmeldungen',
             lossReportText: 'Meldet eine Wache ein verlorenes Teil, steht oben, was beide Seiten dazu geschrieben haben: die Notiz der Wache und die des Mitglieds vom Melden, jeweils mit dem Namen dahinter. Ein Beleg, den der Verband verlangt hat, hängt daneben und wird von hier heruntergeladen.',
             lossReportEndingsText: 'Ein Verlust hat keinen Rückweg: Es läuft nur die Hälfte mit dem Ersatz. Lehnt der Verband ab, bleibt das Teil vermisst, und die Begründung steht bei der Bewegung.',
@@ -5061,6 +5072,36 @@ volumes:
             exampleTitle: 'So sieht die Seite aus',
             tip: 'Klicke in der Übersicht auf einen Endpunkt, um diese Detailseite zu öffnen.',
         },
+        adminBeaconFaults: {
+            title: 'Beacon: Fehler',
+            subtitle: 'Fehler, die andere Instanzen an diese gemeldet haben.',
+            whatIs: 'Was steht hier?',
+            whatIsText: 'Jeder Eintrag ist ein Fehler, den mindestens eine andere Instanz gemeldet hat. Gleiche Fehler werden zusammengefasst, damit du siehst, ob einer bei dreißig Installationen auftritt oder bei einer einzigen.',
+            whatIsText2: 'Zu jedem Eintrag steht, in wie vielen Instanzen er aufgetreten ist, wie oft insgesamt, und in welchen Versionen. Namen, Wachen oder Mitglieder stehen nie dabei.',
+            readingTitle: 'Damit arbeiten',
+            readingText: 'Ist ein Fehler behoben, hältst du die Version fest, in der das passiert ist, und bestätigst ihn. Bestätigte Einträge sind ausgeblendet, bis du sie über den Schalter oben wieder einblendest. Die Zahl in der Seitenleiste zählt nur die unbestätigten.',
+            tip: 'Sortiere nach der Zahl der betroffenen Instanzen: was viele treffen, ist meist die kleinere Arbeit für die größere Wirkung.',
+        },
+        adminBeaconReports: {
+            title: 'Beacon: Meldungen',
+            subtitle: 'Weitergeleitete Fehlerberichte anderer Instanzen.',
+            whatIs: 'Was steht hier?',
+            whatIsText: 'Diese Meldungen hat jemand an der anderen Instanz von Hand weitergeleitet, oder ihre Betreiber haben die automatische Weiterleitung eingeschaltet. Anders als bei den Fehlern steht hier der Text dabei, den die Instanz mitgeschickt hat.',
+            whatIsText2: 'Wo die Betreiber eine Kontaktadresse hinterlegt haben, steht sie daneben. Nur damit kannst du zurückschreiben: eine Antwort über Ember gibt es nicht.',
+            readingTitle: 'Damit arbeiten',
+            readingText: 'Was du gelesen und erledigt hast, bestätigst du. Die Zahl in der Seitenleiste zählt die unbestätigten, damit du nicht nachsehen musst, ob überhaupt etwas da ist.',
+            tip: 'Eine Meldung kann Adressen oder Namen im Fehlertext enthalten, weil eine Fehlermeldung zitiert, was fehlgeschlagen ist. Behandle sie entsprechend.',
+        },
+        adminBeaconMetrics: {
+            title: 'Beacon: Metriken',
+            subtitle: 'Die täglichen Zahlen der Instanzen, die welche schicken.',
+            whatIs: 'Was steht hier?',
+            whatIsText: 'Einmal am Tag schickt eine Instanz, die das eingeschaltet hat, wie viel sie hält: Konten, Wachen, Mitglieder, Ausrüstung. Die Zahlen kommen als Bereiche wie 10-50 und nicht als genaue Werte.',
+            whatIsText2: 'Jede Instanz und jede Wache trägt dafür eine eigene Kennung, die für nichts anderes benutzt wird. Die Zahlen sagen also wie viel, aber nicht von wem.',
+            readingTitle: 'Damit arbeiten',
+            readingText: 'Über die Tage entsteht ein Bild davon, wie Ember eingesetzt wird: wie viele Instanzen es gibt, wie groß sie sind, und in welchen Versionen sie laufen. Hier gibt es nichts zu bestätigen, deshalb steht in der Seitenleiste auch keine Zahl.',
+            tip: 'Einzelne Tage sagen wenig, weil eine Instanz ausfallen oder neu dazukommen kann. Interessant ist der Verlauf.',
+        },
         adminBeacon: {
             title: 'Beacon',
             subtitle: 'Fehler und Zahlen mit anderen Instanzen teilen',
@@ -5172,7 +5213,8 @@ volumes:
             mailboxIntervalText: 'Wie oft abgerufen wird, bestimmst du, aber nicht kürzer als der Betreiber erlaubt. Papier ist nicht eilig, und eine Viertelstunde zwischen Scan und Dokument merkt niemand. Mit „Jetzt abrufen" prüfst du sofort, was jeder nach der ersten Regel tut.',
             senderTitle: 'Erlaubte Absender',
             senderText: "Zwei Formen: eine einzelne Adresse, oder alle Adressen einer Domain als *{'@'}domain.de. Untergeordnete Domains sind nicht mitgemeint, die brauchen einen eigenen Eintrag. Eine Regel ohne Absender nimmt nichts an.",
-            senderWarningText: 'Das ist die Grenze, die wirklich hält, also halte sie eng. Wer eine einzelne Adresse einträgt, ist besser geschützt als wer einer ganzen Domain traut. Ein Absender lässt sich fälschen, deshalb entscheidet allein diese Liste, wer Dateien in die Ablage legen darf.',
+            senderWarningText: 'Das ist die Grenze, die wirklich hält, also halte sie eng. Wer eine einzelne Adresse einträgt, ist besser geschützt als wer einer ganzen Domain traut. Ein Absender lässt sich aber fälschen: ohne weitere Prüfung entscheidet allein diese Liste, wer Dateien in die Ablage legen darf.',
+            senderDkimText: 'Deshalb kannst du je Postfach die Absendersignatur prüfen lassen (DKIM). Ist das an, wird eine Nachricht nur angenommen, wenn sie eine gültige Signatur genau der Domain trägt, aus der sie zu kommen behauptet; alles andere wird abgelehnt und steht mit dem Grund im Protokoll. Das setzt voraus, dass deine Absender ihre Mail signieren, sonst lehnst du auch die gewöhnliche Post ab. Die Prüfung ist deshalb aus, bis du sie einschaltest.',
             ruleTitle: 'Regeln',
             ruleOrderText: 'Regeln sind geordnet und die erste passende nimmt die Nachricht, die anderen kommen nicht mehr dran. Ob eine Regel passt, entscheiden Absender, Betreff und Dateiname. Wer die PDFs und die Fotos desselben Absenders unterschiedlich ablegen will, trennt sie am Dateinamen.',
             ruleTypeText: 'Welche Dateiart ein Anhang ist, wird an seinem Inhalt erkannt und nicht am Namen. Eine Datei, die anders heißt als sie ist, wird abgelehnt.',
@@ -5180,8 +5222,7 @@ volumes:
             ruleActionText: 'Nach dem Ablegen kannst du die Nachricht liegen lassen, als gelesen markieren, markieren oder in einen Ordner verschieben. Löschen wird nicht angeboten: Verschieben tut dasselbe und lässt sich zurücknehmen.',
             memberTitle: 'Wem ein Dokument gehört',
             memberText: 'Meistens niemandem, und das ist der normale Fall: Post aus dem Büro sagt nichts darüber, wen sie betrifft. Das Dokument landet in der Ablage der Wache, und wer mag, ordnet es später auf der Dokumentenseite einer Person zu.',
-            memberSubjectText: 'Eine Regel kann feste Mitglieder benennen, oder den Namen aus dem Betreff lesen. Letzteres ist eine Vermutung über eine Zeile, die ein Mensch getippt hat: passt der Betreff auf zwei Personen, wird niemandem zugeordnet. Ein Dokument bei der falschen Person ist schlimmer als eines bei keiner.',
-            memberLostText: 'Scheidet ein benanntes Mitglied aus, fällt es aus der Regel heraus und die Regel sagt das auf der Seite. Eine Regel, die still anders arbeitet als sie geschrieben wurde, wäre schlimmer.',
+            memberSubjectText: 'Zu einer Person kommt ein Dokument nur über den Betreff, und nur wenn die Regel das ausdrücklich erlaubt. Das ist eine Vermutung über eine Zeile, die ein Mensch getippt hat: passt der Betreff auf zwei Personen, wird niemandem zugeordnet. Ein Dokument bei der falschen Person ist schlimmer als eines bei keiner.',
             logTitle: 'Das Protokoll',
             logText: 'Jede angesehene Nachricht steht dort mit dem Ergebnis, auch die, aus denen nichts übernommen wurde: Absender nicht erlaubt, keine Regel passt, Dateiart nicht erlaubt, zu groß, zu klein, kein Anhang, schon vorhanden. Wenn eine Regel scheinbar nichts tut, ist das die einzige Stelle, die es beantwortet.',
             logDuplicateText: 'Dieselbe Datei wird nicht zweimal abgelegt, auch wenn sie weitergeleitet erneut ankommt. Was lesbar im Protokoll steht, wird nach einem Jahr entfernt; woran eine Datei wiedererkannt wird, bleibt, damit eine später erneut zugestellte Mail kein zweites Dokument wird.',
