@@ -140,6 +140,28 @@ public class BeaconReadRepository {
     }
 
     /** How many instances have ever reported. */
+    /**
+     * How many faults and how many forwarded reports nobody has looked at yet.
+     *
+     * <p>Two counts in one round trip, because the sidebar wants both and asking twice for two numbers a
+     * page refreshes on a timer is two round trips more than it needs.
+     *
+     * @return the faults and the reports still waiting, in that order
+     */
+    public Waiting countWaiting() {
+        return query("""
+                        SELECT
+                            (SELECT count(*) FROM beacon_problem WHERE acknowledged = FALSE) AS faults,
+                            (SELECT count(*) FROM beacon_report WHERE acknowledged = FALSE)  AS reports;""")
+                .single()
+                .map(row -> new Waiting(row.getInt("faults"), row.getInt("reports")))
+                .first()
+                .orElse(new Waiting(0, 0));
+    }
+
+    /** What a beacon has waiting for whoever looks after it. */
+    public record Waiting(int faults, int reports) {}
+
     public int instanceCount() {
         return query("SELECT count(*) AS c FROM beacon_instance;")
                 .single()

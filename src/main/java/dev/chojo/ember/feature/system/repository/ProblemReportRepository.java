@@ -12,6 +12,7 @@ import java.util.List;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static dev.chojo.ember.util.sql.SqlSupport.count;
 import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
 import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
@@ -56,6 +57,16 @@ public class ProblemReportRepository {
                 .single(call().bind("include_acknowledged", includeAcknowledged))
                 .map(ProblemReport.map())
                 .all();
+    }
+
+    /**
+     * How many reports nobody has looked at yet, which the sidebar shows so an operator does not have to
+     * open the page to find out whether there is anything on it.
+     *
+     * @return the number of unacknowledged reports
+     */
+    public int countUnacknowledged() {
+        return count("SELECT count(*) FROM problem_report WHERE acknowledged = FALSE;", call());
     }
 
     public boolean acknowledge(int id) {

@@ -10,8 +10,8 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import TabBar from '@/components/navigation/TabBar.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import BeaconSettingsPanel from './adminbeaconview/BeaconSettingsPanel.vue'
 import BeaconFaultCard from './adminbeaconview/BeaconFaultCard.vue'
@@ -26,7 +26,19 @@ import type {BeaconFault, BeaconMetricsRow, BeaconReport, BeaconStatus} from '@/
  * <p>Only an instance that accepts reports has any of this, so the screen says so plainly rather than
  * showing three empty lists to somebody whose instance was never meant to be a beacon.
  */
+/**
+ * Which of the three the page is showing. The sidebar is the navigation now, so the section comes from
+ * the address rather than from a tab bar the reader would have to find first.
+ */
+const props = withDefaults(defineProps<{section?: 'faults' | 'reports' | 'metrics'}>(), {section: 'faults'})
+
 const {t} = useI18n()
+
+const sectionTitle = computed(() => ({
+  faults: t('beacon.collectedFaults'),
+  reports: t('beacon.collectedReports'),
+  metrics: t('beacon.collectedMetrics'),
+}[props.section]))
 
 const status = ref<BeaconStatus | null>(null)
 const faults = ref<BeaconFault[]>([])
@@ -34,14 +46,7 @@ const reports = ref<BeaconReport[]>([])
 const metrics = ref<BeaconMetricsRow[]>([])
 const loading = ref(true)
 const error = ref('')
-const activeTab = ref('faults')
 const showAcknowledged = ref(false)
-
-const tabs = computed(() => [
-  {key: 'faults', label: t('beacon.collectedFaults')},
-  {key: 'reports', label: t('beacon.collectedReports')},
-  {key: 'metrics', label: t('beacon.collectedMetrics')},
-])
 
 const isBeacon = computed(() => status.value?.receiving === true)
 
@@ -99,20 +104,24 @@ function onSaved(stored: BeaconStatus) {
 
       <template v-else>
       <div class="flex items-center justify-between mb-4">
-        <TabBar v-model="activeTab" :tabs="tabs"/>
-        <SelectionToggleButton :selected="showAcknowledged" @toggle="showAcknowledged = !showAcknowledged; load()">
+        <SectionHeader class="!mb-0">{{ sectionTitle }}</SectionHeader>
+        <SelectionToggleButton
+            v-if="section !== 'metrics'"
+            :selected="showAcknowledged"
+            @toggle="showAcknowledged = !showAcknowledged; load()"
+        >
           {{ t('adminProblems.showAcknowledged') }}
         </SelectionToggleButton>
       </div>
 
-      <div v-if="activeTab === 'faults'" class="space-y-2">
+      <div v-if="props.section === 'faults'" class="space-y-2">
         <NeutralContainer v-if="faults.length === 0">
           <MutedText tag="div" size="sm">{{ t('beacon.noFaults') }}</MutedText>
         </NeutralContainer>
         <BeaconFaultCard v-for="fault in faults" :key="fault.id" :fault="fault" @resolve="resolve"/>
       </div>
 
-      <div v-else-if="activeTab === 'reports'" class="space-y-2">
+      <div v-else-if="section === 'reports'" class="space-y-2">
         <NeutralContainer v-if="reports.length === 0">
           <MutedText tag="div" size="sm">{{ t('beacon.noReports') }}</MutedText>
         </NeutralContainer>

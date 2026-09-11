@@ -61,7 +61,7 @@ public class BeaconAdminRoutes implements Routes {
         routes.get(base + "/problems/{id}/preview", this::previewProblem, InstancePermission.ADMINISTRATOR);
         routes.post(base + "/problems/{id}/send", this::sendProblem, InstancePermission.ADMINISTRATOR);
         routes.post(base + "/problems/send", this::sendProblems, InstancePermission.ADMINISTRATOR);
-        routes.get(base + "/metrics/preview", this::previewMetrics, InstancePermission.ADMINISTRATOR);
+        routes.get(base + "/figures/preview", this::previewMetrics, InstancePermission.ADMINISTRATOR);
 
         routes.get(base + "/collected/faults", this::faults, InstancePermission.ADMINISTRATOR);
         routes.put(base + "/collected/faults/{id}", this::resolveFault, InstancePermission.ADMINISTRATOR);
@@ -70,7 +70,7 @@ public class BeaconAdminRoutes implements Routes {
                 base + "/collected/reports/{id}/acknowledge",
                 this::acknowledgeReport,
                 InstancePermission.ADMINISTRATOR);
-        routes.get(base + "/collected/metrics", this::collectedMetrics, InstancePermission.ADMINISTRATOR);
+        routes.get(base + "/collected/figures", this::collectedMetrics, InstancePermission.ADMINISTRATOR);
     }
 
     /** What a beacon has gathered is only worth asking for when this instance is one. */

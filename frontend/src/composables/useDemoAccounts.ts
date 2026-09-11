@@ -4,7 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { demo } from '@/api'
+import { describeFailure, type Failure } from '@/util/failure'
 import type { DemoAccount, DemoAccountsPayload, DemoStationGroup } from '@/api/demo'
 import { StationUserType, StationUserTypeLabels } from '@/api/types'
 
@@ -63,9 +65,11 @@ export function roleLabel(account: DemoAccount): string {
  * instance where these endpoints do not exist.
  */
 export function useDemoAccounts() {
+  const { t } = useI18n()
   const isDemo = ref(false)
   const isDev = ref(false)
   const loading = ref(true)
+  const unreachable = ref<Failure | null>(null)
 
   const stationGroups = ref<DemoStationGroup[]>([])
   const noStationAccounts = ref<DemoAccount[]>([])
@@ -207,9 +211,12 @@ export function useDemoAccounts() {
         applyPayload(await demo.getDemoAccounts())
         activeStation.value = stationGroups.value[0]?.stationId ?? ''
       }
-    } catch {
+    } catch (e) {
+      // A server that is still starting is not a server that has no demo accounts, and telling the
+      // reader nothing leaves them looking at the wrong form with no idea why.
       isDemo.value = false
       isDev.value = false
+      unreachable.value = describeFailure(e, t)
     }
     loading.value = false
   }
@@ -228,6 +235,7 @@ export function useDemoAccounts() {
     isDemo,
     isDev,
     loading,
+    unreachable,
     activeStation,
     search,
     hasDemoAccounts,

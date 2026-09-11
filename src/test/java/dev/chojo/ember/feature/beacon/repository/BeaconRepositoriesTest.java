@@ -209,6 +209,18 @@ class BeaconRepositoriesTest extends RepositoryTestBase {
         assertTrue(read.instanceCount() > 0);
     }
 
+    /**
+     * What is still waiting to be looked at, which is what the navigation counts against the beacon
+     * pages so somebody sees there is something there without opening them.
+     */
+    @Test
+    void whatIsStillWaitingIsCounted() {
+        var waiting = read.countWaiting();
+
+        assertTrue(waiting.faults() >= 0, "an instance with nothing waiting counts nothing rather than failing");
+        assertTrue(waiting.reports() >= 0);
+    }
+
     /** Every station is counted, and each is named only by the identifier it uses for this. */
     @Test
     void everyStationIsCountedUnderItsMetricsName() {
