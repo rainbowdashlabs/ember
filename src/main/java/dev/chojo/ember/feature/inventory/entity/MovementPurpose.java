@@ -18,8 +18,14 @@ public enum MovementPurpose {
      */
     RETURN,
     /**
-     * A member's item is swapped for another. The outgoing item walks the return path and the
-     * incoming one walks the issue path, and the whole thing starts and ends at a member.
+     * A piece is swapped for another. The outgoing item walks the return path and the incoming one
+     * walks the issue path.
+     *
+     * <p>Usually that is a member's item, and the whole thing starts and ends with them. It can also
+     * be a piece the station keeps on its own shelf: gear the body above the station provided and the
+     * station holds, which is worn out and goes back for a replacement without anybody having worn
+     * it. That is the same swap with the shelf where the member would otherwise stand, which is why
+     * it is this purpose rather than a return and a request that happen to be about the same slot.
      */
     EXCHANGE,
     /**

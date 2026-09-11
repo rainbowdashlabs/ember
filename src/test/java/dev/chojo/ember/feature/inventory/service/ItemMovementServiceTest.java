@@ -126,15 +126,16 @@ class ItemMovementServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void stationOwnedGearWalksFourStepsAndNeverLeavesTheStation() {
+    void stationOwnedGearWalksFiveStepsAndNeverLeavesTheStation() {
         int old = itemWithMember(ItemOwner.STATION);
         int replacement = item(ItemOwner.STATION);
 
         ItemMovement movement = announceExchange(old);
         assertEquals(
-                4,
+                5,
                 itemMovementService.stepsOf(movement).size(),
-                "no owner leg for the station's own gear, and the member confirms they have the replacement");
+                "no owner leg for the station's own gear, the replacement is taken off the shelf before it is"
+                        + " handed over, and the member confirms they have it");
         assertEquals(ItemCustody.WITH_MEMBER, custodyOf(old), "announcing changes nothing about who has it");
 
         movement = walkToEnd(movement, replacement);
@@ -667,11 +668,11 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         // Its own station, because the tests above bind flows of their own to the shared one
         var pristine = stationRepo.create("MovementPresetStation");
         var flows = movementFlowService.findFlows(pristine.id());
-        assertEquals(10, flows.size(), "one chain per combination of purpose, owner and other end");
+        assertEquals(11, flows.size(), "one chain per combination of purpose, owner and other end");
         assertTrue(flows.stream().anyMatch(f -> f.purpose() == MovementPurpose.ISSUE));
         assertTrue(flows.stream().anyMatch(f -> f.purpose() == MovementPurpose.RETURN));
         assertTrue(flows.stream().anyMatch(f -> f.purpose() == MovementPurpose.REQUEST));
-        assertEquals(10, movementFlowService.findBindings(pristine.id()).size());
+        assertEquals(11, movementFlowService.findBindings(pristine.id()).size());
 
         var issue = flows.stream()
                 .filter(f -> f.purpose() == MovementPurpose.ISSUE)
@@ -810,5 +811,83 @@ class ItemMovementServiceTest extends RepositoryTestBase {
 
         stationRepo.delete(own.id());
         accountRepo.delete(account.id());
+    }
+
+    /** A movement started on the flow its piece calls for has nowhere to be moved to. */
+    @Test
+    void aMovementAlreadyOnTheRightFlowSaysSo() {
+        var movement = announceExchange(itemWithMember(ItemOwner.STATION));
+
+        var plan = itemMovementService.planRechain(movement.id());
+
+        assertTrue(plan.alreadyRight(), "it was started on the flow its piece calls for");
+        assertEquals(movement.flowId(), plan.currentFlowId());
+        assertEquals(movement.flowId().intValue(), plan.targetFlowId());
+        assertEquals(movement.id(), plan.movementId());
+        assertNotNull(plan.currentFlowName());
+        assertFalse(plan.steps().isEmpty(), "and the plan still says what that flow is");
+        assertEquals(stepStoodOn(movement).label(), plan.standingOn(), "and which of its steps it stands on");
+    }
+
+    /**
+     * A movement on the wrong flow is moved over and stands where it is told to stand.
+     *
+     * <p>The wrong flow is put under it by hand, because the bug that used to do so is fixed: a mixed
+     * inventory once answered with the body's flow for the station's own gear, and the movements that
+     * came of it are still out there.
+     */
+    @Test
+    void aMovementOnTheWrongFlowIsMovedOverOntoTheRightOne() {
+        var movement = announceExchange(itemWithMember(ItemOwner.STATION));
+        int belongsOn = movement.flowId();
+        int wrong = movementFlowService.resolveFlow(
+                station.id(),
+                mixedInventoryId,
+                ItemOwner.CLUSTER,
+                null,
+                MovementPurpose.EXCHANGE,
+                MovementParty.MEMBER);
+        var wrongSteps = movementFlowService.findActiveSteps(wrong);
+        itemMovementRepo.moveToFlow(movement.id(), wrong, wrongSteps.getFirst().id());
+
+        var plan = itemMovementService.planRechain(movement.id());
+        assertFalse(plan.alreadyRight(), "it is walking somebody else's flow");
+        assertEquals(wrong, plan.currentFlowId());
+        assertEquals(belongsOn, plan.targetFlowId());
+
+        itemMovementService.rechain(movement.id(), 0, member.id());
+
+        var moved = itemMovementRepo.findById(movement.id()).orElseThrow();
+        assertEquals(belongsOn, moved.flowId(), "it walks the flow its piece calls for");
+        assertEquals(
+                movementFlowService.findActiveSteps(belongsOn).getFirst().id(),
+                moved.currentStepId(),
+                "standing on the step it was told to stand on");
+        assertTrue(
+                itemMovementService.findLogs(movement.id()).stream()
+                        .anyMatch(entry -> entry.ackKind() == AckKind.CORRECTED),
+                "and its log says the flow changed under it");
+    }
+
+    /** A step that is not on the flow, and a movement that has finished, are both refused. */
+    @Test
+    void aMoveOntoAFlowThatCannotBeMadeIsRefused() {
+        var movement = announceExchange(itemWithMember(ItemOwner.STATION));
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> itemMovementService.rechain(movement.id(), 99, member.id()),
+                "that flow has no hundredth step");
+
+        var closed = itemMovementService.cancel(movement.id(), team, "Doch nicht");
+        assertEquals(MovementState.CANCELLED, closed.state());
+        assertThrows(
+                BadRequestResponse.class,
+                () -> itemMovementService.planRechain(movement.id()),
+                "a movement that has finished is not walking anything any more");
+        assertThrows(
+                BadRequestResponse.class,
+                () -> itemMovementService.rechain(movement.id(), 0, member.id()),
+                "and so there is nothing to move it onto");
     }
 }

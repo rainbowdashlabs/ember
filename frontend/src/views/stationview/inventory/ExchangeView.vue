@@ -16,7 +16,7 @@ import ExchangeListView from './exchangeview/ExchangeListView.vue'
 import ExchangeModals from './exchangeview/ExchangeModals.vue'
 import { useExchangeTable } from './exchangeview/useExchangeTable'
 import {ExchangeStatus, type ExchangeRequestEntry, type ExchangeStatusName} from '@/api/exchanges'
-import {InventoryTypes, type Inventory, type InventoryItem} from '@/api/inventory'
+import {InventoryTypes, ItemOwner, type Inventory, type InventoryItem} from '@/api/inventory'
 import type {ProfileField} from '@/api/profileFields'
 import type {StationMember} from '@/api/types'
 import type { ManagedMember } from '@/api/managedMembers'
@@ -78,19 +78,29 @@ const managedWithItemsList = computed(() =>
 const internalFlow: ExchangeStatusName[] = [ExchangeStatus.ANNOUNCED, ExchangeStatus.RECEIVED, ExchangeStatus.DONE]
 const externalFlow: ExchangeStatusName[] = [ExchangeStatus.ANNOUNCED, ExchangeStatus.RECEIVED, ExchangeStatus.SHIPPED, ExchangeStatus.ARRIVED, ExchangeStatus.DONE]
 
-function getFlow(inventoryType: string): ExchangeStatusName[] {
-  return inventoryType === InventoryTypes.INTERNAL ? internalFlow : externalFlow
-}
-
-function nextStatuses(current: ExchangeStatusName, inventoryType: string): ExchangeStatusName[] {
-  const flow = getFlow(inventoryType)
-  const idx = flow.indexOf(current)
-  if (idx < 0 || idx >= flow.length - 1) return []
-  return flow.slice(idx + 1)
+/**
+ * The chain this exchange walks, which follows the piece rather than the inventory holding it.
+ *
+ * <p>A mixed inventory holds the station's own gear beside the gear of the body above it, so its
+ * type cannot say which chain a row takes and the piece has to be asked instead. The station's own
+ * gear never goes anywhere: it comes off the member, onto the shelf, and back out again. Offering
+ * the shipping steps for it offers a step the server cannot reach, because it reads shipped off a
+ * piece being in transit and the station's own gear never is.
+ *
+ * <p>Where a mixed row does not say who owns the piece, the longer chain is the safe answer: it
+ * offers a step too many rather than hiding the one that was needed.
+ */
+function getFlow(request: ExchangeRequestEntry): ExchangeStatusName[] {
+  if (request.inventoryType === InventoryTypes.INTERNAL) return internalFlow
+  if (request.inventoryType === InventoryTypes.MIXED && request.ownerKind === ItemOwner.STATION) return internalFlow
+  return externalFlow
 }
 
 function nextStatusesFor(request: ExchangeRequestEntry): ExchangeStatusName[] {
-  return nextStatuses(request.status, request.inventoryType)
+  const flow = getFlow(request)
+  const idx = flow.indexOf(request.status)
+  if (idx < 0 || idx >= flow.length - 1) return []
+  return flow.slice(idx + 1)
 }
 
 const updatingId = ref<number | null>(null)

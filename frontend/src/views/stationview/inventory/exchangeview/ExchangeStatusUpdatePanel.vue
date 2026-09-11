@@ -31,7 +31,14 @@ const emit = defineEmits<{
   error: [msg: string]
 }>()
 
-const updateTargetStatus = ref<string>('')
+/**
+ * Where the exchange is being moved to, standing on the step it would take anyway.
+ *
+ * <p>The chain is walked forwards far more often than it is jumped, and the first entry is the step
+ * immediately ahead, so filling it in saves picking the same answer every time. It stays a dropdown:
+ * the later steps are still there for an exchange that skips one.
+ */
+const updateTargetStatus = ref<string>(props.nextStatuses[0] ?? '')
 const updateNote = ref('')
 const updateExchangedItemId = ref<string>('')
 const createNewItemForExchange = ref(false)

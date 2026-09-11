@@ -201,6 +201,57 @@ export async function deleteMovement(id: number): Promise<void> {
     await client.delete(`/movements/${id}`)
 }
 
+/** One step of the chain a movement would be moved onto, as that chain stands today. */
+export interface RechainStep {
+    index: number
+    label: string
+    actor: StepActorName
+    subject: StepSubjectName
+    custodyAfter: ItemCustodyName
+    picksItem: boolean
+}
+
+/** What moving a movement onto the chain it belongs on would do, read before it is done. */
+export interface RechainPlan {
+    movementId: number
+    /** The chain it walks now, and what that chain is called. */
+    currentFlowId: number | null
+    currentFlowName: string | null
+    /** The words of the step it stands on, or null where it stands on none. */
+    standingOn: string | null
+    /** The chain it belongs on. */
+    targetFlowId: number
+    targetFlowName: string | null
+    /** Whether the two are the same, in which case there is nothing to do. */
+    alreadyRight: boolean
+    steps: RechainStep[]
+    /** Where it would stand when exactly one step means what its own means, else null. */
+    suggestedIndex: number | null
+    certain: boolean
+}
+
+/**
+ * The chain this movement belongs on, and where it would stand once it is there.
+ *
+ * <p>Refused where the movement has already ended or where nothing binds a chain to what it is.
+ */
+export async function rechainPlan(id: number): Promise<RechainPlan> {
+    const res = await client.get<RechainPlan>(`/movements/${id}/rechain/plan`)
+    return res.data
+}
+
+/**
+ * Moves a movement onto the chain it belongs on and stands it on the step that was chosen.
+ *
+ * <p>A null step takes the only one that means what the current step means, and is refused where
+ * there is not exactly one. Answers with the movement as it now stands, the same as every other
+ * action on it.
+ */
+export async function rechain(id: number, stepIndex: number | null): Promise<MovementDetail> {
+    const res = await client.post<MovementDetail>(`/movements/${id}/rechain`, {stepIndex})
+    return res.data
+}
+
 // -- Flows --
 
 export interface MovementFlowStep {
@@ -321,6 +372,66 @@ export async function archiveStep(stepId: number): Promise<MovementFlow> {
 /** Puts the steps in the order they are to be walked, the whole order in one call. */
 export async function reorderSteps(flowId: number, stepIds: number[]): Promise<MovementFlow> {
     const res = await client.put<MovementFlow>(`/movement-flows/${flowId}/step-order`, {stepIds})
+    return res.data
+}
+
+/** One step of the chain a restore would write, before any of it exists. */
+export interface RestorePlanStep {
+    index: number
+    label: string
+    actor: StepActorName
+    subject: StepSubjectName
+    custodyAfter: ItemCustodyName
+    picksItem: boolean
+}
+
+/** A movement still walking the chain, which the restore has to put somewhere. */
+export interface RestorePlanMovement {
+    /** The step the movements stand on, or null for the ones whose step has already gone. */
+    stepId: number | null
+    /** The words that step carries, or null in the same case. */
+    standingOn?: string | null
+    /** How many movements stand on it, since one answer moves all of them. */
+    movements: number
+    /** The step they would land on, or null when that is not certain and somebody has to choose. */
+    suggestedIndex: number | null
+    certain: boolean
+}
+
+/** What a restore would do, read before it is done. */
+export interface RestorePlan {
+    steps: RestorePlanStep[]
+    movements: RestorePlanMovement[]
+}
+
+/** Where one movement goes once the chain under it has been replaced. */
+export interface FlowStepMapping {
+    stepId: number | null
+    stepIndex: number
+}
+
+/**
+ * What restoring this chain would replace it with, and where every open movement would land.
+ *
+ * <p>Read first and shown, because a movement whose step disappears has to be moved and the answer
+ * is not always certain. Guessing on the reader's behalf is what this call exists to avoid.
+ */
+export async function restorePlan(id: number): Promise<RestorePlan> {
+    const res = await client.get<RestorePlan>(`/movement-flows/${id}/restore/plan`)
+    return res.data
+}
+
+/**
+ * Puts a chain back to the preset written for the combination it serves.
+ *
+ * <p>The binding stays and the steps are replaced, so the answer is the chain as it now stands, the
+ * same as every other change to a chain.
+ *
+ * <p>Every open movement on the chain is named in the mappings, including the ones the plan was
+ * certain about, so what the reader saw is what is sent. An empty list is the chain nobody is on.
+ */
+export async function restoreFlow(id: number, mappings: FlowStepMapping[]): Promise<MovementFlow> {
+    const res = await client.post<MovementFlow>(`/movement-flows/${id}/restore`, {mappings})
     return res.data
 }
 

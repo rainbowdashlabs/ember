@@ -8,11 +8,9 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import MemberName from '@/components/avatar/MemberName.vue'
 import {inventory, movements} from '@/api'
 import type {InventorySize} from '@/api/inventory'
 import {MovementState, type MovementDetail} from '@/api/movements'
@@ -20,8 +18,11 @@ import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {apiErrorMessage} from '@/util/apiError'
+import FlowDiagram from '@/components/movement/FlowDiagram.vue'
 import MovementStep from './movementview/MovementStep.vue'
 import MovementActionPanel, {type AcknowledgePayload} from './movementview/MovementActionPanel.vue'
+import MovementRechainButton from './movementview/MovementRechainButton.vue'
+import MovementSummary from './movementview/MovementSummary.vue'
 import LossReportPanel from './movementview/LossReportPanel.vue'
 
 const {t} = useI18n()
@@ -34,13 +35,22 @@ const sizes = ref<InventorySize[]>([])
 const busy = ref(false)
 const actionError = ref('')
 
-const canForce = computed(() => hasPermission(StationPermission.INVENTORY_MANAGER))
+const isManager = computed(() => hasPermission(StationPermission.INVENTORY_MANAGER))
 const open = computed(() => detail.value?.movement.state === MovementState.OPEN)
 const currentStep = computed(() => detail.value?.steps.find(s => s.current) ?? null)
 
 /** Retired steps only belong on the chain when this movement actually walked through one. */
 const visibleSteps = computed(() =>
     (detail.value?.steps ?? []).filter(step => !step.archived || step.ackKind || step.current))
+
+/**
+ * The same steps as the drawing needs them, with the ones already acknowledged marked as walked.
+ *
+ * <p>The chain draws what this movement is doing rather than what the station configured, so a step
+ * retired after this movement passed through it still belongs on the picture.
+ */
+const drawnSteps = computed(() =>
+    visibleSteps.value.map(step => ({...step, archived: false, walked: !!step.ackKind})))
 
 /**
  * Whether the piece that arrives may be written down here rather than picked.
@@ -93,6 +103,10 @@ function acknowledge(payload: AcknowledgePayload) {
   void run(() => movements.acknowledgeStep(movementId.value, {stepId, ...payload}))
 }
 
+function refuse(message: string) {
+  actionError.value = message
+}
+
 function force(payload: AcknowledgePayload) {
   const stepId = currentStep.value?.id
   if (!stepId) return
@@ -109,40 +123,29 @@ function force(payload: AcknowledgePayload) {
     <Alert v-else-if="error" variant="error">{{ error }}</Alert>
 
     <div v-else-if="detail" class="space-y-4">
-      <NeutralContainer class="space-y-1 text-sm">
-        <div v-if="detail.movement.memberIdentity" class="flex items-center gap-2">
-          <span class="text-(--text-muted)">{{ t('movements.member') }}</span>
-          <MemberName :identity="detail.movement.memberIdentity"/>
-        </div>
-        <div v-if="detail.movement.inventoryName">
-          <span class="text-(--text-muted)">{{ t('movements.inventory') }}</span>
-          {{ detail.movement.inventoryName }}
-        </div>
-        <div v-if="detail.movement.reason">
-          <span class="text-(--text-muted)">{{ t('movements.reason') }}</span>
-          {{ detail.movement.reason }}
-        </div>
-        <div v-if="detail.movement.closeReason">
-          <span class="text-(--text-muted)">{{ t('movements.closeReason') }}</span>
-          {{ detail.movement.closeReason }}
-        </div>
-        <div v-if="!open">
-          <span class="text-(--text-muted)">{{ t('movements.stateLabel') }}</span>
-          {{ t(`movements.state.${detail.movement.state}`) }}
-        </div>
-      </NeutralContainer>
+      <MovementSummary :movement="detail.movement"/>
 
       <LossReportPanel v-if="detail.lossReport" :movement-id="movementId" :report="detail.lossReport"/>
 
       <div>
-        <SubHeader class="mb-2">{{ t('movements.chain') }}</SubHeader>
+        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <SubHeader>{{ t('movements.chain') }}</SubHeader>
+          <MovementRechainButton
+              v-if="open && isManager"
+              :disabled="busy"
+              :movement-id="movementId"
+              @confirm="stepIndex => run(() => movements.rechain(movementId, stepIndex))"
+              @refused="refuse"
+          />
+        </div>
         <Alert v-if="actionError" variant="error" class="mb-2">{{ actionError }}</Alert>
+        <FlowDiagram :steps="drawnSteps" class="mb-2"/>
         <MovementStep v-for="step in visibleSteps" :key="step.id" :step="step" :open="open">
           <template #action>
             <MovementActionPanel
                 v-if="step.current && open"
                 :busy="busy"
-                :can-force="canForce"
+                :can-force="isManager"
                 :may-record="mayRecord"
                 :sizes="sizes"
                 :wanted-size-id="detail.movement.newSizeId ?? detail.movement.oldSizeId"

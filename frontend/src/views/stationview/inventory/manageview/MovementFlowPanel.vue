@@ -4,9 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -17,6 +18,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {movements} from '@/api'
 import {
   MovementPurpose,
+  type FlowStepMapping,
   type MovementFlow,
   type MovementFlowBinding,
   type MovementPurposeName,
@@ -25,7 +27,6 @@ import {
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlowProblems} from '@/composables/useFlowProblems'
 import FlowCard from '../flowview/FlowCard.vue'
-import FlowBindingTable from '../flowview/FlowBindingTable.vue'
 
 const {t} = useI18n()
 const {refusalText} = useFlowProblems()
@@ -36,12 +37,48 @@ const busy = ref(false)
 const actionError = ref('')
 const flowErrors = ref<Record<number, string>>({})
 
+/** The purposes in the order a piece of gear meets them, which is also the order the page reads in. */
+const PURPOSES: MovementPurposeName[] = [
+  MovementPurpose.ISSUE,
+  MovementPurpose.EXCHANGE,
+  MovementPurpose.RETURN,
+  MovementPurpose.REQUEST,
+]
+
 const newName = ref('')
 const newPurpose = ref<MovementPurposeName>(MovementPurpose.EXCHANGE)
 
 const {loading, error, reload} = useAsyncLoader(async () => {
   ;[flows.value, bindings.value] = await Promise.all([movements.listFlows(), movements.listBindings()])
 })
+
+/**
+ * Which combination each chain serves.
+ *
+ * <p>A combination has exactly one chain, so the binding reads as a property of the chain and belongs
+ * on its card. Where a chain serves one inventory as well as the general case, the general one is what
+ * the card names, since that is the wider of the two answers.
+ */
+const bindingOf = computed(() => {
+  const found = new Map<number, MovementFlowBinding>()
+  for (const binding of bindings.value) {
+    const known = found.get(binding.flowId)
+    if (!known || (known.inventoryId != null && binding.inventoryId == null)) found.set(binding.flowId, binding)
+  }
+  return found
+})
+
+/**
+ * The chains under the purpose they serve.
+ *
+ * <p>One long run of cards says nothing about which of them belong together, and the purpose is the
+ * one thing a reader looking for a chain already knows.
+ */
+const groups = computed(() =>
+    PURPOSES
+        .map(purpose => ({purpose, flows: flows.value.filter(flow => flow.purpose === purpose)}))
+        .filter(group => group.flows.length > 0)
+)
 
 /**
  * Runs one change to one chain and puts the answer in its place.
@@ -70,6 +107,11 @@ function replace(flow: MovementFlow) {
   flows.value = flows.value.map(known => (known.id === flow.id ? flow : known))
 }
 
+/** A refusal a card worded for itself, put in the same place as the ones this panel words. */
+function showFlowError(flowId: number, message: string) {
+  flowErrors.value = {...flowErrors.value, [flowId]: message}
+}
+
 /**
  * Adds a step and reads the chain back.
  *
@@ -82,7 +124,7 @@ async function addStep(flowId: number, step: StepRequest): Promise<MovementFlow>
   return movements.getFlow(flowId)
 }
 
-/** A change that is not about one chain: creating one, or pointing a binding somewhere else. */
+/** A change that is not about one chain, which leaves only writing a new one. */
 async function run(action: () => Promise<unknown>) {
   busy.value = true
   actionError.value = ''
@@ -117,17 +159,12 @@ function createFlow() {
     <template v-else>
       <Alert v-if="actionError" variant="error">{{ actionError }}</Alert>
 
-      <FlowBindingTable
-          :bindings="bindings"
-          :busy="busy"
-          :flows="flows"
-          @rebind="(binding, flowId) => run(() => movements.bindFlow({...binding, flowId}))"
-      />
-
-      <div class="space-y-2">
+      <div v-for="group in groups" :key="group.purpose" class="space-y-2">
+        <SubHeader>{{ t(`movements.purpose.${group.purpose}`) }}</SubHeader>
         <FlowCard
-            v-for="flow in flows"
+            v-for="flow in group.flows"
             :key="flow.id"
+            :binding="bindingOf.get(flow.id)"
             :busy="busy"
             :error="flowErrors[flow.id]"
             :flow="flow"
@@ -136,6 +173,8 @@ function createFlow() {
             @archive-flow="(flowId: number) => runOnFlow(flowId, () => movements.archiveFlow(flowId))"
             @save-step="(stepId: number, step: StepRequest) => runOnFlow(flow.id, () => movements.updateStep(stepId, step))"
             @reorder="(flowId: number, stepIds: number[]) => runOnFlow(flowId, () => movements.reorderSteps(flowId, stepIds))"
+            @restore="(flowId: number, mappings: FlowStepMapping[]) => runOnFlow(flowId, () => movements.restoreFlow(flowId, mappings))"
+            @restore-refused="showFlowError"
         />
       </div>
 
@@ -147,12 +186,7 @@ function createFlow() {
         <div class="w-full space-y-1 sm:w-64">
           <FieldLabel>{{ t('flows.purpose') }}</FieldLabel>
           <SelectInput v-model="newPurpose" class="w-full">
-            <option
-                v-for="value in [MovementPurpose.EXCHANGE, MovementPurpose.RETURN,
-                                 MovementPurpose.ISSUE, MovementPurpose.REQUEST]"
-                :key="value"
-                :value="value"
-            >
+            <option v-for="value in PURPOSES" :key="value" :value="value">
               {{ t(`movements.purpose.${value}`) }}
             </option>
           </SelectInput>

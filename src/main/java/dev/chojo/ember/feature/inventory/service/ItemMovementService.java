@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.ItemMovementLog;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MovementFlow;
 import dev.chojo.ember.feature.inventory.entity.MovementFlowStep;
 import dev.chojo.ember.feature.inventory.entity.MovementParty;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
@@ -40,6 +41,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.stream.IntStream;
 
 /**
  * Movements between parties: starting one, acknowledging its steps, and the three ways out of one
@@ -294,8 +297,8 @@ public class ItemMovementService {
             boolean lostReport,
             List<Integer> carriedIncoming) {
         requireItIsNotAlreadyOnItsWay(outgoingItemId);
-        ItemOwner ownerKind = resolveOwner(outgoingItemId, inventoryId);
-        Integer ownerClusterId = resolveOwnerId(outgoingItemId, stationId);
+        ItemOwner ownerKind = resolveOwner(outgoingItemId, pickedItemId, inventoryId);
+        Integer ownerClusterId = resolveOwnerId(outgoingItemId != null ? outgoingItemId : pickedItemId, stationId);
         MovementParty party = memberId != null ? MovementParty.MEMBER : MovementParty.STORE;
         int flowId = flowService.resolveFlow(stationId, inventoryId, ownerKind, ownerClusterId, purpose, party);
         List<MovementFlowStep> steps = walkable(flowService.findActiveSteps(flowId), lostReport);
@@ -1012,23 +1015,40 @@ public class ItemMovementService {
      * @return the owner of its gear
      */
     public ItemOwner ownerOf(ItemMovement movement) {
-        return resolveOwner(movement.outgoingItemId(), movement.inventoryId());
+        return resolveOwner(movement.outgoingItemId(), movement.incomingItemId(), movement.inventoryId());
     }
 
     /**
-     * Who owns the gear a movement is about. The item says so when there is one; an issue that has
-     * not named its item yet falls back to what the inventory may hold.
+     * Who owns the piece this movement is about, which decides the chain it walks.
+     *
+     * <p>The piece itself is asked first, and either end of the movement will do: a return or an
+     * exchange names what is leaving, while an issue or a request names only what is arriving. Asking
+     * the outgoing side alone left every issue to the inventory instead, and a mixed inventory holds
+     * both kinds, so the station's own gear went out along the chain written for the gear of the body
+     * above it.
+     *
+     * <p>Where neither end names a piece, the inventory answers as far as it can. A mixed one cannot,
+     * and the body above the station is the better guess there: a movement with nothing on either side
+     * yet is one asking for a piece the station does not hold.
      */
-    private ItemOwner resolveOwner(Integer itemId, Integer inventoryId) {
-        if (itemId != null) {
-            Optional<InventoryItem> item = inventoryRepository.findItemById(itemId);
-            if (item.isPresent()) return item.get().ownerKind();
-        }
+    private ItemOwner resolveOwner(Integer outgoingItemId, Integer incomingItemId, Integer inventoryId) {
+        ItemOwner named = ownerOfItem(outgoingItemId);
+        if (named != null) return named;
+        named = ownerOfItem(incomingItemId);
+        if (named != null) return named;
         if (inventoryId == null) return ItemOwner.STATION;
         return inventoryRepository
                 .findById(inventoryId)
                 .map(inv -> inv.inventoryType() == InventoryType.INTERNAL ? ItemOwner.STATION : ItemOwner.CLUSTER)
                 .orElse(ItemOwner.STATION);
+    }
+
+    private ItemOwner ownerOfItem(Integer itemId) {
+        if (itemId == null) return null;
+        return inventoryRepository
+                .findItemById(itemId)
+                .map(InventoryItem::ownerKind)
+                .orElse(null);
     }
 
     /**
@@ -1098,4 +1118,195 @@ public class ItemMovementService {
     public static boolean namesIncomingItem(MovementFlowStep step) {
         return step.subject() == StepSubject.INCOMING && step.picksItem();
     }
+
+    /**
+     * The chain this movement would be started on today, and where it would stand on it.
+     *
+     * <p>A movement keeps the chain it was given when it set out, which is right while that answer
+     * was right. Where it was not, the movement walks steps written for somebody else's gear and
+     * there is otherwise no way back short of forcing it through or calling it off. This says what
+     * moving it over would come to, without moving anything.
+     *
+     * @param movementId the movement
+     * @return the chain it belongs on and where it would stand
+     * @throws BadRequestResponse when the movement is not open, or no chain is bound for what it is
+     */
+    public RechainPlan planRechain(int movementId) {
+        ItemMovement movement = openMovement(movementId);
+        int belongsOn = chainItBelongsOn(movement);
+        var steps = flowService.findActiveSteps(belongsOn);
+        MovementFlowStep standing = movement.currentStepId() == null
+                ? null
+                : flowService.findStep(movement.currentStepId()).orElse(null);
+        OptionalInt certain = sameMeaning(standing, steps);
+        return new RechainPlan(
+                movement.id(),
+                movement.flowId(),
+                nameOfChain(movement.flowId()),
+                standing == null ? null : standing.label(),
+                belongsOn,
+                nameOfChain(belongsOn),
+                movement.flowId() != null && movement.flowId() == belongsOn,
+                IntStream.range(0, steps.size())
+                        .mapToObj(index -> new RechainStep(
+                                index,
+                                steps.get(index).label(),
+                                steps.get(index).actor(),
+                                steps.get(index).subject(),
+                                steps.get(index).custodyAfter(),
+                                steps.get(index).picksItem()))
+                        .toList(),
+                certain.isPresent() ? certain.getAsInt() : null,
+                certain.isPresent());
+    }
+
+    /**
+     * Moves a movement onto the chain it belongs on, standing where it is told to stand.
+     *
+     * <p>The step is named rather than worked out, for the same reason a chain put back asks: the
+     * step a movement stood on and the steps of another chain do not line up on their own, and a
+     * guess quietly puts somebody's gear a stage further on than it is.
+     *
+     * @param movementId    the movement
+     * @param stepIndex     the step of the new chain it lands on, or {@code null} to take the one
+     *                      that means what its own meant, which has to be the only one that does
+     * @param actorMemberId who asked, which the entry its log gets names
+     * @throws BadRequestResponse when the movement is not open, when no chain is bound for what it
+     *                            is, or when no step is named and none means the same
+     */
+    public void rechain(int movementId, Integer stepIndex, Integer actorMemberId) {
+        ItemMovement movement = openMovement(movementId);
+        int belongsOn = chainItBelongsOn(movement);
+        var steps = flowService.findActiveSteps(belongsOn);
+        if (steps.isEmpty()) throw new BadRequestResponse("That chain has no steps to stand on");
+
+        MovementFlowStep standing = movement.currentStepId() == null
+                ? null
+                : flowService.findStep(movement.currentStepId()).orElse(null);
+        Integer landing = stepIndex;
+        if (landing == null) {
+            OptionalInt certain = sameMeaning(standing, steps);
+            if (certain.isEmpty()) {
+                throw new BadRequestResponse(
+                        "The chain it belongs on does not say on its own where it would stand, so it has to be told");
+            }
+            landing = certain.getAsInt();
+        }
+        if (landing < 0 || landing >= steps.size()) {
+            throw new BadRequestResponse(
+                    "That chain has %d steps, so there is no step %d to stand on".formatted(steps.size(), landing));
+        }
+
+        MovementFlowStep lands = steps.get(landing);
+        movementRepository.moveToFlow(movement.id(), belongsOn, lands.id());
+        movementRepository.createLog(
+                movement.id(),
+                lands.id(),
+                lands.label(),
+                AckKind.CORRECTED,
+                actorMemberId,
+                standing == null
+                        ? "Auf die passende Kette umgehängt, steht jetzt auf '%s'".formatted(lands.label())
+                        : "Auf die passende Kette umgehängt, aus '%s' wurde '%s'"
+                                .formatted(standing.label(), lands.label()));
+        log.info(
+                "Movement {} was moved from flow {} onto flow {}, standing on step {} ('{}')",
+                movement.id(),
+                movement.flowId(),
+                belongsOn,
+                lands.id(),
+                lands.label());
+    }
+
+    private ItemMovement openMovement(int movementId) {
+        ItemMovement movement =
+                movementRepository.findById(movementId).orElseThrow(() -> new BadRequestResponse("No such movement"));
+        if (movement.state() != MovementState.OPEN) {
+            throw new BadRequestResponse(
+                    "That movement has finished, so the chain under it no longer decides anything");
+        }
+        return movement;
+    }
+
+    /**
+     * Which chain a movement would be started on if it were started now, worked out the same way
+     * starting one works it out.
+     */
+    private int chainItBelongsOn(ItemMovement movement) {
+        ItemOwner ownerKind =
+                resolveOwner(movement.outgoingItemId(), movement.incomingItemId(), movement.inventoryId());
+        Integer ownerClusterId = resolveOwnerId(
+                movement.outgoingItemId() != null ? movement.outgoingItemId() : movement.incomingItemId(),
+                movement.stationId());
+        MovementParty party = movement.memberId() != null ? MovementParty.MEMBER : MovementParty.STORE;
+        return flowService.resolveFlow(
+                movement.stationId(), movement.inventoryId(), ownerKind, ownerClusterId, movement.purpose(), party);
+    }
+
+    private String nameOfChain(Integer flowId) {
+        return flowId == null
+                ? null
+                : flowService.findFlow(flowId).map(MovementFlow::name).orElse(null);
+    }
+
+    /**
+     * The one step of a chain that means what the step a movement stands on meant, if exactly one
+     * does. Same piece and same place afterwards, which is the whole of what a step says about where
+     * a movement stands.
+     */
+    private static OptionalInt sameMeaning(MovementFlowStep standing, List<MovementFlowStep> steps) {
+        if (standing == null) return OptionalInt.empty();
+        var candidates = IntStream.range(0, steps.size())
+                .filter(index -> steps.get(index).subject() == standing.subject()
+                        && steps.get(index).custodyAfter() == standing.custodyAfter())
+                .boxed()
+                .toList();
+        return candidates.size() == 1 ? OptionalInt.of(candidates.getFirst()) : OptionalInt.empty();
+    }
+
+    /**
+     * One step of the chain a movement would be moved onto.
+     *
+     * @param index        where it stands, counted from the front, which is what a landing names
+     * @param label        what it says
+     * @param actor        whose turn it is on it
+     * @param subject      which of the two pieces it is about
+     * @param custodyAfter where that piece is once it has been walked
+     * @param picksItem    whether it is the step that names the piece arriving
+     */
+    public record RechainStep(
+            int index,
+            String label,
+            StepActor actor,
+            StepSubject subject,
+            ItemCustody custodyAfter,
+            boolean picksItem) {}
+
+    /**
+     * What moving a movement onto the chain it belongs on would come to.
+     *
+     * @param movementId       the movement
+     * @param currentFlowId    the chain it walks now
+     * @param currentFlowName  what that chain is called
+     * @param standingOn       the words of the step it stands on, or {@code null} where it stands on
+     *                         none
+     * @param targetFlowId     the chain it belongs on
+     * @param targetFlowName   what that one is called
+     * @param alreadyRight     whether the two are the same, in which case there is nothing to do
+     * @param steps            the chain it belongs on, in the order it is walked
+     * @param suggestedIndex   where it would stand when exactly one step means what its own means,
+     *                         and {@code null} otherwise
+     * @param certain          whether that answer was found, which decides whether anybody is asked
+     */
+    public record RechainPlan(
+            int movementId,
+            Integer currentFlowId,
+            String currentFlowName,
+            String standingOn,
+            int targetFlowId,
+            String targetFlowName,
+            boolean alreadyRight,
+            List<RechainStep> steps,
+            Integer suggestedIndex,
+            boolean certain) {}
 }
