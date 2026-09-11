@@ -349,6 +349,26 @@ jobs:
         if: always()
         run: docker compose -f docker/compose.dev.yaml --profile e2e down -v
 
+  # One name for however many runs there turn out to be. Branch protection asks for a check by name,
+  # and the runs carry the area in theirs, so splitting them again would leave it waiting for a name
+  # nothing reports any more. This is that name, and it says what the runs between them said.
+  #
+  # `always()`, because a job that is skipped when one of the runs fails never reports at all, and a
+  # required check that never reports is a branch that can never merge. Skipped counts as not passed
+  # for the same reason: the runs were meant to happen and did not.
+  verify-test-frontend-e2e-complete:
+    runs-on: ubuntu-latest
+    name: Verify Frontend End-to-End
+    needs: [ verify-test-frontend-e2e ]
+    if: always()
+    steps:
+      - name: Say whether the runs passed
+        env:
+          RESULT: ${{ needs.verify-test-frontend-e2e.result }}
+        run: |
+          echo "The end-to-end runs came to: $RESULT"
+          [ "$RESULT" = "success" ] || exit 1
+
   verify-formatting-backend:
     runs-on: ubuntu-latest
     name: Verify Backend Formatting
