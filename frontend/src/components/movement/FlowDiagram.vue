@@ -170,10 +170,6 @@ function columnLabel(custody: ItemCustodyName): string {
     }
     return t(`itemDetail.custodyValues.${custody}`)
 }
-
-function titleFor(node: Node): string {
-    return `${node.index}. ${node.step.label} (${t(`movements.actor.${node.step.actor}`)})`
-}
 </script>
 
 <template>
@@ -223,7 +219,6 @@ function titleFor(node: Node): string {
         />
 
         <g v-for="node in track.nodes" :key="node.step.id">
-          <title>{{ titleFor(node) }}</title>
           <circle
               :class="node.step.current
                   ? 'fill-(--bg) stroke-primary'
