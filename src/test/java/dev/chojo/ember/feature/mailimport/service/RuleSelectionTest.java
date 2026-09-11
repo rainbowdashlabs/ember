@@ -48,9 +48,7 @@ class RuleSelectionTest {
                 false,
                 MailRuleAction.MARK_SEEN,
                 null,
-                false,
                 senders,
-                List.of(),
                 List.of(),
                 Instant.parse("2026-09-01T08:00:00Z"));
     }

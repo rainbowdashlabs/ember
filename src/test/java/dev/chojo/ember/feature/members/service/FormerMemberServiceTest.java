@@ -42,7 +42,6 @@ class FormerMemberServiceTest extends RepositoryTestBase {
                 attendanceRepo,
                 profileFieldRepo,
                 mock(DocumentService.class),
-                mailRuleRepo,
                 selfCheckService);
         station = stationRepo.create("FormerStation");
         account = accountRepo.create("former@test.com", "Former", "Member");

@@ -14,7 +14,6 @@ import MailRuleRow from './MailRuleRow.vue'
 import MailRuleEditor from './MailRuleEditor.vue'
 import {mailImport} from '@/api'
 import type {MailRule, MailRuleRequest} from '@/api/mailImport'
-import type {StationMember} from '@/api/types'
 import {moveWithin} from '@/util/reorder'
 
 /**
@@ -25,7 +24,6 @@ import {moveWithin} from '@/util/reorder'
  */
 const props = defineProps<{
   mailboxId: number
-  members: StationMember[]
   supportedTypes: string[]
 }>()
 
@@ -102,10 +100,8 @@ reload()
       <template #default="{item}">
         <MailRuleRow
             :rule="item"
-            :members="members"
             @edit="editing = item; adding = false"
             @delete="act(mailImport.deleteRule(item.id))"
-            @acknowledge="act(mailImport.acknowledgeLostMember(item.id))"
         />
       </template>
     </DragList>
@@ -113,7 +109,6 @@ reload()
     <MailRuleEditor
         v-if="adding || editing"
         :rule="editing"
-        :members="members"
         :supported-types="supportedTypes"
         :position="rules.length"
         @cancel="editing = null; adding = false"

@@ -55,6 +55,7 @@ dependencies {
     implementation(libs.webauthn.server)
 
     implementation(libs.angus)
+    implementation(libs.jdkim)
     implementation(libs.pebble)
     implementation(libs.bundles.commonmark)
     implementation(libs.jsoup)
@@ -508,5 +509,15 @@ spotless {
     format("frontendLocales") {
         encoding("UTF-8")
         target("frontend/src/locales/*.json")
+    }
+
+    // The data tracking file is generated and committed, so its layout has to be somebody's decision
+    // rather than whatever the serialiser happens to do. Left to the library it moved once already and
+    // rewrote twenty thousand lines around the one column that had changed. Here it is asserted.
+    json {
+        target("src/main/resources/data_tracking.json")
+        encoding("UTF-8")
+        gson().indentWithSpaces(2)
+        endWithNewline()
     }
 }

@@ -15,13 +15,11 @@ import MailboxTestReport from './MailboxTestReport.vue'
 import MailRuleList from './MailRuleList.vue'
 import {mailImport} from '@/api'
 import type {Mailbox, MailboxTestResult} from '@/api/mailImport'
-import type {StationMember} from '@/api/types'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /** One mailbox: how it is doing, what it is set to, and the rules under it. */
 const props = defineProps<{
   mailbox: Mailbox
-  members: StationMember[]
   supportedTypes: string[]
 }>()
 
@@ -95,7 +93,6 @@ async function remove() {
 
       <MailRuleList
           :mailbox-id="mailbox.id"
-          :members="members"
           :supported-types="supportedTypes"
           @error="emit('error', $event)"
       />

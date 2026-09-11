@@ -94,6 +94,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
                         "archive",
                         new EncryptedBlob(new byte[12], new byte[16]),
                         "INBOX",
+                        false,
                         15,
                         Instant.parse("2026-09-01T00:00:00Z"));
         ruleId = new dev.chojo.ember.feature.mailimport.repository.MailRuleRepository()
@@ -113,8 +114,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
                         MailRuleAction.MARK_SEEN,
                         null,
                         List.of("*@musterstadt.de"),
-                        List.of("Attest"),
-                        List.of())
+                        List.of("Attest"))
                 .id();
     }
 
@@ -152,8 +152,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
         return new Attachment(name, "application/pdf", data == null ? -1 : data.length, false, data);
     }
 
-    private static MailRule rule(
-            boolean readSubject, List<Integer> members, long minSize, List<String> types, MailTitleSource title) {
+    private static MailRule rule(boolean readSubject, long minSize, List<String> types, MailTitleSource title) {
         return new MailRule(
                 ruleId,
                 mailbox.id(),
@@ -171,15 +170,13 @@ class MailFilingServiceTest extends RepositoryTestBase {
                 readSubject,
                 MailRuleAction.MARK_SEEN,
                 null,
-                false,
                 List.of("*@musterstadt.de"),
                 List.of("Attest"),
-                members,
                 ARRIVED);
     }
 
     private static MailRule plainRule() {
-        return rule(false, List.of(), 0L, List.of("application/pdf"), MailTitleSource.SUBJECT);
+        return rule(false, 0L, List.of("application/pdf"), MailTitleSource.SUBJECT);
     }
 
     /**
@@ -292,7 +289,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
     void somethingTooSmallToBeADocumentIsRefused() {
         var outcome = service.file(
                 mailbox,
-                rule(false, List.of(), 1_000_000L, List.of("application/pdf"), MailTitleSource.SUBJECT),
+                rule(false, 1_000_000L, List.of("application/pdf"), MailTitleSource.SUBJECT),
                 envelope("Klein", attachment("klein.pdf", pdf("small"))),
                 attachment("klein.pdf", pdf("small")),
                 "<small@musterstadt.de>");
@@ -314,20 +311,27 @@ class MailFilingServiceTest extends RepositoryTestBase {
         assertEquals(MailImportOutcome.TOO_LARGE, outcome);
     }
 
+    /**
+     * Reading a name out of a line a human typed is a guess, so a rule has to ask for it. One that does
+     * not files under nobody however plainly the subject names somebody.
+     */
     @Test
     @Order(9)
-    void aRuleThatNamesMembersFilesUnderThem() {
+    void aSubjectIsNotReadWhereTheRuleDidNotAskForIt() {
         var outcome = service.file(
                 mailbox,
-                rule(false, List.of(memberId), 0L, List.of("application/pdf"), MailTitleSource.SUBJECT),
-                envelope("Jugendgruppe", attachment("brief.pdf", pdf("named"))),
-                attachment("brief.pdf", pdf("named")),
-                "<named@musterstadt.de>");
+                plainRule(),
+                envelope("Unterlagen Anna Weber", attachment("brief.pdf", pdf("notasked"))),
+                attachment("brief.pdf", pdf("notasked")),
+                "<notasked@musterstadt.de>");
 
         assertEquals(MailImportOutcome.IMPORTED, outcome);
         var filed =
-                memberDocumentRepo.findByStation(station.id(), List.of(memberId), null, true, false, "simple", 10, 0);
-        assertTrue(filed.stream().anyMatch(document -> "Jugendgruppe".equals(document.title())));
+                memberDocumentRepo.findByStation(station.id(), List.of(), null, true, false, "simple", 20, 0).stream()
+                        .filter(document -> "Unterlagen Anna Weber".equals(document.title()))
+                        .findFirst()
+                        .orElseThrow();
+        assertTrue(memberDocumentRepo.hasNoMembers(filed.id()));
     }
 
     @Test
@@ -335,7 +339,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
     void aSubjectNamingOneMemberFilesUnderThemWhenTheRuleAsks() {
         var outcome = service.file(
                 mailbox,
-                rule(true, List.of(), 0L, List.of("application/pdf"), MailTitleSource.SUBJECT),
+                rule(true, 0L, List.of("application/pdf"), MailTitleSource.SUBJECT),
                 envelope("Attest Anna Weber", attachment("attest.pdf", pdf("subject"))),
                 attachment("attest.pdf", pdf("subject")),
                 "<subject@musterstadt.de>");
@@ -351,7 +355,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
     void aSubjectNamingNobodyStillFilesTheDocument() {
         var outcome = service.file(
                 mailbox,
-                rule(true, List.of(), 0L, List.of("application/pdf"), MailTitleSource.SUBJECT),
+                rule(true, 0L, List.of("application/pdf"), MailTitleSource.SUBJECT),
                 envelope("Rechnung 2026", attachment("rechnung2.pdf", pdf("nobody"))),
                 attachment("rechnung2.pdf", pdf("nobody")),
                 "<nobody@musterstadt.de>");
@@ -364,7 +368,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
     void theTitleComesFromTheFileNameWhereTheRuleSaysSo() {
         service.file(
                 mailbox,
-                rule(false, List.of(), 0L, List.of("application/pdf"), MailTitleSource.FILE_NAME),
+                rule(false, 0L, List.of("application/pdf"), MailTitleSource.FILE_NAME),
                 envelope("Betreff wird ignoriert", attachment("Geraetepruefung.pdf", pdf("byname"))),
                 attachment("Geraetepruefung.pdf", pdf("byname")),
                 "<byname@musterstadt.de>");
@@ -379,7 +383,7 @@ class MailFilingServiceTest extends RepositoryTestBase {
     void anAttachmentWithNoNameIsStillGivenOne() {
         service.file(
                 mailbox,
-                rule(false, List.of(), 0L, List.of("application/pdf"), MailTitleSource.FILE_NAME),
+                rule(false, 0L, List.of("application/pdf"), MailTitleSource.FILE_NAME),
                 envelope("Ohne Dateiname", new Attachment(null, "application/pdf", 20, true, pdf("noname"))),
                 new Attachment(null, "application/pdf", 20, true, pdf("noname")),
                 "<noname@musterstadt.de>");

@@ -28,6 +28,7 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.mailImport.senderTitle')">
       <p>{{ t('helpCenter.mailImport.senderText') }}</p>
       <p>{{ t('helpCenter.mailImport.senderWarningText') }}</p>
+      <p>{{ t('helpCenter.mailImport.senderDkimText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.mailImport.ruleTitle')">
@@ -40,7 +41,6 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.mailImport.memberTitle')">
       <p>{{ t('helpCenter.mailImport.memberText') }}</p>
       <p>{{ t('helpCenter.mailImport.memberSubjectText') }}</p>
-      <p>{{ t('helpCenter.mailImport.memberLostText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.mailImport.logTitle')">

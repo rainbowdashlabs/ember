@@ -12,7 +12,6 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.documents.service.DocumentService;
-import dev.chojo.ember.feature.mailimport.repository.MailRuleRepository;
 import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -40,7 +39,6 @@ public class StationMemberService {
     private final AuthService authService;
     private final MemberLookupService lookupService;
     private final DocumentService documentService;
-    private final MailRuleRepository mailRuleRepository;
 
     @Inject
     public StationMemberService(
@@ -49,15 +47,13 @@ public class StationMemberService {
             AccountRepository accountRepository,
             AuthService authService,
             MemberLookupService lookupService,
-            DocumentService documentService,
-            MailRuleRepository mailRuleRepository) {
+            DocumentService documentService) {
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
         this.accountRepository = accountRepository;
         this.authService = authService;
         this.lookupService = lookupService;
         this.documentService = documentService;
-        this.mailRuleRepository = mailRuleRepository;
     }
 
     public List<StationMember> findByStation(int stationId) {
@@ -137,7 +133,6 @@ public class StationMemberService {
      */
     public boolean delete(int id) {
         documentService.releaseMember(id);
-        mailRuleRepository.releaseMember(id);
         log.info("Member deleted: member={}", id);
         return memberRepository.delete(id);
     }

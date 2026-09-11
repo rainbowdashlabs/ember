@@ -52,6 +52,7 @@ class MailImportLogRepositoryTest extends RepositoryTestBase {
                         "archive",
                         new EncryptedBlob(new byte[12], new byte[16]),
                         "INBOX",
+                        false,
                         15,
                         Instant.parse("2026-09-01T00:00:00Z"))
                 .id();
@@ -72,7 +73,6 @@ class MailImportLogRepositoryTest extends RepositoryTestBase {
                         MailRuleAction.MARK_SEEN,
                         null,
                         List.of("*@musterstadt.de"),
-                        List.of(),
                         List.of())
                 .id();
     }

@@ -75,6 +75,12 @@ export interface Mailbox {
     enabled: boolean
     intervalMinutes: number
     importFrom: string
+    /**
+     * Whether a message has to carry a valid signature whose domain matches the sender address before a
+     * rule may take it. Off unless the station's correspondents sign their mail, because otherwise it
+     * refuses everything.
+     */
+    verifyDkim: boolean
     lastCheckAt?: string | null
     lastError?: string | null
     failureCount: number
@@ -93,6 +99,7 @@ export interface MailboxRequest {
     enabled: boolean
     intervalMinutes: number
     importFrom: string
+    verifyDkim: boolean
 }
 
 export interface MailRule {
@@ -112,14 +119,11 @@ export interface MailRule {
     readSubjectForMember: boolean
     action: MailRuleActionName
     moveToFolder?: string | null
-    /** Whether the rule dropped a member it could no longer file under, which the page has to say. */
-    lostMember: boolean
     senderPatterns: string[]
     tags: string[]
-    memberIds: number[]
 }
 
-export type MailRuleRequest = Omit<MailRule, 'id' | 'mailboxId' | 'lostMember'>
+export type MailRuleRequest = Omit<MailRule, 'id' | 'mailboxId'>
 
 export interface MailImportLogEntry {
     id: number
@@ -245,10 +249,6 @@ export async function updateRule(ruleId: number, data: MailRuleRequest): Promise
 
 export async function deleteRule(ruleId: number): Promise<void> {
     await client.delete(`/station/mail-import/rules/${ruleId}`)
-}
-
-export async function acknowledgeLostMember(ruleId: number): Promise<void> {
-    await client.post(`/station/mail-import/rules/${ruleId}/acknowledge-lost-member`)
 }
 
 export async function log(page = 0, size = 50): Promise<MailImportLogPage> {
