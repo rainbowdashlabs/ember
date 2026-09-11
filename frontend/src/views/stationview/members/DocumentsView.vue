@@ -28,7 +28,7 @@ import type {StationMember} from '@/api/types'
 const {t} = useI18n()
 const {hasPermission} = usePermissions()
 
-const canEdit = computed(() => hasPermission(StationPermission.MEMBER_EDIT))
+const canEdit = computed(() => hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER))
 
 const documents = ref<StationDocument[]>([])
 const total = ref(0)

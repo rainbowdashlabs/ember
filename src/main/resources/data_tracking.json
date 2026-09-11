@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:2c073de19663218c42e04952137fe4ff9af67a3f091db813a8a0f192e84b0f7d",
-  "generatedAt": "2026-09-10T16:19:05Z",
+  "schemaHash": "sha256:2553db7248be293da299a98bedc16598087f3aea3b6eaa39df4bb328da8e7027",
+  "generatedAt": "2026-09-11T01:36:28Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -14128,15 +14128,13 @@
           "name": "mailbox_id",
           "type": "int4",
           "nullable": false,
-          "verified": true,
-          "description": "The mailbox that dealt with the message."
+          "verified": true
         },
         {
           "name": "message_id",
           "type": "text",
           "nullable": false,
-          "verified": true,
-          "description": "The message's own identifier, or one made from its envelope where it carried none."
+          "verified": true
         },
         {
           "name": "derived",
@@ -14149,8 +14147,7 @@
           "name": "handled_at",
           "type": "timestamp",
           "nullable": false,
-          "verified": true,
-          "description": "When it was dealt with."
+          "verified": true
         }
       ],
       "foreignKeys": [
@@ -14188,15 +14185,13 @@
           "name": "mailbox_id",
           "type": "int4",
           "nullable": false,
-          "verified": true,
-          "description": "The mailbox the attachment arrived in."
+          "verified": true
         },
         {
           "name": "station_id",
           "type": "int4",
           "nullable": false,
-          "verified": true,
-          "description": "The station the attachment was filed for, which is what the duplicate check is scoped to."
+          "verified": true
         },
         {
           "name": "rule_id",
@@ -14209,29 +14204,25 @@
           "name": "message_id",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "The message the attachment hung off."
+          "verified": true
         },
         {
           "name": "sender",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "Who sent it, as the envelope gave it."
+          "verified": true
         },
         {
           "name": "subject",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "What the message was called, kept because it is what a reader recognises an entry by."
+          "verified": true
         },
         {
           "name": "attachment_name",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "What the file was called in the mail."
+          "verified": true
         },
         {
           "name": "content_hash",
@@ -14245,7 +14236,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "IMPORTED, DUPLICATE, SENDER_NOT_ALLOWED, NO_RULE_MATCHED, TYPE_NOT_ALLOWED, TOO_LARGE, TOO_SMALL, NO_ATTACHMENT, QUOTA_EXCEEDED, AUTHENTICATION_FAILED or FAILED."
+          "description": "IMPORTED, DUPLICATE, SENDER_NOT_ALLOWED, NO_RULE_MATCHED, TYPE_NOT_ALLOWED, TOO_LARGE, TOO_SMALL, NO_ATTACHMENT, QUOTA_EXCEEDED, AUTHENTICATION_FAILED, NO_SIGNATURE, SIGNATURE_NOT_ALIGNED, SIGNATURE_FAILED or FAILED."
         },
         {
           "name": "reason",
@@ -14258,8 +14249,7 @@
           "name": "document_id",
           "type": "int4",
           "nullable": true,
-          "verified": true,
-          "description": "The document that resulted, where one did."
+          "verified": true
         },
         {
           "name": "pruned",
@@ -14272,8 +14262,7 @@
           "name": "created_at",
           "type": "timestamp",
           "nullable": false,
-          "verified": true,
-          "description": "When the attachment was looked at."
+          "verified": true
         }
       ],
       "foreignKeys": [
@@ -14317,7 +14306,7 @@
       "description": "What happened to every attachment that was looked at. A rule that quietly imports nothing is the likeliest complaint, and this is the only thing that answers it."
     },
     "mail_mailbox": {
-      "tableHash": "sha256:62ade1b0b9253234d0468237d89e65c515b14ee19a635ca2c75bc800fafdd771",
+      "tableHash": "sha256:a99ba333bf92316ac0958f22cd44a1c6342bda747f82ae419cfbf87e6093856e",
       "columns": [
         {
           "name": "id",
@@ -14329,8 +14318,7 @@
           "name": "station_id",
           "type": "int4",
           "nullable": false,
-          "verified": true,
-          "description": "The station whose mailbox this is."
+          "verified": true
         },
         {
           "name": "name",
@@ -14343,15 +14331,13 @@
           "name": "host",
           "type": "text",
           "nullable": false,
-          "verified": true,
-          "description": "The mail server this connects to."
+          "verified": true
         },
         {
           "name": "port",
           "type": "int4",
           "nullable": false,
-          "verified": true,
-          "description": "The port on that server."
+          "verified": true
         },
         {
           "name": "security",
@@ -14364,8 +14350,7 @@
           "name": "username",
           "type": "text",
           "nullable": false,
-          "verified": true,
-          "description": "The account the connection signs in as."
+          "verified": true
         },
         {
           "name": "password_iv",
@@ -14385,8 +14370,7 @@
           "name": "folder",
           "type": "text",
           "nullable": false,
-          "verified": true,
-          "description": "Which folder is watched, which is the inbox unless the station says otherwise."
+          "verified": true
         },
         {
           "name": "enabled",
@@ -14413,8 +14397,7 @@
           "name": "last_check_at",
           "type": "timestamp",
           "nullable": true,
-          "verified": true,
-          "description": "When the poller last visited, which is how the page says whether anything is happening."
+          "verified": true
         },
         {
           "name": "last_error",
@@ -14441,8 +14424,14 @@
           "name": "created_at",
           "type": "timestamp",
           "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "verify_dkim",
+          "type": "bool",
+          "nullable": false,
           "verified": true,
-          "description": "When the mailbox was added."
+          "description": "Whether a message has to carry a DKIM signature that verifies and whose signing domain is the one the sender address claims. Off by default: only a station whose correspondents sign their mail can turn it on without refusing what it came for."
         }
       ],
       "foreignKeys": [
@@ -14552,7 +14541,7 @@
       "description": "Which mail provider a receiving domain has refused outright, so it is not tried there again."
     },
     "mail_rule": {
-      "tableHash": "sha256:490acc739719df52b765edd9409fa334675a6e69b951589bed5e0dd6b36892bd",
+      "tableHash": "sha256:c5cacdd94b62a858f3daa26542cc3b386605459d3406208654a242888d21cf31",
       "columns": [
         {
           "name": "id",
@@ -14564,15 +14553,13 @@
           "name": "mailbox_id",
           "type": "int4",
           "nullable": false,
-          "verified": true,
-          "description": "The mailbox this rule belongs to."
+          "verified": true
         },
         {
           "name": "name",
           "type": "text",
           "nullable": false,
-          "verified": true,
-          "description": "What the station calls this rule, so the log can name the one that took a message."
+          "verified": true
         },
         {
           "name": "position",
@@ -14585,8 +14572,7 @@
           "name": "enabled",
           "type": "bool",
           "nullable": false,
-          "verified": true,
-          "description": "Whether the rule takes part. A rule switched off is skipped without taking the message from the ones after it."
+          "verified": true
         },
         {
           "name": "subject_filter",
@@ -14634,15 +14620,13 @@
           "name": "hidden",
           "type": "bool",
           "nullable": false,
-          "verified": true,
-          "description": "Whether documents this rule files are kept from the members they are bound to."
+          "verified": true
         },
         {
           "name": "keep_on_archive",
           "type": "bool",
           "nullable": false,
-          "verified": true,
-          "description": "Whether documents this rule files survive their members being marked former."
+          "verified": true
         },
         {
           "name": "read_subject_for_member",
@@ -14666,18 +14650,10 @@
           "description": "Where MOVE puts the message. Null for every other action."
         },
         {
-          "name": "lost_member",
-          "type": "bool",
-          "nullable": false,
-          "verified": true,
-          "description": "Whether this rule dropped a member it could no longer file under. Said on the page, because a rule that silently stops working is worse than one that says what happened to it."
-        },
-        {
           "name": "created_at",
           "type": "timestamp",
           "nullable": false,
-          "verified": true,
-          "description": "When the rule was written."
+          "verified": true
         }
       ],
       "foreignKeys": [
@@ -14702,63 +14678,6 @@
       },
       "description": "What a mailbox does with the mail it finds. Ordered, and the first rule that matches a message takes it."
     },
-    "mail_rule_member": {
-      "tableHash": "sha256:b07b8e6f2f1905cd7cfce55e93b6e427498a9624d3227b08645882371736cf02",
-      "columns": [
-        {
-          "name": "rule_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "The rule filing under this member."
-        },
-        {
-          "name": "member_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "The member every document of this rule is bound to."
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "member_id",
-          "refTable": "station_member",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "rule_id",
-          "refTable": "mail_rule",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        }
-      ],
-      "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "Belongs to a rule, whose mailbox is not transferred."
-      },
-      "gdprExport": {
-        "status": "TRACKED",
-        "identityColumns": [
-          {
-            "type": "MEMBER_ID",
-            "column": "member_id"
-          }
-        ]
-      },
-      "gdprDeletion": {
-        "status": "TRACKED",
-        "strategies": [
-          {
-            "column": "member_id",
-            "strategy": "CASCADE",
-            "reason": "FK ON DELETE CASCADE on member/account delete, which drops the member from the rule and leaves the rule working for the rest"
-          }
-        ]
-      },
-      "description": "Members every document this rule files is bound to. Optional, and the usual answer is none."
-    },
     "mail_rule_sender": {
       "tableHash": "sha256:9d56a28e5a18b227f7ae706960242009821c97ceab4db8c1f1da8fed1f349ae3",
       "columns": [
@@ -14772,15 +14691,13 @@
           "name": "rule_id",
           "type": "int4",
           "nullable": false,
-          "verified": true,
-          "description": "The rule this pattern belongs to."
+          "verified": true
         },
         {
           "name": "pattern",
           "type": "text",
           "nullable": false,
-          "verified": true,
-          "description": "One address, or every address at a domain written as '*@domain'. Compared in lower case and never as a regular expression."
+          "verified": true
         }
       ],
       "foreignKeys": [
@@ -14812,15 +14729,13 @@
           "name": "rule_id",
           "type": "int4",
           "nullable": false,
-          "verified": true,
-          "description": "The rule these tags belong to."
+          "verified": true
         },
         {
           "name": "name",
           "type": "text",
           "nullable": false,
-          "verified": true,
-          "description": "The tag as it is written onto the document."
+          "verified": true
         }
       ],
       "foreignKeys": [
@@ -15113,8 +15028,7 @@
           "name": "document_id",
           "type": "int4",
           "nullable": false,
-          "verified": true,
-          "description": "The document that arrived by mail."
+          "verified": true
         },
         {
           "name": "mailbox_id",
@@ -15127,15 +15041,13 @@
           "name": "sender",
           "type": "text",
           "nullable": false,
-          "verified": true,
-          "description": "The address it came from, which is what the detail shows in place of an uploader."
+          "verified": true
         },
         {
           "name": "subject",
           "type": "text",
           "nullable": true,
-          "verified": true,
-          "description": "What the message was called."
+          "verified": true
         },
         {
           "name": "received_at",

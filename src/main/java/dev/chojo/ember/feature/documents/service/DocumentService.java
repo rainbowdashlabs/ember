@@ -148,22 +148,19 @@ public class DocumentService {
     /**
      * Whether a reader holding these permissions may see this document.
      *
-     * <p>This is the trap in giving documents a permission of their own. A permission to read
-     * documents, standing alone, would hand its holder every medical certificate in the station
-     * without ever granting them sight of a member.
+     * <p>The document decides, and it decides between two permissions of the store rather than
+     * borrowing one from the members. A document that names a member is a member document and needs
+     * the permission for those. A document that names nobody is the station's own paperwork and
+     * needs only the permission to read the store, which is what lets the equipment officer at the
+     * test certificates without handing them the member list.
      *
-     * <p>So a document that names members is readable by whoever may read those members, exactly as it
-     * was before documents had a permission at all. A document that names nobody is the station's own
-     * paperwork and needs only the permission to read documents, which is what lets the equipment
-     * officer at the test certificates without handing them the member list.
-     *
-     * @param documentId     the document being read
-     * @param mayReadMembers whether the reader may see the station's members
-     * @param mayReadStore   whether the reader may see the document store
+     * @param documentId             the document being read
+     * @param mayReadMemberDocuments whether the reader may see the documents that name a member
+     * @param mayReadStore           whether the reader may see the station's own paperwork
      * @return whether the reader may see it
      */
-    public boolean mayRead(int documentId, boolean mayReadMembers, boolean mayReadStore) {
-        return repository.hasNoMembers(documentId) ? mayReadStore : mayReadMembers;
+    public boolean mayRead(int documentId, boolean mayReadMemberDocuments, boolean mayReadStore) {
+        return repository.hasNoMembers(documentId) ? mayReadStore : mayReadMemberDocuments;
     }
 
     /**

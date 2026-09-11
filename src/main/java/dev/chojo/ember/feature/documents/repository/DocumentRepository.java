@@ -116,17 +116,25 @@ public class DocumentRepository {
     /**
      * The documents bound to a member, newest first.
      *
+     * <p>The station is asked for as well as the member, because a binding is a row and a row can
+     * name a member of another station. A document of one station never belongs on the record of
+     * somebody at another, whatever the bindings say.
+     *
+     * @param stationId     the station the documents belong to
      * @param includeHidden whether the ones kept from the member themselves are listed too
      */
-    public List<Document> findByMember(int memberId, boolean includeHidden) {
+    public List<Document> findByMember(int stationId, int memberId, boolean includeHidden) {
         return query("""
                         SELECT %s
                         FROM member_document d
                         JOIN member_document_member m ON m.document_id = d.id
                         WHERE m.member_id = :member_id
+                          AND d.station_id = :station_id
                           AND (:include_hidden OR NOT d.hidden)
                         ORDER BY d.created_at DESC;""", JOINED_COLUMNS)
-                .single(call().bind("member_id", memberId).bind("include_hidden", includeHidden))
+                .single(call().bind("member_id", memberId)
+                        .bind("station_id", stationId)
+                        .bind("include_hidden", includeHidden))
                 .map(Document.map())
                 .all();
     }

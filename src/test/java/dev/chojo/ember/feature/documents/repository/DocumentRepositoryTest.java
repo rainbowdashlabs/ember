@@ -72,7 +72,11 @@ class DocumentRepositoryTest extends RepositoryTestBase {
         memberDocumentRepo.bind(documentId, List.of(otherMemberId));
 
         assertEquals(2, memberDocumentRepo.membersOf(documentId).size());
-        assertEquals(1, memberDocumentRepo.findByMember(otherMemberId, false).size());
+        assertEquals(
+                1,
+                memberDocumentRepo
+                        .findByMember(station.id(), otherMemberId, false)
+                        .size());
     }
 
     /** Hiding a document hides it from the members it belongs to, which is the whole point. */
@@ -81,9 +85,9 @@ class DocumentRepositoryTest extends RepositoryTestBase {
     void aHiddenDocumentIsKeptFromTheMemberItBelongsTo() {
         var hidden = write("Vermerk", true, false, List.of(memberId));
 
-        assertTrue(memberDocumentRepo.findByMember(memberId, false).stream()
+        assertTrue(memberDocumentRepo.findByMember(station.id(), memberId, false).stream()
                 .noneMatch(document -> document.id() == hidden.id()));
-        assertTrue(memberDocumentRepo.findByMember(memberId, true).stream()
+        assertTrue(memberDocumentRepo.findByMember(station.id(), memberId, true).stream()
                 .anyMatch(document -> document.id() == hidden.id()));
     }
 

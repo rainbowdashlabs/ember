@@ -125,7 +125,7 @@ public class ClusterMemberManagementService {
     public List<Document> documentsOf(int clusterId, int memberId) {
         var member = requireMemberOfCluster(clusterId, memberId);
         requireDocuments(member.stationId());
-        return documentRepository.findByMember(memberId, true);
+        return documentRepository.findByMember(member.stationId(), memberId, true);
     }
 
     /**

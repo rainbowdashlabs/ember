@@ -166,12 +166,19 @@ public enum StationPermission implements RouteRole {
      * Allows reading the station's document store.
      *
      * <p>Standing alone this reaches only the documents that name nobody: a contract, a test
-     * certificate, the paperwork a station keeps about itself. A document that names members is
-     * readable by whoever may read those members, which is what stops a permission to read documents
-     * from handing out every medical certificate in the station without ever granting sight of a
-     * member.
+     * certificate, the paperwork a station keeps about itself. Reaching a document that names a member
+     * is {@link #DOCUMENT_READ_MEMBER}, so the equipment officer can be given the store without being
+     * given everybody's paperwork along with it.
      */
     DOCUMENT_READ,
+
+    /**
+     * Allows reading the documents that name a member.
+     *
+     * <p>Implies {@link #DOCUMENT_READ}: whoever may read the paperwork of a person may read the
+     * paperwork of the station.
+     */
+    DOCUMENT_READ_MEMBER(DOCUMENT_READ),
 
     /**
      * Allows filing documents into the store and editing what is there.
@@ -179,13 +186,28 @@ public enum StationPermission implements RouteRole {
     DOCUMENT_EDIT(DOCUMENT_READ),
 
     /**
+     * Allows saying which members a document names, and everything that follows from it.
+     *
+     * <p>Implies {@link #DOCUMENT_READ_MEMBER}, and that is what keeps the store honest rather than a
+     * convenience. Whether a document names a member decides who may read it, so a permission to
+     * change that answer without being allowed to read the answer would let its holder unbind a
+     * document they may not see and read it on the next request.
+     */
+    DOCUMENT_EDIT_MEMBER(DOCUMENT_READ_MEMBER, DOCUMENT_EDIT),
+
+    /**
+     * Allows everything the document store has to offer.
+     */
+    DOCUMENT_MANAGER(DOCUMENT_EDIT_MEMBER),
+
+    /**
      * Allows reading all member data.
      *
-     * <p>Implies {@link #DOCUMENT_READ}, because reading the store is what this permission bought
-     * before documents had one of their own, and taking that away from a role that holds only this
-     * would be a regression nobody asked for.
+     * <p>Implies {@link #DOCUMENT_READ_MEMBER}, because reading member paperwork is what this
+     * permission bought before documents had permissions of their own, and taking that away from a
+     * role that holds only this would be a regression nobody asked for.
      */
-    MEMBER_READ(DOCUMENT_READ),
+    MEMBER_READ(DOCUMENT_READ_MEMBER),
 
     /**
      * Allows creating and editing member notes.
@@ -222,7 +244,7 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows editing and create members.
      */
-    MEMBER_EDIT(MEMBER_READ, MEMBER_SELF_UPLOAD, DOCUMENT_EDIT),
+    MEMBER_EDIT(MEMBER_READ, MEMBER_SELF_UPLOAD, DOCUMENT_EDIT_MEMBER),
 
     /**
      * Allows configuring the member fields config.
