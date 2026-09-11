@@ -8,9 +8,12 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -22,9 +25,13 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Owns who is signed up for which event occurrence, including the status changes that notify
@@ -149,6 +156,69 @@ public class EventRegistrationService {
     public List<EventRegistrationRepository.AwaitingAnswer> findAwaitingAnswer(List<Integer> memberIds) {
         return registrationRepository.findAwaitingAnswer(memberIds);
     }
+
+    /**
+     * The registrations of the given members that are short of an answer somebody still has to
+     * give.
+     *
+     * <p>A question added to an appointment after somebody signed up leaves their registration
+     * without an answer to it. The notification about it marks the moment of the change; this is
+     * the state itself, read fresh for the screens that list what is still owed. Only upcoming
+     * occurrences take part: a question on a day gone by is no longer anybody's to answer.
+     *
+     * @param memberIds the reader and everyone they answer for
+     * @return one entry per registration still short of an answer, soonest occurrence first
+     */
+    public List<RegistrationShortOfAnswer> findShortOfAnswer(Collection<Integer> memberIds) {
+        var registrations = registrationRepository.findByMembers(memberIds);
+        if (registrations.isEmpty()) return List.of();
+
+        var requiredByEvent = new HashMap<Integer, Set<Integer>>();
+        var candidates = registrations.stream()
+                .filter(registration -> !requiredByEvent
+                        .computeIfAbsent(registration.eventId(), this::requiredFieldIds)
+                        .isEmpty())
+                .toList();
+        if (candidates.isEmpty()) return List.of();
+
+        var answers =
+                fieldRepository
+                        .findValuesForRegistrations(
+                                candidates.stream().map(EventRegistration::id).toList())
+                        .stream()
+                        .collect(Collectors.groupingBy(RegistrationFieldValue::registrationId));
+        var eventNames = new HashMap<Integer, String>();
+        var owing = new ArrayList<RegistrationShortOfAnswer>();
+        for (var registration : candidates) {
+            boolean owes = EventRegistrationFieldService.owesAnswer(
+                    registration.status(),
+                    requiredByEvent.get(registration.eventId()),
+                    answers.getOrDefault(registration.id(), List.of()));
+            if (!owes) continue;
+            var eventName = eventNames.computeIfAbsent(
+                    registration.eventId(),
+                    id -> eventRepository.findById(id).map(StationEvent::name).orElse(""));
+            owing.add(new RegistrationShortOfAnswer(
+                    registration.id(),
+                    registration.eventId(),
+                    eventName,
+                    registration.eventDate(),
+                    registration.memberId()));
+        }
+        return owing;
+    }
+
+    /** The ids of an appointment's required questions, empty where it requires none. */
+    private Set<Integer> requiredFieldIds(int eventId) {
+        return fieldRepository.findByEvent(eventId).stream()
+                .filter(field -> field.config().required())
+                .map(EventRegistrationField::id)
+                .collect(Collectors.toSet());
+    }
+
+    /** One registration short of an answer, and whose it is. */
+    public record RegistrationShortOfAnswer(
+            int registrationId, int eventId, String eventName, LocalDate eventDate, int memberId) {}
 
     /**
      * Finds a registration by its ID.

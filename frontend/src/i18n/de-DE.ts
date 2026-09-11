@@ -6880,6 +6880,9 @@ export default {
         selfCheckTitle: 'Ausrüstung prüfen',
         selfCheckText: 'Die Wache möchte wissen, was du von deiner Ausrüstung noch hast.',
         answerSelfCheck: 'Beantworten',
+        registrationText: 'Der Termin am {date} stellt eine neue Frage. Deine Anmeldung braucht dafür noch eine Antwort.',
+        registrationTextFor: 'Der Termin am {date} stellt eine neue Frage. Die Anmeldung von {name} braucht dafür noch eine Antwort.',
+        updateRegistration: 'Anmeldung aktualisieren',
     },
     selfCheck: {
         intro: 'Geh deine Ausrüstung durch und sag zu jedem Stück, wie es aussieht. Du kannst zwischendurch speichern und später weitermachen.',

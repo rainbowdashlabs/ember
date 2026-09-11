@@ -26,6 +26,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.requirements.profileText') }}</p>
       <p>{{ t('helpCenter.requirements.formsText') }}</p>
       <p>{{ t('helpCenter.requirements.quizzesText') }}</p>
+      <p>{{ t('helpCenter.requirements.registrationsText') }}</p>
     </HelpSection>
 
     <!-- Dummy: requirement items -->
@@ -59,6 +60,17 @@ const {t} = useI18n()
           <p class="text-sm text-(--text-muted)">{{ t('requirements.quizText') }}</p>
         </div>
         <PrimaryButton>{{ t('requirements.startQuiz') }}</PrimaryButton>
+      </div>
+    </NeutralContainer>
+
+    <NeutralContainer>
+      <div class="flex items-center gap-3">
+        <font-awesome-icon :icon="['fas', 'calendar-days']" class="text-primary text-xl"/>
+        <div class="flex-1">
+          <SubHeader>{{ t('helpCenter.requirements.exampleEvent') }}</SubHeader>
+          <p class="text-sm text-(--text-muted)">{{ t('helpCenter.requirements.exampleEventText') }}</p>
+        </div>
+        <PrimaryButton>{{ t('requirements.updateRegistration') }}</PrimaryButton>
       </div>
     </NeutralContainer>
 
