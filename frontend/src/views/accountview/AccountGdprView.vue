@@ -9,10 +9,10 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {session as sessionApi, managedMembers as managedMembersApi} from '@/api'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
@@ -67,7 +67,7 @@ onMounted(async () => {
 <template>
   <ViewContent :title="t('pages.account-gdpr.title')" :subtitle="t('pages.account-gdpr.subtitle')">
     <div class="space-y-6">
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <StorageConsentSection/>
 

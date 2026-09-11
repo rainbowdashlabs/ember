@@ -11,6 +11,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -20,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
  * Captures API request timings and status codes asynchronously.
@@ -188,6 +190,68 @@ public class ApiRequestLogger {
                 .all();
     }
 
+    /**
+     * Everything the detail page of one endpoint shows: how much traffic it saw, how it answered, and the
+     * last requests to it.
+     *
+     * <p>The path is matched exactly as it was recorded, so the caller asks for the reduced form with its
+     * placeholders rather than for a path somebody actually requested. That is what the list links to, and
+     * therefore the only form anybody arrives here holding.
+     *
+     * @param method the HTTP method
+     * @param path   the endpoint, as {@link #normalizePath(String)} leaves it
+     * @return what is known about it, with empty lists where nothing was recorded
+     */
+    public EndpointDetail getEndpointDetail(String method, String path) {
+        var totals = query("""
+                        SELECT
+                            count(*)         AS cnt,
+                            coalesce(avg(duration_ms), 0) AS avg_ms
+                        FROM
+                            api_request_log
+                        WHERE method = :method AND path = :path AND created_at > now() - INTERVAL '3 days';""")
+                .single(call().bind("method", method).bind("path", path))
+                .map(row -> new Totals(row.getLong("cnt"), row.getDouble("avg_ms")))
+                .first()
+                .orElse(new Totals(0L, 0.0));
+
+        var statusCodes = query("""
+                        SELECT
+                            status_code,
+                            count(*) AS cnt
+                        FROM
+                            api_request_log
+                        WHERE method = :method AND path = :path AND created_at > now() - INTERVAL '3 days'
+                        GROUP BY status_code
+                        ORDER BY cnt DESC;""")
+                .single(call().bind("method", method).bind("path", path))
+                .map(row -> new StatusCount(row.getInt("status_code"), row.getLong("cnt")))
+                .all();
+
+        var recent = query("""
+                        SELECT
+                            created_at,
+                            method,
+                            path,
+                            status_code,
+                            duration_ms
+                        FROM
+                            api_request_log
+                        WHERE method = :method AND path = :path
+                        ORDER BY created_at DESC
+                        LIMIT 100;""")
+                .single(call().bind("method", method).bind("path", path))
+                .map(row -> new LoggedRequest(
+                        row.get("created_at", INSTANT_TIMESTAMP),
+                        row.getString("method"),
+                        row.getString("path"),
+                        row.getInt("status_code"),
+                        row.getInt("duration_ms")))
+                .all();
+
+        return new EndpointDetail(method, path, totals.avgDurationMs(), totals.requestCount(), statusCodes, recent);
+    }
+
     private void flush() {
         var batch = new ArrayList<RequestEntry>();
         RequestEntry entry;
@@ -227,11 +291,92 @@ public class ApiRequestLogger {
     }
 
     /**
-     * Normalizes paths by replacing numeric IDs with {id} placeholders
-     * so endpoints with path params get aggregated together.
+     * Replaces the segments of a path that are an identifier with {@code {id}}, so that every request to
+     * one endpoint is counted as that endpoint rather than as one endpoint per identifier.
+     *
+     * <p>A segment counts where the whole of it is an identifier: all digits, or a uuid. The whole of it
+     * matters. Matching digits anywhere rewrote the inside of any segment that merely began with one, which
+     * is not rare: a feed token beginning with a digit became {@code {id}hgEV4EC3...} and a uuid became
+     * {@code {id}-0000-4000-a000-000000000003}. Neither is a path anybody could ask for, so the detail page
+     * of either was permanently empty.
+     *
+     * @param path the path as it was requested
+     * @return the path with its identifier segments replaced
      */
-    private String normalizePath(String path) {
-        return path.replaceAll("/\\d+", "/{id}");
+    static String normalizePath(String path) {
+        if (path == null || path.isEmpty()) return path;
+        var out = new StringBuilder(path.length());
+        int from = 0;
+        while (from <= path.length()) {
+            int slash = path.indexOf('/', from);
+            int end = slash < 0 ? path.length() : slash;
+            if (isIdentifier(path, from, end)) {
+                out.append("{id}");
+            } else {
+                out.append(path, from, end);
+            }
+            if (slash < 0) break;
+            out.append('/');
+            from = slash + 1;
+        }
+        return out.toString();
+    }
+
+    /**
+     * Whether this segment names one particular thing rather than a part of the route.
+     *
+     * <p>A number and a uuid both do, and both have to collapse or the page lists one endpoint per row of
+     * the database. A slug does not: it names a station and the requests to one station's page are worth
+     * seeing as their own line.
+     */
+    private static boolean isIdentifier(String path, int from, int end) {
+        return allDigits(path, from, end) || isUuid(path, from, end) || isSecret(path, from, end);
+    }
+
+    /**
+     * Whether this segment is a token somebody was handed rather than a name somebody chose.
+     *
+     * <p>A feed address carries one, and it is the whole of the credential: left as it was requested, the
+     * statistics grow a row per subscriber and write down the token that opens the feed. It is not a uuid
+     * and not a number, so neither of the other two rules reaches it.
+     *
+     * <p>Told apart from a slug by what random bytes look like rather than by length alone. A station's
+     * name can be longer than a token ("freiwillige-feuerwehr-musterstadt-nord" is), but it is words, so
+     * it carries neither a capital nor a digit. Thirty-two characters of base64url holding both is not a
+     * name anybody typed.
+     */
+    private static boolean isSecret(String path, int from, int end) {
+        if (end - from < 32) return false;
+        boolean capital = false;
+        boolean digit = false;
+        for (int i = from; i < end; i++) {
+            char c = path.charAt(i);
+            if (Character.isUpperCase(c)) capital = true;
+            else if (Character.isDigit(c)) digit = true;
+            else if (!Character.isLowerCase(c) && c != '-' && c != '_') return false;
+        }
+        return capital && digit;
+    }
+
+    /** Whether everything between these two points is a digit, and there is at least one of them. */
+    private static boolean allDigits(String path, int from, int end) {
+        if (end <= from) return false;
+        for (int i = from; i < end; i++) {
+            if (!Character.isDigit(path.charAt(i))) return false;
+        }
+        return true;
+    }
+
+    /** The 8-4-4-4-12 shape, checked by hand so no expression has to be compiled on every request. */
+    private static boolean isUuid(String path, int from, int end) {
+        if (end - from != 36) return false;
+        for (int i = 0; i < 36; i++) {
+            char c = path.charAt(from + i);
+            boolean dash = i == 8 || i == 13 || i == 18 || i == 23;
+            if (dash != (c == '-')) return false;
+            if (!dash && Character.digit(c, 16) < 0) return false;
+        }
+        return true;
     }
 
     public record EndpointStats(
@@ -244,6 +389,30 @@ public class ApiRequestLogger {
             double errorRate) {}
 
     public record StatusBreakdown(String method, String path, int statusCode, long count) {}
+
+    /** How often one endpoint answered with one status. */
+    public record StatusCount(int statusCode, long count) {}
+
+    /** One request, as the detail page lists it. */
+    public record LoggedRequest(Instant timestamp, String method, String path, int statusCode, int durationMs) {}
+
+    /**
+     * One endpoint, as its own page reads it.
+     *
+     * @param avgDurationMs   how long it took on average, over the window the log keeps
+     * @param requestCount    how many requests it saw in that window
+     * @param statusCodes     how it answered, commonest first
+     * @param recentRequests  the last hundred requests to it, newest first
+     */
+    public record EndpointDetail(
+            String method,
+            String path,
+            double avgDurationMs,
+            long requestCount,
+            List<StatusCount> statusCodes,
+            List<LoggedRequest> recentRequests) {}
+
+    private record Totals(long requestCount, double avgDurationMs) {}
 
     public record HourlyStats(String hour, long requestCount, double avgDurationMs, long errorCount) {}
 

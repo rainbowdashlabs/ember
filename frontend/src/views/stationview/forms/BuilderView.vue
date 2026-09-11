@@ -10,7 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import QuestionEditor from './builderview/QuestionEditor.vue'
@@ -206,7 +206,7 @@ async function save() {
   >
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading">
         <FormMetadataEditor

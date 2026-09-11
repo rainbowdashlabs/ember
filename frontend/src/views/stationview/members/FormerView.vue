@@ -8,6 +8,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import FormerMembersTable from './formerview/FormerMembersTable.vue'
@@ -56,7 +57,7 @@ const {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading">

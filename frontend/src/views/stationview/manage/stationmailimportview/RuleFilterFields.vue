@@ -13,11 +13,9 @@ import MultiSelectInput from '@/components/input/select/MultiSelectInput.vue'
 import LabelledField from '@/components/input/LabelledField.vue'
 import {MailRuleAction, MailTitleSource} from '@/api/mailImport'
 import type {MailRuleActionName, MailTitleSourceName} from '@/api/mailImport'
-import type {StationMember} from '@/api/types'
 
 /** What a rule takes and how it files it: the filters that judge each message and each attachment. */
 const props = defineProps<{
-  members: StationMember[]
   supportedTypes: string[]
 }>()
 
@@ -28,14 +26,10 @@ const minSizeKilobytes = defineModel<number>('minSizeKilobytes', {required: true
 const titleSource = defineModel<MailTitleSourceName>('titleSource', {required: true})
 const action = defineModel<MailRuleActionName>('action', {required: true})
 const moveToFolder = defineModel<string>('moveToFolder', {required: true})
-const memberIds = defineModel<string[]>('memberIds', {required: true})
 
 const {t} = useI18n()
 
 const typeOptions = computed(() => props.supportedTypes.map(type => ({value: type, label: type})))
-
-const memberOptions = computed(() => props.members
-    .map(member => ({value: String(member.id), label: member.name ?? String(member.id)})))
 </script>
 
 <template>
@@ -68,9 +62,6 @@ const memberOptions = computed(() => props.members
     </LabelledField>
     <LabelledField v-if="action === MailRuleAction.MOVE" :label="t('mailImport.rule.moveToFolder')">
       <TextInput v-model="moveToFolder" data-testid="rule-move-folder"/>
-    </LabelledField>
-    <LabelledField hint :help="t('mailImport.rule.membersHint')" :label="t('mailImport.rule.members')">
-      <MultiSelectInput v-model="memberIds" data-testid="rule-members" :options="memberOptions"/>
     </LabelledField>
   </div>
 </template>

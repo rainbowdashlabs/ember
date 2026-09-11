@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import {onMounted} from 'vue'
+import {useMonitoringCounts} from '@/composables/useMonitoringCounts'
 import {useI18n} from 'vue-i18n'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
@@ -32,10 +33,13 @@ const isDev = import.meta.env.DEV
 
 const {open: openQuickSearch} = useQuickSearchShortcut('admin')
 
+const {counts, refresh: refreshCounts} = useMonitoringCounts()
+
 onMounted(() => {
   if (!loaded.value) {
     load()
   }
+  refreshCounts()
 })
 
 </script>
@@ -114,13 +118,10 @@ onMounted(() => {
         <SidebarLink :icon="['fas', 'file-lines']" name="admin-log" to="/admin/monitoring/log" @navigate="close">
           {{ t('sidebar.applicationLog') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'bug']" name="admin-problems" to="/admin/monitoring/problems" @navigate="close">
+        <SidebarLink :badge="counts.problemLog" :icon="['fas', 'bug']" name="admin-problems" to="/admin/monitoring/problems" @navigate="close">
           {{ t('sidebar.problemLog') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'tower-broadcast']" name="admin-beacon" to="/admin/monitoring/beacon" @navigate="close">
-          {{ t('sidebar.beacon') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'flag']" name="admin-problem-reports" to="/admin/monitoring/problem-reports" @navigate="close">
+        <SidebarLink :badge="counts.problemReports" :icon="['fas', 'flag']" name="admin-problem-reports" to="/admin/monitoring/problem-reports" @navigate="close">
           {{ t('sidebar.problemReports') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'chart-line']" name="admin-api-status" to="/admin/monitoring/api-status" @navigate="close">
@@ -137,6 +138,53 @@ onMounted(() => {
         </SidebarLink>
         <SidebarLink data-onboarding="nav.admin.maps" :icon="['fas', 'map-location-dot']" name="admin-maps" to="/admin/monitoring/maps" @navigate="close">
           {{ t('sidebar.maps') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <!--
+        Setting a beacon up is how an instance becomes one, so that entry stands whatever the answer is:
+        hidden with the rest, nobody could find the switch that shows them. What it gathers appears only
+        once it is gathering, rather than as three empty pages on every other instance.
+      -->
+      <SidebarGroup
+          :badge="counts.beaconFaults + counts.beaconReports"
+          :icon="['fas', 'tower-broadcast']"
+          :label="t('sidebar.beacon')"
+          group-key="beacon"
+          name="admin-beacon"
+          to="/admin/beacon"
+      >
+        <SidebarLink :icon="['fas', 'sliders']" name="admin-beacon" to="/admin/beacon" @navigate="close">
+          {{ t('sidebar.beaconSettings') }}
+        </SidebarLink>
+        <SidebarLink
+            v-if="counts.beaconActive"
+            :badge="counts.beaconFaults"
+            :icon="['fas', 'bug']"
+            name="admin-beacon-faults"
+            to="/admin/beacon/faults"
+            @navigate="close"
+        >
+          {{ t('sidebar.beaconFaults') }}
+        </SidebarLink>
+        <SidebarLink
+            v-if="counts.beaconActive"
+            :badge="counts.beaconReports"
+            :icon="['fas', 'flag']"
+            name="admin-beacon-reports"
+            to="/admin/beacon/reports"
+            @navigate="close"
+        >
+          {{ t('sidebar.beaconReports') }}
+        </SidebarLink>
+        <SidebarLink
+            v-if="counts.beaconActive"
+            :icon="['fas', 'chart-line']"
+            name="admin-beacon-figures"
+            to="/admin/beacon/figures"
+            @navigate="close"
+        >
+          {{ t('sidebar.beaconMetrics') }}
         </SidebarLink>
       </SidebarGroup>
 

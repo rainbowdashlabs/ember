@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {userSettings} from '@/api'
 import type {UserSettings} from '@/api/userSettings'
@@ -73,7 +74,7 @@ function toggleFeed(type: string) {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <Alert v-if="saved" variant="success">{{ t('userSettings.saved') }}</Alert>
 
       <template v-if="!loading && settings">

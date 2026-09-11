@@ -7,6 +7,7 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -50,7 +51,7 @@ function openResetModal() {
   resetConfirmOpen.value = true
 }
 
-const {running: resetLoading, error, run: confirmReset} = useAsyncAction(async () => {
+const {running: resetLoading, error, failure, run: confirmReset} = useAsyncAction(async () => {
   if (!resetAccountId.value) return
   await twoFactorAdmin.resetAccount2FAByInstanceAdmin(resetAccountId.value)
   resetSuccess.value = t('twoFactor.admin.resetSuccess', {name: resetAccountName.value ?? resetAccountId.value})
@@ -66,7 +67,7 @@ const {running: resetLoading, error, run: confirmReset} = useAsyncAction(async (
   <NeutralContainer class="space-y-3">
     <SubHeader>{{ t('twoFactor.admin.resetTitle') }}</SubHeader>
     <MutedText tag="p" size="sm">{{ t('twoFactor.admin.resetHint') }}</MutedText>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :failure="failure"/>
     <Alert v-if="resetSuccess" variant="success">{{ resetSuccess }}</Alert>
     <div class="flex items-end gap-2">
       <div class="flex-1">

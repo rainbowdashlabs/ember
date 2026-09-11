@@ -9,12 +9,12 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import {attendance} from '@/api'
 import type {SessionSummary} from '@/api/attendance'
 import {useSession} from '@/composables/useSession'
@@ -52,7 +52,7 @@ watch(loaded, (isLoaded) => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading">
         <div v-if="sessions.length === 0" class="text-(--text-muted) text-sm text-center py-4">

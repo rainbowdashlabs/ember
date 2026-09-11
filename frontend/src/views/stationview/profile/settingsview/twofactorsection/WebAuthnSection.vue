@@ -10,10 +10,10 @@ import {removeFactor, renameFactor, webauthnRegisterBegin, webauthnRegisterFinis
 import {createWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
 import {formatDate} from '@/util/format'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -135,7 +135,7 @@ async function confirmRename() {
         </div>
       </li>
     </ul>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
   </NeutralContainer>
 
   <Modal v-model="showLabelPrompt" size="sm">
@@ -143,7 +143,7 @@ async function confirmRename() {
       <SubHeader>{{ t('twoFactor.webauthn.labelPrompt') }}</SubHeader>
       <MutedText tag="p" size="sm">{{ t('twoFactor.webauthn.labelHint') }}</MutedText>
       <TextInput v-model="newLabel" :placeholder="t('twoFactor.webauthn.labelPlaceholder')" :disabled="enrolling"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <div class="flex justify-end gap-2">
         <SecondaryButton :disabled="enrolling" @click="showLabelPrompt = false">
           {{ t('common.cancel') }}

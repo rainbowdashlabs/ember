@@ -54,6 +54,8 @@ public class MailImportService {
     private final MailFilingService filingService;
     private final StorageQuotaService quotaService;
     private final CredentialCipher cipher;
+    private final MailHostPolicy hostPolicy;
+    private final DkimVerification dkim;
     private final MailImport settings;
     private final NotificationService notificationService;
 
@@ -65,6 +67,8 @@ public class MailImportService {
             MailFilingService filingService,
             StorageQuotaService quotaService,
             CredentialCipher cipher,
+            MailHostPolicy hostPolicy,
+            DkimVerification dkim,
             MailImport settings,
             NotificationService notificationService) {
         this.mailboxRepository = mailboxRepository;
@@ -73,6 +77,8 @@ public class MailImportService {
         this.filingService = filingService;
         this.quotaService = quotaService;
         this.cipher = cipher;
+        this.hostPolicy = hostPolicy;
+        this.dkim = dkim;
         this.settings = settings;
         this.notificationService = notificationService;
     }
@@ -111,6 +117,7 @@ public class MailImportService {
         int refused = 0;
 
         try (var reader = new MailboxReader(
+                hostPolicy,
                 mailbox.host(),
                 mailbox.port(),
                 mailbox.security(),
@@ -239,6 +246,17 @@ public class MailImportService {
             return new Handled(0, 1);
         }
 
+        if (mailbox.verifyDkim()) {
+            var objection = dkim.objection(reader.rawSource(message), envelope.sender());
+            if (objection.isPresent()) {
+                var refusal = objection.get();
+                filingService.recordRefusal(
+                        mailbox, rule, envelope, identity.id(), refusal.outcome(), refusal.reason());
+                logRepository.markMessageHandled(mailbox.id(), identity.id(), identity.derived());
+                return new Handled(0, 1);
+            }
+        }
+
         var wanted = envelope.attachments().stream()
                 .filter(attachment -> rule.includeInline() || !attachment.inline())
                 .filter(attachment -> nameFits(attachment.fileName(), rule.attachmentNameFilter()))
@@ -300,10 +318,14 @@ public class MailImportService {
     /**
      * Whether the receiving server said the sending domain failed its own checks.
      *
-     * <p>A guard against carelessness and not a security boundary. The header is written by whoever
-     * handled the message last, and a sender can write one claiming a pass, which is why a rule cannot be
-     * set to require it: requiring it would have been satisfied by a forgery just as easily. What holds
-     * the line is the sender pattern, kept narrow.
+     * <p>Only an explicit failure is refused, and a message carrying no verdict is let through. That is
+     * not because the header could be forged: a sender's own header is prepended below the receiving
+     * server's, and what is read here is the topmost one, which they cannot write. It is because plenty
+     * of providers write no such header at all, so demanding a verdict would refuse ordinary mail on
+     * those servers rather than catching anything.
+     *
+     * <p>What a mailbox can demand instead is a signature, checked here rather than read off a header,
+     * which is what {@link DkimVerification} is for.
      */
     private static boolean failedItsOwnChecks(String authResult) {
         if (authResult == null) return false;

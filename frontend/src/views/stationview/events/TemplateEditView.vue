@@ -10,9 +10,9 @@ import {useRoute, useRouter} from 'vue-router'
 import {reportCaughtError} from '@/util/devErrorReporter'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import TemplateEditBody from './templateeditview/TemplateEditBody.vue'
 import {emptyRestriction, toRestriction, type RestrictionSelection} from '@/components/input/restriction'
 import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
@@ -168,7 +168,7 @@ async function save() {
       </div>
 
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <TemplateEditBody
           v-if="!loading"

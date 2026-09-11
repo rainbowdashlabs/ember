@@ -7,8 +7,8 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import type {ProfileFieldChange} from '@/api/profileFieldChanges'
 import {useChangeAcknowledgement} from '@/composables/useChangeAcknowledgement'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -65,7 +65,7 @@ function acknowledgeAllChanges() {
       </SuccessButton>
     </div>
 
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
 
     <MutedText tag="div" size="sm" class="py-2" v-if="changes.length === 0">
       {{ t('memberDetail.noChanges') }}

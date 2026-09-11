@@ -8,7 +8,7 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TrainingCatalogSelect from './trainingview/TrainingCatalogSelect.vue'
 import TrainingActiveSession from './trainingview/TrainingActiveSession.vue'
 import TrainingFinished from './trainingview/TrainingFinished.vue'
@@ -169,7 +169,7 @@ function restart() {
   <ViewContent :title="t('pages.quiz-training.title')" :subtitle="t('pages.quiz-training.subtitle')">
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <TrainingCatalogSelect
         v-if="phase === 'select' && !loading"

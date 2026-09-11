@@ -151,7 +151,7 @@ public class GdprExportService {
             var memberships = stationMemberRepository.findAllByAccountId(accountId);
             for (var member : memberships) {
                 addKbFiles(zip, member.id());
-                addMemberDocuments(zip, member.id());
+                addMemberDocuments(zip, member.stationId(), member.id());
             }
 
             zip.finish();
@@ -195,7 +195,7 @@ public class GdprExportService {
 
         // The documents kept for this member. They hang off a binding table rather than off a
         // column of their own, which is the one thing the metadata-driven exporter cannot follow.
-        data.put("documents", exportDocuments(mid));
+        data.put("documents", exportDocuments(member.stationId(), mid));
         return data;
     }
 
@@ -219,10 +219,11 @@ public class GdprExportService {
     /**
      * What is kept about the documents of a member: everything except the bytes, which travel in
      * the archive beside this. Hidden ones are part of it too: what is withheld in the interface
-     * is still data held about them.
+     * is still data held about them. Only the documents of the station they are a member of, so a
+     * file of another station never enters somebody's record of what is held about them.
      */
-    private List<Map<String, Object>> exportDocuments(int memberId) {
-        return documentRepository.findByMember(memberId, true).stream()
+    private List<Map<String, Object>> exportDocuments(int stationId, int memberId) {
+        return documentRepository.findByMember(stationId, memberId, true).stream()
                 .map(document -> {
                     var entry = new LinkedHashMap<String, Object>();
                     entry.put("id", document.id());
@@ -244,8 +245,8 @@ public class GdprExportService {
     }
 
     /** The documents themselves, so the export holds the files and not only a list of them. */
-    private void addMemberDocuments(ZipOutputStream zip, int memberId) throws IOException {
-        for (var document : documentRepository.findByMember(memberId, true)) {
+    private void addMemberDocuments(ZipOutputStream zip, int stationId, int memberId) throws IOException {
+        for (var document : documentRepository.findByMember(stationId, memberId, true)) {
             var data = documentService.read(document);
             if (data.isEmpty()) continue;
             String safeName = document.fileName().replaceAll("[^a-zA-Z0-9äöüÄÖÜß._\\- ]", "_");

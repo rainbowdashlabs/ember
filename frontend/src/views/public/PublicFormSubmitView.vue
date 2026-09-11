@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PublicFormBody from './publicformsubmitview/PublicFormBody.vue'
@@ -46,7 +46,7 @@ onMounted(load)
   <ViewContent :title="t('pages.public-form-submit.title')" :subtitle="t('pages.public-form-submit.subtitle')">
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <SuccessContainer v-if="submitted">
         <SectionHeader>{{ t('publicForm.thanksTitle') }}</SectionHeader>

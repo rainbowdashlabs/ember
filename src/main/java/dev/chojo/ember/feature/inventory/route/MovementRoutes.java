@@ -110,6 +110,8 @@ public class MovementRoutes implements Routes {
                 StationPermission.USER,
                 ClusterPermission.CLUSTER_INVENTORY_EXCHANGE);
         routes.post(prefix + "/movements/{id}/force", this::force, StationPermission.INVENTORY_MANAGER);
+        routes.get(prefix + "/movements/{id}/rechain/plan", this::rechainPlan, StationPermission.INVENTORY_MANAGER);
+        routes.post(prefix + "/movements/{id}/rechain", this::rechain, StationPermission.INVENTORY_MANAGER);
         routes.post(
                 prefix + "/movements/{id}/decline",
                 this::decline,
@@ -302,6 +304,67 @@ public class MovementRoutes implements Routes {
                 movement.id(), request.stepId(), actorOf(session, movement), request.note(), request.pickedItemId());
         ctx.json(toDetail(updated, session));
     }
+
+    /**
+     * What moving this movement onto the chain it belongs on would come to, said before it is done.
+     *
+     * <p>Asked rather than assumed, because the step it stands on and the steps of the other chain do
+     * not line up on their own and a guess would put somebody's gear a stage further on than it is.
+     */
+    @OpenApi(
+            path = "/api/v1/movements/{id}/rechain/plan",
+            methods = HttpMethod.GET,
+            summary = "The chain a movement belongs on, and where it would stand",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(
+                        status = "200",
+                        content = @OpenApiContent(from = ItemMovementService.RechainPlan.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void rechainPlan(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ItemMovement movement = requireVisible(pathInt(ctx, "id"), session);
+        ctx.json(movementService.planRechain(movement.id()));
+    }
+
+    /**
+     * Moves a movement onto the chain it belongs on.
+     *
+     * <p>For the movement started on the wrong one, which was decided when it set out and is not
+     * decided again. Without this the only ways on are forcing it through steps written for somebody
+     * else's gear or calling it off, and both write a history that did not happen.
+     */
+    @OpenApi(
+            path = "/api/v1/movements/{id}/rechain",
+            methods = HttpMethod.POST,
+            summary = "Move a movement onto the chain it belongs on",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RechainRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MovementDetail.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void rechain(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ItemMovement movement = requireVisible(pathInt(ctx, "id"), session);
+        var request = ctx.body().isBlank() ? null : ctx.bodyAsClass(RechainRequest.class);
+        movementService.rechain(
+                movement.id(),
+                request == null ? null : request.stepIndex(),
+                session.member() != null ? session.member().id() : null);
+        ctx.json(toDetail(movementService.findById(movement.id()).orElseThrow(), session));
+    }
+
+    /**
+     * Where a movement is to stand on the chain it is moved onto.
+     *
+     * @param stepIndex the step counted from the front, or {@code null} to take the only one that
+     *                  means what the step it stands on means
+     */
+    public record RechainRequest(Integer stepIndex) {}
 
     @OpenApi(
             path = "/api/v1/movements/{id}/decline",

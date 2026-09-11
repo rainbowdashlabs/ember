@@ -8,7 +8,7 @@ import {computed, ref, onMounted, watch, useTemplateRef} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TypeTabsBar from './adminlegalview/TypeTabsBar.vue'
 import LocaleTabsBar from './adminlegalview/LocaleTabsBar.vue'
 import LegalFileEditor from './adminlegalview/LegalFileEditor.vue'
@@ -81,7 +81,7 @@ onMounted(async () => {
 <template>
   <ViewContent :title="t('pages.admin-legal.title')" :subtitle="t('pages.admin-legal.subtitle')">
     <div class="space-y-6">
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <NeutralContainer class="space-y-4">
         <TypeTabsBar v-model="activeLegalTab" :types="legalTypes"/>

@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -14,7 +15,6 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import { adminSettings } from '@/api'
 import type { WebAuthnConfig } from '@/api/adminSettings'
 import { useConfigPanel } from '@/composables/useConfigPanel'
@@ -41,7 +41,7 @@ async function save() {
 <template>
   <div>
     <Spinner v-if="loading" size="md"/>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
 
     <NeutralContainer v-if="!loading" class="space-y-4">
       <SectionHeader>{{ t('adminSecurity.webauthn.title') }}</SectionHeader>

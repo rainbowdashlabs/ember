@@ -7,13 +7,13 @@
 import {computed, useSlots} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {CsvImportSteps, type CsvImportController} from '@/composables/useCsvImport'
 
@@ -44,7 +44,7 @@ function advanceFromMapping() {
 
 <template>
   <div class="space-y-6">
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
 
     <NeutralContainer v-if="step === CsvImportSteps.UPLOAD" class="space-y-4">
       <SubHeader>{{ t('csvImport.uploadTitle') }}</SubHeader>

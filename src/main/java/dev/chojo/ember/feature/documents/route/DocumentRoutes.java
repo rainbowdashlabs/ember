@@ -46,7 +46,7 @@ import java.util.List;
  *
  * <p>Who may see what is decided here rather than at the route, because it follows from the
  * document rather than from the reader alone: a member's own documents are theirs to read, and
- * everything else needs the right to read other members.
+ * everything else needs the right to read the documents that name a member.
  */
 @Singleton
 public class DocumentRoutes implements Routes {
@@ -95,7 +95,7 @@ public class DocumentRoutes implements Routes {
         routes.put(prefix + "/documents/{id}/tags", this::setTags, StationPermission.DOCUMENT_EDIT);
         routes.get(prefix + "/documents/{id}/content", this::content, StationPermission.LOGIN);
         routes.get(prefix + "/documents/{id}/thumbnail", this::thumbnail, StationPermission.LOGIN);
-        routes.put(prefix + "/documents/{id}/members", this::setMembers, StationPermission.DOCUMENT_EDIT);
+        routes.put(prefix + "/documents/{id}/members", this::setMembers, StationPermission.DOCUMENT_EDIT_MEMBER);
         routes.delete(prefix + "/documents/{id}", this::delete, StationPermission.LOGIN);
 
         routes.get(prefix + "/station-members/{memberId}/documents", this::list, StationPermission.LOGIN);
@@ -146,10 +146,10 @@ public class DocumentRoutes implements Routes {
     private void list(Context ctx) {
         int memberId = pathInt(ctx, "memberId");
         var session = UserSession.from(ctx);
-        requireMemberStation(ctx, memberId);
-        boolean readsOthers = session.hasPermission(StationPermission.MEMBER_READ);
+        int stationId = requireMemberStation(ctx, memberId);
+        boolean readsOthers = session.hasPermission(StationPermission.DOCUMENT_READ_MEMBER);
         if (!readsOthers && !isSelf(session, memberId)) throw new ForbiddenResponse();
-        ctx.json(documentRepository.findByMember(memberId, readsOthers).stream()
+        ctx.json(documentRepository.findByMember(stationId, memberId, readsOthers).stream()
                 .map(this::toResponse)
                 .toList());
     }
@@ -187,7 +187,7 @@ public class DocumentRoutes implements Routes {
         if (title == null || title.isBlank()) title = file.filename();
         boolean hidden = Boolean.parseBoolean(ctx.formParam("hidden"));
         boolean keepOnArchive = Boolean.parseBoolean(ctx.formParam("keepOnArchive"));
-        if (hidden && !session.hasPermission(StationPermission.MEMBER_READ)) throw new ForbiddenResponse();
+        if (hidden && !session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) throw new ForbiddenResponse();
 
         byte[] data;
         try (var in = file.content()) {
@@ -237,8 +237,18 @@ public class DocumentRoutes implements Routes {
         return session.stationId();
     }
 
+    /**
+     * A page of the store, narrowed to what the reader may see before any filter of theirs is read.
+     *
+     * <p>Without the permission for member documents the listing is the station's own paperwork and
+     * nothing else: the documents that name nobody, none of the hidden ones, and no narrowing to a
+     * member however the request asks for one. The search is what makes this more than tidiness. It
+     * runs against what was read out of the documents, so a listing that reached a member document
+     * would answer whether a word appears in it, which is the content of the document rather than
+     * the name on it.
+     */
     @OpenApi(
-            path = "/api/v1/member-documents",
+            path = "/api/v1/documents",
             methods = HttpMethod.GET,
             summary = "The document store of the station, a page at a time",
             tags = {"Members"},
@@ -257,26 +267,29 @@ public class DocumentRoutes implements Routes {
         var session = UserSession.from(ctx);
         int stationId = requireStation(session);
         requireModule(stationId);
-        List<Integer> memberIds = requestedMembers(ctx);
+        boolean readsMemberDocuments = session.hasPermission(StationPermission.DOCUMENT_READ_MEMBER);
+        List<Integer> memberIds = readsMemberDocuments ? requestedMembers(ctx) : List.of();
         String search = ctx.queryParam("search");
         if (search != null && search.isBlank()) search = null;
         int size = Math.clamp(ctx.queryParamAsClass("size", Integer.class).getOrDefault(PAGE_SIZE), 1, 100);
         int page = Math.max(ctx.queryParamAsClass("page", Integer.class).getOrDefault(0), 0);
         String config = documentService.searchConfigOf(stationId);
-        boolean unboundOnly = ctx.queryParamAsClass("unbound", Boolean.class).getOrDefault(false);
+        boolean unboundOnly = !readsMemberDocuments
+                || ctx.queryParamAsClass("unbound", Boolean.class).getOrDefault(false);
 
-        var documents =
-                documentRepository
-                        .findByStation(stationId, memberIds, search, true, unboundOnly, config, size, page * size)
-                        .stream()
-                        .map(this::toResponse)
-                        .toList();
-        int total = documentRepository.countByStation(stationId, memberIds, search, true, unboundOnly, config);
+        var documents = documentRepository
+                .findByStation(
+                        stationId, memberIds, search, readsMemberDocuments, unboundOnly, config, size, page * size)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+        int total = documentRepository.countByStation(
+                stationId, memberIds, search, readsMemberDocuments, unboundOnly, config);
         ctx.json(new DocumentPage(documents, total));
     }
 
     @OpenApi(
-            path = "/api/v1/member-documents",
+            path = "/api/v1/documents",
             methods = HttpMethod.POST,
             summary = "Put a document in the store without binding it to anybody",
             tags = {"Members"},
@@ -292,6 +305,12 @@ public class DocumentRoutes implements Routes {
      * The members an upload was already put on, given as one comma-separated field. Whom a
      * document concerns is usually known while it is being handed over.
      */
+    /**
+     * The members an upload names, which naming anybody at all is a member document operation.
+     *
+     * <p>Binding at upload reaches the same place as binding afterwards, so it asks the same
+     * permission. Without this an upload would be the way around {@link #setMembers}.
+     */
     private List<Integer> formMembers(Context ctx) {
         String raw = ctx.formParam("memberIds");
         if (raw == null || raw.isBlank()) return List.of();
@@ -300,6 +319,9 @@ public class DocumentRoutes implements Routes {
                 .filter(id -> !id.isEmpty())
                 .map(Integer::valueOf)
                 .toList();
+        if (!ids.isEmpty() && !UserSession.from(ctx).hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
+            throw new ForbiddenResponse();
+        }
         for (int memberId : ids) {
             requireMemberStation(ctx, memberId);
         }
@@ -307,7 +329,7 @@ public class DocumentRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/member-documents/tags",
+            path = "/api/v1/documents/tags",
             methods = HttpMethod.GET,
             summary = "The words the station sorts its documents by",
             tags = {"Members"},
@@ -320,7 +342,7 @@ public class DocumentRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/member-documents/{id}/tags",
+            path = "/api/v1/documents/{id}/tags",
             methods = HttpMethod.PUT,
             summary = "Set the words a document is sorted by, writing the new ones",
             tags = {"Members"},
@@ -330,13 +352,14 @@ public class DocumentRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var document = requireOwnedDocument(ctx, id);
+        requireMayEdit(session, id);
         var request = ctx.bodyAsClass(TagsRequest.class);
         documentRepository.setTags(id, document.stationId(), request.tags() != null ? request.tags() : List.of());
         ctx.json(toResponse(document));
     }
 
     @OpenApi(
-            path = "/api/v1/member-documents/{id}/content",
+            path = "/api/v1/documents/{id}/content",
             methods = HttpMethod.GET,
             summary = "The document itself",
             tags = {"Members"},
@@ -354,7 +377,7 @@ public class DocumentRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/member-documents/{id}/thumbnail",
+            path = "/api/v1/documents/{id}/thumbnail",
             methods = HttpMethod.GET,
             summary = "The picture a tile shows of a document",
             tags = {"Members"},
@@ -369,7 +392,7 @@ public class DocumentRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/member-documents/{id}/members",
+            path = "/api/v1/documents/{id}/members",
             methods = HttpMethod.PUT,
             summary = "Set the members a document is bound to",
             tags = {"Members"},
@@ -389,7 +412,7 @@ public class DocumentRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/member-documents/{id}",
+            path = "/api/v1/documents/{id}",
             methods = HttpMethod.DELETE,
             summary = "Remove a document",
             tags = {"Members"},
@@ -402,7 +425,7 @@ public class DocumentRoutes implements Routes {
         boolean ownUpload = session.member() != null
                 && document.uploadedBy() != null
                 && document.uploadedBy() == session.member().id();
-        if (!session.hasPermission(StationPermission.MEMBER_EDIT) && !ownUpload) throw new ForbiddenResponse();
+        if (!ownUpload) requireMayEdit(session, id);
         documentService.delete(document);
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -437,12 +460,27 @@ public class DocumentRoutes implements Routes {
     private boolean mayRead(UserSession session, int id) {
         return documentService.mayRead(
                 id,
-                session.hasPermission(StationPermission.MEMBER_READ),
+                session.hasPermission(StationPermission.DOCUMENT_READ_MEMBER),
                 session.hasPermission(StationPermission.DOCUMENT_READ));
     }
 
+    /**
+     * Refuses a change to a document the reader may not make, which follows the document the same
+     * way reading it does: the station's own paperwork needs the permission to edit the store, and a
+     * document that names a member needs the permission for member documents.
+     *
+     * @param session the reader
+     * @param id      the document being changed
+     */
+    private void requireMayEdit(UserSession session, int id) {
+        var needed = documentRepository.hasNoMembers(id)
+                ? StationPermission.DOCUMENT_EDIT
+                : StationPermission.DOCUMENT_EDIT_MEMBER;
+        if (!session.hasPermission(needed)) throw new ForbiddenResponse();
+    }
+
     private void requireMayUpload(UserSession session, int memberId) {
-        if (session.hasPermission(StationPermission.MEMBER_EDIT)) return;
+        if (session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) return;
         if (isSelf(session, memberId) && session.hasPermission(StationPermission.MEMBER_SELF_UPLOAD)) return;
         throw new ForbiddenResponse();
     }

@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
@@ -48,7 +48,7 @@ const ready = computed(() => !props.busy && reason.value.trim().length > 0)
           :rows="3"
           data-testid="review-refuse-reason"
       />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <div class="flex justify-end gap-2">
         <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton :disabled="!ready" data-testid="review-refuse-confirm" @click="emit('confirm')">

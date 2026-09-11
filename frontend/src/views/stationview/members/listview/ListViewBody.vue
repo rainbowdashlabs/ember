@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import LoadedContent from './LoadedContent.vue'
 import ExportModal from './ExportModal.vue'
 import type { ProfileField } from '@/api/profileFields'
@@ -79,7 +79,7 @@ defineEmits<{
 
 <template>
   <Spinner v-if="loading" size="lg" />
-  <Alert v-if="error" variant="error">{{ error }}</Alert>
+  <FailureAlert :message="error"/>
 
   <LoadedContent
     v-if="!loading"

@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -113,7 +114,7 @@ const {show: showDeleteModal, target: deleteTarget, requestDelete, confirm: conf
     <MutedText tag="p" size="sm">{{ t('clusterInventory.tags.standsBeside') }}</MutedText>
 
     <Spinner v-if="loading" size="sm"/>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
 
     <div
         v-for="tag in tags"

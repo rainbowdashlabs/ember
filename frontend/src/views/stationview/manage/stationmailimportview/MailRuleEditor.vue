@@ -18,7 +18,6 @@ import RuleToggles from './RuleToggles.vue'
 import RuleTagList from './RuleTagList.vue'
 import {MailRuleAction, MailTitleSource} from '@/api/mailImport'
 import type {MailRule, MailRuleActionName, MailRuleRequest, MailTitleSourceName} from '@/api/mailImport'
-import type {StationMember} from '@/api/types'
 
 /**
  * Writing a rule.
@@ -29,7 +28,6 @@ import type {StationMember} from '@/api/types'
 const props = defineProps<{
   /** The rule being changed, or null when one is being written. */
   rule: MailRule | null
-  members: StationMember[]
   supportedTypes: string[]
   /** Where a new rule goes in the order. */
   position: number
@@ -57,7 +55,6 @@ const action = ref<MailRuleActionName>(MailRuleAction.MARK_SEEN)
 const moveToFolder = ref('')
 const senderPatterns = ref<string[]>([])
 const tags = ref<string[]>([])
-const memberIds = ref<string[]>([])
 
 const canSave = computed(() =>
     name.value.trim() !== ''
@@ -81,7 +78,6 @@ watch(() => props.rule, (rule) => {
   moveToFolder.value = rule?.moveToFolder ?? ''
   senderPatterns.value = rule ? [...rule.senderPatterns] : []
   tags.value = rule ? [...rule.tags] : []
-  memberIds.value = rule ? rule.memberIds.map(String) : []
 }, {immediate: true})
 
 function save() {
@@ -102,7 +98,6 @@ function save() {
     moveToFolder: action.value === MailRuleAction.MOVE ? moveToFolder.value.trim() : null,
     senderPatterns: senderPatterns.value,
     tags: tags.value,
-    memberIds: memberIds.value.map(Number),
   })
 }
 </script>
@@ -127,12 +122,10 @@ function save() {
           v-model:accepted-types="acceptedTypes"
           v-model:action="action"
           v-model:attachment-name-filter="attachmentNameFilter"
-          v-model:member-ids="memberIds"
           v-model:min-size-kilobytes="minSizeKilobytes"
           v-model:move-to-folder="moveToFolder"
           v-model:subject-filter="subjectFilter"
           v-model:title-source="titleSource"
-          :members="members"
           :supported-types="supportedTypes"
       />
 

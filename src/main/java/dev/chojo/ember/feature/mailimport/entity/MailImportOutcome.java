@@ -34,9 +34,16 @@ public enum MailImportOutcome {
     QUOTA_EXCEEDED,
     /**
      * The receiving server said the sending domain failed its own published checks. A guard against
-     * carelessness rather than a security boundary: the header can be forged as easily as the address.
+     * carelessness rather than a security boundary, since a server that writes no verdict at all is the
+     * ordinary case and cannot be refused for it.
      */
     AUTHENTICATION_FAILED,
+    /** The mailbox files signed mail only, and nothing signed this message. */
+    NO_SIGNATURE,
+    /** Signed, but by a domain that is not the one the sender address claims, which is what a forgery is. */
+    SIGNATURE_NOT_ALIGNED,
+    /** It carries a signature that does not hold, which is what a message altered on the way looks like. */
+    SIGNATURE_FAILED,
     /** Something went wrong that none of the others describes. */
     FAILED
 }

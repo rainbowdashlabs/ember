@@ -66,6 +66,7 @@ class MailImportPollerTest extends RepositoryTestBase {
                 "archive",
                 new EncryptedBlob(new byte[12], new byte[16]),
                 "INBOX",
+                false,
                 15,
                 Instant.now().minusSeconds(3600));
         mailboxRepository.update(
@@ -76,6 +77,7 @@ class MailImportPollerTest extends RepositoryTestBase {
                 MailSecurity.SSL,
                 "archive",
                 "INBOX",
+                false,
                 true,
                 15,
                 Instant.now().minusSeconds(3600));

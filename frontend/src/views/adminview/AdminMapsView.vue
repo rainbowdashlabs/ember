@@ -8,6 +8,7 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -101,7 +102,7 @@ async function purgeCache() {
       </div>
 
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <Alert v-if="flash" variant="success">{{ flash }}</Alert>
 
       <template v-if="!loading">

@@ -9,8 +9,8 @@ import {useI18n} from 'vue-i18n'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import StationMap from '@/components/map/StationMap.vue'
 import DiscoveryFilterBar from '@/views/stationview/discovery/indexview/DiscoveryFilterBar.vue'
@@ -131,7 +131,7 @@ function focusStation(uid: string) {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading">
         <DiscoveryFilterBar

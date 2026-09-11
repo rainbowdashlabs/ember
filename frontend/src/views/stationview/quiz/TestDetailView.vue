@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -234,7 +234,7 @@ watch(loaded, (isLoaded) => { if (isLoaded) reload() })
   <ViewContent :title="t('pages.quiz-test-detail.title')" :subtitle="t('pages.quiz-test-detail.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <TestDetailBody
           v-if="!loading && test" :test="test" :detail="detail" :sections="sections"

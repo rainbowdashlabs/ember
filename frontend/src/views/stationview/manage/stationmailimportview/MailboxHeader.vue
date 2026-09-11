@@ -11,6 +11,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -48,6 +49,7 @@ const state = computed(() => {
         <SuccessBadge v-if="state === 'on'">{{ t('mailImport.state.on') }}</SuccessBadge>
         <SecondaryBadge v-else-if="state === 'off'">{{ t('mailImport.state.off') }}</SecondaryBadge>
         <ErrorBadge v-else>{{ t('mailImport.state.suspended') }}</ErrorBadge>
+        <InfoBadge v-if="mailbox.verifyDkim">{{ t('mailImport.dkimChecked') }}</InfoBadge>
       </div>
       <MutedText size="sm" tag="p" class="break-words">
         {{ mailbox.username }} · {{ mailbox.host }}:{{ mailbox.port }} · {{ mailbox.folder }}

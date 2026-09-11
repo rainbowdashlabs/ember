@@ -5,9 +5,11 @@
  */
 package dev.chojo.ember.feature.system.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -17,6 +19,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+
+import java.util.Locale;
 
 /**
  * Admin routes for API request monitoring - response times, status codes, endpoint stats.
@@ -39,6 +43,37 @@ public class ApiStatusRoutes implements Routes {
         routes.get(
                 prefix + "/admin/api-status/status-breakdown", this::statusBreakdown, InstancePermission.ADMINISTRATOR);
         routes.get(prefix + "/admin/api-status/hourly", this::hourly, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/api-status/endpoint", this::endpoint, InstancePermission.ADMINISTRATOR);
+    }
+
+    /**
+     * One endpoint on its own, which is what the list links to.
+     *
+     * <p>The path asked for is the reduced form the list shows, placeholders and all, because that is what
+     * every row was recorded under.
+     */
+    @OpenApi(
+            path = "/api/v1/admin/api-status/endpoint",
+            methods = HttpMethod.GET,
+            summary = "Get everything known about one endpoint",
+            tags = {"API Status"},
+            queryParams = {
+                @OpenApiParam(name = "method", required = true),
+                @OpenApiParam(name = "path", required = true)
+            },
+            responses = {
+                @OpenApiResponse(
+                        status = "200",
+                        content = @OpenApiContent(from = ApiRequestLogger.EndpointDetail.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void endpoint(Context ctx) {
+        String method = ctx.queryParam("method");
+        String path = ctx.queryParam("path");
+        if (method == null || method.isBlank() || path == null || path.isBlank()) {
+            throw new BadRequestResponse("Name the method and the path of the endpoint you want");
+        }
+        ctx.json(requestLogger.getEndpointDetail(method.trim().toUpperCase(Locale.ROOT), path.trim()));
     }
 
     @OpenApi(

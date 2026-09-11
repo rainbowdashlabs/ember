@@ -224,6 +224,7 @@ import dev.chojo.ember.feature.storage.route.StationStorageBackendRoutes;
 import dev.chojo.ember.feature.storage.route.StorageRoutes;
 import dev.chojo.ember.feature.storage.service.StorageReconciliationService;
 import dev.chojo.ember.feature.storage.transfer.StationTransferAssetRoutes;
+import dev.chojo.ember.feature.system.route.AdminMonitoringCountRoutes;
 import dev.chojo.ember.feature.system.route.AdminSettingsRoutes;
 import dev.chojo.ember.feature.system.route.ApiStatusRoutes;
 import dev.chojo.ember.feature.system.route.DataRoutes;
@@ -322,6 +323,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(ProfileFieldRoutes.class);
         routesBinder.addBinding().to(DocumentRoutes.class);
         routesBinder.addBinding().to(MailImportRoutes.class);
+        routesBinder.addBinding().to(AdminMonitoringCountRoutes.class);
         bind(MailFilingService.MemberNaming.class).to(StationMemberNaming.class);
         routesBinder.addBinding().to(ProfileFieldChangeRoutes.class);
         routesBinder.addBinding().to(MemberGroupRoutes.class);

@@ -59,12 +59,14 @@ class MailMailboxRepositoryTest extends RepositoryTestBase {
                 "archive",
                 new EncryptedBlob(IV, CIPHERTEXT),
                 "INBOX",
+                false,
                 15,
                 Instant.parse("2026-09-01T00:00:00Z"));
 
         assertNotNull(mailbox);
         assertEquals("Archiv", mailbox.name());
         assertEquals(MailSecurity.SSL, mailbox.security());
+        assertFalse(mailbox.verifyDkim(), "a mailbox takes unsigned mail until somebody asks it not to");
         assertArrayEquals(IV, mailbox.password().iv());
         assertArrayEquals(CIPHERTEXT, mailbox.password().ciphertext());
         assertFalse(mailbox.enabled(), "a mailbox is off until a test has answered");
@@ -96,6 +98,7 @@ class MailMailboxRepositoryTest extends RepositoryTestBase {
                 "archive",
                 "Eingang",
                 true,
+                true,
                 30,
                 Instant.parse("2026-09-01T00:00:00Z"));
 
@@ -103,6 +106,7 @@ class MailMailboxRepositoryTest extends RepositoryTestBase {
         var updated = repository.findById(mailboxId).orElseThrow();
         assertEquals("Eingang", updated.folder());
         assertEquals(30, updated.intervalMinutes());
+        assertTrue(updated.verifyDkim(), "and what it demands of a sender is written with the rest");
     }
 
     /**

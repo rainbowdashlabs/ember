@@ -27,6 +27,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param username        the account the connection signs in as
  * @param password        the password, encrypted with the instance credential key
  * @param folder          which folder is watched
+ * @param verifyDkim      whether a message has to carry a signature of the domain its address claims
  * @param enabled         whether the poller visits it
  * @param intervalMinutes how often it is checked, never below the floor the operator set
  * @param importFrom      mail older than this is ignored, which is what stops a first cycle importing a decade
@@ -46,6 +47,7 @@ public record MailMailbox(
         String username,
         EncryptedBlob password,
         String folder,
+        boolean verifyDkim,
         boolean enabled,
         int intervalMinutes,
         Instant importFrom,
@@ -66,6 +68,7 @@ public record MailMailbox(
                 row.getString("username"),
                 new EncryptedBlob(row.getBytes("password_iv"), row.getBytes("password_ciphertext")),
                 row.getString("folder"),
+                row.getBoolean("verify_dkim"),
                 row.getBoolean("enabled"),
                 row.getInt("interval_minutes"),
                 row.get("import_from", INSTANT_TIMESTAMP),

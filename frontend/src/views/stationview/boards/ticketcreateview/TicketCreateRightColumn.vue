@@ -6,9 +6,9 @@
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import TicketCreateMetaFields from './TicketCreateMetaFields.vue'
 import type { TicketPriorityName, BoardLane, BoardLabel } from '@/api/boards'
 import type { MemberCompletion } from '@/api/stationMembers'
@@ -57,7 +57,7 @@ const { t } = useI18n()
             @toggle-label="id => emit('toggleLabel', id)"
             @create-label="name => emit('createLabel', name)"
         />
-        <Alert v-if="error" variant="error">{{ error }}</Alert>
+        <FailureAlert :message="error"/>
         <div class="flex gap-2">
             <SecondaryButton class="flex-1" @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
             <PrimaryButton class="flex-1" :disabled="submitting" @click="emit('submit')">

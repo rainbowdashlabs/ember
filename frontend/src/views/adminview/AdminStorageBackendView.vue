@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRouter, RouterLink} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -171,7 +172,7 @@ const error = computed(() => loadError.value || applyError.value)
             <Alert v-if="migrationStatus?.migrationInFlight" variant="info">
                 {{ t('adminStorageBackend.banner.inFlight') }}
             </Alert>
-            <Alert v-if="error" variant="error">{{ error }}</Alert>
+            <FailureAlert :message="error"/>
             <Alert v-if="success" variant="success">{{ success }}</Alert>
 
             <Spinner v-if="loading" size="lg"/>

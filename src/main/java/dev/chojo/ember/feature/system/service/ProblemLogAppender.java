@@ -65,6 +65,23 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
         return false;
     }
 
+    /**
+     * How many entries nobody has looked at yet.
+     *
+     * <p>Counted rather than listed, because the sidebar asks for this on a timer and the entries carry
+     * their stacktraces with them.
+     *
+     * @return the number of unacknowledged entries
+     */
+    public int countUnacknowledged() {
+        pruneOldEntries();
+        int waiting = 0;
+        for (var entry : problems.values()) {
+            if (!entry.acknowledged()) waiting++;
+        }
+        return waiting;
+    }
+
     public int acknowledgeAll() {
         int count = 0;
         for (var entry : problems.values()) {

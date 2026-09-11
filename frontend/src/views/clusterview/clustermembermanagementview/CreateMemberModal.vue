@@ -7,7 +7,7 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -60,7 +60,7 @@ watch(open, isOpen => {
   userType.value = StationUserType.MEMBER
 })
 
-const {running, error, run: save} = useAsyncAction(async () => {
+const {running, error, failure, run: save} = useAsyncAction(async () => {
   await clusterMembers.createManagedMember(stationUid.value, {
     firstName: firstName.value.trim(),
     lastName: lastName.value.trim(),
@@ -88,7 +88,7 @@ const {running, error, run: save} = useAsyncAction(async () => {
           :stations="props.stations"
       />
 
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :failure="failure"/>
 
       <div class="flex justify-end gap-2">
         <SecondaryButton :disabled="running" @click="open = false">{{ t('common.cancel') }}</SecondaryButton>

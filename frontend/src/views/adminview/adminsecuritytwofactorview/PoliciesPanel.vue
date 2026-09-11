@@ -7,9 +7,9 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {twoFactorAdmin} from '@/api'
@@ -61,7 +61,7 @@ function userTypeLabel(name: string): string {
   <NeutralContainer class="space-y-3">
     <SubHeader>{{ t('twoFactor.admin.policiesTitle') }}</SubHeader>
     <Spinner v-if="loading" size="sm"/>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <ul v-if="!loading" class="space-y-2">
       <li v-for="ut in USER_TYPES" :key="ut"
           class="flex items-center justify-between rounded border border-(--border) px-3 py-2">

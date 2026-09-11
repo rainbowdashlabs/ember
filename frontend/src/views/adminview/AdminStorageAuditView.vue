@@ -9,13 +9,13 @@ import {useI18n} from 'vue-i18n'
 import {useRouter, RouterLink} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import StorageBackendAuditTable from '@/components/storage/StorageBackendAuditTable.vue'
 import {useSession} from '@/composables/useSession'
@@ -67,7 +67,7 @@ async function applyFilters() {
                 </RouterLink>
             </div>
 
-            <Alert v-if="error" variant="error">{{ error }}</Alert>
+            <FailureAlert :message="error"/>
 
             <NeutralContainer class="space-y-4">
                 <SubHeader>{{ t('adminStorageAudit.filters.title') }}</SubHeader>

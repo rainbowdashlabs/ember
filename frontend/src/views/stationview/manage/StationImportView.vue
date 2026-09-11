@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import StationImportSection from './stationview/StationImportSection.vue'
 import TransferSection from './stationview/TransferSection.vue'
 import {StationPermission} from '@/api/types'
@@ -36,7 +37,7 @@ function handleSuccess(msg: string) { success.value = msg; error.value = '' }
       :subtitle="t('pages.station-import.subtitle')"
   >
     <div class="space-y-6">
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
       <StationImportSection @error="handleError" @success="handleSuccess"/>
       <TransferSection @error="handleError" @success="handleSuccess"/>

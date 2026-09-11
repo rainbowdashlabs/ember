@@ -67,7 +67,14 @@ class MailboxReaderTest {
     }
 
     private static MailboxReader reader() throws MessagingException {
-        return new MailboxReader("127.0.0.1", greenMail.getImap().getPort(), MailSecurity.NONE, USER, PASSWORD, 10);
+        return new MailboxReader(
+                MailHostPolicies.allowingTheLocalNetwork(),
+                "127.0.0.1",
+                greenMail.getImap().getPort(),
+                MailSecurity.NONE,
+                USER,
+                PASSWORD,
+                10);
     }
 
     private static byte[] pdf() {
@@ -237,19 +244,102 @@ class MailboxReaderTest {
     void anEncryptedConnectionToAServerThatSpeaksPlainIsRefusedRatherThanDowngraded() {
         int port = greenMail.getImap().getPort();
 
-        assertThrows(
-                MessagingException.class,
-                () -> new MailboxReader("127.0.0.1", port, MailSecurity.SSL, USER, PASSWORD, 5).close());
-        assertThrows(
-                MessagingException.class,
-                () -> new MailboxReader("127.0.0.1", port, MailSecurity.STARTTLS, USER, PASSWORD, 5).close());
+        assertThrows(MessagingException.class, () -> new MailboxReader(
+                        MailHostPolicies.allowingTheLocalNetwork(),
+                        "127.0.0.1",
+                        port,
+                        MailSecurity.SSL,
+                        USER,
+                        PASSWORD,
+                        5)
+                .close());
+        assertThrows(MessagingException.class, () -> new MailboxReader(
+                        MailHostPolicies.allowingTheLocalNetwork(),
+                        "127.0.0.1",
+                        port,
+                        MailSecurity.STARTTLS,
+                        USER,
+                        PASSWORD,
+                        5)
+                .close());
     }
 
     @Test
     void aHostThatIsNotThereIsRefused() {
-        assertThrows(
-                MessagingException.class,
-                () -> new MailboxReader("127.0.0.1", 1, MailSecurity.NONE, USER, PASSWORD, 2).close());
+        assertThrows(MessagingException.class, () -> new MailboxReader(
+                        MailHostPolicies.allowingTheLocalNetwork(),
+                        "127.0.0.1",
+                        1,
+                        MailSecurity.NONE,
+                        USER,
+                        PASSWORD,
+                        2)
+                .close());
+    }
+
+    /**
+     * The host is asked about again as the connection is opened, so a row written before that check
+     * existed, and a name that resolves somewhere else the second time, never reach the socket.
+     */
+    @Test
+    void anAddressThisInstanceMayNotReachIsRefusedBeforeAnythingIsDialled() {
+        int port = greenMail.getImap().getPort();
+
+        var refused = assertThrows(MessagingException.class, () -> new MailboxReader(
+                        MailHostPolicies.publicHostsOnly(), "127.0.0.1", port, MailSecurity.NONE, USER, PASSWORD, 5)
+                .close());
+
+        assertTrue(refused.getMessage().contains("not an address this instance may connect to"));
+    }
+
+    /** A password in the clear is only ever offered to a host on your own network. */
+    @Test
+    void anUnencryptedConnectionToAPublicAddressIsRefused() {
+        var refused = assertThrows(MessagingException.class, () -> new MailboxReader(
+                        MailHostPolicies.allowingTheLocalNetwork(),
+                        "8.8.8.8",
+                        143,
+                        MailSecurity.NONE,
+                        USER,
+                        PASSWORD,
+                        5)
+                .close());
+
+        assertTrue(refused.getMessage().contains("unencrypted connection"));
+    }
+
+    /**
+     * What a signature is checked against. The body hash a signature carries is exact to the byte, so
+     * what matters is that this is the message the server holds and not one written out again here: a
+     * header refolded or a boundary respelled on the way out would fail an honest signature.
+     */
+    @Test
+    void theSourceOfAMessageComesBackAsTheServerHoldsIt() throws Exception {
+        deliver("pruefung.pdf", pdf(), "application/pdf");
+
+        try (var reader = reader()) {
+            reader.open("INBOX", false);
+            var message = reader.since(Instant.now().minusSeconds(600), 10).getFirst();
+
+            String source = new String(reader.rawSource(message), StandardCharsets.ISO_8859_1);
+
+            assertTrue(source.contains("From: post@musterstadt.de"), "the headers are there, not only the body");
+            assertTrue(source.contains("Subject: Unterlagen"));
+            assertTrue(source.contains("pruefung.pdf"));
+        }
+    }
+
+    /** Nothing here can honestly say whether a signature holds over bytes it had to rebuild itself. */
+    @Test
+    void aMessageTheServerCannotHandBackUnalteredHasNoSourceToCheck() throws Exception {
+        var local = new MimeMessage(Session.getInstance(new Properties()));
+        local.setFrom(new InternetAddress("post@musterstadt.de"));
+        local.setSubject("Nie verschickt");
+        local.setText("Kein Anhang.");
+
+        try (var reader = reader()) {
+            assertThrows(MessagingException.class, () -> reader.rawSource(local));
+        }
     }
 
     @Test

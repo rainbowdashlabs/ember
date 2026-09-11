@@ -220,11 +220,11 @@ public class MailFilingService {
      *
      * <p>Filing under nobody is the ordinary outcome rather than a failure, so an empty answer here is
      * the normal one: the mail comes from the office or the scanner and says nothing about whom it
-     * concerns. A rule may name members outright, and may ask for the subject to be read, which is a
-     * guess about a line a human typed and binds nobody where it is ambiguous.
+     * concerns. The subject is the only thing that can say otherwise, which is a guess about a line a
+     * human typed and binds nobody where it is ambiguous. The candidates come from the mailbox's own
+     * station, so a rule cannot reach a member of another one.
      */
     private List<Integer> membersFor(MailRule rule, Envelope envelope, int stationId) {
-        if (!rule.memberIds().isEmpty()) return rule.memberIds();
         if (!rule.readSubjectForMember()) return List.of();
         return SubjectMemberMatch.soleMatch(envelope.subject(), memberNaming.candidates(stationId))
                 .map(candidate -> List.of(candidate.memberId()))

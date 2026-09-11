@@ -5,6 +5,7 @@
  */
 import {readonly, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * Wraps a mutation (save, submit, delete, …) in the shared busy/error state machine so
@@ -20,6 +21,11 @@ import {useI18n} from 'vue-i18n'
  * finishes, with the arguments it was given, which for a save of the whole object means the
  * last state wins and nothing is lost. Only the most recent waiting call is kept, because
  * running three identical saves in a row to catch up serves nobody.
+ *
+ * <p>A failure comes back two ways. `error` is the one line it always was, so every existing caller keeps
+ * working. `failure` is the same thing described: what kind of failure it was, what the reader should do
+ * about it, and whether it looks like a fault worth reporting. Render it with `FailureAlert` and the
+ * reader gets the guidance and, where it is ours to fix, the way to report it.
  */
 export function useAsyncAction<A extends unknown[], R>(
     fn: (...args: A) => Promise<R>,
@@ -28,6 +34,7 @@ export function useAsyncAction<A extends unknown[], R>(
     const {t} = useI18n()
     const running = ref(false)
     const error = ref('')
+    const failure = ref<Failure | null>(null)
     let waiting: A | null = null
 
     async function run(...args: A): Promise<R | undefined> {
@@ -37,11 +44,15 @@ export function useAsyncAction<A extends unknown[], R>(
         }
         running.value = true
         error.value = ''
+        failure.value = null
         try {
             return await fn(...args)
         } catch (e) {
-            const message = (e as {response?: {data?: {message?: string}}})?.response?.data?.message
-            error.value = options?.formatError?.(e) ?? message ?? t('common.error')
+            const described = describeFailure(e, t)
+            failure.value = options?.formatError
+                ? {...described, message: options.formatError(e)}
+                : described
+            error.value = failure.value.message
             return undefined
         } finally {
             running.value = false
@@ -55,7 +66,8 @@ export function useAsyncAction<A extends unknown[], R>(
 
     function clearError() {
         error.value = ''
+        failure.value = null
     }
 
-    return {running: readonly(running), error: readonly(error), run, clearError}
+    return {running: readonly(running), error: readonly(error), failure: readonly(failure), run, clearError}
 }

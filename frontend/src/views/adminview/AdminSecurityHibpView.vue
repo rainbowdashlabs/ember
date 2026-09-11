@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
@@ -14,7 +15,6 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import { adminSettings } from '@/api'
 import type { HibpConfig } from '@/api/adminSettings'
 import { useConfigPanel } from '@/composables/useConfigPanel'
@@ -40,7 +40,7 @@ async function save() {
   <ViewContent :title="t('pages.admin-security-hibp.title')" :subtitle="t('pages.admin-security-hibp.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading">
         <NeutralContainer class="space-y-4">

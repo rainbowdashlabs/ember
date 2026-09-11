@@ -8,7 +8,7 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -60,7 +60,7 @@ async function confirmRelease() {
 <template>
   <ViewContent :subtitle="t('pages.cluster-stations.subtitle')" :title="t('pages.cluster-stations.title')">
     <div class="space-y-6">
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <NeutralContainer v-if="hasClusterPermission(ClusterPermission.CLUSTER_STATIONS)" class="space-y-4">
         <SectionHeader>{{ t('clusterStations.createTitle') }}</SectionHeader>

@@ -8,8 +8,8 @@ import {onBeforeUnmount, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ImportProgressChecklist from '@/components/transfer/ImportProgressChecklist.vue'
 import {transfer} from '@/api'
 import type {ImportProgress} from '@/api/transfer'
@@ -64,7 +64,7 @@ function backToStations() {
           {{ t('adminStationImport.backToStations') }}
         </SecondaryButton>
       </div>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <ImportProgressChecklist v-if="progress" :progress="progress"/>
     </div>
   </ViewContent>

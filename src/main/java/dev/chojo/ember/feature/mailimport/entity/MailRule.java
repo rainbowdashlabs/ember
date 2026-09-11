@@ -41,10 +41,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param readSubjectForMember whether a name in the subject binds the document to that member
  * @param action               what becomes of the message afterwards
  * @param moveToFolder         where {@link MailRuleAction#MOVE} puts it, null for every other action
- * @param lostMember           whether it dropped a member it could no longer file under
  * @param senderPatterns       the addresses and domains it trusts. Empty matches nothing, on purpose
  * @param tags                 the words it puts on what it files
- * @param memberIds            the members everything it files is bound to, usually none
  * @param createdAt            when it was written
  */
 public record MailRule(
@@ -64,15 +62,13 @@ public record MailRule(
         boolean readSubjectForMember,
         MailRuleAction action,
         String moveToFolder,
-        boolean lostMember,
         List<String> senderPatterns,
         List<String> tags,
-        List<Integer> memberIds,
         Instant createdAt) {
 
     /**
-     * Reads the rule's own row. The three lists hang off other tables and are filled in by the
-     * repository, so a row on its own maps to a rule that trusts nobody until they are.
+     * Reads the rule's own row. The two lists hang off other tables and are filled in by the repository,
+     * so a row on its own maps to a rule that trusts nobody until they are.
      */
     public static RowMapping<MailRule> map() {
         return row -> new MailRule(
@@ -92,15 +88,13 @@ public record MailRule(
                 row.getBoolean("read_subject_for_member"),
                 MailRuleAction.valueOf(row.getString("action")),
                 row.getString("move_to_folder"),
-                row.getBoolean("lost_member"),
-                List.of(),
                 List.of(),
                 List.of(),
                 row.get("created_at", INSTANT_TIMESTAMP));
     }
 
     /** The same rule with the lists that hang off other tables filled in. */
-    public MailRule with(List<String> senderPatterns, List<String> tags, List<Integer> memberIds) {
+    public MailRule with(List<String> senderPatterns, List<String> tags) {
         return new MailRule(
                 id,
                 mailboxId,
@@ -118,10 +112,8 @@ public record MailRule(
                 readSubjectForMember,
                 action,
                 moveToFolder,
-                lostMember,
                 senderPatterns,
                 tags,
-                memberIds,
                 createdAt);
     }
 }

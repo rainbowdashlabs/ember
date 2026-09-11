@@ -8,6 +8,7 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -72,7 +73,7 @@ function reset() {
       <NeutralContainer class="space-y-4">
         <SectionHeader>{{ t('passkeys.approve.title') }}</SectionHeader>
         <MutedText tag="p" size="sm">{{ t('passkeys.approve.hint') }}</MutedText>
-        <Alert v-if="error" variant="error">{{ error }}</Alert>
+        <FailureAlert :message="error"/>
 
         <template v-if="done">
           <Alert variant="success">{{ t('passkeys.approve.done') }}</Alert>

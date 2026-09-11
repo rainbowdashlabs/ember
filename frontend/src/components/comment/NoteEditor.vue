@@ -9,13 +9,13 @@ import {useI18n} from 'vue-i18n'
 import type {NoteVersion} from '@/api/comments'
 import {comments as notesApi} from '@/api'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import DiffView from '@/components/display/DiffView.vue'
 import {formatDateTime as formatDate} from '@/util/format'
 
@@ -84,7 +84,7 @@ onMounted(loadNote)
       </SecondaryButton>
     </div>
 
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <Spinner v-if="loading" size="sm"/>
 
     <template v-if="!loading">

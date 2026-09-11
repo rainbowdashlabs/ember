@@ -653,13 +653,7 @@ public abstract class RepositoryTestBase {
     protected static StationMemberService newStationMemberService(
             AccountRepository accountRepository, AuthService authService, DocumentService documentService) {
         return new StationMemberService(
-                stationMemberRepo,
-                stationRepo,
-                accountRepository,
-                authService,
-                memberLookupService,
-                documentService,
-                mailRuleRepo);
+                stationMemberRepo, stationRepo, accountRepository, authService, memberLookupService, documentService);
     }
 
     /**

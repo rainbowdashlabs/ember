@@ -7,6 +7,7 @@
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -49,7 +50,7 @@ async function save() {
     <SectionHeader>{{ t('adminSettings.logging.title') }}</SectionHeader>
     <MutedText tag="p" size="sm">{{ t('adminSettings.logging.hint') }}</MutedText>
 
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <Alert v-if="saved" variant="success">{{ t('adminSettings.logging.saved') }}</Alert>
 
     <div class="flex items-center justify-between gap-3">

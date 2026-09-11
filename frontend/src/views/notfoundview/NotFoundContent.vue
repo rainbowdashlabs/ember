@@ -4,20 +4,28 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import {emberLogoFaq} from '@/composables/useEmberLogo'
 import {useSignedIn} from '@/composables/useSignedIn'
 import PageHeader from '@/components/typography/PageHeader.vue'
+import {openProblemReport} from '@/util/problemReportState'
 
-defineProps<{
+const props = defineProps<{
   status: number
   title: string
   text: string
 }>()
 
 const {t} = useI18n()
+
+/**
+ * A page that is simply not there is nobody's fault and needs no report. A page that broke is ours, and
+ * this is the one screen where a reader has nothing else left to try.
+ */
+const broke = computed(() => props.status >= 500 || props.status === 0)
 const {anonymous} = useSignedIn()
 const faqLogo = emberLogoFaq()
 
@@ -44,6 +52,14 @@ function leaveTo(path: string) {
       </SecondaryButton>
       <SecondaryButton v-if="anonymous" data-testid="error-login" :icon="['fas', 'right-from-bracket']" @click="leaveTo('/login')">
         {{ t('notFound.login') }}
+      </SecondaryButton>
+      <SecondaryButton
+          v-if="broke"
+          data-testid="error-report"
+          :icon="['fas', 'bug']"
+          @click="openProblemReport({summary: t('errorPage.reportSummary', {status})})"
+      >
+        {{ t('failure.report') }}
       </SecondaryButton>
     </div>
   </div>

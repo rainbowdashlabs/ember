@@ -27,20 +27,49 @@ export interface ReportSessionContext {
     permissions?: readonly string[]
 }
 
+/**
+ * What a report is about where it was opened from something that failed.
+ *
+ * <p>Carried inside the message rather than in fields of its own: an operator reading a report wants the
+ * reader's account and the server's answer together, and one text is where they read them.
+ */
+export interface ReportAbout {
+    summary: string
+    technical?: string
+}
+
+/**
+ * Sends a report, with the page it was written on.
+ *
+ * <p>The address goes without its query: the report button is reachable on pages that carry a token in the
+ * link, and a report is kept for as long as it lives. Which page it was is what an operator reads it for.
+ */
 export async function submitReport(
-    message: string,
+    description: string,
     sessionInfo: ReportSessionContext | null | undefined,
+    about?: ReportAbout,
 ): Promise<ProblemReport> {
     const roles = [sessionInfo?.userType, ...(sessionInfo?.permissions ?? [])].filter(Boolean).join(', ')
     const res = await client.post<ProblemReport>('/problem-reports', {
-        message,
-        pageUrl: window.location.href,
+        message: composeMessage(description, about),
+        pageUrl: window.location.origin + window.location.pathname,
         userRoles: roles,
         recentRequests: JSON.stringify(getRequestHistory()),
         browserInfo: navigator.userAgent,
         screenSize: `${window.innerWidth}x${window.innerHeight}`,
     })
     return res.data
+}
+
+/**
+ * The reader's own words first, because that is what an operator reads to understand the report, and
+ * what the screen and the server said underneath it.
+ */
+function composeMessage(description: string, about?: ReportAbout): string {
+    if (!about) return description
+    const lines = [description, '', `Was schiefging: ${about.summary}`]
+    if (about.technical) lines.push(`Serverantwort: ${about.technical}`)
+    return lines.join('\n')
 }
 
 const reports = createCrudResource<ProblemReport>('/admin/problem-reports')

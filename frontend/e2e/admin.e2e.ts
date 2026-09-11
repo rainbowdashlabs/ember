@@ -408,10 +408,10 @@ test.describe('Problem reports', () => {
         const complaint = unique('Meldung aus dem Test')
 
         await memberPage.goto('/station/dashboard/overview')
-        await memberPage.getByRole('button', {name: 'Problem melden'}).click()
-        await memberPage.getByPlaceholder('Was funktioniert nicht wie erwartet?').fill(complaint)
-        await memberPage.getByRole('button', {name: 'Absenden'}).click()
-        await expect(memberPage.getByText(/Deine Meldung wurde erfolgreich gesendet/)).toBeVisible()
+        await memberPage.getByTestId('report-problem').click()
+        await memberPage.getByPlaceholder('Ich wollte').fill(complaint)
+        await memberPage.getByRole('button', {name: 'Meldung absenden'}).click()
+        await expect(memberPage.getByText(/Deine Meldung ist angekommen/)).toBeVisible()
 
         await adminPage.goto('/admin/monitoring/problem-reports')
         const report = adminPage.getByTestId('problem-report').filter({hasText: complaint})

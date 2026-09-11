@@ -235,14 +235,14 @@ class DocumentServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * The whole of the permission split, and the reason documents could not simply be given a
+     * The whole of the permission split, and the reason documents could not simply be given one
      * permission and left at that: the store permission on its own must never reach a document that
      * names a member, or it hands its holder every certificate in the station without ever granting
-     * them sight of the people.
+     * them the permission that reaches member paperwork.
      */
     @Test
     @Order(7)
-    void aDocumentNamingAMemberIsReadOnTheMemberPermissionAndNotTheStoreOne() {
+    void aDocumentNamingAMemberIsReadOnTheMemberDocumentPermissionAndNotTheStoreOne() {
         var onAMember = service.store(
                 station.id(),
                 List.of(memberId),
@@ -255,7 +255,7 @@ class DocumentServiceTest extends RepositoryTestBase {
                 memberId,
                 List.of());
 
-        assertTrue(service.mayRead(onAMember.id(), true, false), "whoever may read the member may read it");
+        assertTrue(service.mayRead(onAMember.id(), true, false), "whoever may read member documents may read it");
         assertTrue(service.mayRead(onAMember.id(), true, true), "and still may with both");
         assertFalse(service.mayRead(onAMember.id(), false, true), "the store permission alone must not reach it");
         assertFalse(service.mayRead(onAMember.id(), false, false), "and neither does holding nothing");
@@ -279,7 +279,8 @@ class DocumentServiceTest extends RepositoryTestBase {
 
         assertTrue(service.mayRead(unbound.id(), false, true), "the store permission is enough on its own");
         assertTrue(service.mayRead(unbound.id(), true, true), "and so is holding both");
-        assertFalse(service.mayRead(unbound.id(), true, false), "reading members says nothing about the store");
+        assertFalse(
+                service.mayRead(unbound.id(), true, false), "reading member documents says nothing about the store");
         assertFalse(service.mayRead(unbound.id(), false, false), "and neither does holding nothing");
     }
 }

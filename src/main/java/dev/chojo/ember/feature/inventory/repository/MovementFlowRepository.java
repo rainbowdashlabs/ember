@@ -169,6 +169,17 @@ public class MovementFlowRepository {
     }
 
     /**
+     * Removes a step outright, which is only ever a step nobody has walked.
+     *
+     * <p>A step somebody passed is retired instead, because their history is written in its words.
+     * One nothing passed has no such reader, and leaving it behind would only make a chain that was
+     * written again read as twice the chain it is.
+     */
+    public boolean deleteStep(int id) {
+        return SqlSupport.deleteById("movement_flow_step", id);
+    }
+
+    /**
      * The position after the last one a flow uses, so a new step lands at the end without colliding
      * with a retired step that still holds its place.
      */

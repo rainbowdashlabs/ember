@@ -34,7 +34,6 @@ class MailRuleRepositoryTest extends RepositoryTestBase {
     private static MailMailboxRepository mailboxRepository;
     private static Station station;
     private static Account account;
-    private static int memberId;
     private static int mailboxId;
     private static int ruleId;
 
@@ -44,7 +43,6 @@ class MailRuleRepositoryTest extends RepositoryTestBase {
         mailboxRepository = new MailMailboxRepository();
         station = stationRepo.create("Rule Station");
         account = accountRepo.create("mail-rule@test.com", "Rule", "Tester");
-        memberId = stationMemberRepo.create(station.id(), account.id()).id();
         mailboxId = mailboxRepository
                 .create(
                         station.id(),
@@ -55,6 +53,7 @@ class MailRuleRepositoryTest extends RepositoryTestBase {
                         "archive",
                         new EncryptedBlob(new byte[12], new byte[16]),
                         "INBOX",
+                        false,
                         15,
                         Instant.parse("2026-09-01T00:00:00Z"))
                 .id();
@@ -69,7 +68,7 @@ class MailRuleRepositoryTest extends RepositoryTestBase {
     /** A rule is never handed out without its patterns, or it would trust nobody and file nothing. */
     @Test
     @Order(1)
-    void aRuleComesBackWithTheThreeListsThatHangOffIt() {
+    void aRuleComesBackWithTheTwoListsThatHangOffIt() {
         var rule = repository.create(
                 mailboxId,
                 "Bescheinigungen",
@@ -86,8 +85,7 @@ class MailRuleRepositoryTest extends RepositoryTestBase {
                 MailRuleAction.MOVE,
                 "Erledigt",
                 List.of("archive@musterstadt.de", "*@praxis.de"),
-                List.of("Attest", "Gesundheit"),
-                List.of(memberId));
+                List.of("Attest", "Gesundheit"));
 
         assertEquals("Bescheinigungen", rule.name());
         assertEquals(List.of("application/pdf"), rule.acceptedTypes());
@@ -100,8 +98,6 @@ class MailRuleRepositoryTest extends RepositoryTestBase {
         assertEquals(2, rule.senderPatterns().size());
         assertTrue(rule.senderPatterns().containsAll(List.of("archive@musterstadt.de", "*@praxis.de")));
         assertEquals(List.of("Attest", "Gesundheit"), rule.tags());
-        assertEquals(List.of(memberId), rule.memberIds());
-        assertFalse(rule.lostMember());
         ruleId = rule.id();
     }
 
@@ -136,7 +132,6 @@ class MailRuleRepositoryTest extends RepositoryTestBase {
                 MailRuleAction.MARK_SEEN,
                 null,
                 List.of("foto@praxis.de"),
-                List.of(),
                 List.of()));
 
         var rule = repository.findById(ruleId).orElseThrow();
@@ -149,7 +144,6 @@ class MailRuleRepositoryTest extends RepositoryTestBase {
         assertTrue(rule.includeInline());
         assertEquals(List.of("foto@praxis.de"), rule.senderPatterns());
         assertEquals(List.of(), rule.tags());
-        assertEquals(List.of(), rule.memberIds());
     }
 
     @Test
@@ -171,7 +165,6 @@ class MailRuleRepositoryTest extends RepositoryTestBase {
                 MailRuleAction.NOTHING,
                 null,
                 List.of("*@musterstadt.de"),
-                List.of(),
                 List.of());
 
         var rules = repository.findByMailbox(mailboxId);
@@ -179,55 +172,8 @@ class MailRuleRepositoryTest extends RepositoryTestBase {
         assertEquals("Zuerst", rules.getFirst().name());
     }
 
-    /**
-     * A rule that silently stopped working the way it was written is worse than one that says what
-     * happened to it, which is the whole reason this mark exists rather than the cascade alone.
-     */
-    @Test
-    @Order(5)
-    void aRuleThatLosesAMemberSaysSo() {
-        var withMember = repository.create(
-                mailboxId,
-                "Fuer eine Person",
-                5,
-                null,
-                null,
-                List.of("application/pdf"),
-                0L,
-                false,
-                MailTitleSource.SUBJECT,
-                false,
-                false,
-                false,
-                MailRuleAction.NOTHING,
-                null,
-                List.of("*@musterstadt.de"),
-                List.of(),
-                List.of(memberId));
-        assertFalse(withMember.lostMember());
-
-        repository.releaseMember(memberId);
-
-        var after = repository.findById(withMember.id()).orElseThrow();
-        assertTrue(after.lostMember(), "the rule says it lost somebody");
-        assertEquals(List.of(), after.memberIds(), "and no longer files under them");
-        assertTrue(after.enabled(), "while still working for everything else it was written for");
-
-        assertTrue(repository.clearLostMember(withMember.id()));
-        assertFalse(repository.findById(withMember.id()).orElseThrow().lostMember());
-    }
-
     @Test
     @Order(6)
-    void markingARuleAsHavingLostSomebodyIsIdempotent() {
-        repository.markLostMember(ruleId);
-        assertTrue(repository.findById(ruleId).orElseThrow().lostMember());
-        repository.markLostMember(ruleId);
-        assertTrue(repository.findById(ruleId).orElseThrow().lostMember());
-    }
-
-    @Test
-    @Order(7)
     void aRuleCanBeTakenAway() {
         assertTrue(repository.delete(ruleId));
         assertTrue(repository.findById(ruleId).isEmpty());
@@ -249,14 +195,12 @@ class MailRuleRepositoryTest extends RepositoryTestBase {
                 MailRuleAction.NOTHING,
                 null,
                 List.of("*@musterstadt.de"),
-                List.of(),
                 List.of()));
-        assertFalse(repository.clearLostMember(ruleId));
     }
 
     /** Taking the mailbox away takes its rules with it, since a rule without one means nothing. */
     @Test
-    @Order(8)
+    @Order(7)
     void takingTheMailboxAwayTakesItsRules() {
         assertFalse(repository.findByMailbox(mailboxId).isEmpty());
 

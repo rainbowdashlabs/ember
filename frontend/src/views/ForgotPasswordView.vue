@@ -7,6 +7,7 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {auth} from '@/api'
@@ -20,7 +21,7 @@ const {t} = useI18n()
 const email = ref('')
 const success = ref('')
 
-const {running: loading, error, run: handleReset} = useAsyncAction(async () => {
+const {running: loading, error, failure, run: handleReset} = useAsyncAction(async () => {
   success.value = ''
   await auth.forgotPassword({email: email.value})
   success.value = t('forgotPassword.sent')
@@ -37,7 +38,7 @@ const {running: loading, error, run: handleReset} = useAsyncAction(async () => {
       </div>
 
       <div class="space-y-4">
-        <Alert v-if="error" variant="error">{{ error }}</Alert>
+        <FailureAlert :failure="failure"/>
         <Alert v-if="success" variant="success">{{ success }}</Alert>
 
         <div class="space-y-1">

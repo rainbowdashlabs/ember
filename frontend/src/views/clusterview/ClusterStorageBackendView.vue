@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {RouterLink} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -167,7 +168,7 @@ function move(stationUid: string) {
                 </RouterLink>
             </div>
 
-            <Alert v-if="error" variant="error">{{ error }}</Alert>
+            <FailureAlert :message="error"/>
             <Alert v-if="success" variant="success">{{ success }}</Alert>
 
             <Spinner v-if="loading" size="lg"/>

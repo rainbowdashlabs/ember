@@ -39,11 +39,13 @@ import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.util.ByteArrayDataSource;
+import org.apache.james.jdkim.DKIMVerifier;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -129,6 +131,8 @@ class MailImportCycleTest extends RepositoryTestBase {
                 filingService,
                 quotaService,
                 cipher,
+                MailHostPolicies.allowingTheLocalNetwork(),
+                new DkimVerification(() -> new DKIMVerifier(SignedMail.publishedKeys())),
                 new MailImport(),
                 notifications);
     }
@@ -164,8 +168,26 @@ class MailImportCycleTest extends RepositoryTestBase {
                 USER,
                 cipher.encrypt(PASSWORD.getBytes(StandardCharsets.UTF_8)),
                 "INBOX",
+                false,
                 15,
                 Instant.now().minusSeconds(3600));
+    }
+
+    /** The same mailbox, told to file nothing that is not signed by the domain it comes from. */
+    private MailMailbox askingForASignature() {
+        mailboxRepository.update(
+                mailbox.id(),
+                "Archiv",
+                "127.0.0.1",
+                greenMail.getImap().getPort(),
+                MailSecurity.NONE,
+                USER,
+                "INBOX",
+                true,
+                true,
+                15,
+                Instant.now().minusSeconds(3600));
+        return mailboxRepository.findById(mailbox.id()).orElseThrow();
     }
 
     private void rule(List<String> senders, List<String> types, long minSize, boolean inline, MailRuleAction action) {
@@ -185,8 +207,7 @@ class MailImportCycleTest extends RepositoryTestBase {
                 action,
                 null,
                 senders,
-                List.of("Post"),
-                List.of());
+                List.of("Post"));
     }
 
     private static byte[] pdf(String marker) {
@@ -214,11 +235,47 @@ class MailImportCycleTest extends RepositoryTestBase {
             multipart.addBodyPart(part);
         }
         message.setContent(multipart);
+        store(message);
+    }
+
+    private static void store(MimeMessage message) throws Exception {
         greenMail
                 .getManagers()
                 .getImapHostManager()
                 .getInbox(greenMail.getUserManager().getUser(USER))
                 .store(message);
+    }
+
+    private static MailboxReader reader() throws Exception {
+        return new MailboxReader(
+                MailHostPolicies.allowingTheLocalNetwork(),
+                "127.0.0.1",
+                greenMail.getImap().getPort(),
+                MailSecurity.NONE,
+                USER,
+                PASSWORD,
+                10);
+    }
+
+    /**
+     * Delivers a message signed by that domain, over the bytes this server really hands back.
+     *
+     * <p>A signature covers what was sent, to the byte. Signing a message before any server has written
+     * it down would sign something nobody ever receives, so it is stored once, read back the way the
+     * import reads it, and stored again with a signature over exactly those bytes.
+     */
+    private void deliverSignedBy(String domain, String from, String subject, String fileName, byte[] data)
+            throws Exception {
+        deliver(from, subject, fileName, data, false);
+        byte[] source;
+        try (var reader = reader()) {
+            reader.open("INBOX", false);
+            source = reader.rawSource(
+                    reader.since(Instant.now().minusSeconds(600), 1).getFirst());
+        }
+        greenMail.purgeEmailFromAllMailboxes();
+        store(new MimeMessage(
+                Session.getInstance(new Properties()), new ByteArrayInputStream(SignedMail.signedBy(domain, source))));
     }
 
     /** The same delivery, with a header the receiving server would have written. */
@@ -242,11 +299,7 @@ class MailImportCycleTest extends RepositoryTestBase {
         multipart.addBodyPart(body);
         multipart.addBodyPart(part);
         message.setContent(multipart);
-        greenMail
-                .getManagers()
-                .getImapHostManager()
-                .getInbox(greenMail.getUserManager().getUser(USER))
-                .store(message);
+        store(message);
     }
 
     @Test
@@ -370,6 +423,7 @@ class MailImportCycleTest extends RepositoryTestBase {
                 USER,
                 cipher.encrypt(PASSWORD.getBytes(StandardCharsets.UTF_8)),
                 "INBOX",
+                false,
                 15,
                 Instant.now().minusSeconds(3600));
         ruleRepository.create(
@@ -388,7 +442,6 @@ class MailImportCycleTest extends RepositoryTestBase {
                 MailRuleAction.NOTHING,
                 null,
                 List.of("*@musterstadt.de"),
-                List.of(),
                 List.of());
 
         var cycle = importService.run(unreachable, Instant.now());
@@ -412,6 +465,7 @@ class MailImportCycleTest extends RepositoryTestBase {
                 MailSecurity.NONE,
                 USER,
                 "Gibtesnicht",
+                false,
                 true,
                 15,
                 Instant.now().minusSeconds(3600));
@@ -435,6 +489,7 @@ class MailImportCycleTest extends RepositoryTestBase {
                 MailSecurity.NONE,
                 USER,
                 "INBOX",
+                false,
                 true,
                 15,
                 Instant.now().plusSeconds(3600));
@@ -466,7 +521,6 @@ class MailImportCycleTest extends RepositoryTestBase {
                 MailRuleAction.MOVE,
                 "Erledigt",
                 List.of("*@musterstadt.de"),
-                List.of(),
                 List.of());
         deliver("post@musterstadt.de", "Verschoben", "verschoben.pdf", pdf("moved"), false);
 
@@ -510,7 +564,6 @@ class MailImportCycleTest extends RepositoryTestBase {
                 MailRuleAction.NOTHING,
                 null,
                 List.of("*@musterstadt.de"),
-                List.of(),
                 List.of());
         deliver("post@musterstadt.de", "Kein Scan", "rechnung.pdf", pdf("notascan"), false);
 
@@ -522,8 +575,8 @@ class MailImportCycleTest extends RepositoryTestBase {
     }
 
     /**
-     * A guard against carelessness rather than a security boundary: the header can be forged as easily as
-     * the address, which is why a rule cannot be set to require it.
+     * A guard against carelessness rather than a security boundary: plenty of providers write no such
+     * header at all, so a verdict cannot be demanded without refusing ordinary mail on those servers.
      */
     @Test
     void mailTheReceivingServerSaidFailedItsOwnChecksIsRefused() throws Exception {
@@ -573,6 +626,7 @@ class MailImportCycleTest extends RepositoryTestBase {
                 USER,
                 cipher.encrypt(PASSWORD.getBytes(StandardCharsets.UTF_8)),
                 "INBOX",
+                false,
                 15,
                 Instant.now().minusSeconds(3600));
         ruleRepository.create(
@@ -591,7 +645,6 @@ class MailImportCycleTest extends RepositoryTestBase {
                 MailRuleAction.NOTHING,
                 null,
                 List.of("*@musterstadt.de"),
-                List.of(),
                 List.of());
         for (int i = 0; i < MailImportSchedule.FAILURES_BEFORE_SUSPENSION - 1; i++) {
             mailboxRepository.recordFailure(unreachable.id(), Instant.now(), "still refused");
@@ -627,5 +680,53 @@ class MailImportCycleTest extends RepositoryTestBase {
                         eq(StationPermission.DOCUMENT_READ.name()),
                         eq(NotificationType.MAIL_IMPORT_UNBOUND),
                         any());
+    }
+
+    /** What the setting is: the same message, refused where a signature is asked for and filed where it is not. */
+    @Test
+    void aMessageNobodySignedIsRefusedOnlyWhereTheMailboxAsksForASignature() throws Exception {
+        rule(List.of("*@musterstadt.de"), List.of("application/pdf"), 0L, false, MailRuleAction.NOTHING);
+        deliver("post@musterstadt.de", "Ohne Signatur", "ohne.pdf", pdf("unsigned"), false);
+
+        var refusing = importService.run(askingForASignature(), Instant.now());
+
+        assertEquals(0, refusing.imported());
+        assertEquals(1, refusing.refused());
+        assertTrue(logRepository.findByStation(station.id(), 50, 0).stream()
+                .anyMatch(entry -> entry.outcome() == MailImportOutcome.NO_SIGNATURE));
+    }
+
+    @Test
+    void theSameUnsignedMessageIsFiledWhereTheMailboxDoesNotAskForASignature() throws Exception {
+        rule(List.of("*@musterstadt.de"), List.of("application/pdf"), 0L, false, MailRuleAction.NOTHING);
+        deliver("post@musterstadt.de", "Ohne Signatur", "ohne.pdf", pdf("unsigned-but-wanted"), false);
+
+        assertEquals(1, importService.run(mailbox, Instant.now()).imported());
+    }
+
+    /**
+     * The bytes are what a signature covers, so this is also the story about fetching the message as it
+     * arrived rather than as this code would write it out again.
+     */
+    @Test
+    void aMessageSignedByTheDomainItComesFromIsFiled() throws Exception {
+        rule(List.of("*@musterstadt.de"), List.of("application/pdf"), 0L, false, MailRuleAction.NOTHING);
+        deliverSignedBy("musterstadt.de", "post@musterstadt.de", "Signiert", "signiert.pdf", pdf("signed"));
+
+        assertEquals(1, importService.run(askingForASignature(), Instant.now()).imported());
+    }
+
+    /** It verifies, and it is somebody else's signature on somebody else's name. */
+    @Test
+    void aMessageSignedByAnotherDomainIsRefusedThoughItsSignatureHolds() throws Exception {
+        rule(List.of("*@musterstadt.de"), List.of("application/pdf"), 0L, false, MailRuleAction.NOTHING);
+        deliverSignedBy("fremder.de", "post@musterstadt.de", "Gefaelscht", "gefaelscht.pdf", pdf("misaligned"));
+
+        var cycle = importService.run(askingForASignature(), Instant.now());
+
+        assertEquals(0, cycle.imported());
+        assertEquals(1, cycle.refused());
+        assertTrue(logRepository.findByStation(station.id(), 50, 0).stream()
+                .anyMatch(entry -> entry.outcome() == MailImportOutcome.SIGNATURE_NOT_ALIGNED));
     }
 }

@@ -179,6 +179,28 @@ class MovementPresetsTest extends RepositoryTestBase {
     }
 
     /**
+     * The replacement leaves the shelf before it reaches the member, and is named as it does.
+     *
+     * <p>Without that step nothing in the chain said the arriving piece had moved at all: it was at
+     * the station at one step and on the member at the next, with nobody having handed it over.
+     */
+    @Test
+    void theStationsOwnExchangeSaysWhereTheReplacementCameFrom() {
+        int flowId = movementFlowService.resolveFlow(
+                station.id(), inventoryId, ItemOwner.STATION, null, MovementPurpose.EXCHANGE, MovementParty.MEMBER);
+        var steps = movementFlowService.findActiveSteps(flowId);
+
+        assertEquals(5, steps.size(), "the replacement coming off the shelf is a step of its own");
+        MovementFlowStep ready = steps.get(2);
+        assertEquals("Ersatz bereit", ready.label());
+        assertEquals(StepSubject.INCOMING, ready.subject());
+        assertEquals(ItemCustody.AT_STATION, ready.custodyAfter());
+        assertTrue(ready.picksItem(), "a replacement is named where it is taken off the shelf");
+        assertEquals(
+                ItemCustody.WITH_MEMBER, steps.get(3).custodyAfter(), "and reaches the member on the step after it");
+    }
+
+    /**
      * Two answers seeding a station at the same moment leave one chain per combination.
      *
      * <p>The flows page asks for the chains and the bindings at once. Both answers seed, both used

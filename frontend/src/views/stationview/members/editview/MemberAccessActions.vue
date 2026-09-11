@@ -7,6 +7,7 @@
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -79,7 +80,7 @@ async function revokeCode() {
 <template>
   <NeutralContainer class="space-y-4">
     <SectionHeader>{{ t('passkeys.onboardAgain.title') }}</SectionHeader>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <Alert v-if="notice" variant="info">{{ notice }}</Alert>
 
     <div class="space-y-2">

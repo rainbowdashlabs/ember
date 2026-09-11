@@ -9,10 +9,10 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import {stationManage} from '@/api'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
@@ -58,7 +58,7 @@ function isLockedByCluster(key: string): boolean {
   return clusterDenied.value.has(key)
 }
 
-const {running: modulesSaving, error, run: toggleModule} = useAsyncAction(async (key: string) => {
+const {running: modulesSaving, error, failure, run: toggleModule} = useAsyncAction(async (key: string) => {
   const next = new Set(disabledModules.value)
   if (next.has(key)) next.delete(key)
   else next.add(key)
@@ -91,7 +91,7 @@ onMounted(async () => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :failure="failure"/>
 
       <NeutralContainer v-if="!loading" class="space-y-4">
         <SectionHeader>{{ t('stationManage.modulesTitle') }}</SectionHeader>

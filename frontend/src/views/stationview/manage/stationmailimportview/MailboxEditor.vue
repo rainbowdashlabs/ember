@@ -8,6 +8,7 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MailboxConnectionFields from './MailboxConnectionFields.vue'
@@ -42,6 +43,7 @@ const username = ref('')
 const password = ref('')
 const folder = ref('INBOX')
 const enabled = ref(false)
+const verifyDkim = ref(false)
 const intervalMinutes = ref(props.minimumInterval)
 const importFrom = ref(today())
 
@@ -64,6 +66,7 @@ watch(() => props.mailbox, (mailbox) => {
   username.value = mailbox?.username ?? ''
   folder.value = mailbox?.folder ?? 'INBOX'
   enabled.value = mailbox?.enabled ?? false
+  verifyDkim.value = mailbox?.verifyDkim ?? false
   intervalMinutes.value = mailbox?.intervalMinutes ?? props.minimumInterval
   importFrom.value = mailbox ? mailbox.importFrom.slice(0, 10) : today()
   password.value = ''
@@ -79,6 +82,7 @@ function save() {
     password: password.value === '' ? null : password.value,
     folder: folder.value.trim() || 'INBOX',
     enabled: enabled.value,
+    verifyDkim: verifyDkim.value,
     intervalMinutes: Math.max(intervalMinutes.value, props.minimumInterval),
     importFrom: new Date(importFrom.value + 'T00:00:00Z').toISOString(),
   })
@@ -102,9 +106,16 @@ function save() {
           :minimum-interval="minimumInterval"
       />
 
-      <div class="flex items-center gap-2">
-        <ToggleInput v-model="enabled" data-testid="mailbox-enabled"/>
-        <span class="text-sm">{{ t('mailImport.field.enabled') }}</span>
+      <div class="space-y-2">
+        <div class="flex items-center gap-2">
+          <ToggleInput v-model="enabled" data-testid="mailbox-enabled"/>
+          <span class="text-sm">{{ t('mailImport.field.enabled') }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <ToggleInput v-model="verifyDkim" data-testid="mailbox-verify-dkim"/>
+          <span class="text-sm">{{ t('mailImport.field.verifyDkim') }}</span>
+        </div>
+        <MutedText size="sm" tag="p">{{ t('mailImport.field.verifyDkimHint') }}</MutedText>
       </div>
 
       <div class="flex flex-wrap justify-end gap-2">

@@ -26,7 +26,8 @@ public class MailMailboxRepository {
 
     private static final String COLUMNS = """
             id, station_id, name, host, port, security, username, password_iv, password_ciphertext, folder,
-            enabled, interval_minutes, import_from, last_check_at, last_error, failure_count, suspended, created_at""";
+            verify_dkim, enabled, interval_minutes, import_from, last_check_at, last_error, failure_count, suspended,
+            created_at""";
 
     /**
      * Writes a mailbox, whose password the caller has already encrypted.
@@ -43,13 +44,15 @@ public class MailMailboxRepository {
             String username,
             EncryptedBlob password,
             String folder,
+            boolean verifyDkim,
             int intervalMinutes,
             Instant importFrom) {
         return query("""
                         INSERT INTO mail_mailbox(station_id, name, host, port, security, username, password_iv,
-                                                 password_ciphertext, folder, interval_minutes, import_from)
+                                                 password_ciphertext, folder, verify_dkim, interval_minutes,
+                                                 import_from)
                         VALUES (:station_id, :name, :host, :port, :security, :username, :password_iv,
-                                :password_ciphertext, :folder, :interval_minutes, :import_from)
+                                :password_ciphertext, :folder, :verify_dkim, :interval_minutes, :import_from)
                         RETURNING %s;""", COLUMNS)
                 .single(call().bind("station_id", stationId)
                         .bind("name", name)
@@ -60,6 +63,7 @@ public class MailMailboxRepository {
                         .bind("password_iv", password.iv())
                         .bind("password_ciphertext", password.ciphertext())
                         .bind("folder", folder)
+                        .bind("verify_dkim", verifyDkim)
                         .bind("interval_minutes", intervalMinutes)
                         .bind("import_from", importFrom, INSTANT_TIMESTAMP))
                 .map(MailMailbox.map())
@@ -106,14 +110,15 @@ public class MailMailboxRepository {
             MailSecurity security,
             String username,
             String folder,
+            boolean verifyDkim,
             boolean enabled,
             int intervalMinutes,
             Instant importFrom) {
         return query("""
                         UPDATE mail_mailbox
                         SET name = :name, host = :host, port = :port, security = :security, username = :username,
-                            folder = :folder, enabled = :enabled, interval_minutes = :interval_minutes,
-                            import_from = :import_from
+                            folder = :folder, verify_dkim = :verify_dkim, enabled = :enabled,
+                            interval_minutes = :interval_minutes, import_from = :import_from
                         WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("name", name)
@@ -122,6 +127,7 @@ public class MailMailboxRepository {
                         .bind("security", security.name())
                         .bind("username", username)
                         .bind("folder", folder)
+                        .bind("verify_dkim", verifyDkim)
                         .bind("enabled", enabled)
                         .bind("interval_minutes", intervalMinutes)
                         .bind("import_from", importFrom, INSTANT_TIMESTAMP))

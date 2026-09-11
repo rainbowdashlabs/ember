@@ -12,7 +12,7 @@ import {BarChart, LineChart, PieChart} from 'echarts/charts'
 import {GridComponent, LegendComponent, TitleComponent, TooltipComponent} from 'echarts/components'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import client from '@/api/client'
 import {useSession} from '@/composables/useSession'
 import {useConfigPanel} from '@/composables/useConfigPanel'
@@ -194,7 +194,7 @@ watch(loaded, (isLoaded) => {
   <ViewContent :title="t('pages.dashboard-statistics.title')" :subtitle="t('pages.dashboard-statistics.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading && stats">
         <SummaryCards :stats="stats"/>

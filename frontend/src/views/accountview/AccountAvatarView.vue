@@ -8,7 +8,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AvatarSection from './accountavatarview/AvatarSection.vue'
 import AccountDetailsSection from './accountavatarview/AccountDetailsSection.vue'
 import { members } from '@/api'
@@ -75,7 +75,7 @@ onMounted(() => {
   <ViewContent :title="t('pages.account-avatar.title')" :subtitle="t('pages.account-avatar.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading">
         <AvatarSection

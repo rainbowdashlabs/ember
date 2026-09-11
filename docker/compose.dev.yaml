@@ -57,6 +57,7 @@ x-smb: &smb
 services:
   postgres:
     image: postgres:18-alpine
+    command: ["postgres", "-c", "max_locks_per_transaction=1024"]
     container_name: ember_dev_db
     environment:
       POSTGRES_DB: ember
@@ -89,6 +90,11 @@ services:
   # always used, so a single checkout, or CI, sees no change at all.
   postgres-e2e:
     image: postgres:18-alpine
+    # The reset before the stories empties every table of both instances in one transaction, and a
+    # transaction takes a lock per table it touches. The default room for those is sixty-four, which the
+    # schema outgrew: the reset answered 500 and postgres said it was out of shared memory, which reads
+    # like a machine too small rather than a number too low.
+    command: ["postgres", "-c", "max_locks_per_transaction=1024"]
     networks:
       - e2e
     environment:

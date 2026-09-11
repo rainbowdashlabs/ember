@@ -7,15 +7,13 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import MutedText from '@/components/typography/MutedText.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
+import ReportCardHeader from '@/components/problem/ReportCardHeader.vue'
 import ReportMetadata from './ReportMetadata.vue'
 import RecentRequestsTable from './RecentRequestsTable.vue'
 import type {ProblemReport} from '@/api/problemReports'
 import type {RequestHistoryEntry} from '@/api/client'
-import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{
   report: ProblemReport
@@ -43,23 +41,20 @@ const recentRequests = computed<RequestHistoryEntry[]>(() => {
 
 <template>
   <NeutralContainer class="space-y-2" data-testid="problem-report">
-    <div class="flex items-start justify-between gap-3 cursor-pointer" @click="emit('toggle', report.id)">
-      <div class="flex-1">
-        <div class="flex items-center gap-2 mb-1">
-          <span class="text-sm font-semibold">{{ report.reporterName }}</span>
-          <SuccessBadge v-if="report.acknowledged">{{ t('problemReport.acknowledged') }}</SuccessBadge>
-          <MutedText size="xs">{{ formatDateTime(report.createdAt) }}</MutedText>
-        </div>
-        <p class="text-sm">{{ report.message }}</p>
-      </div>
-      <div class="flex items-center gap-1 shrink-0">
+    <ReportCardHeader
+        :acknowledged="report.acknowledged"
+        :expanded="expanded"
+        :message="report.message"
+        :reported-at="report.createdAt"
+        :reporter="report.reporterName"
+        @click="emit('toggle', report.id)"
+    >
+      <template #actions>
         <IconButton v-if="!report.acknowledged" :icon="['fas', 'check']" :label="t('problemReport.acknowledge')"
                     class="text-success hover:bg-success/15" @click.stop="emit('ack', report.id)"/>
         <DeleteButton @click.stop="emit('remove', report.id)"/>
-        <font-awesome-icon :icon="['fas', expanded ? 'chevron-up' : 'chevron-down']"
-                           class="h-3 w-3 text-(--text-muted) ml-1"/>
-      </div>
-    </div>
+      </template>
+    </ReportCardHeader>
 
     <template v-if="expanded">
       <ReportMetadata :report="report"/>

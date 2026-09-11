@@ -7,8 +7,8 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import DocumentFilterBar from './documentsview/DocumentFilterBar.vue'
@@ -28,7 +28,7 @@ import type {StationMember} from '@/api/types'
 const {t} = useI18n()
 const {hasPermission} = usePermissions()
 
-const canEdit = computed(() => hasPermission(StationPermission.MEMBER_EDIT))
+const canEdit = computed(() => hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER))
 
 const documents = ref<StationDocument[]>([])
 const total = ref(0)
@@ -153,7 +153,7 @@ async function act(action: Promise<unknown>) {
   <ViewContent :title="t('pages.station-members-documents.title')"
                :subtitle="t('pages.station-members-documents.subtitle')">
     <div class="space-y-4">
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <DocumentFilterBar
           v-model:search="search"

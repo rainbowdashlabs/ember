@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
@@ -90,7 +91,7 @@ const canSubmit = computed(() =>
     <SignupSetNotes :member-set="memberSet" :date-label="dateLabel"/>
 
     <Alert variant="info">{{ t('signupLists.procedureAssignees', {count: memberSet.count}) }}</Alert>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
 
     <div class="flex justify-end gap-2 pt-2">
       <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>

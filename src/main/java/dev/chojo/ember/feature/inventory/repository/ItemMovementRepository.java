@@ -90,6 +90,40 @@ public class ItemMovementRepository {
     }
 
     /**
+     * The movements that are still walking this flow, oldest first, under the words they can be
+     * called by.
+     *
+     * <p>What a chain written again has to take with it. Each of them stands on a step of the chain
+     * as it is now, so a rewrite that ignored them would leave them standing on nothing. Whoever is
+     * asked where one of them is to land is asked about a jacket and the member holding it rather
+     * than about a number, so the piece and the member are read here rather than looked up one
+     * movement at a time afterwards.
+     *
+     * @param flowId the chain
+     * @return the open movements on it
+     */
+    public List<OpenMovementOnFlow> findOpenOnFlow(int flowId) {
+        return query("""
+                SELECT m.id,
+                       m.current_step_id,
+                       i.name                                 AS item_name,
+                       coalesce(a.full_name, sm.display_name) AS member_name
+                FROM item_movement m
+                         LEFT JOIN inventory_item i ON i.id = coalesce(m.outgoing_item_id, m.incoming_item_id)
+                         LEFT JOIN station_member sm ON sm.id = m.member_id
+                         LEFT JOIN account a ON a.id = sm.account_id
+                WHERE m.flow_id = :flow_id AND m.state = :open
+                ORDER BY m.created_at, m.id;""")
+                .single(call().bind("flow_id", flowId).bind("open", MovementState.OPEN))
+                .map(row -> new OpenMovementOnFlow(
+                        row.getInt("id"),
+                        row.getObject("current_step_id", Integer.class),
+                        row.getString("item_name"),
+                        row.getString("member_name")))
+                .all();
+    }
+
+    /**
      * The movement that is already under way with this piece, if there is one.
      *
      * <p>A piece can only be in one place, so it can only be on one chain: a second chain reads the
@@ -158,6 +192,26 @@ public class ItemMovementRepository {
     public boolean moveToStep(int id, Integer stepId) {
         return query("UPDATE item_movement SET current_step_id = :step_id WHERE id = :id;")
                 .single(call().bind("step_id", stepId).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Puts a movement on another chain, standing on one of its steps.
+     *
+     * <p>The chain a movement walks is decided when it is started and never afterwards, because the
+     * answer does not change under it. Where the answer was wrong to begin with it does have to
+     * change, and the step comes with it: a step belongs to one chain, so a movement that keeps the
+     * one it stood on would be standing on somebody else's chain.
+     *
+     * @param id     the movement
+     * @param flowId the chain it walks from now on
+     * @param stepId the step of that chain it stands on
+     * @return whether it moved
+     */
+    public boolean moveToFlow(int id, int flowId, Integer stepId) {
+        return query("UPDATE item_movement SET flow_id = :flow_id, current_step_id = :step_id WHERE id = :id;")
+                .single(call().bind("flow_id", flowId).bind("step_id", stepId).bind("id", id))
                 .update()
                 .changed();
     }
@@ -237,4 +291,14 @@ public class ItemMovementRepository {
                 .map(ItemMovementLog.map())
                 .all();
     }
+
+    /**
+     * One movement still walking a chain, said in the few things a list has to show about it.
+     *
+     * @param id            the movement
+     * @param currentStepId the step it stands on, or {@code null} where the step it stood on has gone
+     * @param itemName      what the piece is called, or {@code null} where no piece has been named yet
+     * @param memberName    whose it is, or {@code null} where the movement is about nobody in particular
+     */
+    public record OpenMovementOnFlow(int id, Integer currentStepId, String itemName, String memberName) {}
 }

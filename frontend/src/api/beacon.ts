@@ -119,7 +119,7 @@ export async function sendProblems(ids: number[]): Promise<number> {
 
 /** The day's numbers as they would go, so an operator can see what leaves. */
 export async function previewMetrics(): Promise<MetricsBatch> {
-    return (await client.get<MetricsBatch>('/admin/beacon/metrics/preview')).data
+    return (await client.get<MetricsBatch>('/admin/beacon/figures/preview')).data
 }
 
 export async function listFaults(includeAcknowledged = false): Promise<BeaconFault[]> {
@@ -139,5 +139,5 @@ export async function acknowledgeBeaconReport(id: number): Promise<void> {
 }
 
 export async function listBeaconMetrics(days = 30): Promise<BeaconMetricsRow[]> {
-    return (await client.get<BeaconMetricsRow[]>('/admin/beacon/collected/metrics', {params: {days}})).data
+    return (await client.get<BeaconMetricsRow[]>('/admin/beacon/collected/figures', {params: {days}})).data
 }

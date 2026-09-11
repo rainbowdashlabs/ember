@@ -17,6 +17,7 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.inventoryFlows.whatIs')">
       <p>{{ t('helpCenter.inventoryFlows.whatIsText') }}</p>
       <p>{{ t('helpCenter.inventoryFlows.shapeText') }}</p>
+      <p>{{ t('helpCenter.inventoryFlows.groupedText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryFlows.whichApplies')">
@@ -27,6 +28,12 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.inventoryFlows.editing')">
       <p>{{ t('helpCenter.inventoryFlows.editingText') }}</p>
       <p>{{ t('helpCenter.inventoryFlows.orderText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.inventoryFlows.restoreTitle')">
+      <p>{{ t('helpCenter.inventoryFlows.restoreText') }}</p>
+      <p>{{ t('helpCenter.inventoryFlows.restoreMovingText') }}</p>
+      <p>{{ t('helpCenter.inventoryFlows.restoreOwnerText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryFlows.problemsTitle')">

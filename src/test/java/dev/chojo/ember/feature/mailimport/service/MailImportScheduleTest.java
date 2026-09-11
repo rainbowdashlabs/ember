@@ -33,6 +33,7 @@ class MailImportScheduleTest {
                 "archive",
                 new EncryptedBlob(new byte[12], new byte[16]),
                 "INBOX",
+                false,
                 enabled,
                 intervalMinutes,
                 NOW.minus(Duration.ofDays(30)),

@@ -71,8 +71,22 @@ export function getRequestHistory(): RequestHistoryEntry[] {
     return [...requestHistory]
 }
 
+/**
+ * How long any request waits before giving up.
+ *
+ * <p>Without this a request to a server that accepts the connection and then says nothing waits for
+ * ever, which is what a backend still working through its startup does. A screen waiting on such a
+ * request shows a spinner that never stops and says nothing, and a reader restarting their instance sees
+ * exactly that. Sixty seconds is long enough for the slowest thing here to answer and short enough that
+ * a reader learns something before they give up.
+ *
+ * <p>The few calls that legitimately take longer set their own deadline.
+ */
+const REQUEST_DEADLINE_MS = 60_000
+
 const client = axios.create({
     baseURL: '/api/v1',
+    timeout: REQUEST_DEADLINE_MS,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -199,8 +213,9 @@ client.interceptors.response.use(
             }
         }
         if (error.response?.status === 403) {
-            const message = error.response?.data?.message ?? 'Kein Zugriff auf diesen Inhalt.'
-            showToast(message, 'error')
+            // Rights are the station's to give, so the toast points there rather than at a bug report.
+            const said = error.response?.data?.message
+            showToast(said?.trim() ? said : i18n.global.t('failure.DENIED.message'), 'error')
         }
         return Promise.reject(error)
     },

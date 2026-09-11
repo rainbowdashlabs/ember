@@ -137,7 +137,7 @@ public class BeaconMetricsService {
     public boolean sendIfDue(String version, Instant now) {
         if (!config.metricsEnabled()) return false;
         if (!scheduler.due(now)) return false;
-        if (httpClient.signedPost(config.url(), "/api/v1/beacon/metrics", batch(version, now))) {
+        if (httpClient.signedPost(config.url(), "/api/v1/beacon/figures", batch(version, now))) {
             scheduler.markSent(now);
             return true;
         }

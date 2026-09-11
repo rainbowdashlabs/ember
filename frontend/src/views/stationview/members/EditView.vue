@@ -9,8 +9,8 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MemberEditTabs from './editview/MemberEditTabs.vue'
 import MemberAccessActions from './editview/MemberAccessActions.vue'
@@ -148,7 +148,7 @@ function goBack() {
       </SecondaryButton>
 
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading && member">
         <SectionHeader>{{ member.name || member.email }}</SectionHeader>

@@ -7,6 +7,7 @@
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -58,7 +59,7 @@ async function save() {
     <SubHeader>{{ t('beacon.settingsTitle') }}</SubHeader>
     <MutedText tag="p" size="sm">{{ t('beacon.settingsHint') }}</MutedText>
 
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <Alert v-if="saved" variant="success">{{ t('beacon.settingsSaved') }}</Alert>
 
     <label class="flex items-center gap-2 text-sm">

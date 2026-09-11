@@ -14,8 +14,8 @@ import type {
   TransferContext,
 } from '@/api/dataTracking'
 import SaveButton from '@/components/button/SaveButton.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import TableColumnList from './TableColumnList.vue'
 import TableSchemaSection from './TableSchemaSection.vue'
 import TableTransferSection from './TableTransferSection.vue'
@@ -47,7 +47,7 @@ const {t} = useI18n()
 
 <template>
   <div class="p-4 space-y-6">
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
 
     <TableColumnList
         :columns="columns"

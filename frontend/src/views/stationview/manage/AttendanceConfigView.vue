@@ -8,12 +8,12 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import type {AttendanceTemplate} from '@/api/attendance'
 import {attendance} from '@/api'
@@ -88,7 +88,7 @@ async function duplicateTemplate(tpl: AttendanceTemplate) {
 
       <Spinner v-if="loading" size="lg"/>
 
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <div v-if="!loading && templates.length === 0 && !error" class="text-center text-(--text-muted) py-12">
         {{ t('attendanceConfig.empty') }}

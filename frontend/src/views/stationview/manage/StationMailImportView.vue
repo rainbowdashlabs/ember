@@ -8,15 +8,15 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MailboxCard from './stationmailimportview/MailboxCard.vue'
 import MailboxEditor from './stationmailimportview/MailboxEditor.vue'
 import MailImportLogPanel from './stationmailimportview/MailImportLogPanel.vue'
-import {mailImport, stationMembers} from '@/api'
+import {mailImport} from '@/api'
 import type {Mailbox, MailImportSettings, MailboxRequest} from '@/api/mailImport'
-import type {StationMember} from '@/api/types'
 
 /**
  * What a station reads for paperwork: the mailboxes it watches, the rules under each of them, and what
@@ -29,7 +29,6 @@ const {t} = useI18n()
 
 const settings = ref<MailImportSettings | null>(null)
 const mailboxes = ref<Mailbox[]>([])
-const members = ref<StationMember[]>([])
 const loading = ref(true)
 const error = ref('')
 
@@ -49,14 +48,6 @@ async function reload() {
     error.value = t('common.error')
   }
   loading.value = false
-}
-
-async function loadMembers() {
-  try {
-    members.value = await stationMembers.listMembers()
-  } catch {
-    members.value = []
-  }
 }
 
 async function act(action: Promise<unknown>) {
@@ -92,14 +83,13 @@ function add() {
   adding.value = true
 }
 
-loadMembers()
 reload()
 </script>
 
 <template>
   <ViewContent :title="t('pages.station-mail-import.title')" :subtitle="t('pages.station-mail-import.subtitle')">
     <div class="space-y-6">
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <Alert v-if="switchedOff" variant="info">{{ t('mailImport.switchedOffForInstance') }}</Alert>
       <Alert v-else-if="cannotStorePasswords" variant="error">{{ t('mailImport.noEncryptionKey') }}</Alert>
@@ -130,7 +120,6 @@ reload()
             v-for="mailbox in mailboxes"
             :key="mailbox.id"
             :mailbox="mailbox"
-            :members="members"
             :supported-types="settings?.supportedTypes ?? []"
             @edit="edit"
             @changed="reload"

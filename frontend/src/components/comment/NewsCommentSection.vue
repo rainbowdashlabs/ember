@@ -13,8 +13,8 @@ import {news, stationMembers, memberGroups} from '@/api'
 import {useCommentHighlight} from '@/composables/useCommentHighlight'
 import CommentThread from './CommentThread.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
 
 const props = defineProps<{
   newsId: number
@@ -110,7 +110,7 @@ onMounted(async () => {
 <template>
   <div class="space-y-4">
     <SubHeader>{{ t('comments.title') }}</SubHeader>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <Spinner v-if="loading" size="sm"/>
 
     <template v-if="!loading">

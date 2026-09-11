@@ -18,6 +18,7 @@ import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.search.ComparisonTerm;
 import jakarta.mail.search.ReceivedDateTerm;
+import org.eclipse.angus.mail.util.ReadableMime;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -83,12 +84,25 @@ public class MailboxReader implements AutoCloseable {
     /**
      * Opens a connection to a mailbox.
      *
+     * <p>The host is asked about again here rather than trusted from the row. A mailbox written before
+     * that check existed, and a name that resolved to something acceptable once and to loopback the next
+     * time, both reach this point and neither reaches the socket.
+     *
      * @param timeoutSeconds how long to wait on the host, for connecting and for reading alike
-     * @throws MessagingException where the host, the credentials or the encryption do not work out
+     * @throws MessagingException where the host is not one to connect to, or the credentials or the
+     *                            encryption do not work out
      */
     public MailboxReader(
-            String host, int port, MailSecurity security, String username, String password, int timeoutSeconds)
+            MailHostPolicy hostPolicy,
+            String host,
+            int port,
+            MailSecurity security,
+            String username,
+            String password,
+            int timeoutSeconds)
             throws MessagingException {
+        var objection = hostPolicy.objection(host, security);
+        if (objection.isPresent()) throw new MessagingException(objection.get());
         this.store = openStore(host, port, security, username, password, timeoutSeconds);
     }
 
@@ -180,6 +194,29 @@ public class MailboxReader implements AutoCloseable {
                 received != null ? received.toInstant() : Instant.now(),
                 authResults != null && authResults.length > 0 ? authResults[0] : null,
                 attachments);
+    }
+
+    /**
+     * The message exactly as it arrived, headers and all, asked of the server a second time.
+     *
+     * <p>This is what a signature is checked against and the only thing that can be. The body hash a
+     * signature carries is exact to the byte, and a message that has been parsed and written back out is
+     * no longer the message that was sent: a boundary respelled, a header refolded or a line ending
+     * changed is enough to fail an honest signature. So the source is fetched rather than rebuilt, which
+     * costs a second round trip and is asked for only where a mailbox wants the signature checked.
+     *
+     * @param message the message to fetch
+     * @return its bytes as the server holds them
+     * @throws MessagingException where this server cannot hand a message back unaltered, in which case
+     *                            nothing here can honestly say whether a signature holds
+     */
+    public byte[] rawSource(Message message) throws MessagingException, IOException {
+        if (!(message instanceof ReadableMime readable)) {
+            throw new MessagingException("This mail server cannot hand a message back the way it arrived");
+        }
+        try (InputStream in = readable.getMimeStream()) {
+            return in.readAllBytes();
+        }
     }
 
     private void collect(

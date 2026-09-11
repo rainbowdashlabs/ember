@@ -35,9 +35,9 @@ import java.util.List;
  *
  * <p>Two permissions, because they are two different rights. Connecting a mailbox is a mail setting and
  * takes the station's mail permission, the same as the sending side. Writing a rule puts files into the
- * document store, so it takes the document edit permission as well: the right to connect a mailbox is not
- * the right to file documents with it. The log is readable with document read, since that is what it is
- * about.
+ * document store and says which member they land on, so it takes the permission for member paperwork as
+ * well: the right to connect a mailbox is not the right to file documents with it. The log is readable
+ * with document read, since it says what arrived and from whom rather than what is in it.
  *
  * <p>The whole feature rides on the documents module. Module off, no import and no page.
  */
@@ -79,10 +79,6 @@ public class MailImportRoutes implements Routes {
                 prefix + "/station/mail-import/mailboxes/{id}/rules", this::createRule, StationPermission.STATION_MAIL);
         routes.put(prefix + "/station/mail-import/rules/{ruleId}", this::updateRule, StationPermission.STATION_MAIL);
         routes.delete(prefix + "/station/mail-import/rules/{ruleId}", this::deleteRule, StationPermission.STATION_MAIL);
-        routes.post(
-                prefix + "/station/mail-import/rules/{ruleId}/acknowledge-lost-member",
-                this::acknowledgeLostMember,
-                StationPermission.STATION_MAIL);
 
         routes.get(prefix + "/station/mail-import/log", this::log, StationPermission.DOCUMENT_READ);
     }
@@ -125,6 +121,7 @@ public class MailImportRoutes implements Routes {
                 request.username(),
                 request.password(),
                 request.folder(),
+                request.verifyDkim(),
                 request.intervalMinutes(),
                 request.importFrom());
         ctx.status(HttpStatus.CREATED).json(toResponse(mailbox));
@@ -141,6 +138,7 @@ public class MailImportRoutes implements Routes {
                 request.security(),
                 request.username(),
                 request.folder(),
+                request.verifyDkim(),
                 request.enabled(),
                 request.intervalMinutes(),
                 request.importFrom());
@@ -213,13 +211,6 @@ public class MailImportRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    private void acknowledgeLostMember(Context ctx) {
-        var rule = requireOwnedRule(ctx);
-        requireMayFile(UserSession.from(ctx));
-        mailboxService.acknowledgeLostMember(rule.id());
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
     private void log(Context ctx) {
         int stationId = stationOf(ctx);
         requireModule(stationId);
@@ -237,11 +228,11 @@ public class MailImportRoutes implements Routes {
     }
 
     /**
-     * A rule files documents, so writing one takes the right to file documents and not only the right to
-     * connect a mailbox.
+     * A rule decides which member an attachment lands on, so writing one takes the right to manage the
+     * documents that name a member and not only the right to connect a mailbox.
      */
     private void requireMayFile(UserSession session) {
-        if (!session.hasPermission(StationPermission.DOCUMENT_EDIT)) {
+        if (!session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
             throw new ForbiddenResponse();
         }
     }
@@ -286,6 +277,7 @@ public class MailImportRoutes implements Routes {
                 mailbox.security(),
                 mailbox.username(),
                 mailbox.folder(),
+                mailbox.verifyDkim(),
                 mailbox.enabled(),
                 mailbox.intervalMinutes(),
                 mailbox.importFrom(),
@@ -313,10 +305,8 @@ public class MailImportRoutes implements Routes {
                 rule.readSubjectForMember(),
                 rule.action(),
                 rule.moveToFolder(),
-                rule.lostMember(),
                 rule.senderPatterns(),
-                rule.tags(),
-                rule.memberIds());
+                rule.tags());
     }
 
     private static LogEntryResponse toResponse(MailImportEntry entry) {
@@ -358,6 +348,7 @@ public class MailImportRoutes implements Routes {
             MailSecurity security,
             String username,
             String folder,
+            boolean verifyDkim,
             boolean enabled,
             int intervalMinutes,
             Instant importFrom,
@@ -369,8 +360,11 @@ public class MailImportRoutes implements Routes {
     /**
      * A mailbox as it arrives over the wire.
      *
-     * @param password the password in the clear, which is the only moment it exists as text on this side.
-     *                 Null on an update, which leaves whatever is stored alone
+     * @param password   the password in the clear, which is the only moment it exists as text on this
+     *                   side. Null on an update, which leaves whatever is stored alone
+     * @param verifyDkim whether a message has to carry a signature of the domain its address claims.
+     *                   Off unless the station asks for it, since a correspondent who does not sign
+     *                   would be refused
      */
     public record MailboxRequest(
             String name,
@@ -380,6 +374,7 @@ public class MailImportRoutes implements Routes {
             String username,
             String password,
             String folder,
+            boolean verifyDkim,
             boolean enabled,
             int intervalMinutes,
             Instant importFrom) {}
@@ -403,10 +398,8 @@ public class MailImportRoutes implements Routes {
             boolean readSubjectForMember,
             MailRuleAction action,
             String moveToFolder,
-            boolean lostMember,
             List<String> senderPatterns,
-            List<String> tags,
-            List<Integer> memberIds) {}
+            List<String> tags) {}
 
     public record RuleRequest(
             String name,
@@ -424,8 +417,7 @@ public class MailImportRoutes implements Routes {
             MailRuleAction action,
             String moveToFolder,
             List<String> senderPatterns,
-            List<String> tags,
-            List<Integer> memberIds) {}
+            List<String> tags) {}
 
     public record LogEntryResponse(
             int id,

@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { computed, ref, toRef } from 'vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import MemberRelationsPanel from '../relations/MemberRelationsPanel.vue'
 import { useMemberManagers } from '../relations/useMemberManagers'
 import { useManagedMembers } from '../relations/useManagedMembers'
@@ -66,7 +66,7 @@ const { loading } = useAsyncLoader(async () => {
 <template>
   <div class="space-y-6">
     <Spinner v-if="loading" size="md"/>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
 
     <MemberRelationsPanel
         v-if="!loading"

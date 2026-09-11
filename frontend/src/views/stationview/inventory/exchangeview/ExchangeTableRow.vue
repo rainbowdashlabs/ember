@@ -61,10 +61,10 @@ function ownerLabel(ownerKind?: string | null): string {
     </Td>
     <Td class="font-medium">{{ request.inventoryName }}</Td>
     <Td v-if="canManageExchanges">
-      <component :is="itemOwnerBadge(request.ownerKind)">{{ ownerLabel(request.ownerKind) }}</component>
-      <SecondaryBadge v-if="request.purpose" class="ml-1">
-        {{ t(`movements.purpose.${request.purpose}`) }}
-      </SecondaryBadge>
+      <div class="flex flex-wrap items-center gap-1">
+        <component :is="itemOwnerBadge(request.ownerKind)">{{ ownerLabel(request.ownerKind) }}</component>
+        <SecondaryBadge v-if="request.purpose">{{ t(`movements.purpose.${request.purpose}`) }}</SecondaryBadge>
+      </div>
     </Td>
     <Td>{{ request.oldSizeLabel ?? t('common.unisize') }}</Td>
     <Td>{{ request.newSizeLabel ?? t('common.unisize') }}</Td>

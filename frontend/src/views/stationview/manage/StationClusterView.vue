@@ -8,7 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FormLabel from '@/components/input/FormLabel.vue'
@@ -69,7 +69,7 @@ async function withdraw() {
 <template>
   <ViewContent :subtitle="t('pages.station-manage-cluster.subtitle')" :title="t('pages.station-manage-cluster.title')">
     <div class="space-y-6">
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <Spinner v-if="loading" size="lg"/>
 

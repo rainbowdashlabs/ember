@@ -51,7 +51,7 @@ const FAULTS: BeaconFault[] = [
 
     <HelpSection :title="t('helpCenter.adminBeacon.receiving')">
       <p>{{ t('helpCenter.adminBeacon.receivingText') }}</p>
-      <BeaconFaultCard :fault="FAULTS[0]!"/>
+      <BeaconFaultCard :expanded="false" :fault="FAULTS[0]!"/>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.adminBeacon.copies')">

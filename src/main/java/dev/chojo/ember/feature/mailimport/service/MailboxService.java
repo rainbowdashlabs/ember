@@ -45,6 +45,7 @@ public class MailboxService {
     private final MailImportLogRepository logRepository;
     private final MailImportService importService;
     private final CredentialCipher cipher;
+    private final MailHostPolicy hostPolicy;
     private final MailImport settings;
 
     @Inject
@@ -54,12 +55,14 @@ public class MailboxService {
             MailImportLogRepository logRepository,
             MailImportService importService,
             CredentialCipher cipher,
+            MailHostPolicy hostPolicy,
             MailImport settings) {
         this.mailboxRepository = mailboxRepository;
         this.ruleRepository = ruleRepository;
         this.logRepository = logRepository;
         this.importService = importService;
         this.cipher = cipher;
+        this.hostPolicy = hostPolicy;
         this.settings = settings;
     }
 
@@ -108,6 +111,7 @@ public class MailboxService {
             String username,
             String password,
             String folder,
+            boolean verifyDkim,
             int intervalMinutes,
             Instant importFrom) {
         requireSomewhereToPutThePassword();
@@ -115,6 +119,7 @@ public class MailboxService {
         requireText(name, "name");
         requireText(host, "host");
         requireText(username, "user");
+        requireReachable(host, security);
         var mailbox = mailboxRepository.create(
                 stationId,
                 name.trim(),
@@ -124,6 +129,7 @@ public class MailboxService {
                 username.trim(),
                 cipher.encrypt(password.getBytes(StandardCharsets.UTF_8)),
                 folderOr(folder),
+                verifyDkim,
                 heldToTheFloor(intervalMinutes),
                 importFrom != null ? importFrom : Instant.now());
         log.info("Station {} added mailbox {}", stationId, mailbox.id());
@@ -138,12 +144,14 @@ public class MailboxService {
             MailSecurity security,
             String username,
             String folder,
+            boolean verifyDkim,
             boolean enabled,
             int intervalMinutes,
             Instant importFrom) {
         requireText(name, "name");
         requireText(host, "host");
         requireText(username, "user");
+        requireReachable(host, security);
         return mailboxRepository.update(
                 id,
                 name.trim(),
@@ -152,6 +160,7 @@ public class MailboxService {
                 security,
                 username.trim(),
                 folderOr(folder),
+                verifyDkim,
                 enabled,
                 heldToTheFloor(intervalMinutes),
                 importFrom != null ? importFrom : Instant.now());
@@ -179,6 +188,7 @@ public class MailboxService {
      */
     public TestResult test(MailMailbox mailbox) {
         try (var reader = new MailboxReader(
+                hostPolicy,
                 mailbox.host(),
                 mailbox.port(),
                 mailbox.security(),
@@ -235,8 +245,7 @@ public class MailboxService {
                 request.action(),
                 request.action() == MailRuleAction.MOVE ? blankToNull(request.moveToFolder()) : null,
                 request.senderPatterns(),
-                request.tags(),
-                request.memberIds());
+                request.tags());
     }
 
     public boolean updateRule(int id, RuleRequest request) {
@@ -258,16 +267,11 @@ public class MailboxService {
                 request.action(),
                 request.action() == MailRuleAction.MOVE ? blankToNull(request.moveToFolder()) : null,
                 request.senderPatterns(),
-                request.tags(),
-                request.memberIds());
+                request.tags());
     }
 
     public boolean deleteRule(int id) {
         return ruleRepository.delete(id);
-    }
-
-    public boolean acknowledgeLostMember(int id) {
-        return ruleRepository.clearLostMember(id);
     }
 
     public List<MailImportEntry> log(int stationId, int limit, int offset) {
@@ -308,6 +312,17 @@ public class MailboxService {
         if (request.action() == MailRuleAction.MOVE && blankToNull(request.moveToFolder()) == null) {
             throw new BadRequestResponse("Moving a message needs a folder to move it to");
         }
+    }
+
+    /**
+     * Refuses a host this instance may not connect to, and clear text anywhere but the local network.
+     *
+     * <p>Asked as the mailbox is written so that whoever is setting one up is told now, rather than
+     * finding out from a connection test that the address they typed was never going to be tried.
+     */
+    private void requireReachable(String host, MailSecurity security) {
+        var objection = hostPolicy.objection(host, security);
+        if (objection.isPresent()) throw new BadRequestResponse(objection.get());
     }
 
     private void requireSomewhereToPutThePassword() {

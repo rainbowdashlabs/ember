@@ -7,6 +7,7 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -17,7 +18,6 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import LendingShareButton from '@/components/lending/LendingShareButton.vue'
 import InventoryFieldsPanel from '@/components/inventory/InventoryFieldsPanel.vue'
@@ -137,7 +137,7 @@ watch(() => props.inventoryId, load, {immediate: true})
     </div>
     <p class="text-sm text-(--text-muted)">{{ t('inventory.art.intro') }}</p>
 
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
 
     <div v-for="art in arts" :key="art.id" :data-testid="`art-row-${art.name}`"
          class="flex items-center justify-between px-3 py-2 border-b border-bg-light-accent/50 dark:border-bg-dark-accent/50">

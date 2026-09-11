@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import ProfileFieldModal from '@/views/stationview/manage/membersconfig/FieldModal.vue'
@@ -75,7 +75,7 @@ const activeStationGroup = computed({
   <ViewContent :subtitle="t('pages.cluster-fields.subtitle')" :title="t('pages.cluster-fields.title')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <p class="text-sm text-(--text-muted)">{{ t('clusterFields.hint') }}</p>
 

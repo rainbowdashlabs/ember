@@ -10,7 +10,7 @@ import {useRouter, type RouteLocationRaw} from 'vue-router'
 import {useEventRoutes} from '@/composables/useEventRoutes'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import UpcomingBody from './upcomingview/UpcomingBody.vue'
 import {registrationAudienceNote} from './upcomingview/registrationAudience'
 import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
@@ -125,7 +125,7 @@ watch(loaded, (isLoaded) => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <UpcomingBody
           v-if="!loading"
           :view-mode="viewMode"

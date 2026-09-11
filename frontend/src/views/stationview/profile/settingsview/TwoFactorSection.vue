@@ -8,6 +8,7 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {beginTotpSetup, confirmTotpSetup, getTwoFactorStatus, regenerateBackupCodes, removeTotp, type TotpBeginResponse, type TwoFactorStatus} from '@/api/twoFactor'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -121,7 +122,7 @@ async function handleRegenerate() {
         <ErrorBadge v-else>{{ t('twoFactor.inactive') }}</ErrorBadge>
       </div>
 
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <!-- Not enrolled: show setup -->
       <template v-if="!status.enrolled && setupStep === 'idle'">

@@ -7,6 +7,7 @@
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -15,7 +16,6 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import {inventory, movements} from '@/api'
 import type {Inventory, InventorySize} from '@/api/inventory'
 import {MovementPurpose} from '@/api/movements'
@@ -53,7 +53,7 @@ watch(inventoryId, async (next) => {
   sizes.value = next ? await inventory.listSizes(Number(next)) : []
 })
 
-const {running, error, run: send} = useAsyncAction(async () => {
+const {running, error, failure, run: send} = useAsyncAction(async () => {
   if (!inventoryId.value) return
   await movements.createMovement({
     purpose: MovementPurpose.REQUEST,
@@ -81,7 +81,7 @@ const {running, error, run: send} = useAsyncAction(async () => {
     <Modal v-if="asking" model-value @update:model-value="(open) => { if (!open) asking = false }">
       <div class="space-y-4">
         <SectionHeader>{{ t('inventory.request.title') }}</SectionHeader>
-        <Alert v-if="error" variant="error">{{ error }}</Alert>
+        <FailureAlert :failure="failure"/>
 
         <div class="space-y-1">
           <FieldLabel>{{ t('inventory.request.what') }}</FieldLabel>

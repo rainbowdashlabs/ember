@@ -19,6 +19,8 @@ import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
+import dev.chojo.ember.feature.inventory.service.MovementFlowService.ChosenLanding;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -62,6 +64,10 @@ public class MovementFlowRoutes implements Routes {
         routes.delete(prefix + "/movement-flows/{id}", this::archiveFlow, StationPermission.INVENTORY_MANAGER);
         routes.post(prefix + "/movement-flows/{id}/steps", this::addStep, StationPermission.INVENTORY_MANAGER);
         routes.put(prefix + "/movement-flows/{id}/step-order", this::reorderSteps, StationPermission.INVENTORY_MANAGER);
+        routes.get(
+                prefix + "/movement-flows/{id}/restore/plan", this::restorePlan, StationPermission.INVENTORY_MANAGER);
+        routes.post(
+                prefix + "/movement-flows/{id}/restore", this::restoreToPreset, StationPermission.INVENTORY_MANAGER);
         routes.put(prefix + "/movement-flow-steps/{id}", this::updateStep, StationPermission.INVENTORY_MANAGER);
         routes.delete(prefix + "/movement-flow-steps/{id}", this::archiveStep, StationPermission.INVENTORY_MANAGER);
         routes.get(prefix + "/movement-flow-bindings", this::listBindings, StationPermission.INVENTORY_MANAGER);
@@ -272,6 +278,63 @@ public class MovementFlowRoutes implements Routes {
         ctx.json(flowAsItStands(flowId));
     }
 
+    /**
+     * Says what writing this chain again would do, without doing any of it.
+     *
+     * <p>What is asked before the restore is asked for. A chain written again takes the movements
+     * standing on it with it, and where one of them lands is a question the preset answers only where
+     * it says once what the old step said. The rest are for somebody to answer, and this is the page
+     * they answer on.
+     */
+    @OpenApi(
+            path = "/api/v1/movement-flows/{id}/restore/plan",
+            methods = HttpMethod.GET,
+            summary = "Report what writing a flow again from its preset would do",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(
+                        status = "200",
+                        content = @OpenApiContent(from = MovementFlowService.RestorePlan.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void restorePlan(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(flowService.planRestore(requireOwnFlow(pathInt(ctx, "id"), session)));
+    }
+
+    /**
+     * Writes a chain again as the preset for its combination says it goes.
+     *
+     * <p>The body says where the movements the preset does not answer for are to land, and a chain
+     * whose movements it does answer for is written again with no body at all, which is what keeps
+     * the one-click case one click.
+     *
+     * <p>Answers with the chain as it now stands, the way every other change to one does, so the page
+     * shows what it was given back rather than having to ask again.
+     */
+    @OpenApi(
+            path = "/api/v1/movement-flows/{id}/restore",
+            methods = HttpMethod.POST,
+            summary = "Write a flow again from the preset for the combination it is bound to",
+            tags = {"Inventory"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RestoreRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FlowResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void restoreToPreset(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int flowId = requireOwnFlow(pathInt(ctx, "id"), session);
+        var request = ctx.body().isBlank() ? null : ctx.bodyAsClass(RestoreRequest.class);
+        var mappings = request == null || request.mappings() == null ? List.<ChosenLanding>of() : request.mappings();
+        flowService.restoreToPreset(
+                flowId, session.memberOpt().map(StationMember::id).orElse(null), mappings);
+        ctx.json(flowAsItStands(flowId));
+    }
+
     private void requireStepFields(StepRequest request) {
         if (request.actor() == null || request.subject() == null || request.custodyAfter() == null) {
             throw new BadRequestResponse("actor, subject and custodyAfter are required");
@@ -336,6 +399,13 @@ public class MovementFlowRoutes implements Routes {
      * @param stepIds every active step of the chain, in the order they are to be walked
      */
     public record StepOrderRequest(List<Integer> stepIds) {}
+
+    /**
+     * @param mappings where the movements standing on the chain are to land, each naming a step of
+     *                 the preset by its place in it. A movement the preset answers for on its own
+     *                 needs no entry, so this may be empty and the body left out altogether
+     */
+    public record RestoreRequest(List<ChosenLanding> mappings) {}
 
     /**
      * @param ownedByCluster whether the flow belongs to the body above the station rather than to

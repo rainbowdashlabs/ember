@@ -9,6 +9,7 @@ import {useRoute} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import {auth, passkeys, adminSettings} from '@/api'
@@ -43,7 +44,7 @@ const {setActiveCluster, clearActiveCluster} = useCluster()
 
 const demo = useDemoAccounts()
 const {
-  isDemo, isDev, loading: demoLoading, activeStation, search, hasDemoAccounts, view: demoView,
+  isDemo, isDev, loading: demoLoading, unreachable, activeStation, search, hasDemoAccounts, view: demoView,
 } = demo
 
 const legal = useLoginConsent()
@@ -239,6 +240,9 @@ const error = computed(() => loginError.value || demoError.value || passkeyError
       <div v-if="demoLoading" class="flex justify-center">
         <Spinner size="lg"/>
       </div>
+
+      <!-- A server that did not answer is worth saying so, rather than quietly offering the wrong form. -->
+      <FailureAlert v-if="unreachable" :failure="unreachable"/>
 
       <DemoLogin v-if="isDemo && !demoLoading"
                  v-model:active-station="activeStation" v-model:search="search"

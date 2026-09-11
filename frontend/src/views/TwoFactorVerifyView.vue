@@ -16,11 +16,11 @@ import {useCluster} from '@/composables/useCluster'
 import {useStations} from '@/composables/useStations'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import TextInput from '@/components/input/text/TextInput.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import LinkButton from '@/components/button/LinkButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
@@ -141,7 +141,7 @@ async function finalizeSession(token: string, expiresAt: string) {
         </MutedText>
       </div>
 
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <NeutralContainer class="space-y-4">
         <form class="space-y-4" @submit.prevent="handleVerify">

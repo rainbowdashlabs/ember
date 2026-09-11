@@ -7,11 +7,11 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import {movements} from '@/api'
 import {MovementState, StepActor, type Movement} from '@/api/movements'
 import {apiErrorMessage} from '@/util/apiError'
@@ -112,7 +112,7 @@ onMounted(load)
     <SectionHeader>{{ t('movements.mine') }}</SectionHeader>
     <MutedText size="sm" tag="p">{{ t('movements.mineHint') }}</MutedText>
 
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
 
     <div
         v-for="movement in open"

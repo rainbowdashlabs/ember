@@ -7,6 +7,7 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -98,7 +99,7 @@ async function save() {
 
 <template>
   <div class="space-y-6">
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <Alert v-if="notice" variant="info">{{ notice }}</Alert>
 
     <!-- Base fields -->

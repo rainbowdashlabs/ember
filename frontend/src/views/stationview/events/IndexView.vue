@@ -10,7 +10,7 @@ import {useRouter} from 'vue-router'
 import {useEventRoutes} from '@/composables/useEventRoutes'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EventDashboardBody from './indexview/EventDashboardBody.vue'
 import EventDashboardModals from './indexview/EventDashboardModals.vue'
 import type {AttendanceTemplate} from '@/api/attendance'
@@ -178,7 +178,7 @@ function goToAttendance(ev: StationEvent) {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <EventDashboardBody
           v-if="!loading"

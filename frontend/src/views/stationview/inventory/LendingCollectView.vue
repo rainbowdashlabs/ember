@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PartnerOffers from './lendingcollectview/PartnerOffers.vue'
@@ -139,7 +140,7 @@ function remove(key: string) {
 <template>
   <ViewContent :title="t('pages.inventory-lending-collect.title')" :subtitle="t('pages.inventory-lending-collect.subtitle')">
     <Spinner v-if="loading" size="lg"/>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <FailureAlert :message="error"/>
     <Alert v-if="actionError" variant="error" data-testid="collected-error">{{ actionError }}</Alert>
     <Alert v-if="!date" variant="info" data-testid="collect-no-date">{{ t('lendingCollect.noDate') }}</Alert>
     <Alert v-if="sent" variant="success" data-testid="collected-sent">{{ sent }}</Alert>

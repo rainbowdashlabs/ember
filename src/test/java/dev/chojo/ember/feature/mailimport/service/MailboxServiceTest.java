@@ -49,6 +49,7 @@ class MailboxServiceTest extends RepositoryTestBase {
     private static GreenMail greenMail;
     private static MailboxService service;
     private static MailboxService withoutAKey;
+    private static MailboxService publicHostsOnly;
     private static Station station;
     private static Account account;
 
@@ -68,6 +69,7 @@ class MailboxServiceTest extends RepositoryTestBase {
                 logRepository,
                 importService,
                 new CredentialCipher(KEY),
+                MailHostPolicies.allowingTheLocalNetwork(),
                 new MailImport());
         withoutAKey = new MailboxService(
                 mailboxRepository,
@@ -75,6 +77,15 @@ class MailboxServiceTest extends RepositoryTestBase {
                 logRepository,
                 importService,
                 new CredentialCipher(""),
+                MailHostPolicies.allowingTheLocalNetwork(),
+                new MailImport());
+        publicHostsOnly = new MailboxService(
+                mailboxRepository,
+                ruleRepository,
+                logRepository,
+                importService,
+                new CredentialCipher(KEY),
+                MailHostPolicies.publicHostsOnly(),
                 new MailImport());
 
         station = stationRepo.create("Mailbox Service Station");
@@ -99,6 +110,7 @@ class MailboxServiceTest extends RepositoryTestBase {
                         USER,
                         PASSWORD,
                         "INBOX",
+                        false,
                         15,
                         Instant.now())
                 .id();
@@ -122,7 +134,6 @@ class MailboxServiceTest extends RepositoryTestBase {
                 action,
                 folder,
                 senders,
-                List.of(),
                 List.of());
     }
 
@@ -146,6 +157,7 @@ class MailboxServiceTest extends RepositoryTestBase {
                         USER,
                         PASSWORD,
                         "INBOX",
+                        false,
                         15,
                         Instant.now()));
     }
@@ -163,6 +175,7 @@ class MailboxServiceTest extends RepositoryTestBase {
                         USER,
                         null,
                         "INBOX",
+                        false,
                         15,
                         Instant.now()));
         assertThrows(
@@ -176,12 +189,23 @@ class MailboxServiceTest extends RepositoryTestBase {
                         USER,
                         PASSWORD,
                         "INBOX",
+                        false,
                         15,
                         Instant.now()));
         assertThrows(
                 BadRequestResponse.class,
                 () -> service.create(
-                        station.id(), "Archiv", "", 993, MailSecurity.SSL, USER, PASSWORD, "INBOX", 15, Instant.now()));
+                        station.id(),
+                        "Archiv",
+                        "",
+                        993,
+                        MailSecurity.SSL,
+                        USER,
+                        PASSWORD,
+                        "INBOX",
+                        false,
+                        15,
+                        Instant.now()));
         assertThrows(
                 BadRequestResponse.class,
                 () -> service.create(
@@ -193,6 +217,7 @@ class MailboxServiceTest extends RepositoryTestBase {
                         " ",
                         PASSWORD,
                         "INBOX",
+                        false,
                         15,
                         Instant.now()));
         assertThrows(
@@ -206,8 +231,66 @@ class MailboxServiceTest extends RepositoryTestBase {
                         USER,
                         PASSWORD,
                         "INBOX",
+                        false,
                         15,
                         Instant.now()));
+    }
+
+    /**
+     * Connecting a mailbox is a station setting, so without this a station manager could aim one at
+     * loopback or an address inside the deployment and read off the connection test whether anything
+     * answered there.
+     */
+    @Test
+    void anAddressInsideTheDeploymentIsRefused() {
+        assertThrows(
+                BadRequestResponse.class,
+                () -> publicHostsOnly.create(
+                        station.id(),
+                        "Innen",
+                        "127.0.0.1",
+                        993,
+                        MailSecurity.SSL,
+                        USER,
+                        PASSWORD,
+                        "INBOX",
+                        false,
+                        15,
+                        Instant.now()));
+    }
+
+    /** A password sent in the clear to a host on the internet is a password given away. */
+    @Test
+    void anUnencryptedMailboxIsOnlyOfferedOnYourOwnNetwork() {
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.create(
+                        station.id(),
+                        "Offen",
+                        "8.8.8.8",
+                        143,
+                        MailSecurity.NONE,
+                        USER,
+                        PASSWORD,
+                        "INBOX",
+                        false,
+                        15,
+                        Instant.now()));
+
+        var nextDoor = service.create(
+                station.id(),
+                "Nebenan",
+                "127.0.0.1",
+                greenMail.getImap().getPort(),
+                MailSecurity.NONE,
+                USER,
+                PASSWORD,
+                "INBOX",
+                false,
+                15,
+                Instant.now());
+
+        assertEquals(MailSecurity.NONE, nextDoor.security());
     }
 
     /** The floor belongs to the operator, so asking for one minute gets the floor and not one minute. */
@@ -222,6 +305,7 @@ class MailboxServiceTest extends RepositoryTestBase {
                 USER,
                 PASSWORD,
                 "INBOX",
+                false,
                 1,
                 Instant.now());
 
@@ -237,6 +321,7 @@ class MailboxServiceTest extends RepositoryTestBase {
                                 USER,
                                 PASSWORD,
                                 "  ",
+                                false,
                                 15,
                                 Instant.now())
                         .folder());
@@ -344,17 +429,6 @@ class MailboxServiceTest extends RepositoryTestBase {
         assertTrue(service.rulesOf(mailbox.id()).isEmpty());
     }
 
-    @Test
-    void aRuleThatLostSomebodyCanBeAcknowledged() {
-        var mailbox = service.require(mailboxId());
-        var rule = service.createRule(
-                mailbox,
-                ruleRequest(List.of("*@musterstadt.de"), List.of("application/pdf"), MailRuleAction.NOTHING, null));
-
-        assertFalse(service.acknowledgeLostMember(rule.id())
-                && service.requireRule(rule.id()).lostMember());
-    }
-
     /**
      * Reporting the folders is the point rather than a nicety: the commonest mistake in setting one of
      * these up is a folder spelled the way the person says it rather than the way the provider does.
@@ -373,7 +447,17 @@ class MailboxServiceTest extends RepositoryTestBase {
     @Test
     void aConnectionTestThatFailsSaysWhyRatherThanThrowing() {
         var unreachable = service.create(
-                station.id(), "Kaputt", "127.0.0.1", 1, MailSecurity.NONE, USER, PASSWORD, "INBOX", 15, Instant.now());
+                station.id(),
+                "Kaputt",
+                "127.0.0.1",
+                1,
+                MailSecurity.NONE,
+                USER,
+                PASSWORD,
+                "INBOX",
+                false,
+                15,
+                Instant.now());
 
         var result = service.test(unreachable);
 
@@ -388,11 +472,27 @@ class MailboxServiceTest extends RepositoryTestBase {
         int id = mailboxId();
 
         assertTrue(service.update(
-                id, "Anders", "imap.anders.de", 143, MailSecurity.STARTTLS, "wer", "Andere", true, 60, Instant.now()));
+                id,
+                "Anders",
+                "imap.anders.de",
+                143,
+                MailSecurity.STARTTLS,
+                "wer",
+                "Andere",
+                true,
+                true,
+                60,
+                Instant.now()));
         var changed = service.require(id);
         assertEquals("Anders", changed.name());
         assertEquals(MailSecurity.STARTTLS, changed.security());
         assertEquals(60, changed.intervalMinutes());
+        assertTrue(changed.verifyDkim(), "what the mailbox demands of a sender is changed with the rest");
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.update(
+                        id, "Offen", "8.8.8.8", 143, MailSecurity.NONE, "wer", "INBOX", false, true, 60, Instant.now()),
+                "the same host rules hold when a mailbox is changed as when it is written");
 
         service.updatePassword(id, "ein neues Kennwort");
         assertThrows(BadRequestResponse.class, () -> service.updatePassword(id, " "));

@@ -10,6 +10,7 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {InventoryDetail, InventoryItem} from '@/api/inventory'
@@ -85,7 +86,7 @@ function onError(message: string) {
       </div>
 
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading && detail">

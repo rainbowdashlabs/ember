@@ -33,4 +33,5 @@ useHead({
   </NuxtLayout>
   <ClientOnly><ToastContainer /></ClientOnly>
   <ClientOnly><StepUpModal /></ClientOnly>
+  <ClientOnly><ProblemReportModal /></ClientOnly>
 </template>

@@ -71,7 +71,7 @@ public class BeaconIntakeRoutes implements Routes {
         String base = prefix + "/beacon";
         routes.post(base + "/problems", this::takeProblem);
         routes.post(base + "/reports", this::takeReport);
-        routes.post(base + "/metrics", this::takeMetrics);
+        routes.post(base + "/figures", this::takeMetrics);
     }
 
     /** A beacon that is not one answers nothing, so an instance is never a beacon by accident. */

@@ -9,10 +9,10 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
 import type { FederatedNewsDetail } from '@/api/news'
@@ -52,7 +52,7 @@ watch(() => [route.params.stationUid, route.params.newsId], () => {
       </SecondaryButton>
 
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <NeutralContainer v-if="entry" class="space-y-3">
         <div>

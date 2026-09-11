@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import type { QuizTest, QuizTestSummary, QuizAvailableTest } from '@/api/quiz'
@@ -117,7 +117,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
   <ViewContent :title="t('pages.quiz-tests.title')" :subtitle="t('pages.quiz-tests.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <FailureAlert :message="error"/>
 
       <template v-if="!loading">
         <div class="flex items-center justify-end">

@@ -7,10 +7,10 @@
 import {computed, ref} from 'vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import InstallReachability from './installview/InstallReachability.vue'
 import InstallDatabase from './installview/InstallDatabase.vue'
 import InstallProxySettings from './installview/InstallProxySettings.vue'
@@ -146,7 +146,7 @@ async function generate() {
           Das Passwort der Datenbank ist nie Teil eines Codes. Danach fragt der Installer auf dem
           Rechner, auf dem es auch bleibt.
         </MutedText>
-        <Alert v-if="error" variant="error">{{ error }}</Alert>
+        <FailureAlert :message="error"/>
         <PrimaryButton :disabled="saving || !ready" :icon="['fas', 'code']" @click="generate">
           {{ saving ? 'Einen Moment...' : 'Code erzeugen' }}
         </PrimaryButton>
