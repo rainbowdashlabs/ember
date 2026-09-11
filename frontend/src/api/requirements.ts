@@ -22,11 +22,28 @@ export interface SelfCheckRequirement {
     dueOn?: string | null
 }
 
+/**
+ * A registration short of an answer to a question its appointment gained after the sign-up.
+ *
+ * <p>Counted and listed like a self-check, and just as unable to stand in the doorway. The member
+ * name is carried only when the registration is not the reader's own, so a guardian can tell the
+ * members in their care apart.
+ */
+export interface RegistrationUpdateRequirement {
+    registrationId: number
+    eventId: number
+    eventName: string
+    eventDate: string
+    memberId: number
+    memberName?: string | null
+}
+
 export interface RequirementsResponse {
     forcedForms: RequirementItem[]
     forcedQuizzes: RequirementItem[]
     profileIncomplete: boolean
     selfChecks: SelfCheckRequirement[]
+    registrationUpdates: RegistrationUpdateRequirement[]
 }
 
 export async function getRequirements(): Promise<RequirementsResponse> {

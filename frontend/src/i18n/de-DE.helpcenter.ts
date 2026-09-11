@@ -957,9 +957,14 @@ volumes:
             profileText: 'Profil vervollständigen - Wenn Pflichtfelder in deinem Profil fehlen, wirst du hier daran erinnert.',
             formsText: 'Umfragen ausfüllen - Manche Umfragen sind Pflicht und müssen von dir ausgefüllt werden.',
             quizzesText: 'Tests absolvieren - Bestimmte Tests müssen bestanden werden.',
+            registrationsText: 'Anmeldungen aktualisieren - Bekommt ein Termin nach deiner Anmeldung eine neue Pflichtfrage, '
+                + 'erinnert dich diese Seite daran, die Antwort nachzureichen. Als Erziehungsberechtigter siehst du hier auch '
+                + 'die Anmeldungen der Mitglieder, für die du antwortest.',
             tip: 'Wenn alles erledigt ist, siehst du eine Bestätigung. Die Seite erscheint auch direkt nach dem Login, wenn es offene Aufgaben gibt.',
             exampleForm: 'Sicherheitsunterweisung',
             exampleQuiz: 'Grundwissen Brandschutz',
+            exampleEvent: 'Sommerfest',
+            exampleEventText: 'Der Termin am 15.08.2026 stellt eine neue Frage. Deine Anmeldung braucht dafür noch eine Antwort.',
         },
         newsList: {
             federatedTitle: 'Neuigkeiten von Partnerwachen',

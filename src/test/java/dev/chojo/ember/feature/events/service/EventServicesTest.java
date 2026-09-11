@@ -12,8 +12,11 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -256,6 +259,30 @@ class EventServicesTest extends RepositoryTestBase {
     void myRegistrations() {
         var mine = registrationService.findByMember(member.id());
         assertFalse(mine.isEmpty());
+    }
+
+    @Test
+    @Order(22)
+    void aQuestionAddedAfterSigningUpLeavesTheRegistrationShortOfAnAnswer() {
+        var fieldRepo = new EventRegistrationFieldRepository();
+        var required = new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false);
+        fieldRepo.replaceFields(
+                eventId,
+                List.of(new EventRegistrationFieldRepository.FieldEntry(
+                        "Allergies", EventFieldType.STRING, required, false)));
+
+        var owing = registrationService.findShortOfAnswer(List.of(member.id()));
+        assertEquals(1, owing.size());
+        var entry = owing.getFirst();
+        assertEquals(eventId, entry.eventId());
+        assertEquals(member.id(), entry.memberId());
+        assertEquals("Updated Training", entry.eventName());
+
+        var fieldId = fieldRepo.findByEvent(eventId).getFirst().id();
+        fieldRepo.setValue(entry.registrationId(), fieldId, "none");
+        assertTrue(registrationService.findShortOfAnswer(List.of(member.id())).isEmpty());
+
+        fieldRepo.replaceFields(eventId, List.of());
     }
 
     @Test

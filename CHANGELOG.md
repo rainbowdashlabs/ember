@@ -1,5 +1,11 @@
 # Changelog
 
+## v26.15.1
+
+### Improvements
+
+- **The requirements page lists registrations short of an answer.** A registration owing an answer to a question its appointment gained later now stands on the post-login requirements page as well, for the reader and for everyone they answer for. The button beside it opens the appointment where the answer is given.
+
 ## v26.15.0
 
 ### New Features
