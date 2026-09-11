@@ -1745,7 +1745,8 @@ volumes:
             createName: 'Gib einen Namen ein (z.B. „Schutzkleidung").',
             createType: 'Wähle den Typ: Eigentum der Wache, Eigentum des Trägers, oder Gemischt, wo pro '
                 + 'Gegenstand entschieden wird. Gehört die Ausrüstung dem Träger, entstehen die einzelnen '
-                + 'Gegenstände erst bei der Zuweisung.',
+                + 'Gegenstände erst bei der Zuweisung. Stellst du den Typ später um, werden die vorhandenen '
+                + 'Gegenstände auf den neuen Eigentümer umgestellt; nur geliehene Gegenstände behalten ihren.',
             createSizes: 'Aktiviere Größen, wenn die Gegenstände in verschiedenen Größen vorkommen (z.B. S, M, L).',
             kindsTitle: 'Einheitlich oder Sammlung',
             kindsText: 'Beim Anlegen wählst du, was das Inventar enthält. Ein einheitliches Inventar hält eine Sache '

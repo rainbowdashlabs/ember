@@ -1,5 +1,11 @@
 # Changelog
 
+## v26.15.2
+
+### Fixes
+
+- **A switched inventory could refuse its own exchanges.** In an inventory switched between the station's own gear and the gear of the body above it after items were created, an exchange could be refused when the arriving piece was recorded, and a piece that had gone back to a body outside Ember could stay on the shelf as stock. Switching an inventory now rewrites the owner on the items it holds, borrowed gear excepted, a replacement is owned by whoever the inventory says it holds gear of, and the upgrade brings existing records into line and clears the dead stock those finished exchanges piled up.
+
 ## v26.15.1
 
 ### Improvements

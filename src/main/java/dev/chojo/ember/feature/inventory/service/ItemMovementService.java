@@ -1008,13 +1008,28 @@ public class ItemMovementService {
     }
 
     /**
-     * Who owns the gear this movement is about, for a replacement that has to belong to the same
-     * body as the piece it replaces.
+     * Who owns a replacement piece written down at the end of this movement.
+     *
+     * <p>The inventory answers first, because its type is the explicit statement about whose gear
+     * it holds: internal gear is the station's and external gear is the body's above it, whatever
+     * the piece that left had written on it. That matters exactly when the two disagree, which is
+     * the state an inventory switched after its items were created used to leave behind: a
+     * replacement inheriting the stale owner was refused by the very inventory it was coming home
+     * to. Only a mixed inventory has no opinion, and there the piece that left answers, because a
+     * replacement belongs to whoever owned what it replaces.
      *
      * @param movement the movement
-     * @return the owner of its gear
+     * @return the owner its replacement is recorded under
      */
     public ItemOwner ownerOf(ItemMovement movement) {
+        if (movement.inventoryId() != null) {
+            var type = inventoryRepository
+                    .findById(movement.inventoryId())
+                    .map(Inventory::inventoryType)
+                    .orElse(null);
+            if (type == InventoryType.INTERNAL) return ItemOwner.STATION;
+            if (type == InventoryType.EXTERNAL) return ItemOwner.CLUSTER;
+        }
         return resolveOwner(movement.outgoingItemId(), movement.incomingItemId(), movement.inventoryId());
     }
 

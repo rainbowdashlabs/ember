@@ -3905,6 +3905,8 @@ export default {
             moveItems: 'Gegenstände verschieben',
             settings: 'Einstellungen',
             settingsSaved: 'Einstellungen gespeichert.',
+            typeSwitchHint: 'Beim Umstellen auf Intern oder Extern werden die vorhandenen Gegenstände auf diesen '
+                + 'Eigentümer umgestellt. Geliehene Gegenstände behalten ihren Eigentümer.',
             kindRefused: 'Das lässt sich noch nicht umstellen. Folgendes steht im Weg:',
             blocker: {
                 REQUIREMENT: 'Vorgabe für {name}',
