@@ -72,7 +72,9 @@ services:
       - full
       - transfer
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ember"]
+      # Over TCP: the server the image runs while setting up listens on the socket only, so a check
+      # without a host calls that one healthy and whatever waited connects as it is shut down again.
+      test: ["CMD-SHELL", "pg_isready -U ember -h 127.0.0.1"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -108,7 +110,9 @@ services:
     profiles:
       - e2e
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ember"]
+      # Over TCP: the server the image runs while setting up listens on the socket only, so a check
+      # without a host calls that one healthy and whatever waited connects as it is shut down again.
+      test: ["CMD-SHELL", "pg_isready -U ember -h 127.0.0.1"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -453,7 +457,9 @@ services:
     profiles:
       - transfer
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ember"]
+      # Over TCP: the server the image runs while setting up listens on the socket only, so a check
+      # without a host calls that one healthy and whatever waited connects as it is shut down again.
+      test: ["CMD-SHELL", "pg_isready -U ember -h 127.0.0.1"]
       interval: 5s
       timeout: 3s
       retries: 10

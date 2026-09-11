@@ -279,10 +279,7 @@ jobs:
 
   verify-test-frontend-e2e:
     runs-on: ubuntu-latest
-    # Divided by area rather than by count, so a red job names where to look before anybody opens the
-    # report. Each brings up a stack of its own, which is what lets them run at once: the whole suite
-    # as one job took twenty minutes, and every one of those minutes was in front of everything else.
-    # `fe-e2e-groups` keeps the division honest; a story in no group would quietly stop running.
+    # Divided by area, so a red job names where to look. Each brings up a stack of its own.
     name: Verify Frontend End-to-End (${{ matrix.group }})
     needs: [ verify-build-frontend ]
     timeout-minutes: 20
@@ -321,9 +318,7 @@ jobs:
         run: node scripts/e2e-groups.mjs check
       - name: Run the end-to-end stories
         working-directory: frontend
-        # Both projects, because the file patterns are what divides the runs: chromium passes over the
-        # stories written for a browser without JavaScript, and that project takes none of the others.
-        # The patterns come first, because --project takes every argument that follows it.
+        # The patterns come first: --project takes every argument that follows it.
         run: >-
           npx playwright test $(node scripts/e2e-groups.mjs patterns ${{ matrix.group }})
           --project chromium --project ssr-no-js
@@ -349,13 +344,8 @@ jobs:
         if: always()
         run: docker compose -f docker/compose.dev.yaml --profile e2e down -v
 
-  # One name for however many runs there turn out to be. Branch protection asks for a check by name,
-  # and the runs carry the area in theirs, so splitting them again would leave it waiting for a name
-  # nothing reports any more. This is that name, and it says what the runs between them said.
-  #
-  # `always()`, because a job that is skipped when one of the runs fails never reports at all, and a
-  # required check that never reports is a branch that can never merge. Skipped counts as not passed
-  # for the same reason: the runs were meant to happen and did not.
+  # One name for however many runs there turn out to be, so splitting them again leaves branch
+  # protection alone. `always()`, or a skipped job would never report and the check could never pass.
   verify-test-frontend-e2e-complete:
     runs-on: ubuntu-latest
     name: Verify Frontend End-to-End

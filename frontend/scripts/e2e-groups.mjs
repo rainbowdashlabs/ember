@@ -10,13 +10,8 @@ import {fileURLToPath} from 'node:url'
 /**
  * The end-to-end stories, divided into the runs CI makes of them.
  *
- * The suite is one stack and one database, so the whole of it used to be one job of twenty minutes.
- * Divided, the runs happen at once and a failure names an area before anybody opens the report.
- *
- * The division is written down rather than counted out, because a share of the files tells nobody
- * anything: "group three failed" is not a sentence. What it costs is that a new story has to be put
- * somewhere, which is what `check` is for. A story in no group would otherwise be a story that quietly
- * stops running, and that is worse than an unbalanced run.
+ * Divided by area rather than by share, because "group three failed" is not a sentence. The price is
+ * that a new story has to be put somewhere, which is what {@link check} refuses to let anybody forget.
  */
 
 const here = dirname(fileURLToPath(import.meta.url))
