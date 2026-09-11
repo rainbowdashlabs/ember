@@ -279,9 +279,17 @@ jobs:
 
   verify-test-frontend-e2e:
     runs-on: ubuntu-latest
-    name: Verify Frontend End-to-End
+    # Divided by area rather than by count, so a red job names where to look before anybody opens the
+    # report. Each brings up a stack of its own, which is what lets them run at once: the whole suite
+    # as one job took twenty minutes, and every one of those minutes was in front of everything else.
+    # `fe-e2e-groups` keeps the division honest; a story in no group would quietly stop running.
+    name: Verify Frontend End-to-End (${{ matrix.group }})
     needs: [ verify-build-frontend ]
-    timeout-minutes: 30
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [ cluster, inventory, station, instance, account ]
     steps:
       - uses: actions/checkout@v7
       - name: Set up Node.js
@@ -308,14 +316,22 @@ jobs:
       # The suite brings up its own stack - a database and a backend of its own, and the built server
       # in front of them - because that is what it is configured against. Starting another backend
       # here would only occupy a port nothing asks for.
+      - name: Check every story is in a group
+        working-directory: frontend
+        run: node scripts/e2e-groups.mjs check
       - name: Run the end-to-end stories
         working-directory: frontend
-        run: npx playwright test --project chromium --project ssr-no-js
+        # Both projects, because the file patterns are what divides the runs: chromium passes over the
+        # stories written for a browser without JavaScript, and that project takes none of the others.
+        # The patterns come first, because --project takes every argument that follows it.
+        run: >-
+          npx playwright test $(node scripts/e2e-groups.mjs patterns ${{ matrix.group }})
+          --project chromium --project ssr-no-js
       - name: Upload the report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.group }}
           path: frontend/e2e/report/
       # What the stack was doing, kept only when something went wrong. A story that fails because
       # the backend was unhappy for half a minute looks exactly like a story that fails because it
@@ -327,7 +343,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: e2e-stack-logs
+          name: e2e-stack-logs-${{ matrix.group }}
           path: stack-logs.txt
       - name: Stop the stack
         if: always()
