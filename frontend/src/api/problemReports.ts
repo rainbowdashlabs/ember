@@ -38,6 +38,12 @@ export interface ReportAbout {
     technical?: string
 }
 
+/**
+ * Sends a report, with the page it was written on.
+ *
+ * <p>The address goes without its query: the report button is reachable on pages that carry a token in the
+ * link, and a report is kept for as long as it lives. Which page it was is what an operator reads it for.
+ */
 export async function submitReport(
     description: string,
     sessionInfo: ReportSessionContext | null | undefined,
@@ -46,7 +52,7 @@ export async function submitReport(
     const roles = [sessionInfo?.userType, ...(sessionInfo?.permissions ?? [])].filter(Boolean).join(', ')
     const res = await client.post<ProblemReport>('/problem-reports', {
         message: composeMessage(description, about),
-        pageUrl: window.location.href,
+        pageUrl: window.location.origin + window.location.pathname,
         userRoles: roles,
         recentRequests: JSON.stringify(getRequestHistory()),
         browserInfo: navigator.userAgent,
