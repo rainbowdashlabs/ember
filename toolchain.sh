@@ -129,6 +129,8 @@ Frontend tests
                         E2E_NO_SERVER=1 when they already run. Every port is derived from this
                         checkout's path, so a run here takes nothing away from another checkout
   fe-e2e1 <file> [args] One end-to-end spec, e.g. `fe-e2e1 account`
+  fe-e2e-group <name>   One of the groups CI runs as a job of its own, e.g. `fe-e2e-group inventory`
+  fe-e2e-groups         Check that every story is in exactly one group
   fe-e2e-ssr            The JavaScript-disabled project, which is what proves the public routes
                         really are server-rendered
   fe-e2e-built [proj]   Rebuild the frontend first, then run the stories
@@ -332,6 +334,18 @@ case "$cmd" in
         [ -f .output/server/index.mjs ] || NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
         run npx playwright test --project "$project" "$@"
         ;;
+    fe-e2e-group)
+        # One of the groups CI runs as a job of its own. `fe-e2e-groups` lists them.
+        [ $# -ge 1 ] || { echo "fe-e2e-group needs a group, e.g. inventory" >&2; exit 2; }
+        group="$1"; shift
+        fe
+        [ -f .output/server/index.mjs ] || NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
+        # shellcheck disable=SC2046
+        # The patterns come first, because --project takes every argument that follows it.
+        run npx playwright test $(node scripts/e2e-groups.mjs patterns "$group") \
+            --project chromium --project ssr-no-js "$@"
+        ;;
+    fe-e2e-groups)   fe; run node scripts/e2e-groups.mjs check ;;
     fe-e2e1)
         [ $# -ge 1 ] || { echo "fe-e2e1 needs a spec name, e.g. account" >&2; exit 2; }
         spec="$1"; shift
