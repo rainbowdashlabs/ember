@@ -330,7 +330,32 @@ public class ApiRequestLogger {
      * seeing as their own line.
      */
     private static boolean isIdentifier(String path, int from, int end) {
-        return allDigits(path, from, end) || isUuid(path, from, end);
+        return allDigits(path, from, end) || isUuid(path, from, end) || isSecret(path, from, end);
+    }
+
+    /**
+     * Whether this segment is a token somebody was handed rather than a name somebody chose.
+     *
+     * <p>A feed address carries one, and it is the whole of the credential: left as it was requested, the
+     * statistics grow a row per subscriber and write down the token that opens the feed. It is not a uuid
+     * and not a number, so neither of the other two rules reaches it.
+     *
+     * <p>Told apart from a slug by what random bytes look like rather than by length alone. A station's
+     * name can be longer than a token ("freiwillige-feuerwehr-musterstadt-nord" is), but it is words, so
+     * it carries neither a capital nor a digit. Thirty-two characters of base64url holding both is not a
+     * name anybody typed.
+     */
+    private static boolean isSecret(String path, int from, int end) {
+        if (end - from < 32) return false;
+        boolean capital = false;
+        boolean digit = false;
+        for (int i = from; i < end; i++) {
+            char c = path.charAt(i);
+            if (Character.isUpperCase(c)) capital = true;
+            else if (Character.isDigit(c)) digit = true;
+            else if (!Character.isLowerCase(c) && c != '-' && c != '_') return false;
+        }
+        return capital && digit;
     }
 
     /** Whether everything between these two points is a digit, and there is at least one of them. */

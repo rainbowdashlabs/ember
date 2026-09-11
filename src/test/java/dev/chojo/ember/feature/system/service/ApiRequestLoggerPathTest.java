@@ -26,26 +26,41 @@ class ApiRequestLoggerPathTest {
     }
 
     /**
-     * The bug this exists for. A feed token beginning with a digit had those digits rewritten, so the
-     * endpoint was recorded under a path nobody could ask for and its detail page was permanently empty.
+     * A segment is taken whole or not at all. Rewriting the digits inside one recorded the endpoint under
+     * a path nobody could ask for, and its detail page was then permanently empty.
      */
     @Test
     void aSegmentThatMerelyBeginsWithDigitsIsLeftAlone() {
-        assertEquals(
-                "/api/v1/public/feed/9hgEV4EC3ojBNSEGb9et9HRGPqkHlKCnKtm0n7f5lA/lost-and-found/{id}/image",
-                ApiRequestLogger.normalizePath(
-                        "/api/v1/public/feed/9hgEV4EC3ojBNSEGb9et9HRGPqkHlKCnKtm0n7f5lA/lost-and-found/7/image"));
         assertEquals("/api/v1/stations/2024-abc", ApiRequestLogger.normalizePath("/api/v1/stations/2024-abc"));
         assertEquals("/api/v1/things/1a", ApiRequestLogger.normalizePath("/api/v1/things/1a"));
         assertEquals("/api/v1/things/a1", ApiRequestLogger.normalizePath("/api/v1/things/a1"));
     }
 
+    /**
+     * A feed token is the whole of the credential, so leaving it recorded writes the key to somebody's
+     * calendar into the statistics and gives every subscriber a row of their own.
+     */
     @Test
-    void aTokenWithNoDigitsAtAllIsLeftAlone() {
+    void aFeedTokenIsTakenForWhatItIs() {
         assertEquals(
-                "/api/v1/public/feed/WyD6tZyPR1WBtx76eHifIHdvXCdE1xMGtR6-nZMqK_g/lost-and-found/{id}/image",
+                "/api/v1/public/feed/{id}/lost-and-found/{id}/image",
                 ApiRequestLogger.normalizePath(
-                        "/api/v1/public/feed/WyD6tZyPR1WBtx76eHifIHdvXCdE1xMGtR6-nZMqK_g/lost-and-found/12/image"));
+                        "/api/v1/public/feed/9hgEV4EC3ojBNSEGb9et9HRGPqkHlKCnKtm0n7f5lA/lost-and-found/7/image"));
+        assertEquals(
+                "/api/v1/public/feed/{id}/events.ics",
+                ApiRequestLogger.normalizePath(
+                        "/api/v1/public/feed/Uot1QDzlW8qWjl8MzNtbQONeBezFSF3gO0fBLVSyL-w/events.ics"));
+    }
+
+    /**
+     * A station's name is not a token, however long it runs. It is words, so it carries neither a capital
+     * nor a digit, and the requests to one station's page are worth seeing as their own line.
+     */
+    @Test
+    void aLongNameIsStillAName() {
+        assertEquals(
+                "/api/v1/stations/freiwillige-feuerwehr-musterstadt-nord",
+                ApiRequestLogger.normalizePath("/api/v1/stations/freiwillige-feuerwehr-musterstadt-nord"));
     }
 
     /** A slug is not an identifier, so it stays as it is and the endpoint is counted per station. */
