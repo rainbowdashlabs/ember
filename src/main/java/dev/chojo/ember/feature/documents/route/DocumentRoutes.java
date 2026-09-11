@@ -248,7 +248,7 @@ public class DocumentRoutes implements Routes {
      * the name on it.
      */
     @OpenApi(
-            path = "/api/v1/member-documents",
+            path = "/api/v1/documents",
             methods = HttpMethod.GET,
             summary = "The document store of the station, a page at a time",
             tags = {"Members"},
@@ -289,7 +289,7 @@ public class DocumentRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/member-documents",
+            path = "/api/v1/documents",
             methods = HttpMethod.POST,
             summary = "Put a document in the store without binding it to anybody",
             tags = {"Members"},
@@ -329,7 +329,7 @@ public class DocumentRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/member-documents/tags",
+            path = "/api/v1/documents/tags",
             methods = HttpMethod.GET,
             summary = "The words the station sorts its documents by",
             tags = {"Members"},
@@ -342,7 +342,7 @@ public class DocumentRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/member-documents/{id}/tags",
+            path = "/api/v1/documents/{id}/tags",
             methods = HttpMethod.PUT,
             summary = "Set the words a document is sorted by, writing the new ones",
             tags = {"Members"},
@@ -359,7 +359,7 @@ public class DocumentRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/member-documents/{id}/content",
+            path = "/api/v1/documents/{id}/content",
             methods = HttpMethod.GET,
             summary = "The document itself",
             tags = {"Members"},
@@ -377,7 +377,7 @@ public class DocumentRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/member-documents/{id}/thumbnail",
+            path = "/api/v1/documents/{id}/thumbnail",
             methods = HttpMethod.GET,
             summary = "The picture a tile shows of a document",
             tags = {"Members"},
@@ -392,7 +392,7 @@ public class DocumentRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/member-documents/{id}/members",
+            path = "/api/v1/documents/{id}/members",
             methods = HttpMethod.PUT,
             summary = "Set the members a document is bound to",
             tags = {"Members"},
@@ -412,7 +412,7 @@ public class DocumentRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/member-documents/{id}",
+            path = "/api/v1/documents/{id}",
             methods = HttpMethod.DELETE,
             summary = "Remove a document",
             tags = {"Members"},

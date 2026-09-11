@@ -95,7 +95,7 @@ export async function setTags(documentId: number, tags: string[]): Promise<Stati
 }
 
 export async function listTags(): Promise<string[]> {
-    const res = await client.get<string[]>('/member-documents/tags')
+    const res = await client.get<string[]>('/documents/tags')
     return res.data
 }
 
