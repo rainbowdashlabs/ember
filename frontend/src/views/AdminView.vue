@@ -142,43 +142,49 @@ onMounted(() => {
       </SidebarGroup>
 
       <!--
-        Only an instance that accepts what others report has any of this, so the whole group appears with
-        the switch rather than standing there empty on every other instance.
+        Setting a beacon up is how an instance becomes one, so that entry stands whatever the answer is:
+        hidden with the rest, nobody could find the switch that shows them. What it gathers appears only
+        once it is gathering, rather than as three empty pages on every other instance.
       -->
       <SidebarGroup
-          v-if="counts.beaconActive"
           :badge="counts.beaconFaults + counts.beaconReports"
           :icon="['fas', 'tower-broadcast']"
           :label="t('sidebar.beacon')"
           group-key="beacon"
-          name="admin-beacon-faults"
-          to="/admin/monitoring/beacon/faults"
+          name="admin-beacon"
+          to="/admin/beacon"
       >
-        <SidebarLink
-            :badge="counts.beaconFaults"
-            :icon="['fas', 'triangle-exclamation']"
-            name="admin-beacon-faults"
-            to="/admin/monitoring/beacon/faults"
-            @navigate="close"
-        >
-          {{ t('beacon.collectedFaults') }}
+        <SidebarLink :icon="['fas', 'sliders']" name="admin-beacon" to="/admin/beacon" @navigate="close">
+          {{ t('sidebar.beaconSettings') }}
         </SidebarLink>
         <SidebarLink
+            v-if="counts.beaconActive"
+            :badge="counts.beaconFaults"
+            :icon="['fas', 'bug']"
+            name="admin-beacon-faults"
+            to="/admin/beacon/faults"
+            @navigate="close"
+        >
+          {{ t('sidebar.beaconFaults') }}
+        </SidebarLink>
+        <SidebarLink
+            v-if="counts.beaconActive"
             :badge="counts.beaconReports"
             :icon="['fas', 'flag']"
             name="admin-beacon-reports"
-            to="/admin/monitoring/beacon/reports"
+            to="/admin/beacon/reports"
             @navigate="close"
         >
-          {{ t('beacon.collectedReports') }}
+          {{ t('sidebar.beaconReports') }}
         </SidebarLink>
         <SidebarLink
+            v-if="counts.beaconActive"
             :icon="['fas', 'chart-line']"
             name="admin-beacon-figures"
-            to="/admin/monitoring/beacon/figures"
+            to="/admin/beacon/figures"
             @navigate="close"
         >
-          {{ t('beacon.collectedMetrics') }}
+          {{ t('sidebar.beaconMetrics') }}
         </SidebarLink>
       </SidebarGroup>
 

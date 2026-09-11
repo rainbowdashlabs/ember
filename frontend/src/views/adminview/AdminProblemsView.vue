@@ -9,9 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import ErrorContainer from '@/components/container/ErrorContainer.vue'
-import InfoContainer from '@/components/container/InfoContainer.vue'
+import ProblemLevelSummary from '@/components/problem/ProblemLevelSummary.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import ProblemEntryCard from './adminproblemsview/ProblemEntryCard.vue'
@@ -136,20 +134,11 @@ async function sendSelected() {
         <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
         <Alert v-if="sendResult" variant="success" class="mb-4">{{ sendResult }}</Alert>
 
-        <div class="flex gap-3 mb-4">
-            <ErrorContainer v-if="errorCount > 0" class="flex items-center gap-2 !py-2 !px-3">
-                <font-awesome-icon :icon="['fas', 'circle-xmark']"/>
-                <span class="font-semibold">{{ errorCount }}</span> {{ t('adminProblems.errors') }}
-            </ErrorContainer>
-            <InfoContainer v-if="warnCount > 0" class="flex items-center gap-2 !py-2 !px-3">
-                <font-awesome-icon :icon="['fas', 'triangle-exclamation']"/>
-                <span class="font-semibold">{{ warnCount }}</span> {{ t('adminProblems.warnings') }}
-            </InfoContainer>
-            <NeutralContainer v-if="errorCount === 0 && warnCount === 0" class="flex items-center gap-2 !py-2 !px-3">
-                <font-awesome-icon :icon="['fas', 'circle-check']" class="text-[var(--success)]"/>
-                {{ t('adminProblems.noProblems') }}
-            </NeutralContainer>
-        </div>
+        <ProblemLevelSummary
+            :empty-label="t('adminProblems.noProblems')"
+            :error-count="errorCount"
+            :warn-count="warnCount"
+        />
 
         <Spinner v-if="loading"/>
 
