@@ -6,6 +6,7 @@
 package dev.chojo.ember.util;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -94,7 +95,7 @@ public final class TypstCompiler {
                 .directory(workDir.toFile())
                 .redirectErrorStream(true)
                 .start();
-        String output = new String(process.getInputStream().readAllBytes());
+        String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
         int exitCode = process.waitFor();
         if (exitCode != 0) {
             throw new IOException("typst compile failed (exit " + exitCode + "): " + output);

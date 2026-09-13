@@ -35,7 +35,7 @@ const PERMISSION_GROUPS = {
     ],
     guardian: [StationPermission.MEMBER_GUARDIAN],
     inventoryManagement: [StationPermission.INVENTORY_MANAGER],
-    exchangeManagement: [StationPermission.INVENTORY_EXCHANGE],
+    exchangeManagement: [StationPermission.INVENTORY_MOVEMENTS],
     attendanceManagement: [StationPermission.ATTENDANCE_MANAGER],
     attendanceAccess: [
         StationPermission.ATTENDANCE_MANAGER,

@@ -28,7 +28,9 @@ x-rustfs: &rustfs
     RUSTFS_CONSOLE_ADDRESS: ":9001"
 
 x-rustfs-init: &rustfs-init
-  image: minio/mc:latest
+  # From quay rather than Docker Hub, which stopped serving this image: every end-to-end job died
+  # pulling it, before a single story ran.
+  image: quay.io/minio/mc:latest
   entrypoint: ["/bin/sh", "-c"]
   command:
     - |

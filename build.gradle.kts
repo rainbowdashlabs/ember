@@ -22,7 +22,7 @@ application {
 
 group = "dev.chojo"
 // CalVer as YY.MINOR.MICRO -> https://calver.org/
-version = "26.15.2"
+version = "26.16.0"
 
 repositories {
     maven("https://eldonexus.de/repository/maven-proxies/")
@@ -101,6 +101,14 @@ fun testForks(): Int {
 tasks {
     withType<Test>().configureEach {
         environment("TESTCONTAINERS_RYUK_DISABLED", "true")
+    }
+
+    withType<JavaCompile>().configureEach {
+        options.encoding = "UTF-8"
+    }
+
+    withType<Javadoc>().configureEach {
+        options.encoding = "UTF-8"
     }
 
     compileJava {

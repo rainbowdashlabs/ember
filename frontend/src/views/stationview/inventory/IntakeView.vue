@@ -14,7 +14,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import type {PickableMember} from '@/views/stationview/members/MemberPicker.vue'
+import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
 import IntakePickStep from './intakeview/IntakePickStep.vue'
 import {IntakeAudience, type IntakeAudienceName} from './intakeview/intakeAudience'
 import IntakeTableCard from './intakeview/IntakeTableCard.vue'
@@ -26,7 +26,6 @@ import type {MemberGroup, StationMember} from '@/api/types'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
-import {memberDisplayName} from '@/views/stationview/members/listview/useMemberData'
 
 /**
  * Writing down an inventory the station already owns.
@@ -70,21 +69,12 @@ const {loading, error} = useAsyncLoader(async () => {
 const sizes = computed(() => detail.value?.sizes ?? [])
 
 /** Everybody who is not on the list yet, for adding somebody the chosen audience left out. */
-const pickable = computed<PickableMember[]>(() => {
+const pickable = computed(() => {
   const taken = new Set(lines.value.map(line => line.memberId))
-  return members.value
-      .filter(member => !taken.has(member.id))
-      .map(member => ({
-        id: member.id,
-        name: memberDisplayName(member),
-        email: member.email,
-        identity: member.identity,
-        userType: member.userType,
-      }))
+  return members.value.filter(member => !taken.has(member.id)).map(fromMember)
 })
 
-const offeredUserTypes = computed(() =>
-    [...new Set(members.value.map(member => member.userType).filter(Boolean))] as string[])
+const offeredUserTypes = computed(() => userTypesOf(members.value.map(fromMember)))
 
 /** Loads the chosen audience into the table, replacing whatever was there. */
 async function openTable() {

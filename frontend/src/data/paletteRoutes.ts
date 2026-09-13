@@ -62,7 +62,7 @@ export const PALETTE_ROUTES: PaletteRouteEntry[] = [
     {scope: 'station', to: '/station/inventory/checks/container', labelKey: 'sidebar.inventoryCheckContainer', icon: 'box-open', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_CHECK},
     {scope: 'station', to: '/station/inventory/members', labelKey: 'sidebar.inventoryMembers', icon: 'users', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_READ},
     {scope: 'station', to: '/station/inventory/manage', labelKey: 'sidebar.inventoryManage', icon: 'box-open', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_CREATE},
-    {scope: 'station', to: '/station/inventory/exchanges', labelKey: 'sidebar.inventoryExchanges', icon: 'rotate', module: StationModules.INVENTORY},
+    {scope: 'station', to: '/station/inventory/movements', labelKey: 'sidebar.inventoryMovements', icon: 'rotate', module: StationModules.INVENTORY},
     {scope: 'station', to: '/station/inventory/procurement', labelKey: 'sidebar.inventoryProcurement', icon: 'folder-plus', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_PROCUREMENT},
     {scope: 'station', to: '/station/inventory/requirements', labelKey: 'sidebar.inventoryRequirements', icon: 'clipboard-list', module: StationModules.INVENTORY, permission: StationPermission.INVENTORY_READ},
     {scope: 'station', to: '/station/inventory/lending', labelKey: 'sidebar.inventoryLending', icon: 'handshake', module: StationModules.INVENTORY, anyPermission: [StationPermission.INVENTORY_LENDING_REQUEST, StationPermission.INVENTORY_LENDING_MANAGER]},

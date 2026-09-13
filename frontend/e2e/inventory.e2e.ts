@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, apiHeaders, stationPeers} from './fixtures/auth'
-import {setExchangeFilter} from './fixtures/exchangeFilter'
+import {setMovementFilter} from './fixtures/movementFilter'
+import {pickMemberByName} from './fixtures/memberMenu'
 import type {Locator, Page} from '@playwright/test'
 
 /** Which of the two modes the page is painted in right now. */
@@ -36,30 +37,40 @@ function lettersOf(element: Locator): Promise<string> {
 
 /**
  * Every distinct colour the member names carrying no colour of their own are painted in, with the
- * page's own colour named rather than spelled out, so a failure reads as the colour that is wrong.
+ * two colours a page has for them named rather than spelled out, so a failure reads as the colour
+ * that is wrong.
  *
- * <p>Both readings are taken in one go: the theme can be repainted between two separate ones, and
- * a name compared against the colour of the theme before says nothing.
+ * <p>A name leads to what that person is holding, so an unpainted one is painted the way this theme
+ * paints anything that leads somewhere. Names that are only text read in the page's own colour.
+ *
+ * <p>All of it is read in one go: the theme can be repainted between two separate readings, and a
+ * name compared against the colour of the theme before says nothing.
  */
 function namesAgainstThePage(page: Page): Promise<string[]> {
     return page.evaluate(() => {
         const pageColour = getComputedStyle(document.body).color
+        const probe = document.createElement('a')
+        probe.href = '#'
+        document.body.append(probe)
+        const linkColour = getComputedStyle(probe).color
+        probe.remove()
+
         const names = [...document.querySelectorAll<HTMLElement>('[data-testid="member-name"]')]
         const painted = names.filter(name => !name.style.color)
             .map(name => getComputedStyle(name).color)
-        return [...new Set(painted)].map(colour => colour === pageColour ? 'the page colour' : colour)
+        return [...new Set(painted)].map(colour => {
+            if (colour === pageColour) return 'the page colour'
+            return colour === linkColour ? 'the link colour' : colour
+        })
     })
 }
 
-/** What each status of an exchange is called on screen, which is what a tick is pressed by. */
-const EXCHANGE_STATUS_LABELS: Record<string, string> = {
-    ANNOUNCED: 'Angekündigt',
-    RECEIVED: 'Empfangen',
-    SHIPPED: 'Versendet',
-    ARRIVED: 'Angekommen',
-    DONE: 'Erledigt',
-    CANCELLED: 'Abgebrochen',
-    DECLINED: 'Abgelehnt',
+/** What each kind of movement is called on screen, which is what a tick is pressed by. */
+const MOVEMENT_PURPOSE_LABELS: Record<string, string> = {
+    ISSUE: 'Ausgabe',
+    RETURN: 'Rückgabe',
+    EXCHANGE: 'Tausch',
+    REQUEST: 'Anfrage',
 }
 
 test.describe('Inventory', () => {
@@ -114,8 +125,7 @@ test.describe('Inventory', () => {
 
         await page.goto('/station/inventory/assign')
 
-        await page.getByPlaceholder('- Bitte wählen -').fill(member.lastName)
-        await page.getByText(`${member.firstName} ${member.lastName}`).first().click()
+        await pickMemberByName(page, `${member.firstName} ${member.lastName}`)
 
         const picker = page.getByPlaceholder('Item suchen oder Code scannen…')
         await picker.fill('H-0')
@@ -132,8 +142,7 @@ test.describe('Inventory', () => {
         // The counter is reopened before handing back, which is also what the picker needs: it
         // still believes the item is free until the page asks again.
         await page.reload()
-        await page.getByPlaceholder('- Bitte wählen -').fill(member.lastName)
-        await page.getByText(`${member.firstName} ${member.lastName}`).first().click()
+        await pickMemberByName(page, `${member.firstName} ${member.lastName}`)
 
         await page.getByPlaceholder('Item suchen oder Code scannen…').fill(code)
         const handBack = page.getByRole('button').filter({hasText: code}).first()
@@ -208,7 +217,12 @@ test.describe('Inventory', () => {
         await page.getByRole('button', {name: 'Anforderung hinzufügen'}).click()
 
         await page.locator('select:has(option:text-is("Benutzertyp auswählen"))').selectOption({index: 1})
-        await page.locator('select:has(option:text-is("Inventar auswählen"))').selectOption({index: 1})
+
+        // The inventory is picked from a searchable menu now, the same one every other screen asks with.
+        const inventory = page.getByTestId('requirement-inventory')
+        await inventory.getByRole('searchbox').click()
+        await inventory.getByRole('option').first().click()
+
         await page.getByRole('button', {name: 'Speichern'}).click()
 
         const cards = page.locator('main').getByRole('button', {name: 'Hinzufügen'})
@@ -455,9 +469,10 @@ test.describe('Inventory', () => {
 
         await expect(confirm).toBeHidden({timeout: 15000})
 
-        const raised = await page.request.get('/api/v1/exchanges', {headers: await apiHeaders(page)})
+        const raised = await page.request.get('/api/v1/movements', {headers: await apiHeaders(page)})
             .then(r => r.json())
-        expect(raised.length, 'the exchange is on the station\'s list').toBeGreaterThan(0)
+        expect(raised.some((row: {purpose: string}) => row.purpose === 'EXCHANGE'),
+            'the swap is in the station\'s queue').toBeTruthy()
     })
 
     /**
@@ -714,145 +729,138 @@ test.describe('Inventory', () => {
     })
 
     /**
-     * Narrowing the exchange list is what makes exporting part of it possible.
+     * Narrowing the queue is what makes exporting part of it possible.
      *
-     * <p>The export sends the numbers of the rows that are ticked, so whoever wants the requests of
-     * one inventory used to pick them out of every request the station has. The story filters the
-     * list, ticks everything left standing, and reads the numbers that actually leave the browser:
-     * the ones the filter hid must not be among them, or the button would quietly export the whole
-     * station.
+     * <p>The export sends the numbers of the rows the filters leave standing, so whoever wants the
+     * movements of one inventory no longer picks them out of everything the station has. The story
+     * filters the queue and reads the numbers that actually leave the browser: the ones the filter
+     * hid must not be among them, or the button would quietly export the whole station.
      */
-    test('the exchange list narrows down and the export carries only what is left',
+    test('the movement queue narrows down and the export carries only what is left',
         async ({managerPage: page}) => {
             const headers = await apiHeaders(page)
-            const raised: {id: number; inventoryId: number; inventoryName: string; status: string}[] =
-                await page.request.get('/api/v1/exchanges', {headers}).then(r => r.json())
-            const ended = ['DONE', 'CANCELLED', 'DECLINED']
-            const open = raised.filter(exchange => !ended.includes(exchange.status))
-            expect(open.length, 'the seeded station has exchanges to narrow down').toBeGreaterThan(1)
+            const raised: {id: number; inventoryId: number; inventoryName: string; state: string}[] =
+                await page.request.get('/api/v1/movements', {headers}).then(r => r.json())
+            const open = raised.filter(movement => movement.state === 'OPEN')
+            expect(open.length, 'the seeded station has movements to narrow down').toBeGreaterThan(1)
 
-            const inventories = [...new Set(open.map(exchange => exchange.inventoryId))]
+            const inventories = [...new Set(open.map(movement => movement.inventoryId))]
             expect(inventories.length, 'spread over more than one inventory').toBeGreaterThan(1)
 
-            const inInventory = (id: number) => open.filter(exchange => exchange.inventoryId === id)
+            const inInventory = (id: number) => open.filter(movement => movement.inventoryId === id)
             const chosen = inventories.reduce((best, id) =>
                 inInventory(id).length > inInventory(best).length ? id : best)
-            const expected = inInventory(chosen).map(exchange => exchange.id)
+            const expected = inInventory(chosen).map(movement => movement.id)
             const chosenName = inInventory(chosen)[0].inventoryName
 
-            await page.goto('/station/inventory/exchanges')
-            const rows = page.getByTestId('exchange-row')
-            const rowOf = (id: number) => page.locator(`[data-exchange-id="${id}"]`)
+            await page.goto('/station/inventory/movements')
+            const rows = page.getByTestId('movement-row')
+            const rowOf = (id: number) => page.locator(`[data-movement="${id}"]`)
             await expect(rows.first()).toBeVisible()
-            await expect(rowOf(open[0].id), 'the list opens on the requests still running').toHaveCount(1)
-            for (const gone of raised.filter(exchange => ended.includes(exchange.status)).slice(0, 3)) {
+            await expect(rowOf(open[0].id), 'the queue opens on what is still running').toHaveCount(1)
+            for (const gone of raised.filter(movement => movement.state !== 'OPEN').slice(0, 3)) {
                 await expect(rowOf(gone.id), 'and leaves out the ones that have ended').toHaveCount(0)
             }
 
-            await setExchangeFilter(page, 'exchange-filter-inventory', [chosenName])
+            await setMovementFilter(page, 'movement-filter-inventory', [chosenName])
             for (const kept of expected) {
-                await expect(rowOf(kept), 'ticking one inventory keeps its requests').toHaveCount(1)
+                await expect(rowOf(kept), 'ticking one inventory keeps its movements').toHaveCount(1)
             }
-            for (const hidden of open.filter(exchange => exchange.inventoryId !== chosen).slice(0, 3)) {
+            for (const hidden of open.filter(movement => movement.inventoryId !== chosen).slice(0, 3)) {
                 await expect(rowOf(hidden.id), 'and hides the ones filed elsewhere').toHaveCount(0)
             }
 
-            await page.getByRole('button', {name: 'Exportieren'}).click()
-            const selectAll = page.getByTestId('exchange-select-all')
-            await selectAll.click()
-            await expect(selectAll, 'nothing is ticked after clearing the selection').not.toBeChecked()
-            await selectAll.click()
+            await page.getByTestId('movement-export').click()
+            await expect(page.getByTestId('movement-pick').first(),
+                'the rows are ticked before the sheet is made, all of them to begin with').toBeVisible()
 
             const [sent] = await Promise.all([
-                page.waitForRequest(req => req.url().includes('/exchanges/export') && req.method() === 'POST'),
-                page.getByRole('button', {name: /Herunterladen/}).click(),
+                page.waitForRequest(req => req.url().includes('/movements/export') && req.method() === 'POST'),
+                page.getByTestId('movement-export-download').click(),
             ])
-            const carried: number[] = sent.postDataJSON().exchangeIds
+            const carried: number[] = sent.postDataJSON().movementIds
             expect(carried, 'every row the filter left standing is exported')
                 .toEqual(expect.arrayContaining(expected))
-            const elsewhere = open.filter(exchange => exchange.inventoryId !== chosen).map(exchange => exchange.id)
+            const elsewhere = open.filter(movement => movement.inventoryId !== chosen).map(movement => movement.id)
             expect(carried.filter(id => elsewhere.includes(id)),
                 'and nothing the filter hid travels with it').toEqual([])
         })
 
     /**
-     * A status filter that takes several ticks is what lets two sorts of request be looked at as
-     * one job.
+     * A filter that takes several ticks is what lets two sorts of movement be looked at as one job.
      *
-     * <p>Ticking two statuses and quietly keeping only the last one would look exactly the same on
+     * <p>Ticking two kinds and quietly keeping only the last one would look exactly the same on
      * screen as keeping both, so the story counts the rows and then reads the numbers that leave
      * the browser: both sorts have to travel. Taking every tick off is the other half of it, since
-     * a filter that emptied the list when its last tick went would read as a fault rather than as
+     * a filter that emptied the queue when its last tick went would read as a fault rather than as
      * a filter asking for nothing.
      */
-    test('two ticked statuses stand in the list together and both reach the export',
+    test('two ticked kinds stand in the queue together and both reach the export',
         async ({managerPage: page}) => {
             const headers = await apiHeaders(page)
-            const raised: {id: number; status: string}[] =
-                await page.request.get('/api/v1/exchanges', {headers}).then(r => r.json())
+            const raised: {id: number; purpose: string; state: string}[] =
+                await page.request.get('/api/v1/movements', {headers}).then(r => r.json())
+            const open = raised.filter(movement => movement.state === 'OPEN')
 
-            const byStatus = new Map<string, number[]>()
-            for (const exchange of raised) {
-                byStatus.set(exchange.status, [...byStatus.get(exchange.status) ?? [], exchange.id])
+            const byPurpose = new Map<string, number[]>()
+            for (const movement of open) {
+                byPurpose.set(movement.purpose, [...byPurpose.get(movement.purpose) ?? [], movement.id])
             }
-            const sorts = [...byStatus.keys()].slice(0, 2)
-            expect(sorts.length, 'the seeded station has exchanges in more than one status').toBe(2)
-            const expected = sorts.flatMap(status => byStatus.get(status) ?? [])
+            const sorts = [...byPurpose.keys()].slice(0, 2)
+            expect(sorts.length, 'the seeded station has movements of more than one kind').toBe(2)
+            const expected = sorts.flatMap(purpose => byPurpose.get(purpose) ?? [])
 
-            await page.goto('/station/inventory/exchanges')
-            const rows = page.getByTestId('exchange-row')
+            await page.goto('/station/inventory/movements')
+            const rows = page.getByTestId('movement-row')
             await expect(rows.first()).toBeVisible()
 
-            const rowOf = (id: number) => page.locator(`[data-exchange-id="${id}"]`)
+            const rowOf = (id: number) => page.locator(`[data-movement="${id}"]`)
 
-            await setExchangeFilter(page, 'exchange-filter-status', [])
+            await setMovementFilter(page, 'movement-filter-state', [])
             for (const any of raised.slice(0, 3)) {
                 await expect(rowOf(any.id),
                     'taking every tick off asks for nothing rather than for no rows').toHaveCount(1)
             }
 
-            await setExchangeFilter(page, 'exchange-filter-status',
-                sorts.map(status => EXCHANGE_STATUS_LABELS[status]))
+            await setMovementFilter(page, 'movement-filter-purpose',
+                sorts.map(purpose => MOVEMENT_PURPOSE_LABELS[purpose]))
             for (const kept of expected) {
-                await expect(rowOf(kept), 'and two ticks show the rows of both statuses at once')
+                await expect(rowOf(kept), 'and two ticks show the rows of both kinds at once')
                     .toHaveCount(1)
             }
-            for (const hidden of raised.filter(exchange => !sorts.includes(exchange.status)).slice(0, 3)) {
-                await expect(rowOf(hidden.id), 'while a third status stays out of the way').toHaveCount(0)
+            for (const hidden of open.filter(movement => !sorts.includes(movement.purpose)).slice(0, 3)) {
+                await expect(rowOf(hidden.id), 'while a third kind stays out of the way').toHaveCount(0)
             }
 
-            await page.getByRole('button', {name: 'Exportieren'}).click()
-            const selectAll = page.getByTestId('exchange-select-all')
-            await selectAll.click()
-            await selectAll.click()
-            await expect(selectAll, 'everything the filter shows is ticked again').toBeChecked()
+            await page.getByTestId('movement-export').click()
+            await expect(page.getByTestId('movement-pick').first()).toBeVisible()
 
             const [sent] = await Promise.all([
-                page.waitForRequest(req => req.url().includes('/exchanges/export') && req.method() === 'POST'),
-                page.getByRole('button', {name: /Herunterladen/}).click(),
+                page.waitForRequest(req => req.url().includes('/movements/export') && req.method() === 'POST'),
+                page.getByTestId('movement-export-download').click(),
             ])
-            const carried: number[] = sent.postDataJSON().exchangeIds
+            const carried: number[] = sent.postDataJSON().movementIds
             expect(carried, 'both sorts of row travel into the export')
                 .toEqual(expect.arrayContaining(expected))
-            const otherStatuses = raised
-                .filter(exchange => !sorts.includes(exchange.status))
-                .map(exchange => exchange.id)
-            expect(carried.filter(id => otherStatuses.includes(id)),
-                'and a third status travels with neither').toEqual([])
+            const otherKinds = open
+                .filter(movement => !sorts.includes(movement.purpose))
+                .map(movement => movement.id)
+            expect(carried.filter(id => otherKinds.includes(id)),
+                'and a third kind travels with neither').toEqual([])
         })
 
     /**
-     * Every row of the exchange list wears a status badge, and a badge picks light or dark letters
-     * from the colours behind it. Switching the theme repaints those colours, so the badge has to
-     * answer again: the pale status is the one that turns, and white letters on it are the thing
-     * this story stands guard over.
+     * Every open row of the queue wears a badge saying which step it stands on, and a badge picks
+     * light or dark letters from the colours behind it. Switching the theme repaints those colours,
+     * so the badge has to answer again: the pale one is what turns, and white letters on it are the
+     * thing this story stands guard over.
      */
     test('the badges take readable letters after the theme is switched',
         async ({managerPage: page}) => {
-            await page.goto('/station/inventory/exchanges')
-            const row = page.getByTestId('exchange-row').filter({hasText: 'Angekündigt'}).first()
+            await page.goto('/station/inventory/movements')
+            const row = page.getByTestId('movement-row').first()
             await expect(row).toBeVisible()
-            const badge = row.getByText('Angekündigt')
+            const badge = row.getByTestId('movement-step')
 
             const started = await darkModeClass(page)
 
@@ -868,22 +876,23 @@ test.describe('Inventory', () => {
         })
 
     /**
-     * A member's name in the list leads to their page, and a name nobody gave a colour has no
-     * colour of its own to defend: it belongs in whatever the page writes its text in. The story
-     * is here because the colour comes out of the stylesheet, which is the one thing a mounted
-     * component in a unit test does not have.
+     * A member's name in the queue leads to what they are holding, and a name nobody gave a colour
+     * has no colour of its own to defend: it belongs in whatever this theme paints a link. What it
+     * must never be is a third colour nobody chose, which is what a stylesheet reaching past the
+     * component does. The story is here because that stylesheet is the one thing a mounted component
+     * in a unit test does not have.
      */
-    test('a member name without a colour of its own reads in the page colour',
+    test('a member name without a colour of its own reads as a link',
         async ({managerPage: page}) => {
-            await page.goto('/station/inventory/exchanges')
-            await expect(page.getByTestId('exchange-row').first()).toBeVisible()
+            await page.goto('/station/inventory/movements')
+            await expect(page.getByTestId('movement-row').first()).toBeVisible()
 
             const started = await darkModeClass(page)
             await switchThemeTo(page, 'light')
 
             await expect.poll(() => namesAgainstThePage(page),
-                {message: 'every name carrying no colour of its own reads in the page colour'})
-                .toEqual(['the page colour'])
+                {message: 'every name carrying no colour of its own reads as this theme paints a link'})
+                .toEqual(['the link colour'])
 
             await switchThemeTo(page, started)
         })

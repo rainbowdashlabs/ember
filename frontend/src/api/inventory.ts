@@ -104,6 +104,10 @@ export interface Inventory {
      * first handover, it can be renamed, and it refuses to go while anything is still on it.
      */
     borrowed: boolean
+    /** The FontAwesome name every piece of it is drawn with, absent when nobody chose one. */
+    icon?: string | null
+    /** The colour that picture is drawn in, absent for the muted neutral. */
+    color?: string | null
 }
 
 export interface InventoryRequest {
@@ -112,6 +116,9 @@ export interface InventoryRequest {
     hasSizes: boolean
     /** Left out it means "as it was", which on creation is one thing in many copies. */
     homogeneous?: boolean
+    /** The picture it is drawn with. Sent on every save, so leaving it out clears it. */
+    icon?: string | null
+    color?: string | null
 }
 
 export interface InventoryDetail {
@@ -122,6 +129,8 @@ export interface InventoryDetail {
     hasSizes: boolean
     homogeneous: boolean
     sizes?: InventorySize[]
+    icon?: string | null
+    color?: string | null
 }
 
 /** What sort of thing stands in the way of an inventory changing what it holds. */
@@ -338,6 +347,9 @@ export interface MyInventoryItem {
     lostNote?: string | null
     /** Who wrote that note, which is the guardian when one reported it for the member. */
     lostNoteBy?: MemberIdentity | null
+    /** The picture the piece is drawn with, resolved from its kind and its inventory by the backend. */
+    icon?: string | null
+    color?: string | null
 }
 
 export interface MyRequirement {
@@ -489,6 +501,9 @@ export interface InventorySummary {
     lentOutCount: number
     /** How many kinds are defined in it, which only a collection has any use for. */
     artCount: number
+    /** The picture it is drawn with, absent when nobody chose one. */
+    icon?: string | null
+    color?: string | null
 }
 
 export async function listSummaries(): Promise<InventorySummary[]> {

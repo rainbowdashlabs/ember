@@ -35,11 +35,9 @@ const presetTemplateId = computed(() => (route.query.template ? Number(route.que
 const form = useProcedureForm(editId, presetTemplateId)
 const {
   name, description, dueAt, isPublic,
-  templates, selectedTemplateId, members, selectedAssignees, selectedAssigneeIds, items,
+  templates, selectedTemplateId, members, selectedAssigneeIds, items,
   isEditMode, loading, error,
 } = form
-
-const assigneePickerValue = ref('')
 
 const {running: saving, error: saveError, run: runSubmit} = useAsyncAction(
     async () => router.push({name: 'procedure-detail', params: {id: await form.submit()}}),
@@ -50,11 +48,6 @@ function handleSubmit() {
   if (!name.value.trim()) return
   error.value = ''
   return runSubmit()
-}
-
-function addAssigneeFromPicker() {
-  form.addAssignee(Number(assigneePickerValue.value))
-  assigneePickerValue.value = ''
 }
 
 watch(loaded, (v) => {
@@ -86,14 +79,7 @@ watch(loaded, (v) => {
             v-model:is-public="isPublic"
         />
 
-        <AssigneesSection
-            v-model:assignee-picker-value="assigneePickerValue"
-            :members="members"
-            :selected-assignees="selectedAssignees"
-            :selected-assignee-ids="selectedAssigneeIds"
-            @add="addAssigneeFromPicker"
-            @remove="form.removeAssignee"
-        />
+        <AssigneesSection v-model:assignee-ids="selectedAssigneeIds" :members="members"/>
 
         <ItemsSection
             :items="items"

@@ -40,7 +40,7 @@ export const StationPermission = {
     INVENTORY_READ: 'INVENTORY_READ',
     INVENTORY_EDIT: 'INVENTORY_EDIT',
     INVENTORY_PROCUREMENT: 'INVENTORY_PROCUREMENT',
-    INVENTORY_EXCHANGE: 'INVENTORY_EXCHANGE',
+    INVENTORY_MOVEMENTS: 'INVENTORY_MOVEMENTS',
     INVENTORY_CHECK: 'INVENTORY_CHECK',
     INVENTORY_LENDING_REQUEST: 'INVENTORY_LENDING_REQUEST',
     INVENTORY_LENDING_MANAGER: 'INVENTORY_LENDING_MANAGER',
@@ -311,4 +311,9 @@ export interface MemberIdentity {
     stationName?: string | null
     nameColor?: string | null
     displayTag?: { name: string; color: string } | null
+    /**
+     * The picture itself, where the server sent it inline rather than leaving it to be fetched. The
+     * member search does this, so a menu of twenty faces costs one request instead of twenty-one.
+     */
+    avatarUrl?: string | null
 }

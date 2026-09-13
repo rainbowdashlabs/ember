@@ -29,6 +29,8 @@ const type = ref<InventoryTypeName>(InventoryTypes.INTERNAL)
 const hasSizes = ref(false)
 const homogeneous = ref(true)
 const sizes = ref<string[]>([])
+const icon = ref<string | null>(null)
+const color = ref<string | null>(null)
 
 function reset() {
   step.value = 'basic'
@@ -38,6 +40,8 @@ function reset() {
   // One thing in many copies is the permissive kind, so it is what a new inventory starts as
   homogeneous.value = true
   sizes.value = []
+  icon.value = null
+  color.value = null
 }
 
 watch(show, (visible) => {
@@ -58,6 +62,8 @@ const {running: saving, run: runCreate} = useAsyncAction(async () => {
     inventoryType: type.value,
     hasSizes: hasSizes.value,
     homogeneous: homogeneous.value,
+    icon: icon.value,
+    color: color.value,
   })
   if (hasSizes.value && sizes.value.length > 0) {
     for (let i = 0; i < sizes.value.length; i++) {
@@ -86,6 +92,8 @@ async function submit() {
         v-model:type="type"
         v-model:hasSizes="hasSizes"
         v-model:homogeneous="homogeneous"
+        v-model:icon="icon"
+        v-model:color="color"
         @cancel="show = false"
         @next="nextStep"
       />

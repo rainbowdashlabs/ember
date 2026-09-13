@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.federation.entity.ShareGrant;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.InventoryShareService;
 import dev.chojo.ember.feature.federation.service.LendingService;
+import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
@@ -181,7 +182,8 @@ public class DemoLendingSeeder implements DemoPerStationSeeder {
         var otherGoodRadio =
                 inventoryRepository.createItem(walkieTalkies.id(), "FG-006", "Motorola DP3441e", null, null);
 
-        var goodRadios = artRepository.create(walkieTalkies.id(), "Motorola DP3441e", "Die guten Geräte", 10);
+        var goodRadios = artRepository.create(
+                walkieTalkies.id(), "Motorola DP3441e", "Die guten Geräte", 10, new Glyph("walkie-talkie", "#2563eb"));
         artRepository.setArt(goodRadios.id(), List.of(goodRadio.id(), otherGoodRadio.id()));
 
         offerToPartners(stationId, walkieTalkies.id());

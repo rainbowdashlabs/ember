@@ -135,6 +135,23 @@ export function parseCssColor(css: string): Rgba | null {
     return null
 }
 
+/**
+ * How far apart two opaque colours are, as the ratio WCAG measures.
+ *
+ * <p>Ranges from 1, which is the same colour twice, to 21, which is black on white. A graphic needs 3
+ * to stay distinguishable from what is behind it; letters need more.
+ *
+ * @param a one colour in 0..255 sRGB channels
+ * @param b the other
+ */
+export function contrastRatio(a: Rgb, b: Rgb): number {
+    const first = relativeLuminance(a[0], a[1], a[2])
+    const second = relativeLuminance(b[0], b[1], b[2])
+    const lighter = Math.max(first, second)
+    const darker = Math.min(first, second)
+    return (lighter + 0.05) / (darker + 0.05)
+}
+
 /** Lays a translucent colour over an opaque one, the way the browser paints the two. */
 export function compositeOver(color: Rgba, backdrop: Rgb): Rgb {
     const alpha = color[3]

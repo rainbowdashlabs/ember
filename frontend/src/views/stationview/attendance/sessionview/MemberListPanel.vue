@@ -8,7 +8,9 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MemberEntry from './MemberEntry.vue'
-import MemberPicker from '@/views/stationview/members/MemberPicker.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
+import {useMemberPick} from '@/composables/useMemberPick'
 import type {AttendanceEntry, AttendanceStatus, MemberNotes} from '@/api/attendance'
 import type {MemberGroup, StationMember} from '@/api/types'
 
@@ -37,7 +39,7 @@ const emit = defineEmits<{
   checkOut: [entryId: number, time: string]
   resetTimes: [entryId: number]
   addMember: []
-  moveSwap: [exchangeId: number, nextStatus: string, replacementItemId: number | null]
+  moveSwap: [movementId: number, stepId: number, replacementItemId: number | null]
   signOffFound: [itemId: number]
 }>()
 
@@ -46,29 +48,17 @@ const membersNotInSession = computed(() => {
   return props.allMembers.filter(m => !entryMemberIds.has(m.id) && !m.formerAt)
 })
 
-/** The kinds present among those not on the sheet, so choosing one never empties the list by itself. */
-const offeredUserTypes = computed(() => {
-  const kinds = new Set<string>()
-  for (const member of membersNotInSession.value) {
-    if (member.userType) kinds.add(member.userType)
-  }
-  return [...kinds].sort()
-})
+/** Those not on the sheet yet, as the menu wants them: a name to read and a face to recognise. */
+const addableMembers = computed(() => membersNotInSession.value.map(fromMember))
 
-/** Those not on the sheet yet, as the picker wants them: a name to read and a face to recognise. */
-const addableMembers = computed(() => membersNotInSession.value.map(member => ({
-  id: member.id,
-  name: member.name ?? member.email ?? `#${member.id}`,
-  email: member.email,
-  identity: member.identity,
-  userType: member.userType,
-})))
+/** The kinds present among them, so choosing one never empties the list by itself. */
+const offeredUserTypes = computed(() => userTypesOf(addableMembers.value).toSorted())
 
-/** Picking somebody puts them on the sheet, which is the only thing this picker is for. */
-function addByHand(memberId: number) {
+/** Picking somebody puts them on the sheet, which is the only thing this menu is for. */
+const {picked, take} = useMemberPick(memberId => {
   selectedMemberId.value = String(memberId)
   emit('addMember')
-}
+})
 
 function getMemberName(memberId: number): string {
   const m = props.allMembers.find(mm => mm.id === memberId)
@@ -100,7 +90,7 @@ function getEntry(memberId: number): AttendanceEntry | undefined {
           :can-sign-off-found="canSignOffFound"
           @set-status="(entryId, status) => emit('setStatus', entryId, status)"
           @enter="(memberId, status) => emit('enter', memberId, status)"
-          @move-swap="(exchangeId, nextStatus, replacementItemId) => emit('moveSwap', exchangeId, nextStatus, replacementItemId)"
+          @move-swap="(movementId, stepId, replacementItemId) => emit('moveSwap', movementId, stepId, replacementItemId)"
           @sign-off-found="(itemId) => emit('signOffFound', itemId)"
           @check-in="(entryId, time) => emit('checkIn', entryId, time)"
           @check-out="(entryId, time) => emit('checkOut', entryId, time)"
@@ -110,11 +100,12 @@ function getEntry(memberId: number): AttendanceEntry | undefined {
   </div>
 
   <!-- Add member -->
-  <MemberPicker
+  <MemberSelectInput
       v-if="!readonly && membersNotInSession.length > 0"
+      v-model="picked"
       :members="addableMembers"
       :user-types="offeredUserTypes"
       :placeholder="t('attendanceSession.addMember')"
-      @select="addByHand"
+      @change="take"
   />
 </template>

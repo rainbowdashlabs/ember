@@ -30,8 +30,13 @@ import java.util.Locale;
  * @param position    the sort position among the kinds of the same inventory
  * @param mergeKey    the name trimmed and lowered, maintained by the database, which is what makes
  *                    two stations using the same word mean the same kind
+ * @param icon        the FontAwesome name the pieces of this kind are drawn with, or {@code null} to
+ *                    fall back to the inventory
+ * @param color       the colour that picture is drawn in as {@code #rrggbb}, or {@code null} to fall
+ *                    back to the inventory
  */
-public record InventoryArt(int id, int inventoryId, String name, String note, int position, String mergeKey) {
+public record InventoryArt(
+        int id, int inventoryId, String name, String note, int position, String mergeKey, String icon, String color) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -43,7 +48,9 @@ public record InventoryArt(int id, int inventoryId, String name, String note, in
                 row.getString("name"),
                 row.getString("note"),
                 row.getInt("position"),
-                row.getString("merge_key"));
+                row.getString("merge_key"),
+                row.getString("icon"),
+                row.getString("color"));
     }
 
     /**

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
@@ -12,6 +13,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import { fromCompletion } from '@/components/input/select/memberOption'
 import type { BoardField, BoardFieldTypeName } from '@/api/boards'
 import type { MemberCompletion } from '@/api/stationMembers'
 
@@ -28,6 +30,8 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+const assignable = computed(() => props.members.map(fromCompletion))
 </script>
 
 <template>
@@ -43,7 +47,7 @@ const { t } = useI18n()
                 <option v-for="opt in (field.config?.options ?? [])" :key="opt" :value="opt">{{ opt }}</option>
             </SelectInput>
             <DateInput v-else-if="field.fieldType === 'DATE'" :model-value="(fieldValues[field.id] as string) ?? ''" @change="(e: Event) => emit('save', field.id, 'DATE', (e.target as HTMLInputElement).value || null)" />
-            <MemberSelectInput v-else-if="field.fieldType === 'LANE_ASSIGNEE'" :model-value="String(fieldValues[field.id] ?? '')" :members="members" :placeholder="t('boards.unassigned')" @change="emit('save', field.id, 'LANE_ASSIGNEE', Number(fieldValues[field.id]) || null)" @update:model-value="v => { fieldValues[field.id] = v ? Number(v) : null; emit('save', field.id, 'LANE_ASSIGNEE', v ? Number(v) : null) }" />
+            <MemberSelectInput v-else-if="field.fieldType === 'LANE_ASSIGNEE'" :model-value="String(fieldValues[field.id] ?? '')" :members="assignable" :placeholder="t('boards.unassigned')" clearable @change="emit('save', field.id, 'LANE_ASSIGNEE', Number(fieldValues[field.id]) || null)" @update:model-value="v => { fieldValues[field.id] = v ? Number(v) : null; emit('save', field.id, 'LANE_ASSIGNEE', v ? Number(v) : null) }" />
         </template>
         <div v-else class="text-sm px-2 py-1">{{ fieldValues[field.id] ?? '-' }}</div>
     </div>

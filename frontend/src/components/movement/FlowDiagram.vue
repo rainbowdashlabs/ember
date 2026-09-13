@@ -47,7 +47,12 @@ const props = defineProps<{
      * body above the station for its gear and the station's own shelf for the station's own, so that
      * column is named after whichever of the two it means.
      */
-    ownerKind?: ItemOwnerName
+    ownerKind?: ItemOwnerName | null
+    /**
+     * What that owner is called, where the caller knows it. An association by name says whose gear
+     * this is; "the owner" says only that somebody owns it.
+     */
+    ownerName?: string | null
 }>()
 
 const {t} = useI18n()
@@ -164,11 +169,21 @@ const height = computed(() => {
     return last ? last.top + last.height : 0
 })
 
+/**
+ * What a column is called: the place itself, in one word.
+ *
+ * <p>A column heading is read at a glance beside four others, so it names the party rather than
+ * describing where the piece is: "Wache", not "Bei der Wache". The owner's column carries the name of
+ * whoever that is on this chain, because "the owner" is the one heading that says nothing.
+ *
+ * <p>The station's own gear rests on the station's own shelf, so that column is the store rather than
+ * a second column called "Wache": two headings with one name say nothing about which of them a piece
+ * is standing in.
+ */
 function columnLabel(custody: ItemCustodyName): string {
-    if (custody === ItemCustody.WITH_OWNER && props.ownerKind === ItemOwner.STATION) {
-        return t('inventory.edit.ownerStation')
-    }
-    return t(`itemDetail.custodyValues.${custody}`)
+    if (custody !== ItemCustody.WITH_OWNER) return t(`movements.place.${custody}`)
+    if (props.ownerKind === ItemOwner.STATION) return t('movements.place.STORE')
+    return props.ownerName ?? t('movements.owner.above')
 }
 </script>
 

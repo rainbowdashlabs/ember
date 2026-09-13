@@ -78,9 +78,9 @@ public enum ClusterPermission implements RouteRole {
     /**
      * Acknowledging the cluster's own steps of a movement.
      */
-    CLUSTER_INVENTORY_EXCHANGE(CLUSTER_INVENTORY_READ),
+    CLUSTER_INVENTORY_MOVEMENTS(CLUSTER_INVENTORY_READ),
 
-    CLUSTER_INVENTORY_MANAGER(CLUSTER_INVENTORY_EDIT, CLUSTER_INVENTORY_TRANSFER, CLUSTER_INVENTORY_EXCHANGE),
+    CLUSTER_INVENTORY_MANAGER(CLUSTER_INVENTORY_EDIT, CLUSTER_INVENTORY_TRANSFER, CLUSTER_INVENTORY_MOVEMENTS),
 
     CLUSTER_FIELD_EDIT,
     CLUSTER_FIELD_MANAGER(CLUSTER_FIELD_EDIT),
@@ -217,7 +217,7 @@ public enum ClusterPermission implements RouteRole {
             granted.add(StationPermission.INVENTORY_CHECK);
             granted.add(StationPermission.INVENTORY_CREATE);
             granted.add(StationPermission.INVENTORY_EDIT);
-            granted.add(StationPermission.INVENTORY_EXCHANGE);
+            granted.add(StationPermission.INVENTORY_MOVEMENTS);
             granted.add(StationPermission.INVENTORY_MANAGER);
             granted.add(StationPermission.INVENTORY_PROCUREMENT);
             granted.add(StationPermission.INVENTORY_STORAGE);
@@ -229,7 +229,7 @@ public enum ClusterPermission implements RouteRole {
                 granted.add(StationPermission.INVENTORY_ASSIGN);
                 granted.add(StationPermission.INVENTORY_STORAGE);
             }
-            if (held.contains(CLUSTER_INVENTORY_EXCHANGE)) granted.add(StationPermission.INVENTORY_EXCHANGE);
+            if (held.contains(CLUSTER_INVENTORY_MOVEMENTS)) granted.add(StationPermission.INVENTORY_MOVEMENTS);
         }
 
         // Sharing the cluster's content out to its stations is the cluster's federation right, read here.

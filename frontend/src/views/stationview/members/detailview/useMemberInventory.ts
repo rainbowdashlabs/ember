@@ -5,20 +5,20 @@
  */
 import { ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { InventorySize, MemberRequirements, MyInventoryItem } from '@/api/inventory'
-import {stillMoving, type ExchangeRequestEntry} from '@/api/exchanges'
-import { exchanges, inventory } from '@/api'
+import type { MemberRequirements, MyInventoryItem } from '@/api/inventory'
+import { inventory, movements } from '@/api'
 
 /**
- * Owns the equipment handed out to the viewed member: the assigned items, the
- * open exchange requests and the assignment actions performed on them.
+ * Owns the equipment handed out to the viewed member: the assigned items, what is still missing, and
+ * the assignment actions performed on them.
+ *
+ * <p>Nothing here reads movements. Whatever is running on a piece travels with the piece, so the rows
+ * say where they stand without a second list to join them against.
  */
 export function useMemberInventory(memberId: Ref<number>, error: Ref<string>) {
   const { t } = useI18n()
 
   const items = ref<MyInventoryItem[]>([])
-  const exchangeRequests = ref<ExchangeRequestEntry[]>([])
-  const exchangeSizes = ref<InventorySize[]>([])
   const requirements = ref<MemberRequirements>({ required: [], unassigned: {} })
 
   async function loadRequirements() {
@@ -32,10 +32,6 @@ export function useMemberInventory(memberId: Ref<number>, error: Ref<string>) {
   async function load() {
     try { items.value = await inventory.memberItems(memberId.value) } catch { items.value = [] }
     await loadRequirements()
-    try {
-      const allExch = await exchanges.listExchanges()
-      exchangeRequests.value = allExch.filter(e => e.memberId === memberId.value && stillMoving(e.status))
-    } catch { exchangeRequests.value = [] }
   }
 
   async function assignItem(itemId: number) {
@@ -45,6 +41,15 @@ export function useMemberInventory(memberId: Ref<number>, error: Ref<string>) {
       items.value = await inventory.memberItems(memberId.value)
       await loadRequirements()
     } catch { error.value = t('common.error') }
+  }
+
+  /** Writes down that the member is to get this piece, leaving it where it is until it is handed over. */
+  async function planHandOut(itemId: number, inventoryId: number) {
+    error.value = ''
+    try {
+      await movements.planHandOut(memberId.value, itemId, inventoryId)
+      await load()
+    } catch { error.value = t('inventory.handOut.plannedFailed') }
   }
 
   /** Writes a new piece down in the inventory that is short and hands it to the member at once. */
@@ -74,35 +79,14 @@ export function useMemberInventory(memberId: Ref<number>, error: Ref<string>) {
     } catch { error.value = t('common.error') }
   }
 
-  async function submitExchange(data: { item: MyInventoryItem; newSizeId?: number; reason: string }) {
-    error.value = ''
-    try {
-      await exchanges.createExchange({
-        memberId: memberId.value,
-        itemId: data.item.id,
-        inventoryId: data.item.inventoryId,
-        oldSizeId: data.item.sizeId ?? undefined,
-        newSizeId: data.newSizeId,
-        reason: data.reason,
-      })
-    } catch { error.value = t('common.error') }
-  }
-
-  async function loadExchangeSizes(inventoryId: number) {
-    try { exchangeSizes.value = await inventory.listSizes(inventoryId) } catch { exchangeSizes.value = [] }
-  }
-
   return {
     items,
-    exchangeRequests,
-    exchangeSizes,
     requirements,
     load,
     assignItem,
+    planHandOut,
     handOutNewItem,
     unassignItem,
     reassignItem,
-    submitExchange,
-    loadExchangeSizes,
   }
 }

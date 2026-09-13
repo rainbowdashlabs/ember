@@ -8,14 +8,19 @@ import {useI18n} from 'vue-i18n'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import type {ExchangeRequestEntry} from '@/api/exchanges'
+import GearGlyph from '@/components/inventory/GearGlyph.vue'
+import {glyphFor} from '@/util/glyph'
 import type {MyInventoryItem} from '@/api/inventory'
 import {formatDate} from '@/util/format'
 
-/** What one piece of gear says about itself on a member's list: what it is, and where it stands. */
+/**
+ * What one piece of gear says about itself on a member's list: what it is, and where it stands.
+ *
+ * <p>Where it stands is the step of whatever movement is running on it, which travels with the row. No
+ * status is read from anywhere else, because a movement has none.
+ */
 const props = defineProps<{
   item: MyInventoryItem
-  exchange?: ExchangeRequestEntry | null
   showInventoryName?: boolean
 }>()
 
@@ -24,9 +29,12 @@ const {t} = useI18n()
 
 <template>
   <div>
-    <div class="font-medium text-sm">
-      {{ props.item.name }}
-      <SizeBadge v-if="props.item.sizeName" :lost="!!props.item.lostAt">{{ props.item.sizeName }}</SizeBadge>
+    <div class="flex items-center gap-2 font-medium text-sm">
+      <GearGlyph :glyph="glyphFor({icon: props.item.icon, color: props.item.color, homogeneous: props.item.inventoryHomogeneous})"/>
+      <span>
+        {{ props.item.name }}
+        <SizeBadge v-if="props.item.sizeName" :lost="!!props.item.lostAt">{{ props.item.sizeName }}</SizeBadge>
+      </span>
     </div>
     <div v-if="props.showInventoryName" class="text-xs text-(--text-muted)">{{ props.item.inventoryName }}</div>
     <div v-if="props.item.internalId" class="text-xs text-(--text-muted)">{{ props.item.internalId }}</div>
@@ -39,8 +47,5 @@ const {t} = useI18n()
       <span v-if="props.item.lostNoteBy?.name">({{ props.item.lostNoteBy.name }})</span>
     </div>
     <InfoBadge v-if="props.item.movementStep" class="mt-1">{{ props.item.movementStep }}</InfoBadge>
-    <InfoBadge v-else-if="props.exchange" class="mt-1">
-      {{ t('exchanges.status.' + props.exchange.status) }}
-    </InfoBadge>
   </div>
 </template>

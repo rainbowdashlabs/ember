@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckAnswer;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckAnswerInput;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckRaisedKind;
@@ -617,8 +618,9 @@ class SelfCheckServiceTest extends RepositoryTestBase {
         int taskId = handOut();
         var spare = inventoryRepo.createItem(inventory.id(), "SCS-SPARE", "Spare Jacket", null, null);
         itemCustodyService.assignToMember(spare.id(), stranger.id(), "");
-        var movement = exchangeService.create(
+        var movement = itemMovementService.create(
                 station.id(),
+                MovementPurpose.EXCHANGE,
                 stranger.id(),
                 "Self Stranger",
                 spare.id(),
@@ -626,6 +628,7 @@ class SelfCheckServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 "too small",
+                new ItemMovementService.Actor(stranger.id(), true),
                 null);
 
         var loss = selfCheckService.recordLoss(taskId, station.id(), member.id(), false, owned.id());

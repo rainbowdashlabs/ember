@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.repository;
 
 import de.chojo.sadu.queries.exception.WrappedQueryExecutionException;
+import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -62,7 +63,10 @@ class InventoryArtRepositoryTest extends RepositoryTestBase {
         assertEquals("eine Notiz", art.note());
         assertEquals(3, art.position());
 
-        assertTrue(artRepo.update(art.id(), "Funkgerät grün", "", 4));
+        assertTrue(artRepo.update(art.id(), "Funkgerät grün", "", 4, new Glyph("walkie-talkie", "#15803d")));
+        InventoryArt painted = artRepo.findById(art.id()).orElseThrow();
+        assertEquals("walkie-talkie", painted.icon());
+        assertEquals("#15803d", painted.color());
         assertEquals("funkgerät grün", artRepo.findById(art.id()).orElseThrow().mergeKey());
         assertTrue(artRepo.findByName(drawer.id(), " FUNKGERÄT GRÜN ").isPresent());
         assertFalse(artRepo.findByMergeKey("funkgerät grün").isEmpty());

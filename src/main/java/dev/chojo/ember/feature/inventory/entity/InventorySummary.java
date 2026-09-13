@@ -14,6 +14,8 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  *                 beside its name. It counts what is defined rather than what the pieces happen to
  *                 carry, so a kind nobody has a piece of still counts and the loose pieces do not
  *                 lower it
+ * @param icon     the FontAwesome name the inventory is drawn with, or {@code null} for a plain shape
+ * @param color    the colour that picture is drawn in, or {@code null} for the muted neutral
  */
 public record InventorySummary(
         int id,
@@ -27,7 +29,9 @@ public record InventorySummary(
         int lostCount,
         int procurementCount,
         int lentOutCount,
-        int artCount) {
+        int artCount,
+        String icon,
+        String color) {
     public static RowMapping<InventorySummary> map() {
         return row -> new InventorySummary(
                 row.getInt("id"),
@@ -41,6 +45,8 @@ public record InventorySummary(
                 row.getInt("lost_count"),
                 row.getInt("procurement_count"),
                 row.getInt("lent_out_count"),
-                row.getInt("art_count"));
+                row.getInt("art_count"),
+                row.getString("icon"),
+                row.getString("color"));
     }
 }

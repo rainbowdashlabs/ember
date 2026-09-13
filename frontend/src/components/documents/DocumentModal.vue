@@ -10,7 +10,8 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {fromMember} from '@/components/input/select/memberOption'
 import TagPicker from '@/components/input/TagPicker.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DownloadButton from '@/components/button/DownloadButton.vue'
@@ -56,8 +57,7 @@ watch(() => props.document, (document) => {
   members.value = (document?.memberIds ?? []).map(String)
 }, {immediate: true})
 
-const memberOptions = computed(() => (props.allMembers ?? [])
-    .map(member => ({value: String(member.id), label: member.name ?? String(member.id)})))
+const memberOptions = computed(() => (props.allMembers ?? []).map(fromMember))
 
 const boundNames = computed(() => (props.allMembers ?? [])
     .filter(member => props.document?.memberIds.includes(member.id))
@@ -102,11 +102,11 @@ async function download() {
         <div class="space-y-1">
           <FieldLabel>{{ t('documents.boundMembers') }}</FieldLabel>
           <template v-if="props.canEdit">
-            <MultiSelectDropdown
-                v-model="members"
-                :options="memberOptions"
+            <MemberSelectInput
+                v-model:selected="members"
+                multiple
+                :members="memberOptions"
                 :placeholder="t('documents.bindPlaceholder')"
-                searchable
             />
             <SecondaryButton @click="saveMembers">{{ t('common.save') }}</SecondaryButton>
           </template>

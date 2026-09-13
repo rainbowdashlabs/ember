@@ -52,7 +52,6 @@ import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
-import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
@@ -180,9 +179,16 @@ class DemoServiceTest extends RepositoryTestBase {
                 itemCustodyService,
                 clusterRepo,
                 clusterStationGroupRepo);
-        var exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         var procurementService = new ProcurementService(
-                procurementRepo, inventoryService, inventoryRepo, clusterRepo, itemCustodyService, noOpBus);
+                procurementRepo,
+                inventoryService,
+                inventoryRepo,
+                clusterRepo,
+                itemCustodyService,
+                itemMovementService,
+                stationMemberRepo,
+                accountRepo,
+                noOpBus);
         var eventTemplateService = new EventTemplateService(eventTemplateRepo, attendanceRepo);
         var feedTokenService = new FeedTokenService(feedTokenRepo);
 
@@ -375,7 +381,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 accountRepo,
                 containerSvc,
                 fieldDefSvc,
-                exchangeService,
+                itemMovementService,
                 procurementService,
                 itemCustodyService);
         var clusterSeeder = new DemoClusterSeeder(
@@ -490,7 +496,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var videoSeeder = new DemoVideoSeeder(
                 attendanceRepo,
                 inventoryRepo,
-                exchangeService,
+                itemMovementService,
                 eventServices.crud(),
                 stationMailProviderRepo,
                 lostAndFoundService,

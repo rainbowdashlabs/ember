@@ -11,13 +11,14 @@ import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import type {MemberOption} from '@/components/input/select/memberOption'
 
 const {t} = useI18n()
 
-const dummyMembers = [
-    {id: 1, memberUid: 'u1', stationUid: 's1', name: 'Max Mustermann'},
-    {id: 2, memberUid: 'u2', stationUid: 's1', name: 'Lisa Schmidt'},
-    {id: 3, memberUid: 'u3', stationUid: 's1', name: 'Tom Müller'},
+const dummyMembers: MemberOption[] = [
+    {value: '1', name: 'Max Mustermann'},
+    {value: '2', name: 'Lisa Schmidt'},
+    {value: '3', name: 'Tom Müller'},
 ]
 </script>
 
@@ -44,7 +45,7 @@ const dummyMembers = [
 
     <div>
       <FieldLabel class="mb-1">{{ t('boards.assignee') }}</FieldLabel>
-      <MemberSelectInput model-value="1" :members="dummyMembers" :placeholder="t('boards.unassigned')" />
+      <MemberSelectInput model-value="1" :members="dummyMembers" :placeholder="t('boards.unassigned')" clearable />
     </div>
 
     <div>

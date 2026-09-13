@@ -213,7 +213,7 @@ public class StationMemberRoutes implements Routes {
             path = "/api/v1/members/search",
             methods = HttpMethod.GET,
             summary = "Search active members of the caller's station for the page-editor pickers",
-            description = "Lightweight result shape (memberUid, displayName, userType, avatarUrl)"
+            description = "Lightweight result shape (memberUid, displayName, userType, nameColor, avatarUrl)"
                     + " scoped to the caller's own station. Empty query returns the 20 most"
                     + " recently joined active members.",
             tags = {"Station Members"},
@@ -252,6 +252,7 @@ public class StationMemberRoutes implements Routes {
                 m.memberUid(),
                 m.displayName(),
                 m.userType() != null ? m.userType().name() : null,
+                m.nameColor(),
                 m.displayTag(),
                 m.displayTagColor(),
                 avatarDataUrlFor(m.accountUid()));
@@ -672,6 +673,7 @@ public class StationMemberRoutes implements Routes {
             UUID memberUid,
             String displayName,
             String userType,
+            String nameColor,
             String displayTag,
             String displayTagColor,
             String avatarUrl) {}

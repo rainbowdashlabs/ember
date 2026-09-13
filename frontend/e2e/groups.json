@@ -20,7 +20,6 @@
   ],
   "inventory": [
     "equipment-needs",
-    "exchange-status",
     "inventory",
     "inventory-kinds",
     "item-custody",
@@ -34,6 +33,7 @@
     "movement-chains",
     "movement-configurations",
     "movement-flows",
+    "movement-queue",
     "requirements",
     "self-check",
     "storage-backend"

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainerKind;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InventoryContainerKindRepositoryTest extends RepositoryTestBase {
@@ -37,7 +39,8 @@ class InventoryContainerKindRepositoryTest extends RepositoryTestBase {
     @Test
     void createListFindUpdateAndDelete() {
         assertFalse(containerKindRepo.stationHasAnyKind(station.id()));
-        InventoryContainerKind room = containerKindRepo.create(station.id(), "room", "Room", "house", 10, true);
+        InventoryContainerKind room =
+                containerKindRepo.create(station.id(), "room", "Room", new Glyph("house", null), 10, true);
         assertTrue(containerKindRepo.stationHasAnyKind(station.id()));
         assertTrue(containerKindRepo.findById(room.id()).isPresent());
         assertEquals(
@@ -45,21 +48,24 @@ class InventoryContainerKindRepositoryTest extends RepositoryTestBase {
                 containerKindRepo.findByKey(station.id(), "room").orElseThrow().label());
         assertTrue(containerKindRepo.findByKey(station.id(), "missing").isEmpty());
 
-        InventoryContainerKind drawer = containerKindRepo.create(station.id(), "drawer", "Drawer", "inbox", 40, true);
+        InventoryContainerKind drawer =
+                containerKindRepo.create(station.id(), "drawer", "Drawer", new Glyph("inbox", "#2563eb"), 40, true);
+        assertEquals("#2563eb", drawer.color());
         var all = containerKindRepo.findByStation(station.id());
         assertEquals(2, all.size());
         assertEquals("room", all.getFirst().key());
 
-        assertTrue(containerKindRepo.update(drawer.id(), "Big Drawer", "box-archive", 50, false));
+        assertTrue(containerKindRepo.update(drawer.id(), "Big Drawer", new Glyph("box-archive", null), 50, false));
         InventoryContainerKind reloaded =
                 containerKindRepo.findById(drawer.id()).orElseThrow();
         assertEquals("Big Drawer", reloaded.label());
         assertEquals("box-archive", reloaded.icon());
+        assertNull(reloaded.color());
         assertFalse(reloaded.enabled());
 
         assertTrue(containerKindRepo.delete(drawer.id()));
         assertFalse(containerKindRepo.delete(drawer.id()));
-        assertFalse(containerKindRepo.update(drawer.id(), "x", "y", 0, true));
+        assertFalse(containerKindRepo.update(drawer.id(), "x", new Glyph("y", null), 0, true));
         assertTrue(containerKindRepo.findById(drawer.id()).isEmpty());
     }
 }

@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService.ChosenLanding;
+import dev.chojo.ember.feature.inventory.service.MovementTargeting;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -36,6 +37,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.List;
+import java.util.Locale;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -49,15 +51,19 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class MovementFlowRoutes implements Routes {
     private final MovementFlowService flowService;
+    private final MovementTargeting targeting;
 
     @Inject
-    public MovementFlowRoutes(MovementFlowService flowService) {
+    public MovementFlowRoutes(MovementFlowService flowService, MovementTargeting targeting) {
         this.flowService = flowService;
+        this.targeting = targeting;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/movement-flows", this::list, StationPermission.INVENTORY_MANAGER);
+        // Before the one that takes an id, or the literal would never be reached.
+        routes.get(prefix + "/movement-flows/resolve", this::resolve, StationPermission.USER);
         routes.get(prefix + "/movement-flows/{id}", this::getFlow, StationPermission.INVENTORY_MANAGER);
         routes.post(prefix + "/movement-flows", this::createFlow, StationPermission.INVENTORY_MANAGER);
         routes.put(prefix + "/movement-flows/{id}", this::renameFlow, StationPermission.INVENTORY_MANAGER);
@@ -85,6 +91,78 @@ public class MovementFlowRoutes implements Routes {
         ctx.json(flowService.findFlows(session.stationId()).stream()
                 .map(this::toResponse)
                 .toList());
+    }
+
+    /**
+     * Which chain a movement would walk, before anybody starts one.
+     *
+     * <p>What the wizard shows on its last step. Open to any member, because a member raising an
+     * exchange of their own gear is shown their own chain: the answer names the steps of a movement they
+     * are about to be part of, and nothing about any other.
+     *
+     * <p>A combination nothing is bound to answers {@code 404} with a named error rather than the
+     * service's refusal, because the wizard has a screen for that case and a link to where a chain is
+     * written.
+     */
+    @OpenApi(
+            path = "/api/v1/movement-flows/resolve",
+            methods = HttpMethod.GET,
+            summary = "The chain a movement with these ends would walk",
+            tags = {"Inventory"},
+            queryParams = {
+                @OpenApiParam(name = "purpose", type = MovementPurpose.class, required = true),
+                @OpenApiParam(name = "memberId", type = Integer.class),
+                @OpenApiParam(name = "itemId", type = Integer.class),
+                @OpenApiParam(name = "inventoryId", type = Integer.class)
+            },
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FlowPreview.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void resolve(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        MovementPurpose purpose = purposeOf(ctx.queryParam("purpose"));
+        Integer memberId = optionalInt(ctx, "memberId");
+        Integer itemId = optionalInt(ctx, "itemId");
+        Integer inventoryId = optionalInt(ctx, "inventoryId");
+
+        // Which end the one picked piece sits on follows from the purpose: what leaves on a return or an
+        // exchange, what arrives on an issue, and neither on a request.
+        boolean itemLeaves = purpose == MovementPurpose.RETURN || purpose == MovementPurpose.EXCHANGE;
+        Integer outgoing = itemLeaves ? itemId : null;
+        Integer incoming = itemLeaves ? null : itemId;
+
+        MovementTargeting.Target target;
+        try {
+            target = targeting.resolve(session.stationId(), purpose, memberId, outgoing, incoming, inventoryId);
+        } catch (BadRequestResponse refused) {
+            throw new NotFoundResponse("NO_FLOW");
+        }
+        MovementFlow flow = flowService.findFlow(target.flowId()).orElseThrow(() -> new NotFoundResponse("NO_FLOW"));
+        ctx.json(new FlowPreview(toResponse(flow), target.ownerKind(), target.party()));
+    }
+
+    /**
+     * The purpose a query asks about, read by hand because an enum in a query string has no converter
+     * of its own and asking for one answers a wrong spelling with a fault rather than with a refusal.
+     */
+    private MovementPurpose purposeOf(String written) {
+        if (written == null || written.isBlank()) throw new BadRequestResponse("purpose is required");
+        try {
+            return MovementPurpose.valueOf(written.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse("%s is not a purpose".formatted(written));
+        }
+    }
+
+    private Integer optionalInt(Context ctx, String name) {
+        String written = ctx.queryParam(name);
+        if (written == null || written.isBlank()) return null;
+        try {
+            return Integer.valueOf(written.trim());
+        } catch (NumberFormatException e) {
+            throw new BadRequestResponse("%s is not a number".formatted(name));
+        }
     }
 
     @OpenApi(
@@ -436,4 +514,13 @@ public class MovementFlowRoutes implements Routes {
 
     public record BindingResponse(
             Integer inventoryId, ItemOwner ownerKind, MovementPurpose purpose, MovementParty party, int flowId) {}
+
+    /**
+     * The chain a movement would walk, and what it would be about.
+     *
+     * @param flow      the chain with its steps, in the shape the settings page already reads
+     * @param ownerKind whose gear it would be, which is what names the owner's column on the diagram
+     * @param party     the end that is not the owner, a member or the station's store
+     */
+    public record FlowPreview(FlowResponse flow, ItemOwner ownerKind, MovementParty party) {}
 }

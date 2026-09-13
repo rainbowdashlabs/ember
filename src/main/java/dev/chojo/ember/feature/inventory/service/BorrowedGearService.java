@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -70,8 +71,14 @@ public class BorrowedGearService {
      */
     public Inventory shelfAt(int stationId) {
         return inventoryRepository.findBorrowedInventory(stationId).orElseGet(() -> {
-            Inventory created =
-                    inventoryRepository.create(stationId, DEFAULT_SHELF_NAME, InventoryType.MIXED, false, false, true);
+            Inventory created = inventoryRepository.create(
+                    stationId,
+                    DEFAULT_SHELF_NAME,
+                    InventoryType.MIXED,
+                    false,
+                    false,
+                    true,
+                    new Glyph("hand-holding", null));
             log.info("Created the borrowed shelf {} for station {}", created.id(), stationId);
             return created;
         });

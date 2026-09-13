@@ -9,6 +9,8 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
+import dev.chojo.ember.feature.inventory.entity.MovementState;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -47,6 +49,9 @@ class ProcurementServiceTest extends RepositoryTestBase {
                 inventoryRepo,
                 clusterRepo,
                 itemCustodyService,
+                itemMovementService,
+                stationMemberRepo,
+                accountRepo,
                 new DomainEventBus(Set.of()));
         station = stationRepo.create("ProcStation");
         account = accountRepo.create("proc-svc@test.com", "Proc", "Tester");
@@ -91,6 +96,34 @@ class ProcurementServiceTest extends RepositoryTestBase {
         assertTrue(service.fulfill(procurementId));
         var proc = service.findById(procurementId).orElseThrow();
         assertNotNull(proc.fulfilledAt());
+    }
+
+    /**
+     * What arrives against an order is on its way to whoever it was ordered for, not in their hands.
+     *
+     * <p>An order is a promise: the piece turns up at the station and somebody gives it to the member
+     * at the next duty. Writing it straight onto them recorded a hand-over that had not happened, and
+     * the shelf then said a piece was gone that was still lying there.
+     */
+    @Test
+    @Order(12)
+    void whatArrivesAgainstAnOrderIsOnItsWayToTheMember() {
+        var ordered = service.create(station.id(), inventoryId, member.id(), null, "Neue Jacke");
+
+        assertTrue(service.fulfill(ordered.id()));
+
+        var handOut = itemMovementService.findByMember(member.id()).stream()
+                .filter(movement -> movement.purpose() == MovementPurpose.ISSUE)
+                .filter(movement -> movement.state() == MovementState.OPEN)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("the order should have set a hand-out going"));
+
+        assertNotNull(handOut.incomingItemId(), "the piece that arrived is the one promised");
+        var piece = inventoryRepo.findItemById(handOut.incomingItemId()).orElseThrow();
+        assertNull(piece.assignedTo(), "and it is not on the member until somebody hands it over");
+        assertEquals(inventoryId, piece.inventoryId(), "it landed in the inventory that was ordered from");
+
+        itemMovementService.abandon(handOut.id(), "Test vorbei");
     }
 
     @Test

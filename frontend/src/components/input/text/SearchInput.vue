@@ -4,7 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {nextTick, onMounted, ref} from 'vue'
+import {computed, nextTick, onMounted, ref, useAttrs} from 'vue'
+
+/**
+ * Layout and identity belong to the box, behaviour belongs to the field.
+ *
+ * <p>Callers size this component by class and find it by test id, so those stay on the root where
+ * they have always been. What moves to the input is what only an input can answer: the keys a caller
+ * listens for and the ARIA a screen reader reads, which on a wrapper would describe a div nobody is
+ * typing into.
+ */
+defineOptions({inheritAttrs: false})
 
 const model = defineModel<string>()
 
@@ -15,6 +25,25 @@ const props = withDefaults(defineProps<{
 }>(), {
   autofocus: false,
 })
+
+const attrs = useAttrs()
+
+const fieldAttrs = computed(() =>
+  Object.fromEntries(
+    Object.entries(attrs).filter(
+      ([name]) => name.startsWith('aria-') || name === 'role' || name.startsWith('on'),
+    ),
+  ),
+)
+
+const boxAttrs = computed(() =>
+  Object.fromEntries(
+    Object.entries(attrs).filter(
+      ([name]) =>
+        !(name.startsWith('aria-') || name === 'role' || name.startsWith('on') || name === 'class' || name === 'style'),
+    ),
+  ),
+)
 
 const inputEl = ref<HTMLInputElement | null>(null)
 
@@ -34,13 +63,14 @@ defineExpose({focus})
 </script>
 
 <template>
-  <div class="relative w-full min-w-0">
+  <div v-bind="boxAttrs" :class="['relative w-full min-w-0', attrs.class as string]" :style="attrs.style as string">
     <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-primary">
       <font-awesome-icon :icon="['fas', 'magnifying-glass']" class="h-4 w-4"/>
     </span>
     <input
         ref="inputEl"
         v-model="model"
+        v-bind="fieldAttrs"
         :disabled="disabled"
         :placeholder="placeholder"
         type="search"

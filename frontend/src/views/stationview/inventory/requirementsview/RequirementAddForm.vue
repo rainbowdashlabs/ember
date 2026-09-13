@@ -4,9 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NumberInput from '@/components/input/number/NumberInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
+import InventorySearchPicker from '@/components/input/search/InventorySearchPicker.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { Inventory } from '@/api/inventory'
 import type { MemberGroup } from '@/api/types'
@@ -31,6 +32,14 @@ defineProps<{
 }>()
 
 const { t } = useI18n()
+
+/** The picker speaks in identifiers and the form it sits in speaks in strings, which is the one bridge. */
+const pickedInventory = computed<number | null>({
+  get: () => (inventoryId.value ? Number(inventoryId.value) : null),
+  set: value => {
+    inventoryId.value = value != null ? String(value) : ''
+  },
+})
 </script>
 
 <template>
@@ -46,10 +55,13 @@ const { t } = useI18n()
 
     <div class="space-y-1">
       <FieldLabel>{{ t('inventory.requirements.inventory') }}</FieldLabel>
-      <SelectInput v-model="inventoryId" data-testid="requirement-inventory">
-        <option value="" disabled>{{ t('inventory.requirements.selectInventory') }}</option>
-        <option v-for="inv in inventories" :key="inv.id" :value="String(inv.id)">{{ inv.name }}</option>
-      </SelectInput>
+      <div data-testid="requirement-inventory">
+        <InventorySearchPicker
+            v-model="pickedInventory"
+            :inventories="inventories"
+            :placeholder="t('inventory.requirements.selectInventory')"
+        />
+      </div>
     </div>
 
     <div class="space-y-1">

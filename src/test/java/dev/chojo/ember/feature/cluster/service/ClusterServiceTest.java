@@ -178,7 +178,7 @@ class ClusterServiceTest extends RepositoryTestBase {
 
         var permissions = clusterService.resolvePermissions(admin);
         assertTrue(permissions.contains(ClusterPermission.CLUSTER_ADMINISTRATOR));
-        assertTrue(permissions.contains(ClusterPermission.CLUSTER_INVENTORY_EXCHANGE), "expanded, not just held");
+        assertTrue(permissions.contains(ClusterPermission.CLUSTER_INVENTORY_MOVEMENTS), "expanded, not just held");
         assertTrue(permissions.contains(ClusterPermission.USER), "LOGIN reaches USER through its children");
 
         clusterService.removeMember(admin.id());

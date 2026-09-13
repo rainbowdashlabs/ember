@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -84,7 +85,7 @@ public final class WebpEncoder {
                             output.toString())
                     .redirectErrorStream(true)
                     .start();
-            String log = new String(process.getInputStream().readAllBytes());
+            String log = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             int exit = process.waitFor();
             if (exit != 0) {
                 throw new IOException("cwebp failed (exit " + exit + "): " + log);

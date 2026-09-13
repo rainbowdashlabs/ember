@@ -941,7 +941,7 @@ class DomainEventHandlerTest {
         verify(notificationService)
                 .notifyMembersIfAbsent(
                         eq(List.of(30, 31)),
-                        eq(NotificationType.EXCHANGE_NEW_REQUEST),
+                        eq(NotificationType.MOVEMENT_RAISED),
                         any(NotificationData.class),
                         eq(MEMBER_ID));
     }
@@ -962,7 +962,7 @@ class DomainEventHandlerTest {
         verify(notificationService)
                 .notifyMembersIfAbsent(
                         eq(List.of(30)),
-                        eq(NotificationType.EXCHANGE_STATUS_CHANGE),
+                        eq(NotificationType.MOVEMENT_ADVANCED),
                         any(NotificationData.class),
                         eq(MEMBER_ID));
     }
@@ -977,7 +977,7 @@ class DomainEventHandlerTest {
         verify(notificationService)
                 .notifyMembersIfAbsent(
                         eq(List.of(MEMBER_ID)),
-                        eq(NotificationType.EXCHANGE_STATUS_CHANGE),
+                        eq(NotificationType.MOVEMENT_ADVANCED),
                         any(NotificationData.class),
                         eq(30));
         verify(memberRepository, never()).findMembersWithPermission(anyInt(), any());
@@ -992,7 +992,7 @@ class DomainEventHandlerTest {
         verify(notificationService)
                 .notifyMembersIfAbsent(
                         eq(List.of(MEMBER_ID)),
-                        eq(NotificationType.EXCHANGE_STATUS_CHANGE),
+                        eq(NotificationType.MOVEMENT_ADVANCED),
                         any(NotificationData.class),
                         eq(30));
     }
@@ -1014,7 +1014,7 @@ class DomainEventHandlerTest {
         verify(notificationService)
                 .notifyMembersIfAbsent(
                         eq(List.of(30)),
-                        eq(NotificationType.EXCHANGE_STATUS_CHANGE),
+                        eq(NotificationType.MOVEMENT_ADVANCED),
                         any(NotificationData.class),
                         eq(MEMBER_ID));
     }
@@ -1036,7 +1036,7 @@ class DomainEventHandlerTest {
         verify(notificationService)
                 .notifyClusterMembersIfAbsent(
                         eq(List.of(40, 41)),
-                        eq(NotificationType.EXCHANGE_STATUS_CHANGE),
+                        eq(NotificationType.MOVEMENT_ADVANCED),
                         argThat(data -> "cluster-movements".equals(data.link().route())),
                         isNull());
         verify(notificationService).notifyMembersIfAbsent(eq(List.of()), any(), any(NotificationData.class), anyInt());

@@ -4,36 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {statSync} from 'node:fs'
-import type {Page} from '@playwright/test'
 import {test, expect, accountWithout, pageAsThrowaway} from './fixtures/auth'
 import {unique} from './fixtures/unique'
-
-/**
- * Somebody new, through the wizard a manager uses. It walks several steps before it writes
- * anything, and each one has to be carried past on its own, so every story that needs a member of
- * its own goes through here rather than borrowing a seeded one the others are also using.
- */
-async function createMember(page: Page): Promise<string> {
-    const surname = unique('Story')
-
-    await page.goto('/station/members/create')
-    await expect(page.getByTestId('app-shell')).toBeVisible()
-
-    await page.getByRole('button', {name: 'Weiter'}).first().click()
-
-    await page.getByPlaceholder('Vorname').fill('Testperson')
-    await page.getByPlaceholder('Nachname').fill(surname)
-    await page.getByPlaceholder('E-Mail-Adresse').fill(`${surname.toLowerCase()}@example.test`)
-    await page.getByRole('button', {name: 'Weiter'}).first().click()
-
-    for (let step = 0; step < 4; step += 1) {
-        const next = page.getByRole('button', {name: /Weiter|Konto erstellen|Erstellen/}).first()
-        if (!await next.isVisible().catch(() => false)) break
-        await next.click()
-    }
-
-    return surname
-}
+import {createMember} from './fixtures/member'
+import {pickMemberByName} from './fixtures/memberMenu'
 
 test.describe('Members', () => {
     test('a member is created through the wizard', async ({managerPage: page}) => {
@@ -192,9 +166,14 @@ test.describe('Members', () => {
     /**
      * A tag is how a station marks a handful of people as belonging together without giving them a
      * group. The story makes one and puts somebody in it.
+     *
+     * <p>Somebody of its own, rather than whoever the menu happens to offer first: the seeded people
+     * are shared with every other story, and one of them marking that person former took the row this
+     * story was waiting for off the page.
      */
     test('a tag is created and a member carries it', async ({managerPage: page}) => {
         const tag = unique('Tag')
+        const surname = await createMember(page)
 
         await page.goto('/station/members/tags')
         await page.getByRole('button', {name: 'Tag erstellen'}).click()
@@ -204,14 +183,11 @@ test.describe('Members', () => {
         await expect(page.getByText(tag).first()).toBeVisible()
         await page.getByText(tag).first().click()
 
-        const candidate = page.getByTestId('tag-candidate').first()
-        await expect(candidate).toBeVisible()
-        const name = (await candidate.innerText()).split('\n')[0]
-        await candidate.click()
+        await pickMemberByName(page, surname)
 
         await page.reload()
         await page.getByText(tag).first().click()
-        await expect(page.getByText(name).first()).toBeVisible()
+        await expect(page.getByText(surname).first()).toBeVisible()
     })
 
     /**

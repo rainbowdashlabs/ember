@@ -11,8 +11,8 @@ import MovementsPanel from '@/components/inventory/MovementsPanel.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {inventory, managedMembers, exchanges} from '@/api'
-import {stillMoving, type ExchangeRequestEntry} from '@/api/exchanges'
+import {inventory, managedMembers} from '@/api'
+import {MovementPurpose} from '@/api/movements'
 import type {InventorySize, MyInventoryItem, MyRequirement} from '@/api/inventory'
 import type {ManagedMember} from '@/api/managedMembers'
 import {useSession} from '@/composables/useSession'
@@ -20,7 +20,8 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import MemberTabSelector from './inventoryview/MemberTabSelector.vue'
 import InventoryGroupList from './inventoryview/InventoryGroupList.vue'
-import ExchangeModal from './inventoryview/ExchangeModal.vue'
+import MovementWizard from '@/views/stationview/inventory/movementwizard/MovementWizard.vue'
+import type {WizardPrefill} from '@/views/stationview/inventory/movementwizard/useMovementWizard'
 import ReportLostModal from './inventoryview/ReportLostModal.vue'
 
 const {t} = useI18n()
@@ -30,7 +31,6 @@ const items = ref<MyInventoryItem[]>([])
 const requirements = ref<MyRequirement[]>([])
 const managed = ref<ManagedMember[]>([])
 const selectedMemberId = ref<string>('')
-const activeExchanges = ref<ExchangeRequestEntry[]>([])
 
 const ownItems = ref<MyInventoryItem[]>([])
 const ownRequirements = ref<MyRequirement[]>([])
@@ -120,10 +120,6 @@ async function loadOwnInventory() {
 }
 
 const {loading, error, reload} = useAsyncLoader(async () => {
-  try {
-    const allExch = await exchanges.listExchanges()
-    activeExchanges.value = allExch.filter(e => stillMoving(e.status))
-  } catch { activeExchanges.value = [] }
   const mid = viewingMemberId.value
   if (mid) {
     const [memberItems, memberReqs] = await Promise.all([
@@ -183,29 +179,32 @@ watch(selectedMemberId, (newVal, oldVal) => {
   if (newVal && newVal !== oldVal) reload()
 })
 
-const showExchangeModal = ref(false)
-const exchangeItem = ref<MyInventoryItem | null>(null)
-const exchangeReason = ref('')
-const exchangeNewSizeId = ref<string>('')
-const exchangeSizes = ref<InventorySize[]>([])
+const showWizard = ref(false)
+const wizardPrefill = ref<WizardPrefill>({})
 const exchangeSuccess = ref('')
 
-async function openExchange(item: MyInventoryItem) {
-  exchangeItem.value = item
-  exchangeReason.value = ''
-  exchangeNewSizeId.value = ''
-  exchangeSizes.value = []
+/**
+ * A swap of the reader's own piece, or of one belonging to somebody they act for.
+ *
+ * <p>The same wizard every other screen opens, with the three questions the piece answers already
+ * filled in, so what is asked here is the reason and what is shown is the chain it will walk.
+ */
+function openExchange(item: MyInventoryItem) {
   exchangeSuccess.value = ''
-  clearExchangeError()
-  showExchangeModal.value = true
-  try {
-    exchangeSizes.value = await inventory.listSizes(item.inventoryId)
-  } catch { void 0 }
+  wizardPrefill.value = {
+    purpose: MovementPurpose.EXCHANGE,
+    memberId: viewingMemberId.value ?? null,
+    itemId: item.id,
+    inventoryId: item.inventoryId,
+    oldSizeId: item.sizeId ?? null,
+    skip: ['purpose', 'party', 'subject'],
+  }
+  showWizard.value = true
 }
 
-function closeExchange() {
-  showExchangeModal.value = false
-  exchangeItem.value = null
+async function afterExchange() {
+  exchangeSuccess.value = t('profile.exchangeCreated')
+  await reload()
 }
 
 const showLostModal = ref(false)
@@ -252,25 +251,6 @@ const {
   lostSuccess.value = t('profile.lostReported')
 })
 
-const {
-  running: submittingExchange,
-  error: exchangeError,
-  run: submitExchange,
-  clearError: clearExchangeError,
-} = useAsyncAction(async () => {
-  if (!exchangeItem.value || !exchangeReason.value.trim()) return
-  const created = await exchanges.createExchange({
-    memberId: viewingMemberId.value ?? undefined,
-    itemId: exchangeItem.value.id,
-    inventoryId: exchangeItem.value.inventoryId,
-    oldSizeId: exchangeItem.value.sizeId ?? undefined,
-    newSizeId: exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined,
-    reason: exchangeReason.value.trim(),
-  })
-  activeExchanges.value = [...activeExchanges.value, created]
-  exchangeSuccess.value = t('profile.exchangeCreated')
-  closeExchange()
-})
 </script>
 
 <template>
@@ -290,7 +270,6 @@ const {
           v-if="!loading"
           :grouped="grouped"
           :items="items"
-          :active-exchanges="activeExchanges"
           @request-exchange="openExchange"
           @report-lost="openLost"
       />
@@ -309,17 +288,7 @@ const {
           @submit="submitLost"
       />
 
-      <ExchangeModal
-          v-model="showExchangeModal"
-          v-model:reason="exchangeReason"
-          v-model:new-size-id="exchangeNewSizeId"
-          :item="exchangeItem"
-          :sizes="exchangeSizes"
-          :submitting="submittingExchange"
-          :error="exchangeError"
-          @cancel="closeExchange"
-          @submit="submitExchange"
-      />
+      <MovementWizard v-model="showWizard" :prefill="wizardPrefill" @started="afterExchange"/>
     </div>
   </ViewContent>
 </template>

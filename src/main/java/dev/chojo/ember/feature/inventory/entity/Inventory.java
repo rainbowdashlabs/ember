@@ -21,6 +21,10 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param borrowed      whether this is the station's one shelf for gear belonging to somebody else.
  *                      There is at most one per station, it appears on the first handover, and it
  *                      cannot be deleted while anything is still on it.
+ * @param icon          the FontAwesome name every piece of this inventory is drawn with, or
+ *                      {@code null} to fall back to a plain shape
+ * @param color         the colour that picture is drawn in as {@code #rrggbb}, or {@code null} for
+ *                      the muted neutral
  */
 public record Inventory(
         int id,
@@ -29,7 +33,9 @@ public record Inventory(
         InventoryType inventoryType,
         boolean hasSizes,
         boolean homogeneous,
-        boolean borrowed) {
+        boolean borrowed,
+        String icon,
+        String color) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -41,6 +47,8 @@ public record Inventory(
                 row.getEnum("inventory_type", InventoryType.class),
                 row.getBoolean("has_sizes"),
                 row.getBoolean("homogeneous"),
-                row.getBoolean("borrowed"));
+                row.getBoolean("borrowed"),
+                row.getString("icon"),
+                row.getString("color"));
     }
 }

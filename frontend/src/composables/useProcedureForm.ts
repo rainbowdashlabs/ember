@@ -51,12 +51,6 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
 
   const isEditMode = computed(() => editId.value != null)
 
-  const selectedAssignees = computed(() =>
-    selectedAssigneeIds.value
-      .map(id => members.value.find(m => m.id === id))
-      .filter(Boolean) as MemberCompletion[],
-  )
-
   /**
    * Turns a stored item list plus its dependency pairs into editable items. The pairs reference
    * server ids, so they are translated through the temp id each item is given here.
@@ -139,15 +133,6 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       await loadTemplate(presetTemplateId.value)
     }
   }, {autoLoad: false})
-
-  function addAssignee(id: number) {
-    if (!id || selectedAssigneeIds.value.includes(id)) return
-    selectedAssigneeIds.value = [...selectedAssigneeIds.value, id]
-  }
-
-  function removeAssignee(id: number) {
-    selectedAssigneeIds.value = selectedAssigneeIds.value.filter(a => a !== id)
-  }
 
   /**
    * Appends a step, empty unless something is handed in. An empty one is a row to write in rather
@@ -277,15 +262,12 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     templateDetail,
     members,
     selectedAssigneeIds,
-    selectedAssignees,
     items,
     isEditMode,
     loading,
     error,
     reload,
     handleTemplateChange,
-    addAssignee,
-    removeAssignee,
     addItem,
     removeItem,
     reorderItems,

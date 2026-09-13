@@ -10,6 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import QuestionValueInput from '@/components/input/QuestionValueInput.vue'
+import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
 import type {AttendanceTemplateField} from '@/api/attendance'
 import type {StationMember} from '@/api/types'
 import {QuestionKinds, memberIdsOf, questionKindOf, type QuestionKindName} from '@/util/questions'
@@ -70,7 +71,7 @@ function writeField(field: AttendanceTemplateField, value: string) {
   emit('fieldUpdate', field.id, value, isImmediateField(field.fieldType ?? ''))
 }
 
-function getMemberOptions(field: AttendanceTemplateField): { value: string; label: string }[] {
+function getMemberOptions(field: AttendanceTemplateField): MemberOption[] {
   const config = parseFieldConfig(field.config)
   const groupId = config.groupId
   let members: StationMember[]
@@ -79,7 +80,7 @@ function getMemberOptions(field: AttendanceTemplateField): { value: string; labe
   } else {
     members = props.allMembers
   }
-  return members.map(m => ({value: String(m.id), label: m.name ?? m.email ?? `#${m.id}`}))
+  return members.map(fromMember)
 }
 </script>
 
@@ -102,7 +103,7 @@ function getMemberOptions(field: AttendanceTemplateField): { value: string; labe
         <!-- Read-only display -->
         <template v-else>
           <span v-if="isMemberField(field.fieldType ?? '')" class="text-sm">
-            {{ getFieldMemberIds(field.id).map(id => getMemberOptions(field).find(o => o.value === id)?.label ?? id).join(', ') || '-' }}
+            {{ getFieldMemberIds(field.id).map(id => getMemberOptions(field).find(o => o.value === id)?.name ?? id).join(', ') || '-' }}
           </span>
           <span v-else class="text-sm">{{ getFieldValue(field.id) || '-' }}</span>
         </template>

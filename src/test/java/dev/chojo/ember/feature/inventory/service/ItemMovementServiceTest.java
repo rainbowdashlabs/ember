@@ -910,6 +910,131 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 "and its log says the flow changed under it");
     }
 
+    /**
+     * A planned hand-out: the piece is picked before the step that names it, so the movement carries it
+     * from the start and the piece stays where it is until the step that hands it over.
+     */
+    @Test
+    void aPiecePickedEarlyIsPromisedRatherThanHandedOver() {
+        int shelf = item(ItemOwner.STATION);
+        ItemCustody before = custodyOf(shelf);
+
+        ItemMovement planned = itemMovementService.create(
+                station.id(),
+                MovementPurpose.ISSUE,
+                member.id(),
+                "Move Ment",
+                null,
+                mixedInventoryId,
+                null,
+                null,
+                "Für den nächsten Dienst",
+                team,
+                shelf);
+
+        ItemMovement stored = itemMovementRepo.findById(planned.id()).orElseThrow();
+        assertEquals(shelf, stored.incomingItemId(), "the piece is written on the movement at once");
+        assertEquals(before, custodyOf(shelf), "a promise moves nothing: it is where it was before");
+        assertTrue(entryFor(shelf).isEmpty(), "and it is not in the member's hands either");
+    }
+
+    /**
+     * The case the skip is for: a step before the one that names the arrival, whose custody is somewhere
+     * else. The body's chain orders a piece into the owner's hands first, and a promised piece is not
+     * posted back to the body because a station wrote down which one it means.
+     */
+    @Test
+    void aPromisedPieceIsNotCarriedByTheStepsBeforeItIsNamed() {
+        int shelf = item(ItemOwner.CLUSTER);
+        itemCustodyService.takeBack(shelf);
+        assertEquals(ItemCustody.AT_STATION, custodyOf(shelf), "it starts on the station's shelf");
+
+        ItemMovement planned = itemMovementService.create(
+                station.id(),
+                MovementPurpose.ISSUE,
+                member.id(),
+                "Move Ment",
+                null,
+                mixedInventoryId,
+                null,
+                null,
+                "Schon ausgesucht",
+                team,
+                shelf);
+
+        assertEquals(
+                StepSubject.INCOMING,
+                stepStoodOn(planned).subject(),
+                "the chain is about the piece that arrives throughout");
+        assertEquals(
+                ItemCustody.AT_STATION,
+                custodyOf(shelf),
+                "the step that was acknowledged moved nothing, because the piece is promised and not posted");
+    }
+
+    /** A piece one movement has promised cannot be promised by another, nor handed over the counter. */
+    @Test
+    void aPromisedPieceIsSpokenFor() {
+        int shelf = item(ItemOwner.STATION);
+        ItemMovement planned = itemMovementService.create(
+                station.id(),
+                MovementPurpose.ISSUE,
+                member.id(),
+                "Move Ment",
+                null,
+                mixedInventoryId,
+                null,
+                null,
+                "Für den nächsten Dienst",
+                team,
+                shelf);
+
+        var second = assertThrows(
+                BadRequestResponse.class,
+                () -> itemMovementService.create(
+                        station.id(),
+                        MovementPurpose.ISSUE,
+                        member.id(),
+                        "Move Ment",
+                        null,
+                        mixedInventoryId,
+                        null,
+                        null,
+                        "Doppelt versprochen",
+                        team,
+                        shelf));
+        assertTrue(second.getMessage().contains(String.valueOf(planned.id())), "it names the movement holding it");
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> itemCustodyService.assignToMember(shelf, member.id(), "Move Ment"),
+                "and the counter cannot hand it to somebody else either");
+    }
+
+    /** The step that names the arrival confirms the promised piece rather than asking for one again. */
+    @Test
+    void theNamingStepConfirmsWhatWasPromised() {
+        int shelf = item(ItemOwner.STATION);
+        ItemMovement planned = itemMovementService.create(
+                station.id(),
+                MovementPurpose.ISSUE,
+                member.id(),
+                "Move Ment",
+                null,
+                mixedInventoryId,
+                null,
+                null,
+                "Für den nächsten Dienst",
+                team,
+                shelf);
+
+        ItemMovement walked = walkToEnd(planned, null);
+
+        assertEquals(MovementState.DONE, walked.state(), "nothing asked for a piece again");
+        assertEquals(shelf, walked.incomingItemId());
+        assertEquals(ItemCustody.WITH_MEMBER, custodyOf(shelf), "and it ended up with the member");
+    }
+
     /** A step that is not on the flow, and a movement that has finished, are both refused. */
     @Test
     void aMoveOntoAFlowThatCannotBeMadeIsRefused() {
@@ -930,5 +1055,132 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 BadRequestResponse.class,
                 () -> itemMovementService.rechain(movement.id(), 0, member.id()),
                 "and so there is nothing to move it onto");
+    }
+
+    /**
+     * Putting a movement right is putting the pieces right: say where they are, and where it stands
+     * follows. Nothing is corrected without a reason, because the log is the whole point of the thing.
+     */
+    @Test
+    void sayingWhereThePieceIsPutsTheMovementBackWhereThatLeavesIt() {
+        int old = itemWithMember(ItemOwner.STATION);
+        var movement = announceExchange(old);
+        var firstStep = stepStoodOn(movement);
+
+        var walked = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
+        assertNotEquals(firstStep.id(), walked.currentStepId(), "it has moved on a step");
+        assertEquals(ItemCustody.WITH_OWNER, custodyOf(old), "and the piece went with it");
+
+        var corrected = itemMovementService.correct(
+                movement.id(),
+                new ItemMovementService.Correction(ItemCustody.WITH_MEMBER, null, false, null),
+                team,
+                "Wurde nie abgegeben");
+
+        assertEquals(MovementState.OPEN, corrected.state());
+        assertEquals(firstStep.id(), corrected.currentStepId(), "the step nobody walked is the one it stands on");
+        assertEquals(ItemCustody.WITH_MEMBER, custodyOf(old), "and the piece is back where it was said to be");
+    }
+
+    @Test
+    void aCorrectionWithoutAReasonIsRefused() {
+        var movement = announceExchange(itemWithMember(ItemOwner.STATION));
+        var correction = new ItemMovementService.Correction(ItemCustody.AT_STATION, null, false, null);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> itemMovementService.correct(movement.id(), correction, team, " "),
+                "a tidied record without a reason is a record nobody can read afterwards");
+    }
+
+    /** Closing by hand is for the movement that ended somewhere the chain has no step for. */
+    @Test
+    void aCorrectionCanCloseAMovementOutright() {
+        var movement = announceExchange(itemWithMember(ItemOwner.STATION));
+
+        var corrected = itemMovementService.correct(
+                movement.id(),
+                new ItemMovementService.Correction(null, null, false, MovementState.CANCELLED),
+                team,
+                "Beide Teile sind längst zurück");
+
+        assertEquals(MovementState.CANCELLED, corrected.state());
+        assertTrue(corrected.state().closed());
+    }
+
+    /**
+     * A replacement named by mistake is unhooked rather than swapped: the movement is then a swap
+     * waiting for a piece again, and the piece it wrongly named is free for somebody else.
+     */
+    @Test
+    void aCorrectionUnhooksAReplacementThatWasNamedByMistake() {
+        int old = itemWithMember(ItemOwner.STATION);
+        int wrongOne = item(ItemOwner.STATION);
+        var movement = announceExchange(old);
+
+        var walked = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
+        var named = itemMovementService.acknowledge(walked.id(), walked.currentStepId(), team, "", wrongOne);
+        assertEquals(wrongOne, named.incomingItemId(), "the wrong piece is on the movement");
+
+        var corrected = itemMovementService.correct(
+                movement.id(),
+                new ItemMovementService.Correction(null, null, true, null),
+                team,
+                "Falsches Teil ausgesucht");
+
+        assertNull(corrected.incomingItemId(), "and unhooking it leaves the swap waiting for one again");
+
+        var other = announceExchange(itemWithMember(ItemOwner.STATION));
+        var reachedNaming = itemMovementService.acknowledge(other.id(), other.currentStepId(), team, "", null);
+        assertDoesNotThrow(
+                () -> itemMovementService.acknowledge(
+                        reachedNaming.id(), reachedNaming.currentStepId(), team, "", wrongOne),
+                "the piece it wrongly named is free for another swap");
+    }
+
+    /**
+     * A screen holds its list of pieces from the moment it was opened, and one of them can be written
+     * off while it is open. Naming it then is a refusal, not a fault report.
+     */
+    @Test
+    void aPieceThatIsNoLongerRecordedIsRefused() {
+        int gone = itemWithMember(ItemOwner.STATION);
+        inventoryRepo.deleteItem(gone);
+
+        assertThrows(BadRequestResponse.class, () -> announceExchange(gone), "there is nothing to swap");
+    }
+
+    /** A piece promised to one movement cannot be promised to a second one. */
+    @Test
+    void aPieceAlreadyPromisedCannotBePromisedAgain() {
+        int promised = item(ItemOwner.STATION);
+        itemMovementService.create(
+                station.id(),
+                MovementPurpose.ISSUE,
+                member.id(),
+                "Move Ment",
+                null,
+                mixedInventoryId,
+                null,
+                null,
+                "Für den nächsten Dienst",
+                team,
+                promised);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> itemMovementService.create(
+                        station.id(),
+                        MovementPurpose.ISSUE,
+                        member.id(),
+                        "Move Ment",
+                        null,
+                        mixedInventoryId,
+                        null,
+                        null,
+                        "Auch für den nächsten Dienst",
+                        team,
+                        promised),
+                "one piece cannot be promised to two people");
     }
 }

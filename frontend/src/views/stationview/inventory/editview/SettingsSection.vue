@@ -14,6 +14,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import InventoryKindField from '@/components/inventory/InventoryKindField.vue'
+import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
 import {InventoryTypes, switchRefusal, type InventoryDetail, type InventoryTypeName, type SwitchBlocker} from '@/api/inventory'
 import {inventory} from '@/api'
 import SwitchRefusalAlert from './SwitchRefusalAlert.vue'
@@ -33,6 +34,8 @@ const editName = ref(props.detail.name ?? '')
 const editType = ref<string>(props.detail.inventoryType ?? InventoryTypes.INTERNAL)
 const editHomogeneous = ref(props.detail.homogeneous)
 const editHasSizes = ref(props.detail.hasSizes ?? false)
+const editIcon = ref<string | null>(props.detail.icon ?? null)
+const editColor = ref<string | null>(props.detail.color ?? null)
 
 /** A collection keeps no size list, so the one control follows the other. */
 watch(editHomogeneous, value => {
@@ -52,6 +55,8 @@ async function saveSettings() {
       inventoryType: editType.value as InventoryTypeName,
       hasSizes: editHasSizes.value,
       homogeneous: editHomogeneous.value,
+      icon: editIcon.value,
+      color: editColor.value,
     })
     emit('saved')
   } catch (e) {
@@ -87,6 +92,8 @@ async function saveSettings() {
         <p class="text-xs text-(--text-muted)">{{ t('inventory.edit.typeSwitchHint') }}</p>
       </div>
     </div>
+
+    <GearIconPicker v-model:icon="editIcon" v-model:color="editColor" allow-no-icon/>
 
     <InventoryKindField v-model="editHomogeneous"/>
 

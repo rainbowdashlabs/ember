@@ -13,10 +13,10 @@ import DecimalInput from './number/DecimalInput.vue'
 import DateInput from './datetime/DateInput.vue'
 import TimeShortInput from './datetime/TimeShortInput.vue'
 import SelectInput from './select/SelectInput.vue'
-import SingleSelectDropdown from './select/SingleSelectDropdown.vue'
-import MultiSelectDropdown from './select/MultiSelectDropdown.vue'
+import MemberSelectInput from './select/MemberSelectInput.vue'
 import ToggleInput from './toggle/ToggleInput.vue'
 import {QuestionKinds, formatMemberIds, memberIdsOf, type QuestionKindName} from '@/util/questions'
+import type {MemberOption} from './select/memberOption'
 
 /**
  * The box somebody answers a question in, whatever asks it.
@@ -40,7 +40,7 @@ const props = withDefaults(defineProps<{
    */
   options?: (string | {value: string; label: string})[]
   /** Whom this question may name, where it names members. Empty means nobody has been loaded yet. */
-  members?: {value: string; label: string}[]
+  members?: MemberOption[]
   min?: number
   max?: number
   /** What a number steps by, which is what tells a measurement from a count. */
@@ -117,22 +117,23 @@ function write(next: unknown) {
     <option v-for="choice in choices" :key="choice.value" :value="choice.value">{{ choice.label }}</option>
   </SelectInput>
 
-  <MultiSelectDropdown
+  <MemberSelectInput
       v-else-if="kind === Kinds.MEMBER_LIST"
-      :model-value="memberIdsOf(value)"
-      :options="members ?? []"
+      multiple
+      :disabled="disabled"
+      :members="members ?? []"
       :placeholder="placeholder ?? t('questionValue.chooseMember')"
-      :searchable="true"
-      @update:model-value="write(formatMemberIds($event))"
+      :selected="memberIdsOf(value)"
+      @update:selected="write(formatMemberIds($event))"
   />
 
-  <SingleSelectDropdown
+  <MemberSelectInput
       v-else-if="kind === Kinds.MEMBER"
-      :clearable="true" :disabled="disabled"
+      clearable
+      :disabled="disabled"
+      :members="members ?? []"
       :model-value="value"
-      :options="members ?? []"
       :placeholder="placeholder ?? t('questionValue.chooseMember')"
-      :searchable="true"
       @update:model-value="write($event)"
   />
 

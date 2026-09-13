@@ -5,7 +5,7 @@
  */
 import client from './client'
 import {createCrudResource, createScopedCrudResource} from './crud'
-import type {ExchangeStatusName} from './exchanges'
+import type {MovementPurposeName, StepActorName} from './movements'
 export interface AttendanceTemplate {
     id: number
     stationId: string
@@ -255,11 +255,16 @@ export async function syncFromEvent(sessionId: number): Promise<AttendanceEntry[
 
 /** A swap of the member's that has not finished. */
 export interface SwapNote {
-    exchangeId: number
-    status: ExchangeStatusName
-    /** The one step it takes next, null where it is at its end. */
-    nextStatus: ExchangeStatusName | null
-    /** Whether that step is putting the piece into the member's hands. */
+    movementId: number
+    /** What it is for, which is what says whether a piece is coming or going. */
+    purpose: MovementPurposeName
+    /** The step it stands on, which is what acknowledging it names. */
+    stepId: number | null
+    /** The words that step carries, in the chain's own wording. */
+    stepLabel: string
+    /** Whose turn it is. */
+    stepActor: StepActorName | null
+    /** Whether acknowledging it puts a piece into the member's hands. */
     handOverNext: boolean
     /** The piece set aside for the member, which the step that hands it over has to be told about. */
     replacementItemId: number | null

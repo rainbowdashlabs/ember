@@ -17,11 +17,12 @@ import type {
   TemplateGroupEntry,
 } from '@/api/attendance'
 import {StationPermission, type MemberGroup, type StationMember} from '@/api/types'
-import {attendance, events, exchanges, lostAndFound, memberGroups, stationMembers} from '@/api'
+import {attendance, events, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSessionMeta} from './sessionview/useSessionMeta'
 import {useCheckMode, type CheckRow} from './sessionview/useCheckMode'
 import {useSessionFields} from './sessionview/useSessionFields'
+import {useSessionNotes} from './sessionview/useSessionNotes'
 import SessionContent from './sessionview/SessionContent.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {saveBlob} from '@/util/downloadAuthed'
@@ -48,7 +49,7 @@ const canEdit = computed(() => hasPermission(StationPermission.ATTENDANCE_EDIT) 
  * seeing a found item and signing it over. The server already leaves out what may not be seen; these
  * decide whether the button beside it is offered.
  */
-const canMoveSwap = computed(() => hasPermission(StationPermission.INVENTORY_EXCHANGE))
+const canMoveSwap = computed(() => hasPermission(StationPermission.INVENTORY_MOVEMENTS))
 const canSignOffFound = computed(() => hasPermission(StationPermission.LOST_AND_FOUND_MANAGE))
 
 const sessionId = computed(() => Number(route.params.id))
@@ -330,48 +331,7 @@ async function syncFromEvent() {
   }
 }
 
-/**
- * What is outstanding for the people on this sheet, read once for the whole sheet rather than once a
- * member: the walk steps through every name and a read a step is a read a member.
- *
- * <p>A reader allowed none of it gets an empty answer, which is why a failure here is quiet: the
- * notes are a convenience beside the check, and losing them must not stop the check.
- */
-const memberNotes = ref<Map<number, attendance.MemberNotes>>(new Map())
-
-async function loadNotes() {
-  try {
-    const notes = await attendance.getMemberNotes(sessionId.value)
-    memberNotes.value = new Map(notes.map(note => [note.memberId, note]))
-  } catch {
-    memberNotes.value = new Map()
-  }
-}
-
-/**
- * Moving a swap on carries the piece set aside for it, because the step that hands one over refuses
- * to run without being told which piece it is. The swap already knows; asking whoever is ticking off
- * names to pick it out of a list would be asking a question that has been answered.
- */
-async function moveSwap(exchangeId: number, nextStatus: string, replacementItemId: number | null) {
-  error.value = ''
-  try {
-    await exchanges.updateStatus(exchangeId, {status: nextStatus, exchangedItemId: replacementItemId})
-    await loadNotes()
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-async function signOffFound(itemId: number) {
-  error.value = ''
-  try {
-    await lostAndFound.markProvided(itemId)
-    await loadNotes()
-  } catch {
-    error.value = t('common.error')
-  }
-}
+const {memberNotes, loadNotes, moveSwap, signOffFound} = useSessionNotes(sessionId, error)
 
 async function unlockSession() {
   error.value = ''

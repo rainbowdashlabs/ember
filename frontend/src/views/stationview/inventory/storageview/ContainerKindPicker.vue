@@ -8,29 +8,15 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
-import TreeNodeButton from '@/components/button/TreeNodeButton.vue'
+import GearIconPicker from '@/components/input/select/GearIconPicker.vue'
+import GearGlyph from '@/components/inventory/GearGlyph.vue'
+import {glyphFor} from '@/util/glyph'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainerKind} from '@/api/inventoryContainers'
 import {showToast} from '@/util/toast'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-
-const KIND_ICONS: ReadonlyArray<{name: string; key: string}> = [
-  {name: 'house', key: 'house'},
-  {name: 'warehouse', key: 'warehouse'},
-  {name: 'building', key: 'building'},
-  {name: 'fire', key: 'fire'},
-  {name: 'gears', key: 'gears'},
-  {name: 'layer-group', key: 'layerGroup'},
-  {name: 'inbox', key: 'inbox'},
-  {name: 'box', key: 'box'},
-  {name: 'box-open', key: 'boxOpen'},
-  {name: 'box-archive', key: 'boxArchive'},
-  {name: 'cube', key: 'cube'},
-  {name: 'suitcase', key: 'suitcase'},
-  {name: 'folder', key: 'folder'},
-  {name: 'folder-open', key: 'folderOpen'},
-] as const
 
 const props = defineProps<{
   kinds: InventoryContainerKind[]
@@ -56,6 +42,8 @@ const inputValue = ref('')
 const showSuggestions = ref(false)
 const iconPickerOpen = ref(false)
 const pendingLabel = ref('')
+const pendingIcon = ref<string | null>(null)
+const pendingColor = ref<string | null>(null)
 const locallyCreated = ref<InventoryContainerKind[]>([])
 
 const allKinds = computed(() => {
@@ -112,6 +100,8 @@ function clearSelection() {
 function startCreate() {
   pendingLabel.value = inputValue.value.trim()
   if (!pendingLabel.value) return
+  pendingIcon.value = 'box'
+  pendingColor.value = null
   iconPickerOpen.value = true
   showSuggestions.value = false
 }
@@ -127,7 +117,7 @@ function slugify(label: string): string {
       .slice(0, 32)
 }
 
-const {running: creating, run: runCreateKind} = useAsyncAction(async (iconName: string) => {
+const {running: creating, run: runCreateKind} = useAsyncAction(async (iconName: string, color: string | null) => {
   const slugBase = slugify(pendingLabel.value) || 'kind'
   let key = slugBase
   const existing = new Set(props.kinds.map(k => k.key))
@@ -139,6 +129,7 @@ const {running: creating, run: runCreateKind} = useAsyncAction(async (iconName: 
     key,
     label: pendingLabel.value,
     icon: iconName,
+    color,
     sortOrder: Math.max(0, ...props.kinds.map(k => k.sortOrder)) + 10,
     enabled: true,
   })
@@ -152,15 +143,17 @@ const {running: creating, run: runCreateKind} = useAsyncAction(async (iconName: 
   return true
 })
 
-async function commitWithIcon(iconName: string) {
-  if (creating.value) return
-  const ok = await runCreateKind(iconName)
+async function commitPendingKind() {
+  if (creating.value || !pendingIcon.value) return
+  const ok = await runCreateKind(pendingIcon.value, pendingColor.value)
   if (!ok) showToast(t('inventory.storage.fields.kindCreateFailed'), 'error')
 }
 
 function cancelIconPicker() {
   iconPickerOpen.value = false
   pendingLabel.value = ''
+  pendingIcon.value = null
+  pendingColor.value = null
 }
 
 function hideSuggestionsSoon() {
@@ -177,7 +170,8 @@ defineExpose({resolve})
 <template>
   <div class="flex flex-col gap-2">
     <div v-if="selectedKind" class="inline-flex items-center gap-2 self-start rounded-theme bg-(--bg-accent) px-2 py-1 text-sm">
-      <font-awesome-icon :icon="['fas', selectedKind.icon]" class="w-4 text-(--text-muted)" />
+      <GearGlyph :glyph="glyphFor({icon: selectedKind.icon, color: selectedKind.color, homogeneous: false})"
+                 surface="accent"/>
       <span class="font-medium">{{ selectedKind.label }}</span>
       <IconButton
           :icon="['fas', 'xmark']"
@@ -201,9 +195,9 @@ defineExpose({resolve})
         <DropdownMenuItem
             v-for="kind in suggestions"
             :key="kind.id"
-            :icon="['fas', kind.icon]"
             @click="pick(kind)"
         >
+          <GearGlyph :glyph="glyphFor({icon: kind.icon, color: kind.color, homogeneous: false})"/>
           {{ kind.label }}
         </DropdownMenuItem>
         <DropdownMenuItem
@@ -221,24 +215,16 @@ defineExpose({resolve})
       <p class="text-sm">
         {{ t('inventory.storage.fields.kindIconPickerHint', {label: pendingLabel}) }}
       </p>
-      <div class="grid grid-cols-6 gap-2">
-        <TreeNodeButton
-            v-for="icon in KIND_ICONS"
-            :key="icon.key"
-            class="aspect-square border border-(--border) flex items-center justify-center hover:bg-(--bg-accent)"
-            :disabled="creating"
-            :title="icon.name"
-            @click="commitWithIcon(icon.name)"
-        >
-          <font-awesome-icon :icon="['fas', icon.name]" class="text-lg" />
-        </TreeNodeButton>
-      </div>
-      <div class="flex justify-end">
+      <GearIconPicker v-model:icon="pendingIcon" v-model:color="pendingColor"/>
+      <div class="flex justify-end gap-2">
         <IconButton
             :icon="['fas', 'xmark']"
             :label="t('common.cancel')"
             @click="cancelIconPicker"
         />
+        <PrimaryButton :disabled="creating || !pendingIcon" data-testid="kind-create-commit" @click="commitPendingKind">
+          {{ t('common.save') }}
+        </PrimaryButton>
       </div>
     </div>
   </div>

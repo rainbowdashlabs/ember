@@ -5,7 +5,7 @@
  */
 // @vitest-environment happy-dom
 import {describe, expect, it} from 'vitest'
-import {compositeOver, contrastingTextColor, parseCssColor} from './contrastColor'
+import {compositeOver, contrastingTextColor, contrastRatio, parseCssColor} from './contrastColor'
 
 describe('parseCssColor', () => {
     it('reads the rgb a browser reports for a plain colour', () => {
@@ -43,6 +43,23 @@ describe('parseCssColor', () => {
     it('returns nothing for what it cannot read', () => {
         expect(parseCssColor('')).toBeNull()
         expect(parseCssColor('rebeccapurple')).toBeNull()
+    })
+})
+
+describe('contrastRatio', () => {
+    it('is one for a colour against itself and twenty one for black on white', () => {
+        expect(contrastRatio([120, 120, 120], [120, 120, 120])).toBeCloseTo(1, 5)
+        expect(contrastRatio([0, 0, 0], [255, 255, 255])).toBeCloseTo(21, 1)
+    })
+
+    it('does not care which way round the two are given', () => {
+        expect(contrastRatio([0, 0, 0], [200, 200, 200])).toBeCloseTo(contrastRatio([200, 200, 200], [0, 0, 0]), 8)
+    })
+
+    /** Three to one is the line a graphic has to clear, so the cases either side of it are the ones to hold. */
+    it('puts a pale yellow under three against white and a blue above it', () => {
+        expect(contrastRatio([253, 230, 138], [255, 255, 255])).toBeLessThan(3)
+        expect(contrastRatio([29, 78, 216], [255, 255, 255])).toBeGreaterThan(3)
     })
 })
 

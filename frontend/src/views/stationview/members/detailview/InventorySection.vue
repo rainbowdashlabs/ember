@@ -10,13 +10,11 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
 import type { MyInventoryItem } from '@/api/inventory'
-import type { ExchangeRequestEntry } from '@/api/exchanges'
 
 const { t } = useI18n()
 
 defineProps<{
   memberInventory: MyInventoryItem[]
-  memberExchanges: ExchangeRequestEntry[]
   showInventoryManagement: boolean
   canManageInventory: boolean
 }>()
@@ -28,9 +26,6 @@ const emit = defineEmits<{
   reassign: [item: MyInventoryItem]
 }>()
 
-function itemExchange(itemId: number, exchanges: ExchangeRequestEntry[]): ExchangeRequestEntry | undefined {
-  return exchanges.find(e => e.itemId === itemId)
-}
 </script>
 
 <template>
@@ -49,7 +44,6 @@ function itemExchange(itemId: number, exchanges: ExchangeRequestEntry[]): Exchan
           v-for="item in memberInventory"
           :key="item.id"
           :item="item"
-          :exchange="itemExchange(item.id, memberExchanges) ?? null"
           :show-exchange-button="canManageInventory"
           :show-unassign-button="showInventoryManagement"
           :show-reassign-button="showInventoryManagement"

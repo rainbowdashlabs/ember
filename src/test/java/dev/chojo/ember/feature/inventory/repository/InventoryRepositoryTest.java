@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.repository;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemHistory;
@@ -76,13 +77,16 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void update() {
-        assertTrue(inventoryRepo.update(inventoryId, "Jackets", InventoryType.INTERNAL, false, true));
+        assertTrue(inventoryRepo.update(
+                inventoryId, "Jackets", InventoryType.INTERNAL, false, true, new Glyph("shirt", "#b45309")));
         Inventory updated = inventoryRepo.findById(inventoryId).orElseThrow();
         assertEquals("Jackets", updated.name());
         assertFalse(updated.hasSizes());
         assertTrue(updated.homogeneous());
+        assertEquals("shirt", updated.icon());
+        assertEquals("#b45309", updated.color());
         // restore
-        inventoryRepo.update(inventoryId, "Helmets", InventoryType.EXTERNAL, true, true);
+        inventoryRepo.update(inventoryId, "Helmets", InventoryType.EXTERNAL, true, true, Glyph.NONE);
     }
 
     // -- Sizes --

@@ -7,9 +7,11 @@ package dev.chojo.ember.feature.attendance.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
+import dev.chojo.ember.feature.inventory.entity.StepActor;
+import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
@@ -42,7 +44,7 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setupNotes() {
         service = new MemberCheckNotesService(
-                exchangeService, inventoryService, lostAndFoundRepo, profileFieldRepo, stationRepo);
+                itemMovementService, inventoryService, lostAndFoundRepo, profileFieldRepo, stationRepo);
         station = stationRepo.create("CheckNotesStation");
         account = accountRepo.create("check-notes@test.com", "Check", "Notes");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -128,13 +130,14 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
         var inventory = inventoryService.create(station.id(), "Einsatzjacke", InventoryType.INTERNAL, false, true);
         var item = inventoryRepo.createItem(inventory.id(), "EJ-1", "Einsatzjacke", null, null);
         itemCustodyService.assignToMember(item.id(), member.id(), "");
-        var exchange = exchangeService.create(
-                station.id(), member.id(), "Check Notes", item.id(), inventory.id(), null, null, "Zu klein", null);
+        var exchange = swapOf(item.id(), inventory.id(), "Zu klein");
 
         var forReader = service.findForStation(station.id(), Set.of(StationPermission.INVENTORY_READ));
         var swap = forReader.get(member.id()).swaps().getFirst();
-        assertEquals(ExchangeStatus.ANNOUNCED, swap.status());
-        assertEquals(ExchangeStatus.RECEIVED, swap.nextStatus());
+        assertEquals(MovementPurpose.EXCHANGE, swap.purpose());
+        assertEquals(exchange.currentStepId(), swap.stepId(), "the step it stands on is the one to acknowledge");
+        assertEquals(StepActor.STATION, swap.stepActor(), "and the station takes the piece in next");
+        assertFalse(swap.stepLabel().isBlank(), "named in the words the chain gives it");
         assertFalse(swap.handOverNext(), "the member still has the old piece, so nothing is handed over yet");
         assertEquals("Einsatzjacke", swap.inventoryName());
 
@@ -142,6 +145,29 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
         assertFalse(forTicker.containsKey(member.id()), "a reader without the inventory is told nothing");
 
         itemMovementService.abandon(exchange.id(), "Test vorbei");
+    }
+
+    /** A swap of this member's, raised the way every screen raises one. */
+    private dev.chojo.ember.feature.inventory.entity.ItemMovement swapOf(int itemId, int inventoryId, String reason) {
+        return itemMovementService.create(
+                station.id(),
+                MovementPurpose.EXCHANGE,
+                member.id(),
+                "Check Notes",
+                itemId,
+                inventoryId,
+                null,
+                null,
+                reason,
+                new ItemMovementService.Actor(member.id(), true),
+                null);
+    }
+
+    /** Acknowledges the step the movement stands on, as the station. */
+    private dev.chojo.ember.feature.inventory.entity.ItemMovement walkOnce(
+            dev.chojo.ember.feature.inventory.entity.ItemMovement movement, Integer picked) {
+        return itemMovementService.acknowledge(
+                movement.id(), movement.currentStepId(), new ItemMovementService.Actor(member.id(), true), "", picked);
     }
 
     /**
@@ -157,26 +183,30 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
         itemCustodyService.assignToMember(item.id(), member.id(), "");
         var replacement =
                 inventoryRepo.createItem(inventory.id(), "HS-2", "Handschuhe", null, null, ItemOwner.CLUSTER, null);
-        var exchange = exchangeService.create(
-                station.id(), member.id(), "Check Notes", item.id(), inventory.id(), null, null, "Kaputt", null);
+        var exchange = swapOf(item.id(), inventory.id(), "Kaputt");
 
         assertTrue(namesSwap(exchange.id()), "the member is still wearing the old piece");
 
-        exchangeService.updateStatus(exchange.id(), ExchangeStatus.SHIPPED, member.id(), "Auf dem Weg");
+        // Taken in at the station, and then posted to the body above: the two steps the member is not part of.
+        var walked = walkOnce(exchange, null);
+        walked = walkOnce(walked, null);
         assertFalse(namesSwap(exchange.id()), "the piece is between the station and the association");
 
-        exchangeService.updateStatus(exchange.id(), ExchangeStatus.ARRIVED, member.id(), "Ersatz da", replacement.id());
+        // Received by the body, which then sends the replacement, and the station takes it in.
+        walked = walkOnce(walked, null);
+        walked = walkOnce(walked, replacement.id());
+        walkOnce(walked, null);
         assertTrue(namesSwap(exchange.id()), "the next move hands the replacement over");
 
         itemMovementService.abandon(exchange.id(), "Test vorbei");
         inventoryRepo.delete(inventory.id());
     }
 
-    /** Whether the sheet names this swap beside the member, read as somebody who may see swaps. */
-    private boolean namesSwap(int exchangeId) {
+    /** Whether the sheet names this movement beside the member, read as somebody who may see them. */
+    private boolean namesSwap(int movementId) {
         var notes = service.findForStation(station.id(), Set.of(StationPermission.INVENTORY_READ))
                 .get(member.id());
-        return notes != null && notes.swaps().stream().anyMatch(swap -> swap.exchangeId() == exchangeId);
+        return notes != null && notes.swaps().stream().anyMatch(swap -> swap.movementId() == movementId);
     }
 
     /**
@@ -190,41 +220,84 @@ class MemberCheckNotesServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A swap out of the station's own store skips the two postal steps, so the move after the old
-     * piece comes in is the handover itself. This is the case the note exists for.
+     * A swap out of the station's own store never leaves the building, so the member is named at every
+     * stage of it. This is the case the note exists for: the handover is the next move, and whoever has
+     * the member in front of them can make it.
      */
     @Test
-    void anInternalSwapHandsOverStraightAfterTheOldPieceComesIn() {
-        assertEquals(
-                ExchangeStatus.DONE,
-                MemberCheckNotesService.nextStatus(ExchangeStatus.RECEIVED, InventoryType.INTERNAL));
-        assertEquals(
-                ExchangeStatus.RECEIVED,
-                MemberCheckNotesService.nextStatus(ExchangeStatus.ANNOUNCED, InventoryType.INTERNAL));
+    void anInternalSwapStaysNamedUntilTheReplacementIsHandedOver() {
+        var inventory = inventoryService.create(station.id(), "Stiefel", InventoryType.INTERNAL, false, true);
+        var item = inventoryRepo.createItem(inventory.id(), "ST-1", "Stiefel", null, null);
+        itemCustodyService.assignToMember(item.id(), member.id(), "");
+        var replacement = inventoryRepo.createItem(inventory.id(), "ST-2", "Stiefel", null, null);
+        var exchange = swapOf(item.id(), inventory.id(), "Zu klein");
+
+        // The station takes the old pair in, then puts the replacement aside.
+        var walked = walkOnce(exchange, null);
+        walked = walkOnce(walked, replacement.id());
+
+        var swap = service.findForStation(station.id(), Set.of(StationPermission.INVENTORY_READ))
+                .get(member.id())
+                .swaps()
+                .getFirst();
+        assertTrue(swap.handOverNext(), "the next move puts the replacement into their hands");
+        assertEquals(replacement.id(), swap.replacementItemId(), "and the sheet knows which pair that is");
+
+        itemMovementService.abandon(walked.id(), "Test vorbei");
+        inventoryRepo.delete(inventory.id());
     }
 
     /**
-     * A swap that goes away and comes back passes the two postal steps first, so only the piece
-     * having arrived means the next move is the handover.
+     * Once the piece has been handed over, what is left is the member saying they have it, and that is
+     * theirs to say.
+     *
+     * <p>That step leaves the piece with the member too. Reading it as another handover kept the swap on
+     * the sheet with a button that would have answered for them.
      */
     @Test
-    void anExternalSwapHandsOverOnlyOnceThePieceHasArrived() {
+    void nothingIsLeftOnTheSheetOnceThePieceHasBeenHandedOver() {
+        var inventory = inventoryService.create(station.id(), "Jacke", InventoryType.INTERNAL, false, true);
+        var item = inventoryRepo.createItem(inventory.id(), "JA-1", "Jacke", null, null);
+        itemCustodyService.assignToMember(item.id(), member.id(), "");
+        var replacement = inventoryRepo.createItem(inventory.id(), "JA-2", "Jacke", null, null);
+        var exchange = swapOf(item.id(), inventory.id(), "Zu klein");
+
+        var walked = walkOnce(exchange, null);
+        walked = walkOnce(walked, replacement.id());
+        var handed = walkOnce(walked, null);
+
         assertEquals(
-                ExchangeStatus.SHIPPED,
-                MemberCheckNotesService.nextStatus(ExchangeStatus.RECEIVED, InventoryType.EXTERNAL));
-        assertEquals(
-                ExchangeStatus.DONE, MemberCheckNotesService.nextStatus(ExchangeStatus.ARRIVED, InventoryType.MIXED));
+                StepActor.MEMBER,
+                itemMovementService.stepsOf(handed).stream()
+                        .filter(step -> handed.currentStepId() != null && step.id() == handed.currentStepId())
+                        .findFirst()
+                        .orElseThrow()
+                        .actor(),
+                "the member confirms what they are holding");
+        assertFalse(
+                service.findForStation(station.id(), Set.of(StationPermission.INVENTORY_READ))
+                        .containsKey(member.id()),
+                "and the sheet has nothing left to offer whoever is ticking off names");
+
+        itemMovementService.abandon(handed.id(), "Test vorbei");
+        inventoryRepo.delete(inventory.id());
     }
 
-    /**
-     * A swap at its end takes no further step, and neither does one standing on an end that is not
-     * part of the walk at all.
-     */
+    /** A movement that has finished is named to nobody, because there is no step left to acknowledge. */
     @Test
-    void aSwapThatIsOverTakesNoFurtherStep() {
-        assertNull(MemberCheckNotesService.nextStatus(ExchangeStatus.DONE, InventoryType.EXTERNAL));
-        assertNull(MemberCheckNotesService.nextStatus(ExchangeStatus.CANCELLED, InventoryType.EXTERNAL));
-        assertNull(MemberCheckNotesService.nextStatus(ExchangeStatus.DECLINED, InventoryType.INTERNAL));
+    void aSwapThatIsOverIsNotNamedAtAll() {
+        var inventory = inventoryService.create(station.id(), "Mütze", InventoryType.INTERNAL, false, true);
+        var item = inventoryRepo.createItem(inventory.id(), "MZ-1", "Mütze", null, null);
+        itemCustodyService.assignToMember(item.id(), member.id(), "");
+        var exchange = swapOf(item.id(), inventory.id(), "Zu klein");
+
+        assertTrue(namesSwap(exchange.id()));
+
+        itemMovementService.cancel(exchange.id(), new ItemMovementService.Actor(member.id(), true), "Doch nicht");
+
+        assertFalse(namesSwap(exchange.id()), "a movement that stopped is nothing to do in the room");
+
+        inventoryRepo.delete(inventory.id());
     }
 
     /**

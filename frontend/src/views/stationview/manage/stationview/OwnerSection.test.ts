@@ -46,11 +46,12 @@ describe('OwnerSection', () => {
         getAllMemberRoles.mockResolvedValue({1: [ADMIN_ROLE], 2: [ADMIN_ROLE], 3: []})
 
         const section = await mountSuspended(OwnerSection, {props: {stationId: 'uid', ownerMemberId: 1}})
-        const options = section.findAll('option').map(option => option.text())
+        await section.get('[data-testid="member-select-trigger"]').trigger('click')
+        const offered = section.findAll('[data-testid="member-select-option"]').map(row => row.text())
 
-        expect(options).toContain('Second Manager')
-        expect(options).not.toContain('Owner Person')
-        expect(options).not.toContain('Ordinary Member')
+        expect(offered.join(' ')).toContain('Second Manager')
+        expect(offered.join(' ')).not.toContain('Owner Person')
+        expect(offered.join(' ')).not.toContain('Ordinary Member')
     })
 
     it('asks for every role in one call rather than one per member', async () => {

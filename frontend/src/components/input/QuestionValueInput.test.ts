@@ -23,8 +23,10 @@ function mountInput(kind: QuestionKindName, value = '', props: Record<string, un
         },
         global: {
             stubs: {
-                SingleSelectDropdown: {props: ['modelValue', 'options'], template: '<div class="single"/>'},
-                MultiSelectDropdown: {props: ['modelValue', 'options'], template: '<div class="multi"/>'},
+                MemberSelectInput: {
+                    props: {modelValue: String, selected: Array, members: Array, multiple: Boolean},
+                    template: '<div :class="multiple ? \'multi\' : \'single\'"/>',
+                },
             },
         },
     })
@@ -80,8 +82,8 @@ describe('QuestionValueInput', () => {
         expect(wrapper.props('modelValue')).toBe('true')
     })
 
-    it('picks one member with a picker and several with the other', () => {
-        const members = [{value: '1', label: 'Anna'}]
+    it('names one member with the member menu and several with the same menu', () => {
+        const members = [{value: '1', name: 'Anna'}]
         expect(mountInput(QuestionKinds.MEMBER, '', {members}).find('.single').exists()).toBe(true)
         expect(mountInput(QuestionKinds.MEMBER_LIST, '', {members}).find('.multi').exists()).toBe(true)
     })

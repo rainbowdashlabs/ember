@@ -12,7 +12,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TagPicker from '@/components/input/TagPicker.vue'
-import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {fromMember} from '@/components/input/select/memberOption'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FileInput from '@/components/input/FileInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -48,8 +49,7 @@ const tags = ref<string[]>([])
 const memberIds = ref<string[]>([])
 const saving = ref(false)
 
-const memberOptions = computed(() => (props.members ?? [])
-    .map(member => ({value: String(member.id), label: member.name ?? String(member.id)})))
+const memberOptions = computed(() => (props.members ?? []).map(fromMember))
 
 watch(modelValue, (open) => {
   if (open) return
@@ -99,11 +99,11 @@ function submit() {
 
       <div v-if="memberOptions.length > 0" class="space-y-1">
         <FieldLabel>{{ t('documents.boundMembers') }}</FieldLabel>
-        <MultiSelectDropdown
-            v-model="memberIds"
-            :options="memberOptions"
+        <MemberSelectInput
+            v-model:selected="memberIds"
+            multiple
+            :members="memberOptions"
             :placeholder="t('documents.bindPlaceholder')"
-            searchable
         />
       </div>
 

@@ -9,14 +9,12 @@ import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import ItemCardSummary from './inventoryitemcard/ItemCardSummary.vue'
-import type { ExchangeRequestEntry } from '@/api/exchanges'
 import { ItemCustody, type MyInventoryItem } from '@/api/inventory'
 
 const { t } = useI18n()
 
 const props = withDefaults(defineProps<{
   item: MyInventoryItem
-  exchange?: ExchangeRequestEntry | null
   showExchangeButton?: boolean
   showUnassignButton?: boolean
   showReassignButton?: boolean
@@ -24,7 +22,6 @@ const props = withDefaults(defineProps<{
   /** Whether whoever holds this may say they cannot find it. */
   showLostButton?: boolean
 }>(), {
-  exchange: null,
   showExchangeButton: false,
   showUnassignButton: false,
   showReassignButton: false,
@@ -55,13 +52,12 @@ const awayFromMember = computed(() =>
     <div class="flex items-start justify-between gap-2">
       <ItemCardSummary
           :item="props.item"
-          :exchange="props.exchange"
           :show-inventory-name="props.showInventoryName"
       />
       <div class="flex items-center gap-1">
         <MutedIconButton
             v-if="props.showExchangeButton && props.item.inventoryHomogeneous !== false
-              && !props.exchange && !props.item.movementStep"
+              && !props.item.movementStep"
             :icon="['fas', 'rotate']"
             :label="t('profile.requestExchange')"
             @click="emit('requestExchange', props.item)"

@@ -17,7 +17,7 @@ const counts = ref<SidebarCounts>({
     waitingListEntries: 0,
     lostAndFoundPending: 0,
     myInventoryCount: 0,
-    pendingExchanges: 0,
+    openMovements: 0,
     procedureCount: 0,
 })
 

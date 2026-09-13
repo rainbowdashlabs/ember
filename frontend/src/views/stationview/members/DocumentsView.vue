@@ -12,6 +12,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import DocumentFilterBar from './documentsview/DocumentFilterBar.vue'
+import {fromMember} from '@/components/input/select/memberOption'
 import DocumentGrid from '@/components/documents/DocumentGrid.vue'
 import DocumentModal from '@/components/documents/DocumentModal.vue'
 import DocumentUploadModal from '@/components/documents/DocumentUploadModal.vue'
@@ -49,8 +50,7 @@ const opened = ref<StationDocument | null>(null)
 const pageSize = 24
 const pages = computed(() => Math.max(Math.ceil(total.value / pageSize), 1))
 
-const memberOptions = computed(() => members.value
-    .map(member => ({value: String(member.id), label: member.name ?? String(member.id)})))
+const memberOptions = computed(() => members.value.map(fromMember))
 
 /**
  * Fetches the page that is asked for now.

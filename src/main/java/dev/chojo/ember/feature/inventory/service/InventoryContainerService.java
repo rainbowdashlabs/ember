@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.feature.inventory.entity.ContainerHistoryDetails;
 import dev.chojo.ember.feature.inventory.entity.ContainerPath;
+import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainer;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainerHistory;
@@ -85,7 +86,12 @@ public class InventoryContainerService {
         for (DefaultKind defaults : DEFAULT_KINDS) {
             if (kindRepository.findByKey(stationId, defaults.key()).isEmpty()) {
                 kindRepository.create(
-                        stationId, defaults.key(), defaults.label(), defaults.icon(), defaults.sortOrder(), true);
+                        stationId,
+                        defaults.key(),
+                        defaults.label(),
+                        kindGlyph(defaults.icon(), null),
+                        defaults.sortOrder(),
+                        true);
                 added++;
             }
         }
@@ -110,6 +116,15 @@ public class InventoryContainerService {
      */
     public InventoryContainerKind createKind(
             int stationId, String key, String label, String icon, int sortOrder, boolean enabled) {
+        return createKind(stationId, key, label, icon, null, sortOrder, enabled);
+    }
+
+    /**
+     * Adds a new kind to a station's catalogue, with the colour its icon is drawn in. Throws if the
+     * key already exists for the station.
+     */
+    public InventoryContainerKind createKind(
+            int stationId, String key, String label, String icon, String color, int sortOrder, boolean enabled) {
         if (key == null || key.isBlank()) {
             throw new IllegalArgumentException("Kind key is required");
         }
@@ -119,8 +134,8 @@ public class InventoryContainerService {
         if (kindRepository.findByKey(stationId, key).isPresent()) {
             throw new IllegalArgumentException("Kind key already exists for this station");
         }
-        String resolvedIcon = (icon == null || icon.isBlank()) ? "box" : icon;
-        InventoryContainerKind created = kindRepository.create(stationId, key, label, resolvedIcon, sortOrder, enabled);
+        Glyph glyph = kindGlyph(icon, color);
+        InventoryContainerKind created = kindRepository.create(stationId, key, label, glyph, sortOrder, enabled);
         log.info("Created container kind {} (key='{}', label='{}') in station {}", created.id(), key, label, stationId);
         return created;
     }
@@ -130,17 +145,42 @@ public class InventoryContainerService {
      */
     public Optional<InventoryContainerKind> updateKind(
             int id, String label, String icon, int sortOrder, boolean enabled) {
+        String current =
+                kindRepository.findById(id).map(InventoryContainerKind::color).orElse(null);
+        return updateKind(id, label, icon, current, sortOrder, enabled);
+    }
+
+    /**
+     * Updates an existing kind's mutable fields, the colour its icon is drawn in included.
+     */
+    public Optional<InventoryContainerKind> updateKind(
+            int id, String label, String icon, String color, int sortOrder, boolean enabled) {
         Optional<InventoryContainerKind> existing = kindRepository.findById(id);
         if (existing.isEmpty()) return Optional.empty();
         if (label == null || label.isBlank()) {
             throw new IllegalArgumentException("Kind label is required");
         }
-        String resolvedIcon = (icon == null || icon.isBlank()) ? "box" : icon;
-        if (!kindRepository.update(id, label, resolvedIcon, sortOrder, enabled)) {
+        if (!kindRepository.update(id, label, kindGlyph(icon, color), sortOrder, enabled)) {
             return Optional.empty();
         }
         log.info("Updated container kind {} (label='{}', enabled={})", id, label, enabled);
         return kindRepository.findById(id);
+    }
+
+    /**
+     * The picture a kind is drawn with, with the shape a kind cannot go without.
+     *
+     * <p>A container kind has always had an icon and the column has never been allowed to be empty,
+     * because the storage tree draws one beside every box. A blank one therefore falls back to the
+     * plain box rather than to nothing, which is the one way this differs from an inventory.
+     *
+     * @param icon  the name somebody picked, or {@code null}
+     * @param color the colour somebody picked, or {@code null}
+     * @return the pair, with the box standing in for a missing shape
+     */
+    private Glyph kindGlyph(String icon, String color) {
+        Glyph chosen = Glyph.of(icon, color).paintable();
+        return chosen.icon() == null ? new Glyph("box", chosen.color()) : chosen;
     }
 
     /**

@@ -10,7 +10,7 @@ import { useRouter } from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
-import MemberName from '@/components/avatar/MemberName.vue'
+import MemberInventoryLink from '@/components/inventory/MemberInventoryLink.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import DataTable from '@/components/table/DataTable.vue'
@@ -51,7 +51,7 @@ function inventoryTypeLabel(type?: string | null): string {
         <div class="flex flex-wrap items-center gap-1">
           <component :is="inventoryTypeBadge(inventoryTypeMap.get(p.inventoryId))">{{ inventoryTypeLabel(inventoryTypeMap.get(p.inventoryId)) }}</component>
         </div>
-        <div class="text-xs text-(--text-muted)"><MemberName :identity="p.memberIdentity ?? null"/></div>
+        <div class="text-xs text-(--text-muted)"><MemberInventoryLink :identity="p.memberIdentity ?? null" :member-id="p.memberId"/></div>
         <div v-if="p.notes" class="text-xs text-(--text-muted)">{{ p.notes }}</div>
         <div class="text-xs text-(--text-muted)">{{ t('inventory.overview.requestedAt') }}: {{ formatDate(p.requestedAt) }}</div>
       </NeutralContainer>
@@ -74,7 +74,7 @@ function inventoryTypeLabel(type?: string | null): string {
         <Td>
           <component :is="inventoryTypeBadge(inventoryTypeMap.get(p.inventoryId))">{{ inventoryTypeLabel(inventoryTypeMap.get(p.inventoryId)) }}</component>
         </Td>
-        <Td><MemberName :identity="p.memberIdentity ?? null"/></Td>
+        <Td><MemberInventoryLink :identity="p.memberIdentity ?? null" :member-id="p.memberId"/></Td>
         <Td muted>{{ p.notes || '-' }}</Td>
         <Td muted>{{ formatDate(p.requestedAt) }}</Td>
       </TRow>

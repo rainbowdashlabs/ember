@@ -16,7 +16,8 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {RegistrationStatus, type EventRegistrationEntry, type EventRegistrationField, type FederatedEventRegistration, type MemberRegistrationStats, type RegistrationFieldValue, type StationEvent} from '@/api/events'
-import {StationPermission, type MemberIdentity} from '@/api/types'
+import {StationPermission} from '@/api/types'
+import {fromMember, type MemberOption} from '@/components/input/select/memberOption'
 import {events, stationMembers as stationMembersApi} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
@@ -48,16 +49,6 @@ const {refresh: refreshSidebarCounts} = useSidebarCounts()
 const registrations = ref<EventRegistrationEntry[]>([])
 const registrationStats = ref<MemberRegistrationStats[]>([])
 const federatedRegs = ref<FederatedEventRegistration[]>([])
-interface MemberOption {
-  id: number
-  name: string
-  email?: string | null
-  /** Their face and colours, so the picker shows a person rather than a line of text. */
-  identity?: MemberIdentity | null
-  /** What kind of member they are, so the picker can be narrowed to one kind. */
-  userType?: string | null
-}
-
 const allMembers = ref<MemberOption[]>([])
 const error = ref('')
 const manualRegisterMemberId = ref('')
@@ -99,8 +90,8 @@ const nonPendingRegistrations = computed<StatusGroup[]>(() => {
 })
 
 const unregisteredMembers = computed(() => {
-  const regIds = new Set(registrations.value.map(r => r.memberId))
-  return allMembers.value.filter(m => !regIds.has(m.id)).sort((a, b) => a.name.localeCompare(b.name))
+  const regIds = new Set(registrations.value.map(r => Number(r.memberId)))
+  return allMembers.value.filter(m => !regIds.has(Number(m.value)))
 })
 
 /**
@@ -153,13 +144,7 @@ async function loadRegistrations() {
     if (hasPermission(StationPermission.EVENT_REGISTRATION)) {
       federatedRegs.value = await events.listFederationRegistrations(props.eventId).catch(() => [])
       const members = await stationMembersApi.listMembers().catch(() => [])
-      allMembers.value = members.map(m => ({
-        id: m.id,
-        name: m.name ?? m.email ?? `#${m.id}`,
-        email: m.email ?? null,
-        identity: m.identity ?? null,
-        userType: m.userType ?? null,
-      }))
+      allMembers.value = members.map(fromMember)
     }
   } catch {
     error.value = t('common.error')

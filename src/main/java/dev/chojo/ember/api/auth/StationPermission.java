@@ -78,7 +78,7 @@ public enum StationPermission implements RouteRole {
     /**
      * Allows managing the inventory exchanges.
      */
-    INVENTORY_EXCHANGE(INVENTORY_CREATE_EXTERNAL, INVENTORY_READ),
+    INVENTORY_MOVEMENTS(INVENTORY_CREATE_EXTERNAL, INVENTORY_READ),
 
     /**
      * Allows managing inventory procurements.
@@ -126,7 +126,7 @@ public enum StationPermission implements RouteRole {
             INVENTORY_CHECK,
             INVENTORY_CREATE,
             INVENTORY_EDIT,
-            INVENTORY_EXCHANGE,
+            INVENTORY_MOVEMENTS,
             INVENTORY_LENDING_MANAGER,
             INVENTORY_PROCUREMENT,
             INVENTORY_READ,

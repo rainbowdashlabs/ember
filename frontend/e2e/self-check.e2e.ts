@@ -421,9 +421,10 @@ test.describe('Self-check', () => {
             'the task records that a swap was set going here',
         ).toBeTruthy()
 
-        const exchanges = await managerPage.request.get('/api/v1/exchanges', {headers: await apiHeaders(managerPage)})
-        expect(exchanges.ok(), `the station reads its swaps (${await exchanges.text()})`).toBeTruthy()
-        const swap = (await exchanges.json()).find((entry: {itemId: number | null}) => entry.itemId === pieceId)
+        const raisedSwaps = await managerPage.request
+            .get('/api/v1/movements', {headers: await apiHeaders(managerPage)})
+        expect(raisedSwaps.ok(), `the station reads its swaps (${await raisedSwaps.text()})`).toBeTruthy()
+        const swap = (await raisedSwaps.json()).find((entry: {itemId: number | null}) => entry.itemId === pieceId)
         expect(swap, 'the swap reached the station').toBeTruthy()
         expect(swap.reason, 'and says why it arose').toContain('kaputt')
         expect(swap.newSizeId, 'the same size comes back').toBe(sizeId)
@@ -470,7 +471,8 @@ test.describe('Self-check', () => {
                 'the swap is written down and waiting',
             ).toBeTruthy()
 
-            const before = await managerPage.request.get('/api/v1/exchanges', {headers: await apiHeaders(managerPage)})
+            const before = await managerPage.request
+                .get('/api/v1/movements', {headers: await apiHeaders(managerPage)})
             expect(
                 (await before.json()).some((entry: {itemId: number | null}) => entry.itemId === pieceId),
                 'and nothing about the piece with the wrong size has reached the station',
@@ -503,7 +505,8 @@ test.describe('Self-check', () => {
             )
             expect(sent, 'and the swap that waited has gone out').toBeTruthy()
 
-            const after = await managerPage.request.get('/api/v1/exchanges', {headers: await apiHeaders(managerPage)})
+            const after = await managerPage.request
+                .get('/api/v1/movements', {headers: await apiHeaders(managerPage)})
             const swap = (await after.json()).find(
                 (entry: {id: number}) => entry.id === sent.raised.movementId,
             )

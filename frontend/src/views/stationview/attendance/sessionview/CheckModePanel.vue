@@ -36,7 +36,7 @@ const emit = defineEmits<{
   setStatus: [status: AttendanceStatus]
   skip: []
   end: []
-  moveSwap: [exchangeId: number, nextStatus: string, replacementItemId: number | null]
+  moveSwap: [movementId: number, stepId: number, replacementItemId: number | null]
   signOffFound: [itemId: number]
 }>()
 </script>
@@ -54,7 +54,7 @@ const emit = defineEmits<{
           :can-move-swap="canMoveSwap"
           :can-sign-off-found="canSignOffFound"
           class="text-left inline-block"
-          @move-swap="(exchangeId, nextStatus, replacementItemId) => emit('moveSwap', exchangeId, nextStatus, replacementItemId)"
+          @move-swap="(movementId, stepId, replacementItemId) => emit('moveSwap', movementId, stepId, replacementItemId)"
           @sign-off-found="(itemId) => emit('signOffFound', itemId)"
       />
       <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">

@@ -69,8 +69,6 @@ const sortedGroupMembers = computed(() =>
 const {
   availableMembers,
   offeredUserTypes,
-  search: memberSearch,
-  userType: memberUserType,
   addMember: addMemberToGroup,
   removeMember: removeMemberFromGroup,
 } = useMemberAssignment(
@@ -108,7 +106,6 @@ const {
         <GroupDetailPanel v-if="selectedGroup" :selected-group="selectedGroup" :group-loading="groupLoading"
                           :sorted-group-members="sortedGroupMembers" :available-members="availableMembers"
                           :offered-user-types="offeredUserTypes"
-                          v-model:member-search="memberSearch" v-model:member-user-type="memberUserType"
                           :group-roles="groupRoles" :all-roles="allRoles" v-model:group-role-ids="groupRoleIds"
                           :can-edit-roles="canEditRoles" @add-member="addMemberToGroup"
                           @remove-member="removeMemberFromGroup"/>

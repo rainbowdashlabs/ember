@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:2553db7248be293da299a98bedc16598087f3aea3b6eaa39df4bb328da8e7027",
-  "generatedAt": "2026-09-11T01:36:28Z",
+  "schemaHash": "sha256:eac334b385be274833feed647038bb91440d04ecbb342a1bc64c87344b6247c5",
+  "generatedAt": "2026-09-13T21:48:43Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10556,7 +10556,7 @@
     "inventory": {
       "feature": "inventory",
       "scope": "STATION",
-      "tableHash": "sha256:acfb620ffd0205e617f098f037a7eb34dc3e0cd42d29e0e9749235aa6cdf00e5",
+      "tableHash": "sha256:4544d129f89487cf54caa6dafccad4373d777537e1e9b109b266401b6e98574b",
       "columns": [
         {
           "name": "id",
@@ -10606,6 +10606,20 @@
           "nullable": false,
           "verified": true,
           "description": "Whether this is the station's one shelf for gear belonging to somebody else. Created on the first handover, renameable, and refused deletion while anything is still on it."
+        },
+        {
+          "name": "icon",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The FontAwesome name drawn for every piece of this inventory, or null to fall back to a plain shape. A stock of one thing in many copies is the thing it holds, which is what makes one picture right for all of it."
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The colour that picture is drawn in, as #rrggbb, or null for the muted neutral. The colour sits on the glyph and never behind text, so it is never the thing a word has to be read against."
         }
       ],
       "foreignKeys": [
@@ -10633,7 +10647,7 @@
       "description": "An inventory collection within a station (e.g. uniforms, tools)."
     },
     "inventory_art": {
-      "tableHash": "sha256:d1ff1868773bea62d62fb977a934c656d3ae83160c03d0bbe13e0dfa7388795e",
+      "tableHash": "sha256:7444b75bbed51f1431557426e6e5c16ca241a76db4e9e8a752a241f95bd661da",
       "columns": [
         {
           "name": "id",
@@ -10676,6 +10690,20 @@
           "nullable": true,
           "verified": true,
           "description": "The name trimmed and lowered, maintained by the database. Two stations that use the same word are talking about the same kind, so availability and shares can be computed across a partnership without anybody maintaining a shared list. Generated rather than written, so renaming a kind cascades nowhere."
+        },
+        {
+          "name": "icon",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The FontAwesome name drawn for the pieces of this kind, or null to fall back to the inventory. A drawer of different things has no one picture and the kind is the row that does."
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The colour that picture is drawn in, as #rrggbb, or null to fall back to the inventory."
         }
       ],
       "foreignKeys": [
@@ -11170,7 +11198,7 @@
     "inventory_container_kind": {
       "feature": "inventory",
       "scope": "STATION",
-      "tableHash": "sha256:8e18260e4c24a78bbed087d518e701f4ab39120b205a2b45a3b99b81ef5ceae2",
+      "tableHash": "sha256:89a7f226636fad65ac6616f936ab997fae630427d39b0a01d3b988375168f34b",
       "columns": [
         {
           "name": "id",
@@ -11213,6 +11241,13 @@
           "type": "bool",
           "nullable": false,
           "verified": true
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The colour the kind icon is drawn in, as #rrggbb, or null for the muted neutral. The icon itself has been here since the containers were built and keeps its default."
         }
       ],
       "foreignKeys": [
@@ -12435,7 +12470,7 @@
     "item_movement": {
       "feature": "inventory",
       "scope": "STATION",
-      "tableHash": "sha256:ad60cfe5b34115b9353367f9193614b93f62dae002eff474c8608bc1777e9761",
+      "tableHash": "sha256:6faf2b68d990fab2e08c644662a4cf0dd95bbaf97357ae23573b492a26493a70",
       "columns": [
         {
           "name": "id",
@@ -12562,6 +12597,13 @@
           "nullable": false,
           "verified": true,
           "description": "TRUE when the movement was raised to report gear missing, which is what makes it skip the return leg."
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When this movement last moved: a step acknowledged, forced or corrected, a refusal, a call-off or a move onto another chain. Set to the starting time for one nothing has happened to yet."
         }
       ],
       "foreignKeys": [

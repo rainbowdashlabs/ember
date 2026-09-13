@@ -50,9 +50,9 @@ class ScannerProbesTest {
     @Test
     void anAddressOfThisApplicationIsNeverAProbe() {
         assertFalse(ScannerProbes.looksLikeAProbe("/api/v1/members/17/avatar"));
-        assertFalse(ScannerProbes.looksLikeAProbe("/api/v1/exchanges/48/status"));
+        assertFalse(ScannerProbes.looksLikeAProbe("/api/v1/movements/48/acknowledge"));
         assertFalse(ScannerProbes.looksLikeAProbe("/api/v2/stations"));
-        assertFalse(ScannerProbes.looksLikeAProbe("/station/inventory/exchanges"));
+        assertFalse(ScannerProbes.looksLikeAProbe("/station/inventory/movements"));
         assertFalse(ScannerProbes.looksLikeAProbe("/"));
         assertFalse(ScannerProbes.looksLikeAProbe(""));
         assertFalse(ScannerProbes.looksLikeAProbe(null));

@@ -53,9 +53,11 @@ describe('MemberCheckNotes', () => {
             props: {
                 notes: notes({
                     swaps: [{
-                        exchangeId: 7,
-                        status: 'ARRIVED',
-                        nextStatus: 'DONE',
+                        movementId: 7,
+                        purpose: 'EXCHANGE',
+                        stepId: 31,
+                        stepLabel: 'Ersatz ausgegeben',
+                        stepActor: 'STATION',
                         handOverNext: true,
                         replacementItemId: 42,
                         inventoryName: 'Einsatzjacke',
@@ -66,6 +68,7 @@ describe('MemberCheckNotes', () => {
         })
 
         expect(wrapper.find('[data-testid="note-swap"]').text()).toContain('Einsatzjacke')
+        expect(wrapper.find('[data-testid="note-swap"]').text()).toContain('Ersatz ausgegeben')
         expect(wrapper.find('[data-testid="note-swap-hand-over"]').exists()).toBe(false)
     })
 
@@ -79,9 +82,11 @@ describe('MemberCheckNotes', () => {
                 canMoveSwap: true,
                 notes: notes({
                     swaps: [{
-                        exchangeId: 7,
-                        status: 'ARRIVED',
-                        nextStatus: 'DONE',
+                        movementId: 7,
+                        purpose: 'EXCHANGE',
+                        stepId: 31,
+                        stepLabel: 'Ersatz ausgegeben',
+                        stepActor: 'STATION',
                         handOverNext: true,
                         replacementItemId: 42,
                         inventoryName: 'Einsatzjacke',
@@ -95,7 +100,7 @@ describe('MemberCheckNotes', () => {
         expect(
             wrapper.emitted('moveSwap'),
             'the piece set aside travels with the step, which refuses to run without it',
-        ).toEqual([[7, 'DONE', 42]])
+        ).toEqual([[7, 31, 42]])
     })
 
     /**
@@ -108,9 +113,11 @@ describe('MemberCheckNotes', () => {
                 canMoveSwap: true,
                 notes: notes({
                     swaps: [{
-                        exchangeId: 9,
-                        status: 'ANNOUNCED',
-                        nextStatus: 'RECEIVED',
+                        movementId: 9,
+                        purpose: 'EXCHANGE',
+                        stepId: 12,
+                        stepLabel: 'Tausch angefordert',
+                        stepActor: 'STATION',
                         handOverNext: false,
                         replacementItemId: null,
                         inventoryName: 'Helm',
@@ -122,7 +129,36 @@ describe('MemberCheckNotes', () => {
 
         expect(wrapper.find('[data-testid="note-swap-hand-over"]').exists()).toBe(false)
         await wrapper.find('[data-testid="note-swap-move-on"]').trigger('click')
-        expect(wrapper.emitted('moveSwap')).toEqual([[9, 'RECEIVED', null]])
+        expect(wrapper.emitted('moveSwap')).toEqual([[9, 12, null]])
+    })
+
+    /**
+     * A step that belongs to the member is theirs to answer. The sheet says where the swap stands and
+     * stops there, rather than offering whoever is ticking off names a button that answers for them.
+     */
+    it('offers nothing where the step belongs to the member', () => {
+        const wrapper = mount(MemberCheckNotes, {
+            props: {
+                canMoveSwap: true,
+                notes: notes({
+                    swaps: [{
+                        movementId: 11,
+                        purpose: 'EXCHANGE',
+                        stepId: 44,
+                        stepLabel: 'Erhalten',
+                        stepActor: 'MEMBER',
+                        handOverNext: false,
+                        replacementItemId: 42,
+                        inventoryName: 'Einsatzjacke',
+                    }],
+                }),
+            },
+            ...i18n,
+        })
+
+        expect(wrapper.find('[data-testid="note-swap"]').text()).toContain('Erhalten')
+        expect(wrapper.find('[data-testid="note-swap-hand-over"]').exists()).toBe(false)
+        expect(wrapper.find('[data-testid="note-swap-move-on"]').exists()).toBe(false)
     })
 
     it('names a found item and signs it off only where the reader may', async () => {

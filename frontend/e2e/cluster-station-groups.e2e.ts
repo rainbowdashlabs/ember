@@ -99,7 +99,7 @@ test.describe('Cluster station groups', () => {
         await page.getByText(name, {exact: true}).click()
         await expect(page.getByText(/Keine Wachen in dieser Gruppe/i)).toBeVisible()
 
-        const offered = page.getByTestId('group-candidate')
+        const offered = page.getByTestId('station-picker-option')
         await expect(offered).toHaveCount(3)
         const spared = (await offered.nth(2).innerText()).trim()
 

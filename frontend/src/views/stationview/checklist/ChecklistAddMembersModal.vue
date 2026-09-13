@@ -8,11 +8,11 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
 import type {ChecklistEntryDto} from '@/api/checklists'
 import type {StationMember} from '@/api/types'
 
@@ -31,34 +31,29 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const search = ref('')
-const selected = ref<Set<number>>(new Set())
+const selected = ref<string[]>([])
 
 const removedMemberIds = computed(() => new Set(props.removedEntries.map(e => e.memberId)))
 
-function displayName(m: StationMember): string {
-  return m.name ?? m.email ?? `#${m.id}`
-}
+/**
+ * Everybody not on the list yet.
+ *
+ * <p>Somebody taken off it once is offered again and said to have been, because putting them back is
+ * a normal thing to do and doing it blind is not.
+ */
+const candidates = computed(() => props.members
+    .filter(member => !props.aliveMemberIds.has(member.id))
+    .map(member => {
+      const option = fromMember(member)
+      return removedMemberIds.value.has(member.id)
+          ? {...option, email: t('checklist.previouslyRemoved')}
+          : option
+    }))
 
-const candidates = computed(() => {
-  const query = search.value.trim().toLowerCase()
-  return props.members
-      .filter(m => !props.aliveMemberIds.has(m.id))
-      .filter(m => !query || displayName(m).toLowerCase().includes(query))
-      .slice()
-      .sort((a, b) => displayName(a).localeCompare(displayName(b), 'de', {sensitivity: 'base'}))
-})
-
-function toggle(id: number) {
-  const next = new Set(selected.value)
-  if (next.has(id)) next.delete(id)
-  else next.add(id)
-  selected.value = next
-}
+const userTypes = computed(() => userTypesOf(candidates.value))
 
 function reset() {
-  search.value = ''
-  selected.value = new Set()
+  selected.value = []
 }
 
 function cancel() {
@@ -67,8 +62,8 @@ function cancel() {
 }
 
 function submit() {
-  if (selected.value.size === 0) return
-  emit('submit', Array.from(selected.value))
+  if (selected.value.length === 0) return
+  emit('submit', selected.value.map(Number))
 }
 
 watch(visible, (value, previous) => {
@@ -80,27 +75,17 @@ watch(visible, (value, previous) => {
   <Modal v-model="visible" size="lg">
     <div class="space-y-3">
       <SubHeader>{{ t('checklist.addMembersTitle') }}</SubHeader>
-      <p class="text-sm text-(--text-muted)">{{ t('checklist.addMembersIntro') }}</p>
-      <TextInput v-model="search" :placeholder="t('checklist.searchPlaceholder')"/>
-      <div class="max-h-80 overflow-y-auto border border-bg-light-accent dark:border-bg-dark-accent rounded-theme">
-        <ul>
-          <li
-              v-for="member in candidates"
-              :key="member.id"
-              class="flex items-center justify-between gap-3 p-2 border-b border-bg-light-accent dark:border-bg-dark-accent last:border-b-0 hover:bg-(--bg-light-accent) dark:hover:bg-(--bg-dark-accent) cursor-pointer"
-              @click="toggle(member.id)"
-          >
-            <div class="flex items-center gap-2 min-w-0">
-              <CheckboxInput :model-value="selected.has(member.id)" @update:model-value="toggle(member.id)"/>
-              <span class="truncate">{{ displayName(member) }}</span>
-            </div>
-            <SecondaryBadge v-if="removedMemberIds.has(member.id)">{{ t('checklist.previouslyRemoved') }}</SecondaryBadge>
-          </li>
-        </ul>
-      </div>
+      <MutedText tag="p" size="sm">{{ t('checklist.addMembersIntro') }}</MutedText>
+      <MemberSelectInput
+          v-model:selected="selected"
+          multiple
+          :members="candidates"
+          :user-types="userTypes"
+          :placeholder="t('checklist.searchPlaceholder')"
+      />
       <div class="flex justify-end gap-2">
         <SecondaryButton @click="cancel">{{ t('checklist.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="adding || selected.size === 0" @click="submit">
+        <PrimaryButton :disabled="adding || selected.length === 0" @click="submit">
           {{ t('checklist.save') }}
         </PrimaryButton>
       </div>

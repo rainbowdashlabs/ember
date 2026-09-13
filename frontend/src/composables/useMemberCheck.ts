@@ -7,7 +7,8 @@ import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { InventoryItem, RequiredInventoryItem } from '@/api/inventory'
 import type { CheckResult, CorrectItemRequest, MemberCheckState } from '@/api/inventoryCheck'
-import { inventoryCheck, procurement } from '@/api'
+import { inventoryCheck, movements, procurement } from '@/api'
+import type { HandOutMode } from '@/components/inventory/HandOutChoice.vue'
 import { showToast } from '@/util/toast'
 
 /**
@@ -43,6 +44,9 @@ export function useMemberCheck(
 
   const itemResults = ref<Map<number, CheckResult>>(new Map())
   const itemNotes = ref<Map<number, string>>(new Map())
+
+  /** Whether what the check hands out goes over the counter now or is written down as promised. */
+  const handOutMode = ref<HandOutMode>('NOW')
 
   /** The slots already ordered for, as `inventory-slot`, so the offer is not made twice. */
   const slotProcurements = ref<Set<string>>(new Set())
@@ -157,7 +161,20 @@ export function useMemberCheck(
     itemResults.value = new Map(itemResults.value)
   }
 
-  async function assignItem(itemId: number) {
+  /**
+   * Hands a piece to the member, or writes down that they are to get it.
+   *
+   * <p>A planned hand-out leaves the piece where it is, so the check's own state has to be read again
+   * rather than taken from the assignment's answer: nothing was assigned.
+   */
+  async function assignItem(itemId: number, inventoryId?: number | null) {
+    if (handOutMode.value === 'PLANNED') {
+      await apply(async () => {
+        await movements.planHandOut(memberId.value, itemId, inventoryId ?? null)
+        return inventoryCheck.startCheck(memberId.value)
+      })
+      return
+    }
     await apply(() => inventoryCheck.assignItem(memberId.value, itemId))
   }
 
@@ -169,6 +186,13 @@ export function useMemberCheck(
     const key = `${inventoryId}-${slotIndex}`
     const selected = slotSelections.value.get(key)
     if (!selected) return
+    if (handOutMode.value === 'PLANNED') {
+      await apply(async () => {
+        await movements.planHandOut(memberId.value, Number(selected), inventoryId)
+        return inventoryCheck.startCheck(memberId.value)
+      }, () => takeSelection(key))
+      return
+    }
     await apply(() => inventoryCheck.assignItem(memberId.value, Number(selected)), () => takeSelection(key))
   }
 
@@ -259,6 +283,7 @@ export function useMemberCheck(
     itemNotes.value = new Map()
     slotSelections.value = new Map()
     slotsNotInPossession.value = new Set()
+    handOutMode.value = 'NOW'
   }
 
   return {
@@ -278,6 +303,7 @@ export function useMemberCheck(
     emptySlotCount,
     toggleNotInPossession,
     markAllConfirmed,
+    handOutMode,
     assignItem,
     createAndAssign,
     assignToSlot,

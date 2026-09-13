@@ -8,7 +8,8 @@ import {useI18n} from 'vue-i18n'
 import MarkdownFieldInput from '@/components/input/text/MarkdownFieldInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import MemberSearchPicker from '@/components/input/search/MemberSearchPicker.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {resolveMemberOption, searchMemberOptions} from '@/components/input/select/memberSearchSource'
 import {useConfigPatch} from '@/composables/useConfigPatch'
 import type {CellEditorEmits, CellEditorProps} from '../cellTypes'
 
@@ -23,10 +24,12 @@ const patch = useConfigPatch(() => props.config, emit)
 
 <template>
     <FieldLabel hint class="mb-1">{{ TS('memberName') }}</FieldLabel>
-    <MemberSearchPicker
-        :model-value="(config.memberUid as string) ?? null"
-        @pick="(item: {memberUid: string}) => patch({memberUid: item.memberUid})"
-        @update:model-value="(v: string | null | undefined) => patch({memberUid: v ?? null})"
+    <MemberSelectInput
+        :model-value="(config.memberUid as string) ?? ''"
+        :search-fn="searchMemberOptions"
+        :resolve-fn="resolveMemberOption"
+        clearable
+        @update:model-value="(v: string) => patch({memberUid: v || null})"
     />
     <FieldLabel hint class="mb-1">{{ TS('memberBlurb') }}</FieldLabel>
     <MarkdownFieldInput :model-value="(config.blurb as string) ?? ''" @update:model-value="patch({blurb: $event ?? ''})"/>

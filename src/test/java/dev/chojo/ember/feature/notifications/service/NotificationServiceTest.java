@@ -448,14 +448,14 @@ class NotificationServiceTest extends RepositoryTestBase {
         service.acknowledgeAll(member1.id());
         // Exchange types
         var exchStatus = NotificationData.of(
-                new NotificationParams.ExchangeStatusChange("Altes Teil zurückgenommen", "Helmet", StepActor.STATION),
+                new NotificationParams.MovementMoved("Altes Teil zurückgenommen", "Helmet", StepActor.STATION),
                 new NotificationData.NotificationLink("inventory-exchanges"));
-        service.notify(member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, exchStatus);
+        service.notify(member1.id(), NotificationType.MOVEMENT_ADVANCED, exchStatus);
 
         var exchReq = NotificationData.of(
-                new NotificationParams.ExchangeNewRequest("Alice", "Helmet", "I need it"),
+                new NotificationParams.MovementRaised("Alice", "Helmet", "I need it"),
                 new NotificationData.NotificationLink("inventory-exchanges"));
-        service.notify(member1.id(), NotificationType.EXCHANGE_NEW_REQUEST, exchReq);
+        service.notify(member1.id(), NotificationType.MOVEMENT_RAISED, exchReq);
 
         var profChange = NotificationData.of(
                 new NotificationParams.ProfileFieldChanged("Alice", "Phone"),
@@ -778,17 +778,17 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertEquals("Preview", service.resolveDetail(ncNotif));
 
         var esc = NotificationData.of(
-                new NotificationParams.ExchangeStatusChange("Ersatz ausgegeben", "Inv", null),
+                new NotificationParams.MovementMoved("Ersatz ausgegeben", "Inv", null),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var escNotif = new Notification(
-                21, member1.id(), null, NotificationType.EXCHANGE_STATUS_CHANGE, esc, Instant.now(), null);
+        var escNotif =
+                new Notification(21, member1.id(), null, NotificationType.MOVEMENT_ADVANCED, esc, Instant.now(), null);
         assertEquals("Ersatz ausgegeben", service.resolveDetail(escNotif));
 
         var enr = NotificationData.of(
-                new NotificationParams.ExchangeNewRequest("Name", "Inv", "Why"),
+                new NotificationParams.MovementRaised("Name", "Inv", "Why"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var enrNotif = new Notification(
-                22, member1.id(), null, NotificationType.EXCHANGE_NEW_REQUEST, enr, Instant.now(), null);
+        var enrNotif =
+                new Notification(22, member1.id(), null, NotificationType.MOVEMENT_RAISED, enr, Instant.now(), null);
         assertEquals("Why", service.resolveDetail(enrNotif));
 
         var ers = NotificationData.of(
@@ -851,20 +851,20 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertTrue(erBody.contains("2026-08-01"));
         assertTrue(erBody.contains("3"));
 
-        // EXCHANGE_NEW_REQUEST - labelled reason
+        // MOVEMENT_RAISED - labelled reason
         var enr = NotificationData.of(
-                new NotificationParams.ExchangeNewRequest("Name", "Inv", "Need it"),
+                new NotificationParams.MovementRaised("Name", "Inv", "Need it"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var enrNotif = new Notification(
-                35, member1.id(), null, NotificationType.EXCHANGE_NEW_REQUEST, enr, Instant.now(), null);
+        var enrNotif =
+                new Notification(35, member1.id(), null, NotificationType.MOVEMENT_RAISED, enr, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", enrNotif).contains("Need it"));
 
-        // EXCHANGE_STATUS_CHANGE - the step's own words, since a station names its chain itself
+        // MOVEMENT_ADVANCED - the step's own words, since a station names its chain itself
         var esc = NotificationData.of(
-                new NotificationParams.ExchangeStatusChange("Ersatz ausgegeben", "Inv", null),
+                new NotificationParams.MovementMoved("Ersatz ausgegeben", "Inv", null),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var escNotif = new Notification(
-                36, member1.id(), null, NotificationType.EXCHANGE_STATUS_CHANGE, esc, Instant.now(), null);
+        var escNotif =
+                new Notification(36, member1.id(), null, NotificationType.MOVEMENT_ADVANCED, esc, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", escNotif).contains("Ersatz ausgegeben"));
 
         // LOST_AND_FOUND_NEW - appends description

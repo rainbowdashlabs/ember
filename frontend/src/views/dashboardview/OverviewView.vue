@@ -13,7 +13,7 @@ import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import {StationModules, StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import NotificationsPanel from './overviewview/NotificationsPanel.vue'
-import ExchangesPanel from './overviewview/ExchangesPanel.vue'
+import OpenMovementsPanel from './overviewview/OpenMovementsPanel.vue'
 import SelfChecksPanel from './overviewview/SelfChecksPanel.vue'
 import AwaitingAnswerPanel from './overviewview/AwaitingAnswerPanel.vue'
 import RegistrationsPanel from './overviewview/RegistrationsPanel.vue'
@@ -48,7 +48,7 @@ const profileIncomplete = computed(() => sessionInfo.value?.profileComplete === 
       <!-- Tile layout for all panels -->
       <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
         <NotificationsPanel/>
-        <ExchangesPanel v-if="isModuleEnabled(StationModules.INVENTORY)"/>
+        <OpenMovementsPanel v-if="isModuleEnabled(StationModules.INVENTORY)"/>
         <SelfChecksPanel v-if="isModuleEnabled(StationModules.INVENTORY)"/>
         <AwaitingAnswerPanel v-if="isModuleEnabled(StationModules.EVENTS)"/>
         <RegistrationsPanel v-if="isModuleEnabled(StationModules.EVENTS)"/>

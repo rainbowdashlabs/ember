@@ -14,6 +14,7 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import GroupMembersTab from './GroupMembersTab.vue'
 import type {MemberGroup, PermissionGrant} from '@/api/types'
 import type {AssignableMember} from '@/composables/useGroupsConfig'
+import type {MemberOption} from '@/components/input/select/memberOption'
 import {useGroupsCapabilities} from '@/composables/useGroupsConfig'
 import {useModelProxy} from '@/composables/useModelProxy'
 
@@ -23,8 +24,8 @@ const props = defineProps<{
   selectedGroup: MemberGroup
   groupLoading: boolean
   sortedGroupMembers: AssignableMember[]
-  availableMembers: AssignableMember[]
-  /** The kinds of member still on offer, for the filter above the picker. */
+  availableMembers: MemberOption[]
+  /** The kinds of member still on offer, for the filter beside the search. */
   offeredUserTypes: string[]
   groupRoles: PermissionGrant[]
   allRoles: PermissionGrant[]
@@ -33,13 +34,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'add-member', member: AssignableMember): void
-  (e: 'remove-member', member: AssignableMember): void
+  (e: 'add-member', memberId: number): void
+  (e: 'remove-member', memberId: number): void
   (e: 'update:groupRoleIds', ids: Set<number>): void
 }>()
 
-const memberSearch = defineModel<string>('memberSearch', {required: true})
-const memberUserType = defineModel<string>('memberUserType', {required: true})
 
 /** A group that grants nothing has one tab, and one tab is no tab bar at all. */
 const capabilities = useGroupsCapabilities()
@@ -67,10 +66,8 @@ const roleIdsModel = useModelProxy(() => props.groupRoleIds, emit, 'groupRoleIds
             :sorted-group-members="sortedGroupMembers"
             :available-members="availableMembers"
             :offered-user-types="offeredUserTypes"
-            v-model:search="memberSearch"
-            v-model:user-type="memberUserType"
-            @add="(m) => emit('add-member', m)"
-            @remove="(m) => emit('remove-member', m)"
+            @add="(id) => emit('add-member', id)"
+            @remove="(id) => emit('remove-member', id)"
         />
       </template>
 

@@ -33,7 +33,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   setStatus: [entryId: number, status: AttendanceStatus]
   enter: [memberId: number, status: AttendanceStatus]
-  moveSwap: [exchangeId: number, nextStatus: string, replacementItemId: number | null]
+  moveSwap: [movementId: number, stepId: number, replacementItemId: number | null]
   signOffFound: [itemId: number]
   checkIn: [entryId: number, time: string]
   checkOut: [entryId: number, time: string]
@@ -98,7 +98,7 @@ const hadJoined = computed(() => {
         :can-move-swap="canMoveSwap"
         :can-sign-off-found="canSignOffFound"
         class="mt-2"
-        @move-swap="(exchangeId, nextStatus, replacementItemId) => emit('moveSwap', exchangeId, nextStatus, replacementItemId)"
+        @move-swap="(movementId, stepId, replacementItemId) => emit('moveSwap', movementId, stepId, replacementItemId)"
         @sign-off-found="(itemId) => emit('signOffFound', itemId)"
     />
   </div>

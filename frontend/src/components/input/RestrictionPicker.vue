@@ -9,6 +9,8 @@ import {useI18n} from 'vue-i18n'
 import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {fromMember} from '@/components/input/select/memberOption'
 import {StationUserType, StationUserTypeLabels, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
 import type {RestrictionSelection} from '@/components/input/restriction'
 
@@ -55,7 +57,7 @@ const tagOptions = computed(() =>
 )
 
 const memberOptions = computed(() =>
-    (props.members ?? []).map(m => ({value: String(m.id), label: m.name ?? m.email ?? `#${m.id}`}))
+    (props.members ?? []).map(fromMember)
 )
 
 const selectedGroupValues = computed(() => model.value.groupIds.map(String))
@@ -124,12 +126,13 @@ function reset() {
         @update:model-value="onTagsChange"
     />
 
-    <MultiSelectDropdown
+    <MemberSelectInput
         v-if="showMembers && memberOptions.length > 0"
-        :options="memberOptions"
-        :model-value="selectedMemberValues"
+        multiple
+        :members="memberOptions"
+        :selected="selectedMemberValues"
         :placeholder="t('restriction.members')"
-        @update:model-value="onMembersChange"
+        @update:selected="onMembersChange"
     />
 
     <ErrorButton

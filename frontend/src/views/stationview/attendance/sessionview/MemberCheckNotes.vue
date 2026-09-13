@@ -10,9 +10,18 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import type {MemberNotes} from '@/api/attendance'
+import {StepActor} from '@/api/movements'
 
 const {t} = useI18n()
 
+/**
+ * What stands beside a member's name while the sheet is worked through: the swaps of theirs that are
+ * under way, anything of theirs that was found, and a birthday just gone.
+ *
+ * <p>Handing a piece over means naming which piece, and that is not a decision to make from a sheet
+ * of names. Where none is set aside yet the note says so rather than offering a button the step
+ * would refuse.
+ */
 const props = defineProps<{
   notes?: MemberNotes
   /** Whether this reader may move a swap on. Seeing one and moving it are different rights. */
@@ -22,7 +31,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  moveSwap: [exchangeId: number, nextStatus: string, replacementItemId: number | null]
+  moveSwap: [movementId: number, stepId: number, replacementItemId: number | null]
   signOffFound: [itemId: number]
 }>()
 
@@ -57,25 +66,22 @@ const birthdayText = computed(() => {
 
     <div
         v-for="swap in notes?.swaps ?? []"
-        :key="swap.exchangeId"
-        :data-swap="swap.exchangeId"
+        :key="swap.movementId"
+        :data-swap="swap.movementId"
         class="flex flex-wrap items-center gap-2 text-sm"
         data-testid="note-swap"
     >
       <font-awesome-icon :icon="['fas', 'right-left']" class="text-primary"/>
       <span>{{ swap.inventoryName }}</span>
-      <InfoBadge>{{ t('checkNotes.waitingOn.' + swap.status) }}</InfoBadge>
+      <InfoBadge>{{ swap.stepLabel }}</InfoBadge>
       <PrimaryButton
-          v-if="canMoveSwap && swap.nextStatus && swap.handOverNext && swap.replacementItemId !== null"
+          v-if="canMoveSwap && swap.stepId !== null && swap.handOverNext && swap.replacementItemId !== null"
           class="text-xs"
           data-testid="note-swap-hand-over"
-          @click="emit('moveSwap', swap.exchangeId, swap.nextStatus, swap.replacementItemId)"
+          @click="emit('moveSwap', swap.movementId, swap.stepId, swap.replacementItemId)"
       >
         {{ t('checkNotes.handOver') }}
       </PrimaryButton>
-      <!-- Handing a piece over means naming which piece, and that is not a decision to make from a
-           sheet of names. Where none is set aside yet the note says so instead of offering a button
-           that the step would refuse. -->
       <span
           v-else-if="swap.handOverNext"
           class="text-xs text-(--text-muted)"
@@ -84,10 +90,10 @@ const birthdayText = computed(() => {
         {{ t('checkNotes.replacementNotChosen') }}
       </span>
       <SecondaryButton
-          v-else-if="canMoveSwap && swap.nextStatus"
+          v-else-if="canMoveSwap && swap.stepId !== null && swap.stepActor === StepActor.STATION"
           class="text-xs"
           data-testid="note-swap-move-on"
-          @click="emit('moveSwap', swap.exchangeId, swap.nextStatus, swap.replacementItemId)"
+          @click="emit('moveSwap', swap.movementId, swap.stepId, swap.replacementItemId)"
       >
         {{ t('checkNotes.moveOn') }}
       </SecondaryButton>

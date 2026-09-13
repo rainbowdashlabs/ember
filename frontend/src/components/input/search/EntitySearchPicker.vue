@@ -14,7 +14,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 const props = defineProps<{
     /** Async search function - called with the typed query (or empty string for the default state). */
     searchFn: (query: string) => Promise<T[]>
-    /** Primary label for each result row. */
+    /** Primary label for each result row. Also what the keyboard announces and what the chip shows. */
     displayFn: (item: T) => string
     /** Optional second-line label. */
     subtitleFn?: (item: T) => string
@@ -56,16 +56,41 @@ const model = defineModel<string | null>()
 
 const {t} = useI18n()
 
+let panels = 0
+const panelId = `entity-picker-${(panels += 1)}`
+
 const query = ref('')
 const results = shallowRef<T[]>([])
 const loading = ref(false)
 const open = ref(false)
 const rootRef = ref<HTMLElement | null>(null)
+const panelRef = ref<HTMLElement | null>(null)
+const highlight = ref(0)
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 const hasSelection = computed(() => model.value != null && model.value !== '')
 
 const chipLabel = computed(() => props.selectedDisplay || model.value || '')
+
+function canSelect(item: T): boolean {
+    return !props.isSelectableFn || props.isSelectableFn(item)
+}
+
+/**
+ * The rows the keyboard walks, which are the ones a click would take.
+ *
+ * <p>A row nobody may pick is drawn and skipped rather than hidden, because the reason it cannot be
+ * picked is what the reader came for.
+ */
+const selectable = computed(() => results.value.filter(canSelect))
+
+const highlighted = computed<T | null>(() => selectable.value[highlight.value] ?? null)
+
+function rowId(item: T): string {
+    return `${panelId}-${props.keyFn ? props.keyFn(item) : props.displayFn(item)}`
+}
+
+const activeRowId = computed(() => (highlighted.value ? rowId(highlighted.value) : undefined))
 
 async function runSearch(q: string) {
     loading.value = true
@@ -75,6 +100,7 @@ async function runSearch(q: string) {
         results.value = []
     } finally {
         loading.value = false
+        highlight.value = 0
     }
 }
 
@@ -93,21 +119,45 @@ async function onFocus() {
 
 watch(query, q => {
     if (!open.value || hasSelection.value) return
+    // The list underneath is about to change, so where the highlight stood means nothing.
+    highlight.value = 0
     scheduleSearch(q)
 })
 
+watch(highlight, () => {
+    const row = panelRef.value?.querySelector<HTMLElement>(`[data-row-index="${highlight.value}"]`)
+    row?.scrollIntoView({block: 'nearest'})
+})
+
+function moveHighlight(step: number) {
+    if (!open.value) {
+        void onFocus()
+        return
+    }
+    const last = selectable.value.length - 1
+    if (last < 0) return
+    highlight.value = Math.min(Math.max(highlight.value + step, 0), last)
+}
+
+function takeHighlighted() {
+    const item = highlighted.value
+    if (item) pickItem(item)
+}
+
 function pickItem(item: T) {
-    if (props.isSelectableFn && !props.isSelectableFn(item)) return
+    if (!canSelect(item)) return
     emit('pick', item)
     open.value = false
     query.value = ''
     results.value = []
+    highlight.value = 0
 }
 
 function clearSelection() {
     model.value = null
     query.value = ''
     results.value = []
+    highlight.value = 0
 }
 
 function onDocClick(e: MouseEvent) {
@@ -119,6 +169,8 @@ if (typeof document !== 'undefined') {
     document.addEventListener('click', onDocClick)
     onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 }
+
+defineExpose({highlightedItem: highlighted})
 </script>
 
 <template>
@@ -128,8 +180,10 @@ if (typeof document !== 'undefined') {
             v-if="hasSelection"
             class="flex items-center gap-2 px-3 py-2 rounded-theme border border-(--border) bg-bg-light dark:bg-bg-dark"
         >
-            <font-awesome-icon :icon="['fas', 'check']" class="text-success shrink-0"/>
-            <span class="text-sm truncate flex-1" :title="chipLabel">{{ chipLabel }}</span>
+            <slot name="picked">
+                <font-awesome-icon :icon="['fas', 'check']" class="text-success shrink-0"/>
+                <span class="text-sm truncate flex-1" :title="chipLabel">{{ chipLabel }}</span>
+            </slot>
             <IconButton
                 :icon="['fas', 'xmark']"
                 :label="t('common.delete')"
@@ -145,10 +199,21 @@ if (typeof document !== 'undefined') {
                 v-model="query"
                 :placeholder="placeholder"
                 :disabled="disabled"
+                :aria-expanded="open"
+                :aria-activedescendant="activeRowId"
+                :aria-controls="panelId"
+                aria-autocomplete="list"
+                @keydown.down.prevent="moveHighlight(1)"
+                @keydown.up.prevent="moveHighlight(-1)"
+                @keydown.enter.prevent="takeHighlighted"
+                @keydown.esc="open = false"
             />
 
             <div
                 v-if="open"
+                ref="panelRef"
+                :id="panelId"
+                role="listbox"
                 class="absolute left-0 right-0 top-full mt-1 z-20 max-h-72 overflow-y-auto rounded-theme border border-(--border) bg-(--bg) shadow-lg py-1"
             >
                 <div v-if="loading" class="flex items-center justify-center py-3">
@@ -160,27 +225,36 @@ if (typeof document !== 'undefined') {
                 <div
                     v-for="item in results"
                     :key="keyFn ? keyFn(item) : displayFn(item)"
+                    :id="rowId(item)"
+                    :data-row-index="canSelect(item) ? selectable.indexOf(item) : undefined"
                     :title="isSelectableFn && !isSelectableFn(item) ? (notSelectableHint ?? '') : undefined"
-                    :class="isSelectableFn && !isSelectableFn(item) ? 'opacity-50 cursor-not-allowed' : ''"
+                    :class="[
+                        isSelectableFn && !isSelectableFn(item) ? 'opacity-50 cursor-not-allowed' : '',
+                        highlighted === item ? 'bg-primary/10' : '',
+                    ]"
+                    :aria-selected="highlighted === item"
+                    role="option"
                 >
                     <DropdownMenuItem
-                        :icon="avatarFn && avatarFn(item) ? undefined : (iconFn ? iconFn(item) : ['fas', 'circle'])"
+                        :icon="$slots.row || (avatarFn && avatarFn(item)) ? undefined : (iconFn ? iconFn(item) : ['fas', 'circle'])"
                         :icon-class="iconClassFn ? iconClassFn(item) : undefined"
                         @click="pickItem(item)"
                     >
-                        <img
-                            v-if="avatarFn && avatarFn(item)"
-                            :src="avatarFn(item) ?? undefined"
-                            :alt="displayFn(item)"
-                            class="w-6 h-6 rounded-full object-cover shrink-0"
-                        />
-                        <span class="flex flex-col items-start text-left min-w-0 flex-1">
-                            <span class="truncate font-medium">{{ displayFn(item) }}</span>
-                            <span
-                                v-if="subtitleFn && subtitleFn(item)"
-                                class="text-xs text-(--text-muted) truncate"
-                            >{{ subtitleFn(item) }}</span>
-                        </span>
+                        <slot name="row" :item="item" :highlighted="highlighted === item">
+                            <img
+                                v-if="avatarFn && avatarFn(item)"
+                                :src="avatarFn(item) ?? undefined"
+                                :alt="displayFn(item)"
+                                class="w-6 h-6 rounded-full object-cover shrink-0"
+                            />
+                            <span class="flex flex-col items-start text-left min-w-0 flex-1">
+                                <span class="truncate font-medium">{{ displayFn(item) }}</span>
+                                <span
+                                    v-if="subtitleFn && subtitleFn(item)"
+                                    class="text-xs text-(--text-muted) truncate"
+                                >{{ subtitleFn(item) }}</span>
+                            </span>
+                        </slot>
                         <span
                             v-if="badgeFn && badgeFn(item)"
                             :class="[

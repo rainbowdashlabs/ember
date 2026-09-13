@@ -6,6 +6,7 @@
 import type {APIRequestContext, Page} from '@playwright/test'
 import {test, expect, accountWith, apiHeaders, pageAsThrowaway, stationPeers} from './fixtures/auth'
 import {unique} from './fixtures/unique'
+import {pickMemberByName} from './fixtures/memberMenu'
 
 /**
  * What a guardian may do for the members in their care, and what they may not do for anybody else.
@@ -76,13 +77,10 @@ test.describe('Guardian', () => {
         const target = await managedMemberToActOn(page, request)
         const address = `${unique('kind').toLowerCase()}@example.test`
 
-        // The words above the picker are text rather than a label an input is tied to, so the picker
-        // is the select that offers them as its first, unpickable option - and the child is picked by
-        // name, because which of them the story may write to is not a matter of position.
-        const picker = page.locator('select:has(option:text-is("Mitglied auswählen"))')
-
+        // The child is picked by name, because which of them the story may write to is not a matter
+        // of position.
         await page.goto('/station/profile/managed')
-        await picker.selectOption({label: target.name})
+        await pickMemberByName(page, target.name)
 
         await expect(page.getByText('Zugang')).toBeVisible()
         await page.getByPlaceholder('name@example.org').fill(address)
@@ -91,7 +89,7 @@ test.describe('Guardian', () => {
 
         await expect(page.getByText('Adresse gespeichert.')).toBeVisible()
         await page.reload()
-        await picker.selectOption({label: target.name})
+        await pickMemberByName(page, target.name)
         await expect(page.getByPlaceholder('name@example.org')).toHaveValue(address)
 
         await page.context().close()

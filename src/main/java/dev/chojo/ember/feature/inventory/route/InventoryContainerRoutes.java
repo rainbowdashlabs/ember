@@ -104,7 +104,13 @@ public class InventoryContainerRoutes implements Routes {
         var body = ctx.bodyAsClass(KindRequest.class);
         try {
             InventoryContainerKind kind = containerService.createKind(
-                    session.stationId(), body.key(), body.label(), body.icon(), body.sortOrder(), body.enabled());
+                    session.stationId(),
+                    body.key(),
+                    body.label(),
+                    body.icon(),
+                    body.color(),
+                    body.sortOrder(),
+                    body.enabled());
             ctx.status(HttpStatus.CREATED).json(kind);
         } catch (IllegalArgumentException e) {
             throw new BadRequestResponse(e.getMessage());
@@ -131,7 +137,7 @@ public class InventoryContainerRoutes implements Routes {
         var body = ctx.bodyAsClass(KindRequest.class);
         try {
             containerService
-                    .updateKind(id, body.label(), body.icon(), body.sortOrder(), body.enabled())
+                    .updateKind(id, body.label(), body.icon(), body.color(), body.sortOrder(), body.enabled())
                     .ifPresentOrElse(ctx::json, () -> {
                         throw new NotFoundResponse();
                     });
@@ -368,8 +374,10 @@ public class InventoryContainerRoutes implements Routes {
 
     /**
      * Request body for kind CRUD operations.
+     *
+     * @param color the colour the icon is drawn in as {@code #rrggbb}, or {@code null} for the muted neutral
      */
-    public record KindRequest(String key, String label, String icon, int sortOrder, boolean enabled) {}
+    public record KindRequest(String key, String label, String icon, String color, int sortOrder, boolean enabled) {}
 
     /**
      * Response body for a container plus its path.

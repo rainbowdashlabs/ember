@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {ItemCustodyName, ItemOwnerName} from './inventory'
+import type {InventoryTypeName, ItemCustodyName, ItemOwnerName} from './inventory'
 import type {MemberIdentity} from './types'
 
 /** What a movement of gear between two parties is for. */
@@ -64,12 +64,30 @@ export interface Movement {
     memberIdentity?: MemberIdentity | null
     inventoryId?: number | null
     inventoryName?: string | null
+    /** Whose gear that inventory holds, which is the shelf a replacement may be taken off. */
+    inventoryType?: InventoryTypeName | null
+    /** The step being waited on, which is what pressing the row's button says has happened. */
     currentStepLabel?: string | null
+    /** Where it stands: the last step whose words are already true, absent at the very beginning. */
+    reachedStepLabel?: string | null
     currentStepActor?: StepActorName | null
     /** Whether the owner of the gear can answer for itself here, which decides who names arrivals. */
     ownerAnswersHere?: boolean
+    /** The association that owns the gear, by name, absent where the station owns it. */
+    ownerName?: string | null
+    /** That association's stable identity, which tells one body's gear from another's. */
+    ownerClusterId?: string | null
+    /** When it last moved, which is what says whether a row has gone quiet. */
+    updatedAt?: string | null
+    /** The size handed in and the size asked for, in words. */
+    oldSizeName?: string | null
+    newSizeName?: string | null
+    /** Whether the chain it walks is no longer the one its combination is bound to. */
+    belongsOnAnotherFlow?: boolean
     /** What the piece that set out is called, so a list of movements says which of my things this is. */
     itemName?: string | null
+    /** The piece that set out, so a row can be followed to the piece it is about. */
+    itemId?: number | null
     /** Whether the member still holds it, which is what lets them call the movement off themselves. */
     itemStillWithMember?: boolean
     /** The size being replaced, and the one asked for, which a piece written down starts out as. */
@@ -80,6 +98,25 @@ export interface Movement {
     closedAt?: string | null
     /** Why it was refused or taken back, which the reason it was started does not say. */
     closeReason?: string | null
+    /** The end that is not the owner: a member, or the station's store. */
+    party?: MovementPartyName | null
+    /** Whose gear it is, which is what the owner's column of the chain is named after. */
+    ownerKind?: ItemOwnerName | null
+    /** Which of the two pieces the step it stands on is about, and where that step puts it. */
+    currentStepSubject?: StepSubjectName | null
+    currentStepCustody?: ItemCustodyName | null
+    /** Whether this viewer may acknowledge the step it stands on, which is what puts the button on a row. */
+    actionable?: boolean
+    /** The arriving piece: promised from the start on a planned hand-out, named halfway on an exchange. */
+    incomingItemId?: number | null
+    incomingItemName?: string | null
+    /** What is written on the piece the row is about. */
+    itemInternalId?: string | null
+    /** The size the row names: the one asked for where there is one, the one replaced otherwise. */
+    itemSizeName?: string | null
+    /** The picture the row is drawn with, resolved from the piece's kind and its inventory. */
+    icon?: string | null
+    color?: string | null
 }
 
 export interface MovementStep {
@@ -138,6 +175,11 @@ export interface CreateMovementRequest {
     newSizeId?: number | null
     reason?: string
     pickedItemId?: number | null
+    /**
+     * The self-check this was raised during, where it was raised during one. It waits for nothing
+     * either way: naming the task only records that it happened while the member was answering.
+     */
+    selfCheckId?: number | null
 }
 
 export interface AcknowledgeStepRequest {
@@ -170,9 +212,62 @@ export async function createMovement(data: CreateMovementRequest): Promise<Movem
     return res.data
 }
 
+/**
+ * Writes down that a member is to get this piece, without handing it over yet.
+ *
+ * <p>What the assign screens do when the hand-out is planned rather than done at the counter: the
+ * piece stays where it is and is spoken for, and the chain carries the handing over.
+ */
+export async function planHandOut(memberId: number, itemId: number, inventoryId?: number | null):
+        Promise<MovementDetail> {
+    return createMovement({
+        purpose: MovementPurpose.ISSUE,
+        memberId,
+        pickedItemId: itemId,
+        inventoryId: inventoryId ?? null,
+    })
+}
+
 export async function acknowledgeStep(id: number, data: AcknowledgeStepRequest): Promise<MovementDetail> {
     const res = await client.post<MovementDetail>(`/movements/${id}/acknowledge`, data)
     return res.data
+}
+
+/**
+ * The movements standing at the member they are for, which is what a check with somebody in the room
+ * reads: the piece is on them now, or the next step hands them one.
+ */
+export async function listAtMember(): Promise<Movement[]> {
+    const res = await client.get<Movement[]>('/movements/at-member')
+    return res.data
+}
+
+/** What a correction is to make true of a movement's pieces, after which the chain follows. */
+export interface CorrectMovementRequest {
+    outgoing?: ItemCustodyName | null
+    incoming?: ItemCustodyName | null
+    /** Whether the arriving piece is unhooked, which is what putting a swap back before one was named means. */
+    detachArrival?: boolean
+    /** The state to close it in, or absent to leave it open on whichever step the corrected world has not reached. */
+    closeAs?: MovementStateName | null
+    reason: string
+}
+
+/**
+ * Puts a movement where somebody says it should have been, by saying where its pieces are.
+ *
+ * <p>There is no status to write: where a movement stands is read off its pieces, so a correction says
+ * what is true of them and the chain follows.
+ */
+export async function correctMovement(id: number, data: CorrectMovementRequest): Promise<MovementDetail> {
+    const res = await client.post<MovementDetail>(`/movements/${id}/correct`, data)
+    return res.data
+}
+
+/** The sheet for the shelf: a row per member, a column per inventory, the sizes in the cells. */
+export async function exportPdf(movementIds: number[], extraFieldIds: number[]): Promise<Blob> {
+    const res = await client.post('/movements/export', {movementIds, extraFieldIds}, {responseType: 'blob'})
+    return res.data as Blob
 }
 
 /** Asks a member for every piece they hold, one chain per piece. */
@@ -319,6 +414,42 @@ export interface StepRequest {
     subject: StepSubjectName
     custodyAfter: ItemCustodyName
     picksItem: boolean
+}
+
+/** The chain a movement with these ends would walk, and what it would be about. */
+export interface FlowPreview {
+    flow: MovementFlow
+    ownerKind: ItemOwnerName
+    party: MovementPartyName
+}
+
+/** What the wizard asks about before it starts anything. */
+export interface FlowQuery {
+    purpose: MovementPurposeName
+    memberId?: number | null
+    itemId?: number | null
+    inventoryId?: number | null
+}
+
+/**
+ * The chain a movement would walk, asked before anybody starts one.
+ *
+ * <p>Answers null where no chain serves the combination, which is a case the wizard shows rather than
+ * an error: a station that has not written that chain needs telling, not a red banner.
+ */
+export async function resolveFlow(query: FlowQuery): Promise<FlowPreview | null> {
+    try {
+        const res = await client.get<FlowPreview>('/movement-flows/resolve', {params: query})
+        return res.data
+    } catch (e) {
+        if (isNotFound(e)) return null
+        throw e
+    }
+}
+
+function isNotFound(error: unknown): boolean {
+    return typeof error === 'object' && error !== null
+        && (error as {response?: {status?: number}}).response?.status === 404
 }
 
 export async function listFlows(): Promise<MovementFlow[]> {

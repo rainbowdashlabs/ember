@@ -8,13 +8,13 @@ package dev.chojo.ember.feature.inventory.service;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
-import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCorrection;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
+import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.SelfCheck;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckAnswer;
@@ -379,7 +379,7 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
         assertEquals(put, raised.itemId(), "against the piece they are actually holding");
         assertNotNull(raised.movementId(), "as a real swap the station can act on");
 
-        var swap = exchangeService.findById(raised.movementId()).orElseThrow();
+        var swap = itemMovementService.findById(raised.movementId()).orElseThrow();
         assertEquals(actual.id(), swap.oldSizeId(), "starting from the size that was put right, not the wrong one");
         assertEquals(asked.id(), swap.newSizeId(), "and asking for the one the member wants");
         assertEquals("Passt nicht mehr", swap.reason(), "in the member's own words");
@@ -523,10 +523,10 @@ class SelfCheckReviewServiceTest extends RepositoryTestBase {
                 .orElseThrow();
     }
 
-    /** Every swap on its way about one piece, which before a correction ought to be none. */
-    private static List<ExchangeRequest> exchangesOf(int itemId) {
-        return exchangeService.findByStation(station.id()).stream()
-                .filter(request -> request.itemId() != null && request.itemId() == itemId)
+    /** Every movement on its way about one piece, which before a correction ought to be none. */
+    private static List<ItemMovement> exchangesOf(int itemId) {
+        return itemMovementService.findByStation(station.id()).stream()
+                .filter(movement -> movement.outgoingItemId() != null && movement.outgoingItemId() == itemId)
                 .toList();
     }
 

@@ -40,18 +40,21 @@ const {t} = useI18n()
       <DataTable>
         <template #head>
           <Th>{{ t('inventory.overview.colItem') }}</Th>
+          <Th>{{ t('movements.queue.columns.purpose') }}</Th>
           <Th>{{ t('inventory.overview.colOwner') }}</Th>
-          <Th>{{ t('inventory.overview.colStatus') }}</Th>
+          <Th>{{ t('movements.queue.columns.step') }}</Th>
         </template>
         <TRow>
           <Td>Helme <MutedText size="base">[M &rarr; L]</MutedText></Td>
+          <Td>{{ t('movements.purpose.EXCHANGE') }}</Td>
           <Td>Max Mustermann</Td>
-          <Td><InfoBadge>{{ t('exchanges.status.ANNOUNCED') }}</InfoBadge></Td>
+          <Td><InfoBadge>Tausch angefordert</InfoBadge></Td>
         </TRow>
         <TRow>
           <Td>Jacken <MutedText size="base">[S &rarr; M]</MutedText></Td>
+          <Td>{{ t('movements.purpose.EXCHANGE') }}</Td>
           <Td>Erika Musterfrau</Td>
-          <Td><SecondaryBadge>{{ t('exchanges.status.RECEIVED') }}</SecondaryBadge></Td>
+          <Td><SecondaryBadge>Altes Teil zurückgenommen</SecondaryBadge></Td>
         </TRow>
       </DataTable>
     </NeutralContainer>

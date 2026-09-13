@@ -158,7 +158,7 @@ public class NotificationFeedRenderer {
             case NEW_NEWS -> ((NotificationParams.NewNews) params).author();
             case NEWS_COMMENT -> ((NotificationParams.NewsComment) params).author();
             case COMMENT_MENTION -> ((NotificationParams.CommentMention) params).author();
-            case EXCHANGE_NEW_REQUEST -> ((NotificationParams.ExchangeNewRequest) params).memberName();
+            case MOVEMENT_RAISED -> ((NotificationParams.MovementRaised) params).memberName();
             case LENDING_NEW_MESSAGE -> ((NotificationParams.LendingNewMessage) params).senderName();
             case PROCEDURE_ASSIGNED -> ((NotificationParams.ProcedureAssigned) params).assignedByName();
             case PROCEDURE_ITEM_CHECKED -> ((NotificationParams.ProcedureItemCheckedParams) params).checkedByName();
@@ -487,23 +487,20 @@ public class NotificationFeedRenderer {
                     enrichWithEventContext(details, notification, ctx);
                 }
             }
-            case EXCHANGE_NEW_REQUEST -> {
+            case MOVEMENT_RAISED -> {
                 if (params
                         instanceof
-                        NotificationParams.ExchangeNewRequest(String memberName, String inventoryName, String reason)) {
+                        NotificationParams.MovementRaised(String memberName, String inventoryName, String reason)) {
                     putIfPresent(details, label(ctx, "by"), memberName);
                     putIfPresent(details, label(ctx, "inventory", "Inventory"), inventoryName);
                     putIfPresent(details, label(ctx, "reason"), reason);
                     enrichWithInventoryContext(details, notification, ctx);
                 }
             }
-            case EXCHANGE_STATUS_CHANGE -> {
+            case MOVEMENT_ADVANCED -> {
                 if (params
                         instanceof
-                        NotificationParams.ExchangeStatusChange(
-                                String stepLabel,
-                                String inventoryName,
-                                StepActor nextActor)) {
+                        NotificationParams.MovementMoved(String stepLabel, String inventoryName, StepActor nextActor)) {
                     // The step's own words, because a station names its chain itself
                     putIfPresent(details, label(ctx, "status", "Status"), stepLabel);
                     putIfPresent(details, label(ctx, "inventory", "Inventory"), inventoryName);

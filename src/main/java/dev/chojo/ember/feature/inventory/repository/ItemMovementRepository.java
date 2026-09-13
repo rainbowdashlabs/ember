@@ -29,8 +29,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class ItemMovementRepository {
     private static final String MOVEMENT_COLUMNS = """
             id, station_id, purpose, flow_id, current_step_id, member_id, outgoing_item_id, incoming_item_id, \
-            inventory_id, old_size_id, new_size_id, state, reason, created_by, created_at, closed_at, close_reason, \
-            lost_report""";
+            inventory_id, old_size_id, new_size_id, state, reason, created_by, created_at, updated_at, closed_at, \
+            close_reason, lost_report""";
     private static final String LOG_COLUMNS =
             "id, movement_id, step_id, step_label, ack_kind, changed_by, changed_at, note";
 
@@ -141,12 +141,38 @@ public class ItemMovementRepository {
                 .first();
     }
 
+    /**
+     * The open movement that has promised or received this piece, if one has.
+     *
+     * <p>The mirror of {@link #findOpenByOutgoingItem(int)}, and needed for the same reason: a piece
+     * promised to one member must not be promised to another, or handed over the counter to a third.
+     *
+     * @param itemId the piece
+     * @return the open movement that names it as arriving, or empty
+     */
+    public Optional<ItemMovement> findOpenByIncomingItem(int itemId) {
+        return query("""
+                SELECT %s FROM item_movement WHERE incoming_item_id = :item_id AND state = :open \
+                ORDER BY created_at LIMIT 1;""", MOVEMENT_COLUMNS)
+                .single(call().bind("item_id", itemId).bind("open", MovementState.OPEN))
+                .map(ItemMovement.map())
+                .first();
+    }
+
     public int countOpenByStation(int stationId) {
         return SqlSupport.count(
                 "SELECT count(*) FROM item_movement WHERE station_id = :station_id AND state = :open;",
                 call().bind("station_id", stationId).bind("open", MovementState.OPEN));
     }
 
+    /**
+     * Writes down a movement, with the piece that is arriving where one is already known.
+     *
+     * <p>A planned hand-out names its piece before anything moves, so the column is written at creation
+     * and the step that names the arrival confirms what is already there.
+     *
+     * @param incomingItemId the piece arriving, or {@code null} when nobody has named one yet
+     */
     public ItemMovement create(
             int stationId,
             MovementPurpose purpose,
@@ -154,6 +180,7 @@ public class ItemMovementRepository {
             Integer currentStepId,
             Integer memberId,
             Integer outgoingItemId,
+            Integer incomingItemId,
             Integer inventoryId,
             Integer oldSizeId,
             Integer newSizeId,
@@ -163,9 +190,11 @@ public class ItemMovementRepository {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO item_movement(station_id, purpose, flow_id, current_step_id, member_id, outgoing_item_id,
-                                          inventory_id, old_size_id, new_size_id, reason, created_by, lost_report)
+                                          incoming_item_id, inventory_id, old_size_id, new_size_id, reason,
+                                          created_by, lost_report)
                 VALUES (:station_id, :purpose, :flow_id, :current_step_id, :member_id, :outgoing_item_id,
-                        :inventory_id, :old_size_id, :new_size_id, :reason, :created_by, :lost_report)
+                        :incoming_item_id, :inventory_id, :old_size_id, :new_size_id, :reason,
+                        :created_by, :lost_report)
                 RETURNING %s;""",
                 call().bind("lost_report", lostReport)
                         .bind("station_id", stationId)
@@ -174,6 +203,7 @@ public class ItemMovementRepository {
                         .bind("current_step_id", currentStepId)
                         .bind("member_id", memberId)
                         .bind("outgoing_item_id", outgoingItemId)
+                        .bind("incoming_item_id", incomingItemId)
                         .bind("inventory_id", inventoryId)
                         .bind("old_size_id", oldSizeId)
                         .bind("new_size_id", newSizeId)
@@ -190,7 +220,7 @@ public class ItemMovementRepository {
      * @param stepId the step it now stands on, or {@code null} when it has reached the end
      */
     public boolean moveToStep(int id, Integer stepId) {
-        return query("UPDATE item_movement SET current_step_id = :step_id WHERE id = :id;")
+        return query("UPDATE item_movement SET current_step_id = :step_id, updated_at = NOW() WHERE id = :id;")
                 .single(call().bind("step_id", stepId).bind("id", id))
                 .update()
                 .changed();
@@ -210,14 +240,17 @@ public class ItemMovementRepository {
      * @return whether it moved
      */
     public boolean moveToFlow(int id, int flowId, Integer stepId) {
-        return query("UPDATE item_movement SET flow_id = :flow_id, current_step_id = :step_id WHERE id = :id;")
+        return query("""
+                UPDATE item_movement
+                SET flow_id = :flow_id, current_step_id = :step_id, updated_at = NOW()
+                WHERE id = :id;""")
                 .single(call().bind("flow_id", flowId).bind("step_id", stepId).bind("id", id))
                 .update()
                 .changed();
     }
 
     public boolean setIncomingItem(int id, Integer itemId) {
-        return query("UPDATE item_movement SET incoming_item_id = :item_id WHERE id = :id;")
+        return query("UPDATE item_movement SET incoming_item_id = :item_id, updated_at = NOW() WHERE id = :id;")
                 .single(call().bind("item_id", itemId).bind("id", id))
                 .update()
                 .changed();
@@ -233,7 +266,8 @@ public class ItemMovementRepository {
                 SET state           = :state,
                     current_step_id = NULL,
                     closed_at       = :closed_at,
-                    close_reason    = :close_reason
+                    close_reason    = :close_reason,
+                    updated_at      = NOW()
                 WHERE id = :id;""")
                 .single(call().bind("state", state)
                         .bind("closed_at", Instant.now(), INSTANT_TIMESTAMP)
@@ -254,7 +288,8 @@ public class ItemMovementRepository {
                 UPDATE item_movement
                 SET state        = :state,
                     closed_at    = NULL,
-                    close_reason = NULL
+                    close_reason = NULL,
+                    updated_at   = NOW()
                 WHERE id = :id;""")
                 .single(call().bind("state", MovementState.OPEN).bind("id", id))
                 .update()

@@ -19,7 +19,6 @@ import type { ProfileFieldChange } from '@/api/profileFieldChanges'
 import type { ProfileField } from '@/api/profileFields'
 import type { StationMember, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
 import type { MemberRequirements, MyInventoryItem } from '@/api/inventory'
-import type { ExchangeRequestEntry } from '@/api/exchanges'
 
 defineProps<{
   member: StationMember
@@ -48,7 +47,6 @@ defineProps<{
   getManagerFieldValue: (mgrId: number, fieldId: number) => unknown
   memberInventory: MyInventoryItem[]
   memberRequirements: MemberRequirements
-  memberExchanges: ExchangeRequestEntry[]
   showInventoryManagement: boolean
   canManageInventory: boolean
 }>()
@@ -110,7 +108,7 @@ const activeTab = ref('profile')
 
   <InventoryTab
     v-if="activeTab === 'inventory'"
-    :member-inventory="memberInventory" :member-exchanges="memberExchanges"
+    :member-inventory="memberInventory"
     :member-requirements="memberRequirements"
     :show-inventory-management="showInventoryManagement"
     :can-manage-inventory="canManageInventory" :can-edit="canEdit"

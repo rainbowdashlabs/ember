@@ -23,7 +23,6 @@ import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.v
 import Modal from '@/components/feedback/Modal.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import type {MyInventoryItem} from '@/api/inventory'
-import type {ExchangeRequestEntry} from '@/api/exchanges'
 
 const {t} = useI18n()
 
@@ -38,17 +37,12 @@ const dummyHelm: MyInventoryItem = {
   id: 1, inventoryId: 1, inventoryName: 'Helme', inventoryHomogeneous: true, name: 'Helm #12',
   sizeName: 'M', sizeId: 2, internalId: 'HLM-2024-012', lostAt: null,
 }
-const dummyJacke: MyInventoryItem = {
+/** A piece with something running on it says the step it stands on, in the chain's own words. */
+const dummyJackeOnItsWay: MyInventoryItem = {
   id: 2, inventoryId: 2, inventoryName: 'Jacken', inventoryHomogeneous: true, name: 'Einsatzjacke #7',
   sizeName: 'L', sizeId: 3, internalId: 'JCK-2023-007', lostAt: null,
+  movementId: 1, movementStep: 'Tausch angefordert',
 }
-const dummyJackeExchange = {
-  id: 1, memberId: 1, memberName: 'Max Mustermann', itemId: 2,
-  inventoryId: 2, inventoryName: 'Jacken', inventoryType: 'SIZED',
-  oldSizeId: 3, oldSizeLabel: 'L', newSizeId: 4, newSizeLabel: 'XL',
-  reason: 'Zu klein geworden', status: 'ANNOUNCED',
-  createdAt: '2026-01-15T10:00:00Z', updatedAt: '2026-01-15T10:00:00Z',
-} as ExchangeRequestEntry
 const dummyStiefel: MyInventoryItem = {
   id: 3, inventoryId: 3, inventoryName: 'Stiefel', inventoryHomogeneous: true, name: 'Stiefel #3',
   sizeName: '42', sizeId: 4, lostAt: '2026-03-01T00:00:00Z',
@@ -95,7 +89,7 @@ const dummyStiefel: MyInventoryItem = {
           <span class="text-sm text-(--text-muted)">1 / 1</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          <InventoryItemCard :item="dummyJacke" :exchange="dummyJackeExchange" :show-exchange-button="true"/>
+          <InventoryItemCard :item="dummyJackeOnItsWay" :show-exchange-button="true"/>
         </div>
       </div>
 
@@ -140,9 +134,9 @@ const dummyStiefel: MyInventoryItem = {
           Helme - Helm #12 <SizeBadge>M</SizeBadge>
         </p>
         <div class="space-y-1">
-          <FieldLabel>{{ t('exchanges.newSize') }}</FieldLabel>
+          <FieldLabel>{{ t('movements.newSize') }}</FieldLabel>
           <SelectInput model-value="">
-            <option value="" disabled>{{ t('exchanges.selectNewSize') }}</option>
+            <option value="" disabled>{{ t('movements.selectNewSize') }}</option>
             <option value="1">S</option>
             <option value="2">M</option>
             <option value="3">L</option>

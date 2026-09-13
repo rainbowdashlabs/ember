@@ -68,16 +68,13 @@ const {managedMembers, availableManaged, linkManaged, removeManaged} =
 
 const {
   items: memberInventory,
-  exchangeRequests: memberExchanges,
-  exchangeSizes,
   requirements: memberRequirements,
   load: loadMemberInventory,
   assignItem,
+  planHandOut,
   handOutNewItem,
   unassignItem,
   reassignItem,
-  submitExchange,
-  loadExchangeSizes,
 } = useMemberInventory(memberId, error)
 
 const {
@@ -190,7 +187,6 @@ const loadedTabsProps = computed(() => ({
   getManagerFieldValue,
   memberInventory: memberInventory.value,
   memberRequirements: memberRequirements.value,
-  memberExchanges: memberExchanges.value,
   showInventoryManagement: showInventoryManagement.value,
   canManageInventory: canManageInventory(),
 }))
@@ -204,7 +200,6 @@ const detailModalsProps = computed(() => ({
   allMembers: allMembers.value,
   memberId: memberId.value,
   memberDisplayNameFn: memberDisplayName,
-  exchangeSizes: exchangeSizes.value,
 }))
 
 </script>
@@ -251,9 +246,9 @@ const detailModalsProps = computed(() => ({
         @mark-former="markFormer"
         @delete-member="deleteMember"
         @assign-item="assignItem"
+        @plan-hand-out="planHandOut"
         @reassign-item="reassignItem"
-        @submit-exchange="submitExchange"
-        @load-exchange-sizes="loadExchangeSizes"
+        @exchange-started="loadMemberInventory"
       />
     </div>
   </ViewContent>

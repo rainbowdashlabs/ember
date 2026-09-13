@@ -48,6 +48,12 @@ public record ItemMovement(
         String reason,
         Integer createdBy,
         Instant createdAt,
+        /**
+         * When it last moved: a step acknowledged, forced or corrected, a refusal, a call-off or a move
+         * onto another chain. A queue is read by what has gone quiet, and the starting date cannot say
+         * that.
+         */
+        Instant updatedAt,
         Instant closedAt,
         String closeReason,
         boolean lostReport) {
@@ -71,6 +77,7 @@ public record ItemMovement(
                 row.getString("reason"),
                 row.getObject("created_by", Integer.class),
                 row.get("created_at", INSTANT_TIMESTAMP),
+                row.get("updated_at", INSTANT_TIMESTAMP),
                 row.get("closed_at", INSTANT_TIMESTAMP),
                 row.getString("close_reason"),
                 row.getBoolean("lost_report"));

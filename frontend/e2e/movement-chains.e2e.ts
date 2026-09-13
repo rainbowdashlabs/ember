@@ -169,13 +169,12 @@ test.describe('Movement chains', () => {
     })
 
     /**
-     * ITM-21 - The list never reads backwards while a chain is walked.
+     * ITM-21 - The queue never reads backwards while a chain is walked.
      *
      * The owner confirming that the old piece reached it is progress, not a step back. Read off custody
      * alone it looked like one, because gear "with the owner" is the station's own shelf for the
      * station's own gear and the association's store for the association's. Reading both the same way
-     * sent the row from shipped back to received, and the screen that walks by status could not get
-     * past it.
+     * sent the row from a later step back to an earlier one, and nothing could get past it.
      */
     test('an exchange of the owner\'s gear never reads backwards', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
@@ -192,25 +191,24 @@ test.describe('Movement chains', () => {
         })
         expect(started.ok(), await started.text()).toBeTruthy()
         const opened = await started.json()
-        const seen: string[] = []
+        const seen: {position: number; label: string; actor: string}[] = []
 
         for (let guard = 10; guard > 0; guard -= 1) {
             const now = await detail(page, headers, opened.movement.id)
-            const listed = await page.request.get('/api/v1/exchanges', {headers}).then(r => r.json())
-            const row = listed.find((entry: {id: number}) => entry.id === opened.movement.id)
-            if (row) seen.push(row.status)
-            if (now.movement.state !== 'OPEN') break
             const current = now.steps.find((step: {current: boolean}) => step.current)
+            if (current) seen.push({position: current.position, label: current.label, actor: current.actor})
+            if (now.movement.state !== 'OPEN') break
             if (!current?.actionable) break
             await page.request.post(`/api/v1/movements/${opened.movement.id}/acknowledge`,
                 {headers, data: {stepId: current.id, note: '', pickedItemId: current.picksItem ? spare.id : null}})
         }
 
-        const order = ['ANNOUNCED', 'RECEIVED', 'SHIPPED', 'ARRIVED', 'DONE']
-        const walkedBack = seen.some((status, i) => i > 0 && order.indexOf(status) < order.indexOf(seen[i - 1]!))
-        expect(walkedBack, `the list went backwards: ${seen.join(' -> ')}`).toBeFalsy()
+        const walk = seen.map(step => step.label).join(' -> ')
+        const walkedBack = seen.some((step, i) => i > 0 && step.position < seen[i - 1]!.position)
+        expect(walkedBack, `the queue went backwards: ${walk}`).toBeFalsy()
 
-        expect(seen, 'the walk was long enough to show the owner leg').toContain('SHIPPED')
+        expect(seen.some(step => step.actor === 'OWNER'),
+            `the walk was long enough to reach the owner leg: ${walk}`).toBeTruthy()
     })
 
     /**

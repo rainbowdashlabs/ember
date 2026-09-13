@@ -4,12 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {fromMember} from '@/components/input/select/memberOption'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import type {ManagedMember} from '@/api/managedMembers'
@@ -22,7 +23,7 @@ import type {ManagedMember} from '@/api/managedMembers'
  */
 const visible = defineModel<boolean>({required: true})
 
-defineProps<{
+const props = defineProps<{
   managed: ManagedMember[]
   loading: boolean
 }>()
@@ -33,6 +34,16 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 const forMemberId = ref<number | null>(null)
+
+const managedOptions = computed(() => props.managed.map(fromMember))
+
+/** The menu speaks in strings, and the empty one means the reader is claiming for themselves. */
+const claimFor = computed({
+  get: () => (forMemberId.value != null ? String(forMemberId.value) : ''),
+  set: value => {
+    forMemberId.value = value ? Number(value) : null
+  },
+})
 
 watch(visible, value => {
   if (value) forMemberId.value = null
@@ -47,10 +58,14 @@ watch(visible, value => {
 
       <div v-if="managed.length" class="space-y-1">
         <FieldLabel>{{ t('lostAndFound.claimFor') }}</FieldLabel>
-        <SelectInput v-model="forMemberId" class="w-full" data-testid="claim-for">
-          <option :value="null">{{ t('lostAndFound.claimForMyself') }}</option>
-          <option v-for="member in managed" :key="member.id" :value="member.id">{{ member.name }}</option>
-        </SelectInput>
+        <MemberSelectInput
+            v-model="claimFor"
+            data-testid="claim-for"
+            clearable
+            :members="managedOptions"
+            :empty-label="t('lostAndFound.claimForMyself')"
+            :placeholder="t('lostAndFound.claimForMyself')"
+        />
       </div>
 
       <div class="flex justify-end gap-2">

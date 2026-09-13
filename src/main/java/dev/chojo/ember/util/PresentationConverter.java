@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -55,7 +56,7 @@ public final class PresentationConverter {
                     .redirectErrorStream(true)
                     .start();
 
-            String processOutput = new String(process.getInputStream().readAllBytes());
+            String processOutput = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             int exitCode = process.waitFor();
 
             if (exitCode != 0) {

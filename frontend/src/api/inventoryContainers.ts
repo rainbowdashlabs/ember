@@ -13,6 +13,8 @@ export interface InventoryContainerKind {
     key: string
     label: string
     icon: string
+    /** The colour the icon is drawn in, absent for the muted neutral. */
+    color?: string | null
     sortOrder: number
     enabled: boolean
 }
@@ -21,6 +23,7 @@ export interface KindRequest {
     key: string
     label: string
     icon?: string
+    color?: string | null
     sortOrder: number
     enabled: boolean
 }

@@ -5,6 +5,8 @@
  */
 import {test, expect} from './fixtures/auth'
 import {unique} from './fixtures/unique'
+import {createMember} from './fixtures/member'
+import {pickMemberByName} from './fixtures/memberMenu'
 
 /**
  * Granting a right and watching the page appear for the member holding it needs both
@@ -13,9 +15,16 @@ import {unique} from './fixtures/unique'
  * the label rather than of the permission.
  */
 test.describe('Permissions', () => {
-    /** A group is only useful once somebody is in it, and the members tab is where they go in. */
+    /**
+     * A group is only useful once somebody is in it, and the members tab is where they go in.
+     *
+     * <p>Somebody of this story's own goes in, rather than whoever the menu offers first: the seeded
+     * people are shared with every story running beside it, and one of them marking that person former
+     * took the row this story was waiting for off the page.
+     */
     test('a member is put into a group', async ({managerPage: page}) => {
         const group = unique('Gruppe')
+        const surname = await createMember(page)
 
         await page.goto('/station/members/groups')
         await page.getByRole('button', {name: 'Neue Gruppe'}).click()
@@ -23,14 +32,11 @@ test.describe('Permissions', () => {
         await page.getByRole('button', {name: /Speichern|Erstellen/}).last().click()
         await page.getByText(group).first().click()
 
-        const candidate = page.getByTestId('group-candidate').first()
-        await expect(candidate).toBeVisible()
-        const name = (await candidate.innerText()).split('\n')[0]
-        await candidate.click()
+        await pickMemberByName(page, surname)
 
         await page.reload()
         await page.getByText(group).first().click()
-        await expect(page.getByText(name).first()).toBeVisible()
+        await expect(page.getByText(surname).first()).toBeVisible()
     })
 
     test('a group is created', async ({managerPage: page}) => {

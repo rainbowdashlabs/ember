@@ -9,6 +9,8 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemMovement;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.SwitchBlockerKind;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -40,7 +42,6 @@ class InventoryKindTest extends RepositoryTestBase {
 
     private static InventoryService service;
     private static ProcurementService procurementService;
-    private static ExchangeService exchangeService;
     private static Station station;
     private static Account account;
     private static StationMember member;
@@ -55,8 +56,15 @@ class InventoryKindTest extends RepositoryTestBase {
                 clusterRepo,
                 clusterStationGroupRepo);
         procurementService = new ProcurementService(
-                procurementRepo, service, inventoryRepo, clusterRepo, itemCustodyService, new DomainEventBus(Set.of()));
-        exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
+                procurementRepo,
+                service,
+                inventoryRepo,
+                clusterRepo,
+                itemCustodyService,
+                itemMovementService,
+                stationMemberRepo,
+                accountRepo,
+                new DomainEventBus(Set.of()));
         station = stationRepo.create("KindStation");
         account = accountRepo.create("kind-svc@test.com", "Kind", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -76,6 +84,22 @@ class InventoryKindTest extends RepositoryTestBase {
     private static int oneThing(String name, boolean hasSizes) {
         return service.create(station.id(), name + NAMES.incrementAndGet(), InventoryType.INTERNAL, hasSizes, true)
                 .id();
+    }
+
+    /** A swap of this member's piece, raised the way every screen raises one. */
+    private static ItemMovement swapOf(int itemId, int inventoryId) {
+        return itemMovementService.create(
+                station.id(),
+                MovementPurpose.EXCHANGE,
+                member.id(),
+                "Kind Tester",
+                itemId,
+                inventoryId,
+                null,
+                null,
+                "Zu klein",
+                new ItemMovementService.Actor(member.id(), true),
+                null);
     }
 
     // -- The barriers --
@@ -103,10 +127,7 @@ class InventoryKindTest extends RepositoryTestBase {
         int id = drawer("Leibchen");
         var item = inventoryRepo.createItem(id, "LB-001", "Laminiergerät", null, null);
         itemCustodyService.assignToMember(item.id(), member.id(), "");
-        assertThrows(
-                BadRequestResponse.class,
-                () -> exchangeService.create(
-                        station.id(), member.id(), "Kind Tester", item.id(), id, null, null, "Zu klein", null));
+        assertThrows(BadRequestResponse.class, () -> swapOf(item.id(), id));
         service.delete(id);
     }
 
@@ -216,8 +237,7 @@ class InventoryKindTest extends RepositoryTestBase {
         int id = oneThing("Parka", false);
         var item = inventoryRepo.createItem(id, "PA-" + NAMES.incrementAndGet(), "Parka", null, null);
         itemCustodyService.assignToMember(item.id(), member.id(), "");
-        var exchange = exchangeService.create(
-                station.id(), member.id(), "Kind Tester", item.id(), id, null, null, "Zu klein", null);
+        var exchange = swapOf(item.id(), id);
 
         var refused = assertThrows(
                 InventorySwitchRefusedException.class,

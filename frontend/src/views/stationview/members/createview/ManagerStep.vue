@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -12,11 +12,13 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {StationMember} from '@/api/types'
+import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
+import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
+import {StationUserType, type StationMember} from '@/api/types'
 
 const {t} = useI18n()
 
-defineProps<{
+const props = defineProps<{
   members: StationMember[]
   selectedIds: Set<number>
   createdManagers: Array<{ id: number; memberId: number; firstName: string; lastName: string; email: string }>
@@ -26,7 +28,7 @@ defineProps<{
 const emit = defineEmits<{
   next: []
   back: []
-  toggleManager: [id: number]
+  setManagers: [ids: number[]]
   createManager: [data: { firstName: string; lastName: string; email: string }]
 }>()
 
@@ -34,9 +36,17 @@ const newFirstName = ref('')
 const newLastName = ref('')
 const newEmail = ref('')
 
-function memberDisplayName(m: StationMember): string {
-  return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
-}
+const candidates = computed(() => props.members.map(fromMember))
+const userTypes = computed(() => userTypesOf(candidates.value))
+
+/**
+ * The menu speaks in strings and a member id out of the database is a number, which is the one
+ * translation between them.
+ */
+const chosen = computed({
+  get: () => [...props.selectedIds].map(String),
+  set: values => emit('setManagers', values.map(Number)),
+})
 
 function submitCreate() {
   emit('createManager', {firstName: newFirstName.value, lastName: newLastName.value, email: newEmail.value})
@@ -53,16 +63,14 @@ function submitCreate() {
 
     <div v-if="members.length > 0" class="space-y-2">
       <SubHeader class="text-sm font-semibold uppercase text-(--text-muted)">{{ t('membersCreate.existingManagers') }}</SubHeader>
-      <div
-          v-for="member in members"
-          :key="member.id"
-          :class="selectedIds.has(member.id) ? 'border-primary bg-primary/10 ring-2 ring-primary/30' : 'border-bg-light-accent dark:border-bg-dark-accent hover:border-primary'"
-          class="flex items-center justify-between rounded-lg px-4 py-3 border cursor-pointer transition-colors"
-          @click="emit('toggleManager', member.id)"
-      >
-        <span class="font-medium">{{ memberDisplayName(member) }}</span>
-        <font-awesome-icon v-if="selectedIds.has(member.id)" :icon="['fas', 'check']" class="text-primary"/>
-      </div>
+      <MemberSelectInput
+          v-model:selected="chosen"
+          multiple
+          :members="candidates"
+          :user-types="userTypes"
+          :opening-user-type="StationUserType.GUARDIAN"
+          :placeholder="t('membersCreate.existingManagers')"
+      />
     </div>
 
     <div class="space-y-3 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">

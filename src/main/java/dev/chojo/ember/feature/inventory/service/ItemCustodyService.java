@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.service;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -29,10 +30,30 @@ import java.util.Optional;
 public class ItemCustodyService {
     private static final Logger log = LoggerFactory.getLogger(ItemCustodyService.class);
     private final InventoryRepository inventoryRepository;
+    private final ItemMovementRepository movementRepository;
 
     @Inject
-    public ItemCustodyService(InventoryRepository inventoryRepository) {
+    public ItemCustodyService(InventoryRepository inventoryRepository, ItemMovementRepository movementRepository) {
         this.inventoryRepository = inventoryRepository;
+        this.movementRepository = movementRepository;
+    }
+
+    /**
+     * Refuses a piece another movement has promised to somebody.
+     *
+     * <p>A planned hand-out names its piece up front and leaves it where it is, which is exactly what
+     * makes it available to a second pair of hands. The counter is the one path that writes custody
+     * without walking a chain, so the promise has to be read here or it is no promise at all.
+     *
+     * @param itemId the piece about to be handed over
+     * @throws BadRequestResponse naming the movement that promised it
+     */
+    private void requireNobodyIsWaitingForIt(int itemId) {
+        movementRepository.findOpenByIncomingItem(itemId).ifPresent(open -> {
+            throw new BadRequestResponse(
+                    "This piece is promised to movement %d, so hand it over there or call that one off"
+                            .formatted(open.id()));
+        });
     }
 
     /**
@@ -55,6 +76,7 @@ public class ItemCustodyService {
             throw new BadRequestResponse("Item %d cannot be handed out: it is %s"
                     .formatted(itemId, item.custody().name()));
         }
+        requireNobodyIsWaitingForIt(itemId);
 
         return writeAssignment(item, memberId, memberName);
     }
